@@ -1,7 +1,7 @@
-INCLUDE = -I../../src/
+INCLUDE = -I../src/
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
-OUTPUT_DIR = ../../out/simulators-cpp/
+OUTPUT_DIR = ../out/simulators-cpp
 
 CC = g++
 

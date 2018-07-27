@@ -404,9 +404,9 @@ Op json_to_op_measure(const json_t &js) {
   if (op.memory.empty() == false && op.memory.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid measure operation: \"memory\" and \"qubits\" are different lengths.");
   }
-  // Load memory (if present)
+  // Load registers (if present)
   JSON::get_value(op.registers, "register", js);
-  if (op.registers.empty() == false && op.registers.size() != op.registers.size()) {
+  if (op.registers.empty() == false && op.registers.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid measure operation: \"register\" and \"qubits\" are different lengths.");
   }
   return op;

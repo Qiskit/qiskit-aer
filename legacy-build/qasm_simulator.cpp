@@ -20,6 +20,7 @@
 // Simulator
 #include "base/controller.hpp"
 #include "engines/qasm_engine.hpp"
+#include "simulators/qubitvector/qv_qasm_engine.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
 
 /*******************************************************************************
@@ -65,11 +66,12 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     
-    using state_t = QV::QubitVector;                  // State data type
+    //using state_t = QV::QubitVector;                  // State data type
     using State = AER::QubitVector::State;            // State class
-    using Engine = AER::Engines::QasmEngine<state_t>; // Engine class
+    //using Engine = AER::Engines::QasmEngine<state_t>; // Engine class
+    using Engine = AER::QubitVector::QasmEngine; // Optimized Engine class
     AER::Base::Controller<State, Engine> sim;
-    out << sim.execute(qobj, -1).dump(4) << std::endl;
+    out << sim.execute(qobj, 1).dump(4) << std::endl;
     return 0;
   } catch (std::exception &e) {
     std::stringstream msg;

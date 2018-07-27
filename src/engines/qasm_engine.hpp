@@ -64,7 +64,7 @@ public:
 
   // Load Engine config settings
   // Config settings for this engine are of the form:
-  // { "counts": bool, "memory": bool, "register": bool};
+  // { "counts": true, "hex_output": true, "memory": false, "register": false};
   // with default values true, false, false
   virtual void load_config(const json_t &config) override;
 
