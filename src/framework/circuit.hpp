@@ -15,6 +15,7 @@
 #define _aer_framework_circuit_hpp_
 
 #include <algorithm>  // for std::copy
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -38,6 +39,9 @@ public:
   uint_t num_memory = 0;    // maxmimum number of memory clbits needed for ops
   uint_t num_registers = 0; // maxmimum number of registers clbits needed for ops
 
+  uint_t shots = 1;
+  uint_t seed;
+
   // Optional data members from QOBJ
   json_t header;
   json_t config;
@@ -45,7 +49,8 @@ public:
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
   // parameters by scaning the input list of ops.
-  inline Circuit(const std::vector<Op> &_ops) : ops(_ops) { set_sizes();};
+  Circuit() {seed = std::random_device()();};
+  inline Circuit(const std::vector<Op> &_ops) : Circuit() {ops = _ops; set_sizes();};
 
   // Construct a circuit from JSON
   Circuit(const json_t &js);
@@ -81,11 +86,14 @@ void Circuit::set_sizes() {
 }
 
 
-Circuit::Circuit(const json_t &js) {
+Circuit::Circuit(const json_t &js) : Circuit() {
 
   // Get header and config
   JSON::get_value(header, "header", js);
   JSON::get_value(config, "config", js);
+  JSON::get_value(shots, "shots", config);
+  JSON::get_value(seed, "seed", config);
+
   // Get operations
   if (JSON::check_key("instructions", js) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
