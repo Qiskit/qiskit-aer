@@ -39,7 +39,7 @@ using myclock_t = std::chrono::high_resolution_clock;
 // Controller base class
 //============================================================================
 
-template <class State_t, class Engine_t>
+template < class Engine_t, class State_t>
 class Controller {
 public:
   
@@ -55,8 +55,8 @@ public:
   inline void load_engine_config(const json_t &config) {engine_.load_config(config);};
   inline void load_state_config(const json_t &config) {state_.load_config(config);};
   
-  inline int get_num_threads_() {return num_threads_;};
-  inline void set_num_threads_(int threads) {num_threads_ = std::min(std::max(1, threads), omp_ncpus_);};
+  inline int get_num_threads() {return num_threads_;};
+  inline void set_num_threads(int threads) {num_threads_ = std::min(std::max(1, threads), omp_ncpus_);};
   
   //----------------------------------------------------------------
   // Executing qobj
@@ -88,8 +88,8 @@ protected:
  *
  ******************************************************************************/
 
-template <class State_t, class Engine_t>
-Controller<State_t, Engine_t>::Controller() {
+template <class Engine_t, class State_t>
+Controller<Engine_t, State_t>::Controller() {
   // OpenMP Setup
   #ifdef _OPENMP
     omp_ncpus_ = std::max(1, omp_get_num_procs());
@@ -98,9 +98,9 @@ Controller<State_t, Engine_t>::Controller() {
   #endif
 }
 
-template <class State_t, class Engine_t>
-Controller<State_t, Engine_t>::Controller(State_t state, Engine_t engine)
-  : Controller<State_t, Engine_t>() {
+template < class Engine_t, class State_t>
+Controller<Engine_t, State_t>::Controller(State_t state, Engine_t engine)
+  : Controller<Engine_t, State_t>() {
     state_ = state;
     engine_ = engine;
 }
@@ -109,8 +109,8 @@ Controller<State_t, Engine_t>::Controller(State_t state, Engine_t engine)
 // Execution
 //============================================================================
 
-template <class State_t, class Engine_t>
-json_t Controller<State_t, Engine_t>::execute(const Qobj &qobj, int threads) const{
+template < class Engine_t, class State_t>
+json_t Controller<Engine_t, State_t>::execute(const Qobj &qobj, int threads) const{
 
   // Start Simulation timer
   std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
@@ -148,8 +148,8 @@ json_t Controller<State_t, Engine_t>::execute(const Qobj &qobj, int threads) con
 
 //------------------------------------------------------------------------------
 
-template <class State_t, class Engine_t>
-json_t Controller<State_t, Engine_t>::execute(const json_t &qobj_js,
+template < class Engine_t, class State_t>
+json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
                                               int threads) const {
 
   // Load QOBJ from json
@@ -169,8 +169,8 @@ json_t Controller<State_t, Engine_t>::execute(const json_t &qobj_js,
 
 //------------------------------------------------------------------------------
 
-template <class State_t, class Engine_t>
-json_t Controller<State_t, Engine_t>::execute_circuit(const Circuit &circ, int threads) const {
+template < class Engine_t, class State_t>
+json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ, int threads) const {
   
   // Initialize Return
   json_t ret;

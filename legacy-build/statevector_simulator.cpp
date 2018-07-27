@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
     using state_t = QV::QubitVector;                  // State data type
     using State = AER::QubitVector::State;            // State class
     using Engine = AER::Engines::FinalStateEngine<state_t>; // Engine class
-    AER::Base::Controller<State, Engine> sim;
-    out << sim.execute(qobj, -1).dump(4) << std::endl;
+    AER::Base::Controller<Engine, State> sim;
+    out << sim.execute(qobj, 1).dump(4) << std::endl;
     return 0;
   } catch (std::exception &e) {
     std::stringstream msg;
