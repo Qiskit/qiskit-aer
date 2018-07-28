@@ -16,6 +16,7 @@
 
 #include <algorithm>  // for std::copy
 #include <random>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -57,6 +58,24 @@ public:
 
   // Automatically set the number of qubits, memory, registers based on ops
   void set_sizes();
+
+  // Check if all circuit ops are in an allowed op set
+  bool check_ops(const std::set<std::string> &allowed_ops) const;
+  
+  // Check if any circuit ops are conditional ops
+  bool has_conditional() const;
+
+  // Check if circuit containts a specific op
+  bool has_op(std::string name) const;
+
+  // return minimum and maximum op.qubit arguments as pair (min, max)
+  std::pair<uint_t, uint_t> minmax_qubits() const;
+
+  // return minimum and maximum op.memory arguments as pair (min, max)
+  std::pair<uint_t, uint_t> minmax_memory() const;
+
+  // return minimum and maximum op.registers arguments as pair (min, max)
+  std::pair<uint_t, uint_t> minmax_registers() const;
 };
 
 // Json conversion function
@@ -106,6 +125,80 @@ Circuit::Circuit(const json_t &js) : Circuit() {
   set_sizes();
 }
 
+
+bool Circuit::check_ops(const std::set<std::string> &allowed_ops) const {
+  for (const auto &op : ops) {
+    if (allowed_ops.find(op.name) == allowed_ops.end())
+      return false;
+  }
+  return true;
+}
+
+
+bool Circuit::has_conditional() const {
+   for (const auto &op: ops) {
+    if (op.conditional)
+      return true;
+  }
+  return false;
+};
+
+
+bool Circuit::has_op(std::string name) const {
+  for (const auto &op: ops) {
+    if (op.name == name)
+      return true;
+  }
+  return false;
+};
+
+
+std::pair<uint_t, uint_t> Circuit::minmax_qubits() const{
+  uint_t min = 0;
+  uint_t max = 0;
+  for (const auto &op: ops) {
+    if (op.qubits.empty() == false) {
+      auto minmax = std::minmax_element(std::begin(op.qubits),
+                                        std::end(op.qubits));
+      min = std::min(min, *minmax.first);
+      max = std::max(max, *minmax.second);
+    }
+  }
+  return std::make_pair(min, max);
+}
+
+
+std::pair<uint_t, uint_t> Circuit::minmax_memory() const {
+  uint_t min = 0;
+  uint_t max = 0;
+  for (const auto &op: ops) {
+    if (op.memory.empty() == false) {
+      auto minmax = std::minmax_element(std::begin(op.memory),
+                                        std::end(op.memory));
+      min = std::min(min, *minmax.first);
+      max = std::max(max, *minmax.second);
+    }
+  }
+  return std::make_pair(min, max);
+}
+
+
+std::pair<uint_t, uint_t> Circuit::minmax_registers() const {
+  uint_t min = 0;
+  uint_t max = 0;
+  for (const auto &op: ops) {
+    if (op.registers.empty() == false) {
+      auto minmax = std::minmax_element(std::begin(op.registers),
+                                        std::end(op.registers));
+      min = std::min(min, *minmax.first);
+      max = std::max(max, *minmax.second);
+    }
+  }
+  return std::make_pair(min, max);
+}
+
+
 //------------------------------------------------------------------------------
-} // end namespace QISKIT
+} // end namespace AER
+//------------------------------------------------------------------------------
 #endif

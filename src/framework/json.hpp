@@ -195,20 +195,20 @@ bool JSON::get_value(T &var, std::string key, const json_t &js) {
 // JSON Conversion
 //------------------------------------------------------------------------------
 
-template <typename T>
-void std::to_json(json_t &js, const std::complex<T> &z) {
-  js = std::pair<T,T>{z.real(), z.imag()};
+template <typename RealType>
+void std::to_json(json_t &js, const std::complex<RealType> &z) {
+  js = std::pair<RealType, RealType>{z.real(), z.imag()};
 }
 
-template <typename T>
-void std::from_json(const json_t &js, std::complex<T> &z) {
+template <typename RealType>
+void std::from_json(const json_t &js, std::complex<RealType> &z) {
   if (js.is_number())
-    z = std::complex<T>{js.get<T>()};
+    z = std::complex<RealType>{js.get<RealType>()};
   else if (js.is_array() && js.size() == 2) {
-    z = std::complex<T>{js[0].get<T>(), js[1].get<T>()};
+    z = std::complex<RealType>{js[0].get<RealType>(), js[1].get<RealType>()};
   } else {
-    throw std::runtime_error(
-        std::string("failed to parse json_t value as a complex number"));
+    throw std::invalid_argument(
+        std::string("JSON: invalid complex number"));
   }
 }
 
@@ -230,8 +230,8 @@ void std::from_json(const json_t &js, std::vector<std::complex<RealType>> &vec) 
     vec = ret;
   } 
   else {
-    throw std::runtime_error(
-        std::string("failed to parse json_t value as a complex vector"));
+    throw std::invalid_argument(
+        std::string("JSON: invalid complex vector."));
   }
 }
 
@@ -261,38 +261,45 @@ void std::to_json(json_t &js, const std::map<uint64_t, T1, T2> &map) {
 //------------------------------------------------------------------------------
 
 template <typename T> void to_json(json_t &js, const matrix<T> &mat) {
-  json_t ret;
+  js = json_t();
   size_t rows = mat.GetRows();
   size_t cols = mat.GetColumns();
   for (size_t r = 0; r < rows; r++) {
     std::vector<T> mrow;
     for (size_t c = 0; c < cols; c++)
       mrow.push_back(mat(r, c));
-    ret.push_back(mrow);
+    js.push_back(mrow);
   }
-  js = ret;
 }
 
-template <typename T> void from_json(const json_t &js, matrix<T> &mat) {
-  // Check it is a non empty array
-  bool is_matrix = js.is_array() && !js.empty();
-  // Check all entries of array are same size
-  size_t cols = js[0].size();
-  size_t rows = js.size();
-  for (auto &row : js)
-    is_matrix &= (row.is_array() && row.size() == cols);
 
-  // Convert
-  if (is_matrix) {
-    matrix<T> ret(rows, cols);
-    for (size_t r = 0; r < rows; r++)
-      for (size_t c = 0; c < cols; c++)
-        ret(r, c) = js[r][c].get<T>();
-    mat = ret;
-  } else {
-    throw std::runtime_error(
-        std::string("failed to parse json_t value as a matrix"));
+template <typename T> void from_json(const json_t &js, matrix<T> &mat) {
+  // Check JSON is an array
+  if(!js.is_array()) {
+    throw std::invalid_argument(
+        std::string("JSON: invalid matrix (not array)."));
   }
+  // Check JSON isn't empty
+  if(js.empty()) {
+    throw std::invalid_argument(
+        std::string("JSON: invalid matrix (empty array)."));
+  }
+  // check rows are all same length
+  bool rows_valid = js.is_array() && !js.empty();
+  // Check all entries of array are same size
+  size_t ncols = js[0].size();
+  size_t nrows = js.size();
+  for (auto &row : js)
+    rows_valid &= (row.is_array() && row.size() == ncols);
+  if(!rows_valid) {
+    throw std::invalid_argument(
+        std::string("JSON: invalid matrix (rows different sizes)."));
+  }
+  // Matrix looks ok, now we parse it
+  mat = matrix<T>(nrows, ncols);
+  for (size_t r = 0; r < nrows; r++)
+    for (size_t c = 0; c < ncols; c++)
+      mat(r, c) = js[r][c].get<T>();
 }
 
 //------------------------------------------------------------------------------

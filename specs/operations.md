@@ -16,9 +16,7 @@
     * [Matrix Multiplication](#matrix-multiplication)
     * [Snapshot](#snapshot)
 4. [Observables Operations](#observables-operations)
-   * [General Matrix Observables](#general-matrix-observables)
-   * [Diagonal Matrix Observables](#diagonal-matrix-observables)
-   * [Projector Matrix Observables](#projector-matrix-observables)
+   * [Matrix Observables](#matrix-observables)
    * [Pauli Matrix Observables](#pauli-matrix-observables)
    * [Measurement Observables](#measurement-observables)
 5. [Noise Operations](#noise-operations)
@@ -349,19 +347,30 @@ For an *n*-qubit system in state $|\psi\rangle$, and an *m*-qubit observable $\m
 
 If our simulation has multiple shots (for noise instances), these values are typically reported averaged over all shots (conditional on any memory qubit registers).
 
-For optimizations and supports observable can be broken up into 5 types:
+For optimizations and supports observable can be broken up into 3 types:
 
-1. General matrices (`"obs_mat"`): $\mathcal{O} = \sum_{i,j} m_{i,j} |i\rangle\langle j|$
-2. Diagonal matrices (`"obs_dmat"`): $\mathcal{O} = \sum_{i} d_{i} |i\rangle\langle i|$
-3. Projectors (`"obs_vec"`): $\mathcal{O} = |\phi\rangle\langle \phi|$
-4. Pauli matrices (`"obs_pauli"`): $\mathcal{O} = \sum_{j} m_{j} P_j$
-5. Measurement observables (`"obs_measure"`): $\mathcal{O} = \bigotimes_{j}|i_j\rangle\langle i_j|$
+1. Matrix observables (`"obs_mat"`): $\mathcal{O} = \sum_{i,j} m_{i,j} |i\rangle\langle j|$. Special cases for matrix observables are:
+    * Diagonal matrices: $\mathcal{O} = \sum_{i} d_{i} |i\rangle\langle i|$
+    * Projectors: $\mathcal{O} = |\phi\rangle\langle \phi|$
+2. Pauli matrices (`"obs_pauli"`): $\mathcal{O} = \sum_{j} m_{j} P_j$
+3. Measurement observables (`"obs_measure"`): $\mathcal{O} = \bigotimes_{j}|i_j\rangle\langle i_j|$
 
 When specifying observables we allow each one to specify a list of observablse acting on the same set of qubits (rather than specifying a separate op for each one).
 
-### General Matrix Observables
+
+### Matrix Observables
 
 The most general type of observable is an *n*-qubit matrix. This observable operator allows the specification of a length *m* list *n*-qubit matrices $\{\mathcal{O}_k : k\in[1,m]\}$ acting on the same qubits, and should return a length *m* list of complex numbers $\{z_k : k\in[1, m]\}$ where $z_k = \langle \mathcal{O}_k \rangle$.
+
+We allow two special types of matrix observables that can be stored in more compact fasion. These are diagonal matrices $\mathcal{O} = \sum_{i} d_{i} |i\rangle\langle i|$ and rank-1 projectors $\mathcal{O}_k = |v_k\rangle\langle v_k|$. 
+
+We store these matrices as follows:
+
+1. General matrix: *N x N* complex-matrix
+2. Diagonal matrices: *1 x N* row-vector matrix
+3. Projector: *N x 1* column-vector matrix
+
+We also include an optional string specifying the type of matrix `"mat"`, `"dmat"`, `"vec"` respectivley.
 
 #### JSON Schema
 
@@ -371,7 +380,9 @@ For general matrix observables we may specify them as:
 {
     "name": "obs_mat",               // general matrix observable
     "qubits": list[int],             // qubits to apply matrix to
-    "params": list[complex_matrix],  // list of vectorized matrices
+    
+    "params": list[complex_matrix],  // list of complex matrices
+    "string_params": list[string]    // the type of matrix
 }
 ```
 
@@ -383,68 +394,9 @@ For general matrices we have
 Op obs_mat;
 obs_mat.name = "obs_mat";        // matrix observable identitier
 obs_mat.qubits = {qubits, ...};  // qubits that observables apply to
-obs_mat.params_m = {mat1, ...};  // vectorized observable matrices
-```
-
-[Back to top](#table-of-contents)
-
-
-### Diagonal Matrix Observables
-
-A subset of general matrix observables are diagonal matrix observables. We treat these separately as they can typically be computed using more efficient methods. In this case the diagonals are stored as complex vectors rather than complex matrices.
-
-#### JSON Schema
-
-For diagonal matrix observables we have:
-
-```
-{
-    "name": "obs_dmat",              // general matrix observable
-    "qubits": list[int],             // qubits to apply matrix to
-    "params": list[complex_vector],  // list of matrix diagonals
-}
-```
-
-#### C++ Objects
-
-
-For diagonal matrices we have
-
-```cpp
-Op obs_dmat;
-obs_dmat.name = "obs_dmat";        // diagonal matrix observable identitier
-obs_dmat.qubits = {qubits, ...};   // qubits that observables apply to
-obs_dmat.params_v = {diag1, ...};  // matrix diagonals
-```
-
-[Back to top](#table-of-contents)
-
-
-### Projector Matrix Observables
-
-Another special case of general matrix observables are rank-1 projectors $\mathcal{O}_k = |v_k\rangle\langle v_k|$. These observables are stored as a list the complex vectors ${v_k}$.
-
-#### JSON Schema
-
-For projector observables we have:
-
-```
-{
-    "name": "obs_vec",               // general matrix observable
-    "qubits": list[int],             // qubits to apply matrix to
-    "params": list[complex_vector],  // list of projector vectors
-}
-```
-
-#### C++ Objects
-
-For projectors we have
-
-```cpp
-Op obs_vec;
-obs_vec.name = "obs_vec";         // projector observable identitier
-obs_vec.qubits = {qubits, ...};   // qubits that observables apply to
-obs_vec.params_v = {vec1, ...};   // projector vectors
+obs_mat.params_m = {mat1, ...};  // matrix 
+observables
+obs_mat.params_s = {type1, ...}; // matrix types
 ```
 
 [Back to top](#table-of-contents)
@@ -538,7 +490,7 @@ This operation could be serialized in JSON as follows:
 
 ```
 {
-    "name": "roerr",
+    "name": "roerror",
     "memory": list[int]   // (optional) classical bits to store result in
     "register": list[int] // (optional) for conditionals
     "params": matrix      // assignment fidelity matrix
@@ -551,7 +503,7 @@ Implementing these in C++ we have
 
 ```cpp
 Op roerr;
-roerr.name = "roerr";                  // readout error identifier
+roerr.name = "roerror";                // readout error identifier
 roerr.memory = {membits, ...};         // memory bits to apply noise to
 roerr.registers = {regbits, ...};      // register bits to apply noise to
 roerr.params_v = {assignment_fid_columns, ...}; // assignment fidelity matrix
