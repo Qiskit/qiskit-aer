@@ -49,13 +49,6 @@ public:
   // Copy the final state data of the State class.
   virtual void compute_result(State<state_t> *state) override;
 
-  // Combine engines for accumulating data
-  // After combining argument engine should no longer be used
-  inline void combine(FinalStateEngine<state_t> &eng) {
-    std::move(eng.final_states_.begin(), eng.final_states_.end(),
-              std::back_inserter(final_states_));
-  };
-
   // Empty engine of stored data
   inline virtual void clear() override {final_states_.clear();};
 
@@ -68,6 +61,9 @@ public:
   // with default values "final_state", false
   virtual void load_config(const json_t &config) override;
 
+  // Combine engines for accumulating data
+  // After combining argument engine should no longer be used
+  void combine(FinalStateEngine<state_t> &eng);
 
 protected:
   bool single_shot_ = true;
@@ -107,6 +103,14 @@ void FinalStateEngine<state_t>::load_config(const json_t &js) {
   JSON::get_value(single_shot_, "single_shot", js);
   JSON::get_value(output_label_, "label", js);
 }
+
+
+template <class state_t>
+void FinalStateEngine<state_t>::combine(FinalStateEngine<state_t> &eng) {
+    std::move(eng.final_states_.begin(),
+              eng.final_states_.end(),
+              std::back_inserter(final_states_));
+  };
 
 
 template <class state_t>

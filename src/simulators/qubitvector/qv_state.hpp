@@ -66,7 +66,10 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
-  // TODO {"mat", "dmat", "kraus"}
+  // Allowed operations are:
+  // {"barrier", "measure", "reset", "mat", "dmat", "kraus",
+  //  "u0", "u1", "u2", "u3", "cx", "cz",
+  //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   const static std::set<std::string> allowed_ops; 
 
   // Allows measurements
@@ -76,7 +79,7 @@ public:
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  virtual void apply_operation(const Op &op) override; // TODO
+  virtual void apply_op(const Op &op) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize(uint_t num_qubits) override;
@@ -84,7 +87,8 @@ public:
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
-  virtual uint_t required_memory_mb(uint_t num_qubits, uint_t num_ops) override;
+  virtual uint_t required_memory_mb(uint_t num_qubits,
+                                    const std::vector<Op> &ops) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -216,10 +220,11 @@ const std::map<std::string, State::Gates> State::gateset({
 // Implementation: Base class method overrides
 //============================================================================
 
-uint_t State::required_memory_mb(uint_t num_qubits, uint_t num_ops) {
+uint_t State::required_memory_mb(uint_t num_qubits,
+                                 const std::vector<Op> &ops) {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
-  (void)num_ops; // avoid unused variable compiler warning
+  (void)ops; // avoid unused variable compiler warning
   uint_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
   uint_t mem_mb = 1ULL << shift_mb;
   return mem_mb;
@@ -255,7 +260,7 @@ reg_t State::apply_measure(const reg_t &qubits) {
 }
 
 
-void State::apply_operation(const Op &op) {
+void State::apply_op(const Op &op) {
 
   // Check Op is supported by State
   auto it = gateset.find(op.name);

@@ -60,12 +60,14 @@ public:
   // Load any settings for the State class from a config JSON
   inline virtual void load_config(const json_t &config) {(void)config;};
 
-  // Apply a sequence of operations to the state
-  virtual void apply_operations(State<state_t> *state,
-                                const std::vector<Op> &ops);
-
+  // Apply an operation to the state
+  inline virtual void apply_op(State<state_t> *state, const Op &op) {
+    state->apply_op(op);
+  };
   // Initialize an engine and circuit
-  virtual void initialize(State<state_t> *state, const Circuit &circ);
+  inline virtual void initialize(State<state_t> *state, const Circuit &circ) {
+    state->initialize(circ.num_qubits);
+  };
 
   // Execute a circuit of operations for multiple shots
   // By default this loops over the set number of shots where
@@ -73,7 +75,7 @@ public:
   //   1. initialize the state based on max qubit number in ops
   //   2. call apply_operations on the state for list of ops
   //   3. call compute_results after ops have been applied
-  virtual void execute(State<state_t> *state,
+  inline virtual void execute(State<state_t> *state,
                        const Circuit &circ,
                        uint_t shots);
 };
@@ -83,27 +85,14 @@ public:
 //============================================================================
 
 template <class state_t>
-void Engine<state_t>::apply_operations(State<state_t> *state,
-                                       const std::vector<Op> &ops) {
-  for (const auto &op: ops) {
-    state->apply_operation(op);
-  }
-}
-
-template <class state_t>
-void Engine<state_t>::initialize(State<state_t> *state, const Circuit &circ) {
-    state->initialize(circ.num_qubits);
-}
-
-template <class state_t>
 void Engine<state_t>::execute(State<state_t> *state,
                               const Circuit &circ,
                               uint_t shots) {
-  // Loop over shots
   for (size_t ishot = 0; ishot < shots; ++ishot) {
-    // Initialize state
     initialize(state, circ);
-    apply_operations(state, circ.ops);
+    for (const auto &op: circ.ops) {
+      apply_op(state, op);
+    }
     compute_result(state);
   }
 }

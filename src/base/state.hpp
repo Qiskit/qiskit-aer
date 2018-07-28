@@ -48,7 +48,7 @@ public:
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  virtual void apply_operation(const Op &op) = 0;
+  virtual void apply_op(const Op &op) = 0;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize(uint_t num_qubits) = 0;
@@ -56,7 +56,8 @@ public:
   // Returns the required memory for storing an n-qubit state in megabytes.
   // TODO: Is this enough? Some State representaitons might also depend on 
   // the circuit (eg. tensor slicing, clifford+t simulator)
-  virtual uint_t required_memory_mb(uint_t num_qubits, uint_t num_ops) = 0;
+  virtual uint_t required_memory_mb(uint_t num_qubits,
+                                    const std::vector<Op> &ops) = 0;
 
   //----------------------------------------------------------------
   // Optional methods: Measurement 

@@ -124,7 +124,9 @@ void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
     pos++;
   }
   // Execute operations before measurements
-  apply_operations(state, std::vector<Op>(circ.ops.begin(), circ.ops.begin() + pos));
+  for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
+    apply_op(state, *it);
+  }
 
   // Get measurement operations and set of measured qubits
   std::vector<Op> meas(circ.ops.begin() + pos, circ.ops.end());

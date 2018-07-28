@@ -47,14 +47,13 @@ public:
   //----------------------------------------------------------------
 
   virtual void initialize(State<state_t> *state,
-                       const Circuit &circ) override;
+                          const Circuit &circ) override;
 
   virtual void compute_result(State<state_t> *state) override;
 
   // Apply a sequence of operations to the state
   // TODO: modify this to handle conditional operations, and measurement
-  virtual void apply_operations(State<state_t> *state,
-                                const std::vector<Op> &ops) override;
+  virtual void apply_op(State<state_t> *state, const Op &op) override;
 
   // Empty engine of stored data
   virtual void clear() override;
@@ -73,8 +72,6 @@ public:
   void combine(QasmEngine<state_t> &eng);
 
 protected:
-  // Checks if operation is measure and if so records measurement outcome
-  void apply_single_op(State<state_t> *state, const Op &op);
 
   // Checks if an Op should be applied, returns true if either: 
   // - op is not a conditional Op,
@@ -115,16 +112,13 @@ void QasmEngine<state_t>::initialize(State<state_t> *state, const Circuit &circ)
 
 
 template <class state_t>
-void QasmEngine<state_t>::apply_operations(State<state_t> *state,
-                                           const std::vector<Op> &ops) {
-  for (const auto &op: ops) {
-    if (check_conditional(op)) { // check if op passes conditional
-      if (op.name == "measure") { // check if op is measurement
-        reg_t outcome = state->apply_measure(op.qubits);
-        store_measure(outcome, op.memory, op.registers);
-      } else {
-      state->apply_operation(op);  // Apply operation as usual
-      }
+void QasmEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
+  if (check_conditional(op)) { // check if op passes conditional
+    if (op.name == "measure") { // check if op is measurement
+      reg_t outcome = state->apply_measure(op.qubits);
+      store_measure(outcome, op.memory, op.registers);
+    } else {
+    BaseEngine<state_t>::apply_op(state, op);  // Apply operation as usual
     }
   }
 }

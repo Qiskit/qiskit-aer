@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     using State = AER::QubitVector::State;       // State class
     using Engine = AER::QubitVector::QasmEngine; // Optimized Engine class
     AER::Base::Controller<Engine, State> sim;
-    out << sim.execute(qobj, 1).dump(4) << std::endl;
+    out << sim.execute(qobj).dump(4) << std::endl;
     return 0;
   } catch (std::exception &e) {
     std::stringstream msg;

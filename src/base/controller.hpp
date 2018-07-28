@@ -52,26 +52,27 @@ public:
   // Loading state and engine config
   //----------------------------------------------------------------
 
+  void load_config(const json_t &config);
   inline void load_engine_config(const json_t &config) {engine_.load_config(config);};
   inline void load_state_config(const json_t &config) {state_.load_config(config);};
   
-  inline int get_num_threads() {return num_threads_;};
-  inline void set_num_threads(int threads) {num_threads_ = std::min(std::max(1, threads), omp_ncpus_);};
+  inline int get_num_threads() {return thread_limit_;};
+  inline void set_num_threads(int threads) {
+    thread_limit_ = std::min(std::max(1, threads), omp_ncpus_);
+  };
   
   //----------------------------------------------------------------
   // Executing qobj
   //----------------------------------------------------------------
-
-  // Execute a qobj
-  virtual json_t execute(const Qobj &qobj, int threads = 1) const;
   
   // Load and execute a qobj
   // These wrap the Qobj loading methods to catch and report errors in
   // loading
-  virtual json_t execute(const json_t &qobj_js, int threads = 1) const;
+  inline virtual json_t execute(const json_t &qobj);
 
   // Execute a single circuit
-  virtual json_t execute_circuit(const Circuit &circ, int threads) const;
+  virtual json_t execute_circuit(const Circuit &circ, 
+                                 int max_shot_threads);
 
 protected:
 
@@ -79,7 +80,12 @@ protected:
   Engine_t engine_;     // Reference Engine for the controller
   
   int omp_ncpus_ = 1;   // The number of available threads determined by OpenMP
-  int num_threads_ = 1; // The maximum number of threads to use for parallelization
+  int available_threads_ = 1;
+
+  int thread_limit_ = 1; // The maximum number of threads to use for parallelization
+  int thread_limit_circuit_ = -1;
+  int thread_limit_shots_ = 1;
+  int thread_limit_state_ = -1;
 };
 
 /*******************************************************************************
@@ -93,7 +99,7 @@ Controller<Engine_t, State_t>::Controller() {
   // OpenMP Setup
   #ifdef _OPENMP
     omp_ncpus_ = std::max(1, omp_get_num_procs());
-    num_threads_ = omp_ncpus_;
+    thread_limit_ = omp_ncpus_;
     omp_set_nested(1); // allow nested parallel threads for states
   #endif
 }
@@ -105,55 +111,23 @@ Controller<Engine_t, State_t>::Controller(State_t state, Engine_t engine)
     engine_ = engine;
 }
 
+template < class Engine_t, class State_t>
+void Controller<Engine_t, State_t>::load_config(const json_t &config) {
+  JSON::get_value(thread_limit_, "parallel_thread_limit", config);
+  JSON::get_value(thread_limit_circuit_, "parallel_circuit_thread_limit", config);
+  JSON::get_value(thread_limit_shots_, "parallel_shots_thread_limit", config);
+  JSON::get_value(thread_limit_state_, "parallel_state_thread_limit", config);
+}
+
 //============================================================================
 // Execution
 //============================================================================
 
 template < class Engine_t, class State_t>
-json_t Controller<Engine_t, State_t>::execute(const Qobj &qobj, int threads) const{
-
-  // Start Simulation timer
-  std::chrono::time_point<myclock_t> start = myclock_t::now(); // start timer
-
-  // Initialize output JSON
-  json_t ret;
-  bool qobj_success = true;
-
-  // Choose simulator and execute circuits
-  try {
-    ret["id"] = qobj.id;
-    // Execute each circuit in qobj
-    for (const auto &circ : qobj.circuits) {
-      json_t result = execute_circuit(circ, threads);
-      qobj_success &= result["success"].get<bool>();
-      ret["result"].push_back(result);
-    }
-    // Add timing metadata
-    ret["time_taken"] =
-        std::chrono::duration<double>(myclock_t::now() - start).count();
-    // Add success data
-    ret["status"] = std::string("COMPLETED");
-    ret["success"] = qobj_success;
-    #ifdef _OPENMP
-    if (omp_ncpus_ > 1)
-      ret["omp_num_cpus"] = omp_ncpus_;
-    #endif
-  } catch (std::exception &e) {
-    // If execution failed report error
-    ret["success"] = false;
-    ret["status"] = std::string("ERROR: ") + e.what();
-  }
-  return ret;
-}
-
-//------------------------------------------------------------------------------
-
-template < class Engine_t, class State_t>
-json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
-                                              int threads) const {
-
-  // Load QOBJ from json
-  Qobj qobj;
+json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
+  
+  auto timer_start = myclock_t::now(); // start timer
+  Qobj qobj; // Load QOBJ from json
   try {
     qobj.load_qobj_from_json(qobj_js);
   } catch (std::exception &e) {
@@ -161,21 +135,71 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
     ret["id"] = nullptr;
     ret["success"] = false;
     ret["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
-    return ret;
+    return ret; // qobj was invalid, return valid output containing error message
   }
-  // Execute QOBJ
-  return execute(qobj, threads);
+  // Check for config in qobj
+  if (JSON::check_key("config", qobj_js)) {
+    load_config(qobj_js["config"]);
+  }
+  // Qobj was loaded successfully, now we proceed
+  json_t ret;
+  bool all_success = true;
+  try {
+    ret["id"] = qobj.id;
+    int num_circuits = qobj.circuits.size();
+    
+    // Parallelization preference circuits > shots > backend
+    // Calculate threads assigned to parallel circuit execution
+    available_threads_ = thread_limit_; // reset available threads to thread limit
+    int circ_threads = (thread_limit_circuit_ < 1) 
+      ? std::min<int>(available_threads_ , num_circuits)
+      : std::min<int>({available_threads_ , num_circuits, thread_limit_circuit_});
+    available_threads_ /= circ_threads; // reduce available threads for each subthread   
+    // If we are using circuit threads, set shot threads to 1
+    int shot_threads = (circ_threads > 1) ? 1 : thread_limit_circuit_;
+    ret["result"] = std::vector<json_t>(num_circuits); // initialize correct size for results
+
+    // Parallel circuit execution
+    #pragma omp parallel for if (circ_threads > 1) num_threads(circ_threads)
+    for (int j = 0; j < num_circuits; ++j) {
+      ret["result"][j] = execute_circuit(qobj.circuits[j],
+                                         shot_threads);
+    }
+    // check success
+    for (const auto& res: ret["result"]) {
+      all_success &= res["success"].get<bool>();
+    }
+    // Add success data
+    ret["success"] = all_success;
+    ret["status"] = std::string("COMPLETED");
+
+    // Add metadata (change to header?)
+    #ifdef _OPENMP
+    if (omp_ncpus_ > 1)
+      ret["metadata"]["num_openmp_threads"] = omp_ncpus_;
+    #endif
+    ret["metadata"]["num_circuit_threads"] = circ_threads;
+    auto timer_stop = myclock_t::now(); // stop timer
+    ret["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+  } 
+  // If execution failed return valid output reporting error
+  catch (std::exception &e) {
+    ret["success"] = false;
+    ret["status"] = std::string("ERROR: ") + e.what();
+  }
+  return ret;
 }
 
-//------------------------------------------------------------------------------
 
 template < class Engine_t, class State_t>
-json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ, int threads) const {
+json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
+                                                      int max_shot_threads) {
   
   // Initialize Return
+  auto timer_start = myclock_t::now(); // state circuit timer
   json_t ret;
   try {
-    auto timer_start = myclock_t::now(); // start timer
+    
 
     // Initialize new copy of reference engine and state
     Engine_t engine = engine_;
@@ -187,64 +211,68 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ, int t
     // Check operations are allowed
     const auto &allowed = state.allowed_ops;
     for (const auto &op: circ.ops) {
-      if (allowed.find(op.name) == allowed.end()) {
+      if (allowed.find(op.name) == allowed.end() && op.name[0] != '#') {
         throw std::invalid_argument("Operation \"" + op.name 
                                     + "\" is not allowed by State subclass.");
       }
     }
 
-    // Bound max threads by shots and number of cpu cores
-    threads = std::min({std::max(1, threads), num_threads_, static_cast<int>(circ.shots)});
-    int num_state_threads = std::max<int>(1, num_threads_ / threads);
-    state.set_available_threads(num_state_threads);
+    // Set number of shot parallel threads
+    int num_shots = circ.shots;
+    int shot_threads = (max_shot_threads < 1) 
+      ? std::min<int>({available_threads_ , num_shots, thread_limit_shots_})
+      : std::min<int>({available_threads_ , num_shots, max_shot_threads, thread_limit_shots_});
+    // reduce available threads left for state subthreads
+    available_threads_ /= shot_threads; 
+    int state_threads = (thread_limit_state_ < 1)
+      ? std::max<int>(1, available_threads_)
+      : std::max<int>(1, std::min<int>(available_threads_, thread_limit_state_));
+    state.set_available_threads(state_threads);
 
     // OpenMP Parallelization
   #ifdef _OPENMP
-    if (threads < 2)
+    if (shot_threads < 2)
       engine.execute(&state, circ, circ.shots);
     else {
       
       // Set shots for each thread
-      std::vector<unsigned int> thread_shots;
-      for (int j = 0; j < threads; ++j) {
-        thread_shots.push_back(circ.shots / threads);
+      std::vector<unsigned int> subshots;
+      for (int j = 0; j < shot_threads; ++j) {
+        subshots.push_back(circ.shots / shot_threads);
       }
-      thread_shots[0] += (circ.shots % threads);
+      subshots[0] += (circ.shots % shot_threads);
 
       // Vector to store parallel thread engines
-      std::vector<Engine_t> futures(threads);
-    #pragma omp parallel for if (threads > 1) num_threads(threads)
-      for (int j = 0; j < threads; j++) {
-        const auto &tshots = thread_shots[j];
+      std::vector<Engine_t> data(shot_threads);
+    #pragma omp parallel for if (shot_threads > 1) num_threads(shot_threads)
+      for (int j = 0; j < shot_threads; j++) {
+        const auto &ssj = subshots[j];
         State_t thread_state(state);
         thread_state.set_rng_seed(circ.seed + j); // shift rng seed for each thread
         Engine_t thread_engine(engine);
-        std::cout << circ.config << std::endl;
-        thread_engine.execute(&thread_state, circ, tshots);
-        futures[j] = std::move(thread_engine);
+        thread_engine.execute(&thread_state, circ, ssj);
+        data[j] = std::move(thread_engine);
       }
       // Accumulate results across shots
-      for (auto &f : futures)
-        engine.combine(f);
+      for (auto &d : data)
+        engine.combine(d);
     } // end parallel shots
 
     // Add multi-threading information to output
-    if (threads > 1)
-      ret["num_threads_shot"] = threads;
-    if (num_state_threads > 1)
-      ret["num_threads_state"] = num_state_threads;
+    if (shot_threads > 1)
+      ret["metadata"]["num_shot_threads"] = shot_threads;
+    if (state_threads > 1)
+      ret["metadata"]["num_state_threads"] = state_threads;
   #else
     // Non-parallel execution
     engine.execute(&state, circ, circ.shots);
   #endif
-
-   
     
     // Add output data and metadata
     ret["data"] = engine.json();
     // Add metadata
-    ret["shots"] = circ.shots;
-    ret["seed"] = circ.seed;
+    ret["metadata"]["shots"] = circ.shots;
+    ret["metadata"]["seed"] = circ.seed;
     // Report success
     ret["success"] = true;
     ret["status"] = std::string("DONE");
@@ -252,7 +280,7 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ, int t
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    ret["time_taken"] = time_taken;
+    ret["metadata"]["time_taken"] = time_taken;
   } 
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {

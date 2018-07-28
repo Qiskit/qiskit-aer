@@ -352,11 +352,11 @@ Op json_to_op(const json_t &js) {
     return json_to_op_measure(js);
   if (name == "reset")
     return json_to_op_reset(js);
+  if (name == "#snapshot")
+    return json_to_op_snapshot(js);
   /* TODO: the following aren't implemented yet!
   if (name == "bfunc")
     return json_to_op_bfunc(js);
-  if (name == "#snapshot")
-    return json_to_op_snapshot(js);
   if (name == "matrix")
     return json_to_op_matrix(js);
   if (name == "obs_mat")
@@ -432,6 +432,18 @@ Op json_to_op_reset(const json_t &js) {
   return op;
 }
 
+Op json_to_op_snapshot(const json_t &js) {
+  Op op;
+  op.name = "#snapshot";
+  // Load double params for reset state (if present)
+  JSON::get_value(op.params_s, "params", js);
+  if (op.params_s.size() == 1) {
+    // add default snapshot type if not specified
+    op.params_s.push_back("default");
+  }
+  return op;
+}
+
 //------------------------------------------------------------------------------
 // Implementation: JSON serialization
 //------------------------------------------------------------------------------
@@ -441,11 +453,11 @@ json_t json_from_op(const Op &op) {
     return json_from_op_measure(op);
   if (op.name == "reset")
     return json_from_op_reset(op);
+  if (op.name == "#snapshot")
+    return json_from_op_snapshot(op);
   /* TODO: the following aren't implemented yet!
   if (op.name == "bfunc")
     return json_from_op_bfunc(op);
-  if (op.name == "#snapshot")
-    return json_from_op_snapshot(op);
   if (op.name == "matrix")
     return json_from_op_matrix(op);
   if (op.name == "obs_mat")
@@ -498,6 +510,13 @@ json_t json_from_op_reset(const Op &op) {
     for (const auto p: op.params_d)
     js["params"].push_back(uint_t(p));
   }
+  return js;
+}
+
+json_t json_from_op_snapshot(const Op &op) {
+  json_t js;
+  js["name"] = "#snapshot";
+  js["params"] = op.params_s;
   return js;
 }
 
