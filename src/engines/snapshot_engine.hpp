@@ -48,6 +48,10 @@ public:
   // Serialize engine data to JSON
   virtual json_t json() const override; // TODO
 
+  // Add #snapshot to valid circuit operations
+  virtual bool validate_circuit(State<state_t> *state,
+                                const Circuit &circ) override;
+
   // Combine engines for accumulating data
   // After combining argument engine should no longer be used
   void combine(SnapshotEngine<state_t> &eng);
@@ -59,6 +63,15 @@ protected:
 //============================================================================
 // Implementations
 //============================================================================
+
+template <class state_t>
+bool SnapshotEngine<state_t>::validate_circuit(State<state_t> *state,
+                                               const Circuit &circ) {
+  auto allowed_ops = state->allowed_ops();
+  allowed_ops.insert("#snapshot");
+  return circ.check_ops(allowed_ops);
+};
+
 
 template <class state_t>
 void SnapshotEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {

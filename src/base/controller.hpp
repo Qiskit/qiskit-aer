@@ -209,12 +209,8 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
     state.set_rng_seed(circ.seed); // set rng seed
 
     // Check operations are allowed
-    const auto &allowed = state.allowed_ops;
-    for (const auto &op: circ.ops) {
-      if (allowed.find(op.name) == allowed.end() && op.name[0] != '#') {
-        throw std::invalid_argument("Operation \"" + op.name 
-                                    + "\" is not allowed by State subclass.");
-      }
+    if (!engine.validate_circuit(&state, circ)) {
+      throw std::invalid_argument("Circuit contains invalid operations");
     }
 
     // Set number of shot parallel threads

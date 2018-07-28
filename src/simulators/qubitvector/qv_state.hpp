@@ -70,7 +70,7 @@ public:
   // {"barrier", "measure", "reset", "mat", "dmat", "kraus",
   //  "u0", "u1", "u2", "u3", "cx", "cz",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
-  const static std::set<std::string> allowed_ops; 
+  virtual std::set<std::string> allowed_ops() const override;
 
   // Allows measurements
   bool has_measure = true;
@@ -98,6 +98,16 @@ public:
 
 
 protected:
+  // Allowed operations are:
+  // {"barrier", "measure", "reset", "mat", "dmat", "kraus",
+  //  "u0", "u1", "u2", "u3", "cx", "cz",
+  //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
+  const std::set<std::string> allowed_ops_ = {
+    "barrier", "measure", "reset",
+    "mat", "dmat", "kraus",
+    "u0", "u1", "u2", "u3", "cx", "cz",
+    "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"
+  }; 
 
   // Enum class and gateset map for switching based on gate name
   enum class Gates {
@@ -177,13 +187,12 @@ protected:
 // Implementation: Allowed ops and gateset
 //============================================================================
 
-const std::set<std::string> State::allowed_ops({
-  "barrier", "measure", "reset",
-  "mat", "dmat", "kraus",
-  "u0", "u1", "u2", "u3", "cx", "cz",
-  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg",
-});
-
+std::set<std::string> State::allowed_ops() const {
+  return { "barrier", "measure", "reset",
+    "mat", "dmat", "kraus",
+    "u0", "u1", "u2", "u3", "cx", "cz",
+    "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
+} 
 
 const std::map<std::string, State::Gates> State::gateset({
   {"measure", Gates::measure}, // Measure is handled by engine

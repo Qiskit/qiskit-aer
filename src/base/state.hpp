@@ -39,12 +39,11 @@ public:
   //----------------------------------------------------------------
   // Abstract methods that must be defined by derived classes
   //----------------------------------------------------------------
-
-  // Set of allowed operations for the state class.
-  // Example:
-  //    {"U", "CX", "measure", "reset"};
-  const static std::set<std::string> allowed_ops;
   
+  // Return the set of allowed operations for the state class.
+  // Example: {"u1", "u2", "u3", "cx", "measure", "reset"};
+  inline virtual std::set<std::string> allowed_ops() const = 0;
+
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
@@ -68,7 +67,9 @@ public:
   bool has_measure = false;
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
-  inline virtual reg_t apply_measure(const reg_t& qubits) {return reg_t(qubits.size(), 0);};
+  inline virtual reg_t apply_measure(const reg_t& qubits) {
+    return reg_t(qubits.size(), 0);
+  };
 
   //----------------------------------------------------------------
   // Optional methods: Config
@@ -102,6 +103,9 @@ public:
 
   
 protected:
+  // Allowed ops
+  const std::set<std::string> allowed_ops_ = {};
+
   // The quantum state data structure
   state_t data_;
 

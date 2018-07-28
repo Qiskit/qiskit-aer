@@ -60,6 +60,13 @@ public:
   // Load any settings for the State class from a config JSON
   inline virtual void load_config(const json_t &config) {(void)config;};
 
+  // validates a circuit
+  // returns true if all ops in circuit are supported by the state and engine
+  // otherwise it returns false
+  inline virtual bool validate_circuit(State<state_t> *state, const Circuit &circ) {
+    return circ.check_ops(state->allowed_ops());
+  };
+
   // Apply an operation to the state
   inline virtual void apply_op(State<state_t> *state, const Op &op) {
     state->apply_op(op);
@@ -96,6 +103,7 @@ void Engine<state_t>::execute(State<state_t> *state,
     compute_result(state);
   }
 }
+
 
 //------------------------------------------------------------------------------
 } // end namespace Base
