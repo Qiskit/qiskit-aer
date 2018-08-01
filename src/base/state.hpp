@@ -33,9 +33,10 @@ template <class state_t>
 class State {
 
 public:
+
   State() = default;
   virtual ~State() = default;
-
+  
   //----------------------------------------------------------------
   // Abstract methods that must be defined by derived classes
   //----------------------------------------------------------------
@@ -47,7 +48,7 @@ public:
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  virtual void apply_op(const Op &op) = 0;
+  virtual void apply_op(const Operations::Op &op) = 0;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize(uint_t num_qubits) = 0;
@@ -56,7 +57,7 @@ public:
   // TODO: Is this enough? Some State representaitons might also depend on 
   // the circuit (eg. tensor slicing, clifford+t simulator)
   virtual uint_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Op> &ops) = 0;
+                                    const std::vector<Operations::Op> &ops) = 0;
 
   //----------------------------------------------------------------
   // Optional methods: Config
@@ -103,7 +104,7 @@ public:
   bool has_matrix_observables = false;
 
   // Return the complex expectation value for an observable operator
-  inline virtual complex_t matrix_observable_value(const Op &op) const {
+  inline virtual complex_t matrix_observable_value(const Operations::Op &op) const {
     (void)op; return complex_t();
   };
 

@@ -53,7 +53,7 @@ public:
 
   // Apply a sequence of operations to the state
   // TODO: modify this to handle conditional operations, and measurement
-  virtual void apply_op(State *state, const Op &op) override;
+  virtual void apply_op(State *state, const Operations::Op &op) override;
 
   // Erase output data from engine
   virtual void clear() override;
@@ -76,7 +76,7 @@ protected:
   // Checks if an Op should be applied, returns true if either: 
   // - op is not a conditional Op,
   // - op is a conditional Op and it passes the conditional check
-  bool check_conditional(const Op &op) const;
+  bool check_conditional(const Operations::Op &op) const;
 
   // Record the outcome of a measurement in the engine memory and registers
   void store_measure(const reg_t &outcome, const reg_t &memory, const reg_t &registers);
@@ -115,7 +115,7 @@ void QasmEngine<state_t>::initialize(State *state, const Circuit &circ) {
 
 
 template <class state_t>
-void QasmEngine<state_t>::apply_op(State *state, const Op &op) {
+void QasmEngine<state_t>::apply_op(State *state, const Operations::Op &op) {
   if (check_conditional(op)) { // check if op passes conditional
     if (op.name == "measure") { // check if op is measurement
       reg_t outcome = state->apply_measure(op.qubits);
@@ -216,7 +216,7 @@ void QasmEngine<state_t>::initialize_creg(const Circuit &circ) {
 
 
 template <class state_t>
-bool QasmEngine<state_t>::check_conditional(const Op &op) const {
+bool QasmEngine<state_t>::check_conditional(const Operations::Op &op) const {
   // Check if op is not conditional
   if (op.conditional == false)
     return true;

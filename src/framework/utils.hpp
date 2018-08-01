@@ -81,6 +81,13 @@ template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> 
 // Vector functions
 //------------------------------------------------------------------------------
 
+// Return the matrix formed by taking the outproduct of two vector |ket><bra|
+template <typename T>
+matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra);
+
+template <typename T>
+inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket, ket);};
+
 // Truncate the first argument its absolute value is less than epsilon
 // this function returns a refernce to the chopped first argument
 template <typename T>
@@ -141,9 +148,9 @@ const cmatrix_t Matrix::I = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1, 0}}});
   
 const cmatrix_t Matrix::X = make_matrix<complex_t>({{{0, 0}, {1, 0}},
-                                                    {{1, 0}, {0, 1}}});
+                                                    {{1, 0}, {0, 0}}});
 
-const cmatrix_t Matrix::Y = make_matrix<complex_t>({{{1, 0}, {0, -1}},
+const cmatrix_t Matrix::Y = make_matrix<complex_t>({{{0, 0}, {0, -1}},
                                                     {{0, 1}, {0, 0}}});
 
 const cmatrix_t Matrix::Z = make_matrix<complex_t>({{{1, 0}, {0, 0}}, 
@@ -156,10 +163,10 @@ const cmatrix_t Matrix::T = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
 
 const cmatrix_t Matrix::H = make_matrix<complex_t>({{{1 / std::sqrt(2.), 0}, {1 / std::sqrt(2.), 0}},
-                                                    {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.)}}});
+                                                    {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.), 0}}});
 
-const cmatrix_t Matrix::X90 = make_matrix<complex_t>({{{1. / std::sqrt(2.), 0}, {-1. / std::sqrt(2.), 0}},
-                                                      {{-1. / std::sqrt(2.), 0}, {1. / std::sqrt(2.), 0}}});
+const cmatrix_t Matrix::X90 = make_matrix<complex_t>({{{1. / std::sqrt(2.), 0}, {0, -1. / std::sqrt(2.)}},
+                                                      {{0, -1. / std::sqrt(2.)}, {1. / std::sqrt(2.), 0}}});
 
 const cmatrix_t Matrix::CX = make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
                                                       {{0, 0}, {0, 0}, {0, 0}, {1, 0}},
@@ -231,13 +238,13 @@ matrix<T> devectorize_matrix(const std::vector<T>& vec) {
       mat(row, col) = vec[dim * col + row];
     }
   return mat;
-};
+}
 
 
 template<class T>
 std::vector<T> vectorize_matrix(const matrix<T>& mat) {
   std::vector<T> vec;
-  vec.reserve(mat.size());
+  vec.resize(mat.size(), 0.);
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
   for (size_t col=0; col < ncols; col++)
@@ -245,7 +252,7 @@ std::vector<T> vectorize_matrix(const matrix<T>& mat) {
       vec[nrows * col + row] = mat(row, col);
     }
   return vec;
-};
+}
 
 
 template <class T>
@@ -407,6 +414,19 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
 //==============================================================================
 // Implementations: Vector functions
 //==============================================================================
+
+template <typename T>
+matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra) {
+  const uint_t d1 = ket.size();
+  const uint_t d2 = bra.size();
+  matrix<T> ret(d1, d2);
+  for (uint_t i = 0; i < d1; i++)
+    for (uint_t j = 0; j < d2; j++) {
+      ret(i, j) = ket[i] * std::conj(bra[j]);
+    }
+  return ret;
+}
+
 
 template <typename T>
 std::vector<T> multiply(const std::vector<T> &vec, T val) {

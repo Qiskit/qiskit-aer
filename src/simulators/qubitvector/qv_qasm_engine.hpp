@@ -129,7 +129,7 @@ void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
   }
 
   // Get measurement operations and set of measured qubits
-  std::vector<Op> meas(circ.ops.begin() + pos, circ.ops.end());
+  std::vector<Operations::Op> meas(circ.ops.begin() + pos, circ.ops.end());
   std::vector<uint_t> meas_qubits; // measured qubits
   std::map<uint_t, uint_t> memory_map; // map of memory locations to qubit measured
   std::map<uint_t, uint_t> registers_map;// map of register locations to qubit measured

@@ -57,7 +57,7 @@ public:
   // Config settings for this engine are of the form:
   // {"probabilities": [probs ops],
   //  "observables": [obs ops],
-  //  "observables_chop_threshold": 1e-16}
+  //  "observables_chop_threshold": 1e-15}
   // where obs ops can be either "ops_pauli", "ops_mat", "ops_dmat", "ops_vec"
   virtual void load_config(const json_t &config) override;
 
@@ -83,7 +83,7 @@ protected:
   void compute_observables_probs(State *state);
   void compute_observables_ops(State *state);
 
-  complex_t pauli_expval(State *state, const key_t &key, const Op &op);
+  complex_t pauli_expval(State *state, const key_t &key, const Operations::Op &op);
 
   std::map<std::string, double>
   probs_ket(const std::vector<double> &vec, double scale, double epsilon) const;
@@ -93,7 +93,7 @@ protected:
 
   // Observables to measure indexed by qubit
   // TODO: matrix observables
-  std::map<set_t, std::vector<Op>> obs_ops_;
+  std::map<set_t, std::vector<Operations::Op>> obs_ops_;
   
   // Measurement observables data
   // indexed by qubits and memory string (if any)
@@ -113,7 +113,7 @@ protected:
   std::map<key_t, std::map<std::string, double>> pauli_cache_;
 
   // Chop value for small observables
-  double chop_epsilon_ = 1e-16;
+  double chop_epsilon_ = 1e-15;
 };
 
 //============================================================================
@@ -222,7 +222,7 @@ void ObservablesEngine<state_t>::load_config(const json_t &js) {
   if (JSON::check_key("probabilities", js)) {
     if (js["probabilities"].is_array()) {
       for (auto& elt : js["probabilities"]) {
-        auto tmp = json_to_op_probs(elt).qubits; // qubit vector
+        auto tmp = Operations::json_to_op_probs(elt).qubits; // qubit vector
         set_t qubits(tmp.begin(), tmp.end()); // convert to set
         obs_meas_.insert(qubits);
       }
@@ -235,7 +235,7 @@ void ObservablesEngine<state_t>::load_config(const json_t &js) {
   if (JSON::check_key("observables", js)) {
     if (js["observables"].is_array()) {
       for (auto &elt : js["observables"]) {
-        const Op op = json_to_op_obs(elt);
+        const Operations::Op op = Operations::json_to_op_obs(elt);
         set_t qubits(op.qubits.begin(), op.qubits.end());
         obs_ops_[qubits].push_back(op);
       }
@@ -265,14 +265,14 @@ void ObservablesEngine<state_t>::compute_observables_probs(State *state) {
 template <class state_t>
 void ObservablesEngine<state_t>::compute_observables_ops(State *state) {
   // Compute operator observables
-  for (const auto &pair : obs_ops_) { // pair is (qubits, vector<Op>)
+  for (const auto &pair : obs_ops_) { // pair is (qubits, vector<Operations::Op>)
     key_t key({pair.first, QasmEngine<state_t>::creg_memory_});
     cvector_t expvals;
     for (const auto &op : pair.second) {
       if (op.name == "obs_pauli")
         expvals.push_back(pauli_expval(state, key, op));
       else
-        std::invalid_argument("TODO: only pauli ops currently implemented!");
+        expvals.push_back(state->matrix_observable_value(op));
     }
     Utils::combine(data_ops_[key], expvals); // accumulate with other expvals
     data_ops_counts_[key] += 1; // increment counts
@@ -281,21 +281,22 @@ void ObservablesEngine<state_t>::compute_observables_ops(State *state) {
 
 
 template <class state_t>
-complex_t ObservablesEngine<state_t>::pauli_expval(State *state, const key_t &key, const Op &op) {
+complex_t ObservablesEngine<state_t>::pauli_expval(State *state, const key_t &key,
+                                                   const Operations::Op &op) {
   // Compute operator observables
   auto &cache = pauli_cache_[key];
   complex_t expval(0., 0.);
-  for (size_t j=0; j < op.params_s.size(); j++) {
-    std::string pauli = op.params_s[j];
+  for (size_t j=0; j < op.params_string.size(); j++) {
+    std::string pauli = op.params_string[j];
     auto it = cache.find(pauli); // Check cache for value
     if (it != cache.end()) {
       // found cached result
-      expval += op.params_z[j] * (it->second);
+      expval += op.params_complex[j] * (it->second);
     } else {
       // compute result and add to cache
       double tmp = state->pauli_observable_value(op.qubits, pauli);
       cache[pauli] = tmp;
-      expval += op.params_z[j] * tmp;
+      expval += op.params_complex[j] * tmp;
     }
   }
   return expval;

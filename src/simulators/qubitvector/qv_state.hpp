@@ -75,7 +75,7 @@ public:
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  virtual void apply_op(const Op &op) override;
+  virtual void apply_op(const Operations::Op &op) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize(uint_t num_qubits) override;
@@ -84,7 +84,7 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual uint_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -106,12 +106,10 @@ public:
   virtual double pauli_observable_value(const reg_t& qubits, 
                                         const std::string &pauli) const override;
 
-  /* TODO: // Supports Matrix observables
+  // Supports Matrix observables
   bool has_matrix_observables = true;
   // Return the complex expectation value for an observable operator
-  inline virtual complex_t matrix_observable_value(const Op &op) const {
-    (void)op; return complex_t();
-  }; */
+  virtual complex_t matrix_observable_value(const Operations::Op &op) const override;
 
 protected:
   // Allowed operations are:
@@ -246,7 +244,7 @@ const std::map<std::string, State::Gates> State::gateset({
 //============================================================================
 
 uint_t State::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Op> &ops) {
+                                 const std::vector<Operations::Op> &ops) {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
@@ -320,14 +318,42 @@ double State::pauli_observable_value(const reg_t& qubits,
       }
     }
   }
-  // Compute the inner_product of data with the updated data_copy
-  complex_t inprod = data_copy.inner_product(data_);
-  return std::real(std::conj(inprod) * inprod);
+  // Pauli expecation values should always be real for a state
+  return std::real(data_copy.inner_product(data_));
 }
 
 
+complex_t State::matrix_observable_value(const Operations::Op &op) const {
+  // Copy the quantum state;
+  state_t data_copy = data_;
+  if (op.name == "obs_mat") {
+    // Apply each sub-matrix
+    for (size_t pos=0; pos < op.params_cmatrix.size(); ++pos) {
+      const auto vmat = Utils::vectorize_matrix(op.params_cmatrix[pos]);
+      data_copy.apply_matrix(op.params_reg[pos], vmat);
+    }
+    // Compute the inner_product of data with the updated data_copy
+    std::clog << "ip value = " << data_copy.inner_product(data_) << std::endl; // DEBUG
+    return data_copy.inner_product(data_);
+  } 
+  if (op.name == "obs_dmat") {
+    for (size_t pos=0; pos < op.params_cvector.size(); ++pos) {
+      data_copy.apply_matrix(op.params_reg[pos], op.params_cvector[pos]);
+    }
+    return data_copy.inner_product(data_);
+  }
+  if (op.name == "obs_vec") {
+    for (size_t pos=0; pos < op.params_cvector.size(); ++pos) {
+      const auto vmat = Utils::vectorize_matrix(Utils::projector(op.params_cvector[pos]));
+      data_copy.apply_matrix(op.params_reg[pos], vmat);
+    }
+    return data_copy.inner_product(data_);
+  }
+  throw std::invalid_argument("Invalid observable operator: not obs_mat, obs_dmat, obs_vec");
+}
 
-void State::apply_op(const Op &op) {
+
+void State::apply_op(const Operations::Op &op) {
 
   // Check Op is supported by State
   auto it = gateset.find(op.name);
@@ -341,24 +367,24 @@ void State::apply_op(const Op &op) {
   switch (g) {
   // Matrix multiplication
   case Gates::mat:
-    apply_matrix(op.qubits, op.params_m[0]);
+    apply_matrix(op.qubits, op.params_cmatrix[0]);
     break;
   case Gates::dmat:
-    apply_matrix(op.qubits, op.params_z);
+    apply_matrix(op.qubits, op.params_complex);
     break;
   // Special Noise operations
   case Gates::kraus:
-    apply_kraus(op.qubits, op.params_m);
+    apply_kraus(op.qubits, op.params_cmatrix);
     break;
   // Base gates
   case Gates::u3:
-    apply_gate_u3(op.qubits[0], op.params_d[0], op.params_d[1], op.params_d[2]);
+    apply_gate_u3(op.qubits[0], op.params_double[0], op.params_double[1], op.params_double[2]);
     break;
   case Gates::u2:
-    apply_gate_u3(op.qubits[0], M_PI / 2., op.params_d[0], op.params_d[1]);
+    apply_gate_u3(op.qubits[0], M_PI / 2., op.params_double[0], op.params_double[1]);
     break;
   case Gates::u1:
-    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., op.params_d[0])));
+    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., op.params_double[0])));
     break;
   case Gates::cx:
     data_.apply_cnot(op.qubits[0], op.qubits[1]);
@@ -405,7 +431,7 @@ void State::apply_op(const Op &op) {
   } break;
   // ZZ rotation by angle lambda
   case Gates::rzz: {
-    const auto dmat = rzz_diagonal_matrix(op.params_d[0]);
+    const auto dmat = rzz_diagonal_matrix(op.params_double[0]);
     data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
   } break;
   // Invalid Gate (we shouldn't get here)

@@ -34,7 +34,7 @@ namespace AER {
 // qubits, memory bits, and register bits for the input operators.
 class Circuit {
 public:
-
+  using Op = Operations::Op;
   std::vector<Op> ops;      // circuit operations
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
   uint_t num_memory = 0;    // maxmimum number of memory clbits needed for ops
@@ -124,7 +124,7 @@ Circuit::Circuit(const json_t &js) : Circuit() {
   ops.clear(); // remove any current operations
   const json_t &jops = js["instructions"];
   for (auto it = jops.cbegin(); it != jops.cend(); ++it) {
-    ops.emplace_back(json_to_op(*it));
+    ops.emplace_back(Operations::json_to_op(*it));
   }
   set_sizes();
 }

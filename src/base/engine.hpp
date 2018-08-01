@@ -75,7 +75,7 @@ public:
   };
 
   // Apply an operation to the state
-  inline virtual void apply_op(State<state_t> *state, const Op &op) {
+  inline virtual void apply_op(State<state_t> *state, const Operations::Op &op) {
     state->apply_op(op);
   };
   // Initialize an engine and circuit
