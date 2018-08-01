@@ -13,3 +13,6 @@ out/*
 *.so
 *.pyc
 src/simulators/qubitvector/qv_wrapper.cpp
+
+# Ignore build files
+build/*
