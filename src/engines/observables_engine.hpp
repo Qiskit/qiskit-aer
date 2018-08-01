@@ -6,8 +6,8 @@
  */
 
 /**
- * @file    engine.hpp
- * @brief   Engine base class for qiskit-aer simulator
+ * @file    observables_engine.hpp
+ * @brief   Observables expectation value engine class for qiskit-aer simulator
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
 
@@ -17,13 +17,11 @@
 #include "engines/qasm_engine.hpp"
 
 
-// TODO: Pauli caching
+// TODO: Matrix observables
 
 namespace AER {
 namespace Engines {
 
-  template <class state_t>
-  using State = Base::State<state_t>;
 
 
 //============================================================================
@@ -39,6 +37,7 @@ public:
   // Internal type aliasing
   using set_t = std::set<uint_t>;
   using key_t = std::pair<set_t, std::string>;
+  using State = Base::State<state_t>;
 
   //----------------------------------------------------------------
   // Base class abstract method overrides
@@ -66,10 +65,10 @@ public:
   // Note that we add the probabilities (or complex amplitudes) for each shot
   // conditioned on the QasmEngine memory bit value. These quantities must be
   // renormalized at the end based on the number of shots
-  virtual void compute_result(State<state_t> *state) override;
+  virtual void compute_result(State *state) override;
 
   // Initialize Pauli cache
-  virtual void initialize(State<state_t> *state, const Circuit &circ) override;
+  virtual void initialize(State *state, const Circuit &circ) override;
 
   //----------------------------------------------------------------
   // Base class additional overrides
@@ -77,14 +76,14 @@ public:
 
   // Add snapshot op as valid circuit op
   virtual std::set<std::string>
-  validate_circuit(State<state_t> *state, const Circuit &circ) override;
+  validate_circuit(State *state, const Circuit &circ) override;
 
 protected:
 
-  void compute_observables_probs(State<state_t> *state);
-  void compute_observables_ops(State<state_t> *state);
+  void compute_observables_probs(State *state);
+  void compute_observables_ops(State *state);
 
-  complex_t pauli_expval(State<state_t> *state, const key_t &key, const Op &op);
+  complex_t pauli_expval(State *state, const key_t &key, const Op &op);
 
   std::map<std::string, double>
   probs_ket(const std::vector<double> &vec, double scale, double epsilon) const;
@@ -123,14 +122,14 @@ protected:
 
 
 template <class state_t>
-void ObservablesEngine<state_t>::initialize(State<state_t> *state, const Circuit &circ) {
+void ObservablesEngine<state_t>::initialize(State *state, const Circuit &circ) {
   QasmEngine<state_t>::initialize(state, circ);
   pauli_cache_.clear(); // clear pauli cache at start of each shot
 }
 
 
 template <class state_t>
-void ObservablesEngine<state_t>::compute_result(State<state_t> *state) {
+void ObservablesEngine<state_t>::compute_result(State *state) {
   // Compute qasm engine results first since we need to make observables
   // conditional on the value of the memory register (if present)
   QasmEngine<state_t>::compute_result(state); // parent class
@@ -141,7 +140,7 @@ void ObservablesEngine<state_t>::compute_result(State<state_t> *state) {
 
 template <class state_t>
 std::set<std::string>
-ObservablesEngine<state_t>::validate_circuit(State<state_t> *state,
+ObservablesEngine<state_t>::validate_circuit(State *state,
                                           const Circuit &circ) {
   auto allowed_ops = state->allowed_ops();
   allowed_ops.insert({"snapshot", "measure"}); // from parents
@@ -252,7 +251,7 @@ void ObservablesEngine<state_t>::load_config(const json_t &js) {
 //============================================================================
 
 template <class state_t>
-void ObservablesEngine<state_t>::compute_observables_probs(State<state_t> *state) {
+void ObservablesEngine<state_t>::compute_observables_probs(State *state) {
   for (const auto &qubits : obs_meas_) {
     key_t key({qubits, QasmEngine<state_t>::creg_memory_});
     rvector_t probs = state->measure_probs(qubits);
@@ -264,7 +263,7 @@ void ObservablesEngine<state_t>::compute_observables_probs(State<state_t> *state
 
 // TODO: add matrix observable operators
 template <class state_t>
-void ObservablesEngine<state_t>::compute_observables_ops(State<state_t> *state) {
+void ObservablesEngine<state_t>::compute_observables_ops(State *state) {
   // Compute operator observables
   for (const auto &pair : obs_ops_) { // pair is (qubits, vector<Op>)
     key_t key({pair.first, QasmEngine<state_t>::creg_memory_});
@@ -282,7 +281,7 @@ void ObservablesEngine<state_t>::compute_observables_ops(State<state_t> *state) 
 
 
 template <class state_t>
-complex_t ObservablesEngine<state_t>::pauli_expval(State<state_t> *state, const key_t &key, const Op &op) {
+complex_t ObservablesEngine<state_t>::pauli_expval(State *state, const key_t &key, const Op &op) {
   // Compute operator observables
   auto &cache = pauli_cache_[key];
   complex_t expval(0., 0.);

@@ -22,21 +22,15 @@ namespace AER {
 namespace Engines {
 
 
-  template <class state_t>
-  using State = Base::State<state_t>;
-
-  template <class state_t>
-  using BaseEngine = Base::Engine<state_t>;
-
-
 //============================================================================
 // Engine base class for Qiskit-Aer
 //============================================================================
 
 template <class state_t>
-class SnapshotEngine : public virtual BaseEngine<state_t> {
+class SnapshotEngine : public virtual Base::Engine<state_t> {
 
 public:
+  using State = Base::State<state_t>;
 
   //----------------------------------------------------------------
   // Base class abstract method overrides
@@ -59,19 +53,19 @@ public:
 
   // Unused
   inline virtual void
-  compute_result(State<state_t> *state) override {(void)state;};
+  compute_result(State *state) override {(void)state;};
 
   //----------------------------------------------------------------
   // Base class additional overrides
   //----------------------------------------------------------------
 
   // Implement snapshot op on engine, and pass remaining ops to State
-  virtual void apply_op(State<state_t> *state,
+  virtual void apply_op(State *state,
                         const Op &op) override;
   
   // Add snapshot op as valid circuit op
   virtual std::set<std::string>
-  validate_circuit(State<state_t> *state, const Circuit &circ) override;
+  validate_circuit(State *state, const Circuit &circ) override;
 
 protected:
    bool show_snapshots_ = true;
@@ -92,7 +86,7 @@ void SnapshotEngine<state_t>::load_config(const json_t &js) {
 
 template <class state_t>
 std::set<std::string>
-SnapshotEngine<state_t>::validate_circuit(State<state_t> *state,
+SnapshotEngine<state_t>::validate_circuit(State *state,
                                           const Circuit &circ) {
   auto allowed_ops = state->allowed_ops();
   allowed_ops.insert("snapshot");
@@ -101,12 +95,12 @@ SnapshotEngine<state_t>::validate_circuit(State<state_t> *state,
 
 
 template <class state_t>
-void SnapshotEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
+void SnapshotEngine<state_t>::apply_op(State *state, const Op &op) {
   if (op.name == "snapshot") { 
       // copy state data at snapshot point
       snapshots_[op.params_s[0]].push_back(state->data());
   } else {
-    BaseEngine<state_t>::apply_op(state, op);  // Apply operation as usual
+    Base::Engine<state_t>::apply_op(state, op);  // Apply operation as usual
   }
 }
 

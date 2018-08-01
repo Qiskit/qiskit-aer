@@ -26,9 +26,6 @@ namespace AER {
 namespace Engines {
 
 
-  template <class state_t>
-  using State = Base::State<state_t>;
-
 //============================================================================
 // QASM Engine class for Qiskit-Aer
 //============================================================================
@@ -43,18 +40,20 @@ class QasmEngine : public virtual SnapshotEngine<state_t> {
 
 public:
 
+  using State = Base::State<state_t>;
+  
   //----------------------------------------------------------------
   // Base class overrides
   //----------------------------------------------------------------
 
-  virtual void initialize(State<state_t> *state,
+  virtual void initialize(State *state,
                           const Circuit &circ) override;
 
-  virtual void compute_result(State<state_t> *state) override;
+  virtual void compute_result(State *state) override;
 
   // Apply a sequence of operations to the state
   // TODO: modify this to handle conditional operations, and measurement
-  virtual void apply_op(State<state_t> *state, const Op &op) override;
+  virtual void apply_op(State *state, const Op &op) override;
 
   // Erase output data from engine
   virtual void clear() override;
@@ -109,14 +108,14 @@ protected:
 //============================================================================
 
 template <class state_t>
-void QasmEngine<state_t>::initialize(State<state_t> *state, const Circuit &circ) {
+void QasmEngine<state_t>::initialize(State *state, const Circuit &circ) {
   initialize_creg(circ);
   SnapshotEngine<state_t>::initialize(state, circ);
 }
 
 
 template <class state_t>
-void QasmEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
+void QasmEngine<state_t>::apply_op(State *state, const Op &op) {
   if (check_conditional(op)) { // check if op passes conditional
     if (op.name == "measure") { // check if op is measurement
       reg_t outcome = state->apply_measure(op.qubits);
@@ -129,7 +128,7 @@ void QasmEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
 
 
 template <class state_t>
-void QasmEngine<state_t>::compute_result(State<state_t> *state) {
+void QasmEngine<state_t>::compute_result(State *state) {
   // Parent class
   SnapshotEngine<state_t>::compute_result(state);
   // Memory bits value

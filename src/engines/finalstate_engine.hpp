@@ -22,9 +22,6 @@ namespace AER {
 namespace Engines {
 
 
-  template <class state_t>
-  using State = Base::State<state_t>;
-
 //============================================================================
 // Final state engine base class for Qiskit-Aer
 //============================================================================
@@ -37,6 +34,7 @@ template <class state_t>
 class FinalStateEngine : public virtual SnapshotEngine<state_t> {
 
 public:
+  using State = Base::State<state_t>;
 
   //----------------------------------------------------------------
   // Base class abstract method overrides
@@ -58,7 +56,7 @@ public:
   virtual void load_config(const json_t &config) override;
 
   // Unused
-  virtual void compute_result(State<state_t> *state) override;
+  virtual void compute_result(State *state) override;
 
   //----------------------------------------------------------------
   // Base class overrides
@@ -66,7 +64,7 @@ public:
 
   // Override execute to only perform a single shot regardless of input
   // shot number
-  virtual void execute(State<state_t> *state,
+  virtual void execute(State *state,
                        const Circuit &circ,
                        uint_t shots) override;
 
@@ -80,7 +78,7 @@ protected:
 //============================================================================
 
 template <class state_t>
-void FinalStateEngine<state_t>::execute(State<state_t> *state,
+void FinalStateEngine<state_t>::execute(State *state,
                                         const Circuit &circ,
                                         uint_t shots) {
   shots = 1;
@@ -89,7 +87,7 @@ void FinalStateEngine<state_t>::execute(State<state_t> *state,
 
 
 template <class state_t>
-void FinalStateEngine<state_t>::compute_result(State<state_t> *state) {
+void FinalStateEngine<state_t>::compute_result(State *state) {
   // Move final state data rather than copy
   // Note that no more operations can be applied to state after this move
   // unless state is re-initialized first!
