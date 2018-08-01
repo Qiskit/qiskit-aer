@@ -86,8 +86,7 @@ void SnapshotEngine<state_t>::load_config(const json_t &js) {
 
 template <class state_t>
 std::set<std::string>
-SnapshotEngine<state_t>::validate_circuit(State *state,
-                                          const Circuit &circ) {
+SnapshotEngine<state_t>::validate_circuit(State *state, const Circuit &circ) {
   auto allowed_ops = state->allowed_ops();
   allowed_ops.insert("snapshot");
   return circ.invalid_ops(allowed_ops);

@@ -42,11 +42,16 @@ public:
   virtual ~Interface() = default;
   
   // Execute from string to string
-  inline std::string execute(const std::string &qobj_str, int threads = 1) const {
-    return controller_.execute(json_t::parse(qobj_str), threads).dump(-1);
+  inline std::string execute(const std::string &qobj_str) {
+    return controller_.execute(json_t::parse(qobj_str)).dump(-1);
   };
 
-  // Load config from string
+  // Load controller config from string
+  inline void load_controller_config(std::string config) {
+    controller_.load_config(json_t::parse(config));
+  };
+
+  // Load engine config from string
   inline void load_engine_config(std::string config) {
     controller_.load_engine_config(json_t::parse(config));
   };

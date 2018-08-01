@@ -66,8 +66,6 @@ public:
   //----------------------------------------------------------------
   
   // Load and execute a qobj
-  // These wrap the Qobj loading methods to catch and report errors in
-  // loading
   inline virtual json_t execute(const json_t &qobj);
 
   // Execute a single circuit

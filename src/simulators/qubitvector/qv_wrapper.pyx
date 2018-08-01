@@ -9,7 +9,7 @@ from libcpp.string cimport string
 cdef extern from "framework/interface.hpp" namespace "AER":
     cdef cppclass Interface[CONTROLLER]:
         Interface() except+
-        string execute(string &qobj, int threads) except +
+        string execute(string &qobj) except +
         void load_engine_config(string &qobj) except +
         void load_state_config(string &qobj) except +
         void set_num_threads(int threads)
@@ -19,6 +19,11 @@ cdef extern from "framework/interface.hpp" namespace "AER":
 cdef extern from "base/controller.hpp" namespace "AER::Base":
     cdef cppclass Controller[STATE, ENGINE]:
         Controller() except +
+
+# QubitVector State class
+cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
+    cdef cppclass QubitVector:
+        State() except +
 
 # QubitVector State class
 cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
@@ -31,12 +36,17 @@ cdef extern from "simulators/qubitvector/qv_qasm_engine.hpp" namespace "AER::Qub
         QasmEngine() except +
 
 # QubitVector FinalStateEngine class
-cdef extern from "engines/finalstate_engine.hpp" namespace "AER::Base":
+cdef extern from "engines/finalstate_engine.hpp" namespace "AER::Engines":
     cdef cppclass FinalStateEngine[STATE]:
         FinalStateEngine() except +
 
+# QubitVector FinalStateEngine class
+cdef extern from "engines/observables_engine.hpp" namespace "AER::Engines":
+    cdef cppclass ObservablesEngine[STATE]:
+        ObservablesEngine() except +
 
-cdef class QasmSimulatorCppWrapper:
+
+cdef class QasmSimulatorWrapper:
 
     cdef Interface[Controller[QasmEngine, State]] *thisptr
 
@@ -63,24 +73,46 @@ cdef class QasmSimulatorCppWrapper:
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
         # Execute
-        return self.thisptr.execute(qobj_enc, 1)
-
-    def parallel_execute(self, qobj):
-        # Convert input to C++ string
-        cdef string qobj_enc = str(qobj).encode('UTF-8')
-        # Get available threads
-        threads = self.thisptr.get_num_threads()
-        # Execute
-        return self.thisptr.execute(qobj_enc, threads)
+        return self.thisptr.execute(qobj_enc)
 
 
-cdef class StateVectorSimulatorCppWrapper:
+cdef class ObservablesSimulatorWrapper:
 
-    cdef Interface[Controller[QasmEngine, State]] *thisptr
+    cdef Interface[Controller[ObservablesEngine[QubitVector], State]] *thisptr
 
     def __cinit__(self):
-        self.thisptr = new Interface[Controller[QasmEngine, State]]()
-        cdef string default_config = '{"label": "statevector", "single_shot": true}'.encode('UTF-8')
+        self.thisptr = new Interface[Controller[ObservablesEngine[QubitVector], State]]()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    def load_state_config(self, config):
+        # Convert input to C++ string
+        cdef string config_enc = str(config).encode('UTF-8')
+        self.thisptr.load_state_config(config_enc)
+
+    def load_engine_config(self, config):
+        # Convert input to C++ string
+        cdef string config_enc = str(config).encode('UTF-8')
+        self.thisptr.load_engine_config(config_enc)
+
+    def set_num_threads(self, threads):
+        self.thisptr.set_num_threads(int(threads))
+
+    def execute(self, qobj):
+        # Convert input to C++ string
+        cdef string qobj_enc = str(qobj).encode('UTF-8')
+        # Execute
+        return self.thisptr.execute(qobj_enc)
+
+
+cdef class StatevectorSimulatorWrapper:
+
+    cdef Interface[Controller[FinalStateEngine[QubitVector], State]] *thisptr
+
+    def __cinit__(self):
+        self.thisptr = new Interface[Controller[FinalStateEngine[QubitVector], State]]()
+        cdef string default_config = '{"finalstate_label": "statevector"}'.encode('UTF-8')
         self.thisptr.load_engine_config(default_config)
 
     def __dealloc__(self):
@@ -103,12 +135,4 @@ cdef class StateVectorSimulatorCppWrapper:
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
         # Execute
-        return self.thisptr.execute(qobj_enc, 1)
-
-    def parallel_execute(self, qobj):
-        # Convert input to C++ string
-        cdef string qobj_enc = str(qobj).encode('UTF-8')
-        # Get available threads
-        threads = self.thisptr.get_num_threads()
-        # Execute
-        return self.thisptr.execute(qobj_enc, threads)
+        return self.thisptr.execute(qobj_enc)

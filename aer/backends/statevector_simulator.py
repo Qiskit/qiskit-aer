@@ -16,7 +16,7 @@ from qiskit.backends.local.localjob import LocalJob
 
 # Import Simulator tools
 from json_encoder import SimulatorJSONEncoder
-from qv_wrapper import StateVectorSimulatorCppWrapper
+from qv_wrapper import StatevectorSimulatorWrapper
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class StatevectorSimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
-        self.simulator = StateVectorSimulatorCppWrapper()
+        self.simulator = StatevectorSimulatorWrapper()
 
     def run(self, qobj):
         """Run a QOBJ on the the backend."""
@@ -48,7 +48,8 @@ class StatevectorSimulator(BaseBackend):
         qobj_str = json.dumps(qobj, cls=SimulatorJSONEncoder)
         result = json.loads(self.simulator.execute(qobj_str),
                             cls=StatevectorJSONDecoder)
-        return Result(result)
+        # TODO: get schema in line with result object
+        return result  # Result(result)
 
     def _validate(self, qobj):
         return
