@@ -39,6 +39,9 @@ public:
   // Abstract methods that must be defined by derived classes
   //----------------------------------------------------------------
 
+  // If a derivced class does not use a method initialize them as:
+  // inline T method(arg) overide {(void)arg;};
+
   // Compute results from the current value of the State
   virtual void compute_result(State<state_t> *state) = 0;
 
@@ -48,23 +51,27 @@ public:
   // Serialize engine data to JSON
   virtual json_t json() const = 0;
 
-  //----------------------------------------------------------------
-  // Optional methods that may be overriden
-  //----------------------------------------------------------------
+  // Load any settings for the State class from a config JSON
+  inline virtual void load_config(const json_t &config) = 0;
 
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
   // as this function should use move semantics to minimize copying
+  // Note: this is not a true virtual method as the argument will
+  // be the derived engine type, but it must be implemented by all
+  // derived classes.
   void combine(Engine<state_t> &eng) {(void)eng;};
 
-  // Load any settings for the State class from a config JSON
-  inline virtual void load_config(const json_t &config) {(void)config;};
+  //----------------------------------------------------------------
+  // Optional methods that may be overriden
+  //----------------------------------------------------------------
 
   // validates a circuit
   // returns true if all ops in circuit are supported by the state and engine
   // otherwise it returns false
-  inline virtual bool validate_circuit(State<state_t> *state, const Circuit &circ) {
-    return circ.check_ops(state->allowed_ops());
+  inline virtual std::set<std::string>
+  validate_circuit(State<state_t> *state, const Circuit &circ) {
+    return circ.invalid_ops(state->allowed_ops());
   };
 
   // Apply an operation to the state

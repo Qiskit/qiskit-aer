@@ -71,10 +71,6 @@ public:
   //  "u0", "u1", "u2", "u3", "cx", "cz",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   virtual std::set<std::string> allowed_ops() const override;
-
-  // Allows measurements
-  bool has_measure = true;
-  virtual reg_t apply_measure(const reg_t& qubits) override;
     
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
@@ -96,6 +92,26 @@ public:
   // TODO: Check optimal default value for a desktop i7 CPU
   virtual void load_config(const json_t &config) override;
 
+  // Allows measurements
+  bool has_measure = true;
+
+  virtual reg_t apply_measure(const reg_t& qubits) override;
+
+  virtual rvector_t measure_probs(const reg_t &qubits) const override;
+
+  // Supports Pauli observables
+  bool has_pauli_observables = true;
+
+  // Return the complex expectation value for an observable operator
+  virtual double pauli_observable_value(const reg_t& qubits, 
+                                        const std::string &pauli) const override;
+
+  /* TODO: // Supports Matrix observables
+  bool has_matrix_observables = true;
+  // Return the complex expectation value for an observable operator
+  inline virtual complex_t matrix_observable_value(const Op &op) const {
+    (void)op; return complex_t();
+  }; */
 
 protected:
   // Allowed operations are:
@@ -267,6 +283,48 @@ reg_t State::apply_measure(const reg_t &qubits) {
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   return Utils::int2reg(meas.first, 2, qubits.size());
 }
+
+
+rvector_t State::measure_probs(const reg_t &qubits) const {
+  if (qubits.size() == 1) {
+    // Probability of P0 outcome
+    double p0 = data_.probability(qubits[0], 0);
+    return {{p0, 1. - p0}};
+  } else
+    return data_.probabilities(qubits);
+}
+
+
+double State::pauli_observable_value(const reg_t& qubits, 
+                                     const std::string &pauli) const {
+  // Copy the quantum state;
+  state_t data_copy = data_;
+  // Apply each pauli operator as a gate to the corresponding qubit
+  for (size_t pos=0; pos < qubits.size(); ++pos) {
+    switch (pauli[pos]) {
+      case 'I':
+        break;
+      case 'X':
+        data_copy.apply_x(qubits[pos]);
+        break;
+      case 'Y':
+        data_copy.apply_y(qubits[pos]);
+        break;
+      case 'Z':
+        data_copy.apply_z(qubits[pos]);
+        break;
+      default: {
+        std::stringstream msg;
+        msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos] << "\'.";
+        throw std::invalid_argument(msg.str());
+      }
+    }
+  }
+  // Compute the inner_product of data with the updated data_copy
+  complex_t inprod = data_copy.inner_product(data_);
+  return std::real(std::conj(inprod) * inprod);
+}
+
 
 
 void State::apply_op(const Op &op) {

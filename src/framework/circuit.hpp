@@ -61,7 +61,11 @@ public:
 
   // Check if all circuit ops are in an allowed op set
   bool check_ops(const std::set<std::string> &allowed_ops) const;
-  
+
+  // Return a set of all invalid circuit op names
+  std::set<std::string>
+  invalid_ops(const std::set<std::string> &allowed_ops) const;
+
   // Check if any circuit ops are conditional ops
   bool has_conditional() const;
 
@@ -123,6 +127,17 @@ Circuit::Circuit(const json_t &js) : Circuit() {
     ops.emplace_back(json_to_op(*it));
   }
   set_sizes();
+}
+
+
+std::set<std::string>
+Circuit::invalid_ops(const std::set<std::string> &allowed_ops) const {
+  std::set<std::string> invalid;
+  for (const auto &op : ops) {
+    if (allowed_ops.find(op.name) == allowed_ops.end())
+      invalid.insert(op.name);
+  }
+  return invalid;
 }
 
 

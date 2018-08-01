@@ -59,6 +59,13 @@ public:
                                     const std::vector<Op> &ops) = 0;
 
   //----------------------------------------------------------------
+  // Optional methods: Config
+  //----------------------------------------------------------------
+  
+  // Load any settings for the State class from a config JSON
+  inline virtual void load_config(const json_t &config) {(void)config;};
+
+  //----------------------------------------------------------------
   // Optional methods: Measurement 
   //----------------------------------------------------------------
   
@@ -71,17 +78,39 @@ public:
     return reg_t(qubits.size(), 0);
   };
 
+  // Return vector of measure probabilities for specified qubits
+  inline virtual rvector_t measure_probs(const reg_t &qubits) const {
+    return rvector_t(1ULL << qubits.size(), 0);
+  };
+
   //----------------------------------------------------------------
-  // Optional methods: Config
+  // Optional methods: Operator observables
   //----------------------------------------------------------------
-  
-  // Load any settings for the State class from a config JSON
-  inline virtual void load_config(const json_t &config) {(void)config;};
+
+  // If the state supports computation of Pauli observable operators
+  // (obs_pauli) this should be set to true
+  bool has_pauli_observables = false;
+
+  // Return the complex expectation value for a single Pauli string
+  inline virtual
+  double pauli_observable_value(const reg_t& qubits,
+                                   const std::string &pauli) const {
+    (void)qubits; (void)pauli; return 0.;
+  };
+
+  // If the state supports computation of matrix observable operators
+  // (obs_mat, obs_dmat, obs_vec) this should be set to true
+  bool has_matrix_observables = false;
+
+  // Return the complex expectation value for an observable operator
+  inline virtual complex_t matrix_observable_value(const Op &op) const {
+    (void)op; return complex_t();
+  };
 
   //----------------------------------------------------------------
   // Members that should not be modified by derrived classes
   //----------------------------------------------------------------
-
+  
   // Returns a reference to the states data structure
   inline state_t &data() { return data_; };
 
@@ -101,7 +130,12 @@ public:
   // Otherwise it is initialized with a random value
   inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed); };
 
-  
+  // Return vector of measure probabilities for specified qubits
+  inline virtual rvector_t
+  measure_probs(const std::set<uint_t> &qubits) const {
+    return measure_probs(reg_t(qubits.begin(), qubits.end()));
+  };
+
 protected:
   // Allowed ops
   const std::set<std::string> allowed_ops_ = {};

@@ -48,26 +48,6 @@ struct Op {
 
 
 //------------------------------------------------------------------------------
-// Op Generators
-//------------------------------------------------------------------------------
-
-Op make_op_gate(std::string name, reg_t &qubits, const std::vector<double> &params);
-Op make_op_cond(std::string name, const reg_t &qubits, const std::vector<double> &params,
-                uint_t conditional_reg);
-Op make_op_measure(const reg_t &qubits, const reg_t &memory, const reg_t &registers);
-Op make_op_reset(const reg_t &qubits, const std::vector<int_t> &state);
-Op make_op_bfunc(std::string rel, std::string mask, std::string val,
-                 const reg_t &registers, const reg_t &memory);
-Op make_op_snapshot(std::string slot, const std::vector<std::string> &types);
-Op make_op_matrix(const reg_t &qubits, const cmatrix_t &mat);
-Op make_op_obs_mat(const reg_t &qubits, const std::vector<cmatrix_t> &mats);
-Op make_op_obs_dmat(const reg_t &qubits, const std::vector<cvector_t> &diags);
-Op make_op_obs_vec(const reg_t &qubits, const std::vector<cvector_t> &vecs);
-Op make_op_obs_pauli(const reg_t &qubits, const std::vector<std::string> &paulis,
-                     const cvector_t &coeffs);
-Op make_op_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats);
-
-//------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
 
@@ -79,173 +59,23 @@ inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);};
 Op json_to_op_gate(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
-Op json_to_op_snapshot(const json_t &js);
+
 Op json_to_op_mat(const json_t &js);
 Op json_to_op_dmat(const json_t &js);
+
+// Observables
+Op json_to_op_obs(const json_t &js);
 Op json_to_op_obs_mat(const json_t &js);
+Op json_to_op_obs_dmat(const json_t &js);
+Op json_to_op_obs_vec(const json_t &js);
 Op json_to_op_obs_pauli(const json_t &js); 
-Op json_to_op_obs_measure(const json_t &js);
+Op json_to_op_probs(const json_t &js);
+
+// Special
+Op json_to_op_snapshot(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_roerror(const json_t &js); // TODO
 Op json_to_op_bfunc(const json_t &js); // TODO
-
-// Main JSON serialization functions
-json_t json_from_op(const Op &op); // Partial TODO
-inline void to_json(json_t &js, const Op &op) {js = json_from_op(op);};
-
-// Helper serialization functions
-json_t json_from_op_gate(const Op& op); 
-json_t json_from_op_measure(const Op& op);
-json_t json_from_op_reset(const Op& op);
-json_t json_from_op_snapshot(const Op& op);
-
-json_t json_from_op_bfunc(const Op& op); // TODO
-json_t json_from_op_matrix(const Op& op); // TODO
-json_t json_from_op_obs_mat(const Op& op); // TODO
-json_t json_from_op_obs_dmat(const Op& op); // TODO
-json_t json_from_op_obs_vec(const Op& op); // TODO
-json_t json_from_op_obs_pauli(const Op& op); // TODO
-
-
-//------------------------------------------------------------------------------
-// Implementation: Op Generators
-//------------------------------------------------------------------------------
-
-Op make_op_gate(std::string name, 
-                const reg_t &qubits,
-                const std::vector<double> &params) {
-  Op op;
-  op.name = name;
-  op.qubits = qubits;
-  op.params_d = params;
-  return op;
-}
-
-
-Op make_op_cond(std::string name, 
-                const reg_t &qubits,
-                const std::vector<double> &params,
-                uint_t conditional_reg) {
-  Op op = make_op_gate(name, qubits, params);
-  op.conditional = true;
-  op.conditional_reg = conditional_reg;
-  return op;
-}
-
-
-Op make_op_measure(const reg_t &qubits,
-                   const reg_t &memory,
-                   const reg_t &registers) {
-  Op op;
-  op.name = "measure";
-  op.qubits = qubits;
-  op.memory = memory;
-  op.registers = registers;
-  // Check memory and registers are correct length
-  if (memory.empty() == false && memory.size() != qubits.size()) {
-    throw std::invalid_argument("memory bits are incorrect length");
-  }
-  if (registers.empty() == false && registers.size() != qubits.size()) {
-    throw std::invalid_argument("register bits are incorrect length");
-  }
-  return op;
-}
-
-
-Op make_op_reset(const reg_t &qubits,
-                 const std::vector<uint_t> &state) {
-  Op op;
-  op.name = "reset";
-  op.qubits = qubits;
-  std::copy(state.cbegin(), state.cend(), op.params_d.begin());
-  // Check state is correct length
-  if (state.size() != qubits.size()) {
-    throw std::invalid_argument("reset state is incorrect length");
-  }
-  return op;
-}
-
-
-Op make_op_bfunc(std::string rel, std::string mask, std::string val,
-                 const reg_t &registers,
-                 const reg_t &memory) {
-  Op op;
-  op.name = "bfunc";
-  op.params_s = {rel, mask, val};
-  op.registers = registers;
-  op.memory = memory;
-  return op;
-}
-
-
-Op make_op_snapshot(std::string slot, const std::vector<std::string> &types) {
-  Op op;
-  op.name = "#snapshot";
-  op.params_s = {slot};
-  if (types.empty())
-    op.params_s.push_back("default");
-  else
-    std::copy(types.cbegin(), types.cend(), back_inserter(op.params_s));
-  return op;
-}
-
-
-Op make_op_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  Op op;
-  op.name = "matrix";
-  op.qubits = qubits;
-  op.params_m = {mat};
-  return op;
-}
-
-
-Op make_op_obs_mat(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
-  Op op;
-  op.name = "obs_mat";
-  op.qubits = qubits;
-  op.params_m = mats;
-  for (const auto& m : mats) {
-    if (m.GetRows() == 1)
-      op.params_s.push_back("dmat");
-    else if (m.GetColumns() == 1)
-      op.params_s.push_back("vec");
-    else
-      op.params_s.push_back("mat");
-  }
-  return op;
-}
-
-Op make_op_obs_pauli(const reg_t &qubits, const std::vector<std::string> &paulis, 
-                     const cvector_t &coeffs) {
-  Op op;
-  op.name = "obs_pauli";
-  op.qubits = qubits;
-  op.params_s = paulis;
-
-  // Check paulis are correct length
-  for (const auto &p : paulis) {
-    if (p.size() != qubits.size()) {
-      throw std::invalid_argument("Pauli observable is incorrect length");
-    }
-  }
-  if (coeffs.empty() == false) {
-    op.params_z = coeffs;
-    // Check coeffs are correct length
-    if (coeffs.size() != paulis.size()) {
-      throw std::invalid_argument("Pauli coefficient is incorrect length");
-    }
-  }
-  return op;
-}
-
-
-Op make_op_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
-  Op op;
-  op.name = "matrix";
-  op.qubits = qubits;
-  op.params_m = mats;
-  return op;
-}
 
 
 //------------------------------------------------------------------------------
@@ -260,22 +90,32 @@ Op json_to_op(const json_t &js) {
   if (name.empty()) {
     throw std::invalid_argument("Invalid gate operation: \"name\" is empty.");
   }
+  // Measure & Reset
   if (name == "measure")
     return json_to_op_measure(js);
   if (name == "reset")
     return json_to_op_reset(js);
-  if (name == "#snapshot")
-    return json_to_op_snapshot(js);
+  // Arbitrary matrix gates
   if (name == "mat")
     return json_to_op_mat(js);
   if (name == "dmat")
     return json_to_op_dmat(js);
-  if (name == "obs_mat")
-    return json_to_op_obs_mat(js);
+  // Observables
+  if (name == "probs")
+    return json_to_op_probs(js);
   if (name == "obs_pauli")
     return json_to_op_obs_pauli(js);
-  if (name == "obs_measure")
-    return json_to_op_obs_measure(js);
+  /* TODO
+  if (name == "obs_mat")
+    return json_to_op_obs_mat(js);
+  if (name == "obs_dmat")
+    return json_to_op_obs_dmat(js);
+  if (name == "obs_vec")
+    return json_to_op_obs_vec(js);
+  */
+  // Special
+  if (name == "snapshot")
+    return json_to_op_snapshot(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   /* TODO: the following aren't implemented yet!
@@ -284,7 +124,7 @@ Op json_to_op(const json_t &js) {
   if (name == "roerror")
     return json_to_op_roerror(js);
   */
-  // Default parse as gate
+  // Gates
   return json_to_op_gate(js);
 }
 
@@ -352,7 +192,7 @@ Op json_to_op_reset(const json_t &js) {
 
 Op json_to_op_snapshot(const json_t &js) {
   Op op;
-  op.name = "#snapshot";
+  op.name = "snapshot";
   // Load double params for reset state (if present)
   JSON::get_value(op.params_s, "params", js);
   if (op.params_s.size() == 1) {
@@ -393,44 +233,90 @@ Op json_to_op_dmat(const json_t &js) {
 }
 
 
-Op json_to_op_obs_mat(const json_t &js) {
+
+// Measurement probabilities observables
+Op json_to_op_probs(const json_t &js) {
   Op op;
-  op.name = "obs_mat";
-  // load qubits
+  op.name = "probs";
   JSON::get_value(op.qubits, "qubits", js);
+
+  // Error handling
   if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
+    throw std::invalid_argument("Invalid obs_mat operation (\"qubits\" are empty).");
   }
-  // load matrices
-  JSON::get_value(op.params_m, "params", js);
-  JSON::get_value(op.params_s, "string_params", js);
-  // TODO check matrices are correct shape for string params
   return op;
+}
+
+// Operator observables
+Op json_to_op_obs(const json_t &js) {
+  std::string name;
+  JSON::get_value(name, "name", js);
+  if (name == "obs_pauli")
+    return json_to_op_obs_pauli(js);
+  /* TODO
+  if (name == "obs_mat")
+    return json_to_op_obs_mat(js);
+  if (name == "obs_dmat")
+    return json_to_op_obs_dmat(js);
+  if (name == "obs_vec")
+    return json_to_op_obs_vec(js);
+  */
+  throw std::invalid_argument("Invalid observable operation.");  
 }
 
 
 Op json_to_op_obs_pauli(const json_t &js) {
   Op op;
   op.name = "obs_pauli";
-  // load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
-  }
   JSON::get_value(op.params_s, "params", js);
   JSON::get_value(op.params_z, "coeffs", js);
+
+  // Sort qubits and params (this could be improved)
+  // It is currently needed for caching strings for
+  // observables engine
+  reg_t unsorted = op.qubits;
+  std::sort(op.qubits.begin(), op.qubits.end());
+  for (auto &s : op.params_s) {
+    std::string srt;
+    for (const auto q: op.qubits) {
+      auto pos = std::distance(unsorted.begin(),
+                               std::find(unsorted.begin(), unsorted.end(), q));
+      srt.push_back(s[pos]);
+    }
+    s = srt;
+  }
+  // Error handling
+  if (op.qubits.empty()) {
+    throw std::invalid_argument("Invalid obs_pauli operation (\"qubits\" are empty).");
+  }
+  if (op.params_s.empty()) {
+    throw std::invalid_argument("Invalid obs_pauli operation (\"params\" are empty).");
+  }
+  for (const auto &s: op.params_s) {
+    if (s.size() != op.qubits.size())
+      throw std::invalid_argument("Invalid obs_pauli operation (\"params\" string incorrect length for qubit number).");
+  }
+  if (op.params_z.size() != op.params_s.size()) {
+    throw std::invalid_argument("Invalid obs_pauli operation (length \"coeffs\" != length \"params\").");
+  }
   return op;
 }
 
 
-Op json_to_op_obs_measure(const json_t &js) {
+// TODO: Fix so single matrix
+Op json_to_op_obs_mat(const json_t &js) {
   Op op;
-  op.name = "obs_measure";
+  op.name = "obs_mat";
   // load qubits
   JSON::get_value(op.qubits, "qubits", js);
   if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
+    throw std::invalid_argument("Invalid obs_mat operation (\"qubits\" are empty)");
   }
+  // load matrices
+  JSON::get_value(op.params_m, "params", js);
+  JSON::get_value(op.params_s, "string_params", js);
+  // TODO check matrices are correct shape for string params
   return op;
 }
 
@@ -448,84 +334,6 @@ Op json_to_op_kraus(const json_t &js) {
   return op;
 }
 
-
-//------------------------------------------------------------------------------
-// Implementation: JSON serialization
-//------------------------------------------------------------------------------
-
-json_t json_from_op(const Op &op) {
-  if (op.name == "measure")
-    return json_from_op_measure(op);
-  if (op.name == "reset")
-    return json_from_op_reset(op);
-  if (op.name == "#snapshot")
-    return json_from_op_snapshot(op);
-  /* TODO: the following aren't implemented yet!
-  if (op.name == "bfunc")
-    return json_from_op_bfunc(op);
-  if (op.name == "matrix")
-    return json_from_op_matrix(op);
-  if (op.name == "obs_mat")
-    return json_from_op_obs_mat(op);
-  if (op.name == "obs_dmat")
-    return json_from_op_obs_mat(op);
-  if (op.name == "obs_vec")
-    return json_from_op_obs_mat(op);
-  if (op.name == "obs_pauli")
-    return json_from_op_obs_mat(op);
-  */
-  // Default parse as gate
-  return json_from_op_gate(op);
-}
-
-
-json_t json_from_op_gate(const Op &op) {
-  json_t js;
-  js["name"] = op.name;
-  js["qubits"] = op.qubits;
-  if (op.params_d.empty() == false) {
-    js["params"] = op.params_d;
-  }
-  if (op.conditional == true) {
-    js["conditional"] = op.conditional_reg;
-  }
-  return js;
-}
-
-
-json_t json_from_op_measure(const Op &op) {
-  json_t js;
-  js["name"] = "measure";
-  js["qubits"] = op.qubits;
-  if (op.memory.empty() == false) {
-    js["memory"] = op.memory;
-  }
-  if (op.registers.empty() == false) {
-    js["register"] = op.registers;
-  }
-  return js;
-}
-
-
-json_t json_from_op_reset(const Op &op) {
-  json_t js;
-  js["name"] = "reset";
-  js["qubits"] = op.qubits;
-  if (op.params_d.empty() == false) {
-    for (const auto p: op.params_d)
-    js["params"].push_back(uint_t(p));
-  }
-  return js;
-}
-
-json_t json_from_op_snapshot(const Op &op) {
-  json_t js;
-  js["name"] = "#snapshot";
-  js["params"] = op.params_s;
-  return js;
-}
-
-// TODO: the rest
 
 //------------------------------------------------------------------------------
 } // end namespace QISKIT

@@ -13,13 +13,13 @@
 
 // TODO: Add support for bfunc operation
 // TODO: Add support for readout error operation
+// TODO: Add total_shots_ variable for recording shots
 
 #ifndef _aer_engines_qasm_engine_hpp_
 #define _aer_engines_qasm_engine_hpp_
 
-#include <algorithm>
 
-#include "base/engine.hpp"
+#include "engines/snapshot_engine.hpp"
 #include "framework/utils.hpp"
 
 namespace AER {
@@ -29,16 +29,17 @@ namespace Engines {
   template <class state_t>
   using State = Base::State<state_t>;
 
-  template <class state_t>
-  using BaseEngine = Base::Engine<state_t>;
-
 //============================================================================
 // QASM Engine class for Qiskit-Aer
 //============================================================================
 
-// This engine returns counts for state classes that support measurement
+// This engine returns counts for state classes that support measurement.
+// It is designed to be used to simulate the output of real hardware.
+// Note that it also supports the snapshot operation for debugging purposes
+// But the snapshots will return a list of snapshots for each shot of the simulation.
+
 template <class state_t>
-class QasmEngine : public virtual BaseEngine<state_t> {
+class QasmEngine : public virtual SnapshotEngine<state_t> {
 
 public:
 
@@ -55,7 +56,7 @@ public:
   // TODO: modify this to handle conditional operations, and measurement
   virtual void apply_op(State<state_t> *state, const Op &op) override;
 
-  // Empty engine of stored data
+  // Erase output data from engine
   virtual void clear() override;
 
   // Serialize engine data to JSON
@@ -84,6 +85,9 @@ protected:
   // initialize creg strings
   void initialize_creg(const Circuit &circ);
 
+  // Shots
+  uint_t total_shots_;
+
   // Classical registers
   std::string creg_memory_;
   std::string creg_registers_;
@@ -107,7 +111,7 @@ protected:
 template <class state_t>
 void QasmEngine<state_t>::initialize(State<state_t> *state, const Circuit &circ) {
   initialize_creg(circ);
-  BaseEngine<state_t>::initialize(state, circ);
+  SnapshotEngine<state_t>::initialize(state, circ);
 }
 
 
@@ -118,7 +122,7 @@ void QasmEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
       reg_t outcome = state->apply_measure(op.qubits);
       store_measure(outcome, op.memory, op.registers);
     } else {
-    BaseEngine<state_t>::apply_op(state, op);  // Apply operation as usual
+    SnapshotEngine<state_t>::apply_op(state, op);  // Apply operation as usual
     }
   }
 }
@@ -126,27 +130,30 @@ void QasmEngine<state_t>::apply_op(State<state_t> *state, const Op &op) {
 
 template <class state_t>
 void QasmEngine<state_t>::compute_result(State<state_t> *state) {
-  (void)state; // avoid unused variable warning
-  // Get memory value string
-  if ((return_counts_ || return_memory_) && !creg_memory_.empty()) {
-    if (return_hex_strings_) // Convert to a hex string
+  // Parent class
+  SnapshotEngine<state_t>::compute_result(state);
+  // Memory bits value
+  if (!creg_memory_.empty()) {
+    if (return_hex_strings_) // convert bit-string to hex-string
       creg_memory_ = "0x" + Utils::bin2hex(creg_memory_);
     if (return_counts_)
       counts_[creg_memory_] += 1;
     if (return_memory_)
-      memory_.emplace_back(std::move(creg_memory_));
+      memory_.push_back(creg_memory_);
   }
-  // Get registers value-string
-  if (return_registers_ && !creg_registers_.empty()) {
-    if (return_hex_strings_)
+  // Register bits value
+  if (!creg_registers_.empty()) {
+    if (return_hex_strings_) // convert bit-string to hex-string
       creg_registers_ = "0x" + Utils::bin2hex(creg_registers_);
-    memory_.emplace_back(std::move(creg_registers_));
+    if (return_registers_)
+      registers_.push_back(creg_registers_);
   }
 }
 
 
 template <class state_t>
 void QasmEngine<state_t>::clear() {
+  SnapshotEngine<state_t>::clear(); // parent class
   counts_.clear();
   memory_.clear();
   registers_.clear();
@@ -169,12 +176,14 @@ void QasmEngine<state_t>::combine(QasmEngine<state_t> &eng) {
     counts_[pair.first] += pair.second;
   }
   eng.counts_.clear(); // delete copied count data
+
+  SnapshotEngine<state_t>::combine(eng); // parent class
 }
 
 
 template <class state_t>
 json_t QasmEngine<state_t>::json() const {
-  json_t tmp;
+  json_t tmp = SnapshotEngine<state_t>::json(); // parent class;
   if (return_counts_ && counts_.empty() == false)
     tmp["counts"] = counts_;
   if (return_memory_ && memory_.empty() == false)
@@ -187,6 +196,7 @@ json_t QasmEngine<state_t>::json() const {
 
 template <class state_t>
 void QasmEngine<state_t>::load_config(const json_t &js) {
+  SnapshotEngine<state_t>::load_config(js); // parent class
   JSON::get_value(return_counts_, "counts", js);
   JSON::get_value(return_memory_, "memory", js);
   JSON::get_value(return_registers_, "register", js);

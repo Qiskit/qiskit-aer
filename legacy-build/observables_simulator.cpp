@@ -19,8 +19,7 @@
 
 // Simulator
 #include "base/controller.hpp"
-#include "engines/finalstate_engine.hpp"
-#include "engines/snapshot_engine.hpp"
+#include "engines/observables_engine.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
 
 /*******************************************************************************
@@ -66,14 +65,16 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     
-    using state_t = QV::QubitVector;                  // State data type
-    using State = AER::QubitVector::State;            // State class
-    using Engine = AER::Engines::FinalStateEngine<state_t>; // Engine class
-    //using Engine = AER::Engines::SnapshotEngine<state_t>; // Engine class
+    using state_t = QV::QubitVector;
+    using State = AER::QubitVector::State;          // State class
+    using Engine = AER::Engines::ObservablesEngine<state_t>; // Observables engine
+  
     AER::Base::Controller<Engine, State> sim;
     out << sim.execute(qobj).dump(4) << std::endl;
+  
     return 0;
-  } catch (std::exception &e) {
+  }
+  catch (std::exception &e) {
     std::stringstream msg;
     msg << "Failed to execute qobj (" << e.what() << ")";
     failed(msg.str(), out, indent);

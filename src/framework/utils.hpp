@@ -77,6 +77,33 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 
+//------------------------------------------------------------------------------
+// Vector functions
+//------------------------------------------------------------------------------
+
+// Truncate the first argument its absolute value is less than epsilon
+// this function returns a refernce to the chopped first argument
+template <typename T>
+std::vector<T> multiply(const std::vector<T> &vec, T val);
+
+// Truncate the first argument its absolute value is less than epsilon
+// this function returns a refernce to the chopped first argument
+double &chop(double &val, double epsilon);
+
+// As above for complex first arguments
+template <typename T>
+std::complex<T> &chop(std::complex<T> &val, double epsilon);
+
+// Truncate each element in a vector if its absolute value is less than epsilon
+// This function returns a reference to the chopped input vector
+template <typename T>
+std::vector<T> &chop(std::vector<T> &vec, double epsilon);
+
+// Add rhs vector to lhs using move semantics.
+// rhs should not be used after this operation.
+template <class T>
+void combine(std::vector<T> &lhs, const std::vector<T> &rhs);
+
 
 //------------------------------------------------------------------------------
 // Bit Conversions
@@ -94,6 +121,17 @@ std::string bin2hex(const std::string &bs);
 // Convert hex-strings to bit-strings
 // TODO: add prefix case 0x for input and 0b for output
 std::string bin2hex(const std::string &bs);
+
+// Convert integers to dit-string (dit = 2 to 10)
+std::string int2string(uint_t n, uint_t base = 2);
+std::string int2string(uint_t n, uint_t base, uint_t length);
+
+// Convert integers to bit-strings
+inline std::string int2bin(uint_t n) {return int2string(n, 2);};
+inline std::string int2bin(uint_t n, uint_t length) {return int2string(n, 2, length);};
+
+// Convert integers to hex-strings
+inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));};
 
 //==============================================================================
 // Implementations: Static Matrices
@@ -367,6 +405,64 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
 
 
 //==============================================================================
+// Implementations: Vector functions
+//==============================================================================
+
+template <typename T>
+std::vector<T> multiply(const std::vector<T> &vec, T val) {
+  std::vector<T> ret;
+  ret.reserve(vec.size());
+  for (const auto &elt : vec) {
+    ret.push_back(val * elt);
+  }
+  return ret;
+}
+
+
+double &chop(double &val, double epsilon) {
+  if (std::abs(val) < epsilon)
+    val = 0.;
+  return val;
+}
+
+
+template <typename T>
+std::complex<T> &chop(std::complex<T> &val, double epsilon) {
+  if (std::abs(val.real()) < epsilon)
+    val.real(0.);
+  if (std::abs(val.imag()) < epsilon)
+    val.imag(0.);
+  return val;
+}
+
+
+template <typename T>
+std::vector<T> &chop(std::vector<T> &vec, double epsilon) {
+  if (epsilon > 0.)
+    for (auto &v : vec)
+      chop(v, epsilon);
+  return vec;
+}
+
+
+template <class T>
+void combine(std::vector<T> &lhs, const std::vector<T> &rhs) {
+  // if lhs is empty, set it to be rhs vector
+  if (lhs.size() == 0) {
+    lhs = rhs;
+    return;
+  }
+  // if lhs is not empty rhs must be same size
+  if (lhs.size() != rhs.size()) {
+    throw std::invalid_argument("Utils::combine (vectors are not same length.)");
+  }
+  for (size_t j=0; j < lhs.size(); ++j) {
+    lhs[j] += rhs[j];
+  }
+}
+
+
+//==============================================================================
 // Implementations: Bit conversions
 //==============================================================================
 
@@ -414,6 +510,10 @@ reg_t hex2reg(std::string str) {
 
 
 std::string bin2hex(const std::string &bin) {
+  // empty case
+  if (bin.empty())
+    return std::string();
+
   // We go via long integer conversion, so we process 64-bit chunks at
   // a time
   const size_t len = bin.size();
@@ -432,6 +532,25 @@ std::string bin2hex(const std::string &bin) {
     hex += part;
   }
   return hex;
+}
+
+
+std::string int2string(uint_t n, uint_t base) {
+  if (base < 2 || base > 10) {
+    throw std::invalid_argument("Utils::int2string base must be between 2 and 10.");
+  }
+  if (n < base)
+    return std::to_string(n);
+  else
+    return int2string(n / base, base) + std::to_string(n % base);
+}
+
+std::string int2string(uint_t n, uint_t base, uint_t minlen) {
+  std::string s = int2string(n, base);
+  auto l = s.size();
+  if (l < minlen)
+    s = std::string(minlen - l, '0') + s;
+  return s;
 }
 
 
