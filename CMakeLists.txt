@@ -8,15 +8,29 @@
 # For Mac, you'll probably need to install static versions of the toolchain in
 # order to make a static executable.
 # Additionaly, OpenMP support is only available in clang from
-
+cmake_minimum_required(VERSION 3.11)
 project(qasm_simulator_cpp LANGUAGES CXX)
+
+include(CheckCXXCompilerFlag)
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+        unset(flag_supported CACHE)
+    endif()
+endfunction()
 
 set(QASM_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(QASM_SIMULATOR_CPP_SRC
     "${QASM_SIMULATOR_CPP_SRC_DIR}/main.cpp")
 set(QASM_SIMULATOR_CPP_EXTERNAL_LIBS
     "${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
-    "${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/linux-x86_64/lib"
+	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
 	"${USER_LIB_PATH}")
 
 # Target definition
@@ -112,7 +126,7 @@ endif()
 # This is a header-only library so we don't want it to link it, but we still
 # want CMake to find it.
 find_library(LIB_JSON
-	NAMES json
+	NAMES json nlohmann_json.hpp
 	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
 if(NOT LIB_JSON)
     message(FATAL_ERROR "JSON library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
