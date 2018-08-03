@@ -88,16 +88,16 @@ template <class state_t>
 std::set<std::string>
 SnapshotEngine<state_t>::validate_circuit(State *state, const Circuit &circ) {
   auto allowed_ops = state->allowed_ops();
-  allowed_ops.insert("snapshot");
+  allowed_ops.insert("snapshot_state");
   return circ.invalid_ops(allowed_ops);
 };
 
 
 template <class state_t>
 void SnapshotEngine<state_t>::apply_op(State *state, const Operations::Op &op) {
-  if (op.name == "snapshot") { 
+  if (op.name == "snapshot_state") { 
       // copy state data at snapshot point
-      snapshots_[op.params_string[0]].push_back(state->data());
+      snapshots_[op.slot].push_back(state->data());
   } else {
     Base::Engine<state_t>::apply_op(state, op);  // Apply operation as usual
   }

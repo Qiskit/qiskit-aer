@@ -132,8 +132,16 @@ public:
   inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed); };
 
   // Return vector of measure probabilities for specified qubits
+  // the probabilities are returned for the qubits ordered with the least 
+  // significant bit corresponding to the smallest qubit nubmer
+  inline virtual rvector_t
+  measure_probs(const std::set<uint_t, std::greater<uint_t>> &qubits) const {
+    // reverse iterate for set ordered largest to smallest
+    return measure_probs(reg_t(qubits.rbegin(), qubits.rend()));
+  };
   inline virtual rvector_t
   measure_probs(const std::set<uint_t> &qubits) const {
+    // forwards iterate for set ordered smallest to largest
     return measure_probs(reg_t(qubits.begin(), qubits.end()));
   };
 

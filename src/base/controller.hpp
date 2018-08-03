@@ -130,7 +130,7 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
     qobj.load_qobj_from_json(qobj_js);
   } catch (std::exception &e) {
     json_t ret;
-    ret["id"] = nullptr;
+    ret["id"] = "ERROR";
     ret["success"] = false;
     ret["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
     return ret; // qobj was invalid, return valid output containing error message

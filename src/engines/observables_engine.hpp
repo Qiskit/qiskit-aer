@@ -143,7 +143,8 @@ std::set<std::string>
 ObservablesEngine<state_t>::validate_circuit(State *state,
                                           const Circuit &circ) {
   auto allowed_ops = state->allowed_ops();
-  allowed_ops.insert({"snapshot", "measure"}); // from parents
+  allowed_ops.insert({"measure", "snapshot_state"});
+                      //,"snapshot_probs", "snapshot_pauli", "snapshot_matrix"});
   return circ.invalid_ops(allowed_ops);
 };
 
@@ -222,7 +223,7 @@ void ObservablesEngine<state_t>::load_config(const json_t &js) {
   if (JSON::check_key("probabilities", js)) {
     if (js["probabilities"].is_array()) {
       for (auto& elt : js["probabilities"]) {
-        auto tmp = Operations::json_to_op_probs(elt).qubits; // qubit vector
+        auto tmp = Operations::json_to_op_snapshot(elt).qubits; // qubit vector
         set_t qubits(tmp.begin(), tmp.end()); // convert to set
         obs_meas_.insert(qubits);
       }
@@ -235,7 +236,7 @@ void ObservablesEngine<state_t>::load_config(const json_t &js) {
   if (JSON::check_key("observables", js)) {
     if (js["observables"].is_array()) {
       for (auto &elt : js["observables"]) {
-        const Operations::Op op = Operations::json_to_op_obs(elt);
+        const Operations::Op op = Operations::json_to_op_snapshot(elt);
         set_t qubits(op.qubits.begin(), op.qubits.end());
         obs_ops_[qubits].push_back(op);
       }
@@ -269,7 +270,7 @@ void ObservablesEngine<state_t>::compute_observables_ops(State *state) {
     key_t key({pair.first, QasmEngine<state_t>::creg_memory_});
     cvector_t expvals;
     for (const auto &op : pair.second) {
-      if (op.name == "obs_pauli")
+      if (op.name == "snapshot_pauli")
         expvals.push_back(pauli_expval(state, key, op));
       else
         expvals.push_back(state->matrix_observable_value(op));
@@ -286,17 +287,15 @@ complex_t ObservablesEngine<state_t>::pauli_expval(State *state, const key_t &ke
   // Compute operator observables
   auto &cache = pauli_cache_[key];
   complex_t expval(0., 0.);
-  for (size_t j=0; j < op.params_string.size(); j++) {
-    std::string pauli = op.params_string[j];
-    auto it = cache.find(pauli); // Check cache for value
+  for (const auto &pauli : op.params_pauli_obs) {
+    auto it = cache.find(pauli.second); // Check cache for value
     if (it != cache.end()) {
-      // found cached result
-      expval += op.params_complex[j] * (it->second);
+      expval += pauli.first * (it->second); // found cached result
     } else {
       // compute result and add to cache
-      double tmp = state->pauli_observable_value(op.qubits, pauli);
-      cache[pauli] = tmp;
-      expval += op.params_complex[j] * tmp;
+      double tmp = state->pauli_observable_value(op.qubits, pauli.second);
+      cache[pauli.second] = tmp;
+      expval += pauli.first * tmp;
     }
   }
   return expval;

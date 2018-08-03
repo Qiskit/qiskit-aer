@@ -101,7 +101,10 @@ protected:
   bool return_counts_ = true;            // add counts_ to output data
   bool return_memory_ = false;           // add memory_ to output data
   bool return_registers_ = false;        // add registers_ to output data
+
 };
+
+
 
 //============================================================================
 // Implementation: Base engine overrides
@@ -133,19 +136,15 @@ void QasmEngine<state_t>::compute_result(State *state) {
   SnapshotEngine<state_t>::compute_result(state);
   // Memory bits value
   if (!creg_memory_.empty()) {
-    if (return_hex_strings_) // convert bit-string to hex-string
-      creg_memory_ = "0x" + Utils::bin2hex(creg_memory_);
+    std::string memory_hex = Utils::bin2hex(creg_memory_);
     if (return_counts_)
-      counts_[creg_memory_] += 1;
+      counts_[memory_hex] += 1;
     if (return_memory_)
-      memory_.push_back(creg_memory_);
+      memory_.push_back(memory_hex);
   }
   // Register bits value
-  if (!creg_registers_.empty()) {
-    if (return_hex_strings_) // convert bit-string to hex-string
-      creg_registers_ = "0x" + Utils::bin2hex(creg_registers_);
-    if (return_registers_)
-      registers_.push_back(creg_registers_);
+  if (!creg_registers_.empty() && return_registers_) {
+      registers_.push_back(Utils::bin2hex(creg_registers_));
   }
 }
 

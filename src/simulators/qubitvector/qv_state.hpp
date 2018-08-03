@@ -324,32 +324,25 @@ double State::pauli_observable_value(const reg_t& qubits,
 
 
 complex_t State::matrix_observable_value(const Operations::Op &op) const {
-  // Copy the quantum state;
-  state_t data_copy = data_;
-  if (op.name == "obs_mat") {
-    // Apply each sub-matrix
-    for (size_t pos=0; pos < op.params_cmatrix.size(); ++pos) {
-      const auto vmat = Utils::vectorize_matrix(op.params_cmatrix[pos]);
-      data_copy.apply_matrix(op.params_reg[pos], vmat);
-    }
-    // Compute the inner_product of data with the updated data_copy
-    std::clog << "ip value = " << data_copy.inner_product(data_) << std::endl; // DEBUG
-    return data_copy.inner_product(data_);
-  } 
-  if (op.name == "obs_dmat") {
-    for (size_t pos=0; pos < op.params_cvector.size(); ++pos) {
-      data_copy.apply_matrix(op.params_reg[pos], op.params_cvector[pos]);
-    }
-    return data_copy.inner_product(data_);
+  // Check empty edge case
+  if (op.params_mat_obs.empty()) {
+    throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
-  if (op.name == "obs_vec") {
-    for (size_t pos=0; pos < op.params_cvector.size(); ++pos) {
-      const auto vmat = Utils::vectorize_matrix(Utils::projector(op.params_cvector[pos]));
-      data_copy.apply_matrix(op.params_reg[pos], vmat);
+  
+  complex_t expval = 0.;
+  for (const auto &param : op.params_mat_obs) {
+    state_t data_copy = data_; // Copy the quantum state
+    // Apply each qubit subset gate
+    for (size_t pos=0; pos < param.first.size(); ++pos) {
+      const cmatrix_t &mat = param.second[pos];
+      cvector_t vmat = (mat.GetColumns() == 1)
+        ? Utils::vectorize_matrix(Utils::projector(Utils::vectorize_matrix(mat))) // projector case
+        : Utils::vectorize_matrix(mat); // diagonal or square matrix case
+      data_copy.apply_matrix(param.first[pos], vmat);
     }
-    return data_copy.inner_product(data_);
+    expval += data_copy.inner_product(data_); // add component to expectation value
   }
-  throw std::invalid_argument("Invalid observable operator: not obs_mat, obs_dmat, obs_vec");
+  return expval;
 }
 
 
@@ -367,24 +360,30 @@ void State::apply_op(const Operations::Op &op) {
   switch (g) {
   // Matrix multiplication
   case Gates::mat:
-    apply_matrix(op.qubits, op.params_cmatrix[0]);
+    apply_matrix(op.qubits, op.mats[0]);
     break;
   case Gates::dmat:
-    apply_matrix(op.qubits, op.params_complex);
+    apply_matrix(op.qubits, op.params);
     break;
   // Special Noise operations
   case Gates::kraus:
-    apply_kraus(op.qubits, op.params_cmatrix);
+    apply_kraus(op.qubits, op.mats);
     break;
   // Base gates
   case Gates::u3:
-    apply_gate_u3(op.qubits[0], op.params_double[0], op.params_double[1], op.params_double[2]);
+    apply_gate_u3(op.qubits[0],
+                  std::real(op.params[0]),
+                  std::real(op.params[1]),
+                  std::real(op.params[2]));
     break;
   case Gates::u2:
-    apply_gate_u3(op.qubits[0], M_PI / 2., op.params_double[0], op.params_double[1]);
+    apply_gate_u3(op.qubits[0],
+                  M_PI / 2.,
+                  std::real(op.params[0]),
+                  std::real(op.params[1]));
     break;
   case Gates::u1:
-    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., op.params_double[0])));
+    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
     break;
   case Gates::cx:
     data_.apply_cnot(op.qubits[0], op.qubits[1]);
@@ -431,7 +430,7 @@ void State::apply_op(const Operations::Op &op) {
   } break;
   // ZZ rotation by angle lambda
   case Gates::rzz: {
-    const auto dmat = rzz_diagonal_matrix(op.params_double[0]);
+    const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
     data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
   } break;
   // Invalid Gate (we shouldn't get here)

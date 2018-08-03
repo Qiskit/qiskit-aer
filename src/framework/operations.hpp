@@ -30,27 +30,44 @@ namespace Operations {
 //------------------------------------------------------------------------------
 
 struct Op {
-  std::string name;         // operation name
-  bool conditional = false; // is gate conditional gate
-  reg_t qubits;             // (opt) qubits operation acts on
+  // General Operations
+  std::string name;               // operation name
+  reg_t qubits;                   //  qubits operation acts on
+  std::vector<complex_t> params;  // real or complex params for gates
 
-  reg_t memory;             // (opt) register operation it acts on (measure)
-  reg_t registers;          // (opt) register locations it acts on (measure, conditional)
+  // Conditional Operations
+  bool conditional = false; // is gate conditional gate
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   
-  // Data structures for parameters
-  std::vector<std::string> params_string;       // string params
-  std::vector<double> params_double;       // double params
-  std::vector<complex_t> params_complex;   // complex double params
-  std::vector<cvector_t> params_cvector;   // complex vector params
-  std::vector<cmatrix_t> params_cmatrix;   // complex matrix params
-  std::vector<reg_t> params_reg;           // reg_t params
+  // Measurement
+  reg_t memory;             // (opt) register operation it acts on (measure)
+  reg_t registers;          // (opt) register locations it acts on (measure, conditional)
 
+  // Mat and Kraus
+  std::vector<cmatrix_t> mats;
+
+  // Snapshots
+  using pauli_pair_t = std::pair<complex_t,    // complex coefficient of component
+                                std::string>; // Pauli string Eg: "XIX"
+  using mat_pair_t = std::pair<std::vector<reg_t>,      // qubit subregisters Ex: [[2], [1, 0]]
+                              std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
+  std::string slot;        // (opt) additional label for snapshots and observables
+  std::vector<pauli_pair_t> params_pauli_obs;
+  std::vector<mat_pair_t> params_mat_obs; // not that diagonal matrices are stored as
+                                          // 1 x M row-matrices
+                                          // Projector vectors are stored as
+                                          // M x 1 column-matrices
 };
 
 //------------------------------------------------------------------------------
 // Error Checking
 //------------------------------------------------------------------------------
+
+inline void check_name(const std::string &name) {
+  if (name.empty()) {
+    throw std::invalid_argument("Invalid gate operation: \"name\" is empty.");
+  }
+};
 
 inline void check_qubits(const reg_t &qubits) {
   // Check qubits isn't empty
@@ -65,6 +82,7 @@ inline void check_qubits(const reg_t &qubits) {
   }
 };
 
+
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
@@ -78,22 +96,21 @@ Op json_to_op_gate(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 
+// Matrices
 Op json_to_op_mat(const json_t &js);
 Op json_to_op_dmat(const json_t &js);
-
-// Observables
-Op json_to_op_obs(const json_t &js);
-Op json_to_op_obs_mat(const json_t &js);
-Op json_to_op_obs_dmat(const json_t &js);
-Op json_to_op_obs_vec(const json_t &js);
-Op json_to_op_obs_pauli(const json_t &js); 
-Op json_to_op_probs(const json_t &js);
-
-// Special
-Op json_to_op_snapshot(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
-Op json_to_op_roerror(const json_t &js); // TODO
-Op json_to_op_bfunc(const json_t &js); // TODO
+
+// Snapshots
+Op json_to_op_snapshot(const json_t &js);
+Op json_to_op_snapshot_state(const json_t &js);
+Op json_to_op_snapshot_matrix(const json_t &js);
+Op json_to_op_snapshot_pauli(const json_t &js);
+Op json_to_op_snapshot_probs(const json_t &js);
+
+// TODO Classical bits
+//Op json_to_op_roerror(const json_t &js); // TODO
+//Op json_to_op_bfunc(const json_t &js); // TODO
 
 
 //------------------------------------------------------------------------------
@@ -105,9 +122,6 @@ Op json_to_op(const json_t &js) {
   // load operation identifier
   std::string name;
   JSON::get_value(name, "name", js);
-  if (name.empty()) {
-    throw std::invalid_argument("Invalid gate operation: \"name\" is empty.");
-  }
   // Measure & Reset
   if (name == "measure")
     return json_to_op_measure(js);
@@ -118,24 +132,12 @@ Op json_to_op(const json_t &js) {
     return json_to_op_mat(js);
   if (name == "dmat")
     return json_to_op_dmat(js);
-  // Observables
-  if (name == "probs")
-    return json_to_op_probs(js);
-  if (name == "obs_pauli")
-    return json_to_op_obs_pauli(js);
-  /* TODO
-  if (name == "obs_mat")
-    return json_to_op_obs_mat(js);
-  if (name == "obs_dmat")
-    return json_to_op_obs_dmat(js);
-  if (name == "obs_vec")
-    return json_to_op_obs_vec(js);
-  */
-  // Special
-  if (name == "snapshot")
-    return json_to_op_snapshot(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
+  // Snapshot
+  if (name == "snapshot")
+    return json_to_op_snapshot(js);
+  // Bit functions
   /* TODO: the following aren't implemented yet!
   if (name == "bfunc")
     return json_to_op_bfunc(js);
@@ -147,20 +149,19 @@ Op json_to_op(const json_t &js) {
 }
 
 
+//------------------------------------------------------------------------------
+// Implementation: Gates, measure, reset deserialization
+//------------------------------------------------------------------------------
+
 Op json_to_op_gate(const json_t &js) {
   Op op;
-  // Load name identifier
   JSON::get_value(op.name, "name", js);
-  if (op.name.empty()) {
-    throw std::invalid_argument("Invalid gate operation: \"name\" are empty.");
-  }
-  // Load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid gate operation: \"qubits\" are empty.");
-  }
-  // Load double params (if present)
-  JSON::get_value(op.params_double, "params", js);
+  JSON::get_value(op.params, "params", js);
+
+  // Validation
+  check_name(op.name);
+  check_qubits(op.qubits);
   return op;
 }
 
@@ -168,18 +169,15 @@ Op json_to_op_gate(const json_t &js) {
 Op json_to_op_measure(const json_t &js) {
   Op op;
   op.name = "measure";
-  // Load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid measure operation: \"qubits\" are empty.");
-  }
-  // Load memory (if present)
   JSON::get_value(op.memory, "memory", js);
+  JSON::get_value(op.registers, "register", js);
+
+  // Validation
+  check_qubits(op.qubits);
   if (op.memory.empty() == false && op.memory.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid measure operation: \"memory\" and \"qubits\" are different lengths.");
   }
-  // Load registers (if present)
-  JSON::get_value(op.registers, "register", js);
   if (op.registers.empty() == false && op.registers.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid measure operation: \"register\" and \"qubits\" are different lengths.");
   }
@@ -190,247 +188,179 @@ Op json_to_op_measure(const json_t &js) {
 Op json_to_op_reset(const json_t &js) {
   Op op;
   op.name = "reset";
-  // Load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid reset operation: \"qubits\" are empty.");
+  JSON::get_value(op.params, "params", js);
+  // If params is missing default reset to 0
+  if (op.params.empty()) {
+    op.params = cvector_t(op.qubits.size(), 0.);
   }
-  // Load double params for reset state (if present)
-  JSON::get_value(op.params_double, "params", js);
-  if (op.params_double.empty()) {
-    // If not present default reset to all zero state
-    op.params_double = rvector_t(op.qubits.size(), 0.);
-  }
-  if (op.params_double.size() != op.qubits.size()) {
+  // Validation
+  check_qubits(op.qubits);
+  if (op.params.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid reset operation: \"params\" and \"qubits\" are different lengths.");
   }
   return op;
 }
 
 
-Op json_to_op_snapshot(const json_t &js) {
-  Op op;
-  op.name = "snapshot";
-  // Load double params for reset state (if present)
-  JSON::get_value(op.params_string, "params", js);
-  if (op.params_string.size() == 1) {
-    // add default snapshot type if not specified
-    op.params_string.push_back("default");
-  }
-  return op;
-}
-
+//------------------------------------------------------------------------------
+// Implementation: Matrix and Kraus deserialization
+//------------------------------------------------------------------------------
 
 Op json_to_op_mat(const json_t &js) {
   Op op;
   op.name = "mat";
-  // load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
-  }
-  // load matrices
-  cmatrix_t tmp;
-  JSON::get_value(tmp, "params", js);
-  op.params_cmatrix.emplace_back(std::move(tmp));
+  cmatrix_t mat;
+  JSON::get_value(mat, "params", js);
+  op.mats.push_back(mat);
+
+  // Validation
+  check_qubits(op.qubits);
   return op;
 }
-
 
 Op json_to_op_dmat(const json_t &js) {
   Op op;
   op.name = "dmat";
-  // load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
-  }
-  // load diagonal
-  JSON::get_value(op.params_complex, "params", js);
+  JSON::get_value(op.params, "params", js); // store diagonal as complex vector
+
+  // Validation
+  check_qubits(op.qubits);
   return op;
 }
-
-
-
 
 
 Op json_to_op_kraus(const json_t &js) {
   Op op;
   op.name = "kraus";
-  // load qubits
   JSON::get_value(op.qubits, "qubits", js);
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation: \"qubits\" are empty.");
-  }
-  // load matrices
-  JSON::get_value(op.params_cmatrix, "params", js);
+  JSON::get_value(op.mats, "params", js);
+
+  // Validation
+  check_qubits(op.qubits);
   return op;
 }
 
 //------------------------------------------------------------------------------
-// Observables JSON deserialization
+// Implementation: Snapshot deserialization
 //------------------------------------------------------------------------------
 
-// Measurement probabilities observables
-Op json_to_op_probs(const json_t &js) {
-  Op op;
-  op.name = "probs";
-  JSON::get_value(op.qubits, "qubits", js);
-
-  // Error handling
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_mat operation (\"qubits\" are empty).");
+Op json_to_op_snapshot(const json_t &js) {
+  if (JSON::check_key("params", js)) {
+    std::string type;
+    JSON::get_value(type, "type", js["params"]);
+    if (type == "state")
+      return json_to_op_snapshot_state(js);
+    if (type == "probabilities")
+      return json_to_op_snapshot_probs(js);
+    if (type == "pauli_observable")
+      return json_to_op_snapshot_pauli(js);
+    if (type == "matrix_observable")
+      return json_to_op_snapshot_matrix(js);
   }
+  throw std::invalid_argument("Invalid snapshot instruction: \"params\" field incomplete.");
+}
+
+
+Op json_to_op_snapshot_state(const json_t &js) {
+  Op op;
+  op.name = "snapshot_state";
+  JSON::get_value(op.slot, "slot", js);
   return op;
 }
 
 
-Op json_to_op_obs(const json_t &js) {
-  std::string name;
-  JSON::get_value(name, "name", js);
-  if (name == "obs_pauli")
-    return json_to_op_obs_pauli(js);
-  if (name == "obs_mat")
-    return json_to_op_obs_mat(js);
-  if (name == "obs_dmat")
-    return json_to_op_obs_dmat(js);
-  if (name == "obs_vec")
-    return json_to_op_obs_vec(js);
-  throw std::invalid_argument("Invalid observable operation.");  
-}
-
-
-Op json_to_op_obs_pauli(const json_t &js) {
+Op json_to_op_snapshot_probs(const json_t &js) {
   Op op;
-  op.name = "obs_pauli";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params_string, "params", js);
-  JSON::get_value(op.params_complex, "coeffs", js);
-
-  // Sort qubits and params (this could be improved)
-  // It is currently needed for caching strings for
-  // observables engine
-  reg_t unsorted = op.qubits;
-  std::sort(op.qubits.begin(), op.qubits.end());
-  for (auto &s : op.params_string) {
-    std::string srt;
-    for (const auto q: op.qubits) {
-      auto pos = std::distance(unsorted.begin(),
-                               std::find(unsorted.begin(), unsorted.end(), q));
-      srt.push_back(s[pos]);
-    }
-    s = srt;
-  }
-  // Error handling
-  if (op.qubits.empty()) {
-    throw std::invalid_argument("Invalid obs_pauli operation (\"qubits\" are empty).");
-  }
-  if (op.params_string.empty()) {
-    throw std::invalid_argument("Invalid obs_pauli operation (\"params\" are empty).");
-  }
-  for (const auto &s: op.params_string) {
-    if (s.size() != op.qubits.size())
-      throw std::invalid_argument("Invalid obs_pauli operation (\"params\" string incorrect length for qubit number).");
-  }
-  if (op.params_complex.size() != op.params_string.size()) {
-    throw std::invalid_argument("Invalid obs_pauli operation (length \"coeffs\" != length \"params\").");
-  }
-  return op;
-}
-
-
-Op json_to_op_obs_mat(const json_t &js) {
-  Op op;
-  op.name = "obs_mat";
-  // load qubits
-  JSON::get_value(op.qubits, "qubits", js); 
-
-  // Sub qubits
-  JSON::get_value(op.params_reg, "sub_qubits", js);
-  JSON::get_value(op.params_cmatrix, "sub_params", js);
-
-  // Validation and error handling
-  check_qubits(op.qubits); // check qubits field
+  op.name = "snapshot_probs";
+  JSON::get_value(op.qubits, "qubits", js["params"]);
+  JSON::get_value(op.slot, "slot", js);
   
-  // Check that sub qubits contains all qubits only once
-  size_t num_sub = 0;
-  std::set<uint_t> qset;
-  for (const auto &reg : op.params_reg) {
-    num_sub += reg.size();
-    qset.insert(reg.begin(), reg.end());
-  }
-  if (qset.size() != op.qubits.size() || num_sub != op.qubits.size()) {
-    throw std::invalid_argument("Invalid obs_mat operations (sub_qubits is not compatible with qubits specification)");
-  }
-  // Check correct number of matrices
-  if (op.params_reg.size() != op.params_cmatrix.size()) {
-    throw std::invalid_argument("Invalid obs_mat (sub_qubits do not match sub_params).");
-  }
-  // Should we check dimension of the matrices here?
+  // Validation
+  check_qubits(op.qubits);
   return op;
 }
 
 
-Op json_to_op_obs_dmat(const json_t &js) {
+Op json_to_op_snapshot_pauli(const json_t &js) {
   Op op;
-  op.name = "obs_dmat";
-  // load qubits
-  JSON::get_value(op.qubits, "qubits", js); 
+  op.name = "snapshot_pauli";
+  JSON::get_value(op.slot, "slot", js);
+  JSON::get_value(op.qubits, "qubits", js["params"]);
+  double threshold = 1e-10; // drop small Pauli values
 
-  // Sub qubits
-  JSON::get_value(op.params_reg, "sub_qubits", js);
-  JSON::get_value(op.params_cvector, "sub_params", js);
+  // Sort qubits (needed for storing cached Pauli terms)
+  reg_t unsorted = op.qubits; // store original unsorted order
+  std::sort(op.qubits.begin(), op.qubits.end(), std::greater<uint_t>());
 
-  // Validation and error handling
-  check_qubits(op.qubits); // check qubits field
-  
-  // Check that sub qubits contains all qubits only once
-  size_t num_sub = 0;
-  std::set<uint_t> qset;
-  for (const auto &reg : op.params_reg) {
-    num_sub += reg.size();
-    qset.insert(reg.begin(), reg.end());
+  // Get components
+  if (JSON::check_key("components", js["params"])) {
+    for (const auto &comp : js["params"]["components"]) {
+      complex_t coeff;
+      JSON::get_value(coeff, "coeff", comp);
+      if (std::abs(coeff) > threshold) {
+        std::string pauli, sorted_pauli;
+        JSON::get_value(pauli, "op", comp);
+        // Sort Pauli string to match sorted qubit order
+        for (const auto qubit: op.qubits) {
+          auto pos = std::distance(unsorted.begin(),
+                                  std::find(unsorted.begin(), unsorted.end(), qubit));
+          sorted_pauli.push_back(pauli[pos]);
+        }
+        if (sorted_pauli.size() != op.qubits.size()) {
+          throw std::invalid_argument("Invalid Pauli snapshot (length \"coeffs\" != length \"params\").");
+        }
+        // make tuple and add to components
+        op.params_pauli_obs.push_back(std::make_pair(coeff, sorted_pauli));
+      } // end if > threshold
+    } // end component loop
+  } else {
+    throw std::invalid_argument("Invalid Pauli snapshot  (\"components\" field missing).");
   }
-  if (qset.size() != op.qubits.size() || num_sub != op.qubits.size()) {
-    throw std::invalid_argument("Invalid obs_dmat operations (sub_qubits is not compatible with qubits specification)");
-  }
-  // Check correct number of matrices
-  if (op.params_reg.size() != op.params_cvector.size()) {
-    throw std::invalid_argument("Invalid obs_dmat (sub_qubits do not match sub_params).");
-  }
-  // Should we check dimension of the matrices here?
+
+  // Additional validation
+  check_qubits(op.qubits);
   return op;
 }
 
 
-Op json_to_op_obs_vec(const json_t &js) {
+Op json_to_op_snapshot_matrix(const json_t &js) {
   Op op;
-  op.name = "obs_vec";
-  // load qubits
-  JSON::get_value(op.qubits, "qubits", js); 
+  op.name = "snapshot_matrix";
+  JSON::get_value(op.slot, "slot", js);
+  JSON::get_value(op.qubits, "qubits", js["params"]);
 
-  // Sub qubits
-  JSON::get_value(op.params_reg, "sub_qubits", js);
-  JSON::get_value(op.params_cvector, "sub_params", js);
+  // Get components
+  if (JSON::check_key("components", js["params"])) {
+    for (const auto &comp : js["params"]["components"]) {
+      Op::mat_pair_t val;
+      JSON::get_value(val.first, "qubits", comp);
+      JSON::get_value(val.second, "ops", comp);
+      // Check correct lengths
+      if (val.first.size() != val.second.size()) {
+        throw std::invalid_argument("Invalid matrix snapshot (number of qubit subsets and matrices unequal).");
+      }
+      // Check subset are ok
+      size_t num = 0;
+      std::set<uint_t> unique;
+      for (const auto &reg : val.first) {
+        num += reg.size();
+        unique.insert(reg.begin(), reg.end());
+      }
+      if (unique.size() != op.qubits.size() || num != op.qubits.size()) {
+        throw std::invalid_argument("Invalid matrix snapshot (component qubit specification invalid.");
+      }
+      // make tuple and add to components
+      op.params_mat_obs.push_back(val);
+    } // end component loop
+  } else {
+    throw std::invalid_argument("Invalid matrix snapshot  (\"components\" field missing).");
+  }
 
-  // Validation and error handling
-  check_qubits(op.qubits); // check qubits field
-  
-  // Check that sub qubits contains all qubits only once
-  size_t num_sub = 0;
-  std::set<uint_t> qset;
-  for (const auto &reg : op.params_reg) {
-    num_sub += reg.size();
-    qset.insert(reg.begin(), reg.end());
-  }
-  if (qset.size() != op.qubits.size() || num_sub != op.qubits.size()) {
-    throw std::invalid_argument("Invalid obs_vec operations (sub_qubits is not compatible with qubits specification)");
-  }
-  // Check correct number of matrices
-  if (op.params_reg.size() != op.params_cvector.size()) {
-    throw std::invalid_argument("Invalid obs_vec (sub_qubits do not match sub_params).");
-  }
-  // Should we check dimension of the matrices here?
+  // Additional validation
+  check_qubits(op.qubits);
   return op;
 }
 

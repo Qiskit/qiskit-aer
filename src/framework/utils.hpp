@@ -95,22 +95,36 @@ std::vector<T> multiply(const std::vector<T> &vec, T val);
 
 // Truncate the first argument its absolute value is less than epsilon
 // this function returns a refernce to the chopped first argument
-double &chop(double &val, double epsilon);
+double &chop_inplace(double &val, double epsilon);
 
+double chop(double val, double epsilon);
 // As above for complex first arguments
-template <typename T>
-std::complex<T> &chop(std::complex<T> &val, double epsilon);
 
+template <typename T>
+std::complex<T> &chop_inplace(std::complex<T> &val, double epsilon);
+
+template <typename T>
+std::complex<T> chop(std::complex<T> val, double epsilon);
 // Truncate each element in a vector if its absolute value is less than epsilon
 // This function returns a reference to the chopped input vector
 template <typename T>
-std::vector<T> &chop(std::vector<T> &vec, double epsilon);
+std::vector<T> &chop_inplace(std::vector<T> &vec, double epsilon);
+
+template <typename T>
+std::vector<T> chop(const std::vector<T> &vec, double epsilon);
 
 // Add rhs vector to lhs using move semantics.
 // rhs should not be used after this operation.
 template <class T>
 void combine(std::vector<T> &lhs, const std::vector<T> &rhs);
 
+
+// Convert a dense vector into sparse ket form.
+// epsilon determins the threshold for which small values will be removed from the output
+// The base of the ket (2 to 10) specifies the subsystem dimension and the base
+// of the dit-string labels.
+template <typename T>
+std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
 
 //------------------------------------------------------------------------------
 // Bit Conversions
@@ -123,13 +137,13 @@ reg_t hex2reg(std::string str);
 
 // Convert bit-strings to hex-strings
 // TODO: add prefix case 0b for input and 0x for output
-std::string bin2hex(const std::string &bs);
+std::string bin2hex(const std::string bin);
 
 // Convert hex-strings to bit-strings
 // TODO: add prefix case 0x for input and 0b for output
-std::string bin2hex(const std::string &bs);
+std::string hex2bin(const std::string bs);
 
-// Convert integers to dit-string (dit = 2 to 10)
+// Convert 64-bit unsigned integers to dit-string (dit base = 2 to 10)
 std::string int2string(uint_t n, uint_t base = 2);
 std::string int2string(uint_t n, uint_t base, uint_t length);
 
@@ -439,7 +453,7 @@ std::vector<T> multiply(const std::vector<T> &vec, T val) {
 }
 
 
-double &chop(double &val, double epsilon) {
+double &chop_inplace(double &val, double epsilon) {
   if (std::abs(val) < epsilon)
     val = 0.;
   return val;
@@ -447,21 +461,40 @@ double &chop(double &val, double epsilon) {
 
 
 template <typename T>
-std::complex<T> &chop(std::complex<T> &val, double epsilon) {
-  if (std::abs(val.real()) < epsilon)
-    val.real(0.);
-  if (std::abs(val.imag()) < epsilon)
-    val.imag(0.);
+std::complex<T> &chop_inplace(std::complex<T> &val, double epsilon) {
+  val.real(chop_inplace(val.real(), epsilon));
+  val.imag(chop_inplace(val.imag(), epsilon));
   return val;
 }
 
 
 template <typename T>
-std::vector<T> &chop(std::vector<T> &vec, double epsilon) {
+std::vector<T> &chop_inplace(std::vector<T> &vec, double epsilon) {
   if (epsilon > 0.)
     for (auto &v : vec)
-      chop(v, epsilon);
+      chop_inplace(v, epsilon);
   return vec;
+}
+
+
+double chop(double val, double epsilon) {
+  return (std::abs(val) < epsilon) ? 0. : val;
+}
+
+
+template <typename T>
+std::complex<T> chop(std::complex<T> val, double epsilon) {
+  return {chop(val.real(), epsilon), chop(val.imag(), epsilon)};
+}
+
+
+template <typename T>
+std::vector<T> chop(const std::vector<T> &vec, double epsilon) {
+  std::vector<T> tmp;
+  tmp.reserve(vec.size());
+  for (const auto &v : vec)
+    tmp.push_back(chop(v, epsilon));
+  return tmp;
 }
 
 
@@ -479,6 +512,28 @@ void combine(std::vector<T> &lhs, const std::vector<T> &rhs) {
   for (size_t j=0; j < lhs.size(); ++j) {
     lhs[j] += rhs[j];
   }
+}
+
+
+template <typename T>
+std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base) {
+  // check vector length
+  size_t dim = vec.size();
+  double n = std::log(dim) / std::log(base);
+  uint_t nint = std::trunc(n);
+  if (std::abs(nint - n) > 1e-5) {
+    std::stringstream ss;
+    ss << "vec2ket (vector dimension " << dim << " is not of size " << base << "^n)";
+    throw std::invalid_argument(ss.str());
+  }
+  std::map<std::string, T> ketmap;
+  for (size_t k = 0; k < dim; ++k) {
+    T tmp = chop(vec[k], epsilon);
+    if (std::abs(tmp) > epsilon) { 
+      ketmap.insert({Utils::int2string(k, base, nint), tmp});
+    }
+  }
+  return ketmap;
 }
 
 
@@ -513,7 +568,7 @@ reg_t hex2reg(std::string str) {
     size_t length = (str.size() % 8) + 32 * (str.size() / 8);
     reg.reserve(length);
     while (str.size() > 8) {
-      unsigned long hex = stoul(str.substr(str.size() - 8), 0, 16);
+      unsigned long hex = stoull(str.substr(str.size() - 8), 0, 16);
       reg_t tmp = int2reg(hex, 2, 32);
       std::move(tmp.begin(), tmp.end(), back_inserter(reg));
       str.erase(str.size() - 8);
@@ -529,26 +584,59 @@ reg_t hex2reg(std::string str) {
 }
 
 
-std::string bin2hex(const std::string &bin) {
+std::string hex2bin(std::string str) {
   // empty case
-  if (bin.empty())
+  if (str.empty())
     return std::string();
+
+  // If string starts with 0b prob prefix
+  if (str.size() > 1 && str.substr(0, 2) == "0x") {
+    str.erase(0, 2);
+  }
 
   // We go via long integer conversion, so we process 64-bit chunks at
   // a time
-  const size_t len = bin.size();
-  const size_t chunks = len / 64;
-  const size_t remain = len % 64;
+  const size_t block = 8;
+  const size_t len = str.size();
+  const size_t chunks = len / block;
+  const size_t remain = len % block;
 
-  // Start with remainded
+  // Start with remain
+  std::string bin = "0b" + int2string(std::stoull(str.substr(0, remain), nullptr, 16), 2);
+  for (size_t j=0; j < chunks; ++j) {
+    std::string part = int2string(std::stoull(str.substr(remain + j * block, block), nullptr, 16), 2, 64);
+    bin += part;
+  }
+  return bin;
+}
+
+
+std::string bin2hex(std::string str) {
+  // empty case
+  if (str.empty())
+    return std::string();
+
+  // If string starts with 0b prob prefix
+  if (str.size() > 1 && str.substr(0, 2) == "0b") {
+    str.erase(0, 2);
+  }
+
+  // We go via long integer conversion, so we process 64-bit chunks at
+  // a time
+  const size_t block = 64;
+  const size_t len = str.size();
+  const size_t chunks = len / block;
+  const size_t remain = len % block;
+
+  // Start with remain
   std::stringstream ss;
-  ss << std::hex << std::stoull(bin.substr(0, remain), nullptr, 2);
-  std::string hex = ss.str(); // the return string
+  ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
+  std::string hex = "0x" + ss.str(); // the return string
   for (size_t j=0; j < chunks; ++j) {
     ss.str(std::string()); // clear string stream
-    ss << std::hex << std::stoull(bin.substr(remain + j * 64, 64), nullptr, 2);
+    ss << std::hex << std::stoull(str.substr(remain + j * block, block), nullptr, 2);
     std::string part = ss.str();
-    part.insert(0, 64 - part.size(), '0');
+    part.insert(0, block - part.size(), '0'); // pad out zeros
     hex += part;
   }
   return hex;
@@ -576,6 +664,7 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
 
 //------------------------------------------------------------------------------
 } // end namespace Utils
+//------------------------------------------------------------------------------
 } // end namespace AER
 //------------------------------------------------------------------------------
 #endif

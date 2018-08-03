@@ -28,9 +28,6 @@ namespace Indexing {
 using uint_t = uint64_t;
 using int_t = int64_t;
 
-using complex_t = std::complex<double>;
-using cvector_t = std::vector<complex_t>;
-
 namespace Qubit {
 
 /*
