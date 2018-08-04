@@ -18,10 +18,9 @@
 #ifndef _aer_engines_qasm_engine_hpp_
 #define _aer_engines_qasm_engine_hpp_
 
-
 #include "engines/snapshot_engine.hpp"
 #include "framework/utils.hpp"
-#include "framework/snapshot.hpp"
+
 
 namespace AER {
 namespace Engines {
@@ -113,8 +112,18 @@ protected:
   // Probability snapshot
   using SnapshotQubits = std::set<uint_t, std::greater<uint_t>>;
   using SnapshotKey = std::pair<SnapshotQubits, std::string>; // qubits and memory value pair
-  using SnapshotVal = std::map<std::string, double>;
-  AveragedSnapshot<SnapshotKey, SnapshotVal> snapshots_probs_;
+  using SnapshotProbs = Snapshots::Snapshot<SnapshotKey, std::map<std::string, double>, Snapshots::AverageData>;
+  SnapshotProbs snapshot_probs_;
+
+  // Helper function to make the snapshot key
+  inline SnapshotKey make_snapshot_key(const Operations::Op &op) {
+    SnapshotQubits qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
+    std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
+    return std::make_pair(qubits, memory_hex);
+  };
+
+  // Chop value for small probabilities in snapshots
+  double snapshot_chop_threshold_ = 1e-15;
 };
 
 
@@ -178,6 +187,7 @@ void QasmEngine<state_t>::clear() {
   registers_.clear();
   creg_memory_.clear();
   creg_registers_.clear();
+  snapshot_probs_.clear();
 }
 
 
@@ -196,6 +206,9 @@ void QasmEngine<state_t>::combine(QasmEngine<state_t> &eng) {
   }
   eng.counts_.clear(); // delete copied count data
 
+  // Combine snapshots
+  snapshot_probs_.combine(eng.snapshot_probs_);
+
   SnapshotEngine<state_t>::combine(eng); // parent class
 }
 
@@ -210,15 +223,15 @@ json_t QasmEngine<state_t>::json() const {
   if (return_registers_ && registers_.empty() == false)
     tmp["register"] = registers_;
   // Add snapshot data 
-  auto slots = snapshots_probs_.slots();
+  auto slots = snapshot_probs_.slots();
   for (const auto &slot : slots) {
     json_t probs_js;
-    std::set<SnapshotKey> keys = snapshots_probs_.slot_data_keys(slot);
+    std::set<SnapshotKey> keys = snapshot_probs_.slot_keys(slot);
     for (const auto &key : keys) {
       json_t datum;
       datum["qubits"] = key.first;
       datum["memory"] = key.second;
-      datum["values"] = snapshots_probs_.averaged_data(slot, key);
+      datum["values"] = snapshot_probs_.get_data(slot, key).data();
       probs_js.push_back(datum);
     }
     tmp["snapshots"][slot]["probabilities"] = probs_js;
@@ -233,7 +246,7 @@ void QasmEngine<state_t>::load_config(const json_t &js) {
   JSON::get_value(return_counts_, "counts", js);
   JSON::get_value(return_memory_, "memory", js);
   JSON::get_value(return_registers_, "register", js);
-  JSON::get_value(return_hex_strings_, "hex_output", js);
+  JSON::get_value(snapshot_chop_threshold_, "chop_threshold", js);
 }
 
 
@@ -281,10 +294,10 @@ void QasmEngine<state_t>::store_measure(const reg_t &outcome,
 
 template <class state_t>
 void QasmEngine<state_t>::snapshot_probabilities(State *state, const Operations::Op &op) {
-  SnapshotQubits qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
-  std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
-  SnapshotVal probs = Utils::vec2ket(state->measure_probs(qubits), 1e-15, 2); // get probabilities
-  snapshots_probs_.add_data(op.slot, std::make_pair(qubits, memory_hex), probs);
+  auto key = make_snapshot_key(op);
+  auto probs = Utils::vec2ket(state->measure_probs(key.first),
+                              snapshot_chop_threshold_, 2); // get probabilities
+  snapshot_probs_.add_data(op.slot, key, probs);
 }
 
 

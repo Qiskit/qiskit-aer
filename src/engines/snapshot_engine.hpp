@@ -14,8 +14,8 @@
 #ifndef _aer_engines_snapshot_engine_hpp_
 #define _aer_engines_snapshot_engine_hpp_
 
-#include <algorithm> // used for std::move
 #include "base/engine.hpp"
+#include "framework/snapshot.hpp"
 
 
 namespace AER {
@@ -37,13 +37,15 @@ public:
   //----------------------------------------------------------------
   
   // Empty engine of Snapshot data
-  inline virtual void clear() override {snapshots_.clear();};
+  inline virtual void clear() override {snapshot_states_.clear();};
 
   // Serialize Snapshot data to JSON
   virtual json_t json() const override;
 
   // Move snapshot data from another SnapshotEngine to this one
-  void combine(SnapshotEngine<state_t> &eng);
+  inline void combine(SnapshotEngine<state_t> &eng) {
+    snapshot_states_.combine(eng.snapshot_states_);
+  };
 
   // Load Engine config settings
   // Config settings for this engine are of the form:
@@ -68,9 +70,11 @@ public:
   validate_circuit(State *state, const Circuit &circ) override;
 
 protected:
-   bool show_snapshots_ = true;
-   std::string snapshot_label_ = "default";
-   std::map<std::string, std::vector<state_t>> snapshots_; 
+  using SnapshotStates = Snapshots::Snapshot<std::string, state_t, Snapshots::ShotData>;
+  SnapshotStates snapshot_states_;
+  bool show_snapshots_ = true;
+  std::string snapshot_label_ = "default"; // label and key for snapshots
+  //std::map<std::string, std::vector<state_t>> snapshots_; 
 };
 
 //============================================================================
@@ -97,7 +101,7 @@ template <class state_t>
 void SnapshotEngine<state_t>::apply_op(State *state, const Operations::Op &op) {
   if (op.name == "snapshot_state") { 
       // copy state data at snapshot point
-      snapshots_[op.slot].push_back(state->data());
+      snapshot_states_.add_data(op.slot, snapshot_label_, state->data());
   } else {
     Base::Engine<state_t>::apply_op(state, op);  // Apply operation as usual
   }
@@ -105,26 +109,16 @@ void SnapshotEngine<state_t>::apply_op(State *state, const Operations::Op &op) {
 
 
 template <class state_t>
-void SnapshotEngine<state_t>::combine(SnapshotEngine<state_t> &eng) {
-  for (auto &s: eng.snapshots_) {
-    std::move(s.second.begin(), s.second.end(), back_inserter(snapshots_[s.first]));
-  }
-  eng.snapshots_.clear();
-}
-
-
-template <class state_t>
 json_t SnapshotEngine<state_t>::json() const {
   // add snapshots
   json_t tmp;
-  if (snapshots_.empty() == false) {
+  auto slots = snapshot_states_.slots();
+  if (slots.empty() == false) {
     try {
-      // use try incase state class doesn't have json conversion method
-      for (const auto& pair: snapshots_) {
-        if (!pair.second.empty()) {
-          tmp["snapshots"][pair.first][snapshot_label_] = pair.second;
+      for (const auto &slot : slots)
+        for (const auto &key : snapshot_states_.slot_keys(slot)) {
+          tmp["snapshots"][slot][key] = snapshot_states_.get_data(slot, key).data();
         }
-      }
     } catch (std::exception &e) {
       // Leave message in output that type conversion failed
       tmp["snapshots"] = "Error: Failed to convert state type to JSON";
