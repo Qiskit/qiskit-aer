@@ -14,10 +14,12 @@
 #ifndef _aer_framework_operations_hpp_
 #define _aer_framework_operations_hpp_
 
-#include <algorithm>  // for std::copy
+#include <algorithm> 
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <tuple>
 
 #include "framework/types.hpp"
 #include "framework/json.hpp"
@@ -47,16 +49,19 @@ struct Op {
   std::vector<cmatrix_t> mats;
 
   // Snapshots
-  using pauli_pair_t = std::pair<complex_t,    // complex coefficient of component
-                                std::string>; // Pauli string Eg: "XIX"
-  using mat_pair_t = std::pair<std::vector<reg_t>,      // qubit subregisters Ex: [[2], [1, 0]]
-                              std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
-  std::string slot;        // (opt) additional label for snapshots and observables
-  std::vector<pauli_pair_t> params_pauli_obs;
-  std::vector<mat_pair_t> params_mat_obs; // not that diagonal matrices are stored as
-                                          // 1 x M row-matrices
-                                          // Projector vectors are stored as
-                                          // M x 1 column-matrices
+  using qubit_set_t = std::set<uint_t, std::greater<uint_t>>;
+  using pauli_component_t = std::tuple<complex_t,    // component coefficient
+                                       qubit_set_t,  // component qubits
+                                       std::string>; // component pauli string
+  using matrix_component_t = std::tuple<complex_t,          // component coefficient
+                                        std::vector<reg_t>, // qubit subregisters Ex: [[2], [1, 0]]
+                                        std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
+  std::string label;       // label for observables snapshots
+  std::vector<pauli_component_t> params_pauli_obs;
+  std::vector<matrix_component_t> params_mat_obs; // not that diagonal matrices are stored as
+                                                  // 1 x M row-matrices
+                                                  // Projector vectors are stored as
+                                                  // M x 1 column-matrices
 };
 
 //------------------------------------------------------------------------------
@@ -267,7 +272,7 @@ Op json_to_op_snapshot(const json_t &js) {
 Op json_to_op_snapshot_state(const json_t &js) {
   Op op;
   op.name = "snapshot_state";
-  JSON::get_value(op.slot, "slot", js);
+  JSON::get_value(op.label, "label", js);
   return op;
 }
 
@@ -276,7 +281,7 @@ Op json_to_op_snapshot_probs(const json_t &js) {
   Op op;
   op.name = "snapshot_probs";
   JSON::get_value(op.qubits, "qubits", js["params"]);
-  JSON::get_value(op.slot, "slot", js);
+  JSON::get_value(op.label, "label", js);
   
   // Validation
   check_qubits(op.qubits);
@@ -287,8 +292,7 @@ Op json_to_op_snapshot_probs(const json_t &js) {
 Op json_to_op_snapshot_pauli(const json_t &js) {
   Op op;
   op.name = "snapshot_pauli";
-  JSON::get_value(op.slot, "slot", js);
-  JSON::get_value(op.qubits, "qubits", js["params"]);
+  JSON::get_value(op.label, "label", js);
   double threshold = 1e-10; // drop small Pauli values
 
   // Sort qubits (needed for storing cached Pauli terms)
@@ -300,28 +304,31 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
     for (const auto &comp : js["params"]["components"]) {
       complex_t coeff;
       JSON::get_value(coeff, "coeff", comp);
-      if (std::abs(coeff) > threshold) {
-        std::string pauli, sorted_pauli;
-        JSON::get_value(pauli, "op", comp);
+      if (std::abs(coeff) > threshold) { // if coeff is too small ignore component
+        // When qubits are loaded as a set they are sorted in descending order
+        // So we need to sort the Pauli string to match:
+        reg_t qubits_unsorted;
+        JSON::get_value(qubits_unsorted, "qubits", comp);
+        Op::qubit_set_t qubits_sorted(qubits_unsorted.begin(), qubits_unsorted.end());
+        std::string pauli_unsorted, pauli_sorted;
+        JSON::get_value(pauli_unsorted, "op", comp);
         // Sort Pauli string to match sorted qubit order
-        for (const auto qubit: op.qubits) {
-          auto pos = std::distance(unsorted.begin(),
-                                  std::find(unsorted.begin(), unsorted.end(), qubit));
-          sorted_pauli.push_back(pauli[pos]);
+        for (const auto qubit: qubits_sorted) {
+          auto pos = std::distance(qubits_unsorted.begin(),
+                                   std::find(qubits_unsorted.begin(), qubits_unsorted.end(), qubit));
+          pauli_sorted.push_back(pauli_unsorted[pos]);
         }
-        if (sorted_pauli.size() != op.qubits.size()) {
-          throw std::invalid_argument("Invalid Pauli snapshot (length \"coeffs\" != length \"params\").");
+        if (pauli_sorted.size() != qubits_sorted.size()) {
+          throw std::invalid_argument("Invalid Pauli snapshot (length \"coeffs\" != length \"qubits\").");
         }
         // make tuple and add to components
-        op.params_pauli_obs.push_back(std::make_pair(coeff, sorted_pauli));
+        op.params_pauli_obs.push_back(std::make_tuple(coeff, qubits_sorted, pauli_sorted));
       } // end if > threshold
     } // end component loop
   } else {
     throw std::invalid_argument("Invalid Pauli snapshot  (\"components\" field missing).");
   }
 
-  // Additional validation
-  check_qubits(op.qubits);
   return op;
 }
 
@@ -329,38 +336,39 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
 Op json_to_op_snapshot_matrix(const json_t &js) {
   Op op;
   op.name = "snapshot_matrix";
-  JSON::get_value(op.slot, "slot", js);
-  JSON::get_value(op.qubits, "qubits", js["params"]);
+  JSON::get_value(op.label, "label", js);
 
   // Get components
   if (JSON::check_key("components", js["params"])) {
     for (const auto &comp : js["params"]["components"]) {
-      Op::mat_pair_t val;
-      JSON::get_value(val.first, "qubits", comp);
-      JSON::get_value(val.second, "ops", comp);
+      
+      Op::matrix_component_t param;
+      auto &qubits = std::get<1>(param);
+      auto &mats = std::get<2>(param);
+      JSON::get_value(std::get<0>(param), "coeff", comp);
+      JSON::get_value(qubits, "qubits", comp);
+      JSON::get_value(mats, "ops", comp);
       // Check correct lengths
-      if (val.first.size() != val.second.size()) {
+      if (qubits.size() != mats.size()) {
         throw std::invalid_argument("Invalid matrix snapshot (number of qubit subsets and matrices unequal).");
       }
       // Check subset are ok
       size_t num = 0;
       std::set<uint_t> unique;
-      for (const auto &reg : val.first) {
+      for (const auto &reg : qubits) {
         num += reg.size();
         unique.insert(reg.begin(), reg.end());
       }
-      if (unique.size() != op.qubits.size() || num != op.qubits.size()) {
+      if (unique.size() != qubits.size() || num != qubits.size()) {
         throw std::invalid_argument("Invalid matrix snapshot (component qubit specification invalid.");
       }
       // make tuple and add to components
-      op.params_mat_obs.push_back(val);
+      op.params_mat_obs.push_back(param);
     } // end component loop
   } else {
     throw std::invalid_argument("Invalid matrix snapshot  (\"components\" field missing).");
   }
 
-  // Additional validation
-  check_qubits(op.qubits);
   return op;
 }
 

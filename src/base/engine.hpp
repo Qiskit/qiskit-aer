@@ -14,11 +14,7 @@
 #ifndef _aer_base_engine_hpp_
 #define _aer_base_engine_hpp_
 
-#include <stdexcept>
-#include <vector>
-
 #include "framework/circuit.hpp"
-#include "framework/json.hpp"
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
 #include "base/state.hpp"
@@ -135,19 +131,14 @@ protected:
   void snapshot_observables_matrix(State<state_t> *state, const Operations::Op &op);
 
   // Snapshot Types
-  using SnapshotQubits = std::set<uint_t, std::greater<uint_t>>;
-  using SnapshotKey = std::pair<SnapshotQubits, std::string>; // qubits and memory value pair
-  using SnapshotStates = Snapshots::Snapshot<std::string, state_t, Snapshots::ShotData>;
-  using SnapshotProbs = Snapshots::Snapshot<SnapshotKey, std::map<std::string, double>, Snapshots::AverageData>;
-  using SnapshotObs = Snapshots::Snapshot<SnapshotKey, complex_t, Snapshots::AverageData>;
-
-  // Helper function to make the snapshot key
-  // inlined because the output type aliasing is a pain
-  inline SnapshotKey make_snapshot_key(const Operations::Op &op) {
-    SnapshotQubits qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
-    std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
-    return std::make_pair(qubits, memory_hex);
-  };
+  using qubit_set_t = Operations::Op::qubit_set_t;
+  using SnapshotLabel = std::string;
+  using MemoryVal = std::string;
+  using SnapshotStates = Snapshots::Snapshot<SnapshotLabel, state_t, Snapshots::ShotData>;
+  using ProbsKey = std::pair<SnapshotLabel, MemoryVal>;
+  using SnapshotProbs = Snapshots::Snapshot<ProbsKey, std::map<std::string, double>, Snapshots::AverageData>;
+  using ObsKey = std::pair<SnapshotLabel, MemoryVal>;
+  using SnapshotObs = Snapshots::Snapshot<ObsKey, complex_t, Snapshots::AverageData>;
 
   // Snapshot data structures
   SnapshotStates snapshot_states_;
@@ -155,16 +146,15 @@ protected:
   SnapshotObs snapshot_obs_;
   
   // Snapshot config settings
-  std::string snapshot_state_label_ = "default"; // label and key for snapshots
+  std::string snapshot_state_label_ = "state"; // label and key for snapshots
   double snapshot_chop_threshold_ = 1e-15;
   bool show_snapshots_ = true;
 
   // Cache of saved pauli values for given qubits and memory bit values
   // to prevent recomputing for re-used Pauli components in different operators
-  // Note: there must be a better way to do this cacheing than map of map of map...
-  // But to do so would require sorting the vector of qubits in the obs_pauli ops
-  // and also sorting the Pauli string labels so that they match the sorted qubit positions.
-  std::map<SnapshotKey, std::map<std::string, double>> pauli_cache_;
+  // Note: this cache should be cleared everytime a non-snapshot operation is applied.
+  using CacheKey = std::pair<qubit_set_t, MemoryVal>;
+  std::map<CacheKey, std::map<std::string, double>> pauli_cache_;
   
 };
 
@@ -196,12 +186,15 @@ template <class state_t>
 void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) {
   auto it = engine_ops_.find(op.name);
   if (it == engine_ops_.end()) {
-    if (check_conditional(op)) // check if op passes conditional
+    if (check_conditional(op)) {// check if op passes conditional
       state->apply_op(op);
+      pauli_cache_.clear(); // clear Pauli cache if we apply another operation
+    }
   } else {
     if (op.name == "measure") {
       reg_t outcome = state->apply_measure(op.qubits);
       store_measure(outcome, op.memory, op.registers);
+      pauli_cache_.clear(); // clear Pauli cache if we apply measure
     } else if (op.name == "snapshot_probs") {
       snapshot_probabilities(state, op);
     } else if (op.name == "snapshot_pauli") {
@@ -209,7 +202,7 @@ void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) 
     } else if (op.name == "snapshot_matrix") {
       snapshot_observables_matrix(state, op);
     } else if (op.name == "snapshot_state") {
-      snapshot_states_.add_data(op.slot, snapshot_state_label_, state->data());
+      snapshot_states_.add_data(op.label, state->data());
     }
   }
 }
@@ -286,7 +279,6 @@ bool Engine<state_t>::check_conditional(const Operations::Op &op) const {
 template <class state_t>
 std::set<std::string>
 Engine<state_t>:: validate_circuit(State<state_t> *state, const Circuit &circ) {
-  std::clog << "ALLOWED OPS = " << state->allowed_ops() << std::endl; // REMOVE
   return circ.invalid_ops(state->allowed_ops());
 }
 
@@ -352,43 +344,33 @@ json_t Engine<state_t>::json() const {
     tmp["register"] = registers_;
   
   // Add probability snapshots
-  for (const auto &slot : snapshot_probs_.slots()) {
-    json_t probs_js;
-    std::set<SnapshotKey> keys = snapshot_probs_.slot_keys(slot);
-    for (const auto &key : keys) {
-      json_t datum;
-      datum["qubits"] = key.first;
+  for (const auto &key : snapshot_probs_.keys()) {
+    std::string label = key.first;
+    json_t datum;
+    datum["values"] = snapshot_probs_.get_data(key).data();
+    if (key.second.empty() == false)
       datum["memory"] = key.second;
-      datum["values"] = snapshot_probs_.get_data(slot, key).data();
-      probs_js.push_back(datum);
-    }
-    tmp["snapshots"][slot]["probabilities"] = probs_js;
+    tmp["snapshots"]["probabilities"][key.first].push_back(datum);
   }
 
   // Add observables snapshots
-  for (const auto &slot : snapshot_obs_.slots()) {
-    json_t probs_js;
-    auto keys = snapshot_obs_.slot_keys(slot);
-    for (const auto &key : keys) {
-      json_t datum;
-      datum["qubits"] = key.first;
+  for (const auto &key : snapshot_obs_.keys()) {
+    json_t datum;
+    datum["value"] = snapshot_obs_.get_data(key).data();
+    if (key.second.empty() == false)
       datum["memory"] = key.second;
-      datum["value"] = snapshot_obs_.get_data(slot, key).data();
-      probs_js.push_back(datum);
-    }
-    tmp["snapshots"][slot]["observables"] = probs_js;
+    tmp["snapshots"]["observables"][key.first].push_back(datum);
   }
 
   // Add state snapshots
-  for (const auto &slot : snapshot_states_.slots())
-    for (const auto &key : snapshot_states_.slot_keys(slot)) {
-      try {
-        tmp["snapshots"][slot][key] = snapshot_states_.get_data(slot, key).data();
-      } catch (std::exception &e) {
-        // Leave message in output that type conversion failed
-        tmp["snapshots"][slot][key] = "Error: Failed to convert state type to JSON";
-      }
+  for (const auto &key : snapshot_states_.keys()) {
+    try {
+      tmp["snapshots"][snapshot_state_label_][key] = snapshot_states_.get_data(key).data();
+    } catch (std::exception &e) {
+      // Leave message in output that type conversion failed
+      tmp["snapshots"][snapshot_state_label_][key] = "Error: Failed to convert state type to JSON";
     }
+  }
 
   // return json
   return tmp;
@@ -400,39 +382,46 @@ json_t Engine<state_t>::json() const {
 
 template <class state_t>
 void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operations::Op &op) {
-  auto key = make_snapshot_key(op);
-  auto probs = Utils::vec2ket(state->measure_probs(key.first),
+  
+  std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
+  ProbsKey key = std::make_pair(op.label, memory_hex);
+  qubit_set_t qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
+  auto probs = Utils::vec2ket(state->measure_probs(qubits),
                               snapshot_chop_threshold_, 2); // get probabilities
-  snapshot_probs_.add_data(op.slot, key, probs);
+  snapshot_probs_.add_data(key, probs);
 }
 
 
 template <class state_t>
 void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Operations::Op &op) {
-  auto key = make_snapshot_key(op);
-  auto &cache = pauli_cache_[key]; // pauli cache for current key
+  std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
+  auto key = std::make_pair(op.label, memory_hex);
   complex_t expval(0., 0.); // complex value
   for (const auto &param : op.params_pauli_obs) {
-    auto it = cache.find(param.second); // Check cache for value
+    const auto& coeff = std::get<0>(param);
+    const auto& qubits = std::get<1>(param);
+    const auto& pauli = std::get<2>(param);
+    auto &cache = pauli_cache_[std::make_pair(qubits, memory_hex)];
+    auto it = cache.find(pauli); // Check cache for value
     if (it != cache.end()) {
-      expval += param.first * (it->second); // found cached result
+      expval += coeff * (it->second); // found cached result
     } else {
       // compute result and add to cache
-      double tmp = state->pauli_observable_value(op.qubits, param.second);
-      cache[param.second] = tmp;
-      expval += param.first * tmp;
+      double tmp = state->pauli_observable_value(reg_t(qubits.begin(), qubits.end()), pauli);
+      cache[pauli] = tmp;
+      expval += coeff * tmp;
     }
   }
   // add to snapshot
-  snapshot_obs_.add_data(op.slot, key, expval);
+  snapshot_obs_.add_data(key, expval);
 }
 
 
 template <class state_t>
 void Engine<state_t>::snapshot_observables_matrix(State<state_t> *state,
                                                   const Operations::Op &op) {
-  auto key = make_snapshot_key(op);
-  snapshot_obs_.add_data(op.slot, key, state->matrix_observable_value(op));
+  auto key = std::make_pair(op.label, Utils::bin2hex(creg_memory_));
+  snapshot_obs_.add_data(key, state->matrix_observable_value(op));
 }
 
 //------------------------------------------------------------------------------

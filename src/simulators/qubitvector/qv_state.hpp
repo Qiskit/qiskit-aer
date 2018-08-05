@@ -321,16 +321,19 @@ complex_t State::matrix_observable_value(const Operations::Op &op) const {
   
   complex_t expval = 0.;
   for (const auto &param : op.params_mat_obs) {
+    const auto& coeff = std::get<0>(param);
+    const auto& qubits = std::get<1>(param);
+    const auto& matrices = std::get<2>(param);
     state_t data_copy = data_; // Copy the quantum state
     // Apply each qubit subset gate
-    for (size_t pos=0; pos < param.first.size(); ++pos) {
-      const cmatrix_t &mat = param.second[pos];
+    for (size_t pos=0; pos < qubits.size(); ++pos) {
+      const cmatrix_t &mat = matrices[pos];
       cvector_t vmat = (mat.GetColumns() == 1)
         ? Utils::vectorize_matrix(Utils::projector(Utils::vectorize_matrix(mat))) // projector case
         : Utils::vectorize_matrix(mat); // diagonal or square matrix case
-      data_copy.apply_matrix(param.first[pos], vmat);
+      data_copy.apply_matrix(qubits[pos], vmat);
     }
-    expval += data_copy.inner_product(data_); // add component to expectation value
+    expval += data_copy.inner_product(data_) * coeff; // add component to expectation value
   }
   return expval;
 }

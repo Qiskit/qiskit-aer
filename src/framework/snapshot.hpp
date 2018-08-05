@@ -31,25 +31,17 @@ using SlotData = std::map<Key, DataClass<Data>>;
 
 public:
 
-  // Add a new datum to the snapshot at the specified slot and key value
-  inline void add_data(std::string slot, const Key &key, const Data& datum) {
-    data_[slot][key].add(datum);
+  // Add a new datum to the snapshot at the specified key
+  inline void add_data(const Key &key, const Data& datum) {
+    data_[key].add(datum);
   };
 
-  // Return a const reference copy of a DataClass object for a given slot and
-  // key value. If the slot or key do not exist an error will be thrown
-  const DataClass<Data>& get_data(std::string slot, const Key &key) const;
+  // Return a const reference copy of a DataClass object for a given
+  // key value. If the key do not exist an error will be thrown
+  const DataClass<Data>& get_data(const Key &key) const;
 
-  // return occupied snapshot slots
-  std::set<std::string> slots() const;
-
-  // return snapshot keys for a given slot if the slot does not exist
-  // this returns an empty set (and does not initialize the slot)
-  std::set<Key> slot_keys(std::string slot) const;
-
-  // Return the inner map for a snapshot slot. If the slot does not exist
-  // this will initialize a new empty map for that slot
-  inline SlotData& slot(std::string slot) {return data_[slot];};
+  // Return current snapshot keys
+  std::set<Key> keys() const;
 
   // Combine with another snapshot object clearing each inner map
   // as it is copied, and then clearing the resulting object.
@@ -61,7 +53,7 @@ public:
 private:
 
   // Internal Storage
-  std::map<std::string, SlotData> data_;
+  std::map<Key, DataClass<Data>> data_;
 };
 
 
@@ -145,9 +137,10 @@ private:
 // Implementation: Snapshot class methods
 //------------------------------------------------------------------------------
 
+
 template <typename Key, typename Data, template<typename> class DataClass>
-std::set<std::string> Snapshot<Key, Data, DataClass>::slots() const {
-    std::set<std::string> ret;
+std::set<Key> Snapshot<Key, Data, DataClass>::keys() const {
+  std::set<Key> ret;
   for (const auto &pair : data_) {
     ret.insert(pair.first);
   }
@@ -155,37 +148,19 @@ std::set<std::string> Snapshot<Key, Data, DataClass>::slots() const {
 }
 
 template <typename Key, typename Data, template<typename> class DataClass>
-std::set<Key> Snapshot<Key, Data, DataClass>::slot_keys(std::string slot) const {
-  std::set<Key> ret;
-  auto it = data_.find(slot);
-  if (it != data_.end()) {
-    for (const auto &pair : it->second) {
-      ret.insert(pair.first);
-    }
-  }
-  return ret;
-}
-
-template <typename Key, typename Data, template<typename> class DataClass>
 const DataClass<Data>&
-Snapshot<Key, Data, DataClass>::get_data(std::string slot, const Key &key) const {
-  auto islot = data_.find(slot);
-  if (islot == data_.end()) {
-    throw std::invalid_argument("Snapshot slot does not exist.");
-  }
-  auto ikey = islot->second.find(key);
-  if (ikey == islot->second.end()) {
+Snapshot<Key, Data, DataClass>::get_data(const Key &key) const {
+  auto it = data_.find(key);
+  if (it == data_.end()) {
     throw std::invalid_argument("Snapshot key does not exist.");
   }
-  return ikey->second;
+  return it->second;
 }
 
 template <typename Key, typename Data, template<typename> class DataClass>
 void Snapshot<Key, Data, DataClass>::combine(Snapshot<Key, Data, DataClass> &snapshot) {
-  for (auto &slot_data : snapshot.data_) {
-    for (auto &key_data : slot_data.second) {
-      data_[slot_data.first][key_data.first].combine(key_data.second);
-    }
+  for (auto &data : snapshot.data_) {
+    data_[data.first].combine(data.second);
   }
   snapshot.clear(); // clear added snapshot
 }
