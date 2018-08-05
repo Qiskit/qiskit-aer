@@ -112,16 +112,6 @@ public:
   virtual complex_t matrix_observable_value(const Operations::Op &op) const override;
 
 protected:
-  // Allowed operations are:
-  // {"barrier", "measure", "reset", "mat", "dmat", "kraus",
-  //  "u0", "u1", "u2", "u3", "cx", "cz",
-  //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
-  const std::set<std::string> allowed_ops_ = {
-    "barrier", "measure", "reset",
-    "mat", "dmat", "kraus",
-    "u0", "u1", "u2", "u3", "cx", "cz",
-    "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"
-  }; 
 
   // Enum class and gateset map for switching based on gate name
   enum class Gates {
@@ -203,13 +193,13 @@ protected:
 
 std::set<std::string> State::allowed_ops() const {
   return { "barrier", "measure", "reset",
+    "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
     "mat", "dmat", "kraus",
     "u0", "u1", "u2", "u3", "cx", "cz",
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
 
 const std::map<std::string, State::Gates> State::gateset({
-  {"measure", Gates::measure}, // Measure is handled by engine
   {"reset", Gates::reset}, // Reset operation
   {"barrier", Gates::barrier}, // barrier does nothing
   // Matrix multiplication

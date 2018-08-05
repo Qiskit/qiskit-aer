@@ -43,6 +43,15 @@ public:
   
   // Return the set of allowed operations for the state class.
   // Example: {"u1", "u2", "u3", "cx", "measure", "reset"};
+  // * If the State allows measurement it should contain: "measure"
+  // * If the State allows probability snapshots it should contain
+  //   "snapshot_probs"
+  // * If the State allows Pauli observable snapshots it should contain
+  //   "snapshot_pauli"
+  // * If the State allows matrix observable snapshots it should contain
+  //   "snapshot_pauli"
+  // * If the State allows snapshots of its internal state representation
+  //   it should contain "snapshot_state"
   inline virtual std::set<std::string> allowed_ops() const = 0;
 
   // Applies an operation to the state class.
@@ -70,16 +79,20 @@ public:
   // Optional methods: Measurement 
   //----------------------------------------------------------------
   
-  // If the state supports measurement this should be set to true
-  // and the apply_measure method overriden
   bool has_measure = false;
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
+  // If a state subclass supports this function it then "measure" 
+  // should be contained in the set returned by the 'allowed_ops'
+  // method.
   inline virtual reg_t apply_measure(const reg_t& qubits) {
     return reg_t(qubits.size(), 0);
   };
 
   // Return vector of measure probabilities for specified qubits
+  // If a state subclass supports this function it then "measure" 
+  // should be contained in the set returned by the 'allowed_ops'
+  // method.
   inline virtual rvector_t measure_probs(const reg_t &qubits) const {
     return rvector_t(1ULL << qubits.size(), 0);
   };
@@ -88,22 +101,20 @@ public:
   // Optional methods: Operator observables
   //----------------------------------------------------------------
 
-  // If the state supports computation of Pauli observable operators
-  // (obs_pauli) this should be set to true
-  bool has_pauli_observables = false;
-
   // Return the complex expectation value for a single Pauli string
+  // If a state subclass supports this function it then 
+  // "snapshot_pauli" should be contained in the set returned by the
+  // 'allowed_ops' method.
   inline virtual
   double pauli_observable_value(const reg_t& qubits,
                                    const std::string &pauli) const {
     (void)qubits; (void)pauli; return 0.;
   };
 
-  // If the state supports computation of matrix observable operators
-  // (obs_mat, obs_dmat, obs_vec) this should be set to true
-  bool has_matrix_observables = false;
-
-  // Return the complex expectation value for an observable operator
+  // Return the complex expectation value for an observable operator.
+  // If a state subclass supports this function it then 
+  // "snapshot_matrix" should be contained in the set returned by the
+  // 'allowed_ops' method.
   inline virtual complex_t matrix_observable_value(const Operations::Op &op) const {
     (void)op; return complex_t();
   };

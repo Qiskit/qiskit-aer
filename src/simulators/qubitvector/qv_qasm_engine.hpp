@@ -21,7 +21,7 @@
 #endif
 
 #include "simulators/qubitvector/qv_state.hpp"
-#include "engines/qasm_engine.hpp"
+#include "base/engine.hpp"
 
 
 namespace AER {
@@ -37,11 +37,13 @@ namespace QubitVector {
 // - If a circuit contains no reset operaitons, and all measurements are at the
 //   end it can sample measurement outcomes from the final state rather than
 //   simulate every shot.
-class QasmEngine : public Engines::QasmEngine<state_t> {
+class QasmEngine : public Base::Engine<state_t> {
+
+  using BaseEngine = Base::Engine<state_t>;
 
 public:
   // Default constructor
-  explicit QasmEngine() : Engines::QasmEngine<state_t>() {};
+  QasmEngine() = default;
   ~QasmEngine() = default;
 
   //----------------------------------------------------------------
@@ -86,7 +88,7 @@ void QasmEngine::execute( Base::State<state_t> *state, const Circuit &circ, uint
   if (meas_opt) {
     execute_with_sampling(state, circ, shots);
   } else {
-    Engines::QasmEngine<state_t>::execute(state, circ, shots); // execute without sampling
+    BaseEngine::execute(state, circ, shots); // execute without sampling
   }
 }
 
@@ -117,12 +119,15 @@ bool QasmEngine::check_opt_meas(const Circuit &circ) const {
 void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
                                        const Circuit &circ,
                                        uint_t shots) {                                    
+  
   initialize(state, circ);
+
   // Find position of first measurement operation
   uint_t pos = 0;
   while (pos < circ.ops.size() && circ.ops[pos].name != "measure") {
     pos++;
   }
+
   // Execute operations before measurements
   for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
     apply_op(state, *it);
@@ -142,6 +147,7 @@ void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
         registers_map[op.qubits[j]] = op.registers[j];
     }
   }
+
   // Sort the qubits and delete duplicates
   sort(meas_qubits.begin(), meas_qubits.end());
   meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()), meas_qubits.end());
@@ -157,7 +163,6 @@ void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
       registers.push_back(registers_map[q]);
   
   // Initialize outcome map for measured qubits
-  
   std::map<uint_t, uint_t> outcomes;
   for (auto &qubit : meas_qubits)
     outcomes[qubit] = 0;
@@ -171,6 +176,7 @@ void QasmEngine::execute_with_sampling(Base::State<state_t> *state,
     sample_counts(state, circ, shots, cprobs, memory, registers);
   } else {
     // TODO partial trace over other qubits so it can also be done in place
+    // without copying the vector
     // Sample measurement outcomes
     rvector_t probs = state->data().probabilities(meas_qubits);
     sample_counts(state, circ, shots, probs, memory, registers);
@@ -199,9 +205,11 @@ void QasmEngine::sample_counts(Base::State<state_t> *state,
     }
     // convert outcome to register
     const reg_t reg = Utils::int2reg(val, 2, circ.num_qubits);
-    initialize_creg(circ); // reset creg for sampling
+    // Reset creg before storing measurement sample
+    creg_memory_ = std::string(circ.num_memory, '0');
+    creg_registers_ = std::string(circ.num_registers, '0');
     store_measure(reg, memory, registers);
-    compute_result(state);
+    update_counts();
   }
 }
 

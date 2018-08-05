@@ -19,7 +19,6 @@
 
 // Simulator
 #include "base/controller.hpp"
-#include "engines/qasm_engine.hpp"
 #include "simulators/qubitvector/qv_qasm_engine.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
 

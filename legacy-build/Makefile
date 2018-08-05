@@ -65,19 +65,13 @@ LIBS = $(LIB_BLAS) $(LIB_OMP)
 	${CC} -c ${CPPFLAGS} ${DEFINES} -o  ${OUTPUT_DIR}/$@ $<
 
 
-all: directories qasm_sim obs_sim state_sim
+all: directories sim
 
 directories:
 	mkdir -p $(OUTPUT_DIR)
 
-qasm_sim: qasm_simulator.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/qasm_simulator_cpp ${OUTPUT_DIR}/qasm_simulator.o $(LIBS)
-
-obs_sim: observables_simulator.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/observables_simulator_cpp ${OUTPUT_DIR}/observables_simulator.o $(LIBS)
-
-state_sim: statevector_simulator.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/statevector_simulator_cpp ${OUTPUT_DIR}/statevector_simulator.o $(LIBS)
+sim: aer_simulator.o
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator_cpp ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
 
 clean:
 	rm -rf ${OUTPUT_DIR}
