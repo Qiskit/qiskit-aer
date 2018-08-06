@@ -63,12 +63,12 @@ All these snapshots may be specified as a Qobj instruction with the following JS
 ```
 {
     "name": "snapshot",
-    "slot": string,
+    "label": string,
     "params": {...}
 }
 ```
 
-where the contents of the `"params"` field differs for each of the four snapshots which. The `"slot"` label string is used to index the snapshots in the ouput result JSON. Only one snapshot of each type (state, probs, observable) may be taken for each slot label: If a label is repeated the later snapshot will overwrite the earlier. Note also that Pauli and Matrix snapshots are considered the same type for this purpose (an observables expectation value) and so must used different slot labels or they will overwrite each other.
+where the contents of the `"params"` field differs for each of the four snapshots which. The `"label"` string is used to index the snapshots in the output result JSON. Only one snapshot of each type (state, probs, observable) may be taken for each label: If a label is repeated the later snapshot will overwrite the earlier. Note also that Pauli and Matrix snapshots are considered the same type for this purpose (an observables expectation value) and so must used different labels or they will overwrite each other.
 
 
 ### State Snapshot
@@ -78,7 +78,7 @@ The state snapshot instruction schema is given by
 ```json
 {
     "name": "snapshot",
-    "slot": string,
+    "label": string,
     "params": {
         "type": "state",
     }
@@ -138,7 +138,7 @@ The probabilities snapshot instruction schema is given by
 ```json
 {
     "name": "snapshot",
-    "slot": string,
+    "label": string,
     "params": {
         "type": "probabilities",
         "qubits": list[int]
@@ -163,10 +163,10 @@ If the circuit contains classical registers and measurements before the snapshot
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "slot": "pre_measure", "params": {
+                {"name": "snapshot", "label": "pre_measure", "params": {
                     "type": "probabilities", "qubits": [1, 0]}},
                 {"name": "measure", "qubits": [0], "memory": [0]},
-                {"name": "snapshot", "slot": "post_measure", "params": {
+                {"name": "snapshot", "label": "post_measure", "params": {
                     "type": "probabilities", "qubits": [1, 0]}}
             ]
         }
