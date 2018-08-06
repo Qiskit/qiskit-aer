@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <complex>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #define _USE_MATH_DEFINES
@@ -120,7 +121,7 @@ protected:
     u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
     cx, cz, rzz // two qubit
   };
-  const static std::map<std::string, Gates> gateset;
+  const static std::unordered_map<std::string, Gates> gateset;
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -199,7 +200,7 @@ std::set<std::string> State::allowed_ops() const {
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
 
-const std::map<std::string, State::Gates> State::gateset({
+const std::unordered_map<std::string, State::Gates> State::gateset({
   {"reset", Gates::reset}, // Reset operation
   {"barrier", Gates::barrier}, // barrier does nothing
   // Matrix multiplication

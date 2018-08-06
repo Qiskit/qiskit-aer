@@ -18,29 +18,40 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <tuple>
+#include <unordered_map>
 
 #include "framework/types.hpp"
 #include "framework/json.hpp"
+#include "framework/utils.hpp"
 
 namespace AER {
 namespace Operations {
 
+// Comparisons enum class used for Boolean function operation.
+// these are used to compare two hexadecimal strings and return a bool
+// for now we only have one comparison Equal, but others will be added
+enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual};
+
 //------------------------------------------------------------------------------
 // Op Class
 //------------------------------------------------------------------------------
+
 
 struct Op {
   // General Operations
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
   std::vector<complex_t> params;  // real or complex params for gates
+  std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
-  
+  RegComparison bfunc;      // (opt) boolean function relation
+
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
   reg_t registers;          // (opt) register locations it acts on (measure, conditional)
@@ -56,7 +67,6 @@ struct Op {
   using matrix_component_t = std::tuple<complex_t,          // component coefficient
                                         std::vector<reg_t>, // qubit subregisters Ex: [[2], [1, 0]]
                                         std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
-  std::string label;       // label for observables snapshots
   std::vector<pauli_component_t> params_pauli_obs;
   std::vector<matrix_component_t> params_mat_obs; // not that diagonal matrices are stored as
                                                   // 1 x M row-matrices
@@ -96,15 +106,11 @@ inline void check_qubits(const reg_t &qubits) {
 Op json_to_op(const json_t &js); // Patial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);};
 
-// Helper deserialization functions
+// Standard operations
 Op json_to_op_gate(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
-
-// Matrices
-Op json_to_op_mat(const json_t &js);
-Op json_to_op_dmat(const json_t &js);
-Op json_to_op_kraus(const json_t &js);
+Op json_to_op_bfunc(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -113,9 +119,14 @@ Op json_to_op_snapshot_matrix(const json_t &js);
 Op json_to_op_snapshot_pauli(const json_t &js);
 Op json_to_op_snapshot_probs(const json_t &js);
 
+// Matrices
+Op json_to_op_mat(const json_t &js);
+Op json_to_op_dmat(const json_t &js);
+Op json_to_op_kraus(const json_t &js);
+
 // TODO Classical bits
 //Op json_to_op_roerror(const json_t &js); // TODO
-//Op json_to_op_bfunc(const json_t &js); // TODO
+
 
 
 //------------------------------------------------------------------------------
@@ -143,9 +154,9 @@ Op json_to_op(const json_t &js) {
   if (name == "snapshot")
     return json_to_op_snapshot(js);
   // Bit functions
-  /* TODO: the following aren't implemented yet!
   if (name == "bfunc")
     return json_to_op_bfunc(js);
+    /* TODO: the following aren't implemented yet!
   if (name == "roerror")
     return json_to_op_roerror(js);
   */
@@ -207,6 +218,50 @@ Op json_to_op_reset(const json_t &js) {
   return op;
 }
 
+//------------------------------------------------------------------------------
+// Implementation: Boolean Functions
+//------------------------------------------------------------------------------
+
+Op json_to_op_bfunc(const json_t &js) {
+  Op op;
+  op.name = "bfunc";
+  op.string_params.resize(2);
+  std::string relation;
+  JSON::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
+  JSON::get_value(op.string_params[1], "val", js);  // value hexadecimal string
+  JSON::get_value(relation, "relation", js); // relation string
+  JSON::get_value(op.memory, "memory", js);
+  JSON::get_value(op.registers, "register", js);
+  
+  // Format hex strings
+  Utils::format_hex_inplace(op.string_params[0]);
+  Utils::format_hex_inplace(op.string_params[1]);
+
+  const std::unordered_map<std::string, RegComparison> comp_table({
+    {"==", RegComparison::Equal},
+    {"!=", RegComparison::NotEqual},
+    {"<", RegComparison::Less},
+    {"<=", RegComparison::LessEqual},
+    {">", RegComparison::Greater},
+    {">=", RegComparison::GreaterEqual},
+  });
+
+  auto it = comp_table.find(relation);
+  if (it == comp_table.end()) {
+    std::stringstream msg;
+    msg << "Inavlid bfunc relation string :\"" << it->first << "\"." << std::endl;
+    throw std::invalid_argument(msg.str());
+  } else {
+    op.bfunc = it->second;
+  }
+
+  // Validation
+  if (op.registers.empty()) {
+    throw std::invalid_argument("Invalid measure operation: \"register\" is empty.");
+  }
+  
+  return op;
+}
 
 //------------------------------------------------------------------------------
 // Implementation: Matrix and Kraus deserialization
@@ -272,7 +327,8 @@ Op json_to_op_snapshot(const json_t &js) {
 Op json_to_op_snapshot_state(const json_t &js) {
   Op op;
   op.name = "snapshot_state";
-  JSON::get_value(op.label, "label", js);
+  op.string_params.push_back(std::string()); // add empty string param for label
+  JSON::get_value(op.string_params[0], "label", js);
   return op;
 }
 
@@ -280,9 +336,9 @@ Op json_to_op_snapshot_state(const json_t &js) {
 Op json_to_op_snapshot_probs(const json_t &js) {
   Op op;
   op.name = "snapshot_probs";
+  op.string_params.push_back(std::string()); // add empty string param for label
+  JSON::get_value(op.string_params[0], "label", js);
   JSON::get_value(op.qubits, "qubits", js["params"]);
-  JSON::get_value(op.label, "label", js);
-  
   // Validation
   check_qubits(op.qubits);
   return op;
@@ -292,7 +348,8 @@ Op json_to_op_snapshot_probs(const json_t &js) {
 Op json_to_op_snapshot_pauli(const json_t &js) {
   Op op;
   op.name = "snapshot_pauli";
-  JSON::get_value(op.label, "label", js);
+  op.string_params.push_back(std::string()); // add empty string param for label
+  JSON::get_value(op.string_params[0], "label", js);
   double threshold = 1e-10; // drop small Pauli values
 
   // Sort qubits (needed for storing cached Pauli terms)
@@ -328,7 +385,6 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   } else {
     throw std::invalid_argument("Invalid Pauli snapshot  (\"components\" field missing).");
   }
-
   return op;
 }
 
@@ -336,7 +392,8 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
 Op json_to_op_snapshot_matrix(const json_t &js) {
   Op op;
   op.name = "snapshot_matrix";
-  JSON::get_value(op.label, "label", js);
+  op.string_params.push_back(std::string()); // add empty string param for label
+  JSON::get_value(op.string_params[0], "label", js);
 
   // Get components
   if (JSON::check_key("components", js["params"])) {
@@ -368,7 +425,6 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
   } else {
     throw std::invalid_argument("Invalid matrix snapshot  (\"components\" field missing).");
   }
-
   return op;
 }
 

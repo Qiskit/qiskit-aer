@@ -130,6 +130,12 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
 // Bit Conversions
 //------------------------------------------------------------------------------
 
+// Format a hex string so that it has a prefix "0x", abcdef chars are lowercase
+// and leading zeros are removed
+// Example: 0010A -> 0x10a
+std::string format_hex(const std::string &hex);
+std::string& format_hex_inplace(std::string &hex);
+
 // Convert integers and hexadecimals to register vectors
 reg_t int2reg(uint_t n, uint_t base = 2);
 reg_t int2reg(uint_t n, uint_t base, uint_t minlen);
@@ -540,6 +546,26 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
 //==============================================================================
 // Implementations: Bit conversions
 //==============================================================================
+
+std::string& format_hex_inplace(std::string &hex) {
+  // make abcdef and x lower case
+  std::transform(hex.begin(), hex.end(), hex.begin(), ::tolower);
+  // check if 0x prefix is present, add if it isn't
+  std::string prefix = hex.substr(0, 2);
+  if (prefix != "0x")
+    hex = "0x" + hex;
+  // delete leading zeros Eg 0x001 -> 0x1
+  hex.erase(2, std::min(hex.find_first_not_of("0", 2) - 2, hex.size() - 3));
+  return hex;
+}
+
+
+std::string format_hex(const std::string &hex) {
+  std::string tmp = hex;
+  format_hex_inplace(tmp);
+  return tmp;
+}
+
 
 reg_t int2reg(uint_t n, uint_t base) {
   reg_t ret;

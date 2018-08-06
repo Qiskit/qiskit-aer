@@ -14,6 +14,8 @@
 #ifndef _aer_base_engine_hpp_
 #define _aer_base_engine_hpp_
 
+#include <unordered_map>
+
 #include "framework/circuit.hpp"
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
@@ -26,6 +28,13 @@ namespace Base {
 // Engine base class for Qiskit-Aer
 //============================================================================
 
+// Enum class for operations implemented by the Engine instead of directly
+// being passed to the State
+enum class EngineOp {
+  bfunc, measure, snapshot_state, snapshot_probs, snapshot_pauli, snapshot_matrix
+};
+
+// Engine class
 template <class state_t>
 class Engine {
 
@@ -66,6 +75,7 @@ public:
   virtual std::set<std::string>
   validate_circuit(State<state_t> *state, const Circuit &circ);
 
+  
 protected:
 
   //----------------------------------------------------------------
@@ -73,10 +83,12 @@ protected:
   //----------------------------------------------------------------
 
   // Operations that are implemented by the engine instead of the State
-  // these are: {"measure", "snapshot_state", "snapshot_probs",
+  // these are: {"measure", "bfunc", "snapshot_state", "snapshot_probs",
   // "snapshot_pauli", "snapshot_matrix"}
-  // TODO: add "bfunc" and "roerror"
-  static const std::set<std::string> engine_ops_;
+  // TODO: add "roerror"
+
+  // Lookup table for converting Op name to EngineOp for switch statements
+  static const std::unordered_map<std::string, EngineOp> engine_ops_;
 
   // Apply an operation to the state
   virtual void apply_op(State<state_t> *state, const Operations::Op &op);
@@ -98,6 +110,9 @@ protected:
 
   // Record the outcome of a measurement in the engine memory and registers
   void store_measure(const reg_t &outcome, const reg_t &memory, const reg_t &registers);
+
+  // Apply a boolean function Op
+  bool apply_bfunc(const Operations::Op &op);
 
   // Classical registers
   std::string creg_memory_;
@@ -163,9 +178,13 @@ protected:
 //============================================================================
 
 template <class state_t>
-const std::set<std::string> Engine<state_t>::engine_ops_ = {
-  "measure", "snapshot_state", "snapshot_probs",
-  "snapshot_pauli", "snapshot_matrix"
+const std::unordered_map<std::string, EngineOp> Engine<state_t>::engine_ops_ = {
+  {"bfunc", EngineOp::bfunc},
+  {"measure", EngineOp::measure},
+  {"snapshot_state", EngineOp::snapshot_state},
+  {"snapshot_probs", EngineOp::snapshot_probs},
+  {"snapshot_pauli", EngineOp::snapshot_pauli},
+  {"snapshot_matrix", EngineOp::snapshot_matrix}
 };
 
 template <class state_t>
@@ -191,18 +210,30 @@ void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) 
       pauli_cache_.clear(); // clear Pauli cache if we apply another operation
     }
   } else {
-    if (op.name == "measure") {
-      reg_t outcome = state->apply_measure(op.qubits);
-      store_measure(outcome, op.memory, op.registers);
-      pauli_cache_.clear(); // clear Pauli cache if we apply measure
-    } else if (op.name == "snapshot_probs") {
-      snapshot_probabilities(state, op);
-    } else if (op.name == "snapshot_pauli") {
-      snapshot_observables_pauli(state, op);
-    } else if (op.name == "snapshot_matrix") {
-      snapshot_observables_matrix(state, op);
-    } else if (op.name == "snapshot_state") {
-      snapshot_states_.add_data(op.label, state->data());
+    switch (it->second) {
+      case EngineOp::measure: {
+        reg_t outcome = state->apply_measure(op.qubits);
+        store_measure(outcome, op.memory, op.registers);
+        pauli_cache_.clear(); // clear Pauli cache if we apply measure
+      } break;
+      case EngineOp::bfunc:
+        apply_bfunc(op);
+        break;
+      case EngineOp::snapshot_probs:
+        snapshot_probabilities(state, op);
+        break;
+      case EngineOp::snapshot_pauli:
+        snapshot_observables_pauli(state, op);
+        break;
+      case EngineOp::snapshot_matrix:
+        snapshot_observables_matrix(state, op);
+        break;
+      case EngineOp::snapshot_state:
+        snapshot_states_.add_data(op.string_params[0], state->data());
+        break;
+      default:
+        // we should never get here
+        throw std::invalid_argument("Invalid engine instruction.");
     }
   }
 }
@@ -272,6 +303,52 @@ bool Engine<state_t>::check_conditional(const Operations::Op &op) const {
 }
 
 
+template <class state_t>
+bool Engine<state_t>::apply_bfunc(const Operations::Op &op) {
+  const std::string &mask = op.string_params[0];
+  const std::string &target_val = op.string_params[1];
+  int_t compared; // if equal this should be 0, if less than -1, if greater than +1
+
+  // Check if register size fits into a 64-bit integer
+  if (creg_registers_.size() <= 64) {
+    uint_t reg_int = std::stoull(creg_registers_, nullptr, 2); // stored as bitstring
+    uint_t mask_int = std::stoull(mask, nullptr, 16); // stored as hexstring
+    uint_t target_int = std::stoull(target_val, nullptr, 16); // stored as hexstring
+    compared = (reg_int & mask_int) - target_int;
+  } else {
+    // We need to use big ints so we implement the bit-mask via the binary string
+    // representation rather than using a big integer class
+    std::string mask_bin = Utils::hex2bin(mask); // has 0b prefix while creg_registers_ doesn't
+    size_t length = std::min(mask_bin.size() - 2, creg_registers_.size()); // -2 to remove 0b
+    std::string masked_val = std::string(length, '0');
+    for (size_t rev_pos = 0; rev_pos < length; rev_pos++) {
+      masked_val[length - 1 - rev_pos] = (mask_bin[mask_bin.size() - 1 - rev_pos] 
+                                          & creg_registers_[creg_registers_.size() - 1 - rev_pos]);
+    }
+    masked_val = Utils::bin2hex(masked_val); // convert to hex string
+    // Using string comparisong to compare to target vaue
+    compared = masked_val.compare(target_val);
+  }
+  // check value of compared integer for different comparison operations
+  switch (op.bfunc) {
+    case Operations::RegComparison::Equal:
+      return (compared == 0);
+    case Operations::RegComparison::NotEqual:
+      return (compared != 0);
+    case Operations::RegComparison::Less:
+      return (compared < 0);
+    case Operations::RegComparison::LessEqual:
+      return (compared <= 0);
+    case Operations::RegComparison::Greater:
+      return (compared > 0);
+    case Operations::RegComparison::GreaterEqual:
+      return (compared >= 0);
+    default:
+      // we shouldn't ever get here
+      throw std::invalid_argument("Invalid boolean function relation.");
+  }
+}
+
 //============================================================================
 // Implementations: Utilities methods
 //============================================================================
@@ -279,7 +356,9 @@ bool Engine<state_t>::check_conditional(const Operations::Op &op) const {
 template <class state_t>
 std::set<std::string>
 Engine<state_t>:: validate_circuit(State<state_t> *state, const Circuit &circ) {
-  return circ.invalid_ops(state->allowed_ops());
+  auto state_ops = state->allowed_ops();
+  state_ops.insert("bfunc"); // handled by engine alone
+  return circ.invalid_ops(state_ops);
 }
 
 
@@ -384,7 +463,7 @@ template <class state_t>
 void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operations::Op &op) {
   
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
-  ProbsKey key = std::make_pair(op.label, memory_hex);
+  ProbsKey key = std::make_pair(op.string_params[0], memory_hex);
   qubit_set_t qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
   auto probs = Utils::vec2ket(state->measure_probs(qubits),
                               snapshot_chop_threshold_, 2); // get probabilities
@@ -395,7 +474,7 @@ void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operat
 template <class state_t>
 void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Operations::Op &op) {
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
-  auto key = std::make_pair(op.label, memory_hex);
+  auto key = std::make_pair(op.string_params[0], memory_hex);
   complex_t expval(0., 0.); // complex value
   for (const auto &param : op.params_pauli_obs) {
     const auto& coeff = std::get<0>(param);
@@ -420,7 +499,7 @@ void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Op
 template <class state_t>
 void Engine<state_t>::snapshot_observables_matrix(State<state_t> *state,
                                                   const Operations::Op &op) {
-  auto key = std::make_pair(op.label, Utils::bin2hex(creg_memory_));
+  auto key = std::make_pair(op.string_params[0], Utils::bin2hex(creg_memory_));
   snapshot_obs_.add_data(key, state->matrix_observable_value(op));
 }
 
