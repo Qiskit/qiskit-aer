@@ -1,4 +1,4 @@
-# Operation Class Specification
+# Simulator Operations
 
 * **Authors:** Christopher J. Wood
 * **Last Updated:** 5.08.2018

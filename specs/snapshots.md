@@ -13,7 +13,7 @@
    2. [Probabilities snapshot](#probabilities-snapshot)
    3. [Pauli observable snapshot](#pauli-observable-snapshot)
    4. [Matrix observable snapshot](#matrix-observable-snapshot)
-
+3. [JSON schemas](#json-schemas)
 
 ---
 
@@ -51,54 +51,58 @@ All these cases have special ways of being entered in the simulator which we dis
 
 ## Snapshot Simulator instructions
 
-There are four simulator instructions or snapshots:
-
-1. `"snapshot_state"`: Snapshots of the quantum state. 
-2. `"snapshot_probs"`: Snapshots of the measurement outcome probabilities.
-3. `"snapshot_pauli"`: Snapshots of an observable expectation value, represented as a Pauli.
-3. `"snapshot_matrix`: Snapshots of an observable expectation value, represented as a matrix.
-
-All these snapshots may be specified as a Qobj instruction with the following JSON format:
+Snapshots may be specified as a Qobj instruction with the following base JSON format:
 
 ```
 {
     "name": "snapshot",
-    "label": string,
-    "params": {...}
+    "type": string,
+    "label": string
 }
 ```
 
-where the contents of the `"params"` field differs for each of the four snapshots which. The `"label"` string is used to index the snapshots in the output result JSON. Only one snapshot of each type (state, probs, observable) may be taken for each label: If a label is repeated the later snapshot will overwrite the earlier. Note also that Pauli and Matrix snapshots are considered the same type for this purpose (an observables expectation value) and so must used different labels or they will overwrite each other.
+Currently the simulator supports for snapshot types, which may be specified by the following `"type"` strings:
+
+1. `"state"`: Snapshots of the quantum state. 
+2. `"probabilities"`: Snapshots of the measurement outcome probabilities.
+3. `"pauli_observable"`: Snapshots of an observable expectation value, represented as a Pauli.
+3. `"matrix_observable`: Snapshots of an observable expectation value, represented as a matrix.
+
+The `"label"` string is used to index the snapshots in the output result JSON. Only one snapshot of each type (state, probabilities, observable) may be taken for each label: If a label is repeated the later snapshot will overwrite the earlier. Pauli and Matrix snapshots are considered the same type for this purpose (an observables expectation value) and so must used different labels or they will overwrite each other. Additional fields may then be added for the parameters of the different snapshot types which we specify in this document.
 
 
 ### State Snapshot
 
-The state snapshot instruction schema is given by
+The state snapshot instruction schema is given by a snapshot instruction:
 
-```json
+```
 {
     "name": "snapshot",
-    "label": string,
-    "params": {
-        "type": "state",
-    }
+    "type": "state",
+    "label": string
+    
 }
 ```
 
-The format of the state in the output field will depend on the type of simulator state used. Typically it will be a complex statevector, but for specialized simulators it may take a different form (such as a Clifford table).
+The format of the state in the output field will depend on the type of simulator state used. Typically it will be a complex state vector, but for specialized simulators it may take a different form (such as a Clifford table).
 
-**Example:** Suppose we have a two-qubit system in the maximally entangled bell state $|\psi\rangle = \frac{1}{\sqrt{2}}(|0,0\rangle + |1,1 \rangle )$ and apply a snapshot. The input Qobj JSON is given by:
+####  Example
+
+Suppose we have a two-qubit system that we prepare in a maximally entangled bell state $|\psi\rangle = \frac{1}{\sqrt{2}}(|0,0\rangle + |1,1 \rangle )$ while taking snapshots between each gate used to generate the state:
 
 ```json
 {
-    "id": "bell_snapshot_state",
+    "id": "state_snapshot_example",
     "type": "QASM",
     "experiments": [
         {   
+            "config": {"shots": 1},
             "instructions": [
+                {"name": "snapshot", "type": "state", "label": "initial"},
                 {"name": "h", "qubits": [0]},
+                {"name": "snapshot", "type": "state", "label": "middle"},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "label": "final_state", "params": {"type": "state"}}
+                {"name": "snapshot", "type": "state", "label": "final"}
             ]
         }
     ]
@@ -109,17 +113,28 @@ The result JSON will look like
 
 ```json
 {
-    "id": "bell_snapshot_state",
-    "metadata": {},
+    "header": {
+        "num_circuit_threads": 1,
+        "num_openmp_threads": 4,
+        "time_taken": 0.000467061
+    },
+    "id": "state_snapshot_example",
     "result": [{
         "data": {
             "snapshots": {
                 "state": {
-                    "final_state": [[[0.7071067811865476, 0.0], [0.0, 0.0], [0.0, 0.0], [0.7071067811865475, 0.0]]]
+                    "final": [[[0.7071067811865476, 0.0], [0.0, 0.0], [0.0, 0.0], [0.7071067811865475, 0.0]]],
+                    "initial": [[[1.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]],
+                    "middle": [[[0.7071067811865476, 0.0], [0.7071067811865475, 0.0], [0.0, 0.0], [0.0, 0.0]]]
                 }
             }
         },
-        "metadata": {},
+        "header": {
+            "memory_sampling_opt": true,
+            "seed": 1534194672,
+            "shots": 1,
+            "time_taken": 0.000319752
+        },
         "status": "DONE",
         "success": true
     }],
@@ -128,6 +143,8 @@ The result JSON will look like
 }
 ```
 
+
+
 [Back to top](#table-of-contents)
 
 
@@ -135,14 +152,12 @@ The result JSON will look like
 
 The probabilities snapshot instruction schema is given by
 
-```json
+```
 {
     "name": "snapshot",
+    "type": "probabilities",
     "label": string,
-    "params": {
-        "type": "probabilities",
-        "qubits": list[int]
-    }
+    "qubits": list[int]
 }
 ```
 
@@ -151,23 +166,25 @@ The list of qubits may contain any subset of qubits in the system. For example i
 If the circuit contains classical registers and measurements before the snapshot, the returned dictionary will be shown conditional on the memory classical register state.
 
 
-**Example:** Suppose we have a two-qubit system in the maximally entangled bell state $|\psi\rangle = \frac{1}{\sqrt{2}}(|0,0\rangle + |1,1 \rangle )$ and apply a measurement on qubit-0. Suppose we take a probabilities snapshot before, and after the measurement. The input Qobj JSON is given by:
+####  Example
+
+Suppose we have a two-qubit system in the maximally entangled bell state $|\psi\rangle = \frac{1}{\sqrt{2}}(|0,0\rangle + |1,1 \rangle )$ and apply a measurement on qubit-0. Suppose we take a probabilities snapshot before, and after the measurement. The input Qobj JSON is given by:
 
 ```json
 {
-    "id": "bell_snapshot_probs",
+    "id": "probabilities_snapshot_example",
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1000},
+            "config": {"shots": 1},
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "label": "pre_measure", "params": {
-                    "type": "probabilities", "qubits": [1, 0]}},
-                {"name": "measure", "qubits": [0], "memory": [0]},
-                {"name": "snapshot", "label": "post_measure", "params": {
-                    "type": "probabilities", "qubits": [1, 0]}}
+                {"name": "snapshot", "type": "probabilities",
+                    "label": "pre_measure", "qubits": [1, 0]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
+                {"name": "snapshot", "type": "probabilities",
+                    "label": "post_measure", "qubits": [1, 0]}
             ]
         }
     ]
@@ -179,23 +196,21 @@ The result JSON will look like
 
 ```json
 {
-    "id": "bell_snapshot_probs",
-    "metadata": { },
+    "header": {
+        "num_circuit_threads": 1,
+        "num_openmp_threads": 4,
+        "time_taken": 0.000217068
+    },
+    "id": "probabilities_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x0": 495,
-                "0x1": 505
+                "0x3": 1
             },
             "snapshots": {
                 "probabilities": {
                     "post_measure": [{
-                        "memory": "0x0",
-                        "values": {
-                            "00": 1.0
-                        }
-                    }, {
-                        "memory": "0x1",
+                        "memory": "0x3",
                         "values": {
                             "11": 1.0
                         }
@@ -204,13 +219,17 @@ The result JSON will look like
                         "memory": "0x0",
                         "values": {
                             "00": 0.5000000000000001,
-                            "11": 0.49999999999999994
+                            "11": 0.4999999999999999
                         }
                     }]
                 }
             }
         },
-        "metadata": { },
+        "header": {
+            "seed": 2869318922,
+            "shots": 1,
+            "time_taken": 0.000136079
+        },
         "status": "DONE",
         "success": true
     }],
@@ -226,44 +245,53 @@ The result JSON will look like
 
 Pauli observables are a special case of general matrix observables where the matrix may be written in terms of the Pauli-operator basis: $\mathcal{O}_k = \bigotimes_{j=1}^n P_j$ where $P_j \in \{I, X, Y, Z\}$.  The JSON instruction is given by
 
-```json
+```
 {
     "name": "snapshot",
+    "type": "pauli_observable",
     "label": string,
-    "params": {
-        "type": "pauli_observable",
-        "components": [
-            {"coeff": complex, "qubits": list[int], "op": pauli_string},
-            ...
-        ]
-    }
+    "params": [
+        {"coeff": complex, "qubits": list[int], "op": pauli_string},
+        ...
+    ]
 }
 ```
 
-Where for a Pauli observable $\mathcal{O}_n = \bigotimes_{j=1}^k w_j P_j$ the components will contain $k$ elements each given as `{"coeff": [real(w_j), imag(w_j)]`, `"op": P_j}`. For an $n$-qubit Pauli the `P_j` operations are represented as a string containing *n* characters from `{"I", "X", "Y", "Z"}`, where the string order corresponds to the list order. Eg for 3-qubits with `"qubits": [2, 0, 1]` the string `XYZ` corresponds to the operator $X_2 \otimes Z_1 \otimes Y_0$. If the circuit contains classical registers and measurements before the snapshot, the returned dictionary will be shown conditional on the memory classical register state.
+Where for a Pauli observable $\mathcal{O}_n = \bigotimes_{j=1}^k w_j P_j$ the params are a list of components each given as `{"coeff": [real(w_j), imag(w_j)]`, `"op": P_j}`. For an $n$-qubit Pauli the `P_j` operations are represented as a string containing *n* characters from `{"I", "X", "Y", "Z"}`, where the string order corresponds to the list order. Eg for 3-qubits with `"qubits": [2, 0, 1]` the string `XYZ` corresponds to the operator $X_2 \otimes Z_1 \otimes Y_0$. If the circuit contains classical registers and measurements before the snapshot, the returned dictionary will be shown conditional on the memory classical register state.
 
 **Implementation details:** In the simulator the computation of a Pauli expectation value is implemented by making a copy of the current system state, then applying each Pauli operator as a single-qubit gate and then computing the inner product of this state with the original state. This is done for each component and they are accumulated with their respective coefficients. Simple caching is done so that if multiple Pauli snapshots are placed after each other, each Pauli operator component expectation value $\langle P_j \rangle$ will only be computed once.
 
 
-**Example:** Let us consider the sample example from the [probabilities snapshot](#probabilities-snapshot), with the snapshots of the Pauli observable `XX` before and after the measurement. The input Qobj JSON is given by:
+####  Example
+
+
+Let us consider the sample example from the [probabilities snapshot](#probabilities-snapshot), with the snapshots of the two Pauli observables `ZZ` and `ZI+IZ` before and after the measurement. The input Qobj JSON is given by:
 
 ```json
 {
-    "id": "bell_snapshot_pauli",
+    "id": "pauli_observable_snapshot_example",
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1000},
+            "config": {"shots": 1},
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "label": "<XX>_pre_measure", "params": {
-                    "type": "pauli_observable",
-                    "components": [{"coeff": [1, 0], "qubits": [1, 0], "op": "XX"}]}},
-                {"name": "measure", "qubits": [0], "memory": [0]},
-                {"name": "snapshot", "label": "<XX>_post_measure", "params": {
-                    "type": "pauli_observable",
-                    "components": [{"coeff": [1, 0], "qubits": [1, 0], "op": "XX"}]}}
+                {"name": "snapshot", "type": "pauli_observable",
+                 "label": "<ZZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZZ"}]},
+                {"name": "snapshot", "type": "pauli_observable",
+                 "label": "<ZI+IZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZI"},
+                            {"coeff": 1, "qubits": [1, 0], "op": "IZ"}]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
+                {"name": "snapshot", "type": "pauli_observable",
+                    "label": "<ZZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZZ"}]},
+                   {"name": "snapshot", "type": "pauli_observable",
+                    "label": "<ZI+IZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZI"},
+                               {"coeff": 1, "qubits": [1, 0], "op": "IZ"}]}
             ]
         }
     ]
@@ -274,31 +302,43 @@ The result JSON will look like
 
 ```json
 {
-    "id": "bell_snapshot_pauli",
-    "metadata": { },
+    "header": {
+        "num_circuit_threads": 1,
+        "num_openmp_threads": 4,
+        "time_taken": 0.000266124
+    },
+    "id": "pauli_observable_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x0": 482,
-                "0x1": 518
+                "0x3": 1
             },
             "snapshots": {
                 "observables": {
-                    "<XX>_post_measure": [{
-                        "memory": "0x0",
-                        "value": [0.0, 0.0]
-                    }, {
-                        "memory": "0x1",
-                        "value": [0.0, 0.0]
+                    "<ZI+IZ>post_measure": [{
+                        "memory": "0x3",
+                        "value": [-2.0, 0.0]
                     }],
-                    "<XX>_pre_measure": [{
+                    "<ZI+IZ>pre_measure": [{
+                        "memory": "0x0",
+                        "value": [3.9934692350854785e-16, 0.0]
+                    }],
+                    "<ZZ>post_measure": [{
+                        "memory": "0x3",
+                        "value": [1.0, 0.0]
+                    }],
+                    "<ZZ>pre_measure": [{
                         "memory": "0x0",
                         "value": [1.0, 0.0]
                     }]
                 }
             }
         },
-        "metadata": { },
+        "header": {
+            "seed": 210795694,
+            "shots": 1,
+            "time_taken": 0.00015007
+        },
         "status": "DONE",
         "success": true
     }],
@@ -306,6 +346,8 @@ The result JSON will look like
     "success": true
 }
 ```
+
+
 
 [Back to top](#table-of-contents)
 
@@ -315,18 +357,15 @@ The result JSON will look like
 
 If Pauli operators are insufficient, general matrix observables can be defined for subsets of qubits in the system. Matrices my be represented by subsystem components in a tensor product structure: Eg for a matrix $M = A\otimes B$, the matrices $A$, and $B$ may be passed in separately, along with which qubits the sub-matrices act on. The general JSON schema for this operation is:
 
-
-```json
+```
 {
     "name": "snapshot",
+    "type": "matrix_observable",
     "label": string,
-    "params": {
-        "type": "matrix_observable",
-        "components": [
-            {"coeff": complex, "qubits": list[list[int]], "op": list[complex matrix]},
-            ...
-        ]
-    }
+    "params": [
+        {"coeff": complex, "qubits": list[list[int]], "op": list[complex matrix]},
+         ...
+    ]
 }
 ```
 
@@ -341,31 +380,47 @@ For the sub-matrix components, they may be specified as either:
 
 **Implementation details:** In the simulator the computation of a Matrix expectation value is implemented by making a copy of the current system state, then applying each sub-matrix operator as an m-qubit gate on the sub-qubits for that component, and then computing the inner product of this state with the original state. This is done for each component and they are accumulated with their respective coefficients.
 
-**Example:** Let us consider the sample example from the [Pauli observable snapshot](#pauli-observable-snapshot), with the snapshots of the Pauli observable `XX` before and after the measurement. The input Qobj JSON is given by:
+####  Example
+
+Let us consider the sample example from the [Pauli observable snapshot](#pauli-observable-snapshot), with the snapshots of the Pauli observables `ZZ` and `ZI+IZ` before and after the measurement. The input Qobj JSON is given by:
 
 ```json
 {
-    "id": "bell_snapshot_matrix",
+    "id": "matrix_observable_snapshot_example",
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1000},
+            "config": {"shots": 1},
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "label": "<XX>_pre_measure", "params": {
-                    "type": "matrix_observable",
-                    "components": [{"coeff": [1, 0], "qubits": [[1], [0]],
-                                    "ops": [[[[0, 0], [1, 0]], [[1, 0], [0, 0]]],
-                                           [[[0, 0], [1, 0]], [[1, 0], [0, 0]]]]}
-                                   ]}},
-                {"name": "measure", "qubits": [0], "memory": [0]},
-                {"name": "snapshot", "label": "<XX>_post_measure", "params": {
-                    "type": "matrix_observable",
-                    "components": [{"coeff": [1, 0], "qubits": [[1], [0]],
-                                    "ops": [[[[0, 0], [1, 0]], [[1, 0], [0, 0]]],
-                                           [[[0, 0], [1, 0]], [[1, 0], [0, 0]]]]}
-                                   ]}}
+                {"name": "snapshot", "type": "matrix_observable",
+                 "label": "<ZZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [[1], [0]], "ops": [
+                                [[[1, 0], [0, 0]], [[0, 0], [0, -1]]],
+                                [[[1, 0], [0, 0]], [[1, 0], [0, -1]]]
+                            ]}]},
+                {"name": "snapshot", "type": "matrix_observable",
+                 "label": "<ZI+IZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [[1]], "ops": [
+                            [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]},
+                            {"coeff": 1, "qubits": [[0]], "ops": [
+                                [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]}
+                            ]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
+                {"name": "snapshot", "type": "matrix_observable",
+                    "label": "<ZZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [[1], [0]], "ops": [
+                        [[[1, 0], [0, 0]], [[0, 0], [0, -1]]],
+                        [[[1, 0], [0, 0]], [[1, 0], [0, -1]]]
+                    ]}]},
+                   {"name": "snapshot", "type": "matrix_observable",
+                    "label": "<ZI+IZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [[1]], "ops": [
+                        [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]},
+                        {"coeff": 1, "qubits": [[0]], "ops": [
+                            [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]}
+                        ]}
             ]
         }
     ]
@@ -376,31 +431,43 @@ The result JSON will look like
 
 ```json
 {
-    "id": "bell_snapshot_matrix",
-    "metadata": { },
+    "header": {
+        "num_circuit_threads": 1,
+        "num_openmp_threads": 4,
+        "time_taken": 0.000247693
+    },
+    "id": "matrix_observable_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x0": 486,
-                "0x1": 514
+                "0x0": 1
             },
             "snapshots": {
                 "observables": {
-                    "<XX>_post_measure": [{
+                    "<ZI+IZ>post_measure": [{
                         "memory": "0x0",
-                        "value": [0.0, 0.0]
-                    }, {
-                        "memory": "0x1",
-                        "value": [0.0, 0.0]
+                        "value": [2.0, 0.0]
                     }],
-                    "<XX>_pre_measure": [{
+                    "<ZI+IZ>pre_measure": [{
+                        "memory": "0x0",
+                        "value": [1.0000000000000002, -0.9999999999999998]
+                    }],
+                    "<ZZ>post_measure": [{
                         "memory": "0x0",
                         "value": [1.0, 0.0]
+                    }],
+                    "<ZZ>pre_measure": [{
+                        "memory": "0x0",
+                        "value": [1.9967346175427393e-16, 0.0]
                     }]
                 }
             }
         },
-        "metadata": { },
+        "header": {
+            "seed": 73959762,
+            "shots": 1,
+            "time_taken": 0.00011668500000000001
+        },
         "status": "DONE",
         "success": true
     }],
@@ -410,3 +477,110 @@ The result JSON will look like
 ```
 
 [Back to top](#table-of-contents)
+
+## JSON Schemas
+
+#### Snapshot base definition
+
+```json
+{"snapshot": {
+    "type": "object",
+    "properties": {
+    "name": {
+        "type": "string",
+        "enum": ["snapshot"]
+    },
+    "type": {
+        "type": "string", 
+        "enum": ["state", "probabilities", "pauli_observable", "matrix_observable"]
+    },
+    "label": {"type": "string"}
+    },
+    "required": ["name", "type", "label"]
+}}
+```
+
+#### State snapshot definition
+
+```json
+{"snapshot_state": {
+    "allOf": [
+        {"$ref": "#/snapshot"},
+        {"properties": {"type": {"type": "string", "enum": ["state"]}}}
+]}}
+```
+
+#### Probabilities snapshot definition
+
+```json
+{"snapshot_probs": {
+    "allOf": [
+        {"$ref": "#/snapshot"},
+        {"properties": {
+            "type": {"type": "string", "enum": ["probabilities"]}},
+            "qubits": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 1,
+                "items": {"type": "integer"}
+}}]}}
+```
+
+#### Pauli observable snapshot definition
+
+```json
+{"snapshot_pauli": {
+    "allOf": [
+        {"$ref": "#/snapshot"},
+        {"properties": {
+            "type": {"type": "string", "enum": ["pauli_observable"]}},
+            "params": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object", 
+                    "properties": {
+                        "coeffs": {
+                            "oneOf": [{"type": "number"}, {"$ref": "#/complex"}]
+                        },
+                        "qubits": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "minItems": 1,
+                            "items": {"type": "integer"}
+                        },
+                        "op": {"type": "string", "pattern": "[IXYZ]+"}
+}}}}]}}
+```
+
+#### Matrix observable snapshot definition
+
+```json
+{"snapshot_pauli": {
+    "allOf": [
+        {"$ref": "#/snapshot"},
+        {"properties": {
+            "type": {"type": "string", "enum": ["matrix_observable"]}},
+            "params": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object", 
+                    "properties": {
+                        "coeffs": {
+                            "oneOf": [{"type": "number"}, {"$ref": "#/complex"}]
+                        },
+                        "qubits": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "minItems": 1,
+                            "items": {"type": "array", 
+                                      "uniqueItems": true,
+                                      "minItems": 1,
+                                      "items": "integer"}
+                        },
+                        "ops": {"type": "array",
+                                "minItems": 1,
+                                "items": {"$ref": "#/complex_matrix"}}
+}}}}]}}
+```

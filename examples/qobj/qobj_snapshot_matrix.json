@@ -1,0 +1,40 @@
+{
+    "id": "matrix_observable_snapshot_example",
+    "type": "QASM",
+    "experiments": [
+        {   
+            "config": {"shots": 1},
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "cx", "qubits": [0, 1]},
+                {"name": "snapshot", "type": "matrix_observable",
+                 "label": "<ZZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [[1], [0]], "ops": [
+                                [[[1, 0], [0, 0]], [[0, 0], [0, -1]]],
+                                [[[1, 0], [0, 0]], [[1, 0], [0, -1]]]
+                            ]}]},
+                {"name": "snapshot", "type": "matrix_observable",
+                 "label": "<ZI+IZ>pre_measure",
+                 "params": [{"coeff": 1, "qubits": [[1]], "ops": [
+                            [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]},
+                            {"coeff": 1, "qubits": [[0]], "ops": [
+                                [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]}
+                            ]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
+                {"name": "snapshot", "type": "matrix_observable",
+                    "label": "<ZZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [[1], [0]], "ops": [
+                        [[[1, 0], [0, 0]], [[0, 0], [0, -1]]],
+                        [[[1, 0], [0, 0]], [[1, 0], [0, -1]]]
+                    ]}]},
+                   {"name": "snapshot", "type": "matrix_observable",
+                    "label": "<ZI+IZ>post_measure",
+                    "params": [{"coeff": 1, "qubits": [[1]], "ops": [
+                        [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]},
+                        {"coeff": 1, "qubits": [[0]], "ops": [
+                            [[[1, 0], [0, 0]], [[0, 0], [0, -1]]]]}
+                        ]}
+            ]
+        }
+    ]
+}

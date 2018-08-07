@@ -308,19 +308,20 @@ Op json_to_op_kraus(const json_t &js) {
 //------------------------------------------------------------------------------
 
 Op json_to_op_snapshot(const json_t &js) {
-  if (JSON::check_key("params", js)) {
-    std::string type;
-    JSON::get_value(type, "type", js["params"]);
-    if (type == "state")
-      return json_to_op_snapshot_state(js);
-    if (type == "probabilities")
-      return json_to_op_snapshot_probs(js);
-    if (type == "pauli_observable")
-      return json_to_op_snapshot_pauli(js);
-    if (type == "matrix_observable")
-      return json_to_op_snapshot_matrix(js);
-  }
-  throw std::invalid_argument("Invalid snapshot instruction: \"params\" field incomplete.");
+  std::string type;
+  JSON::get_value(type, "type", js);
+  if (type == "state")
+    return json_to_op_snapshot_state(js);
+  if (type == "probabilities")
+    return json_to_op_snapshot_probs(js);
+  if (type == "pauli_observable")
+    return json_to_op_snapshot_pauli(js);
+  if (type == "matrix_observable")
+    return json_to_op_snapshot_matrix(js);
+  // Error handling
+  std::stringstream msg;
+  msg << "Invalid snapshot type: \"" << type << "\".";
+  throw std::invalid_argument(msg.str());
 }
 
 
@@ -338,7 +339,7 @@ Op json_to_op_snapshot_probs(const json_t &js) {
   op.name = "snapshot_probs";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
-  JSON::get_value(op.qubits, "qubits", js["params"]);
+  JSON::get_value(op.qubits, "qubits", js);
   // Validation
   check_qubits(op.qubits);
   return op;
@@ -357,8 +358,8 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   std::sort(op.qubits.begin(), op.qubits.end(), std::greater<uint_t>());
 
   // Get components
-  if (JSON::check_key("components", js["params"])) {
-    for (const auto &comp : js["params"]["components"]) {
+  if (JSON::check_key("params", js)) {
+    for (const auto &comp : js["params"]) {
       complex_t coeff;
       JSON::get_value(coeff, "coeff", comp);
       if (std::abs(coeff) > threshold) { // if coeff is too small ignore component
@@ -383,7 +384,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
       } // end if > threshold
     } // end component loop
   } else {
-    throw std::invalid_argument("Invalid Pauli snapshot  (\"components\" field missing).");
+    throw std::invalid_argument("Invalid Pauli snapshot  (\"params\" field missing).");
   }
   return op;
 }
@@ -396,8 +397,8 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
   JSON::get_value(op.string_params[0], "label", js);
 
   // Get components
-  if (JSON::check_key("components", js["params"])) {
-    for (const auto &comp : js["params"]["components"]) {
+  if (JSON::check_key("params", js)) {
+    for (const auto &comp : js["params"]) {
       
       Op::matrix_component_t param;
       auto &qubits = std::get<1>(param);
@@ -417,13 +418,13 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
         unique.insert(reg.begin(), reg.end());
       }
       if (unique.size() != qubits.size() || num != qubits.size()) {
-        throw std::invalid_argument("Invalid matrix snapshot (component qubit specification invalid.");
+        throw std::invalid_argument("Invalid matrix snapshot (param qubit specification invalid.");
       }
       // make tuple and add to components
       op.params_mat_obs.push_back(param);
     } // end component loop
   } else {
-    throw std::invalid_argument("Invalid matrix snapshot  (\"components\" field missing).");
+    throw std::invalid_argument("Invalid matrix snapshot  (\"params\" field missing).");
   }
   return op;
 }
