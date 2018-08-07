@@ -3,7 +3,7 @@
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1},
+            "config": {"shots": 1000},
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},

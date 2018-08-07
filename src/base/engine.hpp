@@ -535,10 +535,8 @@ void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operat
   
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
   ProbsKey key = std::make_pair(op.string_params[0], memory_hex);
-  // sort qubits so measurement probs are returned in correct order
-  reg_t qubits(op.qubits.rbegin(), op.qubits.rend()); // [q0 < q1 < ...];
-  auto probs = Utils::vec2ket(state->measure_probs(qubits),
-                              snapshot_chop_threshold_, 2); // get probabilities
+  auto probs = Utils::vec2ket(state->measure_probs(op.qubits),
+                              snapshot_chop_threshold_, 16); // get probs as hexadecimal
   snapshot_probs_.add_data(key, probs);
 }
 

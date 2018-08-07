@@ -161,7 +161,7 @@ The probabilities snapshot instruction schema is given by
 }
 ```
 
-The list of qubits may contain any subset of qubits in the system. For example in a  2-qubit system we could have `"qubits": [0]`, `"qubits": [1]`, `"qubits": [1, 0]`. Note that the order of the qubits does not matter. It will be automatically sorted into descending order. The output will be a dictionary of the non-zero measurement probabilities indexed by the qubit measurement outcome. For example for the case of `"qubits": [1, 0]` the returned dictionary will be of the form: `{ "00": P(q1=0, q0=0), "01": P(q1=0, q0=1), "10": P(q1=1, q0=0), "11": P(q1=1, q0=1) }`.
+The list of qubits may contain any subset of qubits in the system. For example in a  2-qubit system we could have `"qubits": [0]`, `"qubits": [1]`, `"qubits": [0, 1]`. Note that the order of the qubits changes the measurement outcome as if they were measured to incrementing classical bits in the same order. The output will be a dictionary of the non-zero measurement probabilities indexed by the qubit measurement outcome. For example for the case of `"qubits": [0, 1]` the returned dictionary will be of the form: `{ "0x0": P(q1=0, q0=0), "0x1": P(q1=0, q0=1), "0x2": P(q1=1, q0=0), "0x3": P(q1=1, q0=1) }`.
 
 If the circuit contains classical registers and measurements before the snapshot, the returned dictionary will be shown conditional on the memory classical register state.
 
@@ -199,36 +199,42 @@ The result JSON will look like
     "header": {
         "num_circuit_threads": 1,
         "num_openmp_threads": 4,
-        "time_taken": 0.000217068
+        "time_taken": 0.008081267000000001
     },
     "id": "probabilities_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x3": 1
+                "0x0": 508,
+                "0x3": 492
             },
             "snapshots": {
                 "probabilities": {
                     "post_measure": [{
+                        "memory": "0x0",
+                        "values": {
+                            "0x0": 1.0
+                        }
+                    }, {
                         "memory": "0x3",
                         "values": {
-                            "11": 1.0
+                            "0x3": 1.0
                         }
                     }],
                     "pre_measure": [{
                         "memory": "0x0",
                         "values": {
-                            "00": 0.5000000000000001,
-                            "11": 0.4999999999999999
+                            "0x0": 0.5000000000000001,
+                            "0x3": 0.49999999999999994
                         }
                     }]
                 }
             }
         },
         "header": {
-            "seed": 2869318922,
-            "shots": 1,
-            "time_taken": 0.000136079
+            "seed": 3399576275,
+            "shots": 1000,
+            "time_taken": 0.007999758000000001
         },
         "status": "DONE",
         "success": true
@@ -305,27 +311,34 @@ The result JSON will look like
     "header": {
         "num_circuit_threads": 1,
         "num_openmp_threads": 4,
-        "time_taken": 0.000266124
+        "time_taken": 0.016819449
     },
     "id": "pauli_observable_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x3": 1
+                "0x0": 494,
+                "0x3": 506
             },
             "snapshots": {
                 "observables": {
                     "<ZI+IZ>post_measure": [{
+                        "memory": "0x0",
+                        "value": [2.0, 0.0]
+                    }, {
                         "memory": "0x3",
-                        "value": [-2.0, 0.0]
+                        "value": [-1.9999999999999998, 0.0]
                     }],
                     "<ZI+IZ>pre_measure": [{
                         "memory": "0x0",
-                        "value": [3.9934692350854785e-16, 0.0]
+                        "value": [3.993469235085526e-16, 0.0]
                     }],
                     "<ZZ>post_measure": [{
-                        "memory": "0x3",
+                        "memory": "0x0",
                         "value": [1.0, 0.0]
+                    }, {
+                        "memory": "0x3",
+                        "value": [0.9999999999999999, 0.0]
                     }],
                     "<ZZ>pre_measure": [{
                         "memory": "0x0",
@@ -335,9 +348,9 @@ The result JSON will look like
             }
         },
         "header": {
-            "seed": 210795694,
-            "shots": 1,
-            "time_taken": 0.00015007
+            "seed": 1798320531,
+            "shots": 1000,
+            "time_taken": 0.016716694
         },
         "status": "DONE",
         "success": true
@@ -434,39 +447,46 @@ The result JSON will look like
     "header": {
         "num_circuit_threads": 1,
         "num_openmp_threads": 4,
-        "time_taken": 0.000247693
+        "time_taken": 0.013922274
     },
     "id": "matrix_observable_snapshot_example",
     "result": [{
         "data": {
             "counts": {
-                "0x0": 1
+                "0x0": 506,
+                "0x3": 494
             },
             "snapshots": {
                 "observables": {
                     "<ZI+IZ>post_measure": [{
                         "memory": "0x0",
-                        "value": [2.0, 0.0]
+                        "value": [1.9999999999999998, 0.0]
+                    }, {
+                        "memory": "0x3",
+                        "value": [0.0, -2.0]
                     }],
                     "<ZI+IZ>pre_measure": [{
                         "memory": "0x0",
-                        "value": [1.0000000000000002, -0.9999999999999998]
+                        "value": [1.0000000000000002, -0.9999999999999999]
                     }],
                     "<ZZ>post_measure": [{
                         "memory": "0x0",
-                        "value": [1.0, 0.0]
+                        "value": [0.9999999999999999, 0.0]
+                    }, {
+                        "memory": "0x3",
+                        "value": [-1.0, 0.0]
                     }],
                     "<ZZ>pre_measure": [{
                         "memory": "0x0",
-                        "value": [1.9967346175427393e-16, 0.0]
+                        "value": [1.996734617542763e-16, 0.0]
                     }]
                 }
             }
         },
         "header": {
-            "seed": 73959762,
-            "shots": 1,
-            "time_taken": 0.00011668500000000001
+            "seed": 1670553245,
+            "shots": 1000,
+            "time_taken": 0.013792974000000001
         },
         "status": "DONE",
         "success": true

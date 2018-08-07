@@ -120,9 +120,9 @@ void combine(std::vector<T> &lhs, const std::vector<T> &rhs);
 
 
 // Convert a dense vector into sparse ket form.
-// epsilon determins the threshold for which small values will be removed from the output
-// The base of the ket (2 to 10) specifies the subsystem dimension and the base
-// of the dit-string labels.
+// epsilon determins the threshold for which small values will be removed from
+// the output. The base of the ket (2-10 for qudits, or 16 for hexadecimal)
+// specifies the subsystem dimension and the base of the dit-string labels.
 template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
 
@@ -523,6 +523,12 @@ void combine(std::vector<T> &lhs, const std::vector<T> &rhs) {
 
 template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base) {
+
+  bool hex_output = false;
+  if (base == 16) {
+    hex_output = true;
+    base = 2; // If hexadecimal strings we convert to bin first
+  }
   // check vector length
   size_t dim = vec.size();
   double n = std::log(dim) / std::log(base);
@@ -534,9 +540,11 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
   }
   std::map<std::string, T> ketmap;
   for (size_t k = 0; k < dim; ++k) {
-    T tmp = chop(vec[k], epsilon);
-    if (std::abs(tmp) > epsilon) { 
-      ketmap.insert({Utils::int2string(k, base, nint), tmp});
+    T val = chop(vec[k], epsilon);
+    if (std::abs(val) > epsilon) {
+      std::string key = (hex_output) ? Utils::int2hex(k)
+                                     : Utils::int2string(k, base, nint);
+      ketmap.insert({key, val});
     }
   }
   return ketmap;
