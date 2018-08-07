@@ -68,7 +68,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Allowed operations are:
-  // {"barrier", "measure", "reset", "mat", "dmat", "kraus",
+  // {"snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
+  //  "barrier", "measure", "reset", "mat", "dmat", "kraus",
   //  "u0", "u1", "u2", "u3", "cx", "cz",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   virtual std::set<std::string> allowed_ops() const override;
@@ -93,22 +94,30 @@ public:
   // TODO: Check optimal default value for a desktop i7 CPU
   virtual void load_config(const json_t &config) override;
 
-  // Allows measurements
-  bool has_measure = true;
-
+  // Measure qubits and return a list of outcomes [q0, q1, ...]
+  // If a state subclass supports this function it then "measure" 
+  // should be contained in the set returned by the 'allowed_ops'
+  // method.
   virtual reg_t apply_measure(const reg_t& qubits) override;
 
+  // Return vector of measure probabilities for specified qubits
+  // If a state subclass supports this function it then "measure" 
+  // should be contained in the set returned by the 'allowed_ops'
+  // method.
   virtual rvector_t measure_probs(const reg_t &qubits) const override;
 
-  // Supports Pauli observables
-  bool has_pauli_observables = true;
+  // Sample n-measurement outcomes without applying the measure operation
+  // to the system state. This function converts the statevector into a
+  // probability vector by squareing each element and hence no other
+  // operations should be applied without re-initializing first
+  virtual 
+  std::vector<reg_t> sample_measure_destructive(const reg_t& qubits,
+                                                uint_t shots = 1) override;
 
   // Return the complex expectation value for an observable operator
   virtual double pauli_observable_value(const reg_t& qubits, 
                                         const std::string &pauli) const override;
 
-  // Supports Matrix observables
-  bool has_matrix_observables = true;
   // Return the complex expectation value for an observable operator
   virtual complex_t matrix_observable_value(const Operations::Op &op) const override;
 
@@ -152,13 +161,14 @@ protected:
   void apply_reset(const reg_t &qubits, const uint_t reset_state = 0);
 
   // Sample the measurement outcome for qubits
-  // return the outcome, and its corresponding probabilities
+  // return a pair (m, p) of the outcome m, and its corresponding
+  // probability p.
   // Outcome is given as an int: Eg for two-qubits {q0, q1} we have
   // 0 -> |q1 = 0, q0 = 0> state
   // 1 -> |q1 = 0, q0 = 1> state
   // 2 -> |q1 = 1, q0 = 0> state
   // 3 -> |q1 = 1, q0 = 1> state
-  std::pair<uint_t, double> sample_measure_outcome(const reg_t &qubits);
+  std::pair<uint_t, double> sample_measure_with_prob(const reg_t &qubits);
 
 
   void measure_reset_update(const std::vector<uint_t> &qubits,
@@ -267,7 +277,7 @@ void State::initialize(uint_t num_qubits) {
 
 reg_t State::apply_measure(const reg_t &qubits) {
   // Actual measurement outcome
-  const auto meas = sample_measure_outcome(qubits);
+  const auto meas = sample_measure_with_prob(qubits);
   // Implement measurement update
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   return Utils::int2reg(meas.first, 2, qubits.size());
@@ -281,6 +291,34 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
     return {{p0, 1. - p0}};
   } else
     return data_.probabilities(qubits);
+}
+
+
+std::vector<reg_t> 
+State::sample_measure_destructive(const reg_t& qubits,
+                                  uint_t shots){
+  // TODO, do an inplace partial trace here
+  if (qubits.size() != data_.qubits()) {
+    return BaseState::sample_measure(qubits, shots);
+  }
+  // convert state vector to probability vector
+  for (uint_t j=0; j <  data_.size(); j++) {
+    data_[j] = std::real( data_[j] * std::conj( data_[j]));
+  }
+  // Sample measurement outcomes
+  std::vector<reg_t> samples;
+  samples.reserve(shots);
+  while (shots-- > 0) {
+    double p = 0.;
+    double r = rng_.rand(0, 1);
+    uint_t val;
+    for (val = 0; val < data_.size(); val++) {
+      if (r < (p += std::real(data_[val])))
+        break;
+    }
+    samples.push_back(Utils::int2reg(val, 2, qubits.size()));
+  }
+  return samples;
 }
 
 
@@ -476,31 +514,17 @@ cvector_t State::rzz_diagonal_matrix(double lambda) {
 void State::apply_reset(const reg_t &qubits, const uint_t reset_state) {
 
   // Simulate unobserved measurement
-  const auto meas = sample_measure_outcome(qubits);
+  const auto meas = sample_measure_with_prob(qubits);
   // Apply update tp reset state
   measure_reset_update(qubits, reset_state, meas.first, meas.second);
 }
 
 
-std::pair<uint_t, double> State::sample_measure_outcome(const reg_t &qubits) {
-
-  // Sample outcome of a multi-qubit joint Z-measurement
-  // Returns a pair [m, p] of outcome (m) and corresponding probability (p)
-
-  if (qubits.size() == 1) {
-    // Probability of P0 outcome
-    double p0 = data_.probability(qubits[0], 0);
-    rvector_t probs = {p0, 1. - p0};
-    // randomly pick outcome
-    uint_t outcome = rng_.rand_int(probs);
-    return std::make_pair(outcome, probs[outcome]);
-  } else {
-    // Calculate measurement outcome probabilities
-    rvector_t probs = data_.probabilities(qubits);
-    // Randomly pick outcome and return pair
-    const uint_t outcome = rng_.rand_int(probs);
-    return std::make_pair(outcome, probs[outcome]);
-  }
+std::pair<uint_t, double> State::sample_measure_with_prob(const reg_t &qubits) {
+  rvector_t probs = measure_probs(qubits);
+  // Randomly pick outcome and return pair
+  uint_t outcome = rng_.rand_int(probs);
+  return std::make_pair(outcome, probs[outcome]);
 }
 
 
@@ -509,7 +533,7 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const uint_t meas_state,
                                  const double meas_prob) {
   // Update a state vector based on an outcome pair [m, p] from 
-  // sample_measure_outcome function, and a desired post-measurement final_state
+  // sample_measure_with_prob function, and a desired post-measurement final_state
   
   // Single-qubit case
   if (qubits.size() == 1) {

@@ -69,8 +69,12 @@ public:
   inline virtual json_t execute(const json_t &qobj);
 
   // Execute a single circuit
-  virtual json_t execute_circuit(const Circuit &circ, 
+  virtual json_t execute_circuit(Circuit &circ, 
                                  int max_shot_threads);
+
+  // Check if measurement sampling can be performed for a circuit
+  // and set circuit flag if it is compatible                               
+  void check_measure_sampling_opt(Circuit &circ) const;
 
 protected:
 
@@ -144,6 +148,10 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
   bool all_success = true;
   try {
     ret["id"] = qobj.id;
+    // Check for header in qobj
+    if (JSON::check_key("header", qobj_js) && qobj_js["header"].is_object()) {
+      ret["header"] = qobj_js["header"];
+    }
     int num_circuits = qobj.circuits.size();
     
     // Parallelization preference circuits > shots > backend
@@ -174,11 +182,11 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
     // Add metadata (change to header?)
     #ifdef _OPENMP
     if (omp_ncpus_ > 1)
-      ret["metadata"]["num_openmp_threads"] = omp_ncpus_;
+      ret["header"]["num_openmp_threads"] = omp_ncpus_;
     #endif
-    ret["metadata"]["num_circuit_threads"] = circ_threads;
+    ret["header"]["num_circuit_threads"] = circ_threads;
     auto timer_stop = myclock_t::now(); // stop timer
-    ret["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+    ret["header"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
   } 
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
@@ -190,14 +198,15 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
 
 
 template < class Engine_t, class State_t>
-json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
+json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
                                                       int max_shot_threads) {
   
   // Initialize Return
   auto timer_start = myclock_t::now(); // state circuit timer
   json_t ret;
   try {
-    
+    // Check measurement sampling optimization and set flag
+    check_measure_sampling_opt(circ);
 
     // Initialize new copy of reference engine and state
     Engine_t engine = engine_;
@@ -257,9 +266,9 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
 
     // Add multi-threading information to output
     if (shot_threads > 1)
-      ret["metadata"]["num_shot_threads"] = shot_threads;
+      ret["header"]["num_shot_threads"] = shot_threads;
     if (state_threads > 1)
-      ret["metadata"]["num_state_threads"] = state_threads;
+      ret["header"]["num_state_threads"] = state_threads;
   #else
     // Non-parallel execution
     engine.execute(&state, circ, circ.shots);
@@ -267,17 +276,19 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
     
     // Add output data and metadata
     ret["data"] = engine.json();
-    // Add metadata
-    ret["metadata"]["shots"] = circ.shots;
-    ret["metadata"]["seed"] = circ.seed;
+    
     // Report success
     ret["success"] = true;
     ret["status"] = std::string("DONE");
 
+    // Pass through circuit header and add metadata
+    ret["header"] = circ.header;
+    ret["header"]["shots"] = circ.shots;
+    ret["header"]["seed"] = circ.seed;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    ret["metadata"]["time_taken"] = time_taken;
+    ret["header"]["time_taken"] = time_taken;
   } 
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
@@ -285,6 +296,36 @@ json_t Controller<Engine_t, State_t>::execute_circuit(const Circuit &circ,
     ret["status"] = std::string("ERROR: ") + e.what();
   }
   return ret;
+}
+
+
+template < class Engine_t, class State_t>
+void Controller<Engine_t, State_t>::check_measure_sampling_opt(Circuit &circ) const {
+  // Find first instance of a measurement and check there
+  // are no reset operations before the measurement
+  auto start = circ.ops.begin();
+  while (start != circ.ops.end()) {
+    const auto name = start->name;
+    if (name == "reset" || name == "kraus" || name == "roerr") {
+      circ.measure_sampling_flag = false;
+      return;
+    }
+    if (name == "measure")
+      break;
+    ++start;
+  }
+  // Check all remaining operations are measurements
+  while (start != circ.ops.end()) {
+    if (start->name != "measure") {
+      circ.measure_sampling_flag = false;
+      return;
+    }
+    ++start;
+  }
+  // If we made it this far we can apply the optimization
+  circ.measure_sampling_flag = true;
+  circ.header["memory_sampling_opt"] = true;
+  // Now we delete the measure operations:?
 }
 
 //------------------------------------------------------------------------------

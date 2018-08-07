@@ -43,6 +43,9 @@ public:
   uint_t shots = 1;
   uint_t seed;
 
+  // Measurement sampling
+  bool measure_sampling_flag = false;
+
   // Optional data members from QOBJ
   json_t header;
   json_t config;

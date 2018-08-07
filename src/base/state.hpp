@@ -33,7 +33,7 @@ template <class state_t>
 class State {
 
 public:
-
+  using ignore_argument = void;
   State() = default;
   virtual ~State() = default;
   
@@ -73,20 +73,24 @@ public:
   //----------------------------------------------------------------
   
   // Load any settings for the State class from a config JSON
-  inline virtual void load_config(const json_t &config) {(void)config;};
+  inline virtual void load_config(const json_t &config) {
+    (ignore_argument)config;
+  };
 
   //----------------------------------------------------------------
   // Optional methods: Measurement 
   //----------------------------------------------------------------
-  
-  bool has_measure = false;
 
+  // Note that if measurement is supported by the derrived class
+  // it should contain a "measure" and "snapshot_probs" in the
+  // return of 'allowed_ops'.
+  
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function it then "measure" 
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   inline virtual reg_t apply_measure(const reg_t& qubits) {
-    return reg_t(qubits.size(), 0);
+    return reg_t(qubits.size(), 0); // default implementation dummy return
   };
 
   // Return vector of measure probabilities for specified qubits
@@ -95,6 +99,29 @@ public:
   // method.
   inline virtual rvector_t measure_probs(const reg_t &qubits) const {
     return rvector_t(1ULL << qubits.size(), 0);
+  };
+
+  // Sample n-measurement outcomes without applying the measure operation
+  // to the system state. This leaves the system unchanged. The return is
+  // a vector containing n outcomes, where each outcome is the same as
+  // one that would be returned from the 'apply_measure' operation
+  inline virtual std::vector<reg_t>
+  sample_measure(const reg_t& qubits, uint_t shots = 1) {
+    const rvector_t probs = measure_probs(qubits);
+    std::vector<reg_t> samples;
+    samples.reserve(shots);
+    while (shots-- > 0) { // loop over shots
+      samples.push_back(Utils::int2reg(rng_.rand_int(probs), 2, qubits.size()));
+    }
+    return samples;
+  };
+
+  // This function has the same return as 'sample_measure'
+  // however there is no gaurentee it will leave the state of the
+  // system unchanged. Typically it should only be used as a final operation.
+  inline virtual std::vector<reg_t>
+  sample_measure_destructive(const reg_t& qubits, uint_t shots = 1) {
+    return sample_measure(qubits, shots);
   };
 
   //----------------------------------------------------------------
@@ -107,16 +134,20 @@ public:
   // 'allowed_ops' method.
   inline virtual
   double pauli_observable_value(const reg_t& qubits,
-                                   const std::string &pauli) const {
-    (void)qubits; (void)pauli; return 0.;
+                                const std::string &pauli) const {
+    (ignore_argument)qubits;
+    (ignore_argument)pauli;
+    return 0.;
   };
 
   // Return the complex expectation value for an observable operator.
   // If a state subclass supports this function it then 
   // "snapshot_matrix" should be contained in the set returned by the
   // 'allowed_ops' method.
-  inline virtual complex_t matrix_observable_value(const Operations::Op &op) const {
-    (void)op; return complex_t();
+  inline virtual 
+  complex_t matrix_observable_value(const Operations::Op &op) const {
+    (ignore_argument)op;
+    return complex_t();
   };
 
   //----------------------------------------------------------------
@@ -141,20 +172,6 @@ public:
   // Set the RngEngine seed to a fixed value
   // Otherwise it is initialized with a random value
   inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed); };
-
-  // Return vector of measure probabilities for specified qubits
-  // the probabilities are returned for the qubits ordered with the least 
-  // significant bit corresponding to the smallest qubit nubmer
-  inline virtual rvector_t
-  measure_probs(const std::set<uint_t, std::greater<uint_t>> &qubits) const {
-    // reverse iterate for set ordered largest to smallest
-    return measure_probs(reg_t(qubits.rbegin(), qubits.rend()));
-  };
-  inline virtual rvector_t
-  measure_probs(const std::set<uint_t> &qubits) const {
-    // forwards iterate for set ordered smallest to largest
-    return measure_probs(reg_t(qubits.begin(), qubits.end()));
-  };
 
 protected:
   // Allowed ops

@@ -52,6 +52,14 @@ public:
                        const Circuit &circ,
                        uint_t shots);
   
+  // This method performs the same function as 'execute', except
+  // that it only simulates a single shot and then generates samples
+  // of outcomes at the end. It is only valid if a measure operations
+  // in a circuit are at the end, and there are no reset operations.
+  void execute_with_sampling(Base::State<state_t> *state,
+                             const Circuit &circ,
+                             uint_t shots);
+
   // Empty engine of stored data
   virtual void clear();
 
@@ -191,12 +199,18 @@ template <class state_t>
 void Engine<state_t>::execute(State<state_t> *state,
                               const Circuit &circ,
                               uint_t shots) {
-  for (size_t ishot = 0; ishot < shots; ++ishot) {
-    initialize(state, circ);
-    for (const auto &op: circ.ops) {
-      apply_op(state, op);
+  // Check for sampling measurement optimization
+  if (circ.measure_sampling_flag) {
+    execute_with_sampling(state, circ, shots);
+  } else {
+    // execute without sampling
+    while (shots-- > 0) {
+      initialize(state, circ);
+      for (const auto &op: circ.ops) {
+        apply_op(state, op);
+      }
+      update_counts();
     }
-    update_counts();
   }
 }
 
@@ -349,6 +363,63 @@ bool Engine<state_t>::apply_bfunc(const Operations::Op &op) {
   }
 }
 
+
+//============================================================================
+// Implementations: Measurement sampling optimization
+//============================================================================
+
+template <class state_t>
+void Engine<state_t>::execute_with_sampling(Base::State<state_t> *state,
+                                           const Circuit &circ,
+                                           uint_t shots) {                                    
+  initialize(state, circ);
+  // Find position of first measurement operation
+  uint_t pos = 0;
+  while (pos < circ.ops.size() && circ.ops[pos].name != "measure") {
+    pos++;
+  }
+  // Execute operations before measurements
+  for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
+    apply_op(state, *it);
+  }
+
+  // Get measurement operations and set of measured qubits
+  std::vector<Operations::Op> meas(circ.ops.begin() + pos, circ.ops.end());
+  std::vector<uint_t> meas_qubits; // measured qubits
+  // Now we need to map the samples to the correct memory and register locations
+  std::map<uint_t, uint_t> memory_map; // map of memory locations to qubit measured
+  std::map<uint_t, uint_t> registers_map;// map of register locations to qubit measured
+  for (const auto &op : meas) {
+    for (size_t j=0; j < op.qubits.size(); ++j) {
+      meas_qubits.push_back(op.qubits[j]);
+      if (!op.memory.empty())
+        memory_map[op.qubits[j]] = op.memory[j];
+      if (!op.registers.empty())
+        registers_map[op.qubits[j]] = op.registers[j];
+    }
+  }
+  // Sort the qubits and delete duplicates
+  sort(meas_qubits.begin(), meas_qubits.end());
+  meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()), meas_qubits.end());
+  // Convert memory and register maps to ordered lists
+  reg_t memory;
+  if (!memory_map.empty())
+    for (const auto &q: meas_qubits)
+      memory.push_back(memory_map[q]);
+  reg_t registers;
+  if (!registers_map.empty())
+    for (const auto &q: meas_qubits)
+      registers.push_back(registers_map[q]);
+
+  // Generate the samples
+  auto samples = state->sample_measure_destructive(meas_qubits, shots);
+  
+  while (!samples.empty()) {
+    store_measure(samples.back(), memory, registers);
+    samples.pop_back(); // pop off processed sample
+  }
+}
+
 //============================================================================
 // Implementations: Utilities methods
 //============================================================================
@@ -464,7 +535,8 @@ void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operat
   
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
   ProbsKey key = std::make_pair(op.string_params[0], memory_hex);
-  qubit_set_t qubits(op.qubits.begin(), op.qubits.end()); // convert qubits to set
+  // sort qubits so measurement probs are returned in correct order
+  reg_t qubits(op.qubits.rbegin(), op.qubits.rend()); // [q0 < q1 < ...];
   auto probs = Utils::vec2ket(state->measure_probs(qubits),
                               snapshot_chop_threshold_, 2); // get probabilities
   snapshot_probs_.add_data(key, probs);
