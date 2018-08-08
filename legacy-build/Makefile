@@ -1,7 +1,7 @@
 INCLUDE = -I../src/
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
-OUTPUT_DIR = ../out/simulators-cpp
+OUTPUT_DIR = ../out/aer-simulator
 
 CC = g++
 
@@ -71,7 +71,7 @@ directories:
 	mkdir -p $(OUTPUT_DIR)
 
 sim: aer_simulator.o
-	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator_cpp ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
 
 clean:
 	rm -rf ${OUTPUT_DIR}

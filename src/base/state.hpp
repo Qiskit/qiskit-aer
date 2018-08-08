@@ -90,7 +90,7 @@ public:
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   inline virtual reg_t apply_measure(const reg_t& qubits) {
-    return reg_t(qubits.size(), 0); // default implementation dummy return
+    return reg_t(qubits.size(), 0); // dummy return for base class
   };
 
   // Return vector of measure probabilities for specified qubits
@@ -137,7 +137,7 @@ public:
                                 const std::string &pauli) const {
     (ignore_argument)qubits;
     (ignore_argument)pauli;
-    return 0.;
+    return 0.; // dummy return for base class
   };
 
   // Return the complex expectation value for an observable operator.
@@ -147,7 +147,7 @@ public:
   inline virtual 
   complex_t matrix_observable_value(const Operations::Op &op) const {
     (ignore_argument)op;
-    return complex_t();
+    return complex_t(); // dummy return for base class
   };
 
   //----------------------------------------------------------------
