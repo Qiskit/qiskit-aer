@@ -56,7 +56,7 @@ public:
   inline void load_qobj_from_string(const std::string &input);
 };
 
-inline void from_json(const json_t &js, Qobj &qobj) {qobj = Qobj(js);};
+inline void from_json(const json_t &js, Qobj &qobj) {qobj = Qobj(js);}
 
 //============================================================================
 // Implementation: Qobj methods
@@ -65,13 +65,13 @@ inline void from_json(const json_t &js, Qobj &qobj) {qobj = Qobj(js);};
 void Qobj::load_qobj_from_file(const std::string file) {
   json_t js = JSON::load(file);
   load_qobj_from_json(js);
-};
+}
 
 
 void Qobj::load_qobj_from_string(const std::string &input) {
   json_t js = json_t::parse(input);
   load_qobj_from_json(js);
-};
+}
 
 
 void Qobj::load_qobj_from_json(const json_t &js) {

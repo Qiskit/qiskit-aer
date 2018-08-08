@@ -86,7 +86,7 @@ template <typename T>
 matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra);
 
 template <typename T>
-inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket, ket);};
+inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket, ket);}
 
 // Truncate the first argument its absolute value is less than epsilon
 // this function returns a refernce to the chopped first argument
@@ -154,11 +154,11 @@ std::string int2string(uint_t n, uint_t base = 2);
 std::string int2string(uint_t n, uint_t base, uint_t length);
 
 // Convert integers to bit-strings
-inline std::string int2bin(uint_t n) {return int2string(n, 2);};
-inline std::string int2bin(uint_t n, uint_t length) {return int2string(n, 2, length);};
+inline std::string int2bin(uint_t n) {return int2string(n, 2);}
+inline std::string int2bin(uint_t n, uint_t length) {return int2string(n, 2, length);}
 
 // Convert integers to hex-strings
-inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));};
+inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 
 //==============================================================================
 // Implementations: Static Matrices

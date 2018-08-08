@@ -86,7 +86,7 @@ public:
 };
 
 // Json conversion function
-inline void from_json(const json_t &js, Circuit &circ) {circ = Circuit(js);};
+inline void from_json(const json_t &js, Circuit &circ) {circ = Circuit(js);}
 
 
 //============================================================================
@@ -159,7 +159,7 @@ bool Circuit::has_conditional() const {
       return true;
   }
   return false;
-};
+}
 
 
 bool Circuit::has_op(std::string name) const {
@@ -168,7 +168,7 @@ bool Circuit::has_op(std::string name) const {
       return true;
   }
   return false;
-};
+}
 
 
 std::pair<uint_t, uint_t> Circuit::minmax_qubits() const{

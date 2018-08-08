@@ -82,7 +82,7 @@ inline void check_name(const std::string &name) {
   if (name.empty()) {
     throw std::invalid_argument("Invalid gate operation: \"name\" is empty.");
   }
-};
+}
 
 inline void check_qubits(const reg_t &qubits) {
   // Check qubits isn't empty
@@ -95,7 +95,7 @@ inline void check_qubits(const reg_t &qubits) {
   if (cpy != qubits) {
     throw std::invalid_argument("Invalid operation (\"qubits\" are not unique)");
   }
-};
+}
 
 
 //------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ inline void check_qubits(const reg_t &qubits) {
 
 // Main JSON deserialization functions
 Op json_to_op(const json_t &js); // Patial TODO
-inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);};
+inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 
 // Standard operations
 Op json_to_op_gate(const json_t &js);

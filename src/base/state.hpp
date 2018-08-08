@@ -52,7 +52,7 @@ public:
   //   "snapshot_pauli"
   // * If the State allows snapshots of its internal state representation
   //   it should contain "snapshot_state"
-  inline virtual std::set<std::string> allowed_ops() const = 0;
+  virtual std::set<std::string> allowed_ops() const = 0;
 
   // Applies an operation to the state class.
   // This should support all and only the operations defined in

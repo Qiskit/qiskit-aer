@@ -197,7 +197,7 @@ void AverageData<data_t>::combine(AverageData<data_t> &rhs) {
 template<class data_t>
 data_t AverageData<data_t>::data() const {
   return average_helper(accum_);
-};
+}
   
 template <class data_t>
 template <class T>
@@ -210,7 +210,7 @@ void AverageData<data_t>::accum_helper(std::vector<T> &lhs, const std::vector<T>
     for (size_t pos = 0; pos < lhs.size(); ++ pos)
       lhs[pos] += rhs[pos];
   }
-};
+}
 
 template <class data_t>
 template <class T1, class T2>
@@ -223,7 +223,7 @@ template <class data_t>
 template <class T>
 void AverageData<data_t>::accum_helper(T &lhs, const T &rhs) const {
   try {lhs += rhs;}
-  catch (std::exception) {
+  catch (std::exception &e) {
     throw std::invalid_argument("Snapshots::AverageData::add (cannot combine data types)");
   };
 }
@@ -257,7 +257,7 @@ inline T AverageData<data_t>::average_helper(const T &accum) const {
   try { 
     double renorm = 1.0 / count_;
     return renorm * accum;
-  } catch (std::exception) {
+  } catch (std::exception&) {
     throw std::invalid_argument("Snapshots::AverageData::add (Cannot average data type)");
   };
 }
