@@ -3,7 +3,14 @@ WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-st
 OPT = -O3 -march=native -ffast-math
 OUTPUT_DIR = ../out/aer-simulator
 
-CC = g++
+TEST_INCLUDE = -I../test/third-party
+TEST_SRC_DIR = ../test/src
+TEST_SOURCES := $(wildcard $(TEST_SRC_DIR)/test_*.cpp)
+TEST_OUTPUT_DIR = $(OUTPUT_DIR)/test
+TEST_EXE_NAMES := $(patsubst $(TEST_SRC_DIR)/test_%.cpp, $(TEST_OUTPUT_DIR)/test_%, $(TEST_SOURCES))
+
+
+CC = ccache g++
 
 # -march not supported on ppc64le (Power). Use -mcpu instead
 ifeq ($(shell uname -m),ppc64le)
@@ -70,8 +77,23 @@ all: directories sim
 directories:
 	mkdir -p $(OUTPUT_DIR)
 
+test_directories:
+	mkdir -p $(TEST_OUTPUT_DIR)
+
 sim: aer_simulator.o
 	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
 
 clean:
 	rm -rf ${OUTPUT_DIR}
+
+test: test_directories $(TEST_EXE_NAMES)
+
+$(TEST_OUTPUT_DIR)/test_%: $(TEST_SRC_DIR)/test_%.cpp
+	$(CC) -ggdb $(CPPFLAGS) $(TEST_INCLUDE) $(DEFINES) $< -o $@ $(LIBS)
+
+
+	
+	
+	
+
+
