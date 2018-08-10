@@ -34,7 +34,9 @@ class Matrix {
     const static cmatrix_t Z;
     const static cmatrix_t H;
     const static cmatrix_t S;
+    const static cmatrix_t SDG;
     const static cmatrix_t T;
+    const static cmatrix_t TDG;
     const static cmatrix_t X90;
 
     // Two-qubit gates
@@ -179,8 +181,14 @@ const cmatrix_t Matrix::Z = make_matrix<complex_t>({{{1, 0}, {0, 0}},
 const cmatrix_t Matrix::S = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {0, 1}}});
 
+const cmatrix_t Matrix::SDG = make_matrix<complex_t>({{{1, 0}, {0, 0}},
+                                                    {{0, 0}, {0, -1}}});
+
 const cmatrix_t Matrix::T = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
+
+const cmatrix_t Matrix::TDG = make_matrix<complex_t>({{{1, 0}, {0, 0}},
+                                                    {{0, 0}, {1 / std::sqrt(2), -1 / std::sqrt(2)}}});
 
 const cmatrix_t Matrix::H = make_matrix<complex_t>({{{1 / std::sqrt(2.), 0}, {1 / std::sqrt(2.), 0}},
                                                     {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.), 0}}});

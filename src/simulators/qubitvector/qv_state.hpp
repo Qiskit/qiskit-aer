@@ -103,6 +103,10 @@ public:
   std::vector<reg_t> sample_measure_destructive(const reg_t& qubits,
                                                 uint_t shots = 1) override;
 
+  virtual
+  std::vector<reg_t> sample_measure_destructive_opt(const reg_t& qubits,
+                                                uint_t shots = 1);
+
   // Return the complex expectation value for an observable operator
   virtual double pauli_observable_value(const reg_t& qubits, 
                                         const std::string &pauli) const override;
@@ -205,7 +209,7 @@ const std::unordered_map<std::string, Gates> State<state_t>::gateset({
   {"x", Gates::x},    // Pauli-X gate
   {"y", Gates::y},    // Pauli-Y gate
   {"z", Gates::z},    // Pauli-Z gate
-  {"s", Gates::z},    // Phase gate (aka sqrt(Z) gate)
+  {"s", Gates::s},    // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},    // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},    // T-gate (sqrt(S))
@@ -284,7 +288,9 @@ std::vector<reg_t>
 State<state_t>::sample_measure_destructive(const reg_t& qubits,
                                   uint_t shots){
 
-
+#ifdef OPT
+  return sample_measure_destructive_opt(qubits, shots);
+#else
   // TODO, do an inplace partial trace here
   if (qubits.size() != Base::State<state_t>::data_.qubits()) {
     return Base::State<state_t>::sample_measure(qubits, shots);
@@ -306,6 +312,38 @@ State<state_t>::sample_measure_destructive(const reg_t& qubits,
     }
     samples.push_back(Utils::int2reg(val, 2, qubits.size()));
   }
+#endif
+
+  return samples;
+}
+
+template <class state_t>
+std::vector<reg_t>
+State<state_t>::sample_measure_destructive_opt(const reg_t& qubits,
+                                  uint_t shots){
+
+  std::vector<double> rnds;
+  rnds.reserve(shots);
+  for (uint_t i = 0; i < shots; ++i)
+    rnds.push_back(Base::State<state_t>::rng_.rand(0, 1));
+
+  std::vector<int_t> allbit_samples;
+  allbit_samples.reserve(shots);
+
+  Base::State<state_t>::data_.sample_measure(rnds, allbit_samples);
+
+  std::vector<reg_t> samples;
+  samples.reserve(shots);
+
+  for (int_t val : allbit_samples) {
+    reg_t allbit_sample = Utils::int2reg(val, 2, qubits.size());
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits)
+      sample.push_back(allbit_sample[qubit]);
+    samples.push_back(sample);
+  }
+
   return samples;
 }
 

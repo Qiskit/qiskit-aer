@@ -12,6 +12,7 @@
  */
 
 //#define DEBUG // Uncomment for verbose debugging output
+#define OPT
 
 #include <cstdio>
 #include <iostream>
