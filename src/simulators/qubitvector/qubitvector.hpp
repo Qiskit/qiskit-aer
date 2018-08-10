@@ -218,6 +218,19 @@ protected:
 
 };
 
+//-----------------------------------------------------------------------
+// JSON serialization for QubitVector class
+//-----------------------------------------------------------------------
+inline void to_json(json_t &js, const QubitVector&qv) {
+  to_json(js, qv.vector());
+}
+
+inline void from_json(const json_t &js, QubitVector&qv) {
+  cvector_t tmp;
+  from_json(js, tmp);
+  qv = tmp;
+}
+
 /*******************************************************************************
  *
  * Implementations

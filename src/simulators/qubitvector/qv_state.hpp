@@ -26,29 +26,17 @@
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
 #include "base/state.hpp"
-#include "simulators/qubitvector/qubitvector.hpp"
-
-//-----------------------------------------------------------------------
-// JSON serialization for QubitVector class
-//-----------------------------------------------------------------------
-namespace QV {
-  inline void to_json(json_t &js, const QubitVector&qv) {
-    to_json(js, qv.vector());
-  }
-
-  inline void from_json(const json_t &js, QubitVector&qv) {
-    cvector_t tmp;
-    from_json(js, tmp);
-    qv = tmp;
-  }
-}
 
 namespace AER {
 namespace QubitVector {
   
-  using state_t = QV::QubitVector;
-  using BaseState = Base::State<state_t>;
-
+// Enum class and gateset map for switching based on gate name
+enum class Gates {
+  mat, dmat, kraus, // special
+  measure, reset, barrier,
+  u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
+  cx, cz, rzz // two qubit
+};
 
 /*******************************************************************************
  *
@@ -56,7 +44,8 @@ namespace QubitVector {
  *
  ******************************************************************************/
 
-class State : public BaseState {
+template <class state_t>
+class State : public Base::State<state_t> {
 
 public:
 
@@ -123,13 +112,6 @@ public:
 
 protected:
 
-  // Enum class and gateset map for switching based on gate name
-  enum class Gates {
-    mat, dmat, kraus, // special
-    measure, reset, barrier,
-    u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-    cx, cz, rzz // two qubit
-  };
   const static std::unordered_map<std::string, Gates> gateset;
 
   //-----------------------------------------------------------------------
@@ -202,7 +184,8 @@ protected:
 // Implementation: Allowed ops and gateset
 //============================================================================
 
-std::set<std::string> State::allowed_ops() const {
+template <class state_t>
+std::set<std::string> State<state_t>::allowed_ops() const {
   return { "barrier", "measure", "reset",
     "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
     "mat", "dmat", "kraus",
@@ -210,7 +193,8 @@ std::set<std::string> State::allowed_ops() const {
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
 
-const std::unordered_map<std::string, State::Gates> State::gateset({
+template <class state_t>
+const std::unordered_map<std::string, Gates> State<state_t>::gateset({
   {"reset", Gates::reset}, // Reset operation
   {"barrier", Gates::barrier}, // barrier does nothing
   // Matrix multiplication
@@ -244,7 +228,8 @@ const std::unordered_map<std::string, State::Gates> State::gateset({
 // Implementation: Base class method overrides
 //============================================================================
 
-uint_t State::required_memory_mb(uint_t num_qubits,
+template <class state_t>
+uint_t State<state_t>::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
@@ -254,28 +239,27 @@ uint_t State::required_memory_mb(uint_t num_qubits,
   return mem_mb;
 }
 
-
-void State::load_config(const json_t &config) {
+template <class state_t>
+void State<state_t>::load_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
 }
 
-
-void State::initialize(uint_t num_qubits) {
-  
+template <class state_t>
+void State<state_t>::initialize(uint_t num_qubits) {
   // reset state std::vector to default state
-  data_ = state_t(num_qubits);
+  Base::State<state_t>::data_ = state_t(num_qubits);
 
   // Set maximum threads for QubitVector parallelization
-  data_.set_omp_threshold(omp_qubit_threshold_);
-  if (threads_ > 0)
-    data_.set_omp_threads(threads_); // set allowed OMP threads in qubitvector
+  Base::State<state_t>::data_.set_omp_threshold(omp_qubit_threshold_);
+  if (Base::State<state_t>::threads_ > 0)
+    Base::State<state_t>::data_.set_omp_threads(Base::State<state_t>::threads_); // set allowed OMP threads in qubitvector
   
-  data_.initialize(); // initialize qubit vector to all |0> state
+  Base::State<state_t>::data_.initialize(); // initialize qubit vector to all |0> state
 }
 
-
-reg_t State::apply_measure(const reg_t &qubits) {
+template <class state_t>
+reg_t State<state_t>::apply_measure(const reg_t &qubits) {
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits);
   // Implement measurement update
@@ -283,37 +267,41 @@ reg_t State::apply_measure(const reg_t &qubits) {
   return Utils::int2reg(meas.first, 2, qubits.size());
 }
 
+template <class state_t>
+rvector_t State<state_t>::measure_probs(const reg_t &qubits) const {
 
-rvector_t State::measure_probs(const reg_t &qubits) const {
   if (qubits.size() == 1) {
     // Probability of P0 outcome
-    double p0 = data_.probability(qubits[0], 0);
+    double p0 = Base::State<state_t>::data_.probability(qubits[0], 0);
     return {{p0, 1. - p0}};
   } else
-    return data_.probabilities(qubits);
+    return Base::State<state_t>::data_.probabilities(qubits);
 }
 
 
+template <class state_t>
 std::vector<reg_t> 
-State::sample_measure_destructive(const reg_t& qubits,
+State<state_t>::sample_measure_destructive(const reg_t& qubits,
                                   uint_t shots){
+
+
   // TODO, do an inplace partial trace here
-  if (qubits.size() != data_.qubits()) {
-    return BaseState::sample_measure(qubits, shots);
+  if (qubits.size() != Base::State<state_t>::data_.qubits()) {
+    return Base::State<state_t>::sample_measure(qubits, shots);
   }
   // convert state vector to probability vector
-  for (uint_t j=0; j <  data_.size(); j++) {
-    data_[j] = std::real( data_[j] * std::conj( data_[j]));
+  for (uint_t j=0; j <  Base::State<state_t>::data_.size(); j++) {
+    Base::State<state_t>::data_[j] = std::real( Base::State<state_t>::data_[j] * std::conj( Base::State<state_t>::data_[j]));
   }
   // Sample measurement outcomes
   std::vector<reg_t> samples;
   samples.reserve(shots);
   while (shots-- > 0) {
     double p = 0.;
-    double r = rng_.rand(0, 1);
+    double r = Base::State<state_t>::rng_.rand(0, 1);
     uint_t val;
-    for (val = 0; val < data_.size(); val++) {
-      if (r < (p += std::real(data_[val])))
+    for (val = 0; val < Base::State<state_t>::data_.size(); val++) {
+      if (r < (p += std::real(Base::State<state_t>::data_[val])))
         break;
     }
     samples.push_back(Utils::int2reg(val, 2, qubits.size()));
@@ -321,11 +309,12 @@ State::sample_measure_destructive(const reg_t& qubits,
   return samples;
 }
 
-
-double State::pauli_observable_value(const reg_t& qubits, 
+template <class state_t>
+double State<state_t>::pauli_observable_value(const reg_t& qubits,
                                      const std::string &pauli) const {
+
   // Copy the quantum state;
-  state_t data_copy = data_;
+  state_t data_copy = Base::State<state_t>::data_;
   // Apply each pauli operator as a gate to the corresponding qubit
   for (size_t pos=0; pos < qubits.size(); ++pos) {
     switch (pauli[pos]) {
@@ -348,11 +337,13 @@ double State::pauli_observable_value(const reg_t& qubits,
     }
   }
   // Pauli expecation values should always be real for a state
-  return std::real(data_copy.inner_product(data_));
+  return std::real(data_copy.inner_product(Base::State<state_t>::data_));
 }
 
+template <class state_t>
+complex_t State<state_t>::matrix_observable_value(const Operations::Op &op) const {
 
-complex_t State::matrix_observable_value(const Operations::Op &op) const {
+
   // Check empty edge case
   if (op.params_mat_obs.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -363,7 +354,7 @@ complex_t State::matrix_observable_value(const Operations::Op &op) const {
     const auto& coeff = std::get<0>(param);
     const auto& qubits = std::get<1>(param);
     const auto& matrices = std::get<2>(param);
-    state_t data_copy = data_; // Copy the quantum state
+    state_t data_copy = Base::State<state_t>::data_; // Copy the quantum state
     // Apply each qubit subset gate
     for (size_t pos=0; pos < qubits.size(); ++pos) {
       const cmatrix_t &mat = matrices[pos];
@@ -372,13 +363,14 @@ complex_t State::matrix_observable_value(const Operations::Op &op) const {
         : Utils::vectorize_matrix(mat); // diagonal or square matrix case
       data_copy.apply_matrix(qubits[pos], vmat);
     }
-    expval += data_copy.inner_product(data_) * coeff; // add component to expectation value
+    expval += data_copy.inner_product(Base::State<state_t>::data_) * coeff; // add component to expectation value
   }
   return expval;
 }
 
+template <class state_t>
+void State<state_t>::apply_op(const Operations::Op &op) {
 
-void State::apply_op(const Operations::Op &op) {
 
   // Check Op is supported by State
   auto it = gateset.find(op.name);
@@ -418,10 +410,10 @@ void State::apply_op(const Operations::Op &op) {
     apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
     break;
   case Gates::cx:
-    data_.apply_cnot(op.qubits[0], op.qubits[1]);
+    Base::State<state_t>::data_.apply_cnot(op.qubits[0], op.qubits[1]);
     break;
   case Gates::cz:
-    data_.apply_cz(op.qubits[0], op.qubits[1]);
+    Base::State<state_t>::data_.apply_cz(op.qubits[0], op.qubits[1]);
     break;
   case Gates::reset:
     apply_reset(op.qubits, 0);
@@ -435,13 +427,13 @@ void State::apply_op(const Operations::Op &op) {
   case Gates::id:
     break;
   case Gates::x:
-    data_.apply_x(op.qubits[0]);
+    Base::State<state_t>::data_.apply_x(op.qubits[0]);
     break;
   case Gates::y:
-    data_.apply_y(op.qubits[0]);
+    Base::State<state_t>::data_.apply_y(op.qubits[0]);
     break;
   case Gates::z:
-    data_.apply_z(op.qubits[0]);
+    Base::State<state_t>::data_.apply_z(op.qubits[0]);
     break;
   case Gates::h:
     apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
@@ -463,7 +455,7 @@ void State::apply_op(const Operations::Op &op) {
   // ZZ rotation by angle lambda
   case Gates::rzz: {
     const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
-    data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
+    Base::State<state_t>::data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
   } break;
   // Invalid Gate (we shouldn't get here)
   default:
@@ -478,29 +470,30 @@ void State::apply_op(const Operations::Op &op) {
 // Implementation: Matrix multiplication
 //============================================================================
 
-void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+template <class state_t>
+void State<state_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (qubits.empty() == false && mat.size() > 0)
-    data_.apply_matrix(qubits, Utils::vectorize_matrix(mat));
+    Base::State<state_t>::data_.apply_matrix(qubits, Utils::vectorize_matrix(mat));
 }
 
-
-void State::apply_matrix(const reg_t &qubits, const cvector_t &dmat) {
+template <class state_t>
+void State<state_t>::apply_matrix(const reg_t &qubits, const cvector_t &dmat) {
   if (qubits.empty() == false && dmat.size() > 0)
-    data_.apply_matrix(qubits, dmat);
+    Base::State<state_t>::data_.apply_matrix(qubits, dmat);
 }
 
-
-void State::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  data_.apply_matrix(qubit, Utils::vectorize_matrix(Utils::Matrix::U3(theta, phi, lambda)));
+template <class state_t>
+void State<state_t>::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
+  Base::State<state_t>::data_.apply_matrix(qubit, Utils::vectorize_matrix(Utils::Matrix::U3(theta, phi, lambda)));
 }
 
-
-void State::apply_gate_phase(uint_t qubit, complex_t phase) {
-  data_.apply_matrix(qubit, cvector_t({1., phase}));
+template <class state_t>
+void State<state_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
+  Base::State<state_t>::data_.apply_matrix(qubit, cvector_t({1., phase}));
 }
 
-
-cvector_t State::rzz_diagonal_matrix(double lambda) {
+template <class state_t>
+cvector_t State<state_t>::rzz_diagonal_matrix(double lambda) {
   const complex_t one(1.0, 0);
   const complex_t phase = exp(complex_t(0, lambda));
   return cvector_t({one, phase, phase, one});
@@ -510,8 +503,8 @@ cvector_t State::rzz_diagonal_matrix(double lambda) {
 //============================================================================
 // Implementation: Reset and Measurement Sampling
 //============================================================================
-
-void State::apply_reset(const reg_t &qubits, const uint_t reset_state) {
+template <class state_t>
+void State<state_t>::apply_reset(const reg_t &qubits, const uint_t reset_state) {
 
   // Simulate unobserved measurement
   const auto meas = sample_measure_with_prob(qubits);
@@ -519,16 +512,16 @@ void State::apply_reset(const reg_t &qubits, const uint_t reset_state) {
   measure_reset_update(qubits, reset_state, meas.first, meas.second);
 }
 
-
-std::pair<uint_t, double> State::sample_measure_with_prob(const reg_t &qubits) {
+template <class state_t>
+std::pair<uint_t, double> State<state_t>::sample_measure_with_prob(const reg_t &qubits) {
   rvector_t probs = measure_probs(qubits);
   // Randomly pick outcome and return pair
-  uint_t outcome = rng_.rand_int(probs);
+  uint_t outcome = Base::State<state_t>::rng_.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);
 }
 
-
-void State::measure_reset_update(const std::vector<uint_t> &qubits,
+template <class state_t>
+void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const uint_t final_state,
                                  const uint_t meas_state,
                                  const double meas_prob) {
@@ -540,11 +533,11 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    data_.apply_matrix(qubits[0], mdiag);
+    Base::State<state_t>::data_.apply_matrix(qubits[0], mdiag);
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
-      data_.apply_x(qubits[0]);
+      Base::State<state_t>::data_.apply_x(qubits[0]);
     }
   } 
   // Multi qubit case
@@ -553,7 +546,7 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    data_.apply_matrix(qubits, mdiag);
+    Base::State<state_t>::data_.apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     // This function could be optimized as a permutation update
@@ -567,7 +560,7 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
           perm[j * dim + j] = 1.;
       }
       // apply permutation to swap state
-      data_.apply_matrix(qubits, perm);
+      Base::State<state_t>::data_.apply_matrix(qubits, perm);
     }
   }
 }
@@ -576,8 +569,8 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
 //============================================================================
 // Implementation: Kraus Noise
 //============================================================================
-
-void State::apply_kraus(const reg_t &qubits,
+template <class state_t>
+void State<state_t>::apply_kraus(const reg_t &qubits,
                         const std::vector<cmatrix_t> &kmats) {
   
   // Check edge case for empty Kraus set (this shouldn't happen)
@@ -591,7 +584,7 @@ void State::apply_kraus(const reg_t &qubits,
   // So we only compute probabilities for the first N-1 kraus operators
   // and infer the probability of the last one from 1 - sum of the previous
 
-  double r = rng_.rand(0., 1.);
+  double r = Base::State<state_t>::rng_.rand(0., 1.);
   double accum = 0.;
   bool complete = false;
 
@@ -600,7 +593,7 @@ void State::apply_kraus(const reg_t &qubits,
     
     // Calculate probability
     cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
-    double p = data_.norm(qubits, vmat);
+    double p = Base::State<state_t>::data_.norm(qubits, vmat);
     accum += p;
     
     // check if we need to apply this operator
@@ -611,7 +604,7 @@ void State::apply_kraus(const reg_t &qubits,
         v *= renorm;
       }
       // apply Kraus projection operator
-      data_.apply_matrix(qubits, vmat);
+      Base::State<state_t>::data_.apply_matrix(qubits, vmat);
       complete = true;
       break;
     }
@@ -621,7 +614,7 @@ void State::apply_kraus(const reg_t &qubits,
   if (complete == false) {
     // Compute probability from accumulated
     complex_t renorm = 1 / std::sqrt(1. - accum);
-    data_.apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
+    Base::State<state_t>::data_.apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
   }
 }
 

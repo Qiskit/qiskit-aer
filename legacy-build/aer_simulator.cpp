@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 
   // Execute simulation
   try {
-    using State = AER::QubitVector::State;       // State class
+    using State = AER::QubitVector::State<QV::QubitVector>;       // State class
     using Engine = AER::Base::Engine<QV::QubitVector>; // Optimized Engine class
     AER::Base::Controller<Engine, State> sim;
     out << sim.execute(qobj).dump(4) << std::endl;
