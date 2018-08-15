@@ -27,6 +27,7 @@
 #include "framework/json.hpp"
 #include "base/engine.hpp"
 #include "base/state.hpp"
+#include "base/noise.hpp"
 
 #include "optimization.hpp"
 
@@ -44,9 +45,10 @@ public:
   Engine();
   ~Engine();
 
-  virtual void execute(State<state_t> *state,
-                       const Circuit &circ,
-                       uint_t shots);
+  void execute(const Circuit &circ,
+               uint_t shots,
+               State<state_t> *state_ptr,
+               Noise::Model *noise_ptr = nullptr);
 
 protected:
   std::vector<Optimization*> optimizations;
@@ -69,7 +71,10 @@ Engine<state_t>::~Engine() {
 }
 
 template<class state_t>
-void Engine<state_t>::execute(State<state_t> *state, const Circuit &circ, uint_t shots) {
+void Engine<state_t>::execute(const Circuit &circ,
+             uint_t shots,
+             State<state_t> *state_ptr,
+             Noise::Model *noise_ptr)  {
 
   std::vector<Circuit> current;
   current.push_back(circ);
@@ -97,17 +102,17 @@ void Engine<state_t>::execute(State<state_t> *state, const Circuit &circ, uint_t
     optimized.clear();
   }
 
-  for (Circuit &c : current) {
 
-    // Check for sampling measurement optimization
-    if (c.measure_sampling_flag) {
-      Base::Engine<state_t>::execute_with_sampling(state, c, shots);
+  for (Circuit &c : current) {
+    // Check if ideal simulation check if sampling is possible
+    if (noise_ptr == nullptr && circ.measure_sampling_flag) {
+      Base::Engine<state_t>::execute_with_measure_sampling(circ, shots, state_ptr);
     } else {
-      // execute without sampling
+      // Ideal execution without sampling
       while (shots-- > 0) {
-        Base::Engine<state_t>::initialize(state, c);
-        for (const auto &op : c.ops) {
-          Base::Engine<state_t>::apply_op(state, op);
+        Base::Engine<state_t>::initialize(state_ptr, circ);
+        for (const auto &op: circ.ops) {
+          Base::Engine<state_t>::apply_op(op, state_ptr, noise_ptr);
         }
         Base::Engine<state_t>::update_counts();
       }

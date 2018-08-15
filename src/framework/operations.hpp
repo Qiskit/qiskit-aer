@@ -97,7 +97,6 @@ inline void check_qubits(const reg_t &qubits) {
   }
 }
 
-
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
@@ -123,6 +122,7 @@ Op json_to_op_snapshot_probs(const json_t &js);
 Op json_to_op_mat(const json_t &js);
 Op json_to_op_dmat(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
+Op json_to_op_noise_switch(const json_t &js);
 
 // TODO Classical bits
 //Op json_to_op_roerror(const json_t &js); // TODO
@@ -156,6 +156,9 @@ Op json_to_op(const json_t &js) {
   // Bit functions
   if (name == "bfunc")
     return json_to_op_bfunc(js);
+  // Bit functions
+  if (name == "noise_switch")
+    return json_to_op_noise_switch(js);
     /* TODO: the following aren't implemented yet!
   if (name == "roerror")
     return json_to_op_roerror(js);
@@ -300,6 +303,14 @@ Op json_to_op_kraus(const json_t &js) {
 
   // Validation
   check_qubits(op.qubits);
+  return op;
+}
+
+
+Op json_to_op_noise_switch(const json_t &js) {
+  Op op;
+  op.name = "noise_switch";
+  JSON::get_value(op.params, "params", js);
   return op;
 }
 

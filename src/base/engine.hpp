@@ -20,6 +20,7 @@
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
 #include "base/state.hpp"
+#include "base/noise.hpp"
 
 namespace AER {
 namespace Base {
@@ -31,7 +32,13 @@ namespace Base {
 // Enum class for operations implemented by the Engine instead of directly
 // being passed to the State
 enum class EngineOp {
-  bfunc, measure, snapshot_state, snapshot_probs, snapshot_pauli, snapshot_matrix
+  bfunc,
+  measure,
+  snapshot_state,
+  snapshot_probs,
+  snapshot_pauli,
+  snapshot_matrix,
+  noise_switch
 };
 
 // Engine class
@@ -39,8 +46,6 @@ template <class state_t>
 class Engine {
 
 public:
-  Engine() = default;
-  virtual ~Engine() = default;
 
   // Execute a circuit of operations for multiple shots
   // By default this loops over the set number of shots where
@@ -48,39 +53,37 @@ public:
   //   1. initialize the state based on max qubit number in ops
   //   2. call apply_operations on the state for list of ops
   //   3. call compute_results after ops have been applied
-  virtual void execute(State<state_t> *state,
-                       const Circuit &circ,
-                       uint_t shots);
-  
+  void execute(const Circuit &circ,
+               uint_t shots,
+               State<state_t> *state_ptr,
+               Noise::Model *noise_ptr = nullptr);
+
   // This method performs the same function as 'execute', except
   // that it only simulates a single shot and then generates samples
   // of outcomes at the end. It is only valid if a measure operations
   // in a circuit are at the end, and there are no reset operations.
-  void execute_with_sampling(Base::State<state_t> *state,
-                             const Circuit &circ,
-                             uint_t shots);
+  void execute_with_measure_sampling(const Circuit &circ,
+                                     uint_t shots,
+                                     Base::State<state_t> *state_ptr);
 
   // Empty engine of stored data
-  virtual void clear();
+  void clear();
 
   // Serialize engine data to JSON
-  virtual json_t json() const;
+  json_t json() const;
 
   // Load any settings for the State class from a config JSON
-  virtual void load_config(const json_t &config);
+  void load_config(const json_t &config);
 
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
   // as this function should use move semantics to minimize copying
-  // Note: this is not a true virtual method as the argument will
-  // be the derived engine type, but it must be implemented by all
-  // derived classes.
   void combine(Engine<state_t> &eng);
 
   // validates a circuit
   // returns true if all ops in circuit are supported by the state and engine
   // otherwise it returns false
-  virtual std::set<std::string>
+  std::set<std::string>
   validate_circuit(State<state_t> *state, const Circuit &circ);
 
   
@@ -99,17 +102,25 @@ protected:
   static const std::unordered_map<std::string, EngineOp> engine_ops_;
 
   // Apply an operation to the state
-  virtual void apply_op(State<state_t> *state, const Operations::Op &op);
+  void apply_op(const Operations::Op &op,
+                State<state_t> *state_ptr,
+                Noise::Model *noise_ptr);
 
   // Initialize an engine and circuit
-  virtual void initialize(State<state_t> *state, const Circuit &circ);
+  void initialize(State<state_t> *state, const Circuit &circ);
+
+  //----------------------------------------------------------------
+  // Measurement
+  //----------------------------------------------------------------
+
+  bool noise_flag_ = true;
 
   //----------------------------------------------------------------
   // Measurement
   //----------------------------------------------------------------
 
   // Add the classical bit memory to the counts dictionary
-  virtual void update_counts();
+  void update_counts();
 
   // Checks if an Op should be applied, returns true if either: 
   // - op is not a conditional Op,
@@ -142,16 +153,16 @@ protected:
   //----------------------------------------------------------------
 
   // Record current state as a snapshot
-  void snapshot_state(State<state_t> *state, const Operations::Op &op);
+  void snapshot_state(State<state_t> *state_ptr, const Operations::Op &op);
 
   // Record current qubit probabilities for a measurement snapshot
-  void snapshot_probabilities(State<state_t> *state, const Operations::Op &op);
+  void snapshot_probabilities(State<state_t> *state_ptr, const Operations::Op &op);
 
   // Compute and store snapshot of the Pauli observable op
-  void snapshot_observables_pauli(State<state_t> *state, const Operations::Op &op);
+  void snapshot_observables_pauli(State<state_t> *state_ptr, const Operations::Op &op);
 
   // Compute and store snapshot of the matrix observable op
-  void snapshot_observables_matrix(State<state_t> *state, const Operations::Op &op);
+  void snapshot_observables_matrix(State<state_t> *state_ptr, const Operations::Op &op);
 
   // Snapshot Types
   using qubit_set_t = Operations::Op::qubit_set_t;
@@ -189,25 +200,28 @@ template <class state_t>
 const std::unordered_map<std::string, EngineOp> Engine<state_t>::engine_ops_ = {
   {"bfunc", EngineOp::bfunc},
   {"measure", EngineOp::measure},
-  {"snapshot_state", EngineOp::snapshot_state},
   {"snapshot_probs", EngineOp::snapshot_probs},
   {"snapshot_pauli", EngineOp::snapshot_pauli},
-  {"snapshot_matrix", EngineOp::snapshot_matrix}
+  {"snapshot_matrix", EngineOp::snapshot_matrix},
+  {"snapshot_state", EngineOp::snapshot_state},
+  {"noise_switch", EngineOp::noise_switch}
 };
 
+
 template <class state_t>
-void Engine<state_t>::execute(State<state_t> *state,
-                              const Circuit &circ,
-                              uint_t shots) {
-  // Check for sampling measurement optimization
-  if (circ.measure_sampling_flag) {
-    execute_with_sampling(state, circ, shots);
+void Engine<state_t>::execute(const Circuit &circ,
+                              uint_t shots,
+                              State<state_t> *state_ptr,
+                              Noise::Model *noise_ptr) {
+  // Check if ideal simulation check if sampling is possible
+  if (noise_ptr == nullptr && circ.measure_sampling_flag) {
+    execute_with_measure_sampling(circ, shots, state_ptr);
   } else {
-    // execute without sampling
+    // Ideal execution without sampling
     while (shots-- > 0) {
-      initialize(state, circ);
+      initialize(state_ptr, circ);
       for (const auto &op: circ.ops) {
-        apply_op(state, op);
+        apply_op(op, state_ptr, noise_ptr);
       }
       update_counts();
     }
@@ -215,18 +229,30 @@ void Engine<state_t>::execute(State<state_t> *state,
 }
 
 
+
 template <class state_t>
-void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) {
+void Engine<state_t>::apply_op(const Operations::Op &op,
+                               State<state_t> *state_ptr,
+                               Noise::Model *noise_ptr) {
   auto it = engine_ops_.find(op.name);
   if (it == engine_ops_.end()) {
-    if (check_conditional(op)) {// check if op passes conditional
-      state->apply_op(op);
-      pauli_cache_.clear(); // clear Pauli cache if we apply another operation
+    // check if op passes conditional
+    if (check_conditional(op)) {
+      // Check for noise active
+      if (noise_ptr != nullptr && noise_flag_) {
+        // Apply noisy op sequence sampled from model
+        for (const auto &op_noise : noise_ptr->sample_noise(op))
+          state_ptr->apply_op(op_noise);
+      } else {
+        // otherwise apply ideal operation
+        state_ptr->apply_op(op);
+      }
+      pauli_cache_.clear(); // clear Pauli cache since the state has changed
     }
   } else {
     switch (it->second) {
       case EngineOp::measure: {
-        reg_t outcome = state->apply_measure(op.qubits);
+        reg_t outcome = state_ptr->apply_measure(op.qubits);
         store_measure(outcome, op.memory, op.registers);
         pauli_cache_.clear(); // clear Pauli cache if we apply measure
       } break;
@@ -234,16 +260,19 @@ void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) 
         apply_bfunc(op);
         break;
       case EngineOp::snapshot_probs:
-        snapshot_probabilities(state, op);
+        snapshot_probabilities(state_ptr, op);
         break;
       case EngineOp::snapshot_pauli:
-        snapshot_observables_pauli(state, op);
+        snapshot_observables_pauli(state_ptr, op);
         break;
       case EngineOp::snapshot_matrix:
-        snapshot_observables_matrix(state, op);
+        snapshot_observables_matrix(state_ptr, op);
         break;
       case EngineOp::snapshot_state:
-        snapshot_states_.add_data(op.string_params[0], state->data());
+        snapshot_states_.add_data(op.string_params[0], state_ptr->data());
+        break;
+      case EngineOp::noise_switch:
+        noise_flag_ = std::real(op.params[0]);
         break;
       default:
         // we should never get here
@@ -253,10 +282,13 @@ void Engine<state_t>::apply_op(State<state_t> *state, const Operations::Op &op) 
 }
 
 
+
 template <class state_t>
-void Engine<state_t>::initialize(State<state_t> *state, const Circuit &circ) {
+void Engine<state_t>::initialize(State<state_t> *state_ptr, const Circuit &circ) {
   // Initialize state
-  state->initialize(circ.num_qubits);
+  state_ptr->initialize(circ.num_qubits);
+  // Initialize noise flag
+  noise_flag_ = true;
   // Clear and resize registers
   creg_memory_ = std::string(circ.num_memory, '0');
   creg_registers_ = std::string(circ.num_registers, '0');
@@ -340,7 +372,7 @@ bool Engine<state_t>::apply_bfunc(const Operations::Op &op) {
                                           & creg_registers_[creg_registers_.size() - 1 - rev_pos]);
     }
     masked_val = Utils::bin2hex(masked_val); // convert to hex string
-    // Using string comparisong to compare to target vaue
+    // Using string comparison to compare to target value
     compared = masked_val.compare(target_val);
   }
   // check value of compared integer for different comparison operations
@@ -369,10 +401,10 @@ bool Engine<state_t>::apply_bfunc(const Operations::Op &op) {
 //============================================================================
 
 template <class state_t>
-void Engine<state_t>::execute_with_sampling(Base::State<state_t> *state,
-                                           const Circuit &circ,
-                                           uint_t shots) {                                    
-  initialize(state, circ);
+void Engine<state_t>::execute_with_measure_sampling(const Circuit &circ,
+                                                    uint_t shots,
+                                                    Base::State<state_t> *state_ptr) {                                    
+  initialize(state_ptr, circ);
   // Find position of first measurement operation
   uint_t pos = 0;
   while (pos < circ.ops.size() && circ.ops[pos].name != "measure") {
@@ -380,7 +412,7 @@ void Engine<state_t>::execute_with_sampling(Base::State<state_t> *state,
   }
   // Execute operations before measurements
   for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
-    apply_op(state, *it);
+    apply_op(*it, state_ptr, nullptr);
   }
 
   // Get measurement operations and set of measured qubits
@@ -412,7 +444,7 @@ void Engine<state_t>::execute_with_sampling(Base::State<state_t> *state,
       registers.push_back(registers_map[q]);
 
   // Generate the samples
-  auto samples = state->sample_measure_destructive(meas_qubits, shots);
+  auto samples = state_ptr->sample_measure_destructive(meas_qubits, shots);
   
   while (!samples.empty()) {
     store_measure(samples.back(), memory, registers);
@@ -426,8 +458,8 @@ void Engine<state_t>::execute_with_sampling(Base::State<state_t> *state,
 
 template <class state_t>
 std::set<std::string>
-Engine<state_t>:: validate_circuit(State<state_t> *state, const Circuit &circ) {
-  auto state_ops = state->allowed_ops();
+Engine<state_t>:: validate_circuit(State<state_t> *state_ptr, const Circuit &circ) {
+  auto state_ops = state_ptr->allowed_ops();
   state_ops.insert("bfunc"); // handled by engine alone
   return circ.invalid_ops(state_ops);
 }
@@ -531,18 +563,18 @@ json_t Engine<state_t>::json() const {
 //============================================================================
 
 template <class state_t>
-void Engine<state_t>::snapshot_probabilities(State<state_t> *state, const Operations::Op &op) {
+void Engine<state_t>::snapshot_probabilities(State<state_t> *state_ptr, const Operations::Op &op) {
   
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
   ProbsKey key = std::make_pair(op.string_params[0], memory_hex);
-  auto probs = Utils::vec2ket(state->measure_probs(op.qubits),
+  auto probs = Utils::vec2ket(state_ptr->measure_probs(op.qubits),
                               snapshot_chop_threshold_, 16); // get probs as hexadecimal
   snapshot_probs_.add_data(key, probs);
 }
 
 
 template <class state_t>
-void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Operations::Op &op) {
+void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state_ptr, const Operations::Op &op) {
   std::string memory_hex = Utils::bin2hex(creg_memory_); // convert memory to hex string
   auto key = std::make_pair(op.string_params[0], memory_hex);
   complex_t expval(0., 0.); // complex value
@@ -556,7 +588,7 @@ void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Op
       expval += coeff * (it->second); // found cached result
     } else {
       // compute result and add to cache
-      double tmp = state->pauli_observable_value(reg_t(qubits.begin(), qubits.end()), pauli);
+      double tmp = state_ptr->pauli_observable_value(reg_t(qubits.begin(), qubits.end()), pauli);
       cache[pauli] = tmp;
       expval += coeff * tmp;
     }
@@ -567,10 +599,10 @@ void Engine<state_t>::snapshot_observables_pauli(State<state_t> *state, const Op
 
 
 template <class state_t>
-void Engine<state_t>::snapshot_observables_matrix(State<state_t> *state,
+void Engine<state_t>::snapshot_observables_matrix(State<state_t> *state_ptr,
                                                   const Operations::Op &op) {
   auto key = std::make_pair(op.string_params[0], Utils::bin2hex(creg_memory_));
-  snapshot_obs_.add_data(key, state->matrix_observable_value(op));
+  snapshot_obs_.add_data(key, state_ptr->matrix_observable_value(op));
 }
 
 //------------------------------------------------------------------------------
