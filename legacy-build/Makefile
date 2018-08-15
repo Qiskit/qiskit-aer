@@ -53,7 +53,7 @@ ifeq ($(OS),Darwin)
 	endif
 endif
 
-CPPFLAGS = $(USER_FLAGS) -std=c++11 $(CPP_OMP) $(OPT) $(INCLUDE) $(WARNINGS) 
+CPPFLAGS = $(USER_FLAGS) -std=c++14 $(CPP_OMP) $(OPT) $(INCLUDE) $(WARNINGS) 
 LIBS = $(LIB_BLAS) $(LIB_OMP)
 
 .SUFFIXES:.cpp .cc .o .c

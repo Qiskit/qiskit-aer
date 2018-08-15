@@ -99,6 +99,10 @@ public:
    */
   explicit RngEngine(uint_t seed) { rng.seed(seed); };
 
+
+  // Set a fixed seed for the RNG engine
+  void set_seed(uint_t seed) { rng.seed(seed); };
+
 private:
   std::mt19937 rng; // Mersenne twister rng engine
 };

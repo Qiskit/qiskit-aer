@@ -29,6 +29,7 @@
 
 // Base Controller
 #include "framework/qobj.hpp"
+#include "base/noise.hpp"
 
 namespace AER {
 namespace Base {
@@ -45,32 +46,38 @@ public:
   
   // Constructor
   Controller();
+
   Controller(State_t state, Engine_t engine);
-  virtual ~Controller() = default;
   
   //----------------------------------------------------------------
   // Loading state and engine config
   //----------------------------------------------------------------
 
   void load_config(const json_t &config);
-  inline void load_engine_config(const json_t &config) {engine_.load_config(config);};
-  inline void load_state_config(const json_t &config) {state_.load_config(config);};
+
+  inline void load_engine_config(const json_t &config) {engine_.load_config(config);}
+
+  inline void load_state_config(const json_t &config) {state_.load_config(config);}
   
-  inline int get_num_threads() {return thread_limit_;};
+  inline int get_num_threads() {return thread_limit_;}
+
   inline void set_num_threads(int threads) {
     thread_limit_ = std::min(std::max(1, threads), omp_ncpus_);
-  };
+  }
   
   //----------------------------------------------------------------
   // Executing qobj
   //----------------------------------------------------------------
   
   // Load and execute a qobj
-  inline virtual json_t execute(const json_t &qobj);
+  inline json_t execute(const json_t &qobj) {return execute(qobj, nullptr);}
+
+  json_t execute(const json_t &qobj, Noise::Model *noise_ptr);
 
   // Execute a single circuit
-  virtual json_t execute_circuit(Circuit &circ, 
-                                 int max_shot_threads);
+  json_t execute_circuit(Circuit &circ, 
+                         int max_shot_threads,
+                         Noise::Model *noise_ptr);
 
   // Check if measurement sampling can be performed for a circuit
   // and set circuit flag if it is compatible                               
@@ -126,7 +133,8 @@ void Controller<Engine_t, State_t>::load_config(const json_t &config) {
 //============================================================================
 
 template < class Engine_t, class State_t>
-json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
+json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
+                                              Noise::Model *noise_ptr) {
   
   auto timer_start = myclock_t::now(); // start timer
   Qobj qobj; // Load QOBJ from json
@@ -169,7 +177,8 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
     #pragma omp parallel for if (circ_threads > 1) num_threads(circ_threads)
     for (int j = 0; j < num_circuits; ++j) {
       ret["result"][j] = execute_circuit(qobj.circuits[j],
-                                         shot_threads);
+                                         shot_threads,
+                                         noise_ptr);
     }
     // check success
     for (const auto& res: ret["result"]) {
@@ -182,11 +191,11 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
     // Add metadata (change to header?)
     #ifdef _OPENMP
     if (omp_ncpus_ > 1)
-      ret["header"]["num_openmp_threads"] = omp_ncpus_;
+      ret["metadata"]["num_openmp_threads"] = omp_ncpus_;
     #endif
-    ret["header"]["num_circuit_threads"] = circ_threads;
+    ret["metadata"]["num_circuit_threads"] = circ_threads;
     auto timer_stop = myclock_t::now(); // stop timer
-    ret["header"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+    ret["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
   } 
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
@@ -197,9 +206,10 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js) {
 }
 
 
-template < class Engine_t, class State_t>
+template <class Engine_t, class State_t>
 json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
-                                                      int max_shot_threads) {
+                                                      int max_shot_threads,
+                                                      Noise::Model *noise_ptr) {
   
   // Initialize Return
   auto timer_start = myclock_t::now(); // state circuit timer
@@ -238,7 +248,7 @@ json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
     // OpenMP Parallelization
   #ifdef _OPENMP
     if (shot_threads < 2)
-      engine.execute(&state, circ, circ.shots);
+      engine.execute(circ, circ.shots, &state, noise_ptr);
     else {
       
       // Set shots for each thread
@@ -256,7 +266,7 @@ json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
         State_t thread_state(state);
         thread_state.set_rng_seed(circ.seed + j); // shift rng seed for each thread
         Engine_t thread_engine(engine);
-        thread_engine.execute(&thread_state, circ, ssj);
+        thread_engine.execute(circ, ssj, &thread_state, noise_ptr);
         data[j] = std::move(thread_engine);
       }
       // Accumulate results across shots
@@ -266,12 +276,12 @@ json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
 
     // Add multi-threading information to output
     if (shot_threads > 1)
-      ret["header"]["num_shot_threads"] = shot_threads;
+      ret["metadata"]["num_shot_threads"] = shot_threads;
     if (state_threads > 1)
-      ret["header"]["num_state_threads"] = state_threads;
+      ret["metadata"]["num_state_threads"] = state_threads;
   #else
     // Non-parallel execution
-    engine.execute(&state, circ, circ.shots);
+    engine.execute(circ, circ.shots, &state, noise_ptr);
   #endif
     
     // Add output data and metadata
@@ -283,12 +293,12 @@ json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
 
     // Pass through circuit header and add metadata
     ret["header"] = circ.header;
-    ret["header"]["shots"] = circ.shots;
-    ret["header"]["seed"] = circ.seed;
+    ret["metadata"]["shots"] = circ.shots;
+    ret["metadata"]["seed"] = circ.seed;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    ret["header"]["time_taken"] = time_taken;
+    ret["metadata"]["time_taken"] = time_taken;
   } 
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {

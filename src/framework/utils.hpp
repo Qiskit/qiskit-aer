@@ -26,32 +26,32 @@ namespace Utils {
 //------------------------------------------------------------------------------
 
 class Matrix {
-  public:
-    // Single-qubit gates
-    const static cmatrix_t I;
-    const static cmatrix_t X;
-    const static cmatrix_t Y;
-    const static cmatrix_t Z;
-    const static cmatrix_t H;
-    const static cmatrix_t S;
-    const static cmatrix_t T;
-    const static cmatrix_t X90;
+public:
+  // Single-qubit gates
+  const static cmatrix_t I;
+  const static cmatrix_t X;
+  const static cmatrix_t Y;
+  const static cmatrix_t Z;
+  const static cmatrix_t H;
+  const static cmatrix_t S;
+  const static cmatrix_t T;
+  const static cmatrix_t X90;
 
-    // Two-qubit gates
-    const static cmatrix_t CX;
-    const static cmatrix_t CZ;
-    const static cmatrix_t SWAP;
-    const static cmatrix_t CR; // TODO
-    const static cmatrix_t CR90; // TODO
-    
-    // Identity Matrix
-    static cmatrix_t Identity(size_t dim);
+  // Two-qubit gates
+  const static cmatrix_t CX;
+  const static cmatrix_t CZ;
+  const static cmatrix_t SWAP;
+  const static cmatrix_t CR; // TODO
+  const static cmatrix_t CR90; // TODO
+  
+  // Identity Matrix
+  static cmatrix_t Identity(size_t dim);
 
-    // Single-qubit waltz gates
-    static cmatrix_t U1(double lam);
-    static cmatrix_t U2(double phi, double lam);
-    static cmatrix_t U3(double theta, double phi, double lam);
-  };
+  // Single-qubit waltz gates
+  static cmatrix_t U1(double lam);
+  static cmatrix_t U2(double phi, double lam);
+  static cmatrix_t U3(double theta, double phi, double lam);
+};
 
 //------------------------------------------------------------------------------
 // Matrix Functions
@@ -63,7 +63,7 @@ template<class T> matrix<T> devectorize_matrix(const std::vector<T> &vec);
 template<class T> std::vector<T> vectorize_matrix(const matrix<T> &mat);
 
 // Transformations
-template <class T> matrix<T> transpose(const matrix<T> &A); // TOO
+template <class T> matrix<T> transpose(const matrix<T> &A);
 template <class T>
 matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A);
 template <class T>
@@ -76,6 +76,29 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
+
+// Matrix comparison
+
+template <class T> 
+bool is_square(const matrix<T> &mat);
+
+template <class T> 
+bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold);
+
+template <class T> 
+bool is_diagonal(const matrix<T> &mat, double threshold);
+
+template <class T> 
+bool is_identity(const matrix<T> &mat, double threshold);
+
+template <class T> 
+bool is_unitary(const matrix<T> &mat, double threshold);
+
+template <class T> 
+bool is_hermitian(const matrix<T> &mat, double threshold);
+
+template <class T> 
+bool is_symmetrix(const matrix<T> &mat, double threshold);
 
 //------------------------------------------------------------------------------
 // Vector functions
@@ -428,6 +451,87 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
     }
   }
   return temp;
+}
+
+template <class T> 
+bool is_square(const matrix<T> &mat) {
+  if (mat.GetRows() != mat.GetColumns())
+    return false;
+  return true;
+}
+
+template <class T> 
+bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold) {
+  
+  // Check matrices are same shape
+  const auto nrows = mat1.GetRows();
+  const auto ncols = mat1.GetColumns();
+  if (nrows != mat2.GetRows() || ncols != mat2.GetColumns)
+    return false;
+
+  // Check matrices are equal on an entry by entry basis 
+  double delta = 0;
+  for (size_t i=0; i < nrows; i++) {
+    for (size_t j=0; j < ncols; j++) {
+      delta += std::real(std::abs(mat1(i, j) - mat2(i, j)));
+    }
+  }
+  return (delta < threshold);
+}
+
+template <class T> 
+bool is_diagonal(const matrix<T> &mat, double threshold) {
+  // Check U matrix is identity
+  const auto nrows = mat.GetRows();
+  const auto ncols = mat.GetColumns();
+  if (nrows != ncols)
+    return false;
+  for (size_t i=0; i < nrows; i++)
+    for (size_t j=0; j < ncols; j++)
+      if (i != j && std::real(std::abs(mat(i, j))) > threshold)
+        return false;
+  return true;
+}
+
+
+template <class T> 
+bool is_identity(const matrix<T> &mat, double threshold) {
+  // Check U matrix is identity
+  double delta = 0.;
+  const auto nrows = mat.GetRows();
+  const auto ncols = mat.GetColumns();
+  if (nrows != ncols)
+    return false;
+  for (size_t i=0; i < nrows; i++) {
+    for (size_t j=0; j < ncols; j++) {
+      T val = (i==j) ? 1 : 0;
+      delta += std::real(std::abs(mat(i, j) - val));
+    }
+  }
+  return (delta < threshold);
+}
+
+template <class T> 
+bool is_unitary(const matrix<T> &mat, double threshold) {
+  size_t nrows = mat.GetRows();
+  size_t ncols = mat.GetColumns();
+  // Check U matrix is square
+  if (nrows != ncols)
+    return false;
+  // Check U matrix is unitary
+  const matrix<T> check = mat * dagger(mat);
+  return is_identity(check, threshold);
+}
+
+
+template <class T> 
+bool is_hermitian_matrix(const matrix<T> &mat, double threshold) {
+  return is_equal(mat, dagger(mat), threshold);
+}
+
+template <class T> 
+bool is_symmetrix(const matrix<T> &mat, double threshold) {
+  return is_equal(mat, transpose(mat), threshold);
 }
 
 
