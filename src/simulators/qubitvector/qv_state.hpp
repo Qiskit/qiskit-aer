@@ -312,9 +312,8 @@ State<state_t>::sample_measure_destructive(const reg_t& qubits,
     }
     samples.push_back(Utils::int2reg(val, 2, qubits.size()));
   }
-#endif
-
   return samples;
+#endif
 }
 
 template <class state_t>

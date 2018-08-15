@@ -74,9 +74,9 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     using namespace AER;
-    using State = AER::QubitVector::State<QV::QubitVector>;       // State class
-    using Engine = AER::Base::Engine<QV::QubitVector>; // Optimized Engine class
-    AER::Base::Controller<Engine, State> sim;
+    using State = QubitVector::State<QV::QubitVector>;       // State class
+    using Engine = Base::Engine<QV::QubitVector>; // Optimized Engine class
+  //using Engine = QubitVector::Engine<QV::QubitVector>;// HPC Engine class
     using NoiseModel = Noise::SimpleModel;
     
     // Initialize simulator
