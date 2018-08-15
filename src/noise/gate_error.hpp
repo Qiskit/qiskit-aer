@@ -33,7 +33,7 @@ class GateError : public Error {
 public:
 
   GateError() = default;
-  GateError(const std::vector<cmatrix_t> &mats) {set_from_ops(mats, 1.0);}
+  GateError(const std::vector<cmatrix_t> &mats) {load_from_mats(mats, 1.0);}
 
   //-----------------------------------------------------------------------
   // Error base required methods
@@ -52,13 +52,17 @@ public:
   // This will automatically partition the operators into unitary and Kraus
   // errors based on the type of operators. The optional probability parameter
   // is the error probability (default 1).
-  void set_from_ops(const std::vector<cmatrix_t> &mats, double p_error = 1);
+  void load_from_mats(const std::vector<cmatrix_t> &mats, double p_error = 1);
+
+  // Build manually
 
   void set_probabilities(double p_identity, double p_unitary, double p_kraus);
 
   void set_kraus(const KrausError &err);
 
   void set_unitary(const UnitaryError &err);
+
+  
 
 protected:
   // Probability of noise type:
@@ -107,8 +111,8 @@ void GateError::set_unitary(const UnitaryError &err) {
   unitary_error_ = err;
 }
 
-void GateError::set_from_ops(const std::vector<cmatrix_t> &mats,
-                             double p_error) {
+void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
+                               double p_error) {
 
   double threshold = 1e-10; // move this to argument?
 
@@ -192,26 +196,6 @@ void GateError::set_from_ops(const std::vector<cmatrix_t> &mats,
   
   // TODO validate the noise model
 }
-
-/* Schema idea?
-
-{
-  "type": "gate_error",   // string
-  "operations": ["x", "y", "z"], // list string
-  "qubits": [[0, 1], [1], [2], [3]], // qubits gate applies to
-  "targets": null, // if null targets are qubits
-  "params": [mat1, mat2, mat3]
-}
-
-{
-  "type": "reset_error";
-  "operations": ["x", "y", "z"], // list string
-  "qubits": null, // if null or missing all qubits same
-  "targets": null, // if null or missing targets are input qubits
-  "params": ???
-}
-
-*/
 
 //-------------------------------------------------------------------------
 } // end namespace Noise
