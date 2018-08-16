@@ -20,7 +20,7 @@
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
 #include "base/state.hpp"
-#include "base/noise.hpp"
+#include "base/noise_model.hpp"
 
 namespace AER {
 namespace Base {
@@ -56,7 +56,7 @@ public:
   void execute(const Circuit &circ,
                uint_t shots,
                State<state_t> *state_ptr,
-               Noise::Model *noise_ptr = nullptr);
+               Base::NoiseModel *noise_ptr = nullptr);
 
   // This method performs the same function as 'execute', except
   // that it only simulates a single shot and then generates samples
@@ -104,7 +104,7 @@ protected:
   // Apply an operation to the state
   void apply_op(const Operations::Op &op,
                 State<state_t> *state_ptr,
-                Noise::Model *noise_ptr);
+                Base::NoiseModel *noise_ptr);
 
   // Initialize an engine and circuit
   void initialize(State<state_t> *state, const Circuit &circ);
@@ -212,7 +212,7 @@ template <class state_t>
 void Engine<state_t>::execute(const Circuit &circ,
                               uint_t shots,
                               State<state_t> *state_ptr,
-                              Noise::Model *noise_ptr) {
+                              Base::NoiseModel *noise_ptr) {
   // Check if ideal simulation check if sampling is possible
   if (noise_ptr == nullptr && circ.measure_sampling_flag) {
     execute_with_measure_sampling(circ, shots, state_ptr);
@@ -233,7 +233,7 @@ void Engine<state_t>::execute(const Circuit &circ,
 template <class state_t>
 void Engine<state_t>::apply_op(const Operations::Op &op,
                                State<state_t> *state_ptr,
-                               Noise::Model *noise_ptr) {
+                               Base::NoiseModel *noise_ptr) {
   auto it = engine_ops_.find(op.name);
   if (it == engine_ops_.end()) {
     // check if op passes conditional

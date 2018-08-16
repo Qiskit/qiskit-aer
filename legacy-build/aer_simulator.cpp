@@ -22,14 +22,11 @@
 #include "base/engine.hpp"
 #include "simulators/qubitvector/qubitvector.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
+#include "framework/interface.hpp"
 
 // Noise
-#include "base/noise.hpp"
-#include "noise/simple_model.hpp"
-#include "noise/unitary_error.hpp"
-#include "noise/gate_error.hpp"
+#include "base/noise_model.hpp"
 
-#include "framework/interface.hpp"
 /*******************************************************************************
  *
  * Main
@@ -75,33 +72,21 @@ int main(int argc, char **argv) {
     using namespace AER;
     using State = QubitVector::State;       // State class
     using Engine = Base::Engine<QV::QubitVector>; // Optimized Engine class
-    using NoiseModel = Noise::SimpleModel;
-    
+    using Base::NoiseModel;
+
     // Initialize simulator
     Base::Controller<Engine, State> sim;
   
     // Check for noise_params
     if (JSON::check_key("config", qobj) &&
         JSON::check_key("noise_params", qobj["config"])) {
-      NoiseModel noise(qobj["config"]["noise_params"]);
-      out << sim.execute(qobj, &noise).dump(4) << std::endl;
+      NoiseModel noise1(qobj["config"]["noise_params"]);
+      out << sim.execute(qobj, &noise1).dump(4) << std::endl;
     } else {
       // execute without noise
       out << sim.execute(qobj).dump(4) << std::endl;
     }
 
-    // Amplitude damping channel
-    /*
-    NoiseModel kraus_noise;
-    std::vector<cmatrix_t> amp_damp(2);
-    double gamma = 0.4;
-    amp_damp[0] = Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}},
-                                                 {{0, 0}, {std::sqrt(gamma), 0}}});
-    amp_damp[1] = Utils::make_matrix<complex_t>({{{0, 0}, {std::sqrt(1-gamma), 0}},
-                                                 {{0, 0}, {0, 0}}});
-    kraus_noise.add_error(Noise::GateError(amp_damp), {"x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3"});
-    out << sim.execute(qobj, &kraus_noise).dump(4) << std::endl;
-    */
     return 0;
   } catch (std::exception &e) {
     std::stringstream msg;

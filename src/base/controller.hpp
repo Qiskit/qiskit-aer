@@ -29,7 +29,7 @@
 
 // Base Controller
 #include "framework/qobj.hpp"
-#include "base/noise.hpp"
+#include "base/noise_model.hpp"
 
 namespace AER {
 namespace Base {
@@ -72,12 +72,12 @@ public:
   // Load and execute a qobj
   inline json_t execute(const json_t &qobj) {return execute(qobj, nullptr);}
 
-  json_t execute(const json_t &qobj, Noise::Model *noise_ptr);
+  json_t execute(const json_t &qobj, Base::NoiseModel *noise_ptr);
 
   // Execute a single circuit
   json_t execute_circuit(Circuit &circ, 
                          int max_shot_threads,
-                         Noise::Model *noise_ptr);
+                         Base::NoiseModel *noise_ptr);
 
   // Check if measurement sampling can be performed for a circuit
   // and set circuit flag if it is compatible                               
@@ -134,7 +134,7 @@ void Controller<Engine_t, State_t>::load_config(const json_t &config) {
 
 template < class Engine_t, class State_t>
 json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
-                                              Noise::Model *noise_ptr) {
+                                              Base::NoiseModel *noise_ptr) {
   
   auto timer_start = myclock_t::now(); // start timer
   Qobj qobj; // Load QOBJ from json
@@ -209,7 +209,7 @@ json_t Controller<Engine_t, State_t>::execute(const json_t &qobj_js,
 template <class Engine_t, class State_t>
 json_t Controller<Engine_t, State_t>::execute_circuit(Circuit &circ,
                                                       int max_shot_threads,
-                                                      Noise::Model *noise_ptr) {
+                                                      Base::NoiseModel *noise_ptr) {
   
   // Initialize Return
   auto timer_start = myclock_t::now(); // state circuit timer

@@ -29,7 +29,7 @@ namespace Noise {
 // This combines unitary and Kraus errors into one error class to prevent
 // the inefficient use of unitary matrices in a Kraus decomposition.
 
-class GateError : public Error {
+class GateError : public AbstractError {
 public:
 
   GateError() = default;
@@ -40,8 +40,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
-  NoiseOps sample_noise(const Operations::Op &op,
-                        const reg_t &qubits,
+  NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
 
   //-----------------------------------------------------------------------
@@ -81,18 +80,17 @@ protected:
 // Implementation
 //-----------------------------------------------------------------------
 
-NoiseOps GateError::sample_noise(const Operations::Op &op,
-                                 const reg_t &qubits,
-                                 RngEngine &rng) {
+GateError::NoiseOps GateError::sample_noise(const reg_t &qubits,
+                                            RngEngine &rng) {
 
   auto noise_type = rng.rand_int(probabilities_);
   switch (noise_type) {
     case 0:
-      return {op};
+      return {};
     case 1:
-      return unitary_error_.sample_noise(op, qubits, rng);
+      return unitary_error_.sample_noise(qubits, rng);
     case 2:
-      return kraus_error_.sample_noise(op, qubits, rng);
+      return kraus_error_.sample_noise(qubits, rng);
     default:
       // We shouldn't get here, but just in case...
       throw std::invalid_argument("GateError type is out of range.");

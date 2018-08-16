@@ -63,10 +63,10 @@ struct Op {
   using qubit_set_t = std::set<uint_t, std::greater<uint_t>>;
   using pauli_component_t = std::tuple<complex_t,    // component coefficient
                                        qubit_set_t,  // component qubits
-                                       std::string>; // component pauli string
+                                       std::string>; // component Pauli string
   using matrix_component_t = std::tuple<complex_t,          // component coefficient
-                                        std::vector<reg_t>, // qubit subregisters Ex: [[2], [1, 0]]
-                                        std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
+                                        std::vector<reg_t>, // qubit sub-registers Ex: [[2], [1, 0]]
+                                        std::vector<cmatrix_t>>; // sub-matrices Ex: [M2, M10]
   std::vector<pauli_component_t> params_pauli_obs;
   std::vector<matrix_component_t> params_mat_obs; // not that diagonal matrices are stored as
                                                   // 1 x M row-matrices
@@ -96,6 +96,55 @@ inline void check_qubits(const reg_t &qubits) {
     throw std::invalid_argument("Invalid operation (\"qubits\" are not unique)");
   }
 }
+
+//------------------------------------------------------------------------------
+// Generator functions
+//------------------------------------------------------------------------------
+
+Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+  Op op;
+  op.name = "mat";
+  op.qubits = qubits;
+  op.mats = {mat};
+  if (label != "")
+    op.string_params = {label};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u1(uint_t qubit, T lam) {
+  Op op;
+  op.name = "u1";
+  op.qubits = {qubit};
+  op.params = {lam};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u2(uint_t qubit, T phi, T lam) {
+  Op op;
+  op.name = "u2";
+  op.qubits = {qubit};
+  op.params = {phi, lam};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u3(uint_t qubit, T theta, T phi, T lam) {
+  Op op;
+  op.name = "u3";
+  op.qubits = {qubit};
+  op.params = {theta, phi, lam};
+  return op;
+};
+
+Op make_reset(uint_t qubit, uint_t state = 0) {
+  Op op;
+  op.name = "reset";
+  op.qubits = {qubit};
+  op.params = {state};
+  return op;
+};
 
 //------------------------------------------------------------------------------
 // JSON conversion
@@ -208,10 +257,9 @@ Op json_to_op_reset(const json_t &js) {
   Op op;
   op.name = "reset";
   JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js);
-  // If params is missing default reset to 0
-  if (op.params.empty()) {
-    op.params = cvector_t(op.qubits.size(), 0.);
+  op.params = {0}; // default reset to 0 state
+  if (JSON::check_key("params", js)) {
+    op.params[0] = js["params"].get<rvector_t>()[0];
   }
   // Validation
   check_qubits(op.qubits);
@@ -277,12 +325,18 @@ Op json_to_op_mat(const json_t &js) {
   cmatrix_t mat;
   JSON::get_value(mat, "params", js);
   op.mats.push_back(mat);
-
+  // Check for a label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if (!label.empty()) {
+    op.string_params.push_back(label);
+  }
   // Validation
   check_qubits(op.qubits);
   return op;
 }
 
+// TODO: Remove and treat as special case of mat.
 Op json_to_op_dmat(const json_t &js) {
   Op op;
   op.name = "dmat";

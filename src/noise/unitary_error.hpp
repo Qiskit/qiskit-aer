@@ -14,7 +14,7 @@
 #ifndef _aer_noise_unitary_error_hpp_
 #define _aer_noise_unitary_error_hpp_
 
-#include "base/noise.hpp"
+#include "noise/abstract_error.hpp"
 
 // TODO optimization for gate fusion with original operator matrix
 
@@ -28,16 +28,14 @@ namespace Noise {
 // Unitary error class that can model mixed unitary error channels, and
 // coherent unitary errors.
 
-class UnitaryError : public Error {
+class UnitaryError : public AbstractError {
 public:
-
   //-----------------------------------------------------------------------
   // Error base required methods
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
-  NoiseOps sample_noise(const Operations::Op &op,
-                        const reg_t &qubits,
+  NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
 
   //-----------------------------------------------------------------------
@@ -53,27 +51,42 @@ public:
   // Sets the unitary error matrices for the error map
   void set_unitaries(const std::vector<cmatrix_t> &mats);
 
+  // Set the sampled errors to be applied after the original operation
+  inline void set_errors_after() {errors_after_op_ = true;}
+
+  // Set the sampled errors to be applied before the original operation
+  inline void set_errors_before() {errors_after_op_ = false;}
+
+  // Set whether the input operator should be combined into the error
+  // term (if compatible). The default is True
+  inline void combine_error(bool val) {combine_error_ = val;}
+
 protected:
   // Probabilities, first entry is no-error (identity)
   std::discrete_distribution<uint_t> probabilities_;
 
   // List of unitary error matrices
   std::vector<cmatrix_t> unitaries_;
+
+  // Flag for applying errors before or after the operation
+  bool errors_after_op_ = true; 
+
+  // Combine error with input matrix to return a single operation
+  // if it acts on the same qubits
+  bool combine_error_ = true;
 };
 
 //-------------------------------------------------------------------------
 // Implementation: Mixed unitary error subclass
 //-------------------------------------------------------------------------
 
-// TODO combine terms into single matrix
-NoiseOps UnitaryError::sample_noise(const Operations::Op &op,
-                                    const reg_t &qubits,
-                                    RngEngine &rng) {
+UnitaryError::NoiseOps UnitaryError::sample_noise(const reg_t &qubits,
+                                                  RngEngine &rng) {
   auto r = rng.rand_int(probabilities_);
   // Check for no error case
   if (r == 0) {
     // no error
-    return {op};
+    return {};
   }
   // Check for invalid arguments
   if (r > unitaries_.size()) {
@@ -82,16 +95,14 @@ NoiseOps UnitaryError::sample_noise(const Operations::Op &op,
   if (unitaries_.empty()) {
     throw std::invalid_argument("Unitary error matrices are not set.");
   }
-  //if (qubits.size() != num_qubits_) {
-  //  throw std::invalid_argument("Incorrect number of qubits for the error.");
-  //}
-  // TODO: combine op and error into single matrix operation
+  // Get the error operation for the unitary
   Operations::Op error;
   error.name = "mat";
   error.mats.push_back(unitaries_[r - 1]);
   error.qubits = qubits;
-  return {op, error};
+  return {error};
 }
+
 
 void UnitaryError::set_probabilities(const rvector_t &probs) {
   rvector_t probs_with_identity({1.});

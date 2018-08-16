@@ -424,7 +424,7 @@ void State::apply_op(const Operations::Op &op) {
     data_.apply_cz(op.qubits[0], op.qubits[1]);
     break;
   case Gates::reset:
-    apply_reset(op.qubits, 0);
+    apply_reset(op.qubits, uint_t(std::real(op.params[0])));
     break;
   case Gates::barrier:
     break;

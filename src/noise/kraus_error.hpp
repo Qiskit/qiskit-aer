@@ -14,7 +14,7 @@
 #ifndef _aer_noise_kraus_error_hpp_
 #define _aer_noise_kraus_error_hpp_
 
-#include "base/noise.hpp"
+#include "noise/abstract_error.hpp"
 
 // TODO: optimization for gate fusion with original operator matrix
 
@@ -32,7 +32,7 @@ namespace Noise {
 // of the Kraus error applying. If this is set the error map is
 // Error(rho) = (1-p) rho + p E(rho), with E defined as in (1).
 
-class KrausError : public Error {
+class KrausError : public AbstractError {
 public:
 
   //-----------------------------------------------------------------------
@@ -40,16 +40,29 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the operator followed by a Kraus operation
-  NoiseOps sample_noise(const Operations::Op &op,
-                        const reg_t &qubits,
+  NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
 
   //-----------------------------------------------------------------------
   // Additional class methods
   //-----------------------------------------------------------------------
 
+  // Set the Kraus matrices for the error
   void set_kraus(const std::vector<cmatrix_t> &ops);
+
+  // Set the probability of the Kraus error channel being applied
+  // the probability of no error (identity) will be 1 - p_Kraus
   void set_probability(double p_kraus);
+
+  // Set the sampled errors to be applied after the original operation
+  inline void set_errors_after() {errors_after_op_ = true;}
+
+  // Set the sampled errors to be applied before the original operation
+  inline void set_errors_before() {errors_after_op_ = false;}
+
+  // Set whether the input operator should be combined into the error
+  // term (if compatible). The default is True
+  inline void combine_error(bool val) {combine_error_ = val;}
 
 protected:
   // Probabilities of Kraus error being applied
@@ -57,7 +70,18 @@ protected:
   // 0 -> Kraus error map applied
   // 1 -> no error
   std::discrete_distribution<uint_t> probabilities_;
-  Operations::Op kraus_; // CPTP Kraus map op
+  
+  // The Kraus operation for the error channel
+  // This still needs to have the qubits it is applied to added to the Op
+  // which is done during the sample_noise method
+  Operations::Op kraus_;
+
+  // Flag for applying errors before or after the operation
+  bool errors_after_op_ = true;
+
+  // Combine error with input matrix to return a single operation
+  // if it acts on the same qubits
+  bool combine_error_ = true;
 };
 
 
@@ -66,9 +90,8 @@ protected:
 //=========================================================================
 
 // TODO add gate fusion optimization
-NoiseOps KrausError::sample_noise(const Operations::Op &op,
-                                  const reg_t &qubits,
-                                  RngEngine &rng) {
+KrausError::NoiseOps KrausError::sample_noise(const reg_t &qubits,
+                                              RngEngine &rng) {
 
   // check we have the correct number of qubits in the op for the error
   //if (qubits.size() != num_qubits_) {
@@ -76,19 +99,20 @@ NoiseOps KrausError::sample_noise(const Operations::Op &op,
   //}
   auto r = rng.rand_int(probabilities_);
   if (r == 1) {
-    // no error
-    return {op};
+    return {}; // no error
   }
-  Operations::Op err = kraus_;
-  err.qubits = qubits;
-  return {op, err};
-};
+  Operations::Op error = kraus_;
+  error.qubits = qubits;
+  return {error};
+}
+
 
 void KrausError::set_kraus(const std::vector<cmatrix_t> &ops) {
   kraus_ = Operations::Op();
   kraus_.name = "kraus";
   kraus_.mats = ops;
 }
+
 
 void KrausError::set_probability(double p_kraus) {
   if (p_kraus < 0 || p_kraus > 1) {
