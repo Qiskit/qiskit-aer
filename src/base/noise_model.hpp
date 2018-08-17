@@ -20,9 +20,10 @@
 #include "framework/circuit.hpp"
 #include "noise/abstract_error.hpp"
 
-// move JSON parsing
-#include "noise/gate_error.hpp"
-
+// For JSON parsing of specific error types
+#include "noise/unitary_error.hpp"
+#include "noise/kraus_error.hpp"
+#include "noise/reset_error.hpp"
 
 namespace AER {
 namespace Base {
@@ -57,27 +58,12 @@ public:
   // Set the RngEngine seed to a fixed value
   inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed);}
 
-  // Add a local error to the noise model for specific qubits
-  template <class DerivedError>
-  void add_local_error(const DerivedError &error, 
-                 const std::vector<std::string> &op_labels,
-                 const std::vector<reg_t> &op_qubit_sets);
-
-
-  // Add a local Error type to the model default for all qubits
-  // without a specific error present
-  template <class DerivedError>
-  void add_local_error(const DerivedError &error, 
-                 const std::vector<std::string> &op_labels) {
-    add_local_error(error, op_labels, {reg_t()});
-  }
-
   // Add a non-local Error type to the model for specific qubits
   template <class DerivedError>
-  void add_nonlocal_error(const DerivedError &error, 
-                          const std::vector<std::string> &op_labels,
-                          const std::vector<reg_t> &op_qubit_sets,
-                          const std::vector<reg_t> &noise_qubit_sets);
+  void add_error(const DerivedError &error, 
+                 const std::vector<std::string> &op_labels,
+                 const std::vector<reg_t> &op_qubits = {},
+                 const std::vector<reg_t> &noise_qubits = {});
 
   // Return true if there is the noise model is ideal
   // ie. there is no noise added
@@ -97,6 +83,20 @@ public:
   }
 
 private:
+
+  // Add a local error to the noise model for specific qubits
+  template <class DerivedError>
+  void add_local_error(const DerivedError &error, 
+                 const std::vector<std::string> &op_labels,
+                 const std::vector<reg_t> &op_qubits);
+
+  // Add a non-local Error type to the model for specific qubits
+  template <class DerivedError>
+  void add_nonlocal_error(const DerivedError &error, 
+                          const std::vector<std::string> &op_labels,
+                          const std::vector<reg_t> &op_qubits,
+                          const std::vector<reg_t> &noise_qubits);
+
   // Flags which say whether the local or nonlocal error tables are used
   bool local_errors_ = false;
   bool nonlocal_errors_ = false;
@@ -203,9 +203,28 @@ Circuit NoiseModel::sample_noise(const Circuit &circ) {
 
 
 template <class DerivedError>
+void NoiseModel::add_error(const DerivedError &error, 
+                           const std::vector<std::string> &op_labels,
+                           const std::vector<reg_t> &op_qubits,
+                           const std::vector<reg_t> &noise_qubits) {
+
+  if (op_qubits.empty()) {
+    // Add default local error
+    add_local_error(error, op_labels, {reg_t()});
+  } else if (noise_qubits.empty()) {
+    // Add local error for specific qubits
+    add_local_error(error, op_labels, op_qubits);  
+  } else {
+    // Add non local error for specific qubits and target qubits
+    add_nonlocal_error(error, op_labels, op_qubits, noise_qubits);
+  }
+}
+
+
+template <class DerivedError>
 void NoiseModel::add_local_error(const DerivedError &error,
                            const std::vector<std::string> &op_labels,
-                           const std::vector<reg_t> &qubit_sets) {  
+                           const std::vector<reg_t> &op_qubits) {  
   // Turn on local error flag
   if (!op_labels.empty()) {
     local_errors_ = true;
@@ -216,7 +235,7 @@ void NoiseModel::add_local_error(const DerivedError &error,
   const auto error_pos = error_ptrs_.size() - 1;
   // Add error index to the error table
   for (const auto &gate: op_labels)
-    for (const auto &qubits : qubit_sets)
+    for (const auto &qubits : op_qubits)
       local_error_table_[gate][qubits].push_back(error_pos); 
 }
 
@@ -224,10 +243,11 @@ void NoiseModel::add_local_error(const DerivedError &error,
 template <class DerivedError>
 void NoiseModel::add_nonlocal_error(const DerivedError &error,
                                     const std::vector<std::string> &op_labels,
-                                    const std::vector<reg_t> &qubit_sets,
-                                    const std::vector<reg_t> &noise_qubit_sets) {  
+                                    const std::vector<reg_t> &op_qubits,
+                                    const std::vector<reg_t> &noise_qubits) {  
+
   // Turn on nonlocal error flag
-  if (!op_labels.empty() && !qubit_sets.empty() && !noise_qubit_sets.empty()) {
+  if (!op_labels.empty() && !op_qubits.empty() && !noise_qubits.empty()) {
     nonlocal_errors_ = true;
   }
   // Add error term as unique pointer                                          
@@ -236,8 +256,8 @@ void NoiseModel::add_nonlocal_error(const DerivedError &error,
   const auto error_pos = error_ptrs_.size() - 1;
   // Add error index to the error table
   for (const auto &gate: op_labels)
-    for (const auto &qubits_gate : qubit_sets)
-      for (const auto &qubits_noise : noise_qubit_sets)
+    for (const auto &qubits_gate : op_qubits)
+      for (const auto &qubits_noise : noise_qubits)
         nonlocal_error_table_[gate][qubits_gate][qubits_noise].push_back(error_pos); 
 }
 
@@ -355,36 +375,90 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u2(uint_t qubit,
 // JSON Conversion
 //=========================================================================
 
-// Currently we only support a Kraus and unitary gate errors
-// the noise config should be an array of gate_error objects:
-//  [gate_error1, gate_error2, ...]
-// where each gate_error object is of the form
-//  {
-//    "type": "gate_error",   // string
-//    "operations": ["x", "y", "z"], // list string
-//    "params": [mat1, mat2, mat3]
-//  }
-// TODO add reset errors and X90 based errors
-
-void NoiseModel::load_from_json(const json_t &js) {
-  // Check json is an array
-  if (!js.is_array()) {
-    throw std::invalid_argument("Noise params JSON is not an array");
+/*
+  Schemas:
+  {
+    "error_model": {
+      "errors": [error js],
+      "waltz_gates": which gates should be implemented as waltz gates and use the "x90" term
+    }
   }
 
-  for (const auto &gate_js : js) {
-    std::string type;
-    JSON::get_value(type, "type", gate_js);
-    std::vector<std::string> ops;
-    JSON::get_value(ops, "operations", gate_js);
-    std::vector<cmatrix_t> mats;
-    JSON::get_value(mats, "params", gate_js);
+  General error:
+  {
+    "type": "error type",
+    "operations": ["x", "y", ..],  // ops to apply error to
+    "op_qubits": [[0], [1]]        // error only apples when op is on these qubits (blank for all)
+    "noise_qubits": [[2], ...]     // error term will be applied to these qubits (blank for input qubits)
+    "noise_after": true            // apply the error term before the ideal op (blank for default of true)
+                                   // if false noise will be applied before op
+  }
 
-    if (type == "gate_error") {
-      Noise::GateError error(mats);
-      add_local_error(error, ops);
-    } else {
-      throw std::invalid_argument("Invalid noise type (" + type + ")");
+  Specific types additional parameters
+  Unitary
+  {
+    "type": "unitary",
+    "probabilities": [p0, p1, ..],
+    "matrices": [U0, U1, ...]
+  }
+
+  Kraus
+  {
+    "type": "kraus",
+    "matrices": [A0, A1, ...]
+  }
+
+  Reset
+  {
+    "type": "reset",
+    "default_probabilities": probs,
+    "qubit_probabilities": [[q0, probs0], [q1, probs1]]
+  }
+*/
+// Allowed types: "unitary_error", "kraus_error", "reset_error"
+
+void NoiseModel::load_from_json(const json_t &js) {
+
+  // Check JSON is an object
+  if (!js.is_object()) {
+    throw std::invalid_argument("Invalid noise_params JSON: not an object.");
+  }
+
+  // See if any single qubit gates have a waltz error model applied to them
+  if (JSON::check_key("waltz_gates", js)) {
+    set_waltz_gates(js["waltz_gates"]);
+  }
+
+  if (JSON::check_key("errors", js)) {
+    if (!js["errors"].is_array()) {
+      throw std::invalid_argument("Invalid noise_params JSON: \"error\" field is not a list");
+    }
+    for (const auto &gate_js : js["errors"]) {
+      std::string type;
+      JSON::get_value(type, "type", gate_js);
+      std::vector<std::string> ops;
+      JSON::get_value(ops, "operations", gate_js);
+      std::vector<reg_t> gate_qubits;
+      JSON::get_value(ops, "gate_qubits", gate_js);
+      std::vector<reg_t> noise_qubits;
+      JSON::get_value(ops, "noise_qubits", gate_js);
+
+      if (type == "unitary") {
+        Noise::UnitaryError error;
+        error.load_from_json(gate_js);
+        add_error(error, ops, gate_qubits, noise_qubits);
+      } else if (type == "kraus") {
+        Noise::KrausError error;
+        error.load_from_json(gate_js);
+        add_error(error, ops, gate_qubits, noise_qubits);
+      } else if (type == "reset") {
+        Noise::ResetError error;
+        error.load_from_json(gate_js);
+        add_error(error, ops, gate_qubits, noise_qubits);
+      }
+      else {
+        throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
+      }
     }
   }
 }

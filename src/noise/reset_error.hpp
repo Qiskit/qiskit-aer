@@ -42,6 +42,13 @@ public:
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
+  
+  // TODO
+  // Check that the reset error probabilities are valid
+  std::pair<bool, std::string> validate() const override;
+
+  // Load a ResetError object from a JSON Error object
+  void load_from_json(const json_t &js) override;
 
   //-----------------------------------------------------------------------
   // Additional class methods
@@ -64,9 +71,6 @@ public:
 
 protected:
   using probs_t = std::discrete_distribution<uint_t>;
-
-  // Flag for applying errors before or after the operation
-  bool errors_after_op_ = true;
   
   // Reset error probabilities for each qubit
   // 0 -> no reset
@@ -117,6 +121,27 @@ ResetError::probs_t ResetError::format_probabilities(const rvector_t &probs) {
     throw std::invalid_argument("ResetError probabilities > 1.");
   }
   return probs_t(error_probs.begin(), error_probs.end());
+}
+
+
+std::pair<bool, std::string> ResetError::validate() const {
+  // TODO
+  return std::make_pair(true, std::string());
+}
+
+
+void ResetError::load_from_json(const json_t &js) {
+  rvector_t default_probs;
+  JSON::get_value(default_probs, "default_probabilities", js);
+  if (!default_probs.empty()) {
+    set_default_probabilities(default_probs);
+  }
+  std::vector<std::pair<double, rvector_t>> qubit_probs;
+  JSON::get_value(qubit_probs, "qubit_probabilities", js);
+  if (!qubit_probs.empty()) {
+    for (const auto pair : qubit_probs)
+      set_qubit_probabilities(pair.first, pair.second);
+  }
 }
 
 //-------------------------------------------------------------------------

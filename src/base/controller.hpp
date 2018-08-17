@@ -253,6 +253,11 @@ json_t Controller::execute(const json_t &qobj_js) {
   bool all_success = true;
 
   try {
+
+    // Check noise model before here: this is because OpenMP can't catch the exception when the noise model
+    // is loaded in each subthread.
+    NoiseModel noise(noise_model_); // will throw an exception if noise model is invalid
+
     int num_circuits = qobj.circuits.size();
 
   // Check for OpenMP and number of available CPUs
@@ -389,7 +394,6 @@ Engine<state_t> Controller::execute_circuit(Circuit &circ,
                                             uint_t state_seed,
                                             uint_t noise_seed,
                                             int num_threads_state) {
-
   // Initialize Engine and load config
   Engine<state_t> engine;
   engine.load_config(engine_config_); // load stored config

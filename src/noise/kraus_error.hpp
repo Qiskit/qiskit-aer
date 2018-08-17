@@ -7,16 +7,16 @@
 
 /**
  * @file    kraus_error.hpp
- * @brief   Kraus Error class for Qiskit-Aer simulator
+ * @brief   General Kraus Error class for Qiskit-Aer simulator
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
 
 #ifndef _aer_noise_kraus_error_hpp_
 #define _aer_noise_kraus_error_hpp_
 
-#include "noise/abstract_error.hpp"
+#include "noise/unitary_error.hpp"
 
-// TODO: optimization for gate fusion with original operator matrix
+// TODO: add support for diagonal matrices
 
 namespace AER {
 namespace Noise {
@@ -28,97 +28,181 @@ namespace Noise {
 // This class is used to model a general CPTP error map in Kraus form
 // It contains a vector of matrices for the Kraus operators implementing the
 // error map E(rho) = sum_j K_j rho K_j^\dagger (1)
-// It may optionally contain as single probability p which is the probability
-// of the Kraus error applying. If this is set the error map is
-// Error(rho) = (1-p) rho + p E(rho), with E defined as in (1).
+// To improve efficiency when loading from a set of matrices the unitary
+// Kraus operators will be partitioned into a UnitaryError class, and only
+// the non-unitary Kraus operators will be implemented as a Kraus Op.
+// Hence the map is transformed to an equivalent on of the form:
+// E(rho) = (1 - p_unitary - p_kraus) rho 
+//           + p_unitary * (sum_j p_j U_j rho U_j ^\dagger )
+//           + p_kraus * (sum_j A_j rho A_j ^\dagger)
+//    where sum_j p_j = 1, and sum_j A_j^\dagger A_j = id
 
 class KrausError : public AbstractError {
 public:
+
+  KrausError() = default;
+  KrausError(const std::vector<cmatrix_t> &mats) {load_from_mats(mats, 1.0);}
 
   //-----------------------------------------------------------------------
   // Error base required methods
   //-----------------------------------------------------------------------
 
-  // Return the operator followed by a Kraus operation
+  // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
+
+  // Check that Error matrices are unitary, and that the correct number
+  // of probabilities are specified.
+  std::pair<bool, std::string> validate() const override;
+
+  // Load a KrausError object from a JSON Error object
+  void load_from_json(const json_t &js) override;
 
   //-----------------------------------------------------------------------
   // Additional class methods
   //-----------------------------------------------------------------------
 
-  // Set the Kraus matrices for the error
-  void set_kraus(const std::vector<cmatrix_t> &ops);
+  // Construct a gate error from a vector of Kraus matrices for a CPTP map
+  // This will automatically partition the operators into unitary and Kraus
+  // errors based on the type of operators. The optional probability parameter
+  // is the error probability (default 1).
+  void load_from_mats(const std::vector<cmatrix_t> &mats, double p_error = 1);
 
-  // Set the probability of the Kraus error channel being applied
-  // the probability of no error (identity) will be 1 - p_Kraus
-  void set_probability(double p_kraus);
+  // Build manually
 
-  // Set the sampled errors to be applied after the original operation
-  inline void set_errors_after() {errors_after_op_ = true;}
-
-  // Set the sampled errors to be applied before the original operation
-  inline void set_errors_before() {errors_after_op_ = false;}
-
-  // Set whether the input operator should be combined into the error
-  // term (if compatible). The default is True
-  inline void combine_error(bool val) {combine_error_ = val;}
+  void set_probabilities(double p_identity, double p_unitary, double p_kraus);
 
 protected:
-  // Probabilities of Kraus error being applied
-  // When sampled the outcomes correspond to:
-  // 0 -> Kraus error map applied
-  // 1 -> no error
+  // Probability of noise type:
+  // 0 -> No error
+  // 1 -> UnitaryError error
+  // 2 -> Kraus error
   std::discrete_distribution<uint_t> probabilities_;
-  
-  // The Kraus operation for the error channel
-  // This still needs to have the qubits it is applied to added to the Op
-  // which is done during the sample_noise method
-  Operations::Op kraus_;
 
-  // Flag for applying errors before or after the operation
-  bool errors_after_op_ = true;
+  // Include a unitary error for the unitary Kraus operators
+  UnitaryError unitary_error_;
+  // Collect all the non-unitary Kraus operators into a single Kraus Op
+  std::vector<cmatrix_t> kraus_mats_;
 
-  // Combine error with input matrix to return a single operation
-  // if it acts on the same qubits
-  bool combine_error_ = true;
+  double unitary_threshold_ = 1e-10;
 };
 
 
-//=========================================================================
+//-----------------------------------------------------------------------
 // Implementation
-//=========================================================================
+//-----------------------------------------------------------------------
 
-// TODO add gate fusion optimization
 KrausError::NoiseOps KrausError::sample_noise(const reg_t &qubits,
-                                              RngEngine &rng) {
+                                            RngEngine &rng) {
 
-  // check we have the correct number of qubits in the op for the error
-  //if (qubits.size() != num_qubits_) {
-  //  throw std::invalid_argument("Incorrect number of qubits for the error.");
-  //}
-  auto r = rng.rand_int(probabilities_);
-  if (r == 1) {
-    return {}; // no error
+  auto noise_type = rng.rand_int(probabilities_);
+  switch (noise_type) {
+    case 0:
+      return {};
+    case 1:
+      return unitary_error_.sample_noise(qubits, rng);
+    case 2:
+      return {Operations::make_kraus(qubits, kraus_mats_)};
+    default:
+      // We shouldn't get here, but just in case...
+      throw std::invalid_argument("KrausError type is out of range.");
   }
-  Operations::Op error = kraus_;
-  error.qubits = qubits;
-  return {error};
+};
+
+
+void KrausError::set_probabilities(double p_identity, double p_unitary, double p_kraus) {
+  probabilities_ = std::discrete_distribution<uint_t>({p_identity, p_unitary, p_kraus});
 }
 
 
-void KrausError::set_kraus(const std::vector<cmatrix_t> &ops) {
-  kraus_ = Operations::Op();
-  kraus_.name = "kraus";
-  kraus_.mats = ops;
+void KrausError::load_from_mats(const std::vector<cmatrix_t> &mats,
+                               double p_error) {
+
+  // Check input is a CPTP map
+  cmatrix_t cptp(mats[0].size());
+  for (const auto &mat : mats) {
+    cptp = cptp + Utils::dagger(mat) * mat;
+  }
+  if (Utils::is_identity(cptp, unitary_threshold_) == false) {
+    throw std::invalid_argument("KrausError input is not a CPTP map.");
+  }
+
+  // Check if each matrix is a scaled identity, scaled unitary, or general
+  // kraus operator
+
+  double p_identity = 0;
+  double p_unitary = 0.;
+  double p_kraus = 0.;
+
+  rvector_t probs_unitaries;
+  std::vector<cmatrix_t> unitaries;
+  kraus_mats_.clear(); // empty current Kraus mats
+
+  for (const auto &mat : mats) {
+    // TODO: add support for diagonal matrices
+    if (!Utils::is_square(mat)) {
+      throw std::invalid_argument("Error matrix is not square.");
+    }
+    // Get the (0, 0) value of mat * dagger(mat) for rescaling
+    double p = 0.;
+    for (size_t j=0; j < mat.GetRows(); j ++)
+      p += std::real(std::abs(mat(j, 0) * std::conj(mat(0, j))));
+    if (p > 0) {
+      // rescale mat by probability
+      cmatrix_t tmp = (1 / std::sqrt(p)) * mat;
+      // check if rescaled matrix is an identity
+      if (Utils::is_identity(tmp, unitary_threshold_)) {
+        p_identity += p;
+      }
+      // check if rescaled matrix is a unitary
+      else if (Utils::is_unitary(tmp, unitary_threshold_)) {
+        unitaries.push_back(tmp);
+        probs_unitaries.push_back(p);
+        p_unitary += p;
+      } else {
+        // Original matrix is non-unitary so add it to Kraus ops
+        kraus_mats_.push_back(mat);
+      }
+    }
+  }
+  // Infer probability of the kraus error from other terms.
+  p_kraus = 1. - p_identity - p_unitary;
+  // sanity check:
+  if (std::abs(p_identity + p_unitary + p_kraus - 1) > unitary_threshold_) {
+    throw std::invalid_argument("KrausError deduced probabilities invalid.");
+  }
+
+  // Now we rescale probabilities to into account the p_error parameter
+  // rescale Kraus operators
+  if (p_kraus > 0 && p_kraus < 1)
+    for (auto &k : kraus_mats_)
+      k = (1 / std::sqrt(p_kraus)) * k;
+  // Rescale unitary probabilities
+  if (p_unitary > 0 && p_unitary < 1)
+    for (auto &p : probs_unitaries)
+      p = p / p_unitary;
+
+  // Set the gate error probabilities
+  set_probabilities(1 - p_error + p_error * p_identity,
+                    p_error * p_unitary,
+                    p_error * p_kraus);
+
+  // Set the gate error operators
+  unitary_error_.set_probabilities(probs_unitaries);
+  unitary_error_.set_unitaries(unitaries);
+}
+
+// TODO
+std::pair<bool, std::string> KrausError::validate() const {
+  return unitary_error_.validate();
 }
 
 
-void KrausError::set_probability(double p_kraus) {
-  if (p_kraus < 0 || p_kraus > 1) {
-    throw std::invalid_argument("Invalid KrausError probability.");
-  }
-  probabilities_ = std::discrete_distribution<uint_t>({p_kraus, 1 - p_kraus});
+void KrausError::load_from_json(const json_t &js) {
+  std::vector<cmatrix_t> mats;
+  JSON::get_value(mats, "matrices", js);
+  if (!mats.empty())
+    load_from_mats(mats);
 }
 
 //-------------------------------------------------------------------------
@@ -126,5 +210,4 @@ void KrausError::set_probability(double p_kraus) {
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
-
 #endif

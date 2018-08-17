@@ -146,6 +146,15 @@ Op make_reset(uint_t qubit, uint_t state = 0) {
   return op;
 };
 
+Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+  Op op;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = mats;
+  return op;
+};
+
+
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------

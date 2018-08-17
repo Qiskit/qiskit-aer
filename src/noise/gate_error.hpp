@@ -11,11 +11,10 @@
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
 
-#ifndef _aer_noise_gate_error_hpp_
-#define _aer_noise_gate_error_hpp_
+#ifndef _aer_noise_kraus_error_hpp_
+#define _aer_noise_kraus_error_hpp_
 
 #include "noise/unitary_error.hpp"
-#include "noise/kraus_error.hpp"
 
 // TODO: add support for diagonal matrices
 
@@ -57,12 +56,6 @@ public:
 
   void set_probabilities(double p_identity, double p_unitary, double p_kraus);
 
-  void set_kraus(const KrausError &err);
-
-  void set_unitary(const UnitaryError &err);
-
-  
-
 protected:
   // Probability of noise type:
   // 0 -> No error
@@ -70,9 +63,10 @@ protected:
   // 2 -> Kraus error
   std::discrete_distribution<uint_t> probabilities_;
 
-  // Sub-error classes
+  // Include a unitary error for the unitary Kraus operators
   UnitaryError unitary_error_;
-  KrausError kraus_error_;
+  // Collect all the non-unitary Kraus operators into a single Kraus Op
+  std::vector<cmatrix_t> kraus_mats_;
 };
 
 
@@ -90,24 +84,18 @@ GateError::NoiseOps GateError::sample_noise(const reg_t &qubits,
     case 1:
       return unitary_error_.sample_noise(qubits, rng);
     case 2:
-      return kraus_error_.sample_noise(qubits, rng);
+      return {Operations::make_kraus(qubits, kraus_mats_)};
     default:
       // We shouldn't get here, but just in case...
       throw std::invalid_argument("GateError type is out of range.");
   }
 };
 
+
 void GateError::set_probabilities(double p_identity, double p_unitary, double p_kraus) {
   probabilities_ = std::discrete_distribution<uint_t>({p_identity, p_unitary, p_kraus});
 }
 
-void GateError::set_kraus(const KrausError &err) {
-  kraus_error_ = err;
-}
-
-void GateError::set_unitary(const UnitaryError &err) {
-  unitary_error_ = err;
-}
 
 void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
                                double p_error) {
@@ -132,7 +120,7 @@ void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
 
   rvector_t probs_unitaries;
   std::vector<cmatrix_t> unitaries;
-  std::vector<cmatrix_t> kraus;
+  kraus_mats_.clear(); // empty current Kraus mats
 
   for (const auto &mat : mats) {
     // TODO: add support for diagonal matrices
@@ -157,7 +145,7 @@ void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
         p_unitary += p;
       } else {
         // Original matrix is non-unitary so add it to Kraus ops
-        kraus.push_back(mat);
+        kraus_mats_.push_back(mat);
       }
     }
   }
@@ -171,7 +159,7 @@ void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
   // Now we rescale probabilities to into account the p_error parameter
   // rescale Kraus operators
   if (p_kraus > 0 && p_kraus < 1)
-    for (auto &k : kraus)
+    for (auto &k : kraus_mats_)
       k = (1 / std::sqrt(p_kraus)) * k;
   // Rescale unitary probabilities
   if (p_unitary > 0 && p_unitary < 1)
@@ -186,11 +174,6 @@ void GateError::load_from_mats(const std::vector<cmatrix_t> &mats,
   // Set the gate error operators
   unitary_error_.set_probabilities(probs_unitaries);
   unitary_error_.set_unitaries(unitaries);
-  kraus_error_.set_kraus(kraus);
-  if (kraus.empty())
-    kraus_error_.set_probability(0);
-  else
-    kraus_error_.set_probability(1);
   
   // TODO validate the noise model
 }

@@ -38,6 +38,13 @@ public:
   NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng) override;
 
+  // Check that Error matrices are unitary, and that the correct number
+  // of probabilities are specified.
+  std::pair<bool, std::string> validate() const override;
+
+  // Load a UnitaryError object from a JSON Error object
+  void load_from_json(const json_t &js) override;
+
   //-----------------------------------------------------------------------
   // Additional class methods
   //-----------------------------------------------------------------------
@@ -51,16 +58,6 @@ public:
   // Sets the unitary error matrices for the error map
   void set_unitaries(const std::vector<cmatrix_t> &mats);
 
-  // Set the sampled errors to be applied after the original operation
-  inline void set_errors_after() {errors_after_op_ = true;}
-
-  // Set the sampled errors to be applied before the original operation
-  inline void set_errors_before() {errors_after_op_ = false;}
-
-  // Set whether the input operator should be combined into the error
-  // term (if compatible). The default is True
-  inline void combine_error(bool val) {combine_error_ = val;}
-
 protected:
   // Probabilities, first entry is no-error (identity)
   std::discrete_distribution<uint_t> probabilities_;
@@ -68,12 +65,8 @@ protected:
   // List of unitary error matrices
   std::vector<cmatrix_t> unitaries_;
 
-  // Flag for applying errors before or after the operation
-  bool errors_after_op_ = true; 
-
-  // Combine error with input matrix to return a single operation
-  // if it acts on the same qubits
-  bool combine_error_ = true;
+  // threshold for validating if matrices are unitary
+  double unitary_threshold_ = 1e-10;
 };
 
 //-------------------------------------------------------------------------
@@ -120,8 +113,41 @@ void UnitaryError::set_probabilities(const rvector_t &probs) {
                       probs_with_identity.end());
 }
 
+
 void UnitaryError::set_unitaries(const std::vector<cmatrix_t> &mats) {
   unitaries_ = mats;
+}
+
+std::pair<bool, std::string> UnitaryError::validate() const {
+  bool valid = true;
+  std::string msg = "UnitaryError not valid:";
+  for (const auto &mat : unitaries_) {
+    if (!Utils::is_unitary(mat, unitary_threshold_)) {
+      valid = false;
+      msg += " Matrix is not unitary.";
+      break;
+    }
+  }
+  if (probabilities_.probabilities().size() > unitaries_.size() + 1) {
+    valid = false;
+    msg += " Number of probabilities and unitaries do no match.";
+  }
+  if (valid)
+    return std::make_pair(true, std::string());
+  else
+    return std::make_pair(false, msg);
+}
+
+
+void UnitaryError::load_from_json(const json_t &js) {
+  rvector_t probs;
+  JSON::get_value(probs, "probabilities", js);
+  if (!probs.empty())
+    set_probabilities(probs);
+  std::vector<cmatrix_t> mats;
+  JSON::get_value(mats, "matrices", js);
+  if (!mats.empty())
+    set_unitaries(mats);
 }
 
 //-------------------------------------------------------------------------

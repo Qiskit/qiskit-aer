@@ -35,6 +35,14 @@ public:
   // in RNG engine.
   virtual NoiseOps sample_noise(const reg_t &qubits,
                                 RngEngine &rng) = 0;
+
+  // Check that the parameters of the Error class are valid
+  // The output is a pair of a bool (true if valid, false if not)
+  // and a string containing an error message for the false case.
+  virtual std::pair<bool, std::string> validate() const = 0;
+
+  // Load from a JSON file
+  virtual void load_from_json(const json_t &js) = 0;
   
   // Set the sampled errors to be applied after the original operation
   inline void set_errors_after() {errors_after_op_ = true;}
