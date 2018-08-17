@@ -15,29 +15,29 @@ from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
 
 # Import Simulator tools
-from json_encoder import SimulatorJSONEncoder
-from qv_wrapper import QasmSimulatorWrapper
+from helpers import SimulatorJSONEncoder, qobj2schema
+from aer_qv_wrapper import AerSimulatorWrapper
 
 # Logger
 logger = logging.getLogger(__name__)
 
 
-class QasmSimulator(BaseBackend):
+class AerSimulator(BaseBackend):
     """Cython quantum circuit simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qasm_simulator_aer',
+        'name': 'local_aer_simulator',
         'url': 'NA',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector QASM simulator for qobj files',
+        'description': 'A C++ statevector simulator for qobj files',
         'coupling_map': 'all-to-all',
         "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz'
     }
 
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
-        self.simulator = QasmSimulatorWrapper()
+        self.simulator = AerSimulatorWrapper()
 
     def run(self, qobj):
         """Run a QOBJ on the the backend."""
@@ -45,15 +45,24 @@ class QasmSimulator(BaseBackend):
 
     def _run_job(self, qobj):
         self._validate(qobj)
-        qobj_str = json.dumps(qobj, cls=SimulatorJSONEncoder)
+        qobj_str = json.dumps(qobj2schema(qobj), cls=SimulatorJSONEncoder)
         result = json.loads(self.simulator.execute(qobj_str))
         # TODO: get schema in line with result object
         return result  # Result(result)
 
+    def load_noise_model(self, noise_model):
+        print(json.dumps(noise_model, cls=SimulatorJSONEncoder))
+        self.simulator.load_noise_model(json.dumps(noise_model, cls=SimulatorJSONEncoder))
+
+    def clear_noise_model(self):
+        self.simulator.clear_noise_model()
+
+    def load_config(self, engine=None, state=None):
+        if engine is not None:
+            self.simulator.load_engine_config(json.dumps(engine, cls=SimulatorJSONEncoder))
+        if state is not None:
+            self.simulator.load_state_config(json.dumps(state, cls=SimulatorJSONEncoder))
+
     def _validate(self, qobj):
-        for circ in qobj['circuits']:
-            if 'measure' not in [op['name'] for
-                                 op in circ['compiled_circuit']['operations']]:
-                logger.warning("no measurements in circuit '%s', "
-                               "classical register will remain all zeros.", circ['name'])
+        # TODO
         return

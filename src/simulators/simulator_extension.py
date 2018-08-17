@@ -29,7 +29,7 @@ def simulator_extension(package_name, source_files, include_dirs=None, blas=True
 
     opt = ['-ffast-math', '-O3', '-march=native']
     if sys.platform != 'win32':
-        _extra_compile_args = ['-g', '-std=c++11'] + opt + warnings
+        _extra_compile_args = ['-g', '-std=c++14'] + opt + warnings
     else:
         _extra_compile_args = ['/W1', '/Ox']
 

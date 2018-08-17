@@ -19,13 +19,8 @@
 
 // Simulator
 #include "base/controller.hpp"
-#include "base/engine.hpp"
 #include "simulators/qubitvector/qubitvector.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
-#include "framework/interface.hpp"
-
-// Noise
-#include "base/noise_model.hpp"
 
 /*******************************************************************************
  *

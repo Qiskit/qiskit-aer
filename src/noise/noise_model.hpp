@@ -11,8 +11,8 @@
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
 
-#ifndef _aer_base_noise_model_hpp_
-#define _aer_base_noise_model_hpp_
+#ifndef _aer_noise_model_hpp_
+#define _aer_noise_model_hpp_
 
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
@@ -26,7 +26,7 @@
 #include "noise/reset_error.hpp"
 
 namespace AER {
-namespace Base {
+namespace Noise {
 
 //=========================================================================
 // Noise Model class
@@ -106,7 +106,7 @@ private:
   bool noise_active_ = true;
 
   // Table of errors
-  std::vector<std::unique_ptr<Noise::AbstractError>> error_ptrs_;
+  std::vector<std::unique_ptr<AbstractError>> error_ptrs_;
 
   // Table indexes a name with a vector of the position of noise operations
   // Cant make inner map and unordered map due to lack of hashing for vector<uint_t>
@@ -230,7 +230,7 @@ void NoiseModel::add_local_error(const DerivedError &error,
     local_errors_ = true;
   }
   // Add error term as unique pointer                                          
-  error_ptrs_.push_back(std::unique_ptr<Noise::AbstractError>(std::make_unique<DerivedError>(error)));
+  error_ptrs_.push_back(std::unique_ptr<AbstractError>(std::make_unique<DerivedError>(error)));
   // position is error vector is length - 1
   const auto error_pos = error_ptrs_.size() - 1;
   // Add error index to the error table
@@ -251,7 +251,7 @@ void NoiseModel::add_nonlocal_error(const DerivedError &error,
     nonlocal_errors_ = true;
   }
   // Add error term as unique pointer                                          
-  error_ptrs_.push_back(std::unique_ptr<Noise::AbstractError>(std::make_unique<DerivedError>(error)));
+  error_ptrs_.push_back(std::unique_ptr<AbstractError>(std::make_unique<DerivedError>(error)));
   // position is error vector is length - 1
   const auto error_pos = error_ptrs_.size() - 1;
   // Add error index to the error table
@@ -419,6 +419,10 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u2(uint_t qubit,
 
 void NoiseModel::load_from_json(const json_t &js) {
 
+  // If JSON is empty stop
+  if (js.empty())
+    return;
+
   // Check JSON is an object
   if (!js.is_object()) {
     throw std::invalid_argument("Invalid noise_params JSON: not an object.");
@@ -444,15 +448,15 @@ void NoiseModel::load_from_json(const json_t &js) {
       JSON::get_value(ops, "noise_qubits", gate_js);
 
       if (type == "unitary") {
-        Noise::UnitaryError error;
+        UnitaryError error;
         error.load_from_json(gate_js);
         add_error(error, ops, gate_qubits, noise_qubits);
       } else if (type == "kraus") {
-        Noise::KrausError error;
+        KrausError error;
         error.load_from_json(gate_js);
         add_error(error, ops, gate_qubits, noise_qubits);
       } else if (type == "reset") {
-        Noise::ResetError error;
+        ResetError error;
         error.load_from_json(gate_js);
         add_error(error, ops, gate_qubits, noise_qubits);
       }

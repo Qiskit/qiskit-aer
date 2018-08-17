@@ -30,7 +30,7 @@
 // Base Controller
 #include "framework/qobj.hpp"
 #include "base/engine.hpp"
-#include "base/noise_model.hpp"
+#include "noise/noise_model.hpp"
 
 
 namespace AER {
@@ -58,9 +58,9 @@ namespace Base {
 class Controller {
 public:
 
-  //----------------------------------------------------------------
+  //-----------------------------------------------------------------------
   // Executing qobj
-  //----------------------------------------------------------------
+  //-----------------------------------------------------------------------
 
   // Load a QOBJ from a JSON file and execute on the DerivedState
   // class.
@@ -71,41 +71,9 @@ public:
   template <class state_t, class DerivedState>
   json_t execute(Circuit &circ);
 
-  //----------------------------------------------------------------
+  //-----------------------------------------------------------------------
   // Config settings
-  //----------------------------------------------------------------
-
-  // Set the maximum OpenMP threads that may be used across all levels
-  // of parallelization. Set to -1 for maximum available.
-  void set_max_threads(int max_threads = -1);
-
-  // Return the current value for maximum threads
-  inline int get_max_threads() {return max_threads_total_;}
-
-  // Set the maximum OpenMP threads that may be used for parallel
-  // circuit evaluation. Set to -1 for maximum available.
-  // Setting this to any number than 1 automatically sets the maximum
-  // shot threads to 1.
-  void set_max_threads_circuit(int max_threads = -1);
-
-  // Return the current value for maximum circuit threads
-  inline int get_max_threads_circuit() {return max_threads_circuit_;}
-
-  // Set the maximum OpenMP threads that may be used for parallel
-  // shot evaluation. Set to -1 for maximum available.
-  // Setting this to any number than 1 automatically sets the maximum
-  // circuit threads to 1.
-  void set_max_threads_shot(int max_threads = -1);
-
-  // Return the current value for maximum shot threads
-  inline int get_max_threads_shot() {return max_threads_shot_;}
-
-  // Set the maximum OpenMP threads that may be by the state class
-  // for parallelization of operations. Set to -1 for maximum available.
-  void set_max_threads_state(int max_threads = -1);
-
-  // Return the current value for maximum state threads
-  inline int get_max_threads_state() {return max_threads_state_;}
+  //-----------------------------------------------------------------------
 
   // Load a noise model from a noise_model JSON file
   void load_noise_model(const json_t &config);
@@ -115,6 +83,51 @@ public:
 
   // Load a default State config file from a JSON
   void load_state_config(const json_t &config);
+
+  // Clear the current noise model
+  inline void clear_noise_model() {noise_model_ = json_t();}
+
+  // Clear the current engine config
+  inline void clear_engine_config() {engine_config_ = json_t();}
+
+  // Clear the current state config
+  inline void clear_state_config() {state_config_ = json_t();}
+
+  //-----------------------------------------------------------------------
+  // OpenMP Parallelization settings
+  //-----------------------------------------------------------------------
+
+  // Set the maximum OpenMP threads that may be used across all levels
+  // of parallelization. Set to -1 for maximum available.
+  void set_max_threads(int max_threads = -1);
+
+  // Return the current value for maximum threads
+  inline int get_max_threads() const {return max_threads_total_;}
+
+  // Set the maximum OpenMP threads that may be used for parallel
+  // circuit evaluation. Set to -1 for maximum available.
+  // Setting this to any number than 1 automatically sets the maximum
+  // shot threads to 1.
+  void set_max_threads_circuit(int max_threads = -1);
+
+  // Return the current value for maximum circuit threads
+  inline int get_max_threads_circuit() const {return max_threads_circuit_;}
+
+  // Set the maximum OpenMP threads that may be used for parallel
+  // shot evaluation. Set to -1 for maximum available.
+  // Setting this to any number than 1 automatically sets the maximum
+  // circuit threads to 1.
+  void set_max_threads_shot(int max_threads = -1);
+
+  // Return the current value for maximum shot threads
+  inline int get_max_threads_shot() const {return max_threads_shot_;}
+
+  // Set the maximum OpenMP threads that may be by the state class
+  // for parallelization of operations. Set to -1 for maximum available.
+  void set_max_threads_state(int max_threads = -1);
+
+  // Return the current value for maximum state threads
+  inline int get_max_threads_state() const {return max_threads_state_;}
 
 private:
 
@@ -256,7 +269,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 
     // Check noise model before here: this is because OpenMP can't catch the exception when the noise model
     // is loaded in each subthread.
-    NoiseModel noise(noise_model_); // will throw an exception if noise model is invalid
+    Noise::NoiseModel noise(noise_model_); // will throw an exception if noise model is invalid
 
     int num_circuits = qobj.circuits.size();
 
@@ -415,7 +428,7 @@ Engine<state_t> Controller::execute_circuit(Circuit &circ,
   }
   
   // Load noise model
-  NoiseModel noise(noise_model_);
+  Noise::NoiseModel noise(noise_model_);
   noise.set_rng_seed(noise_seed);
 
   // Check if there is noise for the implementation

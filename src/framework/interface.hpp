@@ -14,16 +14,7 @@
 #ifndef _aer_interface_hpp_
 #define _aer_interface_hpp_
 
-#include <chrono>
-#include <cstdint>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "framework/json.hpp"
+#include "base/controller.hpp"
 
 namespace AER {
 
@@ -31,48 +22,107 @@ namespace AER {
 // Interface class for wrapping Controllers for Python
 //============================================================================
 
-template <class controller_t>
 class Interface {
 public:
-
-  // Constructors
-  Interface() = default;
-  Interface(const controller_t &ctrlr) {controller_ = ctrlr;};
-  Interface(controller_t &&ctrlr) {controller_ = std::move(ctrlr);};
-  virtual ~Interface() = default;
   
+  //-----------------------------------------------------------------------
+  // Execution
+  //-----------------------------------------------------------------------
+
   // Execute from string to string
+  template <class state_t, class DerivedState>
   inline std::string execute(const std::string &qobj_str) {
-    return controller_.execute(json_t::parse(qobj_str)).dump(-1);
+    return controller_.execute<state_t, DerivedState>(json_t::parse(qobj_str)).dump(-1);
+  };
+
+  //-----------------------------------------------------------------------
+  // Config settings
+  //-----------------------------------------------------------------------
+
+  // Load controller config from string
+  inline void load_noise_model(const std::string &config) {
+    controller_.load_noise_model(json_t::parse(config));
   };
 
   // Load controller config from string
-  inline void load_controller_config(std::string config) {
-    controller_.load_config(json_t::parse(config));
-  };
-
-  // Load engine config from string
-  inline void load_engine_config(std::string config) {
-    controller_.load_engine_config(json_t::parse(config));
-  };
-
-  // Load state config from string
-  inline void load_state_config(std::string config) {
+  inline void load_state_config(const std::string &config) {
     controller_.load_state_config(json_t::parse(config));
   };
 
-  // Get number of threads for the controller
-  inline int get_num_threads() {
-    return controller_.get_num_threads();
+  // Load engine config from string
+  inline void load_engine_config(const std::string &config) {
+    controller_.load_engine_config(json_t::parse(config));
   };
 
-  // Set number of parallelization threads for controller
-  inline void set_num_threads(int threads) {
-    controller_.set_num_threads(threads);
+  // Load controller config from string
+  inline void clear_noise_model() {
+    controller_.clear_noise_model();
   };
+
+  // Load controller config from string
+  inline void clear_state_config() {
+    controller_.clear_state_config();
+  };
+
+  // Load engine config from string
+  inline void clear_engine_config() {
+    controller_.clear_engine_config();
+  };
+
+  //-----------------------------------------------------------------------
+  // OpenMP Parallelization settings
+  //-----------------------------------------------------------------------
+
+  // Set the maximum OpenMP threads that may be used across all levels
+  // of parallelization. Set to -1 for maximum available.
+  inline void set_max_threads(int max_threads = -1) {
+    controller_.set_max_threads(max_threads);
+  }
+
+  // Return the current value for maximum threads
+  inline int get_max_threads() const {
+    return controller_.get_max_threads();
+  }
+
+  // Set the maximum OpenMP threads that may be used for parallel
+  // circuit evaluation. Set to -1 for maximum available.
+  // Setting this to any number than 1 automatically sets the maximum
+  // shot threads to 1.
+  void set_max_threads_circuit(int max_threads = -1) {
+    controller_.set_max_threads_circuit(max_threads);
+  }
+  // Return the current value for maximum circuit threads
+  inline int get_max_threads_circuit() const {
+    return controller_.get_max_threads_circuit();
+  }
+
+  // Set the maximum OpenMP threads that may be used for parallel
+  // shot evaluation. Set to -1 for maximum available.
+  // Setting this to any number than 1 automatically sets the maximum
+  // circuit threads to 1.
+  void set_max_threads_shot(int max_threads = -1) {
+    controller_.set_max_threads_shot(max_threads);
+  }
+
+  // Return the current value for maximum shot threads
+  inline int get_max_threads_shot() const {
+    return controller_.get_max_threads_shot();
+  }
+
+  // Set the maximum OpenMP threads that may be by the state class
+  // for parallelization of operations. Set to -1 for maximum available.
+  void set_max_threads_state(int max_threads = -1) {
+    controller_.set_max_threads_state(max_threads);
+  }
+
+  // Return the current value for maximum state threads
+  inline int get_max_threads_state() const {
+    return controller_.get_max_threads_state();
+  }
 
 private:
-  controller_t controller_;
+  // The controller being interfaced with python
+  Base::Controller controller_;
 };
 
 //------------------------------------------------------------------------------
