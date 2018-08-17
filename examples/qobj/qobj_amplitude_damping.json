@@ -2,10 +2,11 @@
     "id": "pauli_observable_snapshot_example",
     "type": "QASM",
     "config": {
-        "noise_params": [ 
+        "noise_model": [ 
             {
                 "type": "gate_error",
-                "operations": ["x", "y", "z", "h", "s", "sdg", "t", "tdg", "u1", "u2", "u3"],
+                "operations": ["x", "y", "z", "h", "s", "sdg", "t", "tdg", "u1", "u2", "u3", "x90"],
+                "qubits": null,
                 "params": [
                     [[[1, 0], [0, 0]], [[0, 0], [0.5, 0]]],
                     [[[0, 0], [0.86602540378, 0]], [[0, 0], [0, 0]]]
@@ -15,7 +16,7 @@
     },
     "experiments": [
         {   
-            "config": {"shots": 1000},
+            "config": {"shots": 10},
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "snapshot", "type": "pauli_observable",

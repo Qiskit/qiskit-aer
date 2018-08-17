@@ -20,7 +20,6 @@
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
 #include "base/state.hpp"
-#include "base/noise_model.hpp"
 
 namespace AER {
 namespace Base {
@@ -37,8 +36,7 @@ enum class EngineOp {
   snapshot_state,
   snapshot_probs,
   snapshot_pauli,
-  snapshot_matrix,
-  noise_switch
+  snapshot_matrix
 };
 
 // Engine class
@@ -55,8 +53,7 @@ public:
   //   3. call compute_results after ops have been applied
   void execute(const Circuit &circ,
                uint_t shots,
-               State<state_t> *state_ptr,
-               Base::NoiseModel *noise_ptr = nullptr);
+               State<state_t> *state_ptr);
 
   // This method performs the same function as 'execute', except
   // that it only simulates a single shot and then generates samples
@@ -103,17 +100,10 @@ protected:
 
   // Apply an operation to the state
   void apply_op(const Operations::Op &op,
-                State<state_t> *state_ptr,
-                Base::NoiseModel *noise_ptr);
+                State<state_t> *state_ptr);
 
   // Initialize an engine and circuit
   void initialize(State<state_t> *state, const Circuit &circ);
-
-  //----------------------------------------------------------------
-  // Measurement
-  //----------------------------------------------------------------
-
-  bool noise_flag_ = true;
 
   //----------------------------------------------------------------
   // Measurement
@@ -203,25 +193,23 @@ const std::unordered_map<std::string, EngineOp> Engine<state_t>::engine_ops_ = {
   {"snapshot_probs", EngineOp::snapshot_probs},
   {"snapshot_pauli", EngineOp::snapshot_pauli},
   {"snapshot_matrix", EngineOp::snapshot_matrix},
-  {"snapshot_state", EngineOp::snapshot_state},
-  {"noise_switch", EngineOp::noise_switch}
+  {"snapshot_state", EngineOp::snapshot_state}
 };
 
 
 template <class state_t>
 void Engine<state_t>::execute(const Circuit &circ,
                               uint_t shots,
-                              State<state_t> *state_ptr,
-                              Base::NoiseModel *noise_ptr) {
+                              State<state_t> *state_ptr) {
   // Check if ideal simulation check if sampling is possible
-  if (noise_ptr == nullptr && circ.measure_sampling_flag) {
+  if (circ.measure_sampling_flag && shots > 1) {
     execute_with_measure_sampling(circ, shots, state_ptr);
   } else {
     // Ideal execution without sampling
     while (shots-- > 0) {
       initialize(state_ptr, circ);
       for (const auto &op: circ.ops) {
-        apply_op(op, state_ptr, noise_ptr);
+        apply_op(op, state_ptr);
       }
       update_counts();
     }
@@ -232,21 +220,12 @@ void Engine<state_t>::execute(const Circuit &circ,
 
 template <class state_t>
 void Engine<state_t>::apply_op(const Operations::Op &op,
-                               State<state_t> *state_ptr,
-                               Base::NoiseModel *noise_ptr) {
+                               State<state_t> *state_ptr) {
   auto it = engine_ops_.find(op.name);
   if (it == engine_ops_.end()) {
     // check if op passes conditional
     if (check_conditional(op)) {
-      // Check for noise active
-      if (noise_ptr != nullptr && noise_flag_) {
-        // Apply noisy op sequence sampled from model
-        for (const auto &op_noise : noise_ptr->sample_noise(op))
-          state_ptr->apply_op(op_noise);
-      } else {
-        // otherwise apply ideal operation
-        state_ptr->apply_op(op);
-      }
+      state_ptr->apply_op(op);
       pauli_cache_.clear(); // clear Pauli cache since the state has changed
     }
   } else {
@@ -271,9 +250,6 @@ void Engine<state_t>::apply_op(const Operations::Op &op,
       case EngineOp::snapshot_state:
         snapshot_states_.add_data(op.string_params[0], state_ptr->data());
         break;
-      case EngineOp::noise_switch:
-        noise_flag_ = std::real(op.params[0]);
-        break;
       default:
         // we should never get here
         throw std::invalid_argument("Invalid engine instruction.");
@@ -287,8 +263,6 @@ template <class state_t>
 void Engine<state_t>::initialize(State<state_t> *state_ptr, const Circuit &circ) {
   // Initialize state
   state_ptr->initialize(circ.num_qubits);
-  // Initialize noise flag
-  noise_flag_ = true;
   // Clear and resize registers
   creg_memory_ = std::string(circ.num_memory, '0');
   creg_registers_ = std::string(circ.num_registers, '0');
@@ -412,7 +386,7 @@ void Engine<state_t>::execute_with_measure_sampling(const Circuit &circ,
   }
   // Execute operations before measurements
   for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
-    apply_op(*it, state_ptr, nullptr);
+    apply_op(*it, state_ptr);
   }
 
   // Get measurement operations and set of measured qubits

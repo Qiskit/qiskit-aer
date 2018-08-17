@@ -71,21 +71,19 @@ int main(int argc, char **argv) {
   try {
     using namespace AER;
     using State = QubitVector::State;       // State class
-    using Engine = Base::Engine<QV::QubitVector>; // Optimized Engine class
-    using Base::NoiseModel;
 
     // Initialize simulator
-    Base::Controller<Engine, State> sim;
+    Base::Controller sim;
+    sim.set_max_threads_shot(-1);
   
     // Check for noise_params
     if (JSON::check_key("config", qobj) &&
-        JSON::check_key("noise_params", qobj["config"])) {
-      NoiseModel noise1(qobj["config"]["noise_params"]);
-      out << sim.execute(qobj, &noise1).dump(4) << std::endl;
-    } else {
-      // execute without noise
-      out << sim.execute(qobj).dump(4) << std::endl;
-    }
+        JSON::check_key("noise_model", qobj["config"])) {
+      json_t noise_model = qobj["config"]["noise_model"];
+      sim.load_noise_model(noise_model);
+    } 
+
+    out << sim.execute<QV::QubitVector, State>(qobj).dump(4) << std::endl;
 
     return 0;
   } catch (std::exception &e) {
