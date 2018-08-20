@@ -12,6 +12,8 @@
  */
 
 //#define DEBUG // Uncomment for verbose debugging output
+#define OPT
+
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -21,6 +23,7 @@
 #include "base/engine.hpp"
 #include "simulators/qubitvector/qubitvector.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
+#include "simulators/qubitvector/hpc_engine.hpp"
 
 // Noise
 #include "base/noise.hpp"
@@ -73,8 +76,8 @@ int main(int argc, char **argv) {
   try {
     using namespace AER;
     using State = QubitVector::State<QV::QubitVector>;       // State class
-    using Engine = Base::Engine<QV::QubitVector>; // Optimized Engine class
-  //using Engine = QubitVector::Engine<QV::QubitVector>;// HPC Engine class
+  //using Engine = Base::Engine<QV::QubitVector>; // Optimized Engine class
+    using Engine = QubitVector::Engine<QV::QubitVector>;// HPC Engine class
     using NoiseModel = Noise::SimpleModel;
     
     // Initialize simulator

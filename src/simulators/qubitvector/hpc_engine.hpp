@@ -43,7 +43,7 @@ template <class state_t>
 class Engine : public Base::Engine<state_t> {
 public:
   Engine();
-  ~Engine();
+  virtual ~Engine();
 
   void execute(const Circuit &circ,
                uint_t shots,
@@ -51,21 +51,17 @@ public:
                Noise::Model *noise_ptr = nullptr);
 
 protected:
-  std::vector<Optimization*> optimizations;
+  std::vector<std::shared_ptr<Optimization>> optimizations;
 
 };
 
 template <class state_t>
 Engine<state_t>::Engine() {
-  optimizations = { new Fusion(3) };
-
+  optimizations.push_back(std::shared_ptr<Optimization>(new Fusion(3)));
 }
 
 template <class state_t>
 Engine<state_t>::~Engine() {
-
-  for (Optimization* opt : optimizations)
-    free(opt);
 
   optimizations.clear();
 }
@@ -79,17 +75,11 @@ void Engine<state_t>::execute(const Circuit &circ,
   std::vector<Circuit> current;
   current.push_back(circ);
 
-//  for (Circuit &c : current) {
-//    std::cout << "original: " << std::endl;
-//    for (Op& op: c.ops)
-//      std::cout << "   " << op.name << op.qubits << std::endl;
-//  }
-
   std::vector <Circuit> optimized;
 
   while (true) {
     bool applied = false;
-    for (Optimization* opt : optimizations) {
+    for (std::shared_ptr<Optimization> opt : optimizations) {
       if (opt->optimize(current, optimized)) {
         applied = true;
         break;
@@ -102,16 +92,25 @@ void Engine<state_t>::execute(const Circuit &circ,
     optimized.clear();
   }
 
+//  for (Circuit &c : current) {
+//    std::cout << "optimized: " << std::endl;
+//    for (Op& op: c.ops) {
+//      if (op.mats.empty())
+//        std::cout << "   " << op.name << op.qubits << std::endl;
+//      else
+//        std::cout << "   " << op.name << op.qubits << ": " << op.mats[0].GetColumns() << "x" << op.mats[0].GetRows() << std::endl;
+//    }
+//  }
 
   for (Circuit &c : current) {
     // Check if ideal simulation check if sampling is possible
-    if (noise_ptr == nullptr && circ.measure_sampling_flag) {
-      Base::Engine<state_t>::execute_with_measure_sampling(circ, shots, state_ptr);
+    if (noise_ptr == nullptr && c.measure_sampling_flag) {
+      Base::Engine<state_t>::execute_with_measure_sampling(c, shots, state_ptr);
     } else {
       // Ideal execution without sampling
       while (shots-- > 0) {
-        Base::Engine<state_t>::initialize(state_ptr, circ);
-        for (const auto &op: circ.ops) {
+        Base::Engine<state_t>::initialize(state_ptr, c);
+        for (const auto &op: c.ops) {
           Base::Engine<state_t>::apply_op(op, state_ptr, noise_ptr);
         }
         Base::Engine<state_t>::update_counts();

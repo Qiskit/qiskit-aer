@@ -922,16 +922,22 @@ void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t 
     switch(N) {
     case 1:
       apply_matrix_col_major(qs[0], mat);
+      break;
     case 2:
       apply_matrix_col_major_2({{qs[0], qs[1]}}, mat);
+      break;
     case 3:
       apply_matrix_col_major_3({{qs[0], qs[1], qs[2]}}, mat);
+      break;
     case 4:
       apply_matrix_col_major_4({{qs[0], qs[1], qs[2], qs[3]}}, mat);
+      break;
     case 5:
       apply_matrix_col_major_5({{qs[0], qs[1], qs[2], qs[3], qs[4]}}, mat);
+      break;
     default:
       apply_matrix_col_major<N>(qs, mat);
+      break;
     }
 #else
     apply_matrix_col_major<N>(qs, mat);

@@ -70,8 +70,9 @@ all: directories sim
 directories:
 	mkdir -p $(OUTPUT_DIR)
 
-sim: aer_simulator.o
+sim: aer_simulator.o aer_simulator_hpc.o
 	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
+	$(CC) $(CPPFLAGS) $(DEFINES) -o ${OUTPUT_DIR}/aer_simulator_hpc ${OUTPUT_DIR}/aer_simulator.o $(LIBS)
 
 clean:
 	rm -rf ${OUTPUT_DIR}

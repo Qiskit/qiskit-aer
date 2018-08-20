@@ -54,9 +54,9 @@ public:
   virtual std::string name() const { return "base_optimization"; };
 
 protected:
-  virtual bool optimize(const Circuit &original, Circuit &optimized) const = 0;
+  virtual bool optimize(const Circuit &original, Circuit &optimized) const { UNUSED(original); UNUSED(optimized); return false; };
 
-  virtual Circuit generate_circuit(const Circuit &original, std::vector<Op>& ops) const ;
+  virtual Circuit generate_circuit(const Circuit &original, std::vector<Op>& ops) const;
 
   OpType type(const Op& op) const;
 
@@ -553,6 +553,7 @@ Circuit Optimization::generate_circuit(const Circuit &original, std::vector<Op>&
   ret.seed = original.seed;
   ret.header = original.header;
   ret.config = original.config;
+  ret.measure_sampling_flag = original.measure_sampling_flag;
   return ret;
 }
 
@@ -781,6 +782,7 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
   std::vector<reg_t> op_qubitss;
   std::vector<cmatrix_t> op_mats;
   op_mats.reserve(ops.size());
+
   for (Op &op : ops) {
     reg_t op_qubits = qubits(op);
     for (uint_t qubit : op_qubits) {
@@ -802,6 +804,8 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
     }
   }
 
+  std::sort(fusioned_qubits.begin(), fusioned_qubits.end());
+
   const complex_t ZERO(0., 0.);
   const complex_t ONE(1., 0.);
 
@@ -814,7 +818,7 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
       U(i, j) = ZERO;
 
   bool first = true;
-  for (uint_t idx = 0; idx < matrix_size; ++idx) {
+  for (uint_t idx = 0; idx < op_qubitss.size(); ++idx) {
     cmatrix_t &op_mat = op_mats[idx];
     reg_t &op_qubits = op_qubitss[idx];
 
@@ -872,7 +876,7 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
       for (uint_t i = 0; i < matrix_size; ++i) {
         bool exist = false;
         for (uint_t j = 0; j < matrix_size; ++j)
-          if (U(i, j) != ZERO)
+          if (u(i, j) != ZERO)
             exist = true; // row-i has a value. need to go the next line
         if (exist)
           continue; // go the next line
@@ -896,7 +900,9 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
         u((i + low_delta + high_delta), (i + low_delta + high_delta)) = op_mat(3, 3);
       }
     } else {
-      throw std::runtime_error("illegal qubit number");
+      std::stringstream msg;
+      msg << "illegal qubit number: " << op_qubits.size();
+      throw std::runtime_error(msg.str());
     }
 
     // 4. for the first time, copy u to U
@@ -933,6 +939,7 @@ Op Fusion::generate_fusion(std::vector<Op> &ops) const {
   Op matrix_op;
   matrix_op.name = "mat";
   matrix_op.mats.push_back(U);
+  matrix_op.qubits = fusioned_qubits;
 
 //  std::cout << "fusioned_matrix qubits=: " << fusioned_qubits << std::endl;
 //  for (unsigned int i = 0; i < matrix_size; ++i) {
