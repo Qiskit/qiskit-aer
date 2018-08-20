@@ -34,7 +34,7 @@ def simulator_extension(package_name, source_files, include_dirs=None, blas=True
         _extra_compile_args = ['/W1', '/Ox']
 
     _extra_link_args = []
-    _libraries = []
+    _libraries = ['iomp5', 'pthread']
     _library_dirs = []
 
     # MacOS Specific build instructions
@@ -50,7 +50,7 @@ def simulator_extension(package_name, source_files, include_dirs=None, blas=True
             _library_dirs.append('/usr/local/opt/libomp/lib')
             _include_dirs.append('/usr/local/opt/libomp/include')
             _extra_compile_args += ['-Xpreprocessor', '-fopenmp']
-            _extra_link_args += ['-Xpreprocessor', '-fopenmp', '-lomp']
+            _extra_link_args += ['-Xpreprocessor', '-fopenmp', '-liomp5', '-lpthread']
         else:
             # Check for OpenMP compatible GCC compiler
             for gcc in ['g++-8', 'g++-7', 'g++-6', 'g++-5']:

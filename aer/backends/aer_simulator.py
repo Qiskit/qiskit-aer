@@ -51,7 +51,6 @@ class AerSimulator(BaseBackend):
         return result  # Result(result)
 
     def load_noise_model(self, noise_model):
-        print(json.dumps(noise_model, cls=SimulatorJSONEncoder))
         self.simulator.load_noise_model(json.dumps(noise_model, cls=SimulatorJSONEncoder))
 
     def clear_noise_model(self):
@@ -62,6 +61,43 @@ class AerSimulator(BaseBackend):
             self.simulator.load_engine_config(json.dumps(engine, cls=SimulatorJSONEncoder))
         if state is not None:
             self.simulator.load_state_config(json.dumps(state, cls=SimulatorJSONEncoder))
+
+    def set_max_threads_shot(self, threads):
+        """
+        Set the maximum threads used for parallel shot execution.
+
+        Args:
+            threads (int): the thread limit, set to -1 to use maximum available
+
+        Note that using parallel shot evaluation disables parallel circuit
+        evaluation.
+        """
+
+        self.simulator.set_max_threads_shot(int(threads))
+
+    def set_max_threads_circuit(self, threads):
+        """
+        Set the maximum threads used for parallel circuit execution.
+
+        Args:
+            threads (int): the thread limit, set to -1 to use maximum available
+
+        Note that using parallel circuit evaluation disables parallel shot
+        evaluation.
+        """
+        self.simulator.set_max_threads_circuit(int(threads))
+
+    def set_max_threads_state(self, threads):
+        """
+        Set the maximum threads used for state update parallel  routines.
+
+        Args:
+            threads (int): the thread limit, set to -1 to use maximum available.
+
+        Note that using parallel circuit or shot execution takes precidence over
+        parallel state evaluation.
+        """
+        self.simulator.set_max_threads_state(int(threads))
 
     def _validate(self, qobj):
         # TODO

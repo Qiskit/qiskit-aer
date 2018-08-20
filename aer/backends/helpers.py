@@ -25,6 +25,7 @@ def qobj2schema(qobj):
     """
     Convert current Qiskit qobj in line with schema spec qobj for simulator testing.
     """
+    shots = qobj.get("config",{}).get("shots", 1)
     qobj["type"] = "QASM"
     if "circuits" in qobj:
         qobj["experiments"] = qobj.pop("circuits")
@@ -39,6 +40,7 @@ def qobj2schema(qobj):
                         op["memory"] = op.pop("clbits")
                         op["register"] = op["memory"]
                         experiment["instructions"][k] = op
+                experiment["config"] = {"shots": shots}
             # clear compiled qasm
             experiment.pop("compiled_circuit_qasm", '')
             # clear old header
