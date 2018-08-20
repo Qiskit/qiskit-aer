@@ -134,14 +134,23 @@ private:
   RngEngine rng_; // initialized with random seed
 
   // Sample noise for the current operation
+  void sample_noise_local(const Operations::Op &op,
+                          NoiseOps &noise_before,
+                          NoiseOps &noise_after);
+
+  void sample_noise_nonlocal(const Operations::Op &op,
+                             NoiseOps &noise_before,
+                             NoiseOps &noise_after);
+
+  // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op);
 
   // Sample a noisy implementation of a two-X90 pulse u3 gate
   NoiseOps sample_noise_waltz_u3(uint_t qubit, complex_t theta,
-                                 complex_t phi, complex_t lam); // TODO
+                                 complex_t phi, complex_t lam);
   
   // Sample a noisy implementation of a single-X90 pulse u2 gate
-  NoiseOps sample_noise_waltz_u2(uint_t qubit, complex_t phi, complex_t lam); // TODO
+  NoiseOps sample_noise_waltz_u2(uint_t qubit, complex_t phi, complex_t lam);
 };
 
 
@@ -268,43 +277,48 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op) {
   NoiseOps noise_before;
   NoiseOps noise_after;
   // Apply local errors first
+  sample_noise_local(op, noise_before, noise_after);
+  // Apply nonlocal errors second
+  sample_noise_nonlocal(op, noise_before, noise_after);
+
+  // combine the original op with the noise ops before and after
+  noise_before.reserve(noise_before.size() + noise_after.size() + 1);
+  noise_before.push_back(op);
+  noise_before.insert(noise_before.end(), noise_after.begin(), noise_after.end());
+  return noise_before;
+}
+
+
+void NoiseModel::sample_noise_local(const Operations::Op &op,
+                                    NoiseOps &noise_before, 
+                                    NoiseOps &noise_after) {
   if (local_errors_) {
     // Get the qubit error map for  gate name
     auto iter = local_error_table_.find(op.name);
     if (iter != local_error_table_.end()) {
-      // Check if the qubits are listed in the inner model
-      const auto qubit_map = iter->second;
-      auto iter_qubits = qubit_map.find(op.qubits);
-      auto iter_default = qubit_map.find({});
-      if (iter_qubits != qubit_map.end() ||
-          iter_default != qubit_map.end()) {
-        auto &error_positions = (iter_qubits != qubit_map.end())
-          ? iter_qubits->second
-          : iter_default->second;
-        for (auto &pos : error_positions) {
-          auto ops = error_ptrs_[pos]->sample_noise(op.qubits, rng_);
-          if (error_ptrs_[pos]->errors_after())
-            noise_after.insert(noise_after.end(), ops.begin(), ops.end());
-          else
-            noise_before.insert(noise_before.end(), ops.begin(), ops.end());
-        }
+      // Format qubit sets 
+      std::vector<reg_t> qubit_sets;
+      if (op.name == "measure" || op.name == "reset") {
+        // since measure and reset ops can be defined on multiple qubits
+        // but error model is single qubit we add each one separately
+        for (const auto &q : op.qubits)
+          qubit_sets.push_back({q});
+      } else {
+        // for gate operations we use the qubits as specified
+        qubit_sets.push_back(op.qubits);
       }
-    }
-  }
-  // Apply nonlocal errors second
-  if (nonlocal_errors_) {
-    // Get the inner error map for  gate name
-    auto iter = nonlocal_error_table_.find(op.name);
-    if (iter != nonlocal_error_table_.end()) {
       // Check if the qubits are listed in the inner model
       const auto qubit_map = iter->second;
-      auto iter_qubits = qubit_map.find(op.qubits);
-      if (iter_qubits != qubit_map.end()) {
-        for (auto &target_pair : iter_qubits->second) {
-          auto &target_qubits = target_pair.first;
-          auto &error_positions = target_pair.second;
+      auto iter_default = qubit_map.find({});
+      for (const auto &qubits: qubit_sets) {
+        auto iter_qubits = qubit_map.find(qubits);
+        if (iter_qubits != qubit_map.end() ||
+            iter_default != qubit_map.end()) {
+          auto &error_positions = (iter_qubits != qubit_map.end())
+            ? iter_qubits->second
+            : iter_default->second;
           for (auto &pos : error_positions) {
-            auto ops = error_ptrs_[pos]->sample_noise(target_qubits, rng_);
+            auto ops = error_ptrs_[pos]->sample_noise(qubits, rng_);
             if (error_ptrs_[pos]->errors_after())
               noise_after.insert(noise_after.end(), ops.begin(), ops.end());
             else
@@ -314,11 +328,48 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op) {
       }
     }
   }
-  // combine the original op with the noise ops before and after
-  noise_before.reserve(noise_before.size() + noise_after.size() + 1);
-  noise_before.push_back(op);
-  noise_before.insert(noise_before.end(), noise_after.begin(), noise_after.end());
-  return noise_before;
+}
+
+
+void NoiseModel::sample_noise_nonlocal(const Operations::Op &op,
+                                       NoiseOps &noise_before, 
+                                       NoiseOps &noise_after) {
+  if (nonlocal_errors_) {
+    // Get the inner error map for  gate name
+    auto iter = nonlocal_error_table_.find(op.name);
+    if (iter != nonlocal_error_table_.end()) {
+      // Format qubit sets 
+      std::vector<reg_t> qubit_sets;
+      if (op.name == "measure" || op.name == "reset") {
+        // since measure and reset ops can be defined on multiple qubits
+        // but error model is single qubit we add each one separately
+        for (const auto &q : op.qubits)
+          qubit_sets.push_back({q});
+      } else {
+        // for gate operations we use the qubits as specified
+        qubit_sets.push_back(op.qubits);
+      }
+      // Check if the qubits are listed in the inner model
+      const auto qubit_map = iter->second;
+      for (const auto &qubits: qubit_sets) {
+        // Check if the qubits are listed in the inner model
+        auto iter_qubits = qubit_map.find(qubits);
+        if (iter_qubits != qubit_map.end()) {
+          for (auto &target_pair : iter_qubits->second) {
+            auto &target_qubits = target_pair.first;
+            auto &error_positions = target_pair.second;
+            for (auto &pos : error_positions) {
+              auto ops = error_ptrs_[pos]->sample_noise(target_qubits, rng_);
+              if (error_ptrs_[pos]->errors_after())
+                noise_after.insert(noise_after.end(), ops.begin(), ops.end());
+              else
+                noise_before.insert(noise_before.end(), ops.begin(), ops.end());
+            }
+          }
+        }
+      }
+    }
+  }                                     
 }
 
 
@@ -341,7 +392,6 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u3(uint_t qubit,
       && std::abs(lam - 2 * M_PI) > u1_threshold_
       && std::abs(lam + 2 * M_PI) > u1_threshold_)
     ret.push_back(Operations::make_u1(qubit, lam)); // add 1st U1
-  // TODO:: need to add X90 as named noise model
   auto sample = sample_noise_helper(x90); // sample noise for 1st X90
   ret.insert(ret.end(), sample.begin(), sample.end()); // add 1st noisy X90
   if (std::abs(theta + M_PI) > u1_threshold_
