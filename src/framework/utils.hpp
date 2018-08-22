@@ -558,6 +558,15 @@ template <class T>
 bool is_unitary(const matrix<T> &mat, double threshold) {
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
+  // Check if diagonal row-matrix
+  if (nrows == 1) {
+    for (size_t j=0; j < ncols; j++) {
+      bool delta = std::abs(1.0 - std::real(std::abs(mat(0, j))));
+      if (delta > threshold)
+        return false;
+    }
+    return true;
+  }
   // Check U matrix is square
   if (nrows != ncols)
     return false;

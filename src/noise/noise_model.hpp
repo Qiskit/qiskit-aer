@@ -14,6 +14,8 @@
 #ifndef _aer_noise_model_hpp_
 #define _aer_noise_model_hpp_
 
+#include <unordered_set>
+
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
 #include "framework/rng.hpp"
@@ -46,11 +48,8 @@ public:
   NoiseModel() = default;
   NoiseModel(const json_t &js) {load_from_json(js);}
 
-  // Sample noise for the current operation
-  virtual NoiseOps sample_noise(const Operations::Op &op);
-
   // Sample a noisy implementation of a full circuit
-  virtual Circuit sample_noise(const Circuit &circ);
+  Circuit sample_noise(const Circuit &circ);
 
   // Load a noise model from JSON
   void load_from_json(const json_t &js);
@@ -61,7 +60,7 @@ public:
   // Add a non-local Error type to the model for specific qubits
   template <class DerivedError>
   void add_error(const DerivedError &error, 
-                 const std::vector<std::string> &op_labels,
+                 const std::unordered_set<std::string> &op_labels,
                  const std::vector<reg_t> &op_qubits = {},
                  const std::vector<reg_t> &noise_qubits = {});
 
@@ -72,7 +71,7 @@ public:
   }
 
   // Set which single qubit gates should use the X90 waltz error model
-  inline void set_waltz_gates(const std::set<std::string> &waltz_gates) {
+  inline void set_waltz_gates(const std::unordered_set<std::string> &waltz_gates) {
     waltz_gates_ = waltz_gates;
   }
 
@@ -84,16 +83,39 @@ public:
 
 private:
 
+  // Sample noise for the current operation
+  NoiseOps sample_noise(const Operations::Op &op);
+
+  // Sample noise for the current operation
+  void sample_noise_local(const Operations::Op &op,
+                          NoiseOps &noise_before,
+                          NoiseOps &noise_after);
+
+  void sample_noise_nonlocal(const Operations::Op &op,
+                             NoiseOps &noise_before,
+                             NoiseOps &noise_after);
+
+  // Sample noise for the current operation
+  NoiseOps sample_noise_helper(const Operations::Op &op);
+
+  // Sample a noisy implementation of a two-X90 pulse u3 gate
+  NoiseOps sample_noise_waltz_u3(uint_t qubit, complex_t theta,
+                                 complex_t phi, complex_t lam);
+  
+  // Sample a noisy implementation of a single-X90 pulse u2 gate
+  NoiseOps sample_noise_waltz_u2(uint_t qubit, complex_t phi, complex_t lam);
+
+
   // Add a local error to the noise model for specific qubits
   template <class DerivedError>
   void add_local_error(const DerivedError &error, 
-                 const std::vector<std::string> &op_labels,
+                 const std::unordered_set<std::string> &op_labels,
                  const std::vector<reg_t> &op_qubits);
 
   // Add a non-local Error type to the model for specific qubits
   template <class DerivedError>
   void add_nonlocal_error(const DerivedError &error, 
-                          const std::vector<std::string> &op_labels,
+                          const std::unordered_set<std::string> &op_labels,
                           const std::vector<reg_t> &op_qubits,
                           const std::vector<reg_t> &noise_qubits);
 
@@ -121,7 +143,7 @@ private:
   std::unordered_map<std::string, nonlocal_qubit_map_t> nonlocal_error_table_;
 
   // Table of single-qubit gates to use a Waltz X90 based error model
-  std::set<std::string> waltz_gates_;
+  std::unordered_set<std::string> waltz_gates_;
 
   // Lookup table for gate strings to enum
   enum class Gate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
@@ -132,25 +154,6 @@ private:
 
   // Rng engine
   RngEngine rng_; // initialized with random seed
-
-  // Sample noise for the current operation
-  void sample_noise_local(const Operations::Op &op,
-                          NoiseOps &noise_before,
-                          NoiseOps &noise_after);
-
-  void sample_noise_nonlocal(const Operations::Op &op,
-                             NoiseOps &noise_before,
-                             NoiseOps &noise_after);
-
-  // Sample noise for the current operation
-  NoiseOps sample_noise_helper(const Operations::Op &op);
-
-  // Sample a noisy implementation of a two-X90 pulse u3 gate
-  NoiseOps sample_noise_waltz_u3(uint_t qubit, complex_t theta,
-                                 complex_t phi, complex_t lam);
-  
-  // Sample a noisy implementation of a single-X90 pulse u2 gate
-  NoiseOps sample_noise_waltz_u2(uint_t qubit, complex_t phi, complex_t lam);
 };
 
 
@@ -213,7 +216,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ) {
 
 template <class DerivedError>
 void NoiseModel::add_error(const DerivedError &error, 
-                           const std::vector<std::string> &op_labels,
+                           const std::unordered_set<std::string> &op_labels,
                            const std::vector<reg_t> &op_qubits,
                            const std::vector<reg_t> &noise_qubits) {
 
@@ -232,7 +235,7 @@ void NoiseModel::add_error(const DerivedError &error,
 
 template <class DerivedError>
 void NoiseModel::add_local_error(const DerivedError &error,
-                           const std::vector<std::string> &op_labels,
+                           const std::unordered_set<std::string> &op_labels,
                            const std::vector<reg_t> &op_qubits) {  
   // Turn on local error flag
   if (!op_labels.empty()) {
@@ -251,7 +254,7 @@ void NoiseModel::add_local_error(const DerivedError &error,
 
 template <class DerivedError>
 void NoiseModel::add_nonlocal_error(const DerivedError &error,
-                                    const std::vector<std::string> &op_labels,
+                                    const std::unordered_set<std::string> &op_labels,
                                     const std::vector<reg_t> &op_qubits,
                                     const std::vector<reg_t> &noise_qubits) {  
 
@@ -338,19 +341,21 @@ void NoiseModel::sample_noise_nonlocal(const Operations::Op &op,
     // Get the inner error map for  gate name
     auto iter = nonlocal_error_table_.find(op.name);
     if (iter != nonlocal_error_table_.end()) {
+      const auto qubit_map = iter->second;
       // Format qubit sets 
       std::vector<reg_t> qubit_sets;
-      if (op.name == "measure" || op.name == "reset") {
+      if ((op.name == "measure" || op.name == "reset")
+          && qubit_map.find(op.qubits) == qubit_map.end()) {
         // since measure and reset ops can be defined on multiple qubits
-        // but error model is single qubit we add each one separately
+        // but error model may be specified only on single qubits we add
+        // each one separately. If a multi-qubit model is found for specified
+        // qubits however, that will be used instead.
         for (const auto &q : op.qubits)
           qubit_sets.push_back({q});
       } else {
         // for gate operations we use the qubits as specified
         qubit_sets.push_back(op.qubits);
       }
-      // Check if the qubits are listed in the inner model
-      const auto qubit_map = iter->second;
       for (const auto &qubits: qubit_sets) {
         // Check if the qubits are listed in the inner model
         auto iter_qubits = qubit_map.find(qubits);
@@ -464,6 +469,12 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u2(uint_t qubit,
     "default_probabilities": probs,
     "qubit_probabilities": [[q0, probs0], [q1, probs1]]
   }
+
+  Readout
+  {
+    "type": "readout",
+    "assignment_probabilities": [[P(0|0), P(0|1)], [P(1|0), P(1|1)]]
+  }
 */
 // Allowed types: "unitary_error", "kraus_error", "reset_error"
 
@@ -490,13 +501,38 @@ void NoiseModel::load_from_json(const json_t &js) {
     for (const auto &gate_js : js["errors"]) {
       std::string type;
       JSON::get_value(type, "type", gate_js);
-      std::vector<std::string> ops;
+      std::unordered_set<std::string> ops; // want set so ops are unique, and we can pull out measure
       JSON::get_value(ops, "operations", gate_js);
       std::vector<reg_t> gate_qubits;
       JSON::get_value(ops, "gate_qubits", gate_js);
       std::vector<reg_t> noise_qubits;
       JSON::get_value(ops, "noise_qubits", gate_js);
 
+      // We treat measure as a separate error op so that it can be applied before
+      // the measure operation, rather than after like the other gates
+      if (ops.find("measure") != ops.end() && type != "readout") {
+        ops.erase("measure"); // remove measure from set of ops 
+        if (type == "unitary") {
+          UnitaryError error;
+          error.load_from_json(gate_js);
+          error.set_errors_before(); // set errors before the op
+          add_error(error, {"measure"}, gate_qubits, noise_qubits);
+        } else if (type == "kraus") {
+          KrausError error;
+          error.load_from_json(gate_js);
+          error.set_errors_before(); // set errors before the op
+          add_error(error, {"measure"}, gate_qubits, noise_qubits);
+        } else if (type == "reset") {
+          ResetError error;
+          error.load_from_json(gate_js);
+          error.set_errors_before(); // set errors before the op
+          add_error(error, {"measure"}, gate_qubits, noise_qubits);
+        }
+        else {
+          throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
+        }
+      }
+      // Load the remaining non-measure ops as a separate error
       if (type == "unitary") {
         UnitaryError error;
         error.load_from_json(gate_js);

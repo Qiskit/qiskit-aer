@@ -69,7 +69,7 @@ public:
 
   // Allowed operations are:
   // {"snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
-  //  "barrier", "measure", "reset", "mat", "dmat", "kraus",
+  //  "barrier", "measure", "reset", "mat", "kraus",
   //  "u0", "u1", "u2", "u3", "cx", "cz",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   virtual std::set<std::string> allowed_ops() const override;
@@ -125,7 +125,7 @@ protected:
 
   // Enum class and gateset map for switching based on gate name
   enum class Gates {
-    mat, dmat, kraus, // special
+    mat, kraus, // special
     measure, reset, barrier,
     u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
     cx, cz, rzz // two qubit
@@ -205,7 +205,7 @@ protected:
 std::set<std::string> State::allowed_ops() const {
   return { "barrier", "measure", "reset",
     "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
-    "mat", "dmat", "kraus",
+    "mat", "kraus",
     "u0", "u1", "u2", "u3", "cx", "cz",
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
@@ -215,7 +215,6 @@ const std::unordered_map<std::string, State::Gates> State::gateset({
   {"barrier", Gates::barrier}, // barrier does nothing
   // Matrix multiplication
   {"mat", Gates::mat},     // matrix multiplication
-  {"dmat", Gates::dmat}, // Diagonal matrix multiplication
   // Single qubit gates
   {"id", Gates::id},   // Pauli-Identity gate
   {"x", Gates::x},    // Pauli-X gate
@@ -394,8 +393,6 @@ void State::apply_op(const Operations::Op &op) {
   case Gates::mat:
     apply_matrix(op.qubits, op.mats[0]);
     break;
-  case Gates::dmat:
-    apply_matrix(op.qubits, op.params);
     break;
   // Special Noise operations
   case Gates::kraus:

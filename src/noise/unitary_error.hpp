@@ -148,6 +148,11 @@ void UnitaryError::load_from_json(const json_t &js) {
   JSON::get_value(mats, "matrices", js);
   if (!mats.empty())
     set_unitaries(mats);
+
+  // Check input is valid unitary error
+  auto valid = validate();
+  if (valid.first == false)
+    throw std::invalid_argument(valid.second);
 }
 
 //-------------------------------------------------------------------------

@@ -46,7 +46,7 @@ public:
   std::vector<Circuit> circuits;  // List of circuits
   json_t header;                  // (optional) passed through to result;
   json_t config;                  // (optional) not currently used?
-
+  
   //----------------------------------------------------------------
   // Loading Functions
   //----------------------------------------------------------------

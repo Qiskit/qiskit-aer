@@ -17,8 +17,10 @@
     },
     "experiments": [
         {   
-            "config": {"shots": 10},
+            "config": {"shots": 1},
             "instructions": [
+                {"name": "mat", "qubits": [0], "params": [[[1, 0], [1, 0]]]},
+                {"name": "snapshot", "label": "post-mat", "type": "state"},
                 {"name": "h", "qubits": [0]},
                 {"name": "snapshot", "type": "pauli_observable",
                     "label": "<X>_1_gate",

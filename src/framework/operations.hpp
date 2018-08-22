@@ -178,7 +178,6 @@ Op json_to_op_snapshot_probs(const json_t &js);
 
 // Matrices
 Op json_to_op_mat(const json_t &js);
-Op json_to_op_dmat(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
@@ -204,8 +203,6 @@ Op json_to_op(const json_t &js) {
   // Arbitrary matrix gates
   if (name == "mat")
     return json_to_op_mat(js);
-  if (name == "dmat")
-    return json_to_op_dmat(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   // Snapshot
@@ -342,18 +339,10 @@ Op json_to_op_mat(const json_t &js) {
   }
   // Validation
   check_qubits(op.qubits);
-  return op;
-}
-
-// TODO: Remove and treat as special case of mat.
-Op json_to_op_dmat(const json_t &js) {
-  Op op;
-  op.name = "dmat";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js); // store diagonal as complex vector
-
-  // Validation
-  check_qubits(op.qubits);
+  // Check unitary
+  if (!Utils::is_unitary(op.mats[0], 1e-10)) {
+    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  }
   return op;
 }
 
