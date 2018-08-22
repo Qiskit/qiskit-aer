@@ -9,38 +9,28 @@
 # order to make a static executable.
 # Additionaly, OpenMP support is only available in clang from
 cmake_minimum_required(VERSION 3.11)
-project(qasm_simulator_cpp LANGUAGES CXX)
+project(aer_simulator_cpp LANGUAGES CXX)
 
-include(CheckCXXCompilerFlag)
-function(enable_cxx_compiler_flag_if_supported flag)
-    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
-    if(flag_already_set EQUAL -1)
-        check_cxx_compiler_flag("${flag}" flag_supported)
-        if(flag_supported)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
-        endif()
-        unset(flag_supported CACHE)
-    endif()
-endfunction()
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
+include(compiler_utils)
 
-set(QASM_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(QASM_SIMULATOR_CPP_SRC
-    "${QASM_SIMULATOR_CPP_SRC_DIR}/main.cpp")
-set(QASM_SIMULATOR_CPP_EXTERNAL_LIBS
-    "${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
-	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
-	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/linux-x86_64/lib"
-	"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
+set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+set(AER_SIMULATOR_CPP_MAIN
+    "${PROJECT_SOURCE_DIR}/legacy-build/aer_simulator.cpp")
+set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
+    "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux-x86_64/lib"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
 	"${USER_LIB_PATH}")
 
 # Target definition
-add_executable(qasm_simulator_cpp ${QASM_SIMULATOR_CPP_SRC})
-
+add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
 # Target properties: C++ program
-set_target_properties(qasm_simulator_cpp PROPERTIES LINKER_LANGUAGE CXX)
-
-# Toolchain options
-set_property(TARGET qasm_simulator_cpp PROPERTY CXX_STANDARD 11)
+set_target_properties(aer_simulator_cpp PROPERTIES 
+											LINKER_LANGUAGE CXX
+											CXX_STANDARD 14)
 
 if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
@@ -76,104 +66,57 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 endif()
 
-target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR})
-target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/backends)
-target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/engines)
-target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/utilities)
-target_include_directories(qasm_simulator_cpp PRIVATE ${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/headers)
-
-# For header only libraries
-SET(CMAKE_FIND_LIBRARY_PREFIXES "" ${CMAKE_FIND_LIBRARY_PREFIXES})
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES} .hpp)
+target_include_directories(aer_simulator_cpp PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 
 if(STATIC_LINKING)
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    if(WIN32)
-        SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    endif()
-endif()
-
-find_package(OpenMP QUIET)
-    if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
-        if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
-        	message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
-        	find_program(BREW NAMES brew)
-        	if(BREW)
-            	execute_process(COMMAND ${BREW} ls libomp RESULT_VARIABLE BREW_RESULT_CODE OUTPUT_QUIET ERROR_QUIET)
-            	if(BREW_RESULT_CODE)
-                	message(STATUS "This program supports OpenMP on Mac through Brew. Please run \"brew install libomp\"")
-            	else()
-                	execute_process(COMMAND ${BREW} --prefix libomp OUTPUT_VARIABLE BREW_LIBOMP_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
-                	set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
-                	set(OpenMP_CXX_LIB_NAMES "omp")
-                	set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
-                	include_directories("${BREW_LIBOMP_PREFIX}/include")
-                	message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
-            	endif()
-        	else()
-            	message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
-        	endif()
-    	endif()
-	endif()
-
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	set(BLAS_STATIC True)
 endif()
 
 # Looking for external libraries
-# This is a header-only library so we don't want it to link it, but we still
-# want CMake to find it.
-find_library(LIB_JSON
-	NAMES json nlohmann_json.hpp
-	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
-if(NOT LIB_JSON)
-    message(FATAL_ERROR "JSON library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
+find_package(OpenMP REQUIRED QUIET)
+if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
+		message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
+		find_program(BREW NAMES brew)
+		if(BREW)
+			execute_process(COMMAND ${BREW} ls libomp RESULT_VARIABLE BREW_RESULT_CODE OUTPUT_QUIET ERROR_QUIET)
+			if(BREW_RESULT_CODE)
+				message(STATUS "This program supports OpenMP on Mac through Brew. Please run \"brew install libomp\"")
+			else()
+				execute_process(COMMAND ${BREW} --prefix libomp OUTPUT_VARIABLE BREW_LIBOMP_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+				set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+				set(OpenMP_CXX_LIB_NAMES "omp")
+				set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
+				include_directories("${BREW_LIBOMP_PREFIX}/include")
+				message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
+			endif()
+		else()
+			message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
+		endif()
+	endif()
 endif()
 
-find_library(BLAS_LIB
-	NAMES openblas mkl blas
-	PATHS ${QASM_SIMULATOR_CPP_EXTERNAL_LIBS})
-if(NOT BLAS_LIB)
-	message(FATAL_ERROR "BLAS library not found!. Please provide with a USER_LIB_PATH to CMake so it can be searched there")
+if (OpenMP_FOUND OR OpenMP_CXX_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	message(STATUS "OpenMP found!")
 endif()
 
-set(LIBRARIES PRIVATE ${BLAS_LIB})
+set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+find_package(nlohmann_json REQUIRED)
+
+set(BLA_VENDOR "OpenBLAS")
+find_package(BLAS REQUIRED)
+
+message( "JUAN: ${BLAS_LIBRARIES}")
+set(LIBRARIES ${BLAS_LIBRARIES} nlohmann_json)
 
 # Linking
-target_link_libraries(qasm_simulator_cpp ${LIBRARIES})
-
-set(QASM_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:qasm_simulator_cpp>
+target_link_libraries(aer_simulator_cpp PRIVATE ${LIBRARIES})
+set(AER_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:aer_simulator_cpp>
 	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
-
-# TODO Windows 32 bits builds are not supported yet
-set(ARCH_BITS "64")
-if(ARCH32)
-	set(ARCH_BITS "32")
-endif()
-
-# Copying necessary .dll files to output
-# TODO look into "install()" CMake function
-if(WIN32) # Windows 64 bits is also true here
-	set(QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS
-		"${QASM_SIMULATOR_CPP_SRC_DIR}/third-party/win${ARCH_BITS}/dll/openblas.dll"
-		CACHE INTERNAL "Third-party C++ Simulator DLLs")
-	foreach(dll_file ${QASM_SIMULATOR_CPP_THIRD_PARTY_DLLS})
-		add_custom_command(
-			TARGET qasm_simulator_cpp
-			POST_BUILD
-			COMMAND ${CMAKE_COMMAND}
-			ARGS -E copy ${dll_file} ${QASM_SIMULATOR_CPP_OUTPUT_DIR}/
-		)
-		# For 'make clean' target
-		get_filename_component(FINAL_FILE ${dll_file} NAME)
-		set_property(DIRECTORY APPEND PROPERTY
-			ADDITIONAL_MAKE_CLEAN_FILES
-				${QASM_SIMULATOR_CPP_OUTPUT_DIR}/${FINAL_FILE})
-	endforeach()
-endif()
 
 # Tests
 # TODO: Enable them when ready
-#add_subdirectory(${QASM_SIMULATOR_CPP_DIR}/test)
+#add_subdirectory(${AER_SIMULATOR_CPP_DIR}/test)
