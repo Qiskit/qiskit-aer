@@ -265,7 +265,7 @@ Op json_to_op_reset(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   op.params = {0}; // default reset to 0 state
   if (JSON::check_key("params", js)) {
-    op.params[0] = js["params"].get<rvector_t>()[0];
+    op.params[0] = js["params"].get<reg_t>()[0];
   }
   // Validation
   check_qubits(op.qubits);
