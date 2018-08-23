@@ -3,7 +3,6 @@
 ## Repository contents
 
 * The  **aer** folder contains the Qiskit-Aer python module for use with Qiskit-Terra.
-* The **spec** folder contains simulator specification documentation.
 * The **src** folder contains the C++ and Cython source files for building the simulator.
 * The **examples** folder contains example qobj files for the simulator.
 * The **legacy-build** folder contains a stand-alone executable build that can be used for development and testing. Note that stand-alone building will be removed before release and will not be supported.
@@ -112,25 +111,221 @@ Noise is handled by inserting additional operations into a circuit to implement 
 1. Noise that is *independent* of the current state of the system (*[Unitary](#unitary-error), [Reset](#reset-error)*)
 2. Noise that is *dependent* on the current state of the system (*[Readout](#readout-error), [Kraus](#kraus-error)*)
 
-The *Type 1* noises can be inserted into a sequence of operations by *sampling* a given realization of the noise from a noise model specifies the distribution for possible errors for the input operations.  This may lead to a single circuit operation sequence being modified into many different sequences for each realization of noise. Note that we do not need additional operator types to describe these noise processes --- the operators inserted to realize the noise are gates, matrix multiplication, and reset ops.
+The *Type 1* noises can be inserted into a circuit by *sampling* a given realization of the noise for each operation in the circuit from a noise model. This may lead to a single circuit operation sequence being modified into many different sequences for each realization of noise. Note that we do not need additional operator types to describe these noise processes --- the operators inserted to realize the noise are [standard gates](#standard-gates), [matrix multiplication](#matrix-multiplication), and [reset](#reset) operations.
 
-The *Type 2* noise processes cannot be sampled to choose a realization independent of the state of the system. This is because the probabilities for the classical bit-flip error for readout error, and the probabilities of choosing an individual operator to apply for Kraus error, depend on the current state classical or quantum state respectively.  Hence, we need to define new types of operators for these noise processes which can be used by the Engine/State to sample from the possible noise realizations conditional on the current simulation state.
+The *Type 2* noise processes cannot be sampled to choose a realization independent of the state of the system. This is because the probabilities for the classical bit-flip error for readout error, and the probabilities of choosing an individual operator to apply for Kraus error, depend on the current state classical or quantum state respectively.  Hence, we need to define new types of operators for these noise processes which direct the State or Engine to sample from the possible noise realizations conditional on the current quantum or classical simulation state respectively.
+
+
+### Applying Error Models
+
+A noise model consists of a table of [Error types](#error-types) assigned to a labeled circuit operation. We may assign errors to any labeled operation in our circuit. Typically these will be named gates (eg. `"x"`, `"u3"`, `"cx"`, etc), `"measure`" and `"reset`", or labeled arbitrary [unitary gates](#matrix-multiplication) (eg. `"noisy-gate`"), and each label may be assigned multiple errors. All errors must be assigned to one of three different error models:
+
+1. *Indexed local error model:* An error that applies when a specific gate is applied to a specific qubit(s), and the error acts only on those qubit(s) participating in the gate.
+2. *Default local error model:* An error that applies when a specific gate is applied to any qubit(s), and the error acts only on those qubit(s) participating in the gate.
+3. *Indexed non-local error model:* An error that applies when a specific gate is applied to a specific qubit(s), and the error may act on any subset of qubits.
+
+Note that indexed and default local error models are exclusive. If an indexed model is defined for an operation the default will be ignored. If an indexed local error model is not defined however, the default will be applied as a default fallback. Multiple Error types can be added for each error model type and will be applied in the order they are added. For example we could add a Unitary Error, a reset error, followed by a second unitary error to model relaxation in an arbitrary basis.
+
+The flow for searching for an error model to sample is as follows: Suppose we are applying a gate labeled `"noisy-gate"`
+
+* Check for an indexed local error model for `"noisy-gate"`.
+    * If an indexed local error model is found sample from each error in the error model.
+    * If an indexed local error model is not found search for a default local error model for `"noisy-gate"`.
+        * If a default local error model is found sample from each error in the error model.
+* Check for an indexed non-local error model for `"noisy-gate"`.
+    * If an indexed non-local error model is found sample from each error in the error model.
+
+[Back to top](#table-of-contents)
 
 
 ### Error Types
 
+Error types may be made derived from an `AbstractError` base type which requires a method to sample realizations of the error type and return them as a list of circuit operations. The currently supported error types are Unitary, Reset, Kraus and Readout (TODO).
+
+##### JSON Object
+
+General errors may be expressed as a JSON object using the following base template, plus additional fields for the parameters of the given error type.
+
+```
+{
+    "type": str
+    "operations": list[str],
+    "op_qubits": list[list[int]],  // optional
+    "noise_qubits": list[list[int]]  // optional
+}
+```
+
+Here the compulsory fields are the `"type"` field that labels the error type (eg. `"type": "unitary"`), and the `"operations"` field that specifies the circuit operations this error applies to (eg. to apply to all Pauli gates we could have `"operations": ["id", "x", "y", "z"]`). The optional fields are `"op_qubits"` and `"noise_qubit"`. If both these fields are present the error will be added as an *indexed non-local error*, if only `"op_qubits"` is present the error will be added as an *indexed local error*, and if neither are present the error will be added as a *default local error*. 
+
+The `"op_qubits"` field specifies the indexed qubits this gate should be applied to. The sub-lists should be the same length as the number of qubits in the gate (Eg. to apply an error to a CNOT gate only when it has qubit-0 as control, and either qubit 1 or qubit 2 as target we could have `"op_qubits": [[0, 1], [0, 2]]`). For a non-local error the `"noise_qubits"` field specifies the qubits that the error should be applied to. Each sublist here should be the same length as the number of qubits in the noise operation, which for the non-local case need not be the same as the number of qubits in the original noisy gate.
+
 #### Unitary Error
+
+The most common error type for the simulator is a unitary error, which correspond to a mixed unitary error channel $$\mathcal{E}(\rho) = (1- \sum_j p_j) \rho + \sum_j p_j U_j \rho U_j^\dagger$$ where we have explicitly removed the identity term from the unitary operators. This is because we infer the probability of the identity operation from a list of probabilities $\{p_j\}$ by $p_I = 1 - \sum_j p_j$.
+
+Note that this error type includes coherent errors (a single $U_0$ with $p_0=1$), and Pauli or Clifford errors. When this error is sampled from a single $U_j$ will be sampled from the distribution given by the their respective probabilities $\{p_j\}$.
+
+##### JSON Object
+
+The JSON object for specifying an error is given by
+
+```
+{
+    "type": "unitary",
+    "operations": list[str],
+    "probabilities": list[double],
+    "matrices": list[complex matrix]
+    "op_qubits": list[list[int]], // optional
+    "noise_qubits": list[list[int]] // optional
+}
+```
+
+The additional parameter fields for unitary errors are `"matrices"` which is a list of unitary matrices for the error, and `"probabilities"` which is a list of probabilities for each matrix in matrices. The probabilities must sum to at most 1, if there sum is less than one the probability of an identity operation is inferred from the difference.
+
+**Example:** *Completely depolarizing channel*
+The following object implements a completely depolarizing channel on all single qubit gates `"u1", "u2", "u3"`
+
+```json
+{
+    "type": "unitary",
+    "operations": ["u1", "u2", "u3"],
+    "probabilities": [0.25, 0.25, 0.25],
+    "matrices": [
+        [[[0, 0], [1, 0]], [[1, 0], [0, 0]]],
+        [[[0, 0], [0, -1]], [[0, 1], [0, 0]]],
+        [[[1, 0], [0, 0]], [[0, 0], [-1, 0]]]
+    ]
+}
+```
+
+##### Python Interface
+
+**TODO:** We require a python interface for specifying these errors
+
 
 #### Reset Error
 
+
+TODO description
+
+Reset errors correspond to reset of a qubit to a Z-basis state with a given probability.
+
+##### JSON Object
+
+The JSON object for specifying an error is given by
+
+```
+{
+    "type": "reset",
+    "default_probabilities": list[double],
+    "qubit_probabilities": list[pair[int, double]]
+}
+```
+
+TODO description
+
+##### Python Interface
+
+**TODO**
+
+
 #### Kraus Error
- 
+
+Kraus errors correspond to a general CPTP noise channel expressed in the Kraus representation $$\mathcal{E}(\rho) = A_j \rho A_j^\dagger, \quad \sum_j A_j^\dagger A_j = I$$.
+
+Note that when a Kraus error is loaded, if any of the Kraus operators are unitary or identity it will be partitioned into the equivalent noise channel $$\mathcal{E}(\rho) = (1-p_u - p_k)\rho + p_u \mathcal{U}(\rho) + p_k \mathcal{K}(\rho)A_j$$ where
+$$\mathcal{U}(\rho) = \sum_j p_j U_j \rho U_j^\dagger, \quad \sum_j p_j = 1$$
+$$\mathcal{K}(\rho) = \sum_j K_j \rho J_j^\dagger, \sum_j K_j^\dagger K_j = I$$
+correspond are the unitary and non-unitary Kraus channels resulting from the original operators. Hence when sampling noise from a Kraus channel one of the the identity, unitary, or non-unitary component channels will be sampled based on the probabilities $\{1-p_u-p_k, p_u, p_k\}$.
+
+##### JSON Object
+
+The JSON object for specifying an error is given by
+
+```
+{
+    "type": "kraus",
+    "operations": list[str],
+    "matrices": list[complex matrix]
+    "op_qubits": list[list[int]], // optional
+    "noise_qubits": list[list[int]] // optional
+}
+```
+
+where `"matrices"` is a list of all the Kraus operators for a CPTP noise channel.
+
+**Example:** *Amplitude damping channel*
+The following object implements a single-qubit amplitude damping channel on all gates `"u1, "u2", "u3"` with damping parameter $\gamma = 1/4$:
+
+```json
+{
+    "type": "kraus",
+    "operations": ["u1", "u2", "u3"],
+    "matrices": [
+        [[[1, 0], [0, 0]], [[0, 0], [0.5, 0]]],
+        [[[0, 0], [0.86602540378, 0]], [[0, 0], [0, 0]]]
+    ]
+}
+```
+
+**Example:** *Completely depolarizing channel*
+The following object implements a completely depolarizing channel on all single qubit gates `"u1, "u2", "u3"`:
+
+```json
+{
+    "type": "kraus",
+    "operations": ["u1", "u2", "u3"],
+    "matrices": [
+        [[[0.5, 0], [0, 0]], [[0, 0], [0.5, 0]]],
+        [[[0, 0], [0.5, 0]], [[0.5, 0], [0, 0]]],
+        [[[0, 0], [0, -0.5]], [[0, 0.5], [0, 0]]],
+        [[[0.5, 0], [0, 0]], [[0, 0], [-0.5, 0]]]
+    ]
+}
+```
+
+Note that this will be implemented as a Unitary channel since all Kraus operators are unitary. It is equivalent to example of the completely depolarizing channel for [unitary errors](#unitary-error).
+
+
+##### Python Interface 
+
+**TODO**
+
+
 #### Readout Error
 
-### Error Locations
+**TODO**
+
+
+[Back to top](#table-of-contents)
+
+### X90 Waltz Error Decompositions
+
+
+
+[Back to top](#table-of-contents)
 
 
 ### Building a Noise Model
+
+A noise model consists of a list of Errors, the operations they apply to, and the qubits they apply to for indexed error models. This is loaded by the simulator from a JSON file, however we require a Python interface in Qiskit-Terra to construct an error model and generate the JSON from this model.
+
+##### JSON Object
+
+The JSON file for an error model has the form
+
+```
+{
+    "errors": list[error_objects],
+    "x90_gates": list[str]
+}
+```
+
+where each error object in the list is one of those described in [Error Types](#error-types), and `"x90_gates"` is a list of the string labels for named single qubit gates that should be assigned to use the `"x90"` error model instead of their labelled error model. Note that errors acting on the same gate (and qubits) will sampled from in the order inferred from their relative position in the error list, however order of error models still takes precedence. For example if we add a non-local error for a gate `"x"` followed by a local error, the local one will still be applied first, as local errors are applied before non-local ones.
+
+##### Python Interface
+
+**TODO:** We require a Python interface to construct a noise model. I think this should be done in a similar way to how one currently constructs quantum circuits.
 
 
 [Back to top](#table-of-contents)
@@ -151,9 +346,9 @@ The standard operations are those that may also be implemented on real devices. 
 
 Measures a subset of qubits and  record the measurement outcomes in a classical memory location. The JSON schema for measure operation is
 
-#### JSON Object 
+##### JSON Object 
 
-```json
+```
 {
     "name": "measure",
     "qubits": list[int],   // qubits to measure
@@ -164,7 +359,7 @@ Measures a subset of qubits and  record the measurement outcomes in a classical 
 
 The `"qubits"` field specifies 1 or more qubits to measure. The `"memory"` field specifies the classical memory bit locations to store the outcomes in, it must be the same length as the qubits being measured. The optional `"register"` field is optional and can be used to specify classical register bit locations to also store the outcomes in. If present it must also be the same length of the qubits being measured. The difference between the memory and register fields is that the memory values will be returned as a `"counts"` dictionary in the results, while the register field is usually not returned, and is instead used for conditional operations.
 
-#### Python Interface
+##### Python Interface
 
 **TODO:** The python interface for the `measure` operation needs to be updated to the new QOBJ schema so that it supports the optional register field.
 
@@ -185,10 +380,10 @@ circ.measure(qr[4], cr[4], register=cr2[0])
 
 Resets a subset of qubits to the zero state. The JSON schema specifies that this is always a reset to the ground state. Internally the simulator actually supports reset operations to any Z-basis state and uses these for various internal operations, such as noise implementation.
 
-#### JSON Object
+##### JSON Object
 
 The default schema for a reset operation in the schema document is given by
-```json
+```
 {
     "name": "reset",
     "qubits": list[int]
@@ -199,7 +394,7 @@ where `"qubits"` is a list of the qubits to be reset.
 
 The *extended* reset operation supported by the simulator is given by
 
-```json
+```
 {
     "name": "reset",
     "qubits": list[int],
@@ -213,33 +408,12 @@ where the optional field of `"params"` is a list containing a single integer, wh
 
 Consider the following four operations that reset qubits 0 and 3 to the |q[3], q[0]> = |0, 0>, |0,1>, |1,0>, and |1,1> state respectively:
 
-```json
-// reset to |0, 0>
-{
-    "name": "reset",
-    "qubits": [0, 3]
-}
-// reset to |0, 1>
-{
-    "name": "reset",
-    "qubits": [0, 3],
-    "params": [1]
-}
-// reset to |1, 0>
-{
-    "name": "reset",
-    "qubits": [0, 3],
-    "params": [2]
-}
-// reset to |1, 1>
-{
-    "name": "reset",
-    "qubits": [0, 3],
-    "params": [3]
-}
-```
+* $|0, 0\rangle$: ` {"name": "reset", "qubits": [0, 3]}`
+* $|0, 1\rangle$: ` {"name": "reset", "qubits": [0, 3], "params": [1]}`
+* $|1, 0\rangle$: ` {"name": "reset", "qubits": [0, 3], "params": [2]}`
+* $|1, 1\rangle$: ` {"name": "reset", "qubits": [0, 3], "params": [3]}`
 
-#### Python Interface
+##### Python Interface
 
 **TODO:** If we do not allow adding reset operations to specific state from the qiskit-terra interface, then the reset circuit operation does not need updating other than to support serialization to a JSON reset object for multiple qubits.
 
@@ -251,11 +425,11 @@ Consider the following four operations that reset qubits 0 and 3 to the |q[3], q
 
 The Boolean function (`bfunc`)  is a new operation introduced in the most recent Qiskit QOBJ schema spec that is used for classical processing and must be supported by engines that handle conditional operations. There are two classical register types in the latest spec (*memory* and *register*), memory holds measurement outcomes (and register can optionally too) and is assumed to be a virtually unlimited resource, while register is a limited resource and is used sparingly for conditional operation checks. The boolean function allows computing the value of a boolean function $f(b)$ acting on some masked set of memory qubits, and store the outcome (0 or 1) in one or more register locations. This value can then be used for conditional operations.
 
-#### JSON Object
+##### JSON Object
 
  The JSON schema specifies that boolean operations look like
 
-```json
+```
 {
     "name": "bfunc",
     "mask": hex-string,           // hex string for bit-mask
@@ -268,7 +442,7 @@ The Boolean function (`bfunc`)  is a new operation introduced in the most recent
 
 where `"mask"` is a hexadecimal string of the bit-mask for the memory bits used in the function, `"relation"` is a string for the boolean comparison operator (currently only `"=="`), `"val"` is a hexadecimal string the comparison value of the function, the `"register"` field specifies 1 or more register bits to store the function outcome value in, the optional field `"memory"` is the same as the register field but stores the outcome in 1 or more memory bits.
 
-#### Python Interface
+##### Python Interface
 
 **TODO:** A python circuit operation for a boolean function either needs to be specified, or the current implementation for conditional operations needs to be automatically mapped to boolean functions by the qiskit compiler.
 
@@ -288,11 +462,11 @@ Additional gates can be added and used with a noise model using the unitary [mat
 
 **TODO:** *The `u0` gate is not yet implemented in the simulator or noise model. We need to define what this gate means first as its description is ambiguous.*
 
-#### JSON Object
+##### JSON Object
 
 The JSON schema for these operations is given in QOBJ schema spec document.
 
-#### Python Interface
+##### Python Interface
 
 All these standard operations can be added to a circuit using the standard circuit extensions.
 
@@ -310,11 +484,11 @@ In this section we list simulator specific operations that do not have an equiva
 
 This operations allows specification of an arbitrary n-qubit matrix to be applied by the simulator. This matrix may either be a square unitary matrix, or a diagonal unitary matrix. Note that this operation could be supported by base Qiskit-Terra, however it would need to be compiled to a quantum circuit of basis gate operations by the compiler for backends that do no support arbitrary unitary gates.
 
-#### JSON Object
+##### JSON Object
 
 The JSON serialization of a unitary matrix operation is given by
 
-```json
+```
 {
     "name": "mat",
     "qubits": list[int],
@@ -353,7 +527,7 @@ The following JSON object specifies Pi / 8 rotation on qubit 2, labeled here so 
 }
 ```
 
-#### Python Interface
+##### Python Interface
 
 **TODO:** To apply an arbitrary matrix to select qubits we have a `unitary` circuit method, that may take a complex Numpy array for the matrix, a list of qubits it should act on, and an optional string label (default `label=None`) for the matrix that can be used to assign it a noise model:
 
@@ -417,7 +591,7 @@ The most general types of observables are when we represent the observable as a 
 
 Snapshots may be specified as a Qobj instruction with the following base JSON format:
 
-```json
+```
 {
     "name": "snapshot",
     "type": string,
@@ -440,7 +614,7 @@ The `"label"` string is used to index the snapshots in the output result JSON. O
 
 The state snapshot does not need the `"params"` field. It is given by
 
-```json
+```
 {
     "name": "snapshot",
     "type": "state",
@@ -455,7 +629,7 @@ The format of the state in the output field will depend on the type of simulator
 
 The probabilities snapshot instruction schema is given by
 
-```json
+```
 {
     "name": "snapshot",
     "type": "probabilities",
@@ -479,7 +653,7 @@ The list of qubits may contain any subset of qubits in the system. For example i
 
 In this case the returned dictionary will be of the form:
 
-```json
+```
 "snapshots": {
     "probabilities": {
         "probs(q0,q1)": [{
@@ -499,7 +673,7 @@ In this case the returned dictionary will be of the form:
 
 Pauli observables are a special case of general matrix observables where the matrix may be written in terms of the Pauli-operator basis: $\mathcal{O}_k = \bigotimes_{j=1}^n P_j$ where $P_j \in \{I, X, Y, Z\}$.  The JSON instruction is given by
 
-```json
+```
 {
     "name": "snapshot",
     "type": "pauli_observable",
@@ -533,7 +707,7 @@ Where for a Pauli observable $\mathcal{O}_n = \bigotimes_{j=1}^k w_j P_j$ the pa
 
 If Pauli operators are insufficient, general matrix observables can be defined for subsets of qubits in the system. Matrices my be represented by subsystem components in a tensor product structure: Eg for a matrix $M = A\otimes B$, the matrices $A$, and $B$ may be passed in separately, along with which qubits the sub-matrices act on. The general JSON schema for this operation is:
 
-```json
+```
 {
     "name": "snapshot",
     "type": "matrix_observable",
@@ -573,7 +747,7 @@ For the sub-matrix components, they may be specified as either:
 Note that the Z operation is entered as a diagonal matrix, but the X is entered as a square matrix.
 
 
-#### Python Interface
+##### Python Interface
 
 **TODO:** We need both
 
@@ -632,11 +806,11 @@ More advanced methods would allow specifying the block-matrix and Pauli componen
 The noise-switch instruction is a special simulator instruction that can turn noise on or off for portions of a circuit on each shot.
 
 
-#### JSON Object
+##### JSON Object
 
 The JSON object for a noise-switch is given by
 
-```json
+```
 {
     "name": "noise_switch",
     "params": [int],
@@ -646,7 +820,7 @@ The JSON object for a noise-switch is given by
 where `"params": [0]` deactivates the noise model, and `"params": [1]` re-activates the noise model.
 
 
-#### Python Interface
+##### Python Interface
 
 A noise circuit operation already exists for the qiskit-terra C++ simulator that can be moved to Qiskit-Aer. This instruction takes a quantum register as its argument. This is used to make the noise instruction behave like a barrier so that it isn't moved by the compiler.
 
@@ -671,11 +845,11 @@ circ.x(qr[0])  # another noisy gate
 
 While unitary errors may be expressed as [standard gate](#standard-gates) or [unitary matrix](#matrix-multiplication) operations, and reset errors as [reset](#reset) operations, Kraus errors require a custom operation type since they must be handled directly by the `State` type (if supported). This is because the noise processes cannot be sampled in-advance by the controller as is is conditionally on the current state of the system. Kraus operations specify a list of Kraus matrices ${K_j}$ corresponding to a CPTP map $$\mathcal{E}(\rho) = \sum_j K_j \rho K_j$$ and the qubits that the map acts on.
 
-#### JSON Object
+##### JSON Object
  
 The JSON object is given by
 
-```json
+```
 {
     "name": "kraus",
     "qubits": list[int],
@@ -695,9 +869,9 @@ where `"params"` is a list of the complex matrices for each Kraus operator, and 
 The readout noise operation is an operation on classical bits (like the [boolean function](#boolean-function)). It is used to flip the recorded bit-values from a measurement where the bit-flip probability is conditional on the true mesaurement value. Since sampling the bit-flip probability depends on the measurement outcome this must be handled at run-time. The JSON for memory bits and register bits readout error are given by
 
 
-#### JSON Object
+##### JSON Object
 
-```json
+```
 {
     "name": "roerror",
     "memory": list[int]
