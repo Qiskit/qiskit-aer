@@ -17,16 +17,18 @@
 ## Table of Contents
     
 * [Introduction](#introduction)
+    * [Installation](#installation)
 * [Components](#components)
     * [Implementation](#implementation)
     * [Parallelization](#parallelization)
 * [Noise models](#noise-models)
+    * [Applying Error Models](#applying-error-models)
     * [Error types](#error-types)
         * [Unitary Error](#unitary-error)
         * [Reset Error](#reset-error)
         * [Kraus Error](#kraus-error)
         * [Readout Error](#readout-error)
-    * [Error Locations](#error-locations)
+    * [X90 Error Decompositions](#x90-error-decompositions)
     * [Building a Noise Model](#building-a-noise-model)
 * [Supported Instructions](#supported-instructions)
     * [Standard Operations](#standard-operations)
@@ -47,6 +49,23 @@
 
 This is a working draft for the Qiskit-Aer simulator framework for Qiskit-Terra. This is the development repository and has no guarantee of stability or correctness.
 
+### Installation
+
+Installation of the simulator may be done by running
+
+```bash
+python setup.py built_ext --inplace
+```
+
+The simulator backend may then be imported into qiskit using
+
+```python
+from aer.aer_simulator import AerSimulator
+
+backend = AerSimulator()
+```
+
+This has only been tested with Anaconda builds of Numpy and Scipy which include the Intel MKL BLAS and OpenMP libraries.
 
 ---
 
@@ -299,7 +318,7 @@ Note that this will be implemented as a Unitary channel since all Kraus operator
 
 [Back to top](#table-of-contents)
 
-### X90 Waltz Error Decompositions
+### X90 Error Decompositions
 
 
 
