@@ -71,8 +71,8 @@ public:
   }
 
   // Set which single qubit gates should use the X90 waltz error model
-  inline void set_waltz_gates(const std::unordered_set<std::string> &waltz_gates) {
-    waltz_gates_ = waltz_gates;
+  inline void set_x90_gates(const std::unordered_set<std::string> &x90_gates) {
+    x90_gates_ = x90_gates;
   }
 
   // Set threshold for applying u1 rotation angles.
@@ -99,11 +99,11 @@ private:
   NoiseOps sample_noise_helper(const Operations::Op &op);
 
   // Sample a noisy implementation of a two-X90 pulse u3 gate
-  NoiseOps sample_noise_waltz_u3(uint_t qubit, complex_t theta,
+  NoiseOps sample_noise_x90_u3(uint_t qubit, complex_t theta,
                                  complex_t phi, complex_t lam);
   
   // Sample a noisy implementation of a single-X90 pulse u2 gate
-  NoiseOps sample_noise_waltz_u2(uint_t qubit, complex_t phi, complex_t lam);
+  NoiseOps sample_noise_x90_u2(uint_t qubit, complex_t phi, complex_t lam);
 
 
   // Add a local error to the noise model for specific qubits
@@ -143,7 +143,7 @@ private:
   std::unordered_map<std::string, nonlocal_qubit_map_t> nonlocal_error_table_;
 
   // Table of single-qubit gates to use a Waltz X90 based error model
-  std::unordered_set<std::string> waltz_gates_;
+  std::unordered_set<std::string> x90_gates_;
 
   // Lookup table for gate strings to enum
   enum class Gate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
@@ -163,8 +163,8 @@ private:
 
 NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op) {
   // Look to see if gate is a waltz gate for this error model
-  auto it = waltz_gates_.find(op.name);
-  if (it == waltz_gates_.end()) {
+  auto it = x90_gates_.find(op.name);
+  if (it == x90_gates_.end()) {
     // Non-X90 based gate, run according to base model
     return sample_noise_helper(op);
   }
@@ -173,15 +173,15 @@ NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op) {
   if (gate != waltz_gate_table_.end()) {
     switch (gate->second) {
       case Gate::u3:
-        return sample_noise_waltz_u3(op.qubits[0], op.params[0], op.params[1], op.params[2]);
+        return sample_noise_x90_u3(op.qubits[0], op.params[0], op.params[1], op.params[2]);
       case Gate::u2:
-        return sample_noise_waltz_u2(op.qubits[0], op.params[0], op.params[1]);
+        return sample_noise_x90_u2(op.qubits[0], op.params[0], op.params[1]);
       case Gate::x:
-        return sample_noise_waltz_u3(op.qubits[0], M_PI, 0., M_PI);
+        return sample_noise_x90_u3(op.qubits[0], M_PI, 0., M_PI);
       case Gate::y:
-        return sample_noise_waltz_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI);
+        return sample_noise_x90_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI);
       case Gate::h:
-        return sample_noise_waltz_u2(op.qubits[0], 0., M_PI);
+        return sample_noise_x90_u2(op.qubits[0], 0., M_PI);
       default:
         // The rest of the Waltz operations are noise free (u1 only)
         return {op};
@@ -387,7 +387,7 @@ NoiseModel::waltz_gate_table_ = {
 };
 
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u3(uint_t qubit,
+NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
                                                        complex_t theta,
                                                        complex_t phi,
                                                        complex_t lam) {
@@ -411,7 +411,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u3(uint_t qubit,
 }
 
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u2(uint_t qubit,
+NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
                                                        complex_t phi,
                                                        complex_t lam) {
   NoiseOps ret;
@@ -435,7 +435,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_waltz_u2(uint_t qubit,
   {
     "error_model": {
       "errors": [error js],
-      "waltz_gates": which gates should be implemented as waltz gates and use the "x90" term
+      "x90_gates": which gates should be implemented as waltz gates and use the "x90" term
     }
   }
 
@@ -490,8 +490,8 @@ void NoiseModel::load_from_json(const json_t &js) {
   }
 
   // See if any single qubit gates have a waltz error model applied to them
-  if (JSON::check_key("waltz_gates", js)) {
-    set_waltz_gates(js["waltz_gates"]);
+  if (JSON::check_key("x90_gates", js)) {
+    set_x90_gates(js["x90_gates"]);
   }
 
   if (JSON::check_key("errors", js)) {
