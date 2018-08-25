@@ -1,4 +1,4 @@
-INCLUDE = -I../src/
+INCLUDE = -I../src/ -I../src/third-party/headers
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
 OUTPUT_DIR = ../out/aer-simulator
