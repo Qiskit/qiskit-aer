@@ -73,7 +73,7 @@ if(STATIC_LINKING)
 endif()
 
 # Looking for external libraries
-find_package(OpenMP REQUIRED QUIET)
+find_package(OpenMP QUIET)
 if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
 		message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
@@ -106,10 +106,15 @@ endif()
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
+message(STATUS "Lookgin for OpenBLAS library...")
 set(BLA_VENDOR "OpenBLAS")
-find_package(BLAS REQUIRED)
+find_package(BLAS QUIET)
+if(NOT BLAS_FOUND)
+	message(STATUS "OpenBLAS not found. Lookgin for any other BLAS library...")
+	unset(BLA_VENDOR)
+	find_package(BLAS REQUIRED)
+endif()
 
-message( "JUAN: ${BLAS_LIBRARIES}")
 set(LIBRARIES ${BLAS_LIBRARIES} nlohmann_json)
 
 # Linking
