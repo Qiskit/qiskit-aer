@@ -14,6 +14,10 @@ project(aer_simulator_cpp LANGUAGES CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+option(STATIC_LINKING "Specify if we want statically link the executable (for 
+						redistribution mainly)" FALSE)
+option(BUILD_TESTS "Specify whether we want to build tests or not" TRUE)
+
 include(CTest)
 include(compiler_utils)
 
@@ -125,4 +129,6 @@ target_link_libraries(aer_simulator_cpp PRIVATE ${LIBRARIES})
 set(AER_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:aer_simulator_cpp>
 	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
 
-add_subdirectory(test)
+if(BUILD_TESTS)
+	add_subdirectory(test)
+endif()
