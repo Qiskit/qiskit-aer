@@ -8,6 +8,7 @@
 # For Mac, you'll probably need to install static versions of the toolchain in
 # order to make a static executable.
 # Additionaly, OpenMP support is only available in clang from
+
 cmake_minimum_required(VERSION 3.11)
 project(aer_simulator_cpp LANGUAGES CXX)
 
@@ -31,12 +32,14 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
 	"${USER_LIB_PATH}")
 
+
 # Adding support for CCache
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
+
 
 # Target definition
 add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
@@ -87,7 +90,6 @@ if(STATIC_LINKING)
 endif()
 
 # Looking for external libraries
-
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
 # so we need to link with an external library: libomp
@@ -113,7 +115,7 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	endif()
 endif()
 
-if (OpenMP_FOUND OR OpenMP_CXX_FOUND)
+if(OpenMP_FOUND OR OpenMP_CXX_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
@@ -132,13 +134,24 @@ if(NOT BLAS_FOUND)
 	find_package(BLAS REQUIRED)
 endif()
 
-set(LIBRARIES ${BLAS_LIBRARIES} nlohmann_json)
+
+# Linter
+# This will add the linter as part of the compiling build target
+include(Linter)
 
 # Linking
-target_link_libraries(aer_simulator_cpp PRIVATE ${LIBRARIES})
+# Set dependent libraries
+set(AER_LIBRARIES
+	${BLAS_LIBRARIES}
+	nlohmann_json)
+
+target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
+
 set(AER_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:aer_simulator_cpp>
 	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
 
+
+# Tests
 if(BUILD_TESTS)
 	add_subdirectory(test)
 endif()

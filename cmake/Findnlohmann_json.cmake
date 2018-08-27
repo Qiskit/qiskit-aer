@@ -5,6 +5,5 @@ if(NOT nlohmann_json_FOUND)
     message(STATUS "nlohmann include dir: ${NLOHMANN_INCLUDE_DIR}")
     add_library(nlohmann_json INTERFACE IMPORTED)
     set_target_properties(nlohmann_json PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES ${NLOHMANN_INCLUDE_DIR}
-    )
+            INTERFACE_INCLUDE_DIRECTORIES ${NLOHMANN_INCLUDE_DIR})
 endif()

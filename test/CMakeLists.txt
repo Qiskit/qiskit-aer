@@ -10,7 +10,7 @@ target_include_directories(test_snapshot
                             PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(test_snapshot 
                         PRIVATE Catch2::Catch
-                        PRIVATE ${LIBRARIES})
+                        PRIVATE ${AER_LIBRARIES})
 add_test(test_snapshot test_snapshot)
 
 
