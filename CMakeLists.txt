@@ -13,6 +13,8 @@ project(aer_simulator_cpp LANGUAGES CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
+include(CTest)
 include(compiler_utils)
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -27,6 +29,7 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 
 # Target definition
 add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
+
 # Target properties: C++ program
 set_target_properties(aer_simulator_cpp PROPERTIES 
 											LINKER_LANGUAGE CXX
@@ -122,6 +125,4 @@ target_link_libraries(aer_simulator_cpp PRIVATE ${LIBRARIES})
 set(AER_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:aer_simulator_cpp>
 	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
 
-# Tests
-# TODO: Enable them when ready
-#add_subdirectory(${AER_SIMULATOR_CPP_DIR}/test)
+add_subdirectory(test)
