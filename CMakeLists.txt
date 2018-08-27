@@ -31,6 +31,13 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
 	"${USER_LIB_PATH}")
 
+# Adding support for CCache
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 # Target definition
 add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
 
@@ -43,7 +50,7 @@ if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
 	# working on MacOS, when a flag is not supported, it cascades errors
 	# to the rest of the flags being tested... and -static compilation on Mac
-	# with gcc is failing...
+	# with gcc is failing
 	if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	    message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
 	else()
@@ -80,7 +87,10 @@ if(STATIC_LINKING)
 endif()
 
 # Looking for external libraries
+
 find_package(OpenMP QUIET)
+# This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
+# so we need to link with an external library: libomp
 if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
 		message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
