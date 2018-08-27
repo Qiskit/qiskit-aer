@@ -229,7 +229,6 @@ void Engine<state_t>::apply_op(const Operations::Op &op,
 }
 
 
-
 template <class state_t>
 void Engine<state_t>::initialize(State<state_t> *state_ptr, const Circuit &circ) {
   // Initialize state

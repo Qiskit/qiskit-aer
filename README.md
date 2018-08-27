@@ -247,7 +247,6 @@ Consider a reset error motivated by $T_1$ relaxation for a single qubit x90 gate
 }
 ```
 
-TODO description
 
 ##### Python Interface
 

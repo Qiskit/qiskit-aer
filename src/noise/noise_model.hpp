@@ -144,8 +144,8 @@ private:
   std::unordered_set<std::string> x90_gates_;
 
   // Lookup table for gate strings to enum
-  enum class Gate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
-  const static std::unordered_map<std::string, Gate> waltz_gate_table_;
+  enum class WaltzGate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
+  const static std::unordered_map<std::string, WaltzGate> waltz_gate_table_;
 
   // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
   double u1_threshold_ = 1e-10;
@@ -168,15 +168,15 @@ NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
   auto gate = waltz_gate_table_.find(op.name);
   if (gate != waltz_gate_table_.end()) {
     switch (gate->second) {
-      case Gate::u3:
+      case WaltzGate::u3:
         return sample_noise_x90_u3(op.qubits[0], op.params[0], op.params[1], op.params[2], rng);
-      case Gate::u2:
+      case WaltzGate::u2:
         return sample_noise_x90_u2(op.qubits[0], op.params[0], op.params[1], rng);
-      case Gate::x:
+      case WaltzGate::x:
         return sample_noise_x90_u3(op.qubits[0], M_PI, 0., M_PI, rng);
-      case Gate::y:
+      case WaltzGate::y:
         return sample_noise_x90_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI, rng);
-      case Gate::h:
+      case WaltzGate::h:
         return sample_noise_x90_u2(op.qubits[0], 0., M_PI, rng);
       default:
         // The rest of the Waltz operations are noise free (u1 only)
@@ -197,13 +197,42 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng) const {
     noisy_circ.ops.reserve(2 * circ.ops.size()); // just to be safe?
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
-      if (op.type == Operations::OpType::noise_switch) {
-        // check for noise switch operation
-        noise_active = std::real(op.params[0]);
-      } else if (noise_active) {
-        NoiseOps noisy_op = sample_noise(op, rng);
-        // insert noisy op sequence into the circuit
-        noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
+      switch (op.type) {
+        // Operations that cannot have noise
+        case Operations::OpType::barrier:
+          // Don't need barrier in circuit
+          break;
+        case Operations::OpType::snapshot_state:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::snapshot_probs:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::snapshot_pauli:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::snapshot_matrix:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::kraus:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::roerror:
+          noisy_circ.ops.push_back(op);
+          break;
+        case Operations::OpType::bfunc:
+          noisy_circ.ops.push_back(op);
+          break;
+        // Switch noise on or off during current circuit sample
+        case Operations::OpType::noise_switch:
+          noise_active = std::real(op.params[0]);
+          break;
+        default:
+          if (noise_active) {
+            NoiseOps noisy_op = sample_noise(op, rng);
+            noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
+          }
+          break;
       }
     }
     return noisy_circ;
@@ -410,12 +439,12 @@ void NoiseModel::sample_noise_nonlocal(const Operations::Op &op,
 }
 
 
-const std::unordered_map<std::string, NoiseModel::Gate>
+const std::unordered_map<std::string, NoiseModel::WaltzGate>
 NoiseModel::waltz_gate_table_ = {
-  {"u3", Gate::u3}, {"u2", Gate::u2}, {"u1", Gate::u1}, {"u0", Gate::u0},
-  {"id", Gate::id}, {"x", Gate::x}, {"y", Gate::y}, {"z", Gate::z},
-  {"h", Gate::h}, {"s", Gate::s}, {"sdg", Gate::sdg},
-  {"t", Gate::t}, {"tdg", Gate::tdg}
+  {"u3", WaltzGate::u3}, {"u2", WaltzGate::u2}, {"u1", WaltzGate::u1}, {"u0", WaltzGate::u0},
+  {"id", WaltzGate::id}, {"x", WaltzGate::x}, {"y", WaltzGate::y}, {"z", WaltzGate::z},
+  {"h", WaltzGate::h}, {"s", WaltzGate::s}, {"sdg", WaltzGate::sdg},
+  {"t", WaltzGate::t}, {"tdg", WaltzGate::tdg}
 };
 
 
@@ -537,9 +566,9 @@ void NoiseModel::load_from_json(const json_t &js) {
       std::unordered_set<std::string> ops; // want set so ops are unique, and we can pull out measure
       JSON::get_value(ops, "operations", gate_js);
       std::vector<reg_t> gate_qubits;
-      JSON::get_value(ops, "gate_qubits", gate_js);
+      JSON::get_value(gate_qubits, "gate_qubits", gate_js);
       std::vector<reg_t> noise_qubits;
-      JSON::get_value(ops, "noise_qubits", gate_js);
+      JSON::get_value(noise_qubits, "noise_qubits", gate_js);
 
       // We treat measure as a separate error op so that it can be applied before
       // the measure operation, rather than after like the other gates

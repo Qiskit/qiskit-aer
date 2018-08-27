@@ -318,6 +318,8 @@ json_t Controller::execute(const json_t &qobj_js) {
     ret["status"] = std::string("COMPLETED");
     ret["id"] = qobj.id;
     ret["qobj_id"] = "TODO";
+    if (!qobj.header.emtpy())
+      ret["header"] = qobj.header;
     add_backend_info(ret);
 
     // Stop the timer and add total timing data
