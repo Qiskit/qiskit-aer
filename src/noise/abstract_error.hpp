@@ -31,10 +31,15 @@ public:
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
 
+  // Return a character labeling the error type
+  // Built in errors are:
+  // 'U' for unitary, 'K' for Kraus, 'R' for reset', 'C' for readout.
+  virtual char error_type() const = 0;
+
   // Sample an realization of the error from the error model using the passed
   // in RNG engine.
   virtual NoiseOps sample_noise(const reg_t &qubits,
-                                RngEngine &rng) = 0;
+                                RngEngine &rng) const = 0;
 
   // Check that the parameters of the Error class are valid
   // The output is a pair of a bool (true if valid, false if not)

@@ -66,14 +66,7 @@ public:
    * @return the generated integer
    */
   int_t rand_int(int_t a, int_t b);
-
-  /**
-   * Generate a pseudo random integer from an input discrete distribution
-   * @param probs the discrete distribution to sample from
-   * @return the generated integer
-   */
-  template<class IntType> 
-  IntType rand_int(std::discrete_distribution<IntType> probs);
+  uint_t rand_int(uint_t a, uint_t b);
 
   /**
    * Generate a pseudo random integer from a a discrete distribution
@@ -83,7 +76,7 @@ public:
    * @param probs the vector of probabilities
    * @return the generated integer
    */
-  int_t rand_int(const std::vector<double> &probs);
+  uint_t rand_int(const std::vector<double> &probs);
 
   /**
    * Default constructor initialize RNG engine with a random seed
@@ -124,16 +117,14 @@ int_t RngEngine::rand_int(int_t a, int_t b) {
   return n;
 }
 
-// randomly distributed integers from discrete distribution
-template <class IntType>
-IntType RngEngine::rand_int(std::discrete_distribution<IntType> probs) {
-  IntType n = probs(rng);
+uint_t RngEngine::rand_int(uint_t a, uint_t b) {
+  int_t n = std::uniform_int_distribution<uint_t>(a, b)(rng);
   return n;
 }
 
 // randomly distributed integers from vector
-int_t RngEngine::rand_int(const std::vector<double> &probs) {
-  int_t n = std::discrete_distribution<int_t>(probs.begin(), probs.end())(rng);
+uint_t RngEngine::rand_int(const std::vector<double> &probs) {
+  uint_t n = std::discrete_distribution<uint_t>(probs.begin(), probs.end())(rng);
   return n;
 }
 

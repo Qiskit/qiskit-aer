@@ -47,9 +47,12 @@ public:
   // Error base required methods
   //-----------------------------------------------------------------------
 
+  // Return a character labeling the error type
+  inline char error_type() const override {return 'K';}
+
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
-                        RngEngine &rng) override;
+                        RngEngine &rng) const override;
 
   // Check that Error matrices are unitary, and that the correct number
   // of probabilities are specified.
@@ -68,23 +71,22 @@ public:
   // is the error probability (default 1).
   void load_from_mats(const std::vector<cmatrix_t> &mats, double p_error = 1);
 
-  // Build manually
-
-  void set_probabilities(double p_identity, double p_unitary, double p_kraus);
-
 protected:
   // Probability of noise type:
   // 0 -> No error
   // 1 -> UnitaryError error
   // 2 -> Kraus error
-  std::discrete_distribution<uint_t> probabilities_;
+  rvector_t probabilities_;
+  //std::discrete_distribution<uint_t> probabilities_;
+  // Set the probabilities for each error
+  void set_probabilities(double p_identity, double p_unitary, double p_kraus);
 
   // Include a unitary error for the unitary Kraus operators
   UnitaryError unitary_error_;
   // Collect all the non-unitary Kraus operators into a single Kraus Op
   std::vector<cmatrix_t> kraus_mats_;
 
-  double unitary_threshold_ = 1e-10;
+  double threshold_ = 1e-10;
 };
 
 
@@ -93,7 +95,7 @@ protected:
 //-----------------------------------------------------------------------
 
 KrausError::NoiseOps KrausError::sample_noise(const reg_t &qubits,
-                                            RngEngine &rng) {
+                                            RngEngine &rng) const {
 
   auto noise_type = rng.rand_int(probabilities_);
   switch (noise_type) {
@@ -111,7 +113,7 @@ KrausError::NoiseOps KrausError::sample_noise(const reg_t &qubits,
 
 
 void KrausError::set_probabilities(double p_identity, double p_unitary, double p_kraus) {
-  probabilities_ = std::discrete_distribution<uint_t>({p_identity, p_unitary, p_kraus});
+  probabilities_ = {p_identity, p_unitary, p_kraus};
 }
 
 
@@ -123,7 +125,7 @@ void KrausError::load_from_mats(const std::vector<cmatrix_t> &mats,
   for (const auto &mat : mats) {
     cptp = cptp + Utils::dagger(mat) * mat;
   }
-  if (Utils::is_identity(cptp, unitary_threshold_) == false) {
+  if (Utils::is_identity(cptp, threshold_) == false) {
     throw std::invalid_argument("KrausError input is not a CPTP map.");
   }
 
@@ -151,11 +153,11 @@ void KrausError::load_from_mats(const std::vector<cmatrix_t> &mats,
       // rescale mat by probability
       cmatrix_t tmp = (1 / std::sqrt(p)) * mat;
       // check if rescaled matrix is an identity
-      if (Utils::is_identity(tmp, unitary_threshold_)) {
+      if (Utils::is_identity(tmp, threshold_)) {
         p_identity += p;
       }
       // check if rescaled matrix is a unitary
-      else if (Utils::is_unitary(tmp, unitary_threshold_)) {
+      else if (Utils::is_unitary(tmp, threshold_)) {
         unitaries.push_back(tmp);
         probs_unitaries.push_back(p);
         p_unitary += p;
@@ -168,7 +170,7 @@ void KrausError::load_from_mats(const std::vector<cmatrix_t> &mats,
   // Infer probability of the kraus error from other terms.
   p_kraus = 1. - p_identity - p_unitary;
   // sanity check:
-  if (std::abs(p_identity + p_unitary + p_kraus - 1) > unitary_threshold_) {
+  if (std::abs(p_identity + p_unitary + p_kraus - 1) > threshold_) {
     throw std::invalid_argument("KrausError deduced probabilities invalid.");
   }
 
@@ -194,6 +196,8 @@ void KrausError::load_from_mats(const std::vector<cmatrix_t> &mats,
 
 // TODO
 std::pair<bool, std::string> KrausError::validate() const {
+
+
   return unitary_error_.validate();
 }
 

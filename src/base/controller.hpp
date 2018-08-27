@@ -85,7 +85,7 @@ public:
   void load_state_config(const json_t &config);
 
   // Clear the current noise model
-  inline void clear_noise_model() {noise_model_ = json_t();}
+  inline void clear_noise_model() {noise_model_ = Noise::NoiseModel();}
 
   // Clear the current engine config
   inline void clear_engine_config() {engine_config_ = json_t();}
@@ -168,7 +168,12 @@ private:
 
   json_t engine_config_;
   json_t state_config_;
-  json_t noise_model_;
+
+  //----------------------------------------------------------------
+  // Noise Model
+  //----------------------------------------------------------------
+  
+  Noise::NoiseModel noise_model_;
 
   //----------------------------------------------------------------
   // Parallelization Config
@@ -224,7 +229,7 @@ void Controller::set_max_threads_state(int max_threads) {
 }
 
 void Controller::load_noise_model(const json_t &config) {
-  noise_model_ = config;
+  noise_model_.load_from_json(config);
 }
 
 void Controller::load_engine_config(const json_t &config) {
@@ -266,11 +271,6 @@ json_t Controller::execute(const json_t &qobj_js) {
   bool all_success = true;
 
   try {
-
-    // Check noise model before here: this is because OpenMP can't catch the exception when the noise model
-    // is loaded in each subthread.
-    Noise::NoiseModel noise(noise_model_); // will throw an exception if noise model is invalid
-
     int num_circuits = qobj.circuits.size();
 
   // Check for OpenMP and number of available CPUs
@@ -426,20 +426,18 @@ Engine<state_t> Controller::execute_circuit(Circuit &circ,
     ss << "Circuit contains invalid operations: " << invalid;
     throw std::invalid_argument(ss.str());
   }
-  
-  // Load noise model
-  Noise::NoiseModel noise(noise_model_);
-  noise.set_rng_seed(noise_seed);
 
   // Check if there is noise for the implementation
-  if (noise.ideal()) {
+  if (noise_model_.ideal()) {
     // Implement without noise
     optimize_circuit(circ);
     engine.execute(circ, shots, &state);
   } else {
     // Sample noise for each shot
+    RngEngine noise_rng;
+    noise_rng.set_seed(noise_seed);
     while (shots-- > 0) {
-      Circuit noise_circ = noise.sample_noise(circ);
+      Circuit noise_circ = noise_model_.sample_noise(circ, noise_rng);
       engine.execute(noise_circ, 1, &state);
     }
   }

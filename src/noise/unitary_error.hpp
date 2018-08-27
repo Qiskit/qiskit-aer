@@ -34,9 +34,12 @@ public:
   // Error base required methods
   //-----------------------------------------------------------------------
 
+  // Return a character labeling the error type
+  inline char error_type() const override {return 'U';}
+
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
-                        RngEngine &rng) override;
+                        RngEngine &rng) const override;
 
   // Check that Error matrices are unitary, and that the correct number
   // of probabilities are specified.
@@ -60,7 +63,8 @@ public:
 
 protected:
   // Probabilities, first entry is no-error (identity)
-  std::discrete_distribution<uint_t> probabilities_;
+  rvector_t probabilities_;
+  //std::discrete_distribution<uint_t> probabilities_;
 
   // List of unitary error matrices
   std::vector<cmatrix_t> unitaries_;
@@ -74,7 +78,7 @@ protected:
 //-------------------------------------------------------------------------
 
 UnitaryError::NoiseOps UnitaryError::sample_noise(const reg_t &qubits,
-                                                  RngEngine &rng) {
+                                                  RngEngine &rng) const {
   auto r = rng.rand_int(probabilities_);
   // Check for no error case
   if (r == 0) {
@@ -108,9 +112,7 @@ void UnitaryError::set_probabilities(const rvector_t &probs) {
   if (probs_with_identity[0] > 1 || probs_with_identity[0] < 0 || !probs_valid) {
     throw std::invalid_argument("UnitaryError: invalid probability vector.");
   }
-  probabilities_ = std::discrete_distribution<uint_t>(
-                      probs_with_identity.begin(),
-                      probs_with_identity.end());
+  probabilities_ = std::move(probs_with_identity);
 }
 
 
@@ -128,7 +130,7 @@ std::pair<bool, std::string> UnitaryError::validate() const {
       break;
     }
   }
-  if (probabilities_.probabilities().size() > unitaries_.size() + 1) {
+  if (probabilities_.size() > unitaries_.size() + 1) {
     valid = false;
     msg += " Number of probabilities and unitaries do no match.";
   }

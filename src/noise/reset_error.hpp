@@ -14,8 +14,6 @@
 #ifndef _aer_noise_reset_error_hpp_
 #define _aer_noise_reset_error_hpp_
 
-#include "noise/unitary_error.hpp"
-
 
 namespace AER {
 namespace Noise {
@@ -39,9 +37,12 @@ public:
   // Error base required methods
   //-----------------------------------------------------------------------
 
+  // Return a character labeling the error type
+  inline char error_type() const override {return 'R';}
+
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
-                        RngEngine &rng) override;
+                        RngEngine &rng) const override;
   
   // TODO
   // Check that the reset error probabilities are valid
@@ -59,30 +60,18 @@ public:
   // probs[0] being the probability of reseting to |0> state
   // probs[1] the probability of resetting to the |1> state
   // The probability of no-reset error is given by 1 - p[0] - p[1]
-  inline void set_default_probabilities(const rvector_t &probs) {
-    default_probabilities_ = format_probabilities(probs);
-  }
-
-  // Set the reset error probabilities for a specific qubit.
-  // This will override the default probabilities for that qubit.
-  inline void set_qubit_probabilities(uint_t qubit, const rvector_t &probs) {
-    multi_probabilities_[qubit] = format_probabilities(probs);
-  }
+  void set_probabilities(const rvector_t &probs);
 
 protected:
-  using probs_t = std::discrete_distribution<uint_t>;
-  
-  // Reset error probabilities for each qubit
+
+  // Reset error probabilities for n-qubit system
   // 0 -> no reset
-  // 1 -> reset to |0>
-  // 2 -> reset to |1>
-  probs_t default_probabilities_; 
-
-  // Map for getting reset parameters for each qubit
-  std::unordered_map<uint_t, probs_t> multi_probabilities_; 
-
-  // Helper function to convert input to internal probability format
-  probs_t format_probabilities(const rvector_t &probs);
+  // i -> reset to state |i-1>
+  // For single-qubit
+  // 1, 2 -> reset to |0>, |1>
+  // For two-qubit:
+  // 1, 2, 3, 4 -> reset to |00>, |01>, |10>, |11>
+  rvector_t probabilities_; 
 };
 
 //-------------------------------------------------------------------------
@@ -90,23 +79,18 @@ protected:
 //-------------------------------------------------------------------------
 
 ResetError::NoiseOps ResetError::sample_noise(const reg_t &qubits,
-                                              RngEngine &rng) {
+                                              RngEngine &rng) const {
   // Initialize return ops,
   NoiseOps ret;
   // Sample reset error for each qubit
-  for (const auto &q: qubits) {
-    auto it = multi_probabilities_.find(q);
-    auto r = (it == multi_probabilities_.end())
-      ? rng.rand_int(default_probabilities_)
-      : rng.rand_int(it->second);
-    if (r > 0)
-      ret.push_back(Operations::make_reset(q, r));
-  }
+  auto r = rng.rand_int(probabilities_);
+  if (r > 0)
+    ret.push_back(Operations::make_reset(qubits, r - 1));
   return ret;
 }
 
 
-ResetError::probs_t ResetError::format_probabilities(const rvector_t &probs) {
+void ResetError::set_probabilities(const rvector_t &probs) {
   // error probability vector with [0] = p_identity
   rvector_t error_probs = {1.}; 
   for (const auto &p : probs) {
@@ -120,7 +104,7 @@ ResetError::probs_t ResetError::format_probabilities(const rvector_t &probs) {
   if (error_probs[0] < 0) {
     throw std::invalid_argument("ResetError probabilities > 1.");
   }
-  return probs_t(error_probs.begin(), error_probs.end());
+  probabilities_ = std::move(error_probs);
 }
 
 
@@ -132,15 +116,9 @@ std::pair<bool, std::string> ResetError::validate() const {
 
 void ResetError::load_from_json(const json_t &js) {
   rvector_t default_probs;
-  JSON::get_value(default_probs, "default_probabilities", js);
+  JSON::get_value(default_probs, "probabilities", js);
   if (!default_probs.empty()) {
-    set_default_probabilities(default_probs);
-  }
-  std::vector<std::pair<double, rvector_t>> qubit_probs;
-  JSON::get_value(qubit_probs, "qubit_probabilities", js);
-  if (!qubit_probs.empty()) {
-    for (const auto pair : qubit_probs)
-      set_qubit_probabilities(pair.first, pair.second);
+    set_probabilities(default_probs);
   }
 }
 

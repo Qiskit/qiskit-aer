@@ -224,20 +224,26 @@ The following object implements a completely depolarizing channel on all single 
 
 #### Reset Error
 
-
-TODO description
-
 Reset errors correspond to reset of a qubit to a Z-basis state with a given probability.
 
 ##### JSON Object
 
-The JSON object for specifying an error is given by
-
 ```
 {
     "type": "reset",
-    "default_probabilities": list[double],
-    "qubit_probabilities": list[pair[int, double]]
+    "probabilities": list[double]
+}
+```
+
+**Example:** *single-qubit reset error*
+
+Consider a reset error motivated by $T_1$ relaxation for a single qubit x90 gate with $t = 50$ ns gate time, $T_1 = 50$ microseconds relaxation time, and thermal population in the ground state of 100%. In this case the probability of reset to the ground state is $p_0 = 1 - exp(2\pi * 0.05 / 50) = 0.00626349$, the probability of reseting to the excited state is $p_1 = 0.$, and the probability of no reset is 0.993737. In this case the error object is given by
+
+```json
+{
+    "type": "reset",
+    "operations": ["x90"],
+    "probabilities": [0.00626349, 0.0]
 }
 ```
 
@@ -313,8 +319,33 @@ Note that this will be implemented as a Unitary channel since all Kraus operator
 
 #### Readout Error
 
-**TODO**
+Readout error is a classical error where the incorrect value is recorded to a classical bit. Note that readout errors can only be defined as a local-error. A non-local readout error specification will raise an error.
 
+##### JSON Object
+
+
+```
+{
+    "type": "readout",
+    "probabilities": real_matrix
+}
+```
+
+**Example:** 
+
+```json
+{
+    "type": "readout",
+    "operations": ["measure"],
+    "probabilities": [[0.9, 0.1],
+                      [0.2, 0.8]]
+}
+```
+
+
+##### Python Interface 
+
+**TODO**
 
 [Back to top](#table-of-contents)
 
