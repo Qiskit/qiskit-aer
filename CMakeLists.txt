@@ -9,13 +9,13 @@
 # order to make a static executable.
 # Additionaly, OpenMP support is only available in clang from
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.6)
 project(aer_simulator_cpp LANGUAGES CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-option(STATIC_LINKING "Specify if we want statically link the executable (for 
+option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" TRUE)
 
