@@ -32,7 +32,6 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/dylib"
 	"${USER_LIB_PATH}")
 
-
 # Adding support for CCache
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -40,14 +39,25 @@ if(CCACHE_FOUND)
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+# Set default build type to Release with Debug Symbols
+IF(NOT CMAKE_BUILD_TYPE)
+	SET(CMAKE_BUILD_TYPE Release CACHE STRING
+		"Choose the type of build, options are: Debug Release"
+		FORCE)
+ENDIF(NOT CMAKE_BUILD_TYPE)
 
 # Target definition
 add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
 
 # Target properties: C++ program
-set_target_properties(aer_simulator_cpp PROPERTIES 
-											LINKER_LANGUAGE CXX
-											CXX_STANDARD 14)
+set_target_properties(aer_simulator_cpp PROPERTIES
+	LINKER_LANGUAGE CXX
+	CXX_STANDARD 14)
+
+
+set_target_properties(aer_simulator_cpp PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
 if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
@@ -146,10 +156,6 @@ set(AER_LIBRARIES
 	nlohmann_json)
 
 target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
-
-set(AER_SIMULATOR_CPP_OUTPUT_DIR $<TARGET_FILE_DIR:aer_simulator_cpp>
-	CACHE INTERNAL "Output directory for building Qiskit C++ Simulator")
-
 
 # Tests
 if(BUILD_TESTS)
