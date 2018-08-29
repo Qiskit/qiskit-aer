@@ -102,7 +102,9 @@ endif()
 # Looking for external libraries
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
-# so we need to link with an external library: libomp
+# so we need to link with an external library: libomp.
+# NOTE: CMake >= 3.12.0 doesn't need this hack. It will just find OpenMP in the
+# first find_package(OpenMP) call
 if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
 		message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
@@ -118,6 +120,10 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 				set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
 				include_directories("${BREW_LIBOMP_PREFIX}/include")
 				message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
+
+				set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+				set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+				message(STATUS "OpenMP found!")
 			endif()
 		else()
 			message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
@@ -125,12 +131,6 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	endif()
 endif()
 
-if(OpenMP_FOUND OR OpenMP_CXX_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	message(STATUS "OpenMP found!")
-endif()
 
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
