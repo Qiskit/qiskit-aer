@@ -220,7 +220,7 @@ const std::unordered_map<std::string, State::Gates> State::gateset({
   {"x", Gates::x},    // Pauli-X gate
   {"y", Gates::y},    // Pauli-Y gate
   {"z", Gates::z},    // Pauli-Z gate
-  {"s", Gates::z},    // Phase gate (aka sqrt(Z) gate)
+  {"s", Gates::s},    // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},    // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},    // T-gate (sqrt(S))
