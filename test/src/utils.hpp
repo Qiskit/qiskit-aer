@@ -9,4 +9,6 @@ namespace Utilities {
         return JSON::load(filename);
     }
 
-}
+} // End of Utilities namespace
+} // End of Test namespace
+} // End of AER namspace
