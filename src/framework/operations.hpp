@@ -35,6 +35,13 @@ namespace Operations {
 // for now we only have one comparison Equal, but others will be added
 enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual};
 
+// Enum class for operation types
+enum class OpType {
+  gate, measure, reset, barrier,
+  matrix, snapshot_state, snapshot_probs, snapshot_pauli, snapshot_matrix,
+  bfunc, kraus, roerror, noise_switch
+};
+
 //------------------------------------------------------------------------------
 // Op Class
 //------------------------------------------------------------------------------
@@ -42,6 +49,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 
 struct Op {
   // General Operations
+  OpType type;                    // operation type identifier
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
   std::vector<complex_t> params;  // real or complex params for gates
@@ -59,14 +67,17 @@ struct Op {
   // Mat and Kraus
   std::vector<cmatrix_t> mats;
 
+  // Readout error
+  std::vector<rvector_t> probs;
+
   // Snapshots
   using qubit_set_t = std::set<uint_t, std::greater<uint_t>>;
   using pauli_component_t = std::tuple<complex_t,    // component coefficient
                                        qubit_set_t,  // component qubits
-                                       std::string>; // component pauli string
+                                       std::string>; // component Pauli string
   using matrix_component_t = std::tuple<complex_t,          // component coefficient
-                                        std::vector<reg_t>, // qubit subregisters Ex: [[2], [1, 0]]
-                                        std::vector<cmatrix_t>>; // submatrices Ex: [M2, M10]
+                                        std::vector<reg_t>, // qubit sub-registers Ex: [[2], [1, 0]]
+                                        std::vector<cmatrix_t>>; // sub-matrices Ex: [M2, M10]
   std::vector<pauli_component_t> params_pauli_obs;
   std::vector<matrix_component_t> params_mat_obs; // not that diagonal matrices are stored as
                                                   // 1 x M row-matrices
@@ -98,6 +109,78 @@ inline void check_qubits(const reg_t &qubits) {
 }
 
 //------------------------------------------------------------------------------
+// Generator functions
+//------------------------------------------------------------------------------
+
+Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+  Op op;
+  op.type = OpType::matrix;
+  op.name = "mat";
+  op.qubits = qubits;
+  op.mats = {mat};
+  if (label != "")
+    op.string_params = {label};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u1(uint_t qubit, T lam) {
+  Op op;
+  op.type = OpType::gate;
+  op.name = "u1";
+  op.qubits = {qubit};
+  op.params = {lam};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u2(uint_t qubit, T phi, T lam) {
+  Op op;
+  op.type = OpType::gate;
+  op.name = "u2";
+  op.qubits = {qubit};
+  op.params = {phi, lam};
+  return op;
+};
+
+template <typename T> // real or complex numeric type
+Op make_u3(uint_t qubit, T theta, T phi, T lam) {
+  Op op;
+  op.type = OpType::gate;
+  op.name = "u3";
+  op.qubits = {qubit};
+  op.params = {theta, phi, lam};
+  return op;
+};
+
+Op make_reset(const reg_t & qubits, uint_t state = 0) {
+  Op op;
+  op.type = OpType::reset;
+  op.name = "reset";
+  op.qubits = qubits;
+  op.params = {state};
+  return op;
+};
+
+Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+  Op op;
+  op.type = OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = mats;
+  return op;
+};
+
+Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  op.memory = memory;
+  op.probs = probs;
+  return op;
+};
+
+//------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
 
@@ -120,12 +203,11 @@ Op json_to_op_snapshot_probs(const json_t &js);
 
 // Matrices
 Op json_to_op_mat(const json_t &js);
-Op json_to_op_dmat(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
-// TODO Classical bits
-//Op json_to_op_roerror(const json_t &js); // TODO
+// Classical bits
+Op json_to_op_roerror(const json_t &js);
 
 
 
@@ -146,8 +228,6 @@ Op json_to_op(const json_t &js) {
   // Arbitrary matrix gates
   if (name == "mat")
     return json_to_op_mat(js);
-  if (name == "dmat")
-    return json_to_op_dmat(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   // Snapshot
@@ -159,10 +239,8 @@ Op json_to_op(const json_t &js) {
   // Bit functions
   if (name == "noise_switch")
     return json_to_op_noise_switch(js);
-    /* TODO: the following aren't implemented yet!
   if (name == "roerror")
     return json_to_op_roerror(js);
-  */
   // Gates
   return json_to_op_gate(js);
 }
@@ -174,6 +252,7 @@ Op json_to_op(const json_t &js) {
 
 Op json_to_op_gate(const json_t &js) {
   Op op;
+  op.type = OpType::gate;
   JSON::get_value(op.name, "name", js);
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
@@ -187,6 +266,7 @@ Op json_to_op_gate(const json_t &js) {
 
 Op json_to_op_measure(const json_t &js) {
   Op op;
+  op.type = OpType::measure;
   op.name = "measure";
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.memory, "memory", js);
@@ -206,12 +286,12 @@ Op json_to_op_measure(const json_t &js) {
 
 Op json_to_op_reset(const json_t &js) {
   Op op;
+  op.type = OpType::reset;
   op.name = "reset";
   JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js);
-  // If params is missing default reset to 0
-  if (op.params.empty()) {
-    op.params = cvector_t(op.qubits.size(), 0.);
+  op.params = {0}; // default reset to 0 state
+  if (JSON::check_key("params", js)) {
+    op.params[0] = js["params"].get<reg_t>()[0];
   }
   // Validation
   check_qubits(op.qubits);
@@ -227,6 +307,7 @@ Op json_to_op_reset(const json_t &js) {
 
 Op json_to_op_bfunc(const json_t &js) {
   Op op;
+  op.type = OpType::bfunc;
   op.name = "bfunc";
   op.string_params.resize(2);
   std::string relation;
@@ -252,7 +333,7 @@ Op json_to_op_bfunc(const json_t &js) {
   auto it = comp_table.find(relation);
   if (it == comp_table.end()) {
     std::stringstream msg;
-    msg << "Inavlid bfunc relation string :\"" << it->first << "\"." << std::endl;
+    msg << "Invalid bfunc relation string :\"" << it->first << "\"." << std::endl;
     throw std::invalid_argument(msg.str());
   } else {
     op.bfunc = it->second;
@@ -266,37 +347,48 @@ Op json_to_op_bfunc(const json_t &js) {
   return op;
 }
 
+
+Op json_to_op_roerror(const json_t &js) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  JSON::get_value(op.memory, "memory", js);
+  JSON::get_value(op.registers, "register", js);
+  JSON::get_value(op.probs, "probabilities", js);
+  return op;
+}
+
 //------------------------------------------------------------------------------
 // Implementation: Matrix and Kraus deserialization
 //------------------------------------------------------------------------------
 
 Op json_to_op_mat(const json_t &js) {
   Op op;
+  op.type = OpType::matrix;
   op.name = "mat";
   JSON::get_value(op.qubits, "qubits", js);
   cmatrix_t mat;
   JSON::get_value(mat, "params", js);
   op.mats.push_back(mat);
-
+  // Check for a label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if (!label.empty()) {
+    op.string_params.push_back(label);
+  }
   // Validation
   check_qubits(op.qubits);
-  return op;
-}
-
-Op json_to_op_dmat(const json_t &js) {
-  Op op;
-  op.name = "dmat";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js); // store diagonal as complex vector
-
-  // Validation
-  check_qubits(op.qubits);
+  // Check unitary
+  if (!Utils::is_unitary(op.mats[0], 1e-10)) {
+    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  }
   return op;
 }
 
 
 Op json_to_op_kraus(const json_t &js) {
   Op op;
+  op.type = OpType::kraus;
   op.name = "kraus";
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.mats, "params", js);
@@ -309,6 +401,7 @@ Op json_to_op_kraus(const json_t &js) {
 
 Op json_to_op_noise_switch(const json_t &js) {
   Op op;
+  op.type = OpType::noise_switch;
   op.name = "noise_switch";
   JSON::get_value(op.params, "params", js);
   return op;
@@ -338,6 +431,7 @@ Op json_to_op_snapshot(const json_t &js) {
 
 Op json_to_op_snapshot_state(const json_t &js) {
   Op op;
+  op.type = OpType::snapshot_state;
   op.name = "snapshot_state";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
@@ -347,6 +441,7 @@ Op json_to_op_snapshot_state(const json_t &js) {
 
 Op json_to_op_snapshot_probs(const json_t &js) {
   Op op;
+  op.type = OpType::snapshot_probs;
   op.name = "snapshot_probs";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
@@ -359,6 +454,7 @@ Op json_to_op_snapshot_probs(const json_t &js) {
 
 Op json_to_op_snapshot_pauli(const json_t &js) {
   Op op;
+  op.type = OpType::snapshot_pauli;
   op.name = "snapshot_pauli";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
@@ -403,6 +499,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
 
 Op json_to_op_snapshot_matrix(const json_t &js) {
   Op op;
+  op.type = OpType::snapshot_matrix;
   op.name = "snapshot_matrix";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);

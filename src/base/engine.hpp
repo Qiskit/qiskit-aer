@@ -20,7 +20,6 @@
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
 #include "base/state.hpp"
-#include "base/noise.hpp"
 
 namespace AER {
 namespace Base {
@@ -28,18 +27,6 @@ namespace Base {
 //============================================================================
 // Engine base class for Qiskit-Aer
 //============================================================================
-
-// Enum class for operations implemented by the Engine instead of directly
-// being passed to the State
-enum class EngineOp {
-  bfunc,
-  measure,
-  snapshot_state,
-  snapshot_probs,
-  snapshot_pauli,
-  snapshot_matrix,
-  noise_switch
-};
 
 // Engine class
 template <class state_t>
@@ -55,8 +42,7 @@ public:
   //   3. call compute_results after ops have been applied
   void execute(const Circuit &circ,
                uint_t shots,
-               State<state_t> *state_ptr,
-               Noise::Model *noise_ptr = nullptr);
+               State<state_t> *state_ptr);
 
   // This method performs the same function as 'execute', except
   // that it only simulates a single shot and then generates samples
@@ -93,27 +79,12 @@ protected:
   // Execution helper functions
   //----------------------------------------------------------------
 
-  // Operations that are implemented by the engine instead of the State
-  // these are: {"measure", "bfunc", "snapshot_state", "snapshot_probs",
-  // "snapshot_pauli", "snapshot_matrix"}
-  // TODO: add "roerror"
-
-  // Lookup table for converting Op name to EngineOp for switch statements
-  static const std::unordered_map<std::string, EngineOp> engine_ops_;
-
   // Apply an operation to the state
   void apply_op(const Operations::Op &op,
-                State<state_t> *state_ptr,
-                Noise::Model *noise_ptr);
+                State<state_t> *state_ptr);
 
   // Initialize an engine and circuit
   void initialize(State<state_t> *state, const Circuit &circ);
-
-  //----------------------------------------------------------------
-  // Measurement
-  //----------------------------------------------------------------
-
-  bool noise_flag_ = true;
 
   //----------------------------------------------------------------
   // Measurement
@@ -132,6 +103,9 @@ protected:
 
   // Apply a boolean function Op
   bool apply_bfunc(const Operations::Op &op);
+
+  // Apply readout error instruction to classical registers
+  void apply_roerror(const Operations::Op &op, RngEngine &rng);
 
   // Classical registers
   std::string creg_memory_;
@@ -197,31 +171,18 @@ protected:
 //============================================================================
 
 template <class state_t>
-const std::unordered_map<std::string, EngineOp> Engine<state_t>::engine_ops_ = {
-  {"bfunc", EngineOp::bfunc},
-  {"measure", EngineOp::measure},
-  {"snapshot_probs", EngineOp::snapshot_probs},
-  {"snapshot_pauli", EngineOp::snapshot_pauli},
-  {"snapshot_matrix", EngineOp::snapshot_matrix},
-  {"snapshot_state", EngineOp::snapshot_state},
-  {"noise_switch", EngineOp::noise_switch}
-};
-
-
-template <class state_t>
 void Engine<state_t>::execute(const Circuit &circ,
                               uint_t shots,
-                              State<state_t> *state_ptr,
-                              Noise::Model *noise_ptr) {
+                              State<state_t> *state_ptr) {
   // Check if ideal simulation check if sampling is possible
-  if (noise_ptr == nullptr && circ.measure_sampling_flag) {
+  if (circ.measure_sampling_flag && shots > 1) {
     execute_with_measure_sampling(circ, shots, state_ptr);
   } else {
     // Ideal execution without sampling
     while (shots-- > 0) {
       initialize(state_ptr, circ);
       for (const auto &op: circ.ops) {
-        apply_op(op, state_ptr, noise_ptr);
+        apply_op(op, state_ptr);
       }
       update_counts();
     }
@@ -229,66 +190,49 @@ void Engine<state_t>::execute(const Circuit &circ,
 }
 
 
-
 template <class state_t>
 void Engine<state_t>::apply_op(const Operations::Op &op,
-                               State<state_t> *state_ptr,
-                               Noise::Model *noise_ptr) {
-  auto it = engine_ops_.find(op.name);
-  if (it == engine_ops_.end()) {
-    // check if op passes conditional
-    if (check_conditional(op)) {
-      // Check for noise active
-      if (noise_ptr != nullptr && noise_flag_) {
-        // Apply noisy op sequence sampled from model
-        for (const auto &op_noise : noise_ptr->sample_noise(op))
-          state_ptr->apply_op(op_noise);
-      } else {
-        // otherwise apply ideal operation
+                               State<state_t> *state_ptr) {
+  switch (op.type) {
+    case Operations::OpType::measure: {
+      reg_t outcome = state_ptr->apply_measure(op.qubits);
+      store_measure(outcome, op.memory, op.registers);
+      pauli_cache_.clear(); // clear Pauli cache if we apply measure
+    } break;
+    case Operations::OpType::snapshot_probs:
+      snapshot_probabilities(state_ptr, op);
+      break;
+    case Operations::OpType::snapshot_pauli:
+      snapshot_observables_pauli(state_ptr, op);
+      break;
+    case Operations::OpType::snapshot_matrix:
+      snapshot_observables_matrix(state_ptr, op);
+      break;
+    case Operations::OpType::snapshot_state:
+      snapshot_states_.add_data(op.string_params[0], state_ptr->data());
+      break;
+    case Operations::OpType::bfunc:
+      apply_bfunc(op);
+      break;
+    case Operations::OpType::roerror:
+      // We use the state classes RNG for this operation
+      apply_roerror(op, state_ptr->access_rng());
+      break;
+    default:
+      // Send op to the State class for evaluation
+      // check if op passes conditional
+      if (check_conditional(op)) {
         state_ptr->apply_op(op);
+        pauli_cache_.clear(); // clear Pauli cache since the state has changed
       }
-      pauli_cache_.clear(); // clear Pauli cache since the state has changed
-    }
-  } else {
-    switch (it->second) {
-      case EngineOp::measure: {
-        reg_t outcome = state_ptr->apply_measure(op.qubits);
-        store_measure(outcome, op.memory, op.registers);
-        pauli_cache_.clear(); // clear Pauli cache if we apply measure
-      } break;
-      case EngineOp::bfunc:
-        apply_bfunc(op);
-        break;
-      case EngineOp::snapshot_probs:
-        snapshot_probabilities(state_ptr, op);
-        break;
-      case EngineOp::snapshot_pauli:
-        snapshot_observables_pauli(state_ptr, op);
-        break;
-      case EngineOp::snapshot_matrix:
-        snapshot_observables_matrix(state_ptr, op);
-        break;
-      case EngineOp::snapshot_state:
-        snapshot_states_.add_data(op.string_params[0], state_ptr->data());
-        break;
-      case EngineOp::noise_switch:
-        noise_flag_ = std::real(op.params[0]);
-        break;
-      default:
-        // we should never get here
-        throw std::invalid_argument("Invalid engine instruction.");
-    }
   }
 }
-
 
 
 template <class state_t>
 void Engine<state_t>::initialize(State<state_t> *state_ptr, const Circuit &circ) {
   // Initialize state
   state_ptr->initialize(circ.num_qubits);
-  // Initialize noise flag
-  noise_flag_ = true;
   // Clear and resize registers
   creg_memory_ = std::string(circ.num_memory, '0');
   creg_registers_ = std::string(circ.num_registers, '0');
@@ -395,6 +339,28 @@ bool Engine<state_t>::apply_bfunc(const Operations::Op &op) {
   }
 }
 
+// Apply readout error instruction to classical registers
+template <class state_t>
+void Engine<state_t>::apply_roerror(const Operations::Op &op, RngEngine &rng) {
+  // Get current classical bit (and optionally register bit) values
+  std::string mem_str;
+  // Get values of bits as binary string
+  // We iterate from the end of the list of memory bits
+  for (auto it = op.memory.rbegin(); it < op.memory.rend();) {
+    mem_str.push_back(creg_memory_[*it]);
+  }
+  auto mem_val = std::stoull(mem_str, nullptr, 2);
+  auto noise_str = Utils::int2string(rng.rand_int(op.probs[mem_val]), 2, op.memory.size());
+  for (size_t ii = 0; ii < op.memory.size(); ++ii) {
+    auto bit = op.memory[ii];
+    creg_memory_[bit] = noise_str[noise_str.size() - 1 - ii];
+  }
+  // and the same error to register classical bits if they are used
+  for (size_t ii = 0; ii < op.registers.size(); ++ii) {
+    auto bit = op.registers[ii];
+    creg_registers_[bit] = noise_str[noise_str.size() - 1 - ii];
+  }
+}
 
 //============================================================================
 // Implementations: Measurement sampling optimization
@@ -412,7 +378,7 @@ void Engine<state_t>::execute_with_measure_sampling(const Circuit &circ,
   }
   // Execute operations before measurements
   for(auto it = circ.ops.cbegin(); it!=(circ.ops.cbegin() + pos); ++it) {
-    apply_op(*it, state_ptr, nullptr);
+    apply_op(*it, state_ptr);
   }
 
   // Get measurement operations and set of measured qubits

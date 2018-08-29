@@ -7,18 +7,27 @@ from libcpp.string cimport string
 
 # Import C++ simulator Interface class
 cdef extern from "framework/interface.hpp" namespace "AER":
-    cdef cppclass Interface[CONTROLLER]:
+    cdef cppclass Interface:
         Interface() except+
-        string execute(string &qobj) except +
+        string execute[STATE, STATECLASS](string &qobj) except +
+
+        void load_noise_model(string &qobj) except +
         void load_engine_config(string &qobj) except +
         void load_state_config(string &qobj) except +
-        void set_num_threads(int threads)
-        int get_num_threads()
 
-# Import C++ simulator Interface class
-cdef extern from "base/controller.hpp" namespace "AER::Base":
-    cdef cppclass Controller[STATE, ENGINE]:
-        Controller() except +
+        void clear_noise_model()
+        void clear_engine_config()
+        void clear_state_config()
+
+        void set_max_threads(int threads)
+        void set_max_threads_circuit(int threads)
+        void set_max_threads_shot(int threads)
+        void set_max_threads_state(int threads)
+
+        int get_max_threads()
+        int get_max_threads_circuit()
+        int get_max_threads_shot()
+        int get_max_threads_state()
 
 # QubitVector State class
 cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
@@ -30,31 +39,27 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
     cdef cppclass State:
         State() except +
 
-# QubitVector QasmEngine Class
-cdef extern from "simulators/qubitvector/qv_qasm_engine.hpp" namespace "AER::QubitVector":
-    cdef cppclass QasmEngine:
-        QasmEngine() except +
 
-# QubitVector FinalStateEngine class
-cdef extern from "engines/finalstate_engine.hpp" namespace "AER::Engines":
-    cdef cppclass FinalStateEngine[STATE]:
-        FinalStateEngine() except +
+cdef class AerSimulatorWrapper:
 
-# QubitVector FinalStateEngine class
-cdef extern from "engines/observables_engine.hpp" namespace "AER::Engines":
-    cdef cppclass ObservablesEngine[STATE]:
-        ObservablesEngine() except +
-
-
-cdef class QasmSimulatorWrapper:
-
-    cdef Interface[Controller[QasmEngine, State]] *thisptr
+    cdef Interface *thisptr
 
     def __cinit__(self):
-        self.thisptr = new Interface[Controller[QasmEngine, State]]()
+        self.thisptr = new Interface()
 
     def __dealloc__(self):
         del self.thisptr
+
+    def execute(self, qobj):
+        # Convert input to C++ string
+        cdef string qobj_enc = str(qobj).encode('UTF-8')
+        # Execute
+        return self.thisptr.execute[QubitVector, State](qobj_enc)
+
+    def load_noise_model(self, config):
+        # Convert input to C++ string
+        cdef string config_enc = str(config).encode('UTF-8')
+        self.thisptr.load_noise_model(config_enc)
 
     def load_state_config(self, config):
         # Convert input to C++ string
@@ -66,73 +71,36 @@ cdef class QasmSimulatorWrapper:
         cdef string config_enc = str(config).encode('UTF-8')
         self.thisptr.load_engine_config(config_enc)
 
-    def set_num_threads(self, threads):
-        self.thisptr.set_num_threads(int(threads))
+    def clear_noise_model(self):
+        self.thisptr.clear_noise_model()
 
-    def execute(self, qobj):
-        # Convert input to C++ string
-        cdef string qobj_enc = str(qobj).encode('UTF-8')
-        # Execute
-        return self.thisptr.execute(qobj_enc)
+    def clear_state_config(self):
 
+        self.thisptr.clear_state_config()
 
-cdef class ObservablesSimulatorWrapper:
+    def clear_engine_config(self):
+        self.thisptr.clear_engine_config()
 
-    cdef Interface[Controller[ObservablesEngine[QubitVector], State]] *thisptr
+    def set_max_threads(self, threads):
+        self.thisptr.set_max_threads(int(threads))
 
-    def __cinit__(self):
-        self.thisptr = new Interface[Controller[ObservablesEngine[QubitVector], State]]()
+    def set_max_threads_circuit(self, threads):
+        self.thisptr.set_max_threads_circuit(int(threads))
 
-    def __dealloc__(self):
-        del self.thisptr
+    def set_max_threads_shot(self, threads):
+        self.thisptr.set_max_threads_shot(int(threads))
 
-    def load_state_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_state_config(config_enc)
+    def set_max_threads_state(self, threads):
+        self.thisptr.set_max_threads_state(int(threads))
 
-    def load_engine_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_engine_config(config_enc)
+    def get_max_threads(self):
+        return self.thisptr.get_max_threads()
 
-    def set_num_threads(self, threads):
-        self.thisptr.set_num_threads(int(threads))
+    def get_max_threads_circuit(self):
+        return self.thisptr.get_max_threads_circuit()
 
-    def execute(self, qobj):
-        # Convert input to C++ string
-        cdef string qobj_enc = str(qobj).encode('UTF-8')
-        # Execute
-        return self.thisptr.execute(qobj_enc)
+    def get_max_threads_shot(self):
+        return self.thisptr.get_max_threads_shot()
 
-
-cdef class StatevectorSimulatorWrapper:
-
-    cdef Interface[Controller[FinalStateEngine[QubitVector], State]] *thisptr
-
-    def __cinit__(self):
-        self.thisptr = new Interface[Controller[FinalStateEngine[QubitVector], State]]()
-        cdef string default_config = '{"finalstate_label": "statevector"}'.encode('UTF-8')
-        self.thisptr.load_engine_config(default_config)
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    def load_state_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_state_config(config_enc)
-
-    def load_engine_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_engine_config(config_enc)
-
-    def set_num_threads(self, threads):
-        self.thisptr.set_num_threads(int(threads))
-
-    def execute(self, qobj):
-        # Convert input to C++ string
-        cdef string qobj_enc = str(qobj).encode('UTF-8')
-        # Execute
-        return self.thisptr.execute(qobj_enc)
+    def get_max_threads_state(self):
+        return self.thisptr.get_max_threads_state()

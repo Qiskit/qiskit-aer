@@ -1,0 +1,90 @@
+{
+    "id": "pauli_observable_snapshot_example",
+    "type": "QASM",
+    "config": {
+        "noise_model": {
+            "errors": [ 
+                {
+                    "type": "kraus",
+                    "operations": ["x"],
+                    "matrices": [
+                        [[[0.5, 0], [0, 0]], [[0, 0], [0.5, 0]]],
+                        [[[0, 0], [0.5, 0]], [[0.5, 0], [0, 0]]],
+                        [[[0, 0], [0, -0.5]], [[0, 0.5], [0, 0]]],
+                        [[[0.5, 0], [0, 0]], [[0, 0], [-0.5, 0]]]
+                    ]
+                }
+            ]
+        }
+    },
+    "experiments": [
+        {   
+            "config": {"shots": 1000},
+            "instructions": [
+                {"name": "reset", "qubits": [0]},
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "x", "qubits": [2]},
+                {"name": "x", "qubits": [3]},
+                {"name": "x", "qubits": [4]},
+                {"name": "id", "qubits": [13]},
+
+                {"name": "snapshot", "type": "probabilities", "qubits": [0, 1, 2, 3, 4]}
+            ]
+        }
+    ]
+}

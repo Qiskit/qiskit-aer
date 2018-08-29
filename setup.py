@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath('./src/simulators'))
 from simulator_extension import simulator_extension
 
 # Simulator extension
-package_name = 'aer.backends.qv_wrapper'
+package_name = 'aer.backends.aer_qv_wrapper'
 source_files = [os.path.abspath('src/simulators/qubitvector/qv_wrapper.pyx')]
 include_dirs = [os.path.abspath('./src')]
 

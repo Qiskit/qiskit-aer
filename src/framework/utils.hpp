@@ -28,23 +28,23 @@ namespace Utils {
 class Matrix {
 public:
   // Single-qubit gates
-  const static cmatrix_t I;
-  const static cmatrix_t X;
-  const static cmatrix_t Y;
-  const static cmatrix_t Z;
-  const static cmatrix_t H;
-  const static cmatrix_t S;
-  const static cmatrix_t T;
-  const static cmatrix_t X90;
-  const static cmatrix_t TDG;
-  const static cmatrix_t SDG;
+  const static cmatrix_t I;     // name: "id"
+  const static cmatrix_t X;     // name: "x"
+  const static cmatrix_t Y;     // name: "y"
+  const static cmatrix_t Z;     // name: "z"
+  const static cmatrix_t H;     // name: "h"
+  const static cmatrix_t S;     // name: "s"
+  const static cmatrix_t Sdg;   // name: "sdg"
+  const static cmatrix_t T;     // name: "t"
+  const static cmatrix_t Tdg;   // name: "tdg"
+  const static cmatrix_t X90;   // name: "x90"
 
   // Two-qubit gates
-  const static cmatrix_t CX;
-  const static cmatrix_t CZ;
-  const static cmatrix_t SWAP;
-  const static cmatrix_t CR; // TODO
-  const static cmatrix_t CR90; // TODO
+  const static cmatrix_t CX;    // name: "cx"
+  const static cmatrix_t CZ;    // name: "cz"
+  const static cmatrix_t SWAP;  // name: "swap"
+  const static cmatrix_t CR;    // TODO
+  const static cmatrix_t CR90;  // TODO
   
   // Identity Matrix
   static cmatrix_t Identity(size_t dim);
@@ -53,6 +53,33 @@ public:
   static cmatrix_t U1(double lam);
   static cmatrix_t U2(double phi, double lam);
   static cmatrix_t U3(double theta, double phi, double lam);
+
+  // Complex arguments are implemented by taking std::real
+  // of the input
+  inline static cmatrix_t U1(complex_t lam) {return U1(std::real(lam));}
+  inline static cmatrix_t U2(complex_t phi, complex_t lam) {
+    return U2(std::real(phi), std::real(lam));
+  }
+  inline static cmatrix_t U3(complex_t theta, complex_t phi, complex_t lam) {
+    return U3(std::real(theta), std::real(phi), std::real(lam));
+  };
+
+  // Return the matrix for a named matrix string
+  // Allowed names correspond to all the const static single-qubit
+  // and two-qubit gate members
+  inline static const cmatrix_t from_name(const std::string &name) {
+    return *label_map_.at(name);
+  }
+
+  // Check if the input name string is allowed
+  inline static bool allowed_name(const std::string &name) {
+    return (label_map_.find(name) != label_map_.end());
+  }
+
+
+private:
+  // Lookup table that returns a pointer to the static data member
+  const static std::unordered_map<std::string, const cmatrix_t*> label_map_;
 };
 
 //------------------------------------------------------------------------------
@@ -204,14 +231,13 @@ const cmatrix_t Matrix::Z = make_matrix<complex_t>({{{1, 0}, {0, 0}},
 const cmatrix_t Matrix::S = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {0, 1}}});
 
-const cmatrix_t Matrix::SDG = make_matrix<complex_t>({{{1, 0}, {0, 0}},
-                                                    {{0, 0}, {0, -1}}});
-
+const cmatrix_t Matrix::Sdg = make_matrix<complex_t>({{{1, 0}, {0, 0}},
+                                                     {{0, 0}, {0, -1}}});
 const cmatrix_t Matrix::T = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
 
-const cmatrix_t Matrix::TDG = make_matrix<complex_t>({{{1, 0}, {0, 0}},
-                                                    {{0, 0}, {1 / std::sqrt(2), -1 / std::sqrt(2)}}});
+const cmatrix_t Matrix::Tdg = make_matrix<complex_t>({{{1, 0}, {0, 0}},
+                                                      {{0, 0}, {1 / std::sqrt(2), -1 / std::sqrt(2)}}});
 
 const cmatrix_t Matrix::H = make_matrix<complex_t>({{{1 / std::sqrt(2.), 0}, {1 / std::sqrt(2.), 0}},
                                                     {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.), 0}}});
@@ -220,22 +246,30 @@ const cmatrix_t Matrix::X90 = make_matrix<complex_t>({{{1. / std::sqrt(2.), 0}, 
                                                       {{0, -1. / std::sqrt(2.)}, {1. / std::sqrt(2.), 0}}});
 
 const cmatrix_t Matrix::CX = make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
-                                                      {{0, 0}, {0, 0}, {0, 0}, {1, 0}},
-                                                      {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
-                                                      {{0, 0}, {1, 0}, {0, 0}, {0, 0}}});
+                                                     {{0, 0}, {0, 0}, {0, 0}, {1, 0}},
+                                                     {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
+                                                     {{0, 0}, {1, 0}, {0, 0}, {0, 0}}});
 
 const cmatrix_t Matrix::CZ = make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
-                                                      {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
-                                                      {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
-                                                      {{0, 0}, {0, 0}, {0, 0}, {-1, 0}}});
+                                                     {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
+                                                     {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
+                                                     {{0, 0}, {0, 0}, {0, 0}, {-1, 0}}});
 
 const cmatrix_t Matrix::SWAP = make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
-                                                        {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
-                                                        {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
-                                                        {{0, 0}, {0, 0}, {0, 0}, {1, 0}}});
+                                                       {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
+                                                       {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
+                                                       {{0, 0}, {0, 0}, {0, 0}, {1, 0}}});
 
 // TODO const cmatrix_t Matrix::CR = ...
 // TODO const cmatrix_t Matrix::CR90 = ...
+
+// Lookup table
+const std::unordered_map<std::string, const cmatrix_t*> Matrix::label_map_ = {
+  {"id", &Matrix::I}, {"x", &Matrix::X}, {"y", &Matrix::Y}, {"z", &Matrix::Z},
+  {"h", &Matrix::H}, {"s", &Matrix::S}, {"sdg", &Matrix::Sdg},
+  {"t", &Matrix::T}, {"tdg", &Matrix::Tdg}, {"x90", &Matrix::X90},
+  {"cx", &Matrix::CX}, {"cz", &Matrix::CZ}, {"swap", &Matrix::SWAP}
+};
 
 cmatrix_t Matrix::Identity(size_t dim) {
   cmatrix_t mat(dim, dim);
@@ -523,6 +557,15 @@ template <class T>
 bool is_unitary(const matrix<T> &mat, double threshold) {
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
+  // Check if diagonal row-matrix
+  if (nrows == 1) {
+    for (size_t j=0; j < ncols; j++) {
+      bool delta = std::abs(1.0 - std::real(std::abs(mat(0, j))));
+      if (delta > threshold)
+        return false;
+    }
+    return true;
+  }
   // Check U matrix is square
   if (nrows != ncols)
     return false;
