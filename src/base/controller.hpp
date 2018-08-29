@@ -318,7 +318,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     ret["status"] = std::string("COMPLETED");
     ret["id"] = qobj.id;
     ret["qobj_id"] = "TODO";
-    if (!qobj.header.emtpy())
+    if (!qobj.header.empty())
       ret["header"] = qobj.header;
     add_backend_info(ret);
 
