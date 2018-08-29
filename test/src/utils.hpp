@@ -2,7 +2,9 @@
 
 #include "framework/json.hpp"
 
-namespace AER::Test::Utilities {
+namespace AER{
+namespace Test{
+namespace Utilities {
     json_t load_qobj(const std::string& filename){
         return JSON::load(filename);
     }
