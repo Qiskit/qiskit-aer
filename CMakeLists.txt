@@ -12,8 +12,8 @@
 cmake_minimum_required(VERSION 3.6)
 project(aer_simulator_cpp LANGUAGES CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
@@ -161,3 +161,6 @@ target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
 if(BUILD_TESTS)
 	add_subdirectory(test)
 endif()
+
+# Cyhton build
+add_subdirectory(src/bindings/python)
