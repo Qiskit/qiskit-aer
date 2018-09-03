@@ -40,7 +40,7 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
         State() except +
 
 
-cdef class AerSimulatorWrapper:
+cdef class AerQvSimulatorWrapper:
 
     cdef Interface *thisptr
 
