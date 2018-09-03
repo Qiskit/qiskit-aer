@@ -10,7 +10,7 @@
 # Additionaly, OpenMP support is only available in clang from
 
 cmake_minimum_required(VERSION 3.6)
-project(aer_simulator_cpp LANGUAGES CXX)
+project(aer_simulator_cpp LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -163,4 +163,4 @@ if(BUILD_TESTS)
 endif()
 
 # Cyhton build
-add_subdirectory(src/bindings/python)
+add_subdirectory(aer/qv_addon/qiskit_addon_qv)
