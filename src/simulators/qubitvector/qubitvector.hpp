@@ -25,7 +25,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include "framework/matrix.hpp"
 
 #include "indexing.hpp" // multipartite qubit indexing
 
@@ -41,7 +40,6 @@ using Indexing::Qubit::indexes_dynamic;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
-using cmatrix_t = matrix<complex_t>;
 
 /*******************************************************************************
  *
@@ -184,17 +182,17 @@ protected:
 
   void apply_matrix_col_major(const uint_t qubit, const cvector_t &mat);
   void apply_matrix_col_major(const std::vector<uint_t> &qubits, const cvector_t &mat);
+
+  void apply_matrix_col_major(const std::array<uint_t, 2> &qubits, const cvector_t &mat);
+  void apply_matrix_col_major(const std::array<uint_t, 3> &qubits, const cvector_t &mat);
+  void apply_matrix_col_major(const std::array<uint_t, 4> &qubits, const cvector_t &mat);
+  void apply_matrix_col_major(const std::array<uint_t, 5> &qubits, const cvector_t &mat);
   template <size_t N>
   void apply_matrix_col_major(const std::array<uint_t, N> &qubits, const cvector_t &mat);
 
-  void apply_matrix_col_major_2(const std::vector<uint_t> &qubits, const cvector_t &mat);
-  void apply_matrix_col_major_3(const std::vector<uint_t> &qubits, const cvector_t &mat);
-  void apply_matrix_col_major_4(const std::vector<uint_t> &qubits, const cvector_t &mat);
-  void apply_matrix_col_major_5(const std::vector<uint_t> &qubits, const cvector_t &mat);
-
-  cmatrix_t generate_matrix(const uint_t qubit_size, const cvector_t &mat) const;
-  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2, cmatrix_t &mat) const;
-  cmatrix_t sort_matrix(const std::vector<uint_t> &original, const std::vector<uint_t> &sorted, const cmatrix_t &mat) const;
+  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2, cvector_t &mat, uint_t dim) const;
+  template <size_t N>
+  cvector_t sort_matrix(const std::array<uint_t, N> &src, const std::array<uint_t, N> &sorted, const cvector_t &mat) const;
 
   void apply_matrix_diagonal(const uint_t qubit, const cvector_t &mat);
   void apply_matrix_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat);
@@ -907,9 +905,9 @@ void QubitVector::apply_matrix(const uint_t qubit0, const uint_t qubit1,
     apply_matrix_diagonal<2>({{qubit0, qubit1}}, mat);
   else
 #ifdef OPT
-    apply_matrix_col_major_2( {{qubit0, qubit1}}, mat);
+    apply_matrix_col_major<2>({{qubit0, qubit1}}, mat);
 #else
-    apply_matrix_col_major<2>( {{qubit0, qubit1}}, mat);
+    apply_matrix_col_major<2>({{qubit0, qubit1}}, mat);
 #endif
 }
 
@@ -924,16 +922,16 @@ void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t 
       apply_matrix_col_major(qs[0], mat);
       break;
     case 2:
-      apply_matrix_col_major_2({{qs[0], qs[1]}}, mat);
+      apply_matrix_col_major(std::array<uint_t, 2>{{qs[0], qs[1]}}, mat);
       break;
     case 3:
-      apply_matrix_col_major_3({{qs[0], qs[1], qs[2]}}, mat);
+      apply_matrix_col_major(std::array<uint_t, 3>{{qs[0], qs[1], qs[2]}}, mat);
       break;
     case 4:
-      apply_matrix_col_major_4({{qs[0], qs[1], qs[2], qs[3]}}, mat);
+      apply_matrix_col_major(std::array<uint_t, 4>{{qs[0], qs[1], qs[2], qs[3]}}, mat);
       break;
     case 5:
-      apply_matrix_col_major_5({{qs[0], qs[1], qs[2], qs[3], qs[4]}}, mat);
+      apply_matrix_col_major(std::array<uint_t, 5>{{qs[0], qs[1], qs[2], qs[3], qs[4]}}, mat);
       break;
     default:
       apply_matrix_col_major<N>(qs, mat);
@@ -945,10 +943,10 @@ void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t 
   }
 }
 
-void QubitVector::apply_matrix_col_major_2(const std::vector<uint_t> &qubits, const cvector_t &vmat) {
+void QubitVector::apply_matrix_col_major(const std::array<uint_t, 2> &qubits, const cvector_t &vmat) {
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
-  cmatrix_t mat = sort_matrix(qubits, sorted_qs, generate_matrix(2, vmat));
+  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
 
   int_t end = num_states;
   int_t step1 = (1ULL << sorted_qs[0]);
@@ -973,20 +971,21 @@ void QubitVector::apply_matrix_col_major_2(const std::vector<uint_t> &qubits, co
           const complex_t psi2 = state_vector[t2];
           const complex_t psi3 = state_vector[t3];
 
-          state_vector[t0] = psi0 * mat(0, 0) + psi1 * mat(0, 1) + psi2 * mat(0, 2) + psi3 * mat(0, 3);
-          state_vector[t1] = psi0 * mat(1, 0) + psi1 * mat(1, 1) + psi2 * mat(1, 2) + psi3 * mat(1, 3);
-          state_vector[t2] = psi0 * mat(2, 0) + psi1 * mat(2, 1) + psi2 * mat(2, 2) + psi3 * mat(2, 3);
-          state_vector[t3] = psi0 * mat(3, 0) + psi1 * mat(3, 1) + psi2 * mat(3, 2) + psi3 * mat(3, 3);
+          state_vector[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
+          state_vector[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
+          state_vector[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
+          state_vector[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
         }
       }
     }
   }
 }
 
-void QubitVector::apply_matrix_col_major_3(const std::vector<uint_t> &qubits, const cvector_t &vmat) {
+void QubitVector::apply_matrix_col_major(const std::array<uint_t, 3> &qubits, const cvector_t &vmat) {
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
-  cmatrix_t mat = sort_matrix(qubits, sorted_qs, generate_matrix(3, vmat));
+  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+  const uint_t dim = 1ULL << 3;
 
   int_t end = num_states;
   int_t step1 = (1ULL << sorted_qs[0]);
@@ -1023,7 +1022,7 @@ void QubitVector::apply_matrix_col_major_3(const std::vector<uint_t> &qubits, co
             }
             for (size_t i = 0; i < 8; ++i)
               for (size_t j = 0; j < 8; ++j)
-                state_vector[base | masks[i]] += psi[j] * mat(j, i);
+                state_vector[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
           }
         }
       }
@@ -1031,10 +1030,11 @@ void QubitVector::apply_matrix_col_major_3(const std::vector<uint_t> &qubits, co
   }
 }
 
-void QubitVector::apply_matrix_col_major_4(const std::vector<uint_t> &qubits, const cvector_t &vmat) {
+void QubitVector::apply_matrix_col_major(const std::array<uint_t, 4> &qubits, const cvector_t &vmat) {
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
-  cmatrix_t mat = sort_matrix(qubits, sorted_qs, generate_matrix(4, vmat));
+  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+  const uint_t dim = 1ULL << 4;
 
   int_t end = num_states;
   int_t step1 = (1ULL << sorted_qs[0]);
@@ -1081,7 +1081,7 @@ void QubitVector::apply_matrix_col_major_4(const std::vector<uint_t> &qubits, co
               }
               for (size_t i = 0; i < 16; ++i)
                 for (size_t j = 0; j < 16; ++j)
-                  state_vector[base | masks[i]] += psi[j] * mat(j, i);
+                  state_vector[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
             }
           }
         }
@@ -1090,10 +1090,11 @@ void QubitVector::apply_matrix_col_major_4(const std::vector<uint_t> &qubits, co
   }
 }
 
-void QubitVector::apply_matrix_col_major_5(const std::vector<uint_t> &qubits, const cvector_t &vmat) {
+void QubitVector::apply_matrix_col_major(const std::array<uint_t, 5> &qubits, const cvector_t &vmat) {
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
-  cmatrix_t mat = sort_matrix(qubits, sorted_qs, generate_matrix(5, vmat));
+  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+  const uint_t dim = 1ULL << 5;
 
   int_t end = num_states;
   int_t step1 = (1ULL << sorted_qs[0]);
@@ -1158,7 +1159,7 @@ void QubitVector::apply_matrix_col_major_5(const std::vector<uint_t> &qubits, co
                 }
                 for (size_t i = 0; i < 32; ++i)
                   for (size_t j = 0; j < 32; ++j)
-                    state_vector[base | masks[i]] += psi[j] * mat(j, i);
+                    state_vector[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
               }
             }
           }
@@ -1260,42 +1261,35 @@ void QubitVector::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   } // end omp parallel
 }
 
-cmatrix_t QubitVector::generate_matrix(const uint_t qubit_size, const cvector_t &vmat) const {
-  uint_t dim = 1ULL << qubit_size;
-  cmatrix_t mat(dim, dim);
-  for (uint_t i = 0; i < dim; ++i)
-    for (uint_t j = 0; j < dim; ++j)
-      mat(i, j) = vmat[i + dim * j];
-  return mat;
-}
+void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2, cvector_t &mat, uint_t dim) const {
 
-void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2, cmatrix_t &mat) const {
-
-  uint_t size = mat.GetColumns();
   uint_t mask1 = (1UL << idx1);
   uint_t mask2 = (1UL << idx2);
 
-  for (uint_t first = 0; first < size; ++first) {
+  for (uint_t first = 0; first < dim; ++first) {
     if ((first & mask1) && !(first & mask2)) {
       uint_t second = (first ^ mask1) | mask2;
 
-      for (uint_t i = 0; i < size; ++i) {
-        complex_t cache = mat(first, i);
-        mat(first, i) = mat(second, i);
-        mat(second, i) = cache;
+      for (uint_t i = 0; i < dim; ++i) {
+        complex_t cache = mat[first * dim + i];
+        mat[first * dim + i] = mat[second * dim +  i];
+        mat[second * dim +  i] = cache;
       }
-      for (uint_t i = 0; i < size; ++i) {
-        complex_t cache = mat(i, first);
-        mat(i, first) = mat(i, second);
-        mat(i, second) = cache;
+      for (uint_t i = 0; i < dim; ++i) {
+        complex_t cache = mat[i * dim + first];
+        mat[i * dim + first] = mat[i * dim + second];
+        mat[i * dim + second] = cache;
       }
     }
   }
 }
 
-cmatrix_t QubitVector::sort_matrix(const std::vector<uint_t> &src, const std::vector<uint_t> &sorted, const cmatrix_t &mat) const {
-  cmatrix_t ret = mat;
-  std::vector<uint_t> current = src;
+template <size_t N>
+cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src, const std::array<uint_t, N> &sorted, const cvector_t &mat) const {
+
+  const uint_t dim = 1ULL << N;
+  auto ret = mat;
+  auto current = src;
 
   while (current != sorted) {
     uint_t from;
@@ -1313,7 +1307,7 @@ cmatrix_t QubitVector::sort_matrix(const std::vector<uint_t> &src, const std::ve
       ss << "should not reach here : sort_matrix, src=" << src << ", sorted=" << sorted << ", current=" << current << ", from=" << from;
       throw std::runtime_error(ss.str());
     }
-    swap_cols_and_rows(from, to, ret);
+    swap_cols_and_rows(from, to, ret, dim);
 
     uint_t cache = current[from];
     current[from] = current[to];
