@@ -121,8 +121,12 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 				include_directories("${BREW_LIBOMP_PREFIX}/include")
 				message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
 
-				set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-				set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+				# Create OpenMP::OpenMP_CXX target
+				add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
+				set_property(TARGET OpenMP::OpenMP_CXX PROPERTY
+					INTERFACE_LINK_LIBRARIES "${OpenMP_omp_LIBRARY}")
 				message(STATUS "OpenMP found!")
 			endif()
 		else()
@@ -135,6 +139,11 @@ endif()
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
+if(STATIC_LINKING)
+    message(STATUS "Setting BLA_STATIC")
+	set(BLA_STATIC TRUE)
+	find_package(Threads)
+endif()
 message(STATUS "Lookgin for OpenBLAS library...")
 set(BLA_VENDOR "OpenBLAS")
 find_package(BLAS QUIET)
@@ -144,6 +153,12 @@ if(NOT BLAS_FOUND)
 	find_package(BLAS REQUIRED)
 endif()
 
+# Set dependent libraries
+set(LIBRARIES
+		OpenMP::OpenMP_CXX
+	    ${BLAS_LIBRARIES}
+	    nlohmann_json
+	    Threads::Threads)
 
 # Linter
 # This will add the linter as part of the compiling build target
@@ -152,6 +167,7 @@ include(Linter)
 # Linking
 # Set dependent libraries
 set(AER_LIBRARIES
+	${OpenMP_omp_LIBRARY}
 	${BLAS_LIBRARIES}
 	nlohmann_json)
 
