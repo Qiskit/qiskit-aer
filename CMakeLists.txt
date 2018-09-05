@@ -54,10 +54,17 @@ set_target_properties(aer_simulator_cpp PROPERTIES
 	LINKER_LANGUAGE CXX
 	CXX_STANDARD 14)
 
-
 set_target_properties(aer_simulator_cpp PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deplyment target" to 10.7
+	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
+	# use C++11/14
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
+	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
+endif()
 
 if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
