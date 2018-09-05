@@ -1914,8 +1914,11 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
 
   if (end < index_size) {
     // no indexing, loop with shots
-#pragma omp parallel
-    for (double rnd : rnds) {
+#pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+{
+#pragma omp for
+    for (int_t i = 0; i < shots; ++i) {
+      double rnd = rnds[i];
       double p = .0;
       int_t sample;
       for (sample = 0; sample < end - 1; ++sample) {
@@ -1925,6 +1928,7 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
       }
       samples.push_back(sample);
     }
+    } // end omp parallel
   } else {
     // use indexing, loop with memory
     std::vector<double> indexes;
@@ -1932,7 +1936,9 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
     int_t loop = (end >> index_bit);
 
     // create indexing
-#pragma omp parallel for
+#pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+    {
+#pragma omp for
     for (int_t i = 0; i < index_size; ++i) {
       int_t base = loop * i;
       double total = .0;
@@ -1942,6 +1948,7 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
       }
       indexes[i] = total;
     }
+    } // end omp parallel
 
     for (int_t i = 0; i < index_size; ++i)
       if (i != 0)
@@ -1955,7 +1962,9 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
     index2samples.assign(index_size, {{}});
 
     // get samples
-#pragma omp parallel for
+#pragma omp parallel if (num_qubits > omp_threshold && omp_threads > 1) num_threads(omp_threads)
+{
+#pragma omp for
     for (int_t i = 0; i < index_size; ++i) {
       int_t base = loop * i;
       double p = indexes[i];
@@ -1986,6 +1995,7 @@ void QubitVector::sample_measure(const std::vector<double> &rnds, std::vector<in
         index2samples[i].push_back(sample);
       }
     }
+    } // end omp parallel
 
     for (int_t i = 0; i < index_size; ++i)
       samples.insert(samples.end(), index2samples[i].begin(), index2samples[i].end());
