@@ -1,6 +1,6 @@
 # Ignore editor settings
 
-.vscode/settings.json
+.vscode
 
 # ignore jupyter notebook checkpoints
 
@@ -13,3 +13,4 @@ out/*
 *.so
 *.pyc
 src/simulators/qubitvector/qv_wrapper.cpp
+build/*

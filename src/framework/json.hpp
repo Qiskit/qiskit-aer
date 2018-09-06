@@ -21,7 +21,7 @@
 #include <map>
 #include <vector>
 
-#include "third-party/nlohmann_json.hpp"
+#include <nlohmann_json.hpp>
 #include "framework/matrix.hpp"
 
 using json_t = nlohmann::json;

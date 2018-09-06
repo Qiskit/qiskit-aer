@@ -1,0 +1,16 @@
+{
+    "id": "state_snapshot_example",
+    "type": "QASM",
+    "experiments": [
+        {   
+            "config": {"shots": 1},
+            "instructions": [
+                {"name": "snapshot", "type": "state", "label": "initial"},
+                {"name": "h", "qubits": [0]},
+                {"name": "snapshot", "type": "state", "label": "middle"},
+                {"name": "cx", "qubits": [0, 1]},
+                {"name": "snapshot", "type": "state", "label": "final"}
+            ]
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+# This file defines the persons that will be assigned as reviewers for PRs that
+# modify a particular file in the repo. Please note it is just a convention
+# for the GitHub interface, and any member of the AER team can (and should!)
+# review as well.
+
+# Real code owners.
+#* @jaygambetta @chriseclectic
+
+# Generic rule for the repository. This pattern is actually the one that will
+# apply unless specialized by a later rule
+* @chriseclectic @atilag
+
+# Individual folders on root directory
+/aer            @chriseclectic @atilag
+/cmake          @atilag
+/doc            @chriseclectic @atilag
+/examples       @chriseclectic @atilag
+/legacy-build   @chriseclectic @atilag
+/test           @chriseclectic @atilag
+/src            @chriseclectic @atilag
+
+# AER specific folders
