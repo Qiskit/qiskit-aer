@@ -103,10 +103,6 @@ endif()
 
 target_include_directories(aer_simulator_cpp PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 
-if(STATIC_LINKING)
-	set(BLAS_STATIC True)
-endif()
-
 # Looking for external libraries
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
@@ -143,7 +139,6 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	endif()
 endif()
 
-
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
@@ -162,7 +157,7 @@ if(NOT BLAS_FOUND)
 endif()
 
 # Set dependent libraries
-set(LIBRARIES
+set(AER_LIBRARIES
 		OpenMP::OpenMP_CXX
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
@@ -171,13 +166,6 @@ set(LIBRARIES
 # Linter
 # This will add the linter as part of the compiling build target
 include(Linter)
-
-# Linking
-# Set dependent libraries
-set(AER_LIBRARIES
-	${OpenMP_omp_LIBRARY}
-	${BLAS_LIBRARIES}
-	nlohmann_json)
 
 target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
 
