@@ -72,7 +72,8 @@ if(STATIC_LINKING)
 	# to the rest of the flags being tested... and -static compilation on Mac
 	# with gcc is failing
 	if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	    message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
+		message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
+		unset(STATIC_LINKING)
 	else()
 	    # MacOS compilers don't support -static flag either
 	    if(NOT APPLE)
@@ -155,7 +156,7 @@ message(STATUS "Lookgin for OpenBLAS library...")
 set(BLA_VENDOR "OpenBLAS")
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
-	message(STATUS "OpenBLAS not found. Lookgin for any other BLAS library...")
+	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
 	unset(BLA_VENDOR)
 	find_package(BLAS REQUIRED)
 endif()

@@ -11,16 +11,23 @@ target_include_directories(aer_qv_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+if(APPLE)
+    message(STATUS "On Mac, we force linking with undefined symbols for Pyhton library, they will be
+        solved at runtime by the loader")
+    set_target_properties(aer_qv_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    unset(PYTHON_LIBRARIES)
+endif()
+
 target_link_libraries(aer_qv_wrapper
-    ${PYTHON_LIBRARIES}
-    ${AER_LIBRARIES})
+    ${AER_LIBRARIES}
+    ${PYTHON_LIBRARIES})
+
 python_extension_module(aer_qv_wrapper
-    LINKED_MODULES_VAR linked_module_list
     FORWARD_DECL_MODULES_VAR fdecl_module_list)
 
-# application executable -- generated header file + other source files
 python_modules_header(modules
-                      FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
+    FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
 
 set(SITE_PACKAGES "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
