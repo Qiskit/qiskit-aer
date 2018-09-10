@@ -139,13 +139,17 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	endif()
 endif()
 
+#get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
+#message(STATUS "OpenMP = ${KK}")
+
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
+find_package(Threads)
+
+message(STATUS "Setting BLA_STATIC")
 if(STATIC_LINKING)
-    message(STATUS "Setting BLA_STATIC")
 	set(BLA_STATIC TRUE)
-	find_package(Threads)
 endif()
 message(STATUS "Lookgin for OpenBLAS library...")
 set(BLA_VENDOR "OpenBLAS")
