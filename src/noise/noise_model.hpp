@@ -10,10 +10,11 @@
  * @brief   Noise model base class for qiskit-aer simulator engines
  * @author  Christopher J. Wood <cjwood@us.ibm.com>
  */
-
 #ifndef _aer_noise_model_hpp_
 #define _aer_noise_model_hpp_
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <unordered_set>
 
 #include "framework/operations.hpp"
