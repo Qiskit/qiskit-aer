@@ -2,7 +2,7 @@
   "id": "quantum_volume_10q_10d_0s",
   "type": "QASM",
   "experiments": [ {
-    "config": { "shots": 1024 },
+    "config": { "shots": 10 },
     "instructions": [
       {"name": "u3", "params": [1.0806652853764098, -3.1469535631410155, 1.9195750041758235], "qubits": [9]},
       {"name": "u3", "params": [1.0986119001952364, -2.4683209292850066, -2.024892072904735], "qubits": [8]},
@@ -505,16 +505,7 @@
       {"name": "u3", "params": [2.0661492073223897, -2.845037710967441, -2.1109799837367413], "qubits": [7]},
       {"name": "u3", "params": [1.0567146691285627, -1.673781083153692, 3.726731941332985], "qubits": [6]},
       {"name": "barrier", "qubits": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]},
-      {"name": "measure", "qubits": [9], "clbits": [9]},
-      {"name": "measure", "qubits": [8], "clbits": [8]},
-      {"name": "measure", "qubits": [7], "clbits": [7]},
-      {"name": "measure", "qubits": [6], "clbits": [6]},
-      {"name": "measure", "qubits": [5], "clbits": [5]},
-      {"name": "measure", "qubits": [4], "clbits": [4]},
-      {"name": "measure", "qubits": [3], "clbits": [3]},
-      {"name": "measure", "qubits": [2], "clbits": [2]},
-      {"name": "measure", "qubits": [1], "clbits": [1]},
-      {"name": "measure", "qubits": [0], "clbits": [0]}
+      {"name": "measure", "qubits": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "memory": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
       ]
     }]
 }

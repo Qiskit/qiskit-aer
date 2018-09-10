@@ -96,16 +96,9 @@ public:
   virtual rvector_t measure_probs(const reg_t &qubits) const override;
 
   // Sample n-measurement outcomes without applying the measure operation
-  // to the system state. This function converts the statevector into a
-  // probability vector by squareing each element and hence no other
-  // operations should be applied without re-initializing first
-  virtual 
-  std::vector<reg_t> sample_measure_destructive(const reg_t& qubits,
-                                                uint_t shots = 1) override;
-
-  virtual
-  std::vector<reg_t> sample_measure_destructive_opt(const reg_t& qubits,
-                                                uint_t shots = 1);
+  // to the system state.
+  virtual std::vector<reg_t>
+  sample_measure(const reg_t& qubits, uint_t shots = 1) override;
 
   // Return the complex expectation value for an observable operator
   virtual double pauli_observable_value(const reg_t& qubits, 
@@ -281,54 +274,15 @@ rvector_t State<state_t>::measure_probs(const reg_t &qubits) const {
     return Base::State<state_t>::data_.probabilities(qubits);
 }
 
-
-template <class state_t>
-std::vector<reg_t> 
-State<state_t>::sample_measure_destructive(const reg_t& qubits,
-                                  uint_t shots){
-
-#ifdef OPT
-  return sample_measure_destructive_opt(qubits, shots);
-#else
-  // TODO, do an inplace partial trace here
-  if (qubits.size() != Base::State<state_t>::data_.qubits()) {
-    return Base::State<state_t>::sample_measure(qubits, shots);
-  }
-  // convert state vector to probability vector
-  for (uint_t j=0; j <  Base::State<state_t>::data_.size(); j++) {
-    Base::State<state_t>::data_[j] = std::real( Base::State<state_t>::data_[j] * std::conj( Base::State<state_t>::data_[j]));
-  }
-  // Sample measurement outcomes
-  std::vector<reg_t> samples;
-  samples.reserve(shots);
-  while (shots-- > 0) {
-    double p = 0.;
-    double r = Base::State<state_t>::rng_.rand(0, 1);
-    uint_t val;
-    for (val = 0; val < Base::State<state_t>::data_.size(); val++) {
-      if (r < (p += std::real(Base::State<state_t>::data_[val])))
-        break;
-    }
-    samples.push_back(Utils::int2reg(val, 2, qubits.size()));
-  }
-  return samples;
-#endif
-}
-
 template <class state_t>
 std::vector<reg_t>
-State<state_t>::sample_measure_destructive_opt(const reg_t& qubits,
-                                  uint_t shots){
-
+State<state_t>::sample_measure(const reg_t &qubits, uint_t shots){
   std::vector<double> rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
     rnds.push_back(Base::State<state_t>::rng_.rand(0, 1));
 
-  std::vector<int_t> allbit_samples;
-  allbit_samples.reserve(shots);
-
-  Base::State<state_t>::data_.sample_measure(rnds, allbit_samples);
+  auto allbit_samples = Base::State<state_t>::data_.sample_measure(rnds);
 
   std::vector<reg_t> samples;
   samples.reserve(shots);
