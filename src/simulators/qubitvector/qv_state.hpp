@@ -239,6 +239,11 @@ template <class state_t>
 void State<state_t>::load_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
+  // Enable sorted gate optimzations
+  bool gate_opt = false;
+  JSON::get_value(gate_opt, "gate_optimization", config);
+  if (gate_opt)
+    Base::State<state_t>::data_.enable_gate_opt();
 }
 
 template <class state_t>
