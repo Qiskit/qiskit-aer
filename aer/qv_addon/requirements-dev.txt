@@ -1,2 +1,3 @@
+cmake
 scikit-build
 cython
