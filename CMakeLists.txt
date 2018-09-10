@@ -178,5 +178,7 @@ if(BUILD_TESTS)
 	add_subdirectory(test)
 endif()
 
-# Cyhton build
-add_subdirectory(aer/qv_addon/qiskit_addon_qv)
+# Cyhton build is only enabnled if building through scikit-build.
+if(SKBUILD)
+	add_subdirectory(aer/qv_addon/qiskit_addon_qv)
+endif()
