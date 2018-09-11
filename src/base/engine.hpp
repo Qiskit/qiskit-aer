@@ -267,6 +267,7 @@ template <class state_t>
 void Engine<state_t>::store_measure(const reg_t &outcome,
                                     const reg_t &memory,
                                     const reg_t &registers) {
+
   // Assumes memory and registers are either empty or same size as outcome!
   bool use_mem = !memory.empty();
   bool use_reg = !registers.empty();
@@ -410,10 +411,10 @@ void Engine<state_t>::execute_with_measure_sampling(const Circuit &circ,
       registers.push_back(registers_map[q]);
 
   // Generate the samples
-  auto samples = state_ptr->sample_measure_destructive(meas_qubits, shots);
-  
+  auto samples = state_ptr->sample_measure(meas_qubits, shots);
   while (!samples.empty()) {
     store_measure(samples.back(), memory, registers);
+    update_counts(); // add sample to counts
     samples.pop_back(); // pop off processed sample
   }
 }

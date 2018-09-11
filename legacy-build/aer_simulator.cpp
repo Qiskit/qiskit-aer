@@ -11,6 +11,7 @@
  * @author Christopher J. Wood <cjwood@us.ibm.com>
  */
 
+//#define DEBUG // Uncomment for verbose debugging output
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -63,7 +64,7 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     using namespace AER;
-    using State = QubitVector::State;       // State class
+    using State = QubitVector::State<QV::QubitVector>;       // State class
 
     // Initialize simulator
     Base::Controller sim;

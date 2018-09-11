@@ -233,7 +233,6 @@ const cmatrix_t Matrix::S = make_matrix<complex_t>({{{1, 0}, {0, 0}},
 
 const cmatrix_t Matrix::Sdg = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                      {{0, 0}, {0, -1}}});
-
 const cmatrix_t Matrix::T = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
 

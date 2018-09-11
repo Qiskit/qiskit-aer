@@ -116,14 +116,6 @@ public:
     return samples;
   };
 
-  // This function has the same return as 'sample_measure'
-  // however there is no gaurentee it will leave the state of the
-  // system unchanged. Typically it should only be used as a final operation.
-  inline virtual std::vector<reg_t>
-  sample_measure_destructive(const reg_t& qubits, uint_t shots = 1) {
-    return sample_measure(qubits, shots);
-  };
-
   //----------------------------------------------------------------
   // Optional methods: Operator observables
   //----------------------------------------------------------------
