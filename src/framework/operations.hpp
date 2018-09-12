@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    operations.hpp
- * @brief   Simualator operations
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_operations_hpp_
 #define _aer_framework_operations_hpp_
 

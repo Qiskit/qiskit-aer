@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    unitary_error.hpp
- * @brief   Unitary Error class for Qiskit-Aer simulator
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_noise_unitary_error_hpp_
 #define _aer_noise_unitary_error_hpp_
 

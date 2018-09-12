@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    state.hpp
- * @brief   State interface base class for qiskit-aer simulator engines
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_base_state_hpp_
 #define _aer_base_state_hpp_
 

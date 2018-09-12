@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    abstract_error.hpp
- * @brief   Abstract Error base class for Noise model errors
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_noise_abstract_error_hpp_
 #define _aer_noise_abstract_error_hpp_
 

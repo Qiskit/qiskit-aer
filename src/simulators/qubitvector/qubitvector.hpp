@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    qubit_vector.hpp
- * @brief   QubitVector class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _qubit_vector_hpp_
 #define _qubit_vector_hpp_
 

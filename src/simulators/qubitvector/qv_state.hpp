@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    qubitvector_state.hpp
- * @brief   QubitVector Simulator State
- * @authors Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _qubitvector_qv_state_hpp
 #define _qubitvector_qv_state_hpp
 

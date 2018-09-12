@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file rng.hpp
- * @brief RngEngine use by the BaseBackend simulator class
- * @author Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_rng_hpp_
 #define _aer_framework_rng_hpp_
 

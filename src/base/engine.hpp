@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    engine.hpp
- * @brief   Engine class for qiskit-aer simulator
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_base_engine_hpp_
 #define _aer_base_engine_hpp_
 

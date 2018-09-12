@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    circuit.hpp
- * @brief   Qiskit-Aer Circuit Class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_circuit_hpp_
 #define _aer_framework_circuit_hpp_
 

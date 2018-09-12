@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    qobj.hpp
- * @brief   Qobj class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_qobj_hpp_
 #define _aer_framework_qobj_hpp_
 

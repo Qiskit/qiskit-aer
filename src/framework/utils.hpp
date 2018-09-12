@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    utils.hpp
- * @brief   Utility functions that didn't below anywhere else
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_utils_hpp_
 #define _aer_framework_utils_hpp_
 
