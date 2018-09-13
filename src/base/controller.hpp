@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    controller.hpp
- * @brief   Controller base class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_base_controller_hpp_
 #define _aer_base_controller_hpp_
 
@@ -300,16 +294,16 @@ json_t Controller::execute(const json_t &qobj_js) {
   #endif
 
     // Initialize container to store parallel circuit output
-    ret["result"] = std::vector<json_t>(num_circuits);
+    ret["results"] = std::vector<json_t>(num_circuits);
     
     // Begin parallel circuit execution
   #pragma omp parallel for if (num_threads_circuit > 1) num_threads(num_threads_circuit)
     for (int j = 0; j < num_circuits; ++j) {
-      ret["result"][j] = execute<state_t, DerivedState>(qobj.circuits[j]);
+      ret["results"][j] = execute<state_t, DerivedState>(qobj.circuits[j]);
     }
 
     // check success
-    for (const auto& res: ret["result"]) {
+    for (const auto& res: ret["results"]) {
       all_success &= res["success"].get<bool>();
     }
 
@@ -383,12 +377,12 @@ json_t Controller::execute(Circuit &circ) {
 
     // Pass through circuit header and add metadata
     ret["header"] = circ.header;
-    ret["metadata"]["shots"] = circ.shots;
-    ret["metadata"]["seed"] = circ.seed;
+    ret["shots"] = circ.shots;
+    ret["seed"] = circ.seed;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    ret["metadata"]["time_taken"] = time_taken;
+    ret["time_taken"] = time_taken;
   } 
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {

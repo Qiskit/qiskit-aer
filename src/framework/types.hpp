@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    types.hpp
- * @brief   type aliases ostream formatting
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_types_hpp_
 #define _aer_framework_types_hpp_
 

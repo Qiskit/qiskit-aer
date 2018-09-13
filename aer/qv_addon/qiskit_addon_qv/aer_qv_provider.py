@@ -13,7 +13,7 @@
 import logging
 
 from qiskit.backends import BaseProvider
-from aer_qv_wrapper import AerQvSimulatorWrapper
+from .aer_qv_simulator import AerQvSimulator
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class AerQvProvider(BaseProvider):
         super().__init__(args, kwargs)
 
         # Populate the list of local AER QV backends.
-        self.backends = {'local_qv_simulator': AerQvSimulatorWrapper()}
+        self.backends = {'local_qv_simulator': AerQvSimulator()}
 
     def get_backend(self, name):
         return self.backends[name]

@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    matrix.h
- * @brief   C++ BLAS matrix library
- * @author  Jay Gambetta <jay.gambetta@us.ibm.com>
- */
-
 /*
 Dependences: BLAS
 Brief Discription: This is my Matrix class. It works only with real/complex

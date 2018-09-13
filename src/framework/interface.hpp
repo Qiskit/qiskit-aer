@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    interface.hpp
- * @brief   Python Interface Class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_interface_hpp_
 #define _aer_interface_hpp_
 

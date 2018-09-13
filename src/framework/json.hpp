@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    json.hpp
- * @brief   Utility functions for Nlohmann JSON Library
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_json_hpp_
 #define _aer_framework_json_hpp_
 

@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    readout_error.hpp
- * @brief   Readout Error class for Qiskit-Aer simulator
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_noise_readout_error_hpp_
 #define _aer_noise_readout_error_hpp_
 

@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    qobj.hpp
- * @brief   Qobj class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_qobj_hpp_
 #define _aer_framework_qobj_hpp_
 
@@ -77,8 +71,8 @@ void Qobj::load_qobj_from_string(const std::string &input) {
 void Qobj::load_qobj_from_json(const json_t &js) {
 
   // Get qobj id
-  if (JSON::get_value(id, "id", js) == false) {
-    throw std::invalid_argument("Invalid qobj: no \"id\" field");
+  if (JSON::get_value(id, "qobj_id", js) == false) {
+    throw std::invalid_argument("Invalid qobj: no \"qobj_id\" field");
   };
   // Get header and config;
   JSON::get_value(config, "config", js);
@@ -94,7 +88,7 @@ void Qobj::load_qobj_from_json(const json_t &js) {
   }
   const json_t &circs = js["experiments"];
   for (auto it = circs.cbegin(); it != circs.cend(); ++it) {
-    circuits.emplace_back(*it);
+    circuits.emplace_back(*it, config);
   }
 }
 

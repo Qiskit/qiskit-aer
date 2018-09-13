@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    state.hpp
- * @brief   State interface base class for qiskit-aer simulator engines
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_base_state_hpp_
 #define _aer_base_state_hpp_
 
@@ -114,14 +108,6 @@ public:
       samples.push_back(Utils::int2reg(rng_.rand_int(probs), 2, qubits.size()));
     }
     return samples;
-  };
-
-  // This function has the same return as 'sample_measure'
-  // however there is no gaurentee it will leave the state of the
-  // system unchanged. Typically it should only be used as a final operation.
-  inline virtual std::vector<reg_t>
-  sample_measure_destructive(const reg_t& qubits, uint_t shots = 1) {
-    return sample_measure(qubits, shots);
   };
 
   //----------------------------------------------------------------

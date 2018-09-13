@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    kraus_error.hpp
- * @brief   General Kraus Error class for Qiskit-Aer simulator
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_noise_kraus_error_hpp_
 #define _aer_noise_kraus_error_hpp_
 
