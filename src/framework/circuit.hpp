@@ -51,7 +51,8 @@ public:
   inline Circuit(const std::vector<Op> &_ops) : Circuit() {ops = _ops; set_sizes();};
 
   // Construct a circuit from JSON
-  Circuit(const json_t &js);
+  Circuit(const json_t &circ);
+  Circuit(const json_t &circ, const json_t &qobj_config);
 
   // Automatically set the number of qubits, memory, registers based on ops
   void set_sizes();
@@ -88,15 +89,12 @@ inline void from_json(const json_t &js, Circuit &circ) {circ = Circuit(js);}
 //============================================================================
 
 void Circuit::set_sizes() {
-  // Check maximum qubit, memory, register size
+  // Check maximum qubit, and register size
+  // Memory size is loaded from qobj config
   for (const auto &op: ops) {
     if (!op.qubits.empty()) {
       auto max = std::max_element(std::begin(op.qubits), std::end(op.qubits));
       num_qubits = std::max(num_qubits, 1UL + *max);
-    }
-    if (!op.memory.empty()) {
-      auto max = std::max_element(std::begin(op.memory), std::end(op.memory));
-      num_memory = std::max(num_memory, 1UL + *max);
     }
     if (!op.registers.empty()) {
       auto max = std::max_element(std::begin(op.registers), std::end(op.registers));
@@ -106,20 +104,29 @@ void Circuit::set_sizes() {
 }
 
 
-Circuit::Circuit(const json_t &js) : Circuit() {
+Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {};
 
-  // Get header and config
-  JSON::get_value(header, "header", js);
-  JSON::get_value(config, "config", js);
+Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
+
+  // Get config
+  config = qobj_config;
+  if (JSON::check_key("config", circ)) {
+    for (auto it = circ["config"].cbegin(); it != circ["config"].cend();
+         ++it) {
+      config[it.key()] = it.value(); // overwrite circuit level config values
+    }
+  }
+  JSON::get_value(header, "header", circ);
   JSON::get_value(shots, "shots", config);
   JSON::get_value(seed, "seed", config);
+  JSON::get_value(num_memory, "memory_slots", config);
 
   // Get operations
-  if (JSON::check_key("instructions", js) == false) {
+  if (JSON::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
   }
   ops.clear(); // remove any current operations
-  const json_t &jops = js["instructions"];
+  const json_t &jops = circ["instructions"];
   for (auto it = jops.cbegin(); it != jops.cend(); ++it) {
     ops.emplace_back(Operations::json_to_op(*it));
   }

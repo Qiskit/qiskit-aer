@@ -1293,7 +1293,7 @@ cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src, const std::
         break;
     if (to == current.size()) {
       std::stringstream ss;
-      ss << "should not reach here : sort_matrix, src=" << src << ", sorted=" << sorted << ", current=" << current << ", from=" << from;
+      ss << "QubitVector::sort_matrix we should not reach here";
       throw std::runtime_error(ss.str());
     }
     swap_cols_and_rows(from, to, ret, dim);
@@ -2197,6 +2197,7 @@ double QubitVector::probability(const std::vector<uint_t> &qs,
 //------------------------------------------------------------------------------
 // QubitVector ostream overload
 //------------------------------------------------------------------------------
+
 inline std::ostream &operator<<(std::ostream &out, const QV::QubitVector&qv) {
   out << qv.vector();
   return out;

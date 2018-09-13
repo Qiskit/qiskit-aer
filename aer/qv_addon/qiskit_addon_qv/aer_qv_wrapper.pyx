@@ -39,16 +39,6 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         int get_max_threads_shot()
         int get_max_threads_state()
 
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
-    cdef cppclass QubitVector:
-        State() except +
-
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
-    cdef cppclass State:
-        State() except +
-
 
 cdef class AerQvSimulatorWrapper:
 
