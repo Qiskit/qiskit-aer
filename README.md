@@ -9,13 +9,13 @@
 
 ---
 
-# Documentation 
+# Documentation
 
 * **Authors:** Christopher J. Wood
 * **Last Updated:** 22.08.2018
 
 ## Table of Contents
-    
+
 * [Introduction](#introduction)
     * [Installation](#installation)
 * [Components](#components)
@@ -51,21 +51,27 @@ This is a working draft for the Qiskit-Aer simulator framework for Qiskit-Terra.
 
 ### Installation
 
-Installation of the simulator may be done by running
+Follow these steps for installing Terra simulator addons:
 
 ```bash
-python setup.py built_ext --inplace
+qiskit-aer$ cd aer/qv_addon
+qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
 ```
 
-The simulator backend may then be imported into qiskit using
+Once the build finishes, we just need to install the wheel package in our
+prefered python virtual environment:
 
+```bash
+qiskit-aer/aer/qv_addon$ cd dist
+qiskit-aer/aer/qv_addon/dist$ pip install qiskit_addon_qv-0.0.0-cp36-cp36m-linux_x86_64.whl
+```
+
+We are all set! Now we ready to start using the simulator in our python code:
 ```python
-from aer.aer_simulator import AerSimulator
+from qiskit_addon_qv import AerQvSimulatorWrapper
 
-backend = AerSimulator()
+simulator = AerQvSimulatorWrapper()
 ```
-
-This has only been tested with Anaconda builds of Numpy and Scipy which include the Intel MKL BLAS and OpenMP libraries.
 
 ---
 
