@@ -152,7 +152,7 @@ Op make_reset(const reg_t & qubits, uint_t state = 0) {
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
-  op.params = {state};
+  op.params = {static_cast<double>(state)};
   return op;
 };
 

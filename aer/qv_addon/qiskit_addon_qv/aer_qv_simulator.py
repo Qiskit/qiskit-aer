@@ -7,26 +7,30 @@ import os
 import json
 import logging
 import warnings
+import datetime
+import uuid
 import numpy as np
 
-# Import QISKit classes
-from qiskit._result import Result
+# Import qiskit classes
+import qiskit
 from qiskit.backends import BaseBackend
 from qiskit.backends.local.localjob import LocalJob
+from qiskit.qobj import qobj_to_dict
+from qiskit.result._result import Result
+from qiskit.result._utils import copy_qasm_from_qobj_into_result
 
 # Import Simulator tools
-from helpers import SimulatorJSONEncoder, qobj2schema
-from aer_qv_wrapper import AerSimulatorWrapper
+from aer_qv_wrapper import AerQvSimulatorWrapper
 
 # Logger
 logger = logging.getLogger(__name__)
 
 
-class AerSimulator(BaseBackend):
+class AerQvSimulator(BaseBackend):
     """Cython quantum circuit simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_aer_simulator',
+        'name': 'local_qv_simulator',
         'url': 'NA',
         'simulator': True,
         'local': True,
@@ -37,18 +41,37 @@ class AerSimulator(BaseBackend):
 
     def __init__(self, configuration=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
-        self.simulator = AerSimulatorWrapper()
+        self.simulator = AerQvSimulatorWrapper()
 
     def run(self, qobj):
-        """Run a QOBJ on the the backend."""
-        return LocalJob(self._run_job, qobj)
+        """Run qobj asynchronously.
+
+        Args:
+            qobj (dict): job description
+
+        Returns:
+            LocalJob: derived from BaseJob
+        """
+        local_job = LocalJob(self._run_job, qobj)
+        local_job.submit()
+        return local_job
 
     def _run_job(self, qobj):
         self._validate(qobj)
-        qobj_str = json.dumps(qobj2schema(qobj), cls=SimulatorJSONEncoder)
-        result = json.loads(self.simulator.execute(qobj_str))
-        # TODO: get schema in line with result object
-        return result  # Result(result)
+        qobj_str = json.dumps(qobj_to_dict(qobj), cls=SimulatorJSONEncoder)
+        output = json.loads(self.simulator.execute(qobj_str))
+        # Add result metadata
+        output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+        output["job_id"] = str(uuid.uuid4())
+        output["backend_name"] = self.DEFAULT_CONFIGURATION['name']
+        output["backend_version"] = "0.0.1"  # TODO: get this from somewhere else
+        # Parse result dict into Result class
+        exp_results = output.get("results", {})
+        experiment_names = [data.get("header", {}).get("name", None)
+                            for data in exp_results]
+        qobj_result = qiskit.qobj.Result(**output)
+        qobj_result.results = [qiskit.qobj.ExperimentResult(**res) for res in exp_results]
+        return Result(qobj_result, experiment_names=experiment_names)
 
     def load_noise_model(self, noise_model):
         self.simulator.load_noise_model(json.dumps(noise_model, cls=SimulatorJSONEncoder))
@@ -102,3 +125,22 @@ class AerSimulator(BaseBackend):
     def _validate(self, qobj):
         # TODO
         return
+
+
+class SimulatorJSONEncoder(json.JSONEncoder):
+    """
+    JSON encoder for NumPy arrays and complex numbers.
+
+    This functions as the standard JSON Encoder but adds support
+    for encoding:
+        complex numbers z as lists [z.real, z.imag]
+        ndarrays as nested lists.
+    """
+
+    # pylint: disable=method-hidden,arguments-differ
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        return json.JSONEncoder.default(self, obj)

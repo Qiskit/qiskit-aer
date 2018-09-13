@@ -12,7 +12,7 @@ Issue reporting
 ~~~~~~~~~~~~~~~
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/Qiskit/qiskit-terra/issues>`_.
+it to the `issue tracker <https://github.com/Qiskit/qiskit-aer/issues>`_.
 The ideal report should include the steps to reproduce it.
 
 Doubts solving
@@ -46,33 +46,39 @@ NOTE: If you work for a company that wants to allow you to contribute your work,
 then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
 and email it to us at qiskit@us.ibm.com.
 
-Code
-----
-
-This section include some tips that will help you to push source code.
 
 Dependencies
 ~~~~~~~~~~~~
 
-Our build system is based on CMake, so we need to have `CMake 3.5 or higher <https://cmake.org/>`_
-installed. As we will deal with languages that build native binaries, we will
+Most of the required dependencies can be installed via ``pip``, using the
+``requirements-dev.txt`` file that exists on every simulator addon directory, eg:
+``pip install -r qiskit-aer/aer/qv_addon/requirements-dev.txt``.
+
+As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
+
+We do support most of the common available toolchains like: gcc, clang, Visual Studio.
+The only required requisite is that the toolchain needs to support C++14.
 
 Mac
 On Mac we have various options depending on the compiler we wanted to use.
-Using Apple's clang compiler, we need to install an extra library for supporting
-OpenMP: libomp. CMake build system will warn you otherwise. To install it manually
+If we want to use Apple's clang compiler, we need to install an extra library for
+supporting OpenMP: libomp. CMake build system will warn you otherwise.
+To install it manually:
 you can type:
 
 .. code::
 
     $ brew install libomp
 
-We do recommend to install OpenBLAS:
+We do recommend installing OpenBLAS, which is our default choice:
 
 .. code::
 
     $ brew install openblas
+
+CMake build system will search for other BLAS implementation alternatives if
+OpenBLAS is not installed in the system.
 
 Linux (Ubuntu >= 16.04)
 Most of the major distributions come with a BLAS and LAPACK library implementation,
@@ -83,12 +89,41 @@ here as well, so in order to install it you have to type:
 
     $ sudo apt install libopenblas-dev
 
+Windows
+On Windows you must have Anaconda3 installed in the system, and We recommend installing
+Visual Studio 2017 (Communit Edition).
+The same rules applies when searching for an OpenBLAS implementation, if CMake can't
+find one suitable implementation installed in the system, it will take the BLAS
+library from the Anaconda3 environment.
+
 
 Building
 ~~~~~~~~
 
+There are two ways of building Aer simulators, depending on our goal they are:
+1. Build Terra compatible addon.
+2. Build standalone executable
+
+Terra addon
+For the former, we just need to call the ``setup.py`` script:
+
+.. code::
+
+  qiskit-aer$ cd aer/qv_addon
+  qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
+
+That will create a wheel package into the ``dist/`` directory, so:
+
+.. code::
+
+  qiskit-aer/aer/qv_addon$ cd dist
+  qiskit-aer/aer/qv_addon/dist$ pip install qiskit_addon_qv-0.0.0-cp36-cp36m-linux_x86_64.whl
+
+
+Standalone executable
+If we want to build an standalone executable, we have to use CMake directly.
 The preferred way CMake is meant to be used, is by setting up an "out of source" build.
-So in order to build our native code, we have to follow these steps:
+So in order to build our standalone executable, we have to follow these steps:
 
 All platforms
 
@@ -100,15 +135,25 @@ All platforms
     qiskit-aer/out$ cmake --build . --config Release -- -j4
 
 NOTE: Even though latest versions of Windows have some sort of classic ``bash`` support
-for command line operations, hence to commands above should work on latests versions,
+for command line operations, hence the commands above should work on latests versions,
 the way to create directories on Windows is slightly different:
-different
 
 .. code::
 
     C:\..\> mkdir out
     C:\..\> cd out
-    
+
+Once built, you will have your standalone executable into the ``Release`` or ``Debug``
+directory (depending on the type of building choosen with the ``--config`` option):
+
+.. code::
+
+  qiskit-aer/out$ cd Release
+  qiskit-aer/out/Release$ ls
+  aer_simulator_cpp
+
+
+
 Useful CMake flags
 ------------------
 
@@ -119,7 +164,14 @@ pass them right after ``-D`` cmake argument. Example:
 
     qiskit-aer/out$ cmake -DUSEFUL_FLAG=Value ..
 
-Flags:
+In the case of building the Terra addon, you have to pass these flags after writing
+``--`` at the end of the python command line, eg:
+.. code::
+
+  qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
+
+
+These are the flags:
 
 USER_LIB_PATH
     This flag tells CMake to look for libraries that are needed by some of the native
@@ -138,31 +190,10 @@ STATIC_LINKING
     Default: False
     Example: ``cmake -DSTATIC_LINKING=True ..``
 
-BUILD_TESTS
-    Tells the build system to build the tests as part of the building process.
-    Values: True|False
-    Default: False
-    Example: ``cmake -DBUILD_TESTS=False ..``
 
 Test
 ~~~~
-
-New features often imply changes in the existent tests or new ones are
-needed. Once they're updated/added run this be sure they keep passing.
-Before running the tests, we have to build them. They are built by default
-within the normal building process, and there's also a specific target just in
-case you don't want to rebuild everthing:
-
-.. code::
-
-    qiskit-aer/out$ cmake --build . --target build_tests
-
-For executing the tests, we will use the ``ctest`` tool like:
-
-.. code::
-
-    qiskit-aer/out$ ctest -VV
-
+TODO
 
 Style guide
 ~~~~~~~~~~~
@@ -291,7 +322,7 @@ There are two main branches in the repository:
     we will fix it ASAP, promise :).
   - This should not be considered as a stable branch to use in production
     environments.
-  - The API of the SDK could change without prior notice.
+  - The public interface could change without prior notice.
 
 - ``stable``
 
@@ -307,22 +338,7 @@ There are two main branches in the repository:
 Release cycle
 ~~~~~~~~~~~~~
 
-TODO: Review
-
-From time to time, we will release brand new versions of the Qiskit SDK. These
-are well-tested versions of the software.
-
-When the time for a new release has come, we will:
-
-1. Merge the ``master`` branch with the ``stable`` branch.
-2. Create a new tag with the version number in the ``stable`` branch.
-3. Crate and distribute the pip package.
-4. Change the ``master`` version to the next release version.
-5. Announce the new version to the world!
-
-The ``stable`` branch should only receive changes in the form of bug fixes, so the
-third version number (the maintenance number: [major].[minor].[maintenance])
-will increase on every new change.
+TODO: TBD
 
 What version should I use: development or stable?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

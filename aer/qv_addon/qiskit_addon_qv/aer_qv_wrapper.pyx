@@ -39,7 +39,8 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         int get_max_threads_shot()
         int get_max_threads_state()
 
-cdef class AerSimulatorWrapper:
+
+cdef class AerQvSimulatorWrapper:
 
     cdef Interface *thisptr
 

@@ -1,0 +1,4 @@
+qiskit
+cmake
+scikit-build
+cython

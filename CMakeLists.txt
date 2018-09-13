@@ -10,10 +10,10 @@
 # Additionaly, OpenMP support is only available in clang from
 
 cmake_minimum_required(VERSION 3.6)
-project(aer_simulator_cpp LANGUAGES CXX)
+project(aer_simulator_cpp LANGUAGES CXX C)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
@@ -54,10 +54,17 @@ set_target_properties(aer_simulator_cpp PROPERTIES
 	LINKER_LANGUAGE CXX
 	CXX_STANDARD 14)
 
-
 set_target_properties(aer_simulator_cpp PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deplyment target" to 10.7
+	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
+	# use C++11/14
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
+	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
+endif()
 
 if(STATIC_LINKING)
 	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
@@ -65,7 +72,8 @@ if(STATIC_LINKING)
 	# to the rest of the flags being tested... and -static compilation on Mac
 	# with gcc is failing
 	if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	    message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
+		message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
+		unset(STATIC_LINKING)
 	else()
 	    # MacOS compilers don't support -static flag either
 	    if(NOT APPLE)
@@ -95,10 +103,6 @@ endif()
 
 target_include_directories(aer_simulator_cpp PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 
-if(STATIC_LINKING)
-	set(BLAS_STATIC True)
-endif()
-
 # Looking for external libraries
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
@@ -121,8 +125,12 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 				include_directories("${BREW_LIBOMP_PREFIX}/include")
 				message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
 
-				set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-				set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+				# Create OpenMP::OpenMP_CXX target
+				add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
+				set_property(TARGET OpenMP::OpenMP_CXX PROPERTY
+					INTERFACE_LINK_LIBRARIES "${OpenMP_omp_LIBRARY}")
 				message(STATUS "OpenMP found!")
 			endif()
 		else()
@@ -131,33 +139,46 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	endif()
 endif()
 
+#get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
+#message(STATUS "OpenMP = ${KK}")
 
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
+find_package(Threads)
+
+message(STATUS "Setting BLA_STATIC")
+if(STATIC_LINKING)
+	set(BLA_STATIC TRUE)
+endif()
 message(STATUS "Lookgin for OpenBLAS library...")
 set(BLA_VENDOR "OpenBLAS")
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
-	message(STATUS "OpenBLAS not found. Lookgin for any other BLAS library...")
+	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
 	unset(BLA_VENDOR)
 	find_package(BLAS REQUIRED)
 endif()
 
+# Set dependent libraries
+set(AER_LIBRARIES
+		OpenMP::OpenMP_CXX
+	    ${BLAS_LIBRARIES}
+	    nlohmann_json
+	    Threads::Threads)
 
 # Linter
 # This will add the linter as part of the compiling build target
 include(Linter)
-
-# Linking
-# Set dependent libraries
-set(AER_LIBRARIES
-	${BLAS_LIBRARIES}
-	nlohmann_json)
 
 target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
 
 # Tests
 if(BUILD_TESTS)
 	add_subdirectory(test)
+endif()
+
+# Cyhton build is only enabnled if building through scikit-build.
+if(SKBUILD)
+	add_subdirectory(aer/qv_addon/qiskit_addon_qv)
 endif()
