@@ -482,7 +482,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
   if (std::abs(phi + 0.5 * M_PI) > u1_threshold_)
     ret.push_back(Operations::make_u1(qubit, phi + 0.5 * M_PI)); // add 2nd U1
   return ret;
-
+}
 
 //=========================================================================
 // JSON Conversion

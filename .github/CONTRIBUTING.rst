@@ -190,11 +190,6 @@ STATIC_LINKING
     Default: False
     Example: ``cmake -DSTATIC_LINKING=True ..``
 
-BUILD_TESTS
-    Tells the build system to build the tests as part of the building process.
-    Values: True|False
-    Default: False
-    Example: ``cmake -DBUILD_TESTS=False ..``
 
 Test
 ~~~~
@@ -327,7 +322,7 @@ There are two main branches in the repository:
     we will fix it ASAP, promise :).
   - This should not be considered as a stable branch to use in production
     environments.
-  - The API of the SDK could change without prior notice.
+  - The public interface could change without prior notice.
 
 - ``stable``
 
@@ -343,22 +338,7 @@ There are two main branches in the repository:
 Release cycle
 ~~~~~~~~~~~~~
 
-TODO: Review
-
-From time to time, we will release brand new versions of the Qiskit SDK. These
-are well-tested versions of the software.
-
-When the time for a new release has come, we will:
-
-1. Merge the ``master`` branch with the ``stable`` branch.
-2. Create a new tag with the version number in the ``stable`` branch.
-3. Crate and distribute the pip package.
-4. Change the ``master`` version to the next release version.
-5. Announce the new version to the world!
-
-The ``stable`` branch should only receive changes in the form of bug fixes, so the
-third version number (the maintenance number: [major].[minor].[maintenance])
-will increase on every new change.
+TODO: TBD
 
 What version should I use: development or stable?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

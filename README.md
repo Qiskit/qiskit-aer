@@ -67,9 +67,9 @@ qiskit-aer/aer/qv_addon/dist$ pip install qiskit_addon_qv-0.0.0-cp36-cp36m-linux
 
 We are all set! Now we ready to start using the simulator in our python code:
 ```python
-from qiskit_addon_qv import AerQvSimulatorWrapper
+from qiskit_addon_qv import AerQvSimulator
 
-simulator = AerQvSimulatorWrapper()
+simulator = AerQvSimulator()
 ```
 
 ---
