@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    indexing.hpp
- * @brief   TensorIndex class
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _indexing_hpp_
 #define _indexing_hpp_
 

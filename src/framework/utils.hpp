@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file    utils.hpp
- * @brief   Utility functions that didn't below anywhere else
- * @author  Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 #ifndef _aer_framework_utils_hpp_
 #define _aer_framework_utils_hpp_
 
@@ -233,7 +227,6 @@ const cmatrix_t Matrix::S = make_matrix<complex_t>({{{1, 0}, {0, 0}},
 
 const cmatrix_t Matrix::Sdg = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                      {{0, 0}, {0, -1}}});
-
 const cmatrix_t Matrix::T = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
 

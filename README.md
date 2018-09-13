@@ -11,7 +11,6 @@
 
 # Documentation
 
-* **Authors:** Christopher J. Wood
 * **Last Updated:** 22.08.2018
 
 ## Table of Contents
