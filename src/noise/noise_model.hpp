@@ -5,9 +5,12 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
+
 #ifndef _aer_noise_model_hpp_
 #define _aer_noise_model_hpp_
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <unordered_set>
 
 #include "framework/operations.hpp"
