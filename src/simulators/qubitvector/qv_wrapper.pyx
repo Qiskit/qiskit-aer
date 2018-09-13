@@ -5,6 +5,16 @@ Cython interface to C++ quantum circuit simulator.
 # Import C++ Classes
 from libcpp.string cimport string
 
+# QubitVector State class
+cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
+    cdef cppclass QubitVector:
+        State() except +
+
+# QubitVector State class
+cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
+    cdef cppclass State[QubitVector]:
+        State() except +
+
 # Import C++ simulator Interface class
 cdef extern from "framework/interface.hpp" namespace "AER":
     cdef cppclass Interface:
@@ -29,17 +39,6 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         int get_max_threads_shot()
         int get_max_threads_state()
 
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
-    cdef cppclass QubitVector:
-        State() except +
-
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
-    cdef cppclass State:
-        State() except +
-
-
 cdef class AerSimulatorWrapper:
 
     cdef Interface *thisptr
@@ -53,8 +52,8 @@ cdef class AerSimulatorWrapper:
     def execute(self, qobj):
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
+        return self.thisptr.execute[QubitVector, State[QubitVector]](qobj_enc)
         # Execute
-        return self.thisptr.execute[QubitVector, State](qobj_enc)
 
     def load_noise_model(self, config):
         # Convert input to C++ string
