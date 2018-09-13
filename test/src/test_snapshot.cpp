@@ -23,7 +23,7 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
     qobj_snapshots["matrix"] =
         AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_matrix.json");
 
-    using State = AER::QubitVector::State;
+    using State = AER::QubitVector::State<QV::QubitVector>;
     AER::Base::Controller sim{};
 
     SECTION( "State simulator snapshot" ) {
