@@ -24,7 +24,7 @@ include(compiler_utils)
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/legacy-build/aer_simulator.cpp")
+    "${PROJECT_SOURCE_DIR}/standalone/aer_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
     "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
