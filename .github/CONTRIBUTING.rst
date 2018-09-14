@@ -47,8 +47,8 @@ then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-cor
 and email it to us at qiskit@us.ibm.com.
 
 
-Dependencies
-~~~~~~~~~~~~
+Pre-requisites
+~~~~~~~~~~~~~~
 
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file that exists on every simulator addon directory, eg:
@@ -60,7 +60,8 @@ need to have installed any of the `supported CMake build tools <https://cmake.or
 We do support most of the common available toolchains like: gcc, clang, Visual Studio.
 The only required requisite is that the toolchain needs to support C++14.
 
-Mac
+**Mac**
+
 On Mac we have various options depending on the compiler we wanted to use.
 If we want to use Apple's clang compiler, we need to install an extra library for
 supporting OpenMP: libomp. CMake build system will warn you otherwise.
@@ -80,7 +81,8 @@ We do recommend installing OpenBLAS, which is our default choice:
 CMake build system will search for other BLAS implementation alternatives if
 OpenBLAS is not installed in the system.
 
-Linux (Ubuntu >= 16.04)
+**Linux (Ubuntu >= 16.04)**
+
 Most of the major distributions come with a BLAS and LAPACK library implementation,
 and this is enough to build all the simulators, but we do recommend using OpenBLAS
 here as well, so in order to install it you have to type:
@@ -89,12 +91,15 @@ here as well, so in order to install it you have to type:
 
     $ sudo apt install libopenblas-dev
 
-Windows
+**Windows**
+
 On Windows you must have Anaconda3 installed in the system, and We recommend installing
 Visual Studio 2017 (Communit Edition).
 The same rules applies when searching for an OpenBLAS implementation, if CMake can't
 find one suitable implementation installed in the system, it will take the BLAS
 library from the Anaconda3 environment.
+
+
 
 
 Building
@@ -112,7 +117,25 @@ For the former, we just need to call the ``setup.py`` script:
   qiskit-aer$ cd aer/qv_addon
   qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
 
-That will create a wheel package into the ``dist/`` directory, so:
+We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
+This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
+the undelying build system (depending on your platform). The way to pass variables is:
+
+.. code::
+
+    qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
+    
+So a real example could be:
+
+.. code::
+
+    qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
+    
+This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
+library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
+build in parallel, using 8 processes.
+
+After this command is executed successfully, we will have a wheel package into the ``dist/`` directory, so next step is installing it:
 
 .. code::
 
@@ -134,15 +157,6 @@ All platforms
     qiskit-aer/out$ cmake ..
     qiskit-aer/out$ cmake --build . --config Release -- -j4
 
-NOTE: Even though latest versions of Windows have some sort of classic ``bash`` support
-for command line operations, hence the commands above should work on latests versions,
-the way to create directories on Windows is slightly different:
-
-.. code::
-
-    C:\..\> mkdir out
-    C:\..\> cd out
-
 Once built, you will have your standalone executable into the ``Release`` or ``Debug``
 directory (depending on the type of building choosen with the ``--config`` option):
 
@@ -160,12 +174,14 @@ Useful CMake flags
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
 pass them right after ``-D`` cmake argument. Example:
+
 .. code::
 
     qiskit-aer/out$ cmake -DUSEFUL_FLAG=Value ..
 
 In the case of building the Terra addon, you have to pass these flags after writing
 ``--`` at the end of the python command line, eg:
+
 .. code::
 
   qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
