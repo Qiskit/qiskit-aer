@@ -10,6 +10,7 @@ import warnings
 import datetime
 import uuid
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 # Import qiskit classes
 import qiskit
@@ -53,6 +54,10 @@ class AerQvSimulator(BaseBackend):
             LocalJob: derived from BaseJob
         """
         local_job = LocalJob(self._run_job, qobj)
+        # This workaround sets the LocalJob executor as ThreadPoolExecutor
+        # to fix a bug with when using ProcessPoolExecutor on linux due to
+        # the inablility to automatically pickle the cython wrapper class.
+        local_job._executor = ThreadPoolExecutor()
         local_job.submit()
         return local_job
 
