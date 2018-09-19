@@ -147,8 +147,8 @@ find_package(nlohmann_json REQUIRED)
 
 find_package(Threads)
 
-message(STATUS "Setting BLA_STATIC")
 if(STATIC_LINKING)
+	message(STATUS "Setting BLA_STATIC")
 	set(BLA_STATIC TRUE)
 endif()
 message(STATUS "Lookgin for OpenBLAS library...")

@@ -15,6 +15,7 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
     cdef cppclass State[QubitVector]:
         State() except +
 
+
 # Import C++ simulator Interface class
 cdef extern from "framework/interface.hpp" namespace "AER":
     cdef cppclass Interface:
@@ -42,65 +43,62 @@ cdef extern from "framework/interface.hpp" namespace "AER":
 
 cdef class AerQvSimulatorWrapper:
 
-    cdef Interface *thisptr
+    cdef Interface iface
 
-    def __cinit__(self):
-        self.thisptr = new Interface()
-
-    def __dealloc__(self):
-        del self.thisptr
+    def __reduce__(self):
+        return (self.__class__,())
 
     def execute(self, qobj):
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
-        return self.thisptr.execute[QubitVector, State[QubitVector]](qobj_enc)
+        return self.iface.execute[QubitVector, State[QubitVector]](qobj_enc)
         # Execute
 
     def load_noise_model(self, config):
         # Convert input to C++ string
         cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_noise_model(config_enc)
+        self.iface.load_noise_model(config_enc)
 
     def load_state_config(self, config):
         # Convert input to C++ string
         cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_state_config(config_enc)
+        self.iface.load_state_config(config_enc)
 
     def load_engine_config(self, config):
         # Convert input to C++ string
         cdef string config_enc = str(config).encode('UTF-8')
-        self.thisptr.load_engine_config(config_enc)
+        self.iface.load_engine_config(config_enc)
 
     def clear_noise_model(self):
-        self.thisptr.clear_noise_model()
+        self.iface.clear_noise_model()
 
     def clear_state_config(self):
 
-        self.thisptr.clear_state_config()
+        self.iface.clear_state_config()
 
     def clear_engine_config(self):
-        self.thisptr.clear_engine_config()
+        self.iface.clear_engine_config()
 
     def set_max_threads(self, threads):
-        self.thisptr.set_max_threads(int(threads))
+        self.iface.set_max_threads(int(threads))
 
     def set_max_threads_circuit(self, threads):
-        self.thisptr.set_max_threads_circuit(int(threads))
+        self.iface.set_max_threads_circuit(int(threads))
 
     def set_max_threads_shot(self, threads):
-        self.thisptr.set_max_threads_shot(int(threads))
+        self.iface.set_max_threads_shot(int(threads))
 
     def set_max_threads_state(self, threads):
-        self.thisptr.set_max_threads_state(int(threads))
+        self.iface.set_max_threads_state(int(threads))
 
     def get_max_threads(self):
-        return self.thisptr.get_max_threads()
+        return self.iface.get_max_threads()
 
     def get_max_threads_circuit(self):
-        return self.thisptr.get_max_threads_circuit()
+        return self.iface.get_max_threads_circuit()
 
     def get_max_threads_shot(self):
-        return self.thisptr.get_max_threads_shot()
+        return self.iface.get_max_threads_shot()
 
     def get_max_threads_state(self):
-        return self.thisptr.get_max_threads_state()
+        return self.iface.get_max_threads_state()
