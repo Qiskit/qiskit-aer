@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 # Copyright 2018, IBM.
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerQvProvider(BaseProvider):
-    """Provider for the local JKU backend."""
+    """Provider for the local AER QV backend."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
