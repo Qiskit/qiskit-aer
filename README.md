@@ -16,6 +16,9 @@ This is a working draft for the Qiskit-Aer simulator framework for Qiskit-Terra.
 
 See the [Qiskit Aer wiki](https://github.ibm.com/IBMQuantum/qiskit-aer/wiki) for documentation.
 
+There's a [contributing guide](https://github.ibm.com/IBMQuantum/qiskit-aer/blob/master/.github/CONTRIBUTING.rst)
+with more detailed information about the project.
+
 
 ## Installation
 
@@ -23,6 +26,7 @@ Follow these steps for installing Terra simulator addons:
 
 ```bash
 qiskit-aer$ cd aer/qv_addon
+qiskit-aer$ pip install -r requirements-dev.txt
 qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
 ```
 
