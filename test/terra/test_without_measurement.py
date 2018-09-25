@@ -10,17 +10,16 @@ from test.terra.common import QiskitQvTestCase
 import unittest
 
 from qiskit import (execute, QuantumRegister,
-                    ClassicalRegister, QuantumCircuit, wrapper)
+                    ClassicalRegister, QuantumCircuit, register)
 from qiskit.extensions.simulator.snapshot import snapshot
-from qiskit_addon_qv import AerQvSimulator
+from qiskit_addon_qv import AerQvProvider
 
 
 class QvNoMeasurementTest(QiskitQvTestCase):
     """Test the final statevector in circuits whose simulation is deterministic, i.e., costain no measurement or noise"""
 
     def setUp(self):
-        # Comment will be removed when Issue #35 is resolved
-        #wrapper.register(provider_class=AerQvSimulator)
+        register(provider_class=AerQvProvider)
         self._number_of_qubits = 6
 
     def test_no_measurement(self):     
@@ -34,12 +33,9 @@ class QvNoMeasurementTest(QiskitQvTestCase):
         circuit.cx(q[0], q[1])
 
         # Waiting for Issue #10 to be resolved
-        circuit.state_snapshot('0')
+        #circuit.state_snapshot('0')
 
-        # The following line will replace the one next to it
-        # when Issue #35 is resolved
-        #result = execute(circuit, provider='local_qv_simulator').result()
-        result = execute(circuit, backend=AerQvSimulator(), skip_transpiler=True).result()
+        result = execute(circuit, backend='local_qv_simulator').result()
         self.assertEqual(result.get_status(), 'COMPLETED')
 
         # Compare with the result of the Python simulator
