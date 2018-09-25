@@ -36,7 +36,7 @@ class AerQvSimulator(BaseBackend):
         'local': True,
         'description': 'A C++ statevector simulator for qobj files',
         'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz',
+        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz'
     }
 
     def __init__(self, configuration=None):
