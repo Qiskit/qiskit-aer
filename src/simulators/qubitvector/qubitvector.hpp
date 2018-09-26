@@ -97,15 +97,27 @@ public:
   // Set the maximum number of OpenMP thread for operations.
   void set_omp_threads(int n);
 
+  // Get the maximum number of OpenMP thread for operations.
+  uint_t get_omp_threads() {return omp_threads_;}
+
   // Set the qubit threshold for activating OpenMP.
   // If self.qubits() > threshold OpenMP will be activated.
   void set_omp_threshold(int n);
+
+  // Get the qubit threshold for activating OpenMP.
+  uint_t get_omp_threshold() {return omp_threshold_;}
 
   // Enable sorted qubit matrix gate optimization (Default disabled)
   inline void enable_gate_opt() {gate_opt_ = true;}
 
   // Disable sorted qubit matrix gate optimization
   inline void disable_gate_opt() {gate_opt_ = true;}
+
+  // Set the sample_measure index size
+  inline void set_sample_measure_index_size(int n) {sample_measure_index_size_ = n;}
+
+  // Get the sample_measure index size
+  inline int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -277,10 +289,12 @@ protected:
   size_t num_states_;
   cvector_t state_vector_;
 
-  // OMP
+ //-----------------------------------------------------------------------
+  // Config settings
+  //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 16;  // Qubit threshold for multithreading when enabled
-
+  int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   bool gate_opt_ = false; // enable large-qubit optimized gates
 
   //-----------------------------------------------------------------------
@@ -2016,22 +2030,68 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
   std::vector<uint_t> samples;
   samples.reserve(shots);
 
-    // no indexing, loop with shots
+  const int index_size = sample_measure_index_size_;
+  const int_t index_end = 1LL << index_size;
   #pragma omp parallel if (omp_threads_ > 1) num_threads(omp_threads_)
   {
-  #pragma omp for
-    for (int_t i = 0; i < shots; ++i) {
-      double rnd = rnds[i];
-      double p = .0;
-      int_t sample;
-      for (sample = 0; sample < end - 1; ++sample) {
-        p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
-        if (rnd < p)
-          break;
+    // Qubit number is below index size, loop over shots
+    if (end < index_end){
+      #pragma omp for
+      for (int_t i = 0; i < shots; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample;
+        for (sample = 0; sample < end - 1; ++sample) {
+          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          if (rnd < p)
+            break;
+        }
+        samples.push_back(sample);
       }
-      samples.push_back(sample);
-    }
-  } // end omp parallel
+    } 
+    // Qubit number is above index size, loop over index blocks
+    else {
+      // Initialize indexes
+      std::vector<double> indexes;
+      indexes.assign((1<<index_size), .0);
+      uint_t loop = (end >> index_size);
+
+      #pragma omp for
+      for (uint_t i = 0; i < (1 << index_size); ++i) {
+        uint_t base = loop * i;
+        double total = .0;
+        double p = .0;
+        for (uint_t j = 0; j < loop; ++j) {
+          uint_t k = base | j;
+          p = std::real(std::conj(state_vector_[k]) * state_vector_[k]);
+          total += p;
+        }
+        indexes[i] = total;
+      }
+
+      #pragma omp for
+      for (uint_t i = 0; i < shots; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample = 0;
+        for (uint_t j = 0; j < indexes.size(); ++j) {
+          if (rnd < (p + indexes[j])) {
+            break;
+          }
+          p += indexes[j];
+          sample += loop;
+        }
+
+        for (; sample < end - 1; ++sample) {
+          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          if (rnd < p){
+            break;
+          }
+        }
+        samples.push_back(sample);
+      }
+    } // end omp parallel
+  }
   return samples;
 }
 
