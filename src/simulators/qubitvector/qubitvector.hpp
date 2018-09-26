@@ -123,6 +123,10 @@ public:
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
 
+  // Return the Z-basis measurement outcome probability P(outcome) for
+  // outcome in [0, 2^num_qubits - 1]
+  double probability(const uint_t outcome) const;
+
   // Return the probabilities for all measurement outcomes in the current vector
   // This is equivalent to returning a new vector with  new[i]=|orig[i]|^2.
   // Eg. For 2-qubits this is [P(00), P(01), P(010), P(11)]
@@ -146,39 +150,10 @@ public:
   // generating samples.
   std::vector<uint_t> sample_measure(const std::vector<double> &rnds) const;
 
-  //-----------------------------------------------------------------------
-  // Single Z-measurement outcome probability
-  //-----------------------------------------------------------------------
-
-  // Return the Z-basis measurement outcome probability P(outcome) for
-  // outcome in [0, 2^num_qubits - 1]
-  double probability(const uint_t outcome) const;
-
-  // Return the Z-basis measurement outcome probability for measurement
-  // of a single qubit.
-  double probability(const uint_t qubit, const uint_t outcome) const;
-
-  // Return the Z-basis measurement outcome probability for measurement of
-  // N-qubits
-  double probability(const std::vector<uint_t> &qubits, const uint_t outcome) const;
-
-  // Return the Z-basis measurement outcome probability for measurement of
-  // N-qubits
-  template <size_t N>
-  double probability(const std::array<uint_t, N> &qubits, const uint_t outcome) const;
 
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
-
-  // Apply a single-qubit matrix to the state vector.
-  // The input vector must be a size-4 column-major vectorized matrix.
-  void apply_matrix(const uint_t qubit, const cvector_t &mat);
-
-  // Apply a single-qubit diagonal matrix to the state vector.
-  // The input vector must be a size-2 diagonal of a single-qubit matrix.
-  void apply_diagonal_matrix(const uint_t qubit, const cvector_t &mat);
- 
 
   // Apply a N-qubit matrix to the state vector. The input matrix can
   // either be the diagonal of a diagonal matrix, or a column-major
@@ -199,6 +174,10 @@ public:
   template <size_t N>
   void apply_diagonal_matrix(const std::array<uint_t, N> &qubits,
                              const cvector_t &mat);
+
+  //-----------------------------------------------------------------------
+  // Apply Specialized Gates
+  //-----------------------------------------------------------------------
 
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
@@ -229,17 +208,23 @@ public:
   // Return the norm for of the vector obtained after apply the single-qubit
   // matrix mat to the vector. 
   double norm(const uint_t qubit, const cvector_t &mat) const;
+
+  //
   double norm_diagonal(const uint_t qubit, const cvector_t &mat) const;
 
   // Return the norm for of the vector obtained after apply the N-qubit
   // matrix mat to the vector.
   double norm(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
 
+  double norm_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
+
   // Return the norm for of the vector obtained after apply the N-qubit
   // matrix mat to the vector.
   template <size_t N>
   double norm(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
 
+  template <size_t N>
+  double norm_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
 
   //-----------------------------------------------------------------------
   // Vector Operators
@@ -310,15 +295,11 @@ protected:
                                    const cvector_t &mat,
                                    Lambda&& func) const;
 
-  void apply_matrix_col_major(const uint_t qubit, const cvector_t &mat);
-  void apply_matrix_col_major(const std::vector<uint_t> &qubits,
+  void apply_matrix_std(const std::vector<uint_t> &qubits,
                               const cvector_t &mat);
   template <size_t N>
-  void apply_matrix_col_major(const std::array<uint_t, N> &qubits,
+  void apply_matrix_std(const std::array<uint_t, N> &qubits,
                               const cvector_t &mat);
-  template <size_t N>
-  void apply_matrix_col_major_opt(const std::array<uint_t, N> &qubits,
-                                  const cvector_t &mat);
   
   void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
                           cvector_t &mat, uint_t dim) const;
@@ -326,10 +307,6 @@ protected:
   cvector_t sort_matrix(const std::array<uint_t, N> &src,
                         const std::array<uint_t, N> &sorted,
                         const cvector_t &mat) const;
-
-  void apply_matrix_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat);
-  template <size_t N>
-  void apply_matrix_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat);
 
   // Norms
   // Warning: no test coverage
@@ -341,15 +318,6 @@ protected:
   double norm_matrix(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
   template <size_t N>
   double norm_matrix_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
-
-  // Matrix Expectation Values
-  // Warning: no test coverage
-  complex_t expectation_value_matrix(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
-  complex_t expectation_value_matrix_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
-  template <size_t N>
-  complex_t expectation_value_matrix(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
-  template <size_t N>
-  complex_t expectation_value_matrix_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
 
   // Error messages
   void check_qubit(const uint_t qubit) const;
@@ -829,20 +797,77 @@ complex_t QubitVector::apply_reduction_lambda(const uint_t qubit,
 
 /*******************************************************************************
  *
- * SINGLE QUBIT OPERATIONS
+ * GENERAL MATRIX MULTIPLICATION
  *
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-// Matrix multiplication
+// Static N
 //------------------------------------------------------------------------------
 
-void QubitVector::apply_matrix(const uint_t qubit, const cvector_t &mat) {
+template <size_t N>
+void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t &mat) {
+  apply_matrix_std<N>(qs, mat);
+}
+
+template <size_t N>
+void QubitVector::apply_matrix_std(const std::array<uint_t, N> &qs,
+                                   const cvector_t &mat) {
   // Error checking
   #ifdef DEBUG
-  check_vector(mat, 2);
+  check_vector(mat, 2 * N);
   #endif
-  // Lambda function for general matrix multiplication
+
+  // Lambda function for N-qubit matrix multiplication
+  auto lambda = [&](const cvector_t &mat,
+                    const std::array<uint_t, 1ULL << N> &inds)->void {
+    const uint_t dim = 1ULL << N;
+    std::array<complex_t, dim> cache;
+    for (size_t i = 0; i < dim; i++) {
+      const auto ii = inds[i];
+      cache[i] = state_vector_[ii];
+      state_vector_[ii] = 0.;
+    }
+    // update state vector
+    for (size_t i = 0; i < dim; i++)
+      for (size_t j = 0; j < dim; j++)
+        state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
+  };
+  // Use the lambda function
+  apply_matrix_lambda(qs, mat, lambda);
+}
+
+template <size_t N>
+void QubitVector::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
+                                        const cvector_t &diag) {
+
+  // Error checking
+  #ifdef DEBUG
+  check_vector(diag, N);
+  #endif
+
+  // Lambda function for N-qubit matrix multiplication
+  auto lambda = [&](const cvector_t &mat,
+                    const std::array<uint_t, 1ULL << N> &inds)->void {
+    const uint_t dim = 1ULL << N;
+    for (size_t i = 0; i < dim; i++) {
+      state_vector_[inds[i]] *= mat[i];
+    }
+  };
+
+  // Use the lambda function
+  apply_matrix_lambda(qs, diag, lambda);
+}
+
+
+//------------------------------------------------------------------------------
+// Single-qubit
+//------------------------------------------------------------------------------
+
+template <>
+void QubitVector::apply_matrix(const std::array<uint_t, 1> &qs,
+                               const cvector_t &mat) {
+  // Lambda function for single-qubit matrix multiplication
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
     const auto k = k1 | k2;
@@ -851,16 +876,12 @@ void QubitVector::apply_matrix(const uint_t qubit, const cvector_t &mat) {
     state_vector_[k] = mat[0] * cache0 + mat[2] * cache1;
     state_vector_[k | end2] = mat[1] * cache0 + mat[3] * cache1;
   };
-  apply_matrix_lambda(qubit, mat, lambda);
+  apply_matrix_lambda(qs[0], mat, lambda);
 }
 
-void QubitVector::apply_diagonal_matrix(const uint_t qubit, const cvector_t &diag) {
-  // Error checking
-  #ifdef DEBUG
-  check_vector(diag, 1);
-  check_qubit(qubit);
-  #endif
-
+template <>
+void QubitVector::apply_diagonal_matrix(const std::array<uint_t, 1> &qs,
+                                        const cvector_t &diag) {
   // Lambda function for diagonal matrix multiplication
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
@@ -868,8 +889,414 @@ void QubitVector::apply_diagonal_matrix(const uint_t qubit, const cvector_t &dia
     state_vector_[k] *= mat[0];
     state_vector_[k | end2] *= mat[1];
   };
-  apply_matrix_lambda(qubit, diag, lambda);
+  apply_matrix_lambda(qs[0], diag, lambda);
 }
+
+//------------------------------------------------------------------------------
+// Gate-swap optimized
+//------------------------------------------------------------------------------
+
+template <>
+void QubitVector::apply_matrix(const std::array<uint_t, 2> &qubits,
+                               const cvector_t &vmat) {
+  if (gate_opt_ == false) {
+    apply_matrix_std(qubits, vmat);
+  } else {
+  // Optimized implementation
+    auto sorted_qs = qubits;
+    std::sort(sorted_qs.begin(), sorted_qs.end());
+    auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+
+    int_t end = num_states_;
+    int_t step1 = (1ULL << sorted_qs[0]);
+    int_t step2 = (1ULL << sorted_qs[1]);
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+  #ifdef _WIN32
+  #pragma omp for
+  #else
+  #pragma omp for collapse(3) schedule(static)
+  #endif
+      for (int_t k1 = 0; k1 < end; k1 += (step2 * 2UL)) {
+        for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
+          for (int_t k3 = 0; k3 < step1; k3++) {
+            int_t t0 = k1 | k2 | k3;
+            int_t t1 = t0 | step1;
+            int_t t2 = t0 | step2;
+            int_t t3 = t2 | step1;
+
+            const complex_t psi0 = state_vector_[t0];
+            const complex_t psi1 = state_vector_[t1];
+            const complex_t psi2 = state_vector_[t2];
+            const complex_t psi3 = state_vector_[t3];
+
+            state_vector_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
+            state_vector_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
+            state_vector_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
+            state_vector_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
+          }
+        }
+      }
+    }
+  }
+}
+
+template <>
+void QubitVector::apply_matrix(const std::array<uint_t, 3> &qubits,
+                               const cvector_t &vmat) {
+  if (gate_opt_ == false) {
+    apply_matrix_std(qubits, vmat);
+  } else {
+    // Optimized implementation
+    auto sorted_qs = qubits;
+    std::sort(sorted_qs.begin(), sorted_qs.end());
+    auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+    const uint_t dim = 1ULL << 3;
+
+    int_t end = num_states_;
+    int_t step1 = (1ULL << sorted_qs[0]);
+    int_t step2 = (1ULL << sorted_qs[1]);
+    int_t step3 = (1ULL << sorted_qs[2]);
+
+    int_t masks[] = {//
+        0, //
+        step1, //
+        step2, //
+        step2 | step1, //
+        step3, //
+        step3 | step1, //
+        step3 | step2, //
+        step3 | step2 | step1 //
+    };
+
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+  #ifdef _WIN32
+  #pragma omp for
+  #else
+  #pragma omp for collapse(4) schedule(static)
+  #endif
+      for (int_t k1 = 0; k1 < end; k1 += (step3 * 2UL)) {
+        for (int_t k2 = 0; k2 < step3; k2 += (step2 * 2UL)) {
+          for (int_t k3 = 0; k3 < step2; k3 += (step1 * 2UL)) {
+            for (int_t k4 = 0; k4 < step1; k4++) {
+              int_t base = k1 | k2 | k3 | k4;
+              complex_t psi[8];
+              for (int_t i = 0; i < 8; ++i) {
+                psi[i] = state_vector_[base | masks[i]];
+                state_vector_[base | masks[i]] = 0.;
+              }
+              for (size_t i = 0; i < 8; ++i)
+                for (size_t j = 0; j < 8; ++j)
+                  state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <>
+void QubitVector::apply_matrix(const std::array<uint_t, 4> &qubits,
+                               const cvector_t &vmat) {
+  if (gate_opt_ == false) {
+    apply_matrix_std(qubits, vmat);
+  } else {
+    // Optimized implementation
+    auto sorted_qs = qubits;
+    std::sort(sorted_qs.begin(), sorted_qs.end());
+    auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+    const uint_t dim = 1ULL << 4;
+
+    int_t end = num_states_;
+    int_t step1 = (1ULL << sorted_qs[0]);
+    int_t step2 = (1ULL << sorted_qs[1]);
+    int_t step3 = (1ULL << sorted_qs[2]);
+    int_t step4 = (1ULL << sorted_qs[3]);
+
+    int_t masks[] = {//
+        0, //
+        step1, //
+        step2, //
+        step2 | step1, //
+        step3, //
+        step3 | step1, //
+        step3 | step2, //
+        step3 | step2 | step1, //
+        step4, //
+        step4 | step1, //
+        step4 | step2, //
+        step4 | step2 | step1, //
+        step4 | step3, //
+        step4 | step3 | step1, //
+        step4 | step3 | step2, //
+        step4 | step3 | step2 | step1 //
+    };
+
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+  #ifdef _WIN32
+  #pragma omp for
+  #else
+  #pragma omp for collapse(5) schedule(static)
+  #endif
+      for (int_t k1 = 0; k1 < end; k1 += (step4 * 2UL)) {
+        for (int_t k2 = 0; k2 < step4; k2 += (step3 * 2UL)) {
+          for (int_t k3 = 0; k3 < step3; k3 += (step2 * 2UL)) {
+            for (int_t k4 = 0; k4 < step2; k4 += (step1 * 2UL)) {
+              for (int_t k5 = 0; k5 < step1; k5++) {
+                int_t base = k1 | k2 | k3 | k4 | k5;
+                complex_t psi[16];
+                for (int_t i = 0; i < 16; ++i) {
+                  psi[i] = state_vector_[base | masks[i]];
+                  state_vector_[base | masks[i]] = 0.;
+                }
+                for (size_t i = 0; i < 16; ++i)
+                  for (size_t j = 0; j < 16; ++j)
+                    state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <>
+void QubitVector::apply_matrix(const std::array<uint_t, 5> &qubits,
+                               const cvector_t &vmat) {
+  if (gate_opt_ == false) {
+    apply_matrix_std(qubits, vmat);
+  } else {
+    // Optimized implementation
+    auto sorted_qs = qubits;
+    std::sort(sorted_qs.begin(), sorted_qs.end());
+    auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+    const uint_t dim = 1ULL << 5;
+
+    int_t end = num_states_;
+    int_t step1 = (1ULL << sorted_qs[0]);
+    int_t step2 = (1ULL << sorted_qs[1]);
+    int_t step3 = (1ULL << sorted_qs[2]);
+    int_t step4 = (1ULL << sorted_qs[3]);
+    int_t step5 = (1ULL << sorted_qs[4]);
+
+    int_t masks[] = {//
+        0, //
+        step1, //
+        step2, //
+        step2 | step1, //
+        step3, //
+        step3 | step1, //
+        step3 | step2, //
+        step3 | step2 | step1, //
+        step4, //
+        step4 | step1, //
+        step4 | step2, //
+        step4 | step2 | step1, //
+        step4 | step3, //
+        step4 | step3 | step1, //
+        step4 | step3 | step2, //
+        step4 | step3 | step2 | step1, //
+        step5, //
+        step5 | step1, //
+        step5 | step2, //
+        step5 | step2 | step1, //
+        step5 | step3, //
+        step5 | step3 | step1, //
+        step5 | step3 | step2, //
+        step5 | step3 | step2 | step1, //
+        step5 | step4, //
+        step5 | step4 | step1, //
+        step5 | step4 | step2, //
+        step5 | step4 | step2 | step1, //
+        step5 | step4 | step3, //
+        step5 | step4 | step3 | step1, //
+        step5 | step4 | step3 | step2, //
+        step5 | step4 | step3 | step2 | step1 //
+    };
+
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+  #ifdef _WIN32
+  #pragma omp for
+  #else
+  #pragma omp for collapse(6) schedule(static)
+  #endif
+      for (int_t k1 = 0; k1 < end; k1 += (step5 * 2UL)) {
+        for (int_t k2 = 0; k2 < step5; k2 += (step4 * 2UL)) {
+          for (int_t k3 = 0; k3 < step4; k3 += (step3 * 2UL)) {
+            for (int_t k4 = 0; k4 < step3; k4 += (step2 * 2UL)) {
+              for (int_t k5 = 0; k5 < step2; k5 += (step1 * 2UL)) {
+                for (int_t k6 = 0; k6 < step1; k6++) {
+                  int_t base = k1 | k2 | k3 | k4 | k5 | k6;
+                  complex_t psi[32];
+                  for (int_t i = 0; i < 32; ++i) {
+                    psi[i] = state_vector_[base | masks[i]];
+                    state_vector_[base | masks[i]] = 0.;
+                  }
+                  for (size_t i = 0; i < 32; ++i)
+                    for (size_t j = 0; j < 32; ++j)
+                      state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// Gate-swap optimized helper functions
+//------------------------------------------------------------------------------
+void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
+                                     cvector_t &mat, uint_t dim) const {
+
+  uint_t mask1 = (1UL << idx1);
+  uint_t mask2 = (1UL << idx2);
+
+  for (uint_t first = 0; first < dim; ++first) {
+    if ((first & mask1) && !(first & mask2)) {
+      uint_t second = (first ^ mask1) | mask2;
+
+      for (uint_t i = 0; i < dim; ++i) {
+        complex_t cache = mat[first * dim + i];
+        mat[first * dim + i] = mat[second * dim +  i];
+        mat[second * dim +  i] = cache;
+      }
+      for (uint_t i = 0; i < dim; ++i) {
+        complex_t cache = mat[i * dim + first];
+        mat[i * dim + first] = mat[i * dim + second];
+        mat[i * dim + second] = cache;
+      }
+    }
+  }
+}
+
+template <size_t N>
+cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src,
+                                   const std::array<uint_t, N> &sorted,
+                                   const cvector_t &mat) const {
+
+  const uint_t dim = 1ULL << N;
+  auto ret = mat;
+  auto current = src;
+
+  while (current != sorted) {
+    uint_t from;
+    uint_t to;
+    for (from = 0; from < current.size(); ++from)
+      if (current[from] != sorted[from])
+        break;
+    if (from == current.size())
+      break;
+    for (to = from + 1; to < current.size(); ++to)
+      if (current[from] == sorted[to])
+        break;
+    if (to == current.size()) {
+      std::stringstream ss;
+      ss << "QubitVector::sort_matrix we should not reach here";
+      throw std::runtime_error(ss.str());
+    }
+    swap_cols_and_rows(from, to, ret, dim);
+
+    uint_t cache = current[from];
+    current[from] = current[to];
+    current[to] = cache;
+  }
+
+  return ret;
+}
+
+
+//------------------------------------------------------------------------------
+// Dynamic N
+//------------------------------------------------------------------------------
+
+void QubitVector::apply_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) {
+
+  // Special low N cases using faster static indexing
+  switch (qs.size()) {
+  case 1:
+    apply_matrix<1>(std::array<uint_t, 1>({{qs[0]}}), mat);
+    break;
+  case 2:
+    apply_matrix<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), mat);
+    break;
+  case 3:
+    apply_matrix<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), mat);
+    break;
+  case 4:
+    apply_matrix<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
+    break;
+  case 5:
+    apply_matrix<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
+    break;
+  default:
+    apply_matrix_std(qs, mat);
+    break;
+  }
+}
+
+void QubitVector::apply_matrix_std(const std::vector<uint_t> &qubits, const cvector_t &mat) {
+
+  // Error checking
+  #ifdef DEBUG
+  check_vector(mat, 2 * N);
+  #endif
+
+  // Lambda function for N-qubit matrix multiplication
+  auto lambda = [&](const cvector_t &mat,
+                    const std::vector<uint_t> &inds)->void {
+    const uint_t dim = 1ULL << qubits.size();
+    std::vector<complex_t> cache(dim);
+    for (size_t i = 0; i < dim; i++) {
+      const auto ii = inds[i];
+      cache[i] = state_vector_[ii];
+      state_vector_[ii] = 0.;
+    }
+    // update state vector
+    for (size_t i = 0; i < dim; i++)
+      for (size_t j = 0; j < dim; j++)
+        state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
+  };
+  // Use the lambda function
+  apply_matrix_lambda(qubits, mat, lambda);
+}
+
+void QubitVector::apply_diagonal_matrix(const std::vector<uint_t> &qubits,
+                               const cvector_t &diag) {
+  // Error checking
+  #ifdef DEBUG
+  check_vector(mat, N);
+  #endif
+
+  // Lambda function for N-qubit matrix multiplication
+  auto lambda = [&](const cvector_t &mat,
+                    const std::vector<uint_t> &inds)->void {
+    const uint_t dim = 1ULL << qubits.size();
+    for (size_t i = 0; i < dim; i++)
+          state_vector_[inds[i]] *= mat[i];
+  };
+  // Use the lambda function
+  apply_matrix_lambda(qubits, diag, lambda);
+}
+
+/*******************************************************************************
+ *
+ * SINGLE QUBIT OPERATIONS
+ *
+ ******************************************************************************/
+
+//------------------------------------------------------------------------------
+// Matrix multiplication
+//------------------------------------------------------------------------------
+
+
 
 void QubitVector::apply_x(const uint_t qubit) {
   // Lambda function for optimized Pauli-X gate
@@ -959,87 +1386,6 @@ double QubitVector::norm_diagonal(const uint_t qubit, const cvector_t &mat) cons
  ******************************************************************************/
 
 
-//------------------------------------------------------------------------------
-// Matrix multiplication
-//------------------------------------------------------------------------------
-
-template <size_t N>
-void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t &mat) {
-  if (gate_opt_) {
-    apply_matrix_col_major_opt<N>(qs, mat);
-  } else {
-    apply_matrix_col_major<N>(qs, mat);
-  }
-}
-
-
-template <size_t N>
-void QubitVector::apply_matrix_col_major(const std::array<uint_t, N> &qs,
-                                         const cvector_t &mat) {
-  // Error checking
-  #ifdef DEBUG
-  check_vector(mat, 2 * N);
-  #endif
-
-  // Lambda function for N-qubit matrix multiplication
-  auto lambda = [&](const cvector_t &mat,
-                    const std::array<uint_t, 1ULL << N> &inds)->void {
-    const uint_t dim = 1ULL << N;
-    std::array<complex_t, dim> cache;
-    for (size_t i = 0; i < dim; i++) {
-      const auto ii = inds[i];
-      cache[i] = state_vector_[ii];
-      state_vector_[ii] = 0.;
-    }
-    // update state vector
-    for (size_t i = 0; i < dim; i++)
-      for (size_t j = 0; j < dim; j++)
-        state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
-  };
-  // Use the lambda function
-  apply_matrix_lambda(qs, mat, lambda);
-}
-
-
-// Single qubit template specialisation
-template <>
-void QubitVector::apply_matrix_col_major(const std::array<uint_t, 1> &qs,
-                                         const cvector_t &mat) {
-  apply_matrix(qs[0], mat);
-}
-
-
-template <size_t N>
-void QubitVector::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
-                                        const cvector_t &diag) {
-
-  // Error checking
-  #ifdef DEBUG
-  check_vector(diag, N);
-  #endif
-
-  // Lambda function for N-qubit matrix multiplication
-  auto lambda = [&](const cvector_t &mat,
-                    const std::array<uint_t, 1ULL << N> &inds)->void {
-    const uint_t dim = 1ULL << N;
-    for (size_t i = 0; i < dim; i++) {
-      state_vector_[inds[i]] *= mat[i];
-    }
-  };
-
-  // Use the lambda function
-  apply_matrix_lambda(qs, diag, lambda);
-}
-
-
-// Single qubit template specialisation
-template <>
-void QubitVector::apply_diagonal_matrix(const std::array<uint_t, 1> &qs,
-                                        const cvector_t &diag) {
-  apply_diagonal_matrix(qs[0], diag);
-}
-
-
 void QubitVector::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   // Lambda function for CNOT gate
   auto lambda = [&](const cvector_t &mat,
@@ -1081,306 +1427,52 @@ void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
 }
 
 
-//------------------------------------------------------------------------------
-// Optimized column-major matrix functions
-//------------------------------------------------------------------------------
 
-// Default case for non-optimized template specialization
-template <size_t N>
-void QubitVector::apply_matrix_col_major_opt(const std::array<uint_t, N> &qs,
-                                             const cvector_t &mat) {
-  apply_matrix_col_major(qs, mat);
-}
 
-template<>
-void QubitVector::apply_matrix_col_major_opt(const std::array<uint_t, 2> &qubits,
-                                             const cvector_t &vmat) {
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
 
-  int_t end = num_states_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(3) schedule(static)
-#endif
-    for (int_t k1 = 0; k1 < end; k1 += (step2 * 2UL)) {
-      for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
-        for (int_t k3 = 0; k3 < step1; k3++) {
-          int_t t0 = k1 | k2 | k3;
-          int_t t1 = t0 | step1;
-          int_t t2 = t0 | step2;
-          int_t t3 = t2 | step1;
 
-          const complex_t psi0 = state_vector_[t0];
-          const complex_t psi1 = state_vector_[t1];
-          const complex_t psi2 = state_vector_[t2];
-          const complex_t psi3 = state_vector_[t3];
 
-          state_vector_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
-          state_vector_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
-          state_vector_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
-          state_vector_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
-        }
-      }
-    }
-  }
-}
 
-template<>
-void QubitVector::apply_matrix_col_major_opt(const std::array<uint_t, 3> &qubits,
-                                             const cvector_t &vmat) {
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 3;
 
-  int_t end = num_states_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
 
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1 //
-  };
 
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(4) schedule(static)
-#endif
-    for (int_t k1 = 0; k1 < end; k1 += (step3 * 2UL)) {
-      for (int_t k2 = 0; k2 < step3; k2 += (step2 * 2UL)) {
-        for (int_t k3 = 0; k3 < step2; k3 += (step1 * 2UL)) {
-          for (int_t k4 = 0; k4 < step1; k4++) {
-            int_t base = k1 | k2 | k3 | k4;
-            complex_t psi[8];
-            for (int_t i = 0; i < 8; ++i) {
-              psi[i] = state_vector_[base | masks[i]];
-              state_vector_[base | masks[i]] = 0.;
-            }
-            for (size_t i = 0; i < 8; ++i)
-              for (size_t j = 0; j < 8; ++j)
-                state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-          }
-        }
-      }
-    }
-  }
-}
 
-template<>
-void QubitVector::apply_matrix_col_major_opt(const std::array<uint_t, 4> &qubits,
-                                             const cvector_t &vmat) {
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 4;
 
-  int_t end = num_states_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
-  int_t step4 = (1ULL << sorted_qs[3]);
 
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1, //
-      step4, //
-      step4 | step1, //
-      step4 | step2, //
-      step4 | step2 | step1, //
-      step4 | step3, //
-      step4 | step3 | step1, //
-      step4 | step3 | step2, //
-      step4 | step3 | step2 | step1 //
-  };
 
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(5) schedule(static)
-#endif
-    for (int_t k1 = 0; k1 < end; k1 += (step4 * 2UL)) {
-      for (int_t k2 = 0; k2 < step4; k2 += (step3 * 2UL)) {
-        for (int_t k3 = 0; k3 < step3; k3 += (step2 * 2UL)) {
-          for (int_t k4 = 0; k4 < step2; k4 += (step1 * 2UL)) {
-            for (int_t k5 = 0; k5 < step1; k5++) {
-              int_t base = k1 | k2 | k3 | k4 | k5;
-              complex_t psi[16];
-              for (int_t i = 0; i < 16; ++i) {
-                psi[i] = state_vector_[base | masks[i]];
-                state_vector_[base | masks[i]] = 0.;
-              }
-              for (size_t i = 0; i < 16; ++i)
-                for (size_t j = 0; j < 16; ++j)
-                  state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-            }
-          }
-        }
-      }
-    }
-  }
-}
 
-template<>
-void QubitVector::apply_matrix_col_major_opt(const std::array<uint_t, 5> &qubits,
-                                             const cvector_t &vmat) {
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 5;
 
-  int_t end = num_states_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
-  int_t step4 = (1ULL << sorted_qs[3]);
-  int_t step5 = (1ULL << sorted_qs[4]);
 
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1, //
-      step4, //
-      step4 | step1, //
-      step4 | step2, //
-      step4 | step2 | step1, //
-      step4 | step3, //
-      step4 | step3 | step1, //
-      step4 | step3 | step2, //
-      step4 | step3 | step2 | step1, //
-      step5, //
-      step5 | step1, //
-      step5 | step2, //
-      step5 | step2 | step1, //
-      step5 | step3, //
-      step5 | step3 | step1, //
-      step5 | step3 | step2, //
-      step5 | step3 | step2 | step1, //
-      step5 | step4, //
-      step5 | step4 | step1, //
-      step5 | step4 | step2, //
-      step5 | step4 | step2 | step1, //
-      step5 | step4 | step3, //
-      step5 | step4 | step3 | step1, //
-      step5 | step4 | step3 | step2, //
-      step5 | step4 | step3 | step2 | step1 //
-  };
 
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(6) schedule(static)
-#endif
-    for (int_t k1 = 0; k1 < end; k1 += (step5 * 2UL)) {
-      for (int_t k2 = 0; k2 < step5; k2 += (step4 * 2UL)) {
-        for (int_t k3 = 0; k3 < step4; k3 += (step3 * 2UL)) {
-          for (int_t k4 = 0; k4 < step3; k4 += (step2 * 2UL)) {
-            for (int_t k5 = 0; k5 < step2; k5 += (step1 * 2UL)) {
-              for (int_t k6 = 0; k6 < step1; k6++) {
-                int_t base = k1 | k2 | k3 | k4 | k5 | k6;
-                complex_t psi[32];
-                for (int_t i = 0; i < 32; ++i) {
-                  psi[i] = state_vector_[base | masks[i]];
-                  state_vector_[base | masks[i]] = 0.;
-                }
-                for (size_t i = 0; i < 32; ++i)
-                  for (size_t j = 0; j < 32; ++j)
-                    state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
 
-void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2, cvector_t &mat, uint_t dim) const {
 
-  uint_t mask1 = (1UL << idx1);
-  uint_t mask2 = (1UL << idx2);
 
-  for (uint_t first = 0; first < dim; ++first) {
-    if ((first & mask1) && !(first & mask2)) {
-      uint_t second = (first ^ mask1) | mask2;
 
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[first * dim + i];
-        mat[first * dim + i] = mat[second * dim +  i];
-        mat[second * dim +  i] = cache;
-      }
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[i * dim + first];
-        mat[i * dim + first] = mat[i * dim + second];
-        mat[i * dim + second] = cache;
-      }
-    }
-  }
-}
 
-template <size_t N>
-cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src, const std::array<uint_t, N> &sorted, const cvector_t &mat) const {
 
-  const uint_t dim = 1ULL << N;
-  auto ret = mat;
-  auto current = src;
 
-  while (current != sorted) {
-    uint_t from;
-    uint_t to;
-    for (from = 0; from < current.size(); ++from)
-      if (current[from] != sorted[from])
-        break;
-    if (from == current.size())
-      break;
-    for (to = from + 1; to < current.size(); ++to)
-      if (current[from] == sorted[to])
-        break;
-    if (to == current.size()) {
-      std::stringstream ss;
-      ss << "QubitVector::sort_matrix we should not reach here";
-      throw std::runtime_error(ss.str());
-    }
-    swap_cols_and_rows(from, to, ret, dim);
 
-    uint_t cache = current[from];
-    current[from] = current[to];
-    current[to] = cache;
-  }
 
-  return ret;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //------------------------------------------------------------------------------
@@ -1471,100 +1563,6 @@ double QubitVector::norm_matrix_diagonal(const std::array<uint_t, N> &qs, const 
 //------------------------------------------------------------------------------
 // Matrix multiplication
 //------------------------------------------------------------------------------
-
-void QubitVector::apply_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) {
-
-  // Special low N cases using faster static indexing
-  switch (qs.size()) {
-  case 1:
-    apply_matrix(qs[0], mat);
-    break;
-  case 2:
-    apply_matrix<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), mat);
-    break;
-  case 3:
-    apply_matrix<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), mat);
-    break;
-  case 4:
-    apply_matrix<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
-    break;
-  case 5:
-    apply_matrix<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
-    break;
-  default:
-    // General case
-    if (mat.size() == (1ULL << qs.size()))
-      apply_matrix_diagonal(qs, mat);
-    else
-      apply_matrix_col_major(qs, mat);
-    break;
-  }
-}
-
-void QubitVector::apply_matrix_col_major(const std::vector<uint_t> &qubits, const cvector_t &mat) {
-
-  const auto N = qubits.size();
-  const uint_t dim = 1ULL << N;
-  // Error checking
-  #ifdef DEBUG
-  check_vector(mat, 2 * N);
-  for (const auto &qubit : qubits)
-    check_qubit(qubit);
-  #endif
-
-  const int_t end = num_states_ >> N;
-
-  auto qss = qubits;
-  std::sort(qss.begin(), qss.end());
-  const auto &qubits_sorted = qss;
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#pragma omp for
-    for (int_t k = 0; k < end; k++) {
-      // store entries touched by U
-      const auto inds = indexes_dynamic(qubits, qubits_sorted, N, k);
-      std::vector<complex_t> cache(dim);
-      for (size_t i = 0; i < dim; i++) {
-        const auto ii = inds[i];
-        cache[i] = state_vector_[ii];
-        state_vector_[ii] = 0.;
-      }
-      // update state vector
-      for (size_t i = 0; i < dim; i++)
-        for (size_t j = 0; j < dim; j++)
-          state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
-    }
-  }
-}
-
-void QubitVector::apply_matrix_diagonal(const std::vector<uint_t> &qubits,
-                               const cvector_t &diag) {
-
-  const auto N = qubits.size();
-  const uint_t dim = 1ULL << N;
-  // Error checking
-  #ifdef DEBUG
-  check_vector(diag, N);
-  for (const auto &qubit : qubits)
-    check_qubit(qubit);
-  #endif
-
-  const int_t end = num_states_ >> N;
-  auto qss = qubits;
-  std::sort(qss.begin(), qss.end());
-  const auto &qubits_sorted = qss;
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#pragma omp for
-    for (int_t k = 0; k < end; k++) {
-      const auto inds = indexes_dynamic(qubits, qubits_sorted, N, k);
-      for (size_t i = 0; i < dim; i++)
-          state_vector_[inds[i]] *= diag[i];
-    }
-  }
-}
 
 
 //------------------------------------------------------------------------------
@@ -1664,6 +1662,14 @@ double QubitVector::norm_matrix_diagonal(const std::vector<uint_t> &qs, const cv
  * Probabilities
  *
  ******************************************************************************/
+
+//------------------------------------------------------------------------------
+// Single outcome probability
+//------------------------------------------------------------------------------
+double QubitVector::probability(const uint_t outcome) const {
+  const auto v = state_vector_[outcome];
+  return std::real(v * std::conj(v));
+}
 
 //------------------------------------------------------------------------------
 // All outcome probabilities
@@ -1853,117 +1859,6 @@ rvector_t QubitVector::probabilities(const std::vector<uint_t> &qs) const {
   }
 }
 
-//------------------------------------------------------------------------------
-// Single outcome probability
-//------------------------------------------------------------------------------
-double QubitVector::probability(const uint_t outcome) const {
-  const auto v = state_vector_[outcome];
-  return std::real(v * std::conj(v));
-}
-
-double QubitVector::probability(const uint_t qubit, const uint_t outcome) const {
-
-  // Error handling
-  #ifdef DEBUG
-  check_qubit(qubit);
-  #endif
-
-  const int_t end1 = num_states_;    // end for k1 loop
-  const int_t end2 = 1LL << qubit; // end for k2 loop
-  const int_t step1 = end2 << 1;    // step for k1 loop
-  double p = 0.;
-#pragma omp parallel reduction(+:p) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1)         \
-                                               num_threads(omp_threads_)
-  {
-  if (outcome == 0) {
-#ifdef _WIN32
-  #pragma omp for
-#else
-  #pragma omp for collapse(2)
-#endif
-    for (int_t k1 = 0; k1 < end1; k1 += step1)
-      for (int_t k2 = 0; k2 < end2; k2++)
-        p += probability(k1 | k2);
-  } else if (outcome == 1) {
-#ifdef _WIN32
-  #pragma omp for
-#else
-  #pragma omp for collapse(2)
-#endif
-    for (int_t k1 = 0; k1 < end1; k1 += step1)
-      for (int_t k2 = 0; k2 < end2; k2++)
-        p += probability(k1 | k2 | end2);
-  }
-  } // end omp parallel
-  return p;
-}
-
-template <size_t N>
-double QubitVector::probability(const std::array<uint_t, N> &qs,
-                                const uint_t outcome) const {
-
-  // Error checking
-  #ifdef DEBUG
-  for (const auto &qubit : qs)
-    check_qubit(qubit);
-  #endif
-
-  const int_t end = (1ULL << num_qubits_) >> N;
-  auto qss = qs;
-  std::sort(qss.begin(), qss.end());
-  const auto &qubits_sorted = qss;
-  double p = 0.;
-
-#pragma omp parallel reduction(+:p) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-  #pragma omp for
-    for (int_t k = 0; k < end; k++)
-      p += probability(indexes<N>(qs, qubits_sorted, k)[outcome]);
-  }
-  return p;
-}
-
-double QubitVector::probability(const std::vector<uint_t> &qs,
-                                const uint_t outcome) const {
-
-  // Special cases using faster static indexing
-  const uint_t N = qs.size();
-  switch (N) {
-  case 0:
-    return norm();
-  case 1:
-    return probability(qs[0], outcome);
-  case 2:
-    return probability<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), outcome);
-  case 3:
-    return probability<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), outcome);
-  case 4:
-    return probability<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), outcome);
-  case 5:
-    return probability<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), outcome);
-  default:
-    // else
-    // Error checking
-    #ifdef DEBUG
-    for (const auto &qubit : qs)
-      check_qubit(qubit);
-    #endif
-
-    const int_t end = (1ULL << num_qubits_) >> N;
-    auto qss = qs;
-    std::sort(qss.begin(), qss.end());
-    const auto &qubits_sorted = qss;
-    double p = 0.;
-
-  #pragma omp parallel reduction(+:p) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-    #pragma omp for
-      for (int_t k = 0; k < end; k++)
-        p += probability(indexes_dynamic(qs, qubits_sorted, N, k)[outcome]);
-    }
-    return p;
-  }
-}
 
 //------------------------------------------------------------------------------
 } // end namespace QV

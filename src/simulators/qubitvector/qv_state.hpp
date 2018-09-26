@@ -473,12 +473,14 @@ void State<state_t>::apply_matrix(const reg_t &qubits, const cvector_t &dmat) {
 
 template <class state_t>
 void State<state_t>::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  Base::State<state_t>::data_.apply_matrix(qubit, Utils::vectorize_matrix(Utils::Matrix::U3(theta, phi, lambda)));
+  auto vmat = Utils::vectorize_matrix(Utils::Matrix::U3(theta, phi, lambda));
+  Base::State<state_t>::data_.apply_matrix(std::array<uint_t, 1>({{qubit}}), vmat);
 }
 
 template <class state_t>
 void State<state_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
-  Base::State<state_t>::data_.apply_matrix(qubit, cvector_t({1., phase}));
+  Base::State<state_t>::data_.apply_diagonal_matrix(std::array<uint_t, 1>({{qubit}}),
+                                                    cvector_t({1., phase}));
 }
 
 template <class state_t>
@@ -522,7 +524,7 @@ void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    Base::State<state_t>::data_.apply_matrix(qubits[0], mdiag);
+    Base::State<state_t>::data_.apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
