@@ -202,6 +202,9 @@ public:
   // Apply a single-qubit Pauli-Z gate to the state vector
   void apply_z(const uint_t qubit);
 
+  // Apply a 3-qubit toffoli gate
+  void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
+
   //-----------------------------------------------------------------------
   // Vector Operators
   //-----------------------------------------------------------------------
@@ -1402,6 +1405,26 @@ void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   };
   // Use the lambda function
   apply_matrix_lambda(std::array<uint_t, 2>({{qubit_ctrl, qubit_trgt}}), {}, lambda);
+}
+
+//------------------------------------------------------------------------------
+// Three-qubit gates
+//------------------------------------------------------------------------------
+
+void QubitVector::apply_toffoli(const uint_t qubit_ctrl0,
+                                const uint_t qubit_ctrl1,
+                                const uint_t qubit_trgt) {
+  // Lambda function for Toffoli gate
+  auto lambda = [&](const cvector_t &mat,
+                    const std::array<uint_t, 1ULL << 3> &inds)->void {
+    (void)mat; //unused
+    const complex_t cache = state_vector_[inds[7]];
+    state_vector_[inds[7]] = state_vector_[inds[3]];
+    state_vector_[inds[3]] = cache;
+  };
+  // Use the lambda function
+  std::array<uint_t, 3> qubits = {{qubit_ctrl0, qubit_ctrl1, qubit_trgt}};
+  apply_matrix_lambda(qubits, {}, lambda);
 }
 
 /*******************************************************************************

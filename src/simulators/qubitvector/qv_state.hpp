@@ -29,7 +29,8 @@ enum class Gates {
   mat, kraus, // special
   measure, reset, barrier,
   u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  cx, cz, rzz // two qubit
+  cx, cz, rzz, // two qubit
+  ccx // three qubit
 };
 
 /*******************************************************************************
@@ -53,7 +54,7 @@ public:
   // Allowed operations are:
   // {"snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
   //  "barrier", "measure", "reset", "mat", "kraus",
-  //  "u0", "u1", "u2", "u3", "cx", "cz",
+  //  "u0", "u1", "u2", "u3", "cx", "cz", "ccx",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   virtual std::set<std::string> allowed_ops() const override;
     
@@ -180,7 +181,7 @@ std::set<std::string> State<state_t>::allowed_ops() const {
   return { "barrier", "measure", "reset",
     "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
     "mat", "kraus",
-    "u0", "u1", "u2", "u3", "cx", "cz",
+    "u0", "u1", "u2", "u3", "cx", "cz", "ccx",
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
 
@@ -209,6 +210,8 @@ const std::unordered_map<std::string, Gates> State<state_t>::gateset({
   {"cx", Gates::cx},  // Controlled-X gate (CNOT)
   {"cz", Gates::cz},  // Controlled-Z gate
   {"rzz", Gates::rzz}, // ZZ-rotation gate
+  // Three-qubit gates
+  {"ccx", Gates::ccx},  // Controlled-CX gate (Toffoli)
   // Type-2 Noise
   {"kraus", Gates::kraus} // Kraus error
 }); 
@@ -403,6 +406,9 @@ void State<state_t>::apply_op(const Operations::Op &op) {
     break;
   case Gates::cz:
     Base::State<state_t>::data_.apply_cz(op.qubits[0], op.qubits[1]);
+    break;
+  case Gates::ccx:
+    Base::State<state_t>::data_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
     break;
   case Gates::reset:
     apply_reset(op.qubits, uint_t(std::real(op.params[0])));
