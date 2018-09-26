@@ -119,8 +119,8 @@ protected:
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
 
-  // Apply a diagonal matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cvector_t & dmat);
+  // Apply a vectorized matrix to given qubits (identity on all other qubits)
+  void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   //-----------------------------------------------------------------------
   // Apply Kraus Noise
@@ -355,7 +355,12 @@ complex_t State<state_t>::matrix_observable_value(const Operations::Op &op) cons
       cvector_t vmat = (mat.GetColumns() == 1)
         ? Utils::vectorize_matrix(Utils::projector(Utils::vectorize_matrix(mat))) // projector case
         : Utils::vectorize_matrix(mat); // diagonal or square matrix case
-      data_copy.apply_matrix(qubits[pos], vmat);
+      if (vmat.size() == 1ULL << qubits[pos].size()) {
+        data_copy.apply_diagonal_matrix(qubits[pos], vmat); // TODO CHECK FOR diagonal
+      } else {
+        data_copy.apply_matrix(qubits[pos], vmat);
+      }
+      
     }
     expval += data_copy.inner_product(Base::State<state_t>::data_) * coeff; // add component to expectation value
   }
@@ -379,7 +384,6 @@ void State<state_t>::apply_op(const Operations::Op &op) {
   // Matrix multiplication
   case Gates::mat:
     apply_matrix(op.qubits, op.mats[0]);
-    break;
     break;
   // Special Noise operations
   case Gates::kraus:
@@ -467,26 +471,30 @@ void State<state_t>::apply_op(const Operations::Op &op) {
 
 template <class state_t>
 void State<state_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (qubits.empty() == false && mat.size() > 0)
-    Base::State<state_t>::data_.apply_matrix(qubits, Utils::vectorize_matrix(mat));
+  if (qubits.empty() == false && mat.size() > 0) {
+    apply_matrix(qubits, Utils::vectorize_matrix(mat));
+  }
 }
 
 template <class state_t>
-void State<state_t>::apply_matrix(const reg_t &qubits, const cvector_t &dmat) {
-  if (qubits.empty() == false && dmat.size() > 0)
-    Base::State<state_t>::data_.apply_matrix(qubits, dmat);
+void State<state_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+  // Check if diagonal matrix
+  if (vmat.size() == 1ULL << qubits.size()) {
+    Base::State<state_t>::data_.apply_diagonal_matrix(qubits, vmat);
+  } else {
+    Base::State<state_t>::data_.apply_matrix(qubits, vmat);
+  }
 }
 
 template <class state_t>
 void State<state_t>::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  auto vmat = Utils::vectorize_matrix(Utils::Matrix::U3(theta, phi, lambda));
-  Base::State<state_t>::data_.apply_matrix(std::array<uint_t, 1>({{qubit}}), vmat);
+  apply_matrix(reg_t({qubit}), Utils::Matrix::U3(theta, phi, lambda));
 }
 
 template <class state_t>
 void State<state_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
-  Base::State<state_t>::data_.apply_diagonal_matrix(std::array<uint_t, 1>({{qubit}}),
-                                                    cvector_t({1., phase}));
+  cvector_t diag = {{1., phase}};
+  apply_matrix(reg_t({{qubit}}), diag);
 }
 
 template <class state_t>
@@ -530,7 +538,7 @@ void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    Base::State<state_t>::data_.apply_matrix(qubits, mdiag);
+    apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
@@ -543,7 +551,7 @@ void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    Base::State<state_t>::data_.apply_matrix(qubits, mdiag);
+    apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     // This function could be optimized as a permutation update
@@ -557,7 +565,7 @@ void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
           perm[j * dim + j] = 1.;
       }
       // apply permutation to swap state
-      Base::State<state_t>::data_.apply_matrix(qubits, perm);
+      apply_matrix(qubits, perm);
     }
   }
 }
@@ -601,7 +609,7 @@ void State<state_t>::apply_kraus(const reg_t &qubits,
         v *= renorm;
       }
       // apply Kraus projection operator
-      Base::State<state_t>::data_.apply_matrix(qubits, vmat);
+      apply_matrix(qubits, vmat);
       complete = true;
       break;
     }
@@ -611,7 +619,7 @@ void State<state_t>::apply_kraus(const reg_t &qubits,
   if (complete == false) {
     // Compute probability from accumulated
     complex_t renorm = 1 / std::sqrt(1. - accum);
-    Base::State<state_t>::data_.apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
+    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
   }
 }
 
