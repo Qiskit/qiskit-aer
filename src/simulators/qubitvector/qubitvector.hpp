@@ -2082,7 +2082,6 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         int_t sample = 0;
         for (uint_t j = 0; j < indexes.size(); ++j) {
           if (rnd < (p + indexes[j])) {
-            std::cout << "index: " << j << ", " << rnd << "<" << p << "+" << indexes[j] << std::endl;
             break;
           }
           p += indexes[j];
