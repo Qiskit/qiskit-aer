@@ -231,8 +231,16 @@ uint_t State<state_t>::required_memory_mb(uint_t num_qubits,
 
 template <class state_t>
 void State<state_t>::load_config(const json_t &config) {
+  
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
+  
+  // Set the sample measure indexing size
+  int index_size;
+  if (JSON::get_value(index_size, "sample_measure_index_size", config)) {
+    Base::State<state_t>::data_.set_sample_measure_index_size(index_size);
+  };
+
   // Enable sorted gate optimzations
   bool gate_opt = false;
   JSON::get_value(gate_opt, "gate_optimization", config);
