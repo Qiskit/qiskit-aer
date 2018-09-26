@@ -2028,14 +2028,14 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
   const int_t end = num_states_;
   const int_t shots = rnds.size();
   std::vector<uint_t> samples;
-  samples.reserve(shots);
+  samples.assign(shots, 0);
 
   const int index_size = sample_measure_index_size_;
   const int_t index_end = 1LL << index_size;
-  #pragma omp parallel if (omp_threads_ > 1) num_threads(omp_threads_)
-  {
-    // Qubit number is below index size, loop over shots
-    if (end < index_end){
+  // Qubit number is below index size, loop over shots
+  if (end < index_end) {
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
       #pragma omp for
       for (int_t i = 0; i < shots; ++i) {
         double rnd = rnds[i];
@@ -2046,16 +2046,19 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
           if (rnd < p)
             break;
         }
-        samples.push_back(sample);
+        samples[i] = sample;
       }
-    } 
-    // Qubit number is above index size, loop over index blocks
-    else {
-      // Initialize indexes
-      std::vector<double> indexes;
-      indexes.assign((1<<index_size), .0);
-      uint_t loop = (end >> index_size);
+    } // end omp parallel
+  }
+  // Qubit number is above index size, loop over index blocks
+  else {
+    // Initialize indexes
+    std::vector<double> indexes;
+    indexes.assign((1<<index_size), .0);
+    uint_t loop = (end >> index_size);
 
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
       #pragma omp for
       for (uint_t i = 0; i < (1 << index_size); ++i) {
         uint_t base = loop * i;
@@ -2068,7 +2071,10 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         }
         indexes[i] = total;
       }
+    } // end omp parallel
 
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
       #pragma omp for
       for (uint_t i = 0; i < shots; ++i) {
         double rnd = rnds[i];
@@ -2076,6 +2082,7 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         int_t sample = 0;
         for (uint_t j = 0; j < indexes.size(); ++j) {
           if (rnd < (p + indexes[j])) {
+            std::cout << "index: " << j << ", " << rnd << "<" << p << "+" << indexes[j] << std::endl;
             break;
           }
           p += indexes[j];
@@ -2088,7 +2095,7 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
             break;
           }
         }
-        samples.push_back(sample);
+        samples[i] = sample;
       }
     } // end omp parallel
   }
