@@ -2015,23 +2015,64 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
   const int_t shots = rnds.size();
   std::vector<uint_t> samples;
   samples.reserve(shots);
+  const int index_size = 10;
+  std::vector<double> indexes;
+  indexes.assign((1<<index_size), .0);
+  uint_t loop = (end >> index_size);
 
-    // no indexing, loop with shots
+  // no indexing, loop with shots
   #pragma omp parallel if (omp_threads_ > 1) num_threads(omp_threads_)
   {
-  #pragma omp for
-    for (int_t i = 0; i < shots; ++i) {
-      double rnd = rnds[i];
-      double p = .0;
-      int_t sample;
-      for (sample = 0; sample < end - 1; ++sample) {
-        p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
-        if (rnd < p)
-          break;
+    if (end < (1 << index_size)){
+      #pragma omp for
+      for (int_t i = 0; i < shots; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample;
+        for (sample = 0; sample < end - 1; ++sample) {
+          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          if (rnd < p)
+            break;
+        }
+        samples.push_back(sample);
       }
-      samples.push_back(sample);
-    }
-  } // end omp parallel
+    } else {
+      #pragma omp for
+      for (uint_t i = 0; i < (1 << index_size); ++i) {
+        uint_t base = loop * i;
+        double total = .0;
+        double p = .0;
+        for (uint_t j = 0; j < loop; ++j) {
+          uint_t k = base | j;
+          p = std::real(std::conj(state_vector_[k]) * state_vector_[k]);
+          total += p;
+        }
+        indexes[i] = total;
+      }
+
+      #pragma omp for
+      for (uint_t i = 0; i < shots; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample = 0;
+        for (uint_t j = 0; j < indexes.size(); ++j) {
+          if (rnd < (p + indexes[j])) {
+            break;
+          }
+          p += indexes[j];
+          sample += loop;
+        }
+
+        for (; sample < end - 1; ++sample) {
+          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          if (rnd < p){
+            break;
+          }
+        }
+        samples.push_back(sample);
+      }
+    } // end omp parallel
+  }
   return samples;
 }
 
