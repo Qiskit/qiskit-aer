@@ -272,13 +272,7 @@ reg_t State<state_t>::apply_measure(const reg_t &qubits) {
 
 template <class state_t>
 rvector_t State<state_t>::measure_probs(const reg_t &qubits) const {
-
-  if (qubits.size() == 1) {
-    // Probability of P0 outcome
-    double p0 = Base::State<state_t>::data_.probability(qubits[0], 0);
-    return {{p0, 1. - p0}};
-  } else
-    return Base::State<state_t>::data_.probabilities(qubits);
+  return Base::State<state_t>::data_.probabilities(qubits);
 }
 
 template <class state_t>
@@ -308,7 +302,7 @@ State<state_t>::sample_measure(const reg_t &qubits, uint_t shots){
 
 template <class state_t>
 double State<state_t>::pauli_observable_value(const reg_t& qubits,
-                                     const std::string &pauli) const {
+                                              const std::string &pauli) const {
 
   // Copy the quantum state;
   state_t data_copy = Base::State<state_t>::data_;
@@ -566,7 +560,7 @@ void State<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 //============================================================================
 template <class state_t>
 void State<state_t>::apply_kraus(const reg_t &qubits,
-                        const std::vector<cmatrix_t> &kmats) {
+                                 const std::vector<cmatrix_t> &kmats) {
   
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
