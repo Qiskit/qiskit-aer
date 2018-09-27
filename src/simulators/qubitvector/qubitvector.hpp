@@ -209,29 +209,9 @@ public:
   // Vector Operators
   //-----------------------------------------------------------------------
 
-  // Assignment operator
-  QubitVector &operator=(const cvector_t &vec);
-  QubitVector &operator=(const rvector_t &vec);
-
   // Element access
   complex_t &operator[](uint_t element);
   complex_t operator[](uint_t element) const;
-
-  // Scalar multiplication
-  QubitVector &operator*=(const complex_t &lambda);
-  QubitVector &operator*=(const double &lambda);
-  friend QubitVector operator*(const complex_t &lambda, const QubitVector &qv);
-  friend QubitVector operator*(const double &lambda, const QubitVector &qv);
-  friend QubitVector operator*(const QubitVector &qv, const complex_t &lambda);
-  friend QubitVector operator*(const QubitVector &qv, const double &lambda);
-
-  // Vector addition
-  QubitVector &operator+=(const QubitVector &qv);
-  QubitVector operator+(const QubitVector &qv) const;
-
-  // Vector subtraction
-  QubitVector &operator-=(const QubitVector &qv);
-  QubitVector operator-(const QubitVector &qv) const;
 
 protected:
 
@@ -288,9 +268,11 @@ protected:
   // Matrix helper functions
   //-----------------------------------------------------------------------
 
+  // Needed as fall-back for optimized template specialization for
+  // apply matrix
   template <size_t N>
   void apply_matrix_std(const std::array<uint_t, N> &qubits,
-                              const cvector_t &mat);
+                        const cvector_t &mat);
   
   void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
                           cvector_t &mat, uint_t dim) const;
@@ -378,19 +360,50 @@ QubitVector::QubitVector(size_t num_qubits__) : num_qubits_(num_qubits__),
 }
 
 QubitVector::QubitVector(const cvector_t &vec) : QubitVector() {
-  *this = vec;
+  num_states_ = vec.size();
+  // Get qubit number
+  uint_t size = num_states_;
+  num_qubits_ = 0;
+  while (size >>= 1) ++num_qubits_;
+
+  // Error handling
+  #ifdef DEBUG
+    if (num_states_ != 1ULL << num_qubits_) {
+      std::stringstream ss;
+      ss << "QubitVector: input vector is not a multi-qubit vector.";
+      throw std::runtime_error(ss.str());
+    }
+  #endif
+  // Set state_vector_
+  state_vector_ = vec;
 }
 
 QubitVector::QubitVector(const rvector_t &vec) : QubitVector() {
-  *this = vec;
+  num_states_ = vec.size();
+  // Get qubit number
+  uint_t size = num_states_;
+  num_qubits_ = 0;
+  while (size >>= 1) ++num_qubits_;
+
+  // Error handling
+  #ifdef DEBUG
+    if (num_states_ != 1ULL << num_qubits_) {
+      std::stringstream ss;
+      ss << "QubitVector: input vector is not a multi-qubit vector.";
+      throw std::runtime_error(ss.str());
+    }
+  #endif
+  // Set state_vector_
+  state_vector_.clear();
+  state_vector_.reserve(size);
+  for (const auto& v: vec)
+    state_vector_.push_back(v);
 }
 
 
 //------------------------------------------------------------------------------
-// Operators
+// Element access operators
 //------------------------------------------------------------------------------
-
-// Access opertors
 
 complex_t &QubitVector::operator[](uint_t element) {
   // Error checking
@@ -417,133 +430,6 @@ complex_t QubitVector::operator[](uint_t element) const {
   }
   #endif
   return state_vector_[element];
-}
-
-// Equal operators
-QubitVector &QubitVector::operator=(const cvector_t &vec) {
-
-  num_states_ = vec.size();
-  // Get qubit number
-  uint_t size = num_states_;
-  num_qubits_ = 0;
-  while (size >>= 1) ++num_qubits_;
-
-  // Error handling
-  #ifdef DEBUG
-    if (num_states_ != 1ULL << num_qubits_) {
-      std::stringstream ss;
-      ss << "QubitVector: input vector is not a multi-qubit vector.";
-      throw std::runtime_error(ss.str());
-    }
-  #endif
-  // Set state_vector_
-  state_vector_ = vec;
-  return *this;
-}
-
-QubitVector &QubitVector::operator=(const rvector_t &vec) {
-
-  num_states_ = vec.size();
-  // Get qubit number
-  uint_t size = num_states_;
-  num_qubits_ = 0;
-  while (size >>= 1) ++num_qubits_;
-
-  // Error handling
-  #ifdef DEBUG
-    if (num_states_ != 1ULL << num_qubits_) {
-      std::stringstream ss;
-      ss << "QubitVector: input vector is not a multi-qubit vector.";
-      throw std::runtime_error(ss.str());
-    }
-  #endif
-  // Set state_vector_
-  state_vector_.clear();
-  state_vector_.reserve(size);
-  for (const auto& v: vec)
-    state_vector_.push_back(v);
-  return *this;
-}
-
-// Scalar multiplication
-QubitVector &QubitVector::operator*=(const complex_t &lambda) {
-const int_t end = num_states_;    // end for k loop
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-  #pragma omp for
-    for (int_t k = 0; k < end; k++)
-      state_vector_[k] *= lambda;
-  } // end omp parallel
-  return *this;
-}
-
-QubitVector &QubitVector::operator*=(const double &lambda) {
-  *this *= complex_t(lambda);
-  return *this;
-}
-
-QubitVector operator*(const complex_t &lambda, const QubitVector &qv) {
-  QubitVector ret = qv;
-  ret *= lambda;
-  return ret;
-}
-
-QubitVector operator*(const QubitVector &qv, const complex_t &lambda) {
-  return lambda * qv;
-}
-
-QubitVector operator*(const double &lambda, const QubitVector &qv) {
-  return complex_t(lambda) * qv;
-}
-
-QubitVector operator*(const QubitVector &qv, const double &lambda) {
-  return lambda * qv;
-}
-
-// Vector addition
-
-QubitVector &QubitVector::operator+=(const QubitVector &qv) {
-  // Error checking
-#ifdef DEBUG
-  check_dimension(qv);
-#endif
-  const int_t end = num_states_;    // end for k loop
-  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-  #pragma omp for
-    for (int_t k = 0; k < end; k++)
-      state_vector_[k] += qv.state_vector_[k];
-  } // end omp parallel
-  return *this;
-}
-
-QubitVector QubitVector::operator+(const QubitVector &qv) const{
-  QubitVector ret = *this;
-  ret += qv;
-  return ret;
-}
-
-// Vector subtraction
-
-QubitVector &QubitVector::operator-=(const QubitVector &qv) {
-  // Error checking
-#ifdef DEBUG
-  check_dimension(qv);
-#endif
-  const int_t end = num_states_;    // end for k loop
-  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-  #pragma omp for
-    for (int_t k = 0; k < end; k++)
-      state_vector_[k] -= qv.state_vector_[k];
-  } // end omp parallel
-  return *this;
-}
-
-QubitVector QubitVector::operator-(const QubitVector &qv) const{
-  QubitVector ret = *this;
-  ret -= qv;
-  return ret;
 }
 
 
@@ -920,7 +806,7 @@ void QubitVector::apply_matrix(const std::array<uint_t, 2> &qubits,
   #ifdef _WIN32
   #pragma omp for
   #else
-  #pragma omp for collapse(3) schedule(static)
+  #pragma omp for collapse(3)
   #endif
       for (int_t k1 = 0; k1 < end; k1 += (step2 * 2UL)) {
         for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
@@ -979,7 +865,7 @@ void QubitVector::apply_matrix(const std::array<uint_t, 3> &qubits,
   #ifdef _WIN32
   #pragma omp for
   #else
-  #pragma omp for collapse(4) schedule(static)
+  #pragma omp for collapse(4)
   #endif
       for (int_t k1 = 0; k1 < end; k1 += (step3 * 2UL)) {
         for (int_t k2 = 0; k2 < step3; k2 += (step2 * 2UL)) {
@@ -1044,7 +930,7 @@ void QubitVector::apply_matrix(const std::array<uint_t, 4> &qubits,
   #ifdef _WIN32
   #pragma omp for
   #else
-  #pragma omp for collapse(5) schedule(static)
+  #pragma omp for collapse(5)
   #endif
       for (int_t k1 = 0; k1 < end; k1 += (step4 * 2UL)) {
         for (int_t k2 = 0; k2 < step4; k2 += (step3 * 2UL)) {
@@ -1128,7 +1014,7 @@ void QubitVector::apply_matrix(const std::array<uint_t, 5> &qubits,
   #ifdef _WIN32
   #pragma omp for
   #else
-  #pragma omp for collapse(6) schedule(static)
+  #pragma omp for collapse(6)
   #endif
       for (int_t k1 = 0; k1 < end; k1 += (step5 * 2UL)) {
         for (int_t k2 = 0; k2 < step5; k2 += (step4 * 2UL)) {
