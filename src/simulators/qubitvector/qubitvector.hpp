@@ -40,33 +40,49 @@ using rvector_t = std::vector<double>;
 // QubitVector class
 //============================================================================
 
+// Template class for qubit vector.
+// The arguement of the template must have an operator[] access method.
+// The following methods may also need to be template specialized:
+//   * set_num_qubits(size_t)
+//   * initialize()
+//   * initialize(cvector_t)
+// If the template argument does not have these methods then template
+// specialization must be used to override the default implementations.
+
+template <class statevector_t = cvector_t>
 class QubitVector {
 
 public:
 
   //-----------------------------------------------------------------------
-  // Constructors
+  // Constructors and Destructor
   //-----------------------------------------------------------------------
 
-  explicit QubitVector(size_t num_qubits_ = 0);
-  QubitVector(const cvector_t &vec);
-  QubitVector(const rvector_t &vec);
+  QubitVector();
+  explicit QubitVector(size_t num_qubits);
+  ~QubitVector();
 
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Set the size of the vector in terms of qubit number
+  inline void set_num_qubits(size_t num_qubits);
+
   // Returns the size of the underlying n-qubit vector
-  inline uint_t size() const { return num_states_;};
+  inline uint_t size() const { return num_states_;}
 
   // Returns the number of qubits for the current vector
-  inline uint_t qubits() const { return num_qubits_;};
+  inline uint_t num_qubits() const { return num_qubits_;}
 
-  // Returns a reference to the underlying complex vector
-  inline cvector_t &vector() { return state_vector_;};
+  // Returns a reference to the underlying statevector_t data class
+  inline statevector_t &data() { return statevector_;}
 
-  // Returns a copy of the underlying complex vector
-  inline cvector_t vector() const { return state_vector_;};
+  // Returns a copy of the underlying statevector_t data class
+  inline statevector_t data() const { return statevector_;}
+
+  // Returns a copy of the underlying statevector_t data as a complex vector
+  cvector_t vector() const;
 
   // Compute the inner product with another complex vector and returns the value
   // This is equivalent to: self.dot(sconj(qv));
@@ -77,6 +93,11 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  // Initializes the vector to a custom initial state.
+  // If the length of the statevector does not match the number of qubits
+  // an exception is raised.
+  void initialize(const cvector_t &statevec);
 
   //-----------------------------------------------------------------------
   // Configuration settings
@@ -124,11 +145,6 @@ public:
   // for measurement of N-qubits.
   rvector_t probabilities(const std::vector<uint_t> &qubits) const;
 
-  // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
-  // for measurement of N-qubits.
-  template <size_t N>
-  rvector_t probabilities(const std::array<uint_t, N> &qubits) const;
-
   // Return M sampled outcomes for Z-basis measurement of all qubits
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
@@ -144,40 +160,25 @@ public:
 
   // Return the norm for of the vector obtained after apply the N-qubit
   // matrix mat to the vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   double norm(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
 
-  double norm_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
-
   // Return the norm for of the vector obtained after apply the N-qubit
-  // matrix mat to the vector.
-  template <size_t N>
-  double norm(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
-
-  template <size_t N>
-  double norm_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
+  // diagonal matrix mat to the vector.
+  // The matrix is input as vector of the matrix diagonal.
+  double norm_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat) const;
 
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
 
-  // Apply a N-qubit matrix to the state vector. The input matrix can
-  // either be the diagonal of a diagonal matrix, or a column-major
-  // vectorized N-qubit matrix.
+  // Apply a N-qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const std::vector<uint_t> &qubits, const cvector_t &mat);
 
-  //
+  // Apply a N-qubit diagonal matrix to the state vector.
+  // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const std::vector<uint_t> &qubits,
-                             const cvector_t &mat);
-
-  // Apply a N-qubit matrix to the state vector. The input matrix can
-  // either be the diagonal of a diagonal matrix, or a column-major
-  // vectorized N-qubit matrix.
-  template <size_t N>
-  void apply_matrix(const std::array<uint_t, N> &qubits, const cvector_t &mat);
-
-  //
-  template <size_t N>
-  void apply_diagonal_matrix(const std::array<uint_t, N> &qubits,
                              const cvector_t &mat);
 
   //-----------------------------------------------------------------------
@@ -220,7 +221,7 @@ protected:
   //-----------------------------------------------------------------------
   size_t num_qubits_;
   size_t num_states_;
-  cvector_t state_vector_;
+  statevector_t statevector_;
 
  //-----------------------------------------------------------------------
   // Config settings
@@ -267,40 +268,81 @@ protected:
   //-----------------------------------------------------------------------
   // Matrix helper functions
   //-----------------------------------------------------------------------
-
-  // Needed as fall-back for optimized template specialization for
-  // apply matrix
-  template <size_t N>
-  void apply_matrix_std(const std::array<uint_t, N> &qubits,
-                        const cvector_t &mat);
   
-  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
-                          cvector_t &mat, uint_t dim) const;
+  // Apply a N-qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
+  template <size_t N>
+  void apply_matrix(const std::array<uint_t, N> &qubits, const cvector_t &mat);
+  void apply_matrix(const std::array<uint_t, 1> &qubits, const cvector_t &mat);
+  void apply_matrix(const std::array<uint_t, 2> &qubits, const cvector_t &mat);
+  void apply_matrix(const std::array<uint_t, 3> &qubits, const cvector_t &mat);
+  void apply_matrix(const std::array<uint_t, 4> &qubits, const cvector_t &mat);
+  void apply_matrix(const std::array<uint_t, 5> &qubits, const cvector_t &mat);
+
+  // Apply a N-qubit diagonal matrix to the state vector.
+  // The matrix is input as vector of the matrix diagonal.
+  template <size_t N>
+  void apply_diagonal_matrix(const std::array<uint_t, N> &qubits,
+                             const cvector_t &mat);
+  void apply_diagonal_matrix(const std::array<uint_t, 1> &qubits,
+                             const cvector_t &mat);
+  void apply_diagonal_matrix(const std::array<uint_t, 2> &qubits,
+                             const cvector_t &mat);
+  void apply_diagonal_matrix(const std::array<uint_t, 3> &qubits,
+                             const cvector_t &mat);
+  void apply_diagonal_matrix(const std::array<uint_t, 4> &qubits,
+                             const cvector_t &mat);
+  void apply_diagonal_matrix(const std::array<uint_t, 5> &qubits,
+                             const cvector_t &mat);
+
+  // Permute an N-qubit vectorized matrix to match a reordering of qubits
   template <size_t N>
   cvector_t sort_matrix(const std::array<uint_t, N> &src,
                         const std::array<uint_t, N> &sorted,
                         const cvector_t &mat) const;
 
-  // Error messages
+  // Swap cols and rows of vectorized matrix
+  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
+                          cvector_t &mat, uint_t dim) const;
+  
+  //-----------------------------------------------------------------------
+  // Probabilities helper functions
+  //-----------------------------------------------------------------------
+
+  // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
+  // for measurement of N-qubits.
+  template <size_t N>
+  rvector_t probabilities(const std::array<uint_t, N> &qubits) const;
+  rvector_t probabilities(const std::array<uint_t, 1> &qubits) const;
+
+  //-----------------------------------------------------------------------
+  // Norm helper functions
+  //-----------------------------------------------------------------------
+
+  // Return the norm for of the vector obtained after apply the N-qubit
+  // matrix mat to the vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
+  template <size_t N>
+  double norm(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
+  double norm(const std::array<uint_t, 1> &qubits, const cvector_t &mat) const;
+
+  // Return the norm for of the vector obtained after apply the N-qubit
+  // diagonal matrix mat to the vector.
+  // The matrix is input as vector of the matrix diagonal.
+  template <size_t N>
+  double norm_diagonal(const std::array<uint_t, N> &qubits, const cvector_t &mat) const;
+  double norm_diagonal(const std::array<uint_t, 1> &qubits, const cvector_t &mat) const;
+
+  //-----------------------------------------------------------------------
+  // Error Messages
+  //-----------------------------------------------------------------------
+
   void check_qubit(const uint_t qubit) const;
   void check_vector(const cvector_t &diag, uint_t nqubits) const;
   void check_matrix(const cvector_t &mat, uint_t nqubits) const;
   void check_dimension(const QubitVector &qv) const;
 
 };
-
-//-----------------------------------------------------------------------
-// JSON serialization for QubitVector class
-//-----------------------------------------------------------------------
-inline void to_json(json_t &js, const QubitVector&qv) {
-  to_json(js, qv.vector());
-}
-
-inline void from_json(const json_t &js, QubitVector&qv) {
-  cvector_t tmp;
-  from_json(js, tmp);
-  qv = tmp;
-}
 
 /*******************************************************************************
  *
@@ -309,10 +351,23 @@ inline void from_json(const json_t &js, QubitVector&qv) {
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
+// JSON Serialization
+//------------------------------------------------------------------------------
+
+template <class statevector_t>
+void to_json(json_t &js, const QubitVector<statevector_t> &qv) {
+  js = json_t();
+  for (uint_t j=0; j < qv.size(); j++) {
+    js.push_back(qv[j]);
+  }
+}
+
+//------------------------------------------------------------------------------
 // Error Handling
 //------------------------------------------------------------------------------
 
-void QubitVector::check_qubit(const uint_t qubit) const {
+template <class statevector_t>
+void QubitVector<statevector_t>::check_qubit(const uint_t qubit) const {
   if (qubit + 1 > num_qubits_) {
     std::stringstream ss;
     ss << "QubitVector: qubit index " << qubit << " > " << num_qubits_;
@@ -320,7 +375,8 @@ void QubitVector::check_qubit(const uint_t qubit) const {
   }
 }
 
-void QubitVector::check_matrix(const cvector_t &vec, uint_t nqubits) const {
+template <class statevector_t>
+void QubitVector<statevector_t>::check_matrix(const cvector_t &vec, uint_t nqubits) const {
   const size_t dim = 1ULL << nqubits;
   const auto sz = vec.size();
   if (sz != dim * dim) {
@@ -330,7 +386,8 @@ void QubitVector::check_matrix(const cvector_t &vec, uint_t nqubits) const {
   }
 }
 
-void QubitVector::check_vector(const cvector_t &vec, uint_t nqubits) const {
+template <class statevector_t>
+void QubitVector<statevector_t>::check_vector(const cvector_t &vec, uint_t nqubits) const {
   const size_t dim = 1ULL << nqubits;
   const auto sz = vec.size();
   if (sz != dim) {
@@ -340,7 +397,8 @@ void QubitVector::check_vector(const cvector_t &vec, uint_t nqubits) const {
   }
 }
 
-void QubitVector::check_dimension(const QubitVector &qv) const {
+template <class statevector_t>
+void QubitVector<statevector_t>::check_dimension(const QubitVector &qv) const {
   if (num_states_ != qv.num_states_) {
     std::stringstream ss;
     ss << "QubitVector: vectors are different size ";
@@ -350,111 +408,104 @@ void QubitVector::check_dimension(const QubitVector &qv) const {
 }
 
 //------------------------------------------------------------------------------
-// Constructors
+// Constructors & Destructor
 //------------------------------------------------------------------------------
 
-QubitVector::QubitVector(size_t num_qubits__) : num_qubits_(num_qubits__),
-                                               num_states_(1ULL << num_qubits__) {
-  // Set state vector
-  state_vector_.assign(num_states_, 0.);
+template <class statevector_t>
+QubitVector<statevector_t>::QubitVector(size_t num_qubits) {
+  set_num_qubits(num_qubits);
 }
 
-QubitVector::QubitVector(const cvector_t &vec) : QubitVector() {
-  num_states_ = vec.size();
-  // Get qubit number
-  uint_t size = num_states_;
-  num_qubits_ = 0;
-  while (size >>= 1) ++num_qubits_;
+template <class statevector_t>
+QubitVector<statevector_t>::QubitVector() : QubitVector(0) {};
 
-  // Error handling
-  #ifdef DEBUG
-    if (num_states_ != 1ULL << num_qubits_) {
-      std::stringstream ss;
-      ss << "QubitVector: input vector is not a multi-qubit vector.";
-      throw std::runtime_error(ss.str());
-    }
-  #endif
-  // Set state_vector_
-  state_vector_ = vec;
-}
-
-QubitVector::QubitVector(const rvector_t &vec) : QubitVector() {
-  num_states_ = vec.size();
-  // Get qubit number
-  uint_t size = num_states_;
-  num_qubits_ = 0;
-  while (size >>= 1) ++num_qubits_;
-
-  // Error handling
-  #ifdef DEBUG
-    if (num_states_ != 1ULL << num_qubits_) {
-      std::stringstream ss;
-      ss << "QubitVector: input vector is not a multi-qubit vector.";
-      throw std::runtime_error(ss.str());
-    }
-  #endif
-  // Set state_vector_
-  state_vector_.clear();
-  state_vector_.reserve(size);
-  for (const auto& v: vec)
-    state_vector_.push_back(v);
-}
-
+template <class statevector_t>
+QubitVector<statevector_t>::~QubitVector() = default;
 
 //------------------------------------------------------------------------------
 // Element access operators
 //------------------------------------------------------------------------------
 
-complex_t &QubitVector::operator[](uint_t element) {
+template <class statevector_t>
+complex_t &QubitVector<statevector_t>::operator[](uint_t element) {
   // Error checking
   #ifdef DEBUG
-  auto size = state_vector_.size();
-  if (element > size) {
+  if (element > num_states_) {
     std::stringstream ss;
-    ss << "QubitVector: vector index " << element << " > " << size;
+    ss << "QubitVector: vector index " << element << " > " << num_states_;
     throw std::runtime_error(ss.str());
   }
   #endif
-  return state_vector_[element];
+  return statevector_[element];
 }
 
-
-complex_t QubitVector::operator[](uint_t element) const {
+template <class statevector_t>
+complex_t QubitVector<statevector_t>::operator[](uint_t element) const {
   // Error checking
   #ifdef DEBUG
-  auto size = state_vector_.size();
-  if (element > size) {
+  if (element > num_states_) {
     std::stringstream ss;
-    ss << "QubitVector: vector index " << element << " > " << size;
+    ss << "QubitVector: vector index " << element << " > " << num_states_;
     throw std::runtime_error(ss.str());
   }
   #endif
-  return state_vector_[element];
+  return statevector_[element];
 }
 
+template <class statevector_t>
+cvector_t QubitVector<statevector_t>::vector() const {
+  cvector_t ret(num_states_, 0.);
+  const int_t end = num_states_;
+  #pragma omp parallel for if (omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t j=0; j < end; j++) {
+    ret[j] = statevector_[j];
+  }
+  return ret;
+}
 
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
 
-void QubitVector::initialize() {
-  state_vector_.assign(num_states_, 0.);
-  state_vector_[0] = 1.;
+template <class statevector_t>
+void QubitVector<statevector_t>::initialize() {
+  statevector_.assign(num_states_, 0.);
+  statevector_[0] = 1.;
 }
 
-double QubitVector::norm() const {
+template <class statevector_t>
+void QubitVector<statevector_t>::initialize(const cvector_t &statevec) {
+  if (num_states_ != statevec.size()) {
+    std::stringstream ss;
+    ss << "QubitVector<statevector_t>::initialize input vector is incorrect length (";
+    ss << num_states_ << "!=" << statevec.size() << ")";
+    throw std::runtime_error(ss.str());
+  }
+  statevector_ = statevec;
+}
+
+template <class statevector_t>
+void QubitVector<statevector_t>::set_num_qubits(size_t num_qubits) {
+  num_qubits_ = num_qubits;
+  num_states_ = 1ULL << num_qubits;
+  statevector_.assign(num_states_, 0.);
+}
+
+template <class statevector_t>
+double QubitVector<statevector_t>::norm() const {
   double val = 0;
   const int_t end = num_states_;    // end for k loop
   #pragma omp parallel reduction(+:val) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
   #pragma omp for
     for (int_t k = 0; k < end; k++)
-      val += std::real(state_vector_[k] * std::conj(state_vector_[k]));
+      val += std::real(statevector_[k] * std::conj(statevector_[k]));
   } // end omp parallel
   return val;
 }
 
-complex_t QubitVector::inner_product(const QubitVector &qv) const {
+template <class statevector_t>
+complex_t QubitVector<statevector_t>::inner_product(const QubitVector &qv) const {
   // Error checking
 #ifdef DEBUG
   check_dimension(qv);
@@ -466,7 +517,7 @@ const int_t end = num_states_;    // end for k loop
   {
   #pragma omp for
     for (int_t k = 0; k < end; k++) {
-      const complex_t z = state_vector_[k] * std::conj(qv.state_vector_[k]);
+      const complex_t z = statevector_[k] * std::conj(qv.statevector_[k]);
       z_re += std::real(z);
       z_im += std::imag(z);
     }
@@ -480,12 +531,14 @@ const int_t end = num_states_;    // end for k loop
  *
  ******************************************************************************/
 
-void QubitVector::set_omp_threads(int n) {
+template <class statevector_t>
+void QubitVector<statevector_t>::set_omp_threads(int n) {
   if (n > 0)
     omp_threads_ = n;
 }
 
-void QubitVector::set_omp_threshold(int n) {
+template <class statevector_t>
+void QubitVector<statevector_t>::set_omp_threshold(int n) {
   if (n > 0)
     omp_threshold_ = n;
 }
@@ -497,8 +550,9 @@ void QubitVector::set_omp_threshold(int n) {
  ******************************************************************************/
 
 // Single qubit
+template <class statevector_t>
 template<typename Lambda>
-void QubitVector::apply_matrix_lambda(const uint_t qubit,
+void QubitVector<statevector_t>::apply_matrix_lambda(const uint_t qubit,
                                       const cvector_t &mat,
                                       Lambda&& func) {
 
@@ -525,8 +579,9 @@ void QubitVector::apply_matrix_lambda(const uint_t qubit,
 }
 
 // Static N-qubit
+template <class statevector_t>
 template<size_t N, typename Lambda>
-void QubitVector::apply_matrix_lambda(const std::array<uint_t, N> &qs,
+void QubitVector<statevector_t>::apply_matrix_lambda(const std::array<uint_t, N> &qs,
                                       const cvector_t &mat,
                                       Lambda&& func) {
 
@@ -553,8 +608,9 @@ void QubitVector::apply_matrix_lambda(const std::array<uint_t, N> &qs,
 }
 
 // Dynamic N-qubit
+template <class statevector_t>
 template<typename Lambda>
-void QubitVector::apply_matrix_lambda(const std::vector<uint_t> &qubits,
+void QubitVector<statevector_t>::apply_matrix_lambda(const std::vector<uint_t> &qubits,
                                       const cvector_t &mat,
                                       Lambda&& func) {
 
@@ -585,8 +641,9 @@ void QubitVector::apply_matrix_lambda(const std::vector<uint_t> &qubits,
 // Reductions
 //------------------------------------------------------------------------------
 
+template <class statevector_t>
 template<typename Lambda>
-complex_t QubitVector::apply_reduction_lambda(const uint_t qubit,
+complex_t QubitVector<statevector_t>::apply_reduction_lambda(const uint_t qubit,
                                               const cvector_t &mat,
                                               Lambda &&func) const {
 
@@ -619,8 +676,9 @@ complex_t QubitVector::apply_reduction_lambda(const uint_t qubit,
 }
 
 // Static N-qubit
+template <class statevector_t>
 template<size_t N, typename Lambda>
-complex_t QubitVector::apply_reduction_lambda(const std::array<uint_t, N> &qs,
+complex_t QubitVector<statevector_t>::apply_reduction_lambda(const std::array<uint_t, N> &qs,
                                               const cvector_t &mat,
                                               Lambda&& func) const {
 
@@ -652,8 +710,9 @@ complex_t QubitVector::apply_reduction_lambda(const std::array<uint_t, N> &qs,
 }
 
 // Dynamic N-qubit
+template <class statevector_t>
 template<typename Lambda>
-complex_t QubitVector::apply_reduction_lambda(const std::vector<uint_t> &qubits,
+complex_t QubitVector<statevector_t>::apply_reduction_lambda(const std::vector<uint_t> &qubits,
                                               const cvector_t &mat,
                                               Lambda&& func) const {
 
@@ -696,14 +755,11 @@ complex_t QubitVector::apply_reduction_lambda(const std::vector<uint_t> &qubits,
 // Static N
 //------------------------------------------------------------------------------
 
-template <size_t N>
-void QubitVector::apply_matrix(const std::array<uint_t, N> &qs, const cvector_t &mat) {
-  apply_matrix_std<N>(qs, mat);
-}
 
+template <class statevector_t>
 template <size_t N>
-void QubitVector::apply_matrix_std(const std::array<uint_t, N> &qs,
-                                   const cvector_t &mat) {
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, N> &qs,
+                                              const cvector_t &mat) {
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
@@ -716,20 +772,21 @@ void QubitVector::apply_matrix_std(const std::array<uint_t, N> &qs,
     std::array<complex_t, dim> cache;
     for (size_t i = 0; i < dim; i++) {
       const auto ii = inds[i];
-      cache[i] = state_vector_[ii];
-      state_vector_[ii] = 0.;
+      cache[i] = statevector_[ii];
+      statevector_[ii] = 0.;
     }
     // update state vector
     for (size_t i = 0; i < dim; i++)
       for (size_t j = 0; j < dim; j++)
-        state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
+        statevector_[inds[i]] += mat[i + dim * j] * cache[j];
   };
   // Use the lambda function
   apply_matrix_lambda(qs, mat, lambda);
 }
 
+template <class statevector_t>
 template <size_t N>
-void QubitVector::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
+void QubitVector<statevector_t>::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
                                         const cvector_t &diag) {
 
   // Error checking
@@ -742,7 +799,7 @@ void QubitVector::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
                     const std::array<uint_t, 1ULL << N> &inds)->void {
     const uint_t dim = 1ULL << N;
     for (size_t i = 0; i < dim; i++) {
-      state_vector_[inds[i]] *= mat[i];
+      statevector_[inds[i]] *= mat[i];
     }
   };
 
@@ -755,43 +812,43 @@ void QubitVector::apply_diagonal_matrix(const std::array<uint_t, N> &qs,
 // Single-qubit
 //------------------------------------------------------------------------------
 
-template <>
-void QubitVector::apply_matrix(const std::array<uint_t, 1> &qs,
-                               const cvector_t &mat) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 1> &qubits,
+                                              const cvector_t &mat) {
   // Lambda function for single-qubit matrix multiplication
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
     const auto k = k1 | k2;
-    const auto cache0 = state_vector_[k];
-    const auto cache1 = state_vector_[k | end2];
-    state_vector_[k] = mat[0] * cache0 + mat[2] * cache1;
-    state_vector_[k | end2] = mat[1] * cache0 + mat[3] * cache1;
+    const auto cache0 = statevector_[k];
+    const auto cache1 = statevector_[k | end2];
+    statevector_[k] = mat[0] * cache0 + mat[2] * cache1;
+    statevector_[k | end2] = mat[1] * cache0 + mat[3] * cache1;
   };
-  apply_matrix_lambda(qs[0], mat, lambda);
+  apply_matrix_lambda(qubits[0], mat, lambda);
 }
 
-template <>
-void QubitVector::apply_diagonal_matrix(const std::array<uint_t, 1> &qs,
-                                        const cvector_t &diag) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_diagonal_matrix(const std::array<uint_t, 1> &qubits,
+                                                       const cvector_t &diag) {
   // Lambda function for diagonal matrix multiplication
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
     const auto k = k1 | k2;
-    state_vector_[k] *= mat[0];
-    state_vector_[k | end2] *= mat[1];
+    statevector_[k] *= mat[0];
+    statevector_[k | end2] *= mat[1];
   };
-  apply_matrix_lambda(qs[0], diag, lambda);
+  apply_matrix_lambda(qubits[0], diag, lambda);
 }
 
 //------------------------------------------------------------------------------
 // Gate-swap optimized
 //------------------------------------------------------------------------------
 
-template <>
-void QubitVector::apply_matrix(const std::array<uint_t, 2> &qubits,
-                               const cvector_t &vmat) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 2> &qubits,
+                                              const cvector_t &vmat) {
   if (gate_opt_ == false) {
-    apply_matrix_std(qubits, vmat);
+    apply_matrix<2>(qubits, vmat);
   } else {
   // Optimized implementation
     auto sorted_qs = qubits;
@@ -816,15 +873,15 @@ void QubitVector::apply_matrix(const std::array<uint_t, 2> &qubits,
             int_t t2 = t0 | step2;
             int_t t3 = t2 | step1;
 
-            const complex_t psi0 = state_vector_[t0];
-            const complex_t psi1 = state_vector_[t1];
-            const complex_t psi2 = state_vector_[t2];
-            const complex_t psi3 = state_vector_[t3];
+            const complex_t psi0 = statevector_[t0];
+            const complex_t psi1 = statevector_[t1];
+            const complex_t psi2 = statevector_[t2];
+            const complex_t psi3 = statevector_[t3];
 
-            state_vector_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
-            state_vector_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
-            state_vector_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
-            state_vector_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
+            statevector_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
+            statevector_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
+            statevector_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
+            statevector_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
           }
         }
       }
@@ -832,11 +889,11 @@ void QubitVector::apply_matrix(const std::array<uint_t, 2> &qubits,
   }
 }
 
-template <>
-void QubitVector::apply_matrix(const std::array<uint_t, 3> &qubits,
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 3> &qubits,
                                const cvector_t &vmat) {
   if (gate_opt_ == false) {
-    apply_matrix_std(qubits, vmat);
+    apply_matrix<3>(qubits, vmat);
   } else {
     // Optimized implementation
     auto sorted_qs = qubits;
@@ -874,12 +931,12 @@ void QubitVector::apply_matrix(const std::array<uint_t, 3> &qubits,
               int_t base = k1 | k2 | k3 | k4;
               complex_t psi[8];
               for (int_t i = 0; i < 8; ++i) {
-                psi[i] = state_vector_[base | masks[i]];
-                state_vector_[base | masks[i]] = 0.;
+                psi[i] = statevector_[base | masks[i]];
+                statevector_[base | masks[i]] = 0.;
               }
               for (size_t i = 0; i < 8; ++i)
                 for (size_t j = 0; j < 8; ++j)
-                  state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+                  statevector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
             }
           }
         }
@@ -888,11 +945,11 @@ void QubitVector::apply_matrix(const std::array<uint_t, 3> &qubits,
   }
 }
 
-template <>
-void QubitVector::apply_matrix(const std::array<uint_t, 4> &qubits,
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 4> &qubits,
                                const cvector_t &vmat) {
   if (gate_opt_ == false) {
-    apply_matrix_std(qubits, vmat);
+    apply_matrix<4>(qubits, vmat);
   } else {
     // Optimized implementation
     auto sorted_qs = qubits;
@@ -940,12 +997,12 @@ void QubitVector::apply_matrix(const std::array<uint_t, 4> &qubits,
                 int_t base = k1 | k2 | k3 | k4 | k5;
                 complex_t psi[16];
                 for (int_t i = 0; i < 16; ++i) {
-                  psi[i] = state_vector_[base | masks[i]];
-                  state_vector_[base | masks[i]] = 0.;
+                  psi[i] = statevector_[base | masks[i]];
+                  statevector_[base | masks[i]] = 0.;
                 }
                 for (size_t i = 0; i < 16; ++i)
                   for (size_t j = 0; j < 16; ++j)
-                    state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+                    statevector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
               }
             }
           }
@@ -955,11 +1012,11 @@ void QubitVector::apply_matrix(const std::array<uint_t, 4> &qubits,
   }
 }
 
-template <>
-void QubitVector::apply_matrix(const std::array<uint_t, 5> &qubits,
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 5> &qubits,
                                const cvector_t &vmat) {
   if (gate_opt_ == false) {
-    apply_matrix_std(qubits, vmat);
+    apply_matrix<5>(qubits, vmat);
   } else {
     // Optimized implementation
     auto sorted_qs = qubits;
@@ -1025,12 +1082,12 @@ void QubitVector::apply_matrix(const std::array<uint_t, 5> &qubits,
                   int_t base = k1 | k2 | k3 | k4 | k5 | k6;
                   complex_t psi[32];
                   for (int_t i = 0; i < 32; ++i) {
-                    psi[i] = state_vector_[base | masks[i]];
-                    state_vector_[base | masks[i]] = 0.;
+                    psi[i] = statevector_[base | masks[i]];
+                    statevector_[base | masks[i]] = 0.;
                   }
                   for (size_t i = 0; i < 32; ++i)
                     for (size_t j = 0; j < 32; ++j)
-                      state_vector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
+                      statevector_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
                 }
               }
             }
@@ -1044,7 +1101,8 @@ void QubitVector::apply_matrix(const std::array<uint_t, 5> &qubits,
 //------------------------------------------------------------------------------
 // Gate-swap optimized helper functions
 //------------------------------------------------------------------------------
-void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
+template <class statevector_t>
+void QubitVector<statevector_t>::swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
                                      cvector_t &mat, uint_t dim) const {
 
   uint_t mask1 = (1UL << idx1);
@@ -1068,8 +1126,9 @@ void QubitVector::swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
   }
 }
 
+template <class statevector_t>
 template <size_t N>
-cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src,
+cvector_t QubitVector<statevector_t>::sort_matrix(const std::array<uint_t, N> &src,
                                    const std::array<uint_t, N> &sorted,
                                    const cvector_t &mat) const {
 
@@ -1090,7 +1149,7 @@ cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src,
         break;
     if (to == current.size()) {
       std::stringstream ss;
-      ss << "QubitVector::sort_matrix we should not reach here";
+      ss << "QubitVector<statevector_t>::sort_matrix we should not reach here";
       throw std::runtime_error(ss.str());
     }
     swap_cols_and_rows(from, to, ret, dim);
@@ -1108,24 +1167,95 @@ cvector_t QubitVector::sort_matrix(const std::array<uint_t, N> &src,
 // Dynamic N
 //------------------------------------------------------------------------------
 
-void QubitVector::apply_matrix(const std::vector<uint_t> &qs, const cvector_t &mat) {
+/* Generate the repeatative switch cases using the following python code:
+
+```python
+code = ""
+for j in range(3, 15 + 1):
+    code += "  case {0}: {{\n".format(j)
+    code += "    std::array<uint_t, {0}> qubits_arr;\n".format(j)
+    code += "    std::copy_n(qubits.begin(), {0}, qubits_arr.begin());\n".format(j)
+    code += "    apply_matrix<{0}>(qubits_arr, mat);\n".format(j)
+    code += "  }} break;\n".format(j)
+print(code)
+```
+*/
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_matrix(const std::vector<uint_t> &qubits,
+                                              const cvector_t &mat) {
   // Special low N cases using faster static indexing
-  switch (qs.size()) {
+  switch (qubits.size()) {
   case 1:
-    apply_matrix<1>(std::array<uint_t, 1>({{qs[0]}}), mat);
+    apply_matrix<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
     break;
   case 2:
-    apply_matrix<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), mat);
+    apply_matrix<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
     break;
-  case 3:
-    apply_matrix<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), mat);
-    break;
-  case 4:
-    apply_matrix<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
-    break;
-  case 5:
-    apply_matrix<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
-    break;
+  case 3: {
+    std::array<uint_t, 3> qubits_arr;
+    std::copy_n(qubits.begin(), 3, qubits_arr.begin());
+    apply_matrix<3>(qubits_arr, mat);
+  } break;
+  case 4: {
+    std::array<uint_t, 4> qubits_arr;
+    std::copy_n(qubits.begin(), 4, qubits_arr.begin());
+    apply_matrix<4>(qubits_arr, mat);
+  } break;
+  case 5: {
+    std::array<uint_t, 5> qubits_arr;
+    std::copy_n(qubits.begin(), 5, qubits_arr.begin());
+    apply_matrix<5>(qubits_arr, mat);
+  } break;
+  case 6: {
+    std::array<uint_t, 6> qubits_arr;
+    std::copy_n(qubits.begin(), 6, qubits_arr.begin());
+    apply_matrix<6>(qubits_arr, mat);
+  } break;
+  case 7: {
+    std::array<uint_t, 7> qubits_arr;
+    std::copy_n(qubits.begin(), 7, qubits_arr.begin());
+    apply_matrix<7>(qubits_arr, mat);
+  } break;
+  case 8: {
+    std::array<uint_t, 8> qubits_arr;
+    std::copy_n(qubits.begin(), 8, qubits_arr.begin());
+    apply_matrix<8>(qubits_arr, mat);
+  } break;
+  case 9: {
+    std::array<uint_t, 9> qubits_arr;
+    std::copy_n(qubits.begin(), 9, qubits_arr.begin());
+    apply_matrix<9>(qubits_arr, mat);
+  } break;
+  case 10: {
+    std::array<uint_t, 10> qubits_arr;
+    std::copy_n(qubits.begin(), 10, qubits_arr.begin());
+    apply_matrix<10>(qubits_arr, mat);
+  } break;
+  case 11: {
+    std::array<uint_t, 11> qubits_arr;
+    std::copy_n(qubits.begin(), 11, qubits_arr.begin());
+    apply_matrix<11>(qubits_arr, mat);
+  } break;
+  case 12: {
+    std::array<uint_t, 12> qubits_arr;
+    std::copy_n(qubits.begin(), 12, qubits_arr.begin());
+    apply_matrix<12>(qubits_arr, mat);
+  } break;
+  case 13: {
+    std::array<uint_t, 13> qubits_arr;
+    std::copy_n(qubits.begin(), 13, qubits_arr.begin());
+    apply_matrix<13>(qubits_arr, mat);
+  } break;
+  case 14: {
+    std::array<uint_t, 14> qubits_arr;
+    std::copy_n(qubits.begin(), 14, qubits_arr.begin());
+    apply_matrix<14>(qubits_arr, mat);
+  } break;
+  case 15: {
+    std::array<uint_t, 15> qubits_arr;
+    std::copy_n(qubits.begin(), 15, qubits_arr.begin());
+    apply_matrix<15>(qubits_arr, mat);
+  } break;
   default: {
     // Default case using dynamic indexing
     // Error checking
@@ -1136,45 +1266,114 @@ void QubitVector::apply_matrix(const std::vector<uint_t> &qs, const cvector_t &m
     // Lambda function for N-qubit matrix multiplication
     auto lambda = [&](const cvector_t &mat,
                       const std::vector<uint_t> &inds)->void {
-      const uint_t dim = 1ULL << qs.size();
+      const uint_t dim = 1ULL << qubits.size();
       std::vector<complex_t> cache(dim);
       for (size_t i = 0; i < dim; i++) {
         const auto ii = inds[i];
-        cache[i] = state_vector_[ii];
-        state_vector_[ii] = 0.;
+        cache[i] = statevector_[ii];
+        statevector_[ii] = 0.;
       }
       // update state vector
       for (size_t i = 0; i < dim; i++)
         for (size_t j = 0; j < dim; j++)
-          state_vector_[inds[i]] += mat[i + dim * j] * cache[j];
+          statevector_[inds[i]] += mat[i + dim * j] * cache[j];
     };
     // Use the lambda function
-    apply_matrix_lambda(qs, mat, lambda);
+    apply_matrix_lambda(qubits, mat, lambda);
   } // end default
     break;
   } // end switch
 }
 
+/* Generate the repeatative switch cases using the following python code:
 
-void QubitVector::apply_diagonal_matrix(const std::vector<uint_t> &qs,
-                               const cvector_t &diag) {
+```python
+code = ""
+for j in range(3, 15 + 1):
+    code += "  case {0}: {{\n".format(j)
+    code += "    std::array<uint_t, {0}> qubits_arr;\n".format(j)
+    code += "    std::copy_n(qubits.begin(), {0}, qubits_arr.begin());\n".format(j)
+    code += "    apply_diagonal_matrix<{0}>(qubits_arr, mat);\n".format(j)
+    code += "  }} break;\n".format(j)
+print(code)
+```
+*/
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_diagonal_matrix(const std::vector<uint_t> &qubits,
+                                                       const cvector_t &mat) {
   // Special low N cases using faster static indexing
-  switch (qs.size()) {
+  switch (qubits.size()) {
   case 1:
-    apply_diagonal_matrix<1>(std::array<uint_t, 1>({{qs[0]}}), diag);
+    apply_diagonal_matrix<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
     break;
   case 2:
-    apply_diagonal_matrix<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), diag);
+    apply_diagonal_matrix<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
     break;
-  case 3:
-    apply_diagonal_matrix<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), diag);
-    break;
-  case 4:
-    apply_diagonal_matrix<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), diag);
-    break;
-  case 5:
-    apply_diagonal_matrix<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), diag);
-    break;
+    case 3: {
+    std::array<uint_t, 3> qubits_arr;
+    std::copy_n(qubits.begin(), 3, qubits_arr.begin());
+    apply_diagonal_matrix<3>(qubits_arr, mat);
+  } break;
+  case 4: {
+    std::array<uint_t, 4> qubits_arr;
+    std::copy_n(qubits.begin(), 4, qubits_arr.begin());
+    apply_diagonal_matrix<4>(qubits_arr, mat);
+  } break;
+  case 5: {
+    std::array<uint_t, 5> qubits_arr;
+    std::copy_n(qubits.begin(), 5, qubits_arr.begin());
+    apply_diagonal_matrix<5>(qubits_arr, mat);
+  } break;
+  case 6: {
+    std::array<uint_t, 6> qubits_arr;
+    std::copy_n(qubits.begin(), 6, qubits_arr.begin());
+    apply_diagonal_matrix<6>(qubits_arr, mat);
+  } break;
+  case 7: {
+    std::array<uint_t, 7> qubits_arr;
+    std::copy_n(qubits.begin(), 7, qubits_arr.begin());
+    apply_diagonal_matrix<7>(qubits_arr, mat);
+  } break;
+  case 8: {
+    std::array<uint_t, 8> qubits_arr;
+    std::copy_n(qubits.begin(), 8, qubits_arr.begin());
+    apply_diagonal_matrix<8>(qubits_arr, mat);
+  } break;
+  case 9: {
+    std::array<uint_t, 9> qubits_arr;
+    std::copy_n(qubits.begin(), 9, qubits_arr.begin());
+    apply_diagonal_matrix<9>(qubits_arr, mat);
+  } break;
+  case 10: {
+    std::array<uint_t, 10> qubits_arr;
+    std::copy_n(qubits.begin(), 10, qubits_arr.begin());
+    apply_diagonal_matrix<10>(qubits_arr, mat);
+  } break;
+  case 11: {
+    std::array<uint_t, 11> qubits_arr;
+    std::copy_n(qubits.begin(), 11, qubits_arr.begin());
+    apply_diagonal_matrix<11>(qubits_arr, mat);
+  } break;
+  case 12: {
+    std::array<uint_t, 12> qubits_arr;
+    std::copy_n(qubits.begin(), 12, qubits_arr.begin());
+    apply_diagonal_matrix<12>(qubits_arr, mat);
+  } break;
+  case 13: {
+    std::array<uint_t, 13> qubits_arr;
+    std::copy_n(qubits.begin(), 13, qubits_arr.begin());
+    apply_diagonal_matrix<13>(qubits_arr, mat);
+  } break;
+  case 14: {
+    std::array<uint_t, 14> qubits_arr;
+    std::copy_n(qubits.begin(), 14, qubits_arr.begin());
+    apply_diagonal_matrix<14>(qubits_arr, mat);
+  } break;
+  case 15: {
+    std::array<uint_t, 15> qubits_arr;
+    std::copy_n(qubits.begin(), 15, qubits_arr.begin());
+    apply_diagonal_matrix<15>(qubits_arr, mat);
+  } break;
   default: {
     // Default case using dynamic indexing
     // Error checking
@@ -1185,12 +1384,12 @@ void QubitVector::apply_diagonal_matrix(const std::vector<uint_t> &qs,
     // Lambda function for N-qubit matrix multiplication
     auto lambda = [&](const cvector_t &mat,
                       const std::vector<uint_t> &inds)->void {
-      const uint_t dim = 1ULL << qs.size();
+      const uint_t dim = 1ULL << qubits.size();
       for (size_t i = 0; i < dim; i++)
-            state_vector_[inds[i]] *= mat[i];
+            statevector_[inds[i]] *= mat[i];
     };
     // Use the lambda function
-    apply_matrix_lambda(qs, diag, lambda);
+    apply_matrix_lambda(qubits, mat, lambda);
   } // end default
     break;
   } // end switch
@@ -1207,22 +1406,23 @@ void QubitVector::apply_diagonal_matrix(const std::vector<uint_t> &qs,
 // Single-qubit gates
 //------------------------------------------------------------------------------
 
-void QubitVector::apply_x(const uint_t qubit) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_x(const uint_t qubit) {
   // Lambda function for optimized Pauli-X gate
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
     (void)mat; // unused
     const auto i0 = k1 | k2;
     const auto i1 = i0 | end2;
-    const complex_t cache = state_vector_[i0];
-    state_vector_[i0] = state_vector_[i1]; // mat(0,1)
-    state_vector_[i1] = cache;    // mat(1,0)
+    const complex_t cache = statevector_[i0];
+    statevector_[i0] = statevector_[i1]; // mat(0,1)
+    statevector_[i1] = cache;    // mat(1,0)
   };
   apply_matrix_lambda(qubit, {}, lambda);
 }
 
-
-void QubitVector::apply_y(const uint_t qubit) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_y(const uint_t qubit) {
   // Lambda function for optimized Pauli-Y gate
   const complex_t I(0., 1.);
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
@@ -1230,21 +1430,21 @@ void QubitVector::apply_y(const uint_t qubit) {
     (void)mat; // unused
     const auto i0 = k1 | k2;
     const auto i1 = i0 | end2;
-    const complex_t cache = state_vector_[i0];
-    state_vector_[i0] = -I * state_vector_[i1]; // mat(0,1)
-    state_vector_[i1] = I * cache;     // mat(1,0)
+    const complex_t cache = statevector_[i0];
+    statevector_[i0] = -I * statevector_[i1]; // mat(0,1)
+    statevector_[i1] = I * cache;     // mat(1,0)
   };
   apply_matrix_lambda(qubit, {}, lambda);
 }
 
-
-void QubitVector::apply_z(const uint_t qubit) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_z(const uint_t qubit) {
   // Lambda function for optimized Pauli-Z gate
   const complex_t minus_one(-1.0, 0.0);
   auto lambda = [&](const cvector_t &mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
     (void)mat; // unused
-    state_vector_[k1 | k2 | end2] *= minus_one;
+    statevector_[k1 | k2 | end2] *= minus_one;
   };
   apply_matrix_lambda(qubit, {}, lambda);
 }
@@ -1252,42 +1452,42 @@ void QubitVector::apply_z(const uint_t qubit) {
 //------------------------------------------------------------------------------
 // Two-qubit gates
 //------------------------------------------------------------------------------
-
-void QubitVector::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   // Lambda function for CNOT gate
   auto lambda = [&](const cvector_t &mat,
                     const std::array<uint_t, 1ULL << 2> &inds)->void {
     (void)mat; //unused
-    const complex_t cache = state_vector_[inds[3]];
-    state_vector_[inds[3]] = state_vector_[inds[1]];
-    state_vector_[inds[1]] = cache;
+    const complex_t cache = statevector_[inds[3]];
+    statevector_[inds[3]] = statevector_[inds[1]];
+    statevector_[inds[1]] = cache;
   };
   // Use the lambda function
   apply_matrix_lambda(std::array<uint_t, 2>({{qubit_ctrl, qubit_trgt}}), {}, lambda);
 }
 
-
-void QubitVector::apply_swap(const uint_t qubit0, const uint_t qubit1) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
   // Lambda function for SWAP gate
   auto lambda = [&](const cvector_t &mat,
                     const std::array<uint_t, 1ULL << 2> &inds)->void {
     (void)mat; //unused
-    const complex_t cache = state_vector_[inds[2]];
-      state_vector_[inds[2]] = state_vector_[inds[1]];
-      state_vector_[inds[1]] = cache;
+    const complex_t cache = statevector_[inds[2]];
+      statevector_[inds[2]] = statevector_[inds[1]];
+      statevector_[inds[1]] = cache;
   };
   // Use the lambda function
   apply_matrix_lambda(std::array<uint_t, 2>({{qubit0, qubit1}}), {}, lambda);
 }
 
-
-void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
 
   // Lambda function for CZ gate
   auto lambda = [&](const cvector_t &mat,
                     const std::array<uint_t, 1ULL << 2> &inds)->void {
     (void)mat; //unused
-    state_vector_[inds[3]] *= -1.;
+    statevector_[inds[3]] *= -1.;
   };
   // Use the lambda function
   apply_matrix_lambda(std::array<uint_t, 2>({{qubit_ctrl, qubit_trgt}}), {}, lambda);
@@ -1296,17 +1496,17 @@ void QubitVector::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
 //------------------------------------------------------------------------------
 // Three-qubit gates
 //------------------------------------------------------------------------------
-
-void QubitVector::apply_toffoli(const uint_t qubit_ctrl0,
+template <class statevector_t>
+void QubitVector<statevector_t>::apply_toffoli(const uint_t qubit_ctrl0,
                                 const uint_t qubit_ctrl1,
                                 const uint_t qubit_trgt) {
   // Lambda function for Toffoli gate
   auto lambda = [&](const cvector_t &mat,
                     const std::array<uint_t, 1ULL << 3> &inds)->void {
     (void)mat; //unused
-    const complex_t cache = state_vector_[inds[7]];
-    state_vector_[inds[7]] = state_vector_[inds[3]];
-    state_vector_[inds[3]] = cache;
+    const complex_t cache = statevector_[inds[7]];
+    statevector_[inds[7]] = statevector_[inds[3]];
+    statevector_[inds[3]] = cache;
   };
   // Use the lambda function
   std::array<uint_t, 3> qubits = {{qubit_ctrl0, qubit_ctrl1, qubit_trgt}};
@@ -1323,9 +1523,9 @@ void QubitVector::apply_toffoli(const uint_t qubit_ctrl0,
 //------------------------------------------------------------------------------
 // Static N
 //------------------------------------------------------------------------------
-
+template <class statevector_t>
 template <size_t N>
-double QubitVector::norm(const std::array<uint_t, N> &qs,
+double QubitVector<statevector_t>::norm(const std::array<uint_t, N> &qs,
                          const cvector_t &mat) const {
   // Error checking
   #ifdef DEBUG
@@ -1340,7 +1540,7 @@ double QubitVector::norm(const std::array<uint_t, N> &qs,
     for (size_t i = 0; i < dim; i++) {
       complex_t vi = 0;
       for (size_t j = 0; j < dim; j++)
-        vi += mat[i + dim * j] * state_vector_[inds[j]];
+        vi += mat[i + dim * j] * statevector_[inds[j]];
       val_re += std::real(vi * std::conj(vi));
     }
   };
@@ -1348,9 +1548,9 @@ double QubitVector::norm(const std::array<uint_t, N> &qs,
   return std::real(apply_reduction_lambda(qs, mat, lambda));
 }
 
-
+template <class statevector_t>
 template <size_t N>
-double QubitVector::norm_diagonal(const std::array<uint_t, N> &qs,
+double QubitVector<statevector_t>::norm_diagonal(const std::array<uint_t, N> &qs,
                                   const cvector_t &mat) const {
 
   // Error checking
@@ -1364,7 +1564,7 @@ double QubitVector::norm_diagonal(const std::array<uint_t, N> &qs,
     (void)val_im; // unused
     const uint_t dim = 1ULL << N;
     for (size_t i = 0; i < dim; i++) {
-      const auto vi = mat[i] * state_vector_[inds[i]];
+      const auto vi = mat[i] * statevector_[inds[i]];
       val_re += std::real(vi * std::conj(vi));
     }
   };
@@ -1375,10 +1575,9 @@ double QubitVector::norm_diagonal(const std::array<uint_t, N> &qs,
 //------------------------------------------------------------------------------
 // Single-qubit specialization
 //------------------------------------------------------------------------------
-
-template <>
-double QubitVector::norm(const std::array<uint_t, 1> &qubits,
-                         const cvector_t &mat) const {
+template <class statevector_t>
+double QubitVector<statevector_t>::norm(const std::array<uint_t, 1> &qubits,
+                                        const cvector_t &mat) const {
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 2);
@@ -1388,8 +1587,8 @@ double QubitVector::norm(const std::array<uint_t, 1> &qubits,
                     const int_t &k1, const int_t &k2, const int_t &end2)->void {
     (void)val_im; // unused;
     const auto k = k1 | k2;
-    const auto cache0 = state_vector_[k];
-    const auto cache1 = state_vector_[k | end2];
+    const auto cache0 = statevector_[k];
+    const auto cache1 = statevector_[k | end2];
     const auto v0 = mat[0] * cache0 + mat[2] * cache1;
     const auto v1 = mat[1] * cache0 + mat[3] * cache1;
     val_re += std::real(v0 * std::conj(v0)) + std::real(v1 * std::conj(v1));
@@ -1397,9 +1596,9 @@ double QubitVector::norm(const std::array<uint_t, 1> &qubits,
   return std::real(apply_reduction_lambda(qubits[0], mat, lambda));
 }
 
-template <>
-double QubitVector::norm_diagonal(const std::array<uint_t, 1> &qubits,
-                                  const cvector_t &mat) const {
+template <class statevector_t>
+double QubitVector<statevector_t>::norm_diagonal(const std::array<uint_t, 1> &qubits,
+                                                 const cvector_t &mat) const {
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 1);
@@ -1409,8 +1608,8 @@ double QubitVector::norm_diagonal(const std::array<uint_t, 1> &qubits,
                     const int_t &k1, const int_t &k2, const int_t &end2)->void {
     (void)val_im; // unused;
     const auto k = k1 | k2;
-    const auto v0 = mat[0] * state_vector_[k];
-    const auto v1 = mat[1] * state_vector_[k | end2];
+    const auto v0 = mat[0] * statevector_[k];
+    const auto v1 = mat[1] * statevector_[k | end2];
     val_re += std::real(v0 * std::conj(v0)) + std::real(v1 * std::conj(v1));
   };
   return std::real(apply_reduction_lambda(qubits[0], mat, lambda));
@@ -1420,24 +1619,99 @@ double QubitVector::norm_diagonal(const std::array<uint_t, 1> &qubits,
 // Dynamic N
 //------------------------------------------------------------------------------
 
-double QubitVector::norm(const std::vector<uint_t> &qs, const cvector_t &mat) const {
+/* Generate the repeatative switch cases using the following python code:
+
+```python
+code = ""
+for j in range(3, 15 + 1):
+    code += "  case {0}: {{\n".format(j)
+    code += "    std::array<uint_t, {0}> qubits_arr;\n".format(j)
+    code += "    std::copy_n(qubits.begin(), {0}, qubits_arr.begin());\n".format(j)
+    code += "    return norm<{0}>(qubits_arr, mat);\n".format(j)
+    code += "  }\n"
+print(code)
+```
+*/
+
+template <class statevector_t>
+double QubitVector<statevector_t>::norm(const std::vector<uint_t> &qubits,
+                                        const cvector_t &mat) const {
 
   // Special low N cases using faster static indexing
-  switch (qs.size()) {
+  switch (qubits.size()) {
   case 1:
-    return norm<1>(std::array<uint_t, 1>({{qs[0]}}), mat);
+    return norm<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
   case 2:
-    return norm<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), mat);
-  case 3:
-    return norm<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), mat);
-  case 4:
-    return norm<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
-  case 5:
-    return norm<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
+    return norm<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
+  case 3: {
+    std::array<uint_t, 3> qubits_arr;
+    std::copy_n(qubits.begin(), 3, qubits_arr.begin());
+    return norm<3>(qubits_arr, mat);
+  }
+  case 4: {
+    std::array<uint_t, 4> qubits_arr;
+    std::copy_n(qubits.begin(), 4, qubits_arr.begin());
+    return norm<4>(qubits_arr, mat);
+  }
+  case 5: {
+    std::array<uint_t, 5> qubits_arr;
+    std::copy_n(qubits.begin(), 5, qubits_arr.begin());
+    return norm<5>(qubits_arr, mat);
+  }
+  case 6: {
+    std::array<uint_t, 6> qubits_arr;
+    std::copy_n(qubits.begin(), 6, qubits_arr.begin());
+    return norm<6>(qubits_arr, mat);
+  }
+  case 7: {
+    std::array<uint_t, 7> qubits_arr;
+    std::copy_n(qubits.begin(), 7, qubits_arr.begin());
+    return norm<7>(qubits_arr, mat);
+  }
+  case 8: {
+    std::array<uint_t, 8> qubits_arr;
+    std::copy_n(qubits.begin(), 8, qubits_arr.begin());
+    return norm<8>(qubits_arr, mat);
+  }
+  case 9: {
+    std::array<uint_t, 9> qubits_arr;
+    std::copy_n(qubits.begin(), 9, qubits_arr.begin());
+    return norm<9>(qubits_arr, mat);
+  }
+  case 10: {
+    std::array<uint_t, 10> qubits_arr;
+    std::copy_n(qubits.begin(), 10, qubits_arr.begin());
+    return norm<10>(qubits_arr, mat);
+  }
+  case 11: {
+    std::array<uint_t, 11> qubits_arr;
+    std::copy_n(qubits.begin(), 11, qubits_arr.begin());
+    return norm<11>(qubits_arr, mat);
+  }
+  case 12: {
+    std::array<uint_t, 12> qubits_arr;
+    std::copy_n(qubits.begin(), 12, qubits_arr.begin());
+    return norm<12>(qubits_arr, mat);
+  }
+  case 13: {
+    std::array<uint_t, 13> qubits_arr;
+    std::copy_n(qubits.begin(), 13, qubits_arr.begin());
+    return norm<13>(qubits_arr, mat);
+  }
+  case 14: {
+    std::array<uint_t, 14> qubits_arr;
+    std::copy_n(qubits.begin(), 14, qubits_arr.begin());
+    return norm<14>(qubits_arr, mat);
+  }
+  case 15: {
+    std::array<uint_t, 15> qubits_arr;
+    std::copy_n(qubits.begin(), 15, qubits_arr.begin());
+    return norm<15>(qubits_arr, mat);
+  }
   default: {
 
     // Error checking
-    const uint_t N = qs.size();
+    const uint_t N = qubits.size();
     const uint_t dim = 1ULL << N;
     #ifdef DEBUG
     check_vector(mat, 2 * N);
@@ -1450,34 +1724,108 @@ double QubitVector::norm(const std::vector<uint_t> &qs, const cvector_t &mat) co
       for (size_t i = 0; i < dim; i++) {
         complex_t vi = 0;
         for (size_t j = 0; j < dim; j++)
-          vi += mat[i + dim * j] * state_vector_[inds[j]];
+          vi += mat[i + dim * j] * statevector_[inds[j]];
         val_re += std::real(vi * std::conj(vi));
       }
     };
     // Use the lambda function
-    return std::real(apply_reduction_lambda(qs, mat, lambda));
+    return std::real(apply_reduction_lambda(qubits, mat, lambda));
   } // end default
   } // end switch
 }
 
-double QubitVector::norm_diagonal(const std::vector<uint_t> &qs, const cvector_t &mat) const {
+/* Generate the repeatative switch cases using the following python code:
+
+```python
+code = ""
+for j in range(3, 15 + 1):
+    code += "  case {0}: {{\n".format(j)
+    code += "    std::array<uint_t, {0}> qubits_arr;\n".format(j)
+    code += "    std::copy_n(qubits.begin(), {0}, qubits_arr.begin());\n".format(j)
+    code += "    return norm_diagonal<{0}>(qubits_arr, mat);\n".format(j)
+    code += "  }\n"
+print(code)
+```
+*/
+
+template <class statevector_t>
+double QubitVector<statevector_t>::norm_diagonal(const std::vector<uint_t> &qubits, const cvector_t &mat) const {
 
   // Special low N cases using faster static indexing
-  switch (qs.size()) {
+  switch (qubits.size()) {
   case 1:
-    return norm_diagonal<1>(std::array<uint_t, 1>({{qs[0]}}), mat);
+    return norm_diagonal<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
   case 2:
-    return norm_diagonal<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}), mat);
-  case 3:
-    return norm_diagonal<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}), mat);
-  case 4:
-    return norm_diagonal<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}), mat);
-  case 5:
-    return norm_diagonal<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}), mat);
+    return norm_diagonal<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
+    case 3: {
+    std::array<uint_t, 3> qubits_arr;
+    std::copy_n(qubits.begin(), 3, qubits_arr.begin());
+    return norm_diagonal<3>(qubits_arr, mat);
+  }
+  case 4: {
+    std::array<uint_t, 4> qubits_arr;
+    std::copy_n(qubits.begin(), 4, qubits_arr.begin());
+    return norm_diagonal<4>(qubits_arr, mat);
+  }
+  case 5: {
+    std::array<uint_t, 5> qubits_arr;
+    std::copy_n(qubits.begin(), 5, qubits_arr.begin());
+    return norm_diagonal<5>(qubits_arr, mat);
+  }
+  case 6: {
+    std::array<uint_t, 6> qubits_arr;
+    std::copy_n(qubits.begin(), 6, qubits_arr.begin());
+    return norm_diagonal<6>(qubits_arr, mat);
+  }
+  case 7: {
+    std::array<uint_t, 7> qubits_arr;
+    std::copy_n(qubits.begin(), 7, qubits_arr.begin());
+    return norm_diagonal<7>(qubits_arr, mat);
+  }
+  case 8: {
+    std::array<uint_t, 8> qubits_arr;
+    std::copy_n(qubits.begin(), 8, qubits_arr.begin());
+    return norm_diagonal<8>(qubits_arr, mat);
+  }
+  case 9: {
+    std::array<uint_t, 9> qubits_arr;
+    std::copy_n(qubits.begin(), 9, qubits_arr.begin());
+    return norm_diagonal<9>(qubits_arr, mat);
+  }
+  case 10: {
+    std::array<uint_t, 10> qubits_arr;
+    std::copy_n(qubits.begin(), 10, qubits_arr.begin());
+    return norm_diagonal<10>(qubits_arr, mat);
+  }
+  case 11: {
+    std::array<uint_t, 11> qubits_arr;
+    std::copy_n(qubits.begin(), 11, qubits_arr.begin());
+    return norm_diagonal<11>(qubits_arr, mat);
+  }
+  case 12: {
+    std::array<uint_t, 12> qubits_arr;
+    std::copy_n(qubits.begin(), 12, qubits_arr.begin());
+    return norm_diagonal<12>(qubits_arr, mat);
+  }
+  case 13: {
+    std::array<uint_t, 13> qubits_arr;
+    std::copy_n(qubits.begin(), 13, qubits_arr.begin());
+    return norm_diagonal<13>(qubits_arr, mat);
+  }
+  case 14: {
+    std::array<uint_t, 14> qubits_arr;
+    std::copy_n(qubits.begin(), 14, qubits_arr.begin());
+    return norm_diagonal<14>(qubits_arr, mat);
+  }
+  case 15: {
+    std::array<uint_t, 15> qubits_arr;
+    std::copy_n(qubits.begin(), 15, qubits_arr.begin());
+    return norm_diagonal<15>(qubits_arr, mat);
+  }
   default: {
     // Default dynamic index case
     // Error checking
-    const uint_t N = qs.size();
+    const uint_t N = qubits.size();
     const uint_t dim = 1ULL << N;
     #ifdef DEBUG
     check_vector(mat, N);
@@ -1488,12 +1836,12 @@ double QubitVector::norm_diagonal(const std::vector<uint_t> &qs, const cvector_t
                       const std::vector<uint_t> &inds)->void {
       (void)val_im; // unused
       for (size_t i = 0; i < dim; i++) {
-        const auto vi = mat[i] * state_vector_[inds[i]];
+        const auto vi = mat[i] * statevector_[inds[i]];
         val_re += std::real(vi * std::conj(vi));
       }
     };
     // Use the lambda function
-    return std::real(apply_reduction_lambda(qs, mat, lambda));
+    return std::real(apply_reduction_lambda(qubits, mat, lambda));
   } // end default
   } // end switch
 }
@@ -1504,16 +1852,17 @@ double QubitVector::norm_diagonal(const std::vector<uint_t> &qs, const cvector_t
  *
  ******************************************************************************/
 
-double QubitVector::probability(const uint_t outcome) const {
-  const auto v = state_vector_[outcome];
+template <class statevector_t>
+double QubitVector<statevector_t>::probability(const uint_t outcome) const {
+  const auto v = statevector_[outcome];
   return std::real(v * std::conj(v));
 }
 
-rvector_t QubitVector::probabilities() const {
+template <class statevector_t>
+rvector_t QubitVector<statevector_t>::probabilities() const {
   rvector_t probs;
   probs.reserve(num_states_);
-  const int_t end = state_vector_.size();
-  for (int_t j=0; j < end; j++) {
+  for (int_t j=0; j < num_states_; j++) {
     probs.push_back(probability(j));
   }
   return probs;
@@ -1523,8 +1872,9 @@ rvector_t QubitVector::probabilities() const {
 // Static N-qubit
 //------------------------------------------------------------------------------
 
+template <class statevector_t>
 template <size_t N>
-rvector_t QubitVector::probabilities(const std::array<uint_t, N> &qs) const {
+rvector_t QubitVector<statevector_t>::probabilities(const std::array<uint_t, N> &qs) const {
 
   // Error checking
   #ifdef DEBUG
@@ -1557,8 +1907,8 @@ rvector_t QubitVector::probabilities(const std::array<uint_t, N> &qs) const {
 // Single-qubit specialization
 //------------------------------------------------------------------------------
 
-template <>
-rvector_t QubitVector::probabilities(const std::array<uint_t, 1> &qs) const {
+template <class statevector_t>
+rvector_t QubitVector<statevector_t>::probabilities(const std::array<uint_t, 1> &qubits) const {
 
   // Error handling
   #ifdef DEBUG
@@ -1566,7 +1916,7 @@ rvector_t QubitVector::probabilities(const std::array<uint_t, 1> &qs) const {
   #endif
 
   const int_t end1 = num_states_;    // end for k1 loop
-  const int_t end2 = 1LL << qs[0]; // end for k2 loop
+  const int_t end2 = 1LL << qubits[0]; // end for k2 loop
   const int_t step1 = end2 << 1;    // step for k1 loop
   double p0 = 0., p1 = 0.;
 #pragma omp parallel reduction(+:p0, p1) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1)         \
@@ -1591,42 +1941,116 @@ rvector_t QubitVector::probabilities(const std::array<uint_t, 1> &qs) const {
 // Dynamic N-qubit
 //------------------------------------------------------------------------------
 
-rvector_t QubitVector::probabilities(const std::vector<uint_t> &qs) const {
+/* Generate the repeatative switch cases using the following python code:
+
+```python
+code = ""
+for j in range(3, 15 + 1):
+    code += "  case {0}: {{\n".format(j)
+    code += "    std::array<uint_t, {0}> qubits_arr;\n".format(j)
+    code += "    std::copy_n(qubits.begin(), {0}, qubits_arr.begin());\n".format(j)
+    code += "    return probabilities<{0}>(qubits_arr);\n".format(j)
+    code += "  }\n"
+print(code)
+```
+*/
+
+template <class statevector_t>
+rvector_t QubitVector<statevector_t>::probabilities(const std::vector<uint_t> &qubits) const {
 
   // Special cases using faster static indexing
-  const uint_t N = qs.size();
+  const uint_t N = qubits.size();
   switch (N) {
   case 0:
     return rvector_t({norm()});
   case 1:
-    return probabilities<1>(std::array<uint_t, 1>({{qs[0]}}));
+    return probabilities<1>(std::array<uint_t, 1>({{qubits[0]}}));
   case 2:
-    return probabilities<2>(std::array<uint_t, 2>({{qs[0], qs[1]}}));
-  case 3:
-    return probabilities<3>(std::array<uint_t, 3>({{qs[0], qs[1], qs[2]}}));
-  case 4:
-    return probabilities<4>(std::array<uint_t, 4>({{qs[0], qs[1], qs[2], qs[3]}}));
-  case 5:
-    return probabilities<5>(std::array<uint_t, 5>({{qs[0], qs[1], qs[2], qs[3], qs[4]}}));
+    return probabilities<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}));
+  case 3: {
+    std::array<uint_t, 3> qubits_arr;
+    std::copy_n(qubits.begin(), 3, qubits_arr.begin());
+    return probabilities<3>(qubits_arr);
+  }
+  case 4: {
+    std::array<uint_t, 4> qubits_arr;
+    std::copy_n(qubits.begin(), 4, qubits_arr.begin());
+    return probabilities<4>(qubits_arr);
+  }
+  case 5: {
+    std::array<uint_t, 5> qubits_arr;
+    std::copy_n(qubits.begin(), 5, qubits_arr.begin());
+    return probabilities<5>(qubits_arr);
+  }
+  case 6: {
+    std::array<uint_t, 6> qubits_arr;
+    std::copy_n(qubits.begin(), 6, qubits_arr.begin());
+    return probabilities<6>(qubits_arr);
+  }
+  case 7: {
+    std::array<uint_t, 7> qubits_arr;
+    std::copy_n(qubits.begin(), 7, qubits_arr.begin());
+    return probabilities<7>(qubits_arr);
+  }
+  case 8: {
+    std::array<uint_t, 8> qubits_arr;
+    std::copy_n(qubits.begin(), 8, qubits_arr.begin());
+    return probabilities<8>(qubits_arr);
+  }
+  case 9: {
+    std::array<uint_t, 9> qubits_arr;
+    std::copy_n(qubits.begin(), 9, qubits_arr.begin());
+    return probabilities<9>(qubits_arr);
+  }
+  case 10: {
+    std::array<uint_t, 10> qubits_arr;
+    std::copy_n(qubits.begin(), 10, qubits_arr.begin());
+    return probabilities<10>(qubits_arr);
+  }
+  case 11: {
+    std::array<uint_t, 11> qubits_arr;
+    std::copy_n(qubits.begin(), 11, qubits_arr.begin());
+    return probabilities<11>(qubits_arr);
+  }
+  case 12: {
+    std::array<uint_t, 12> qubits_arr;
+    std::copy_n(qubits.begin(), 12, qubits_arr.begin());
+    return probabilities<12>(qubits_arr);
+  }
+  case 13: {
+    std::array<uint_t, 13> qubits_arr;
+    std::copy_n(qubits.begin(), 13, qubits_arr.begin());
+    return probabilities<13>(qubits_arr);
+  }
+  case 14: {
+    std::array<uint_t, 14> qubits_arr;
+    std::copy_n(qubits.begin(), 14, qubits_arr.begin());
+    return probabilities<14>(qubits_arr);
+  }
+  case 15: {
+    std::array<uint_t, 15> qubits_arr;
+    std::copy_n(qubits.begin(), 15, qubits_arr.begin());
+    return probabilities<15>(qubits_arr);
+  }
   default: {
     // else
     // Error checking
     #ifdef DEBUG
-    for (const auto &qubit : qs)
+    for (const auto &qubit : qubits)
       check_qubit(qubit);
     #endif
 
     const uint_t dim = 1ULL << N;
     const uint_t end = (1ULL << num_qubits_) >> N;
-    auto qss = qs;
+    auto qss = qubits;
     std::sort(qss.begin(), qss.end());
-    if ((N == num_qubits_) && (qss == qs))
+    if ((N == num_qubits_) && (qss == qubits))
       return probabilities();
     const auto &qubits_sorted = qss;
     rvector_t probs(dim, 0.);
 
     for (size_t k = 0; k < end; k++) {
-      const auto idx = indexes_dynamic(qs, qubits_sorted, N, k);
+      const auto idx = indexes_dynamic(qubits, qubits_sorted, N, k);
       for (size_t m = 0; m < dim; ++m)
         probs[m] += probability(idx[m]);
     }
@@ -1639,8 +2063,8 @@ rvector_t QubitVector::probabilities(const std::vector<uint_t> &qs) const {
 //------------------------------------------------------------------------------
 // Sample measure outcomes
 //------------------------------------------------------------------------------
-
-std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds) const {
+template <class statevector_t>
+std::vector<uint_t> QubitVector<statevector_t>::sample_measure(const std::vector<double> &rnds) const {
 
   const int_t end = num_states_;
   const int_t shots = rnds.size();
@@ -1659,7 +2083,7 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         double p = .0;
         int_t sample;
         for (sample = 0; sample < end - 1; ++sample) {
-          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          p += std::real(std::conj(statevector_[sample]) * statevector_[sample]);
           if (rnd < p)
             break;
         }
@@ -1680,7 +2104,7 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         double p = .0;
         for (uint_t j = 0; j < loop; ++j) {
           uint_t k = base | j;
-          p = std::real(std::conj(state_vector_[k]) * state_vector_[k]);
+          p = std::real(std::conj(statevector_[k]) * statevector_[k]);
           total += p;
         }
         indexes[i] = total;
@@ -1700,7 +2124,7 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
         }
 
         for (; sample < end - 1; ++sample) {
-          p += std::real(std::conj(state_vector_[sample]) * state_vector_[sample]);
+          p += std::real(std::conj(statevector_[sample]) * statevector_[sample]);
           if (rnd < p){
             break;
           }
@@ -1712,17 +2136,22 @@ std::vector<uint_t> QubitVector::sample_measure(const std::vector<double> &rnds)
   return samples;
 }
 
-
 //------------------------------------------------------------------------------
 } // end namespace QV
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-// QubitVector ostream overload
-//------------------------------------------------------------------------------
+// ostream overload for templated qubitvector
+template <class statevector_t>
+inline std::ostream &operator<<(std::ostream &out, const QV::QubitVector<statevector_t>&qv) {
 
-inline std::ostream &operator<<(std::ostream &out, const QV::QubitVector&qv) {
-  out << qv.vector();
+  out << "[";
+  size_t last = qv.size() - 1;
+  for (size_t i = 0; i < qv.size(); ++i) {
+    out << qv[i];
+    if (i != last)
+      out << ", ";
+  }
+  out << "]";
   return out;
 }
 

@@ -23,7 +23,7 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
     qobj_snapshots["matrix"] =
         AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_matrix.json");
 
-    using State = AER::QubitVector::State<QV::QubitVector>;
+    using State = AER::QubitVector::State<QV::QubitVector<>>;
     AER::Base::Controller sim{};
 
     SECTION( "State simulator snapshot" ) {
@@ -32,7 +32,7 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
                 "initial":[[[1.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0]]],
                 "middle":[[[0.7071067811865476,0.0],[0.7071067811865475,0.0],[0.0,0.0],[0.0,0.0]]]
             })"_json;
-        auto result = sim.execute<QV::QubitVector, State>(qobj_snapshots["state"]);
+        auto result = sim.execute<QV::QubitVector<>, State>(qobj_snapshots["state"]);
         result = result["result"][0]["data"]["snapshots"]["state"];
         REQUIRE(result == expected_result);
     }

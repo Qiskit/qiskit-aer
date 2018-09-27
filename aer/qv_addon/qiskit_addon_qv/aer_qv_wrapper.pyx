@@ -5,13 +5,11 @@ Cython interface to C++ quantum circuit simulator.
 # Import C++ Classes
 from libcpp.string cimport string
 
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
-    cdef cppclass QubitVector:
-        State() except +
 
 # QubitVector State class
 cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
+    cdef cppclass QubitVector:
+        QubitVector() except +
     cdef cppclass State[QubitVector]:
         State() except +
 
@@ -73,7 +71,6 @@ cdef class AerQvSimulatorWrapper:
         self.iface.clear_noise_model()
 
     def clear_state_config(self):
-
         self.iface.clear_state_config()
 
     def clear_engine_config(self):

@@ -20,6 +20,12 @@
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
 #include "base/state.hpp"
+#include "qubitvector.hpp"
+
+
+//------------------------------------------------------------------------------
+// QubitVector ostream and JSON serialization
+//------------------------------------------------------------------------------
 
 namespace AER {
 namespace QubitVector {
@@ -32,6 +38,9 @@ enum class Gates {
   cx, cz, rzz, swap, // two qubit
   ccx // three qubit
 };
+
+// Default state type
+using QubitVector = QV::QubitVector<cvector_t>;
 
 /*******************************************************************************
  *
@@ -456,7 +465,7 @@ void State<state_t>::apply_op(const Operations::Op &op) {
   // ZZ rotation by angle lambda
   case Gates::rzz: {
     const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
-    Base::State<state_t>::data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
+    Base::State<state_t>::data_.apply_matrix(reg_t({op.qubits[0], op.qubits[1]}), dmat);
   } break;
   // 3-qubit toffoli gate
   case Gates::ccx:
