@@ -10,10 +10,10 @@
 # Thoughout, code segments that are to be removed in this change are surrounded with *** and !!!
 
 
-from test.terra.common import QiskitQvTestCase
-
+import test.terra.common as common
 import unittest
 import numpy as np
+from itertools import repeat
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
                     register, compile, execute)
@@ -23,7 +23,7 @@ from qiskit_addon_qv import AerQvSimulator
 # !!!  Replace with  from qiskit_addon_qv import AerQvProvider
 
 
-class QvNoMeasurementTest(QiskitQvTestCase):
+class QvNoMeasurementTest(common.QiskitQvTestCase):
     """Test the final statevector in circuits whose simulation is deterministic, i.e., contain no measurement or noise"""
 
     def setUp(self):        
@@ -32,16 +32,10 @@ class QvNoMeasurementTest(QiskitQvTestCase):
         # !!!  Replace with register(provider_class=AerQvProvider)
         # Restricted to 2 qubits until Issue #46 is solved
         self._number_of_qubits = 2
+        
 
-    def test_no_measurement(self):     
+    def single_circuit_test(self, circuit):     
         """Test the final statevector in circuits whose simulation is deterministic, i.e., contain no measurement or noise"""
-
-        # A very simple circuit,
-        # to be replaced by random circuits covering all types of gates
-        q = QuantumRegister(self._number_of_qubits)
-        circuit = QuantumCircuit(q)
-        circuit.h(q[0])
-        circuit.cx(q[0], q[1])
 
         # ***
         # !!!  Add circuit.state_snapshot('final')
@@ -57,11 +51,10 @@ class QvNoMeasurementTest(QiskitQvTestCase):
         vector_qv_raw = result_qv.get_snapshots()['state']['final']
         # !!!  Replace with vector_qv = result_qv.get_state__snapshot(slot='final')
 
-        # The following lines are needed because the statevector has an extra pair of square brackets
-        # and also represents complex numbers by a pair of real numbers.
+        # The following lines are needed because the statevector represents complex numbers by a pair of real numbers.
         # See Issue #46.
         vector_qv = [np.complex(real, imag) for [real, imag] in vector_qv_raw[0]]
-
+        
         # Compare with the result of the Python simulator
         result_py = execute(circuit, backend='local_statevector_simulator_py').result()
         self.assertEqual(result_py.get_status(), 'COMPLETED')
@@ -71,8 +64,13 @@ class QvNoMeasurementTest(QiskitQvTestCase):
         # for the Python and Aer simulators
         for a, b in zip(vector_qv, vector_py):
             self.assertAlmostEqual(a, b)
-        
 
+
+    def test_random_circuits(self):
+        for _ in repeat(None, 30):
+            circuit = common.generate_random_circuit(6, 4, ['u1', 'u2', 'u3', 'iden', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'cx', 'cz'])
+            self.single_circuit_test(circuit)
+        
 
 if __name__ == '__main__':
     unittest.main()

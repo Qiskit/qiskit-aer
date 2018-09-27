@@ -16,7 +16,12 @@ import logging
 import os
 import unittest
 from unittest.util import safe_repr
+import numpy as np
+from itertools import repeat
+from random import choice, sample
+from math import pi
 
+from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from qiskit_addon_qv import __path__ as main_path
 
@@ -292,6 +297,47 @@ def _is_ci_fork_pull_request():
         if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
             return True
     return False
+
+
+def generate_random_circuit(n_qubits, n_gates, gate_types):
+    """
+    Generation of a random circuit has a history in Qiskit.
+    Terra used to have a file _random_circuit_generator.py, but it is not there anymore.
+    This file was located in folder `test`, hence accessible only to Qiskit developers and not to users.
+    Currently, as far as I know, each test that requires random circuits has its own implementation of a random circuit generator.
+    This includes tests in qiskit-addon-sympy and test_visualization in terra.
+    Aqua had an issue of writing a random circuit generator, which was closed with the justification that it is moved to ignes.
+    """
+    qr = QuantumRegister(n_qubits)
+    circuit = QuantumCircuit(qr)
+
+    for _ in repeat(None, n_gates):
+
+        # Choose the next gate
+        op_name = choice(gate_types)
+        op = eval('QuantumCircuit.' + op_name)
+
+        # Check if op is one of u1, u2, u3
+        if op_name[0] == 'u' and op_name[1].isdigit():
+            # Number of angles
+            n_angles = int(op_name[1])
+            # Number of qubits manipulated by the gate
+            n_params = 1
+        else:
+            n_angles = 0
+            n_params = len(inspect.signature(op).parameters) - 1
+
+        # Choose qubits
+        qubit_indices = sample(range(n_qubits), n_params)
+        qubits = [qr[i] for i in qubit_indices]
+
+        # Choose angles
+        angles = np.random.rand(n_angles)*pi
+
+        # Add operation to the circuit
+        op(circuit, *angles, *qubits)
+
+    return circuit
 
 
 SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
