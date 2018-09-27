@@ -29,7 +29,7 @@ enum class Gates {
   mat, kraus, // special
   measure, reset, barrier,
   u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  cx, cz, rzz, // two qubit
+  cx, cz, rzz, swap, // two qubit
   ccx // three qubit
 };
 
@@ -54,7 +54,7 @@ public:
   // Allowed operations are:
   // {"snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
   //  "barrier", "measure", "reset", "mat", "kraus",
-  //  "u0", "u1", "u2", "u3", "cx", "cz", "ccx",
+  //  "u0", "u1", "u2", "u3", "cx", "cz", "swap", "ccx",
   //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
   virtual std::set<std::string> allowed_ops() const override;
     
@@ -181,7 +181,7 @@ std::set<std::string> State<state_t>::allowed_ops() const {
   return { "barrier", "measure", "reset",
     "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
     "mat", "kraus",
-    "u0", "u1", "u2", "u3", "cx", "cz", "ccx",
+    "u0", "u1", "u2", "u3", "cx", "cz", "swap", "ccx",
     "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
 } 
 
@@ -210,6 +210,7 @@ const std::unordered_map<std::string, Gates> State<state_t>::gateset({
   {"cx", Gates::cx},  // Controlled-X gate (CNOT)
   {"cz", Gates::cz},  // Controlled-Z gate
   {"rzz", Gates::rzz}, // ZZ-rotation gate
+  {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
   {"ccx", Gates::ccx},  // Controlled-CX gate (Toffoli)
   // Type-2 Noise
@@ -411,9 +412,6 @@ void State<state_t>::apply_op(const Operations::Op &op) {
   case Gates::cz:
     Base::State<state_t>::data_.apply_cz(op.qubits[0], op.qubits[1]);
     break;
-  case Gates::ccx:
-    Base::State<state_t>::data_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-    break;
   case Gates::reset:
     apply_reset(op.qubits, uint_t(std::real(op.params[0])));
     break;
@@ -451,11 +449,19 @@ void State<state_t>::apply_op(const Operations::Op &op) {
     const double isqrt2{1. / std::sqrt(2)};
     apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
   } break;
+  // 2-qubit SWAP gate
+  case Gates::swap: {
+    Base::State<state_t>::data_.apply_swap(op.qubits[0], op.qubits[1]);
+  } break;
   // ZZ rotation by angle lambda
   case Gates::rzz: {
     const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
     Base::State<state_t>::data_.apply_matrix({{op.qubits[0], op.qubits[1]}}, dmat);
   } break;
+  // 3-qubit toffoli gate
+  case Gates::ccx:
+    Base::State<state_t>::data_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+    break;
   // Invalid Gate (we shouldn't get here)
   default:
     std::stringstream msg;
@@ -494,7 +500,7 @@ void State<state_t>::apply_gate_u3(uint_t qubit, double theta, double phi, doubl
 template <class state_t>
 void State<state_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
   cvector_t diag = {{1., phase}};
-  apply_matrix(reg_t({{qubit}}), diag);
+  apply_matrix(reg_t({qubit}), diag);
 }
 
 template <class state_t>
