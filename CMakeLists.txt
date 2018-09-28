@@ -86,8 +86,6 @@ if(STATIC_LINKING)
 endif()
 
 if(NOT MSVC)
-	# Compiler flags
-	enable_cxx_compiler_flag_if_supported("-O3")
 	# Warnings and Errors
 	enable_cxx_compiler_flag_if_supported("-pedantic")
 	enable_cxx_compiler_flag_if_supported("-Wall")
