@@ -24,9 +24,9 @@ public:
   //-----------------------------------------------------------------------
 
   // Execute from string to string
-  template <class state_t, class DerivedState>
+  template <class State_t>
   inline std::string execute(const std::string &qobj_str) {
-    return controller_.execute<state_t, DerivedState>(json_t::parse(qobj_str)).dump(-1);
+    return controller_.execute<State_t>(json_t::parse(qobj_str)).dump(-1);
   }
 
   //-----------------------------------------------------------------------

@@ -56,13 +56,13 @@ public:
   // Executing qobj
   //-----------------------------------------------------------------------
 
-  // Load a QOBJ from a JSON file and execute on the DerivedState
+  // Load a QOBJ from a JSON file and execute on the State type
   // class.
-  template <class state_t, class DerivedState>
+  template <class State_t>
   json_t execute(const json_t &qobj);
 
-  // Execute a circuit object on the DerivedState type
-  template <class state_t, class DerivedState>
+  // Execute a circuit object on the State type
+  template <class State_t>
   json_t execute(Circuit &circ);
 
   //-----------------------------------------------------------------------
@@ -131,20 +131,20 @@ private:
   // Circuit Execution
   //----------------------------------------------------------------
 
-  template <class state_t, class DerivedState>
-  Engine<state_t> execute_circuit(Circuit &circ,
-                          uint_t shots,
-                          uint_t state_seed,
-                          uint_t noise_seed,
-                          int state_threads);
+  template <class State_t>
+  Engine execute_circuit(Circuit &circ,
+                         uint_t shots,
+                         uint_t state_seed,
+                         uint_t noise_seed,
+                         int state_threads);
   
-  template <class state_t, class DerivedState>
-  Engine<state_t> parallel_execute_circuit(Circuit &circ,
-                                   uint_t shots,
-                                   uint_t state_seed,
-                                   uint_t noise_seed,
-                                   int num_threads_shot,
-                                   int num_threads_state);
+  template <class State_t>
+  Engine parallel_execute_circuit(Circuit &circ,
+                                  uint_t shots,
+                                  uint_t state_seed,
+                                  uint_t noise_seed,
+                                  int num_threads_shot,
+                                  int num_threads_state);
 
   //----------------------------------------------------------------
   // Optimizations
@@ -239,7 +239,7 @@ void Controller::load_state_config(const json_t &config) {
 // Circuit Execution
 //-------------------------------------------------------------------------
 
-template <class state_t, class DerivedState>
+template <class State_t>
 json_t Controller::execute(const json_t &qobj_js) {
   
   // Start QOBJ timer
@@ -299,7 +299,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     // Begin parallel circuit execution
   #pragma omp parallel for if (num_threads_circuit > 1) num_threads(num_threads_circuit)
     for (int j = 0; j < num_circuits; ++j) {
-      ret["results"][j] = execute<state_t, DerivedState>(qobj.circuits[j]);
+      ret["results"][j] = execute<State_t>(qobj.circuits[j]);
     }
 
     // check success
@@ -329,7 +329,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 }
 
 
-template <class state_t, class DerivedState>
+template <class State_t>
 json_t Controller::execute(Circuit &circ) {
   
   // Start individual circuit timer
@@ -367,7 +367,7 @@ json_t Controller::execute(Circuit &circ) {
     #endif
 
     // Execute circuit
-    ret["data"] = parallel_execute_circuit<state_t, DerivedState>(
+    ret["data"] = parallel_execute_circuit<State_t>(
                     circ, circ.shots, circ.seed, 3*circ.seed,
                     num_threads_shot, num_threads_state).json();
     
@@ -397,26 +397,26 @@ json_t Controller::execute(Circuit &circ) {
 // Circuit execution engine
 //-------------------------------------------------------------------------
 
-template <class state_t, class DerivedState>
-Engine<state_t> Controller::execute_circuit(Circuit &circ,
-                                            uint_t shots,
-                                            uint_t state_seed,
-                                            uint_t noise_seed,
-                                            int num_threads_state) {
+template <class State_t>
+Engine Controller::execute_circuit(Circuit &circ,
+                                   uint_t shots,
+                                   uint_t state_seed,
+                                   uint_t noise_seed,
+                                   int num_threads_state) {
   // Initialize Engine and load config
-  Engine<state_t> engine;
+  Engine engine;
   engine.load_config(engine_config_); // load stored config
   engine.load_config(circ.config); // override with circuit config
 
   // Initialize state class and load config
-  DerivedState state; 
+  State_t state; 
   state.load_config(state_config_); // load stored config
   state.load_config(circ.config); // override with circuit config
   state.set_rng_seed(state_seed); 
   state.set_available_threads(num_threads_state);
 
   // Check operations are allowed
-  const auto invalid = engine.validate_circuit(&state, circ);
+  const auto invalid = engine.validate_circuit(circ, state);
   if (!invalid.empty()) {
     std::stringstream ss;
     ss << "Circuit contains invalid operations: " << invalid;
@@ -427,27 +427,27 @@ Engine<state_t> Controller::execute_circuit(Circuit &circ,
   if (noise_model_.ideal()) {
     // Implement without noise
     optimize_circuit(circ);
-    engine.execute(circ, shots, &state);
+    engine.execute(circ, shots, state);
   } else {
     // Sample noise for each shot
     RngEngine noise_rng;
     noise_rng.set_seed(noise_seed);
     while (shots-- > 0) {
       Circuit noise_circ = noise_model_.sample_noise(circ, noise_rng);
-      engine.execute(noise_circ, 1, &state);
+      engine.execute(noise_circ, 1, state);
     }
   }
   return engine;
 }
 
 
-template <class state_t, class DerivedState>
-Engine<state_t> Controller::parallel_execute_circuit(Circuit &circ,
-                                                     uint_t shots,
-                                                     uint_t state_seed,
-                                                     uint_t noise_seed,
-                                                     int num_threads_shot,
-                                                     int num_threads_state) {
+template <class State_t>
+Engine Controller::parallel_execute_circuit(Circuit &circ,
+                                            uint_t shots,
+                                            uint_t state_seed,
+                                            uint_t noise_seed,
+                                            int num_threads_shot,
+                                            int num_threads_state) {
 
   // Calculate shots per thread
   if (num_threads_shot > 1) {
@@ -459,10 +459,10 @@ Engine<state_t> Controller::parallel_execute_circuit(Circuit &circ,
     subshots[0] += (shots % num_threads_shot);
 
     // Vector to store parallel thread engines
-    std::vector<Engine<state_t>> data(num_threads_shot);
+    std::vector<Engine> data(num_threads_shot);
     #pragma omp parallel for if (num_threads_shot > 1) num_threads(num_threads_shot)
       for (int j = 0; j < num_threads_shot; j++) {
-        data[j] = execute_circuit<state_t, DerivedState>(circ, subshots[j], state_seed + j,
+        data[j] = execute_circuit<State_t>(circ, subshots[j], state_seed + j,
                                                          noise_seed + j, num_threads_state);
       }
     // Accumulate results across shots 
@@ -471,7 +471,7 @@ Engine<state_t> Controller::parallel_execute_circuit(Circuit &circ,
     }
     return data[0];
   } else {
-    return execute_circuit<state_t, DerivedState>(circ, shots, state_seed,
+    return execute_circuit<State_t>(circ, shots, state_seed,
                                                   noise_seed, num_threads_state);
   }
 }
