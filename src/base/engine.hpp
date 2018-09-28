@@ -136,7 +136,7 @@ protected:
   using qubit_set_t = Operations::Op::qubit_set_t;
   using SnapshotLabel = std::string;
   using MemoryVal = std::string;
-  using SnapshotStates = Snapshots::Snapshot<SnapshotLabel, state_t, Snapshots::ShotData>;
+  using SnapshotStates = Snapshots::Snapshot<SnapshotLabel, json_t, Snapshots::ShotData>;
   using ProbsKey = std::pair<SnapshotLabel, MemoryVal>;
   using SnapshotProbs = Snapshots::Snapshot<ProbsKey, std::map<std::string, double>, Snapshots::AverageData>;
   using ObsKey = std::pair<SnapshotLabel, MemoryVal>;

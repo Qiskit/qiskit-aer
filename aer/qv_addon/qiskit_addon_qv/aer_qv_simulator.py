@@ -58,8 +58,9 @@ class AerQvSimulator(BaseBackend):
 
     def _run_job(self, qobj):
         self._validate(qobj)
-        qobj_str = json.dumps(qobj_to_dict(qobj), cls=SimulatorJSONEncoder)
-        output = json.loads(self.simulator.execute(qobj_str))
+        qobj_str = json.dumps(qobj_to_dict(qobj), cls=QvSimulatorJSONEncoder)
+        output = json.loads(self.simulator.execute(qobj_str),
+                            cls=QvSimulatorJSONDecoder)
         # Add result metadata
         output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
         output["job_id"] = str(uuid.uuid4())
@@ -74,16 +75,16 @@ class AerQvSimulator(BaseBackend):
         return Result(qobj_result, experiment_names=experiment_names)
 
     def load_noise_model(self, noise_model):
-        self.simulator.load_noise_model(json.dumps(noise_model, cls=SimulatorJSONEncoder))
+        self.simulator.load_noise_model(json.dumps(noise_model, cls=QvSimulatorJSONEncoder))
 
     def clear_noise_model(self):
         self.simulator.clear_noise_model()
 
     def load_config(self, engine=None, state=None):
         if engine is not None:
-            self.simulator.load_engine_config(json.dumps(engine, cls=SimulatorJSONEncoder))
+            self.simulator.load_engine_config(json.dumps(engine, cls=QvSimulatorJSONEncoder))
         if state is not None:
-            self.simulator.load_state_config(json.dumps(state, cls=SimulatorJSONEncoder))
+            self.simulator.load_state_config(json.dumps(state, cls=QvSimulatorJSONEncoder))
 
     def set_max_threads_shot(self, threads):
         """
@@ -127,7 +128,7 @@ class AerQvSimulator(BaseBackend):
         return
 
 
-class SimulatorJSONEncoder(json.JSONEncoder):
+class QvSimulatorJSONEncoder(json.JSONEncoder):
     """
     JSON encoder for NumPy arrays and complex numbers.
 
@@ -144,3 +145,46 @@ class SimulatorJSONEncoder(json.JSONEncoder):
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
         return json.JSONEncoder.default(self, obj)
+
+
+class QvSimulatorJSONDecoder(json.JSONDecoder):
+    """
+    JSON decoder for the output with complex vector snapshots.
+
+    This converts complex vectors and matrices into numpy arrays
+    for the following keys.
+    """
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
+    def decode_complex(self, obj):
+        if isinstance(obj, list) and len(obj) == 2:
+            if obj[1] == 0.:
+                obj = obj[0]
+            else:
+                obj = obj[0] + 1j * obj[1]
+        return obj
+
+    def decode_complex_vector(self, obj):
+        if isinstance(obj, list):
+            obj = np.array([self.decode_complex(z) for z in obj], dtype=complex)
+        return obj
+
+    # pylint: disable=method-hidden
+    def object_hook(self, obj):
+        """Special decoding rules for simulator output."""
+
+        # Decode snapshots
+        if 'snapshots' in obj:
+            # Decode state
+            if 'state' in obj['snapshots']:
+                for key in obj['snapshots']['state']:
+                    tmp = [self.decode_complex_vector(vec)
+                           for vec in obj['snapshots']['state'][key]]
+                    obj['snapshots']['state'][key] = tmp
+            # Decode observables
+            if 'observables' in obj['snapshots']:
+                for key in obj['snapshots']['observables']:
+                    for j, val in enumerate(obj['snapshots']['observables'][key]):
+                        obj['snapshots']['observables'][key][j]['value'] = self.decode_complex(val['value'])
+        return obj
