@@ -28,15 +28,13 @@ from qiskit_addon_qv import __path__ as main_path
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
-    # Main path:    qiskit-addon-qv
     MAIN = main_path[0]
-    # test path: qiskit-addon-qv/test
     TEST = os.path.dirname(__file__)
     # Examples path:    examples/
     EXAMPLES = os.path.join(MAIN, '../examples')
 
 
-class QiskitQvTestCase(unittest.TestCase):
+class QiskitAerTestCase(unittest.TestCase):
     """Helper class that contains common functionality."""
 
     @classmethod
@@ -63,12 +61,6 @@ class QiskitQvTestCase(unittest.TestCase):
             level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'),
                                              logging.INFO)
             cls.log.setLevel(level)
-
-    def tearDown(self):
-        # Reset the default provider, as in practice it acts as a singleton
-        # due to importing the wrapper from qiskit.
-        from qiskit.wrapper import _wrapper
-        _wrapper._DEFAULT_PROVIDER = DefaultQISKitProvider()
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
@@ -114,7 +106,6 @@ class QiskitQvTestCase(unittest.TestCase):
         Raises:
             TypeError: raises TestCase failureException if the test fails.
         """
-        # pylint: disable=invalid-name
         if dict1 == dict2:
             # Shortcut
             return
@@ -206,79 +197,6 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
 
             self._raiseFailure(msg)
 
-
-def slow_test(func):
-    """
-    Decorator that signals that the test takes minutes to run.
-
-    Args:
-        func (callable): test function to be decorated.
-
-    Returns:
-        callable: the decorated function.
-    """
-
-    @functools.wraps(func)
-    def _(*args, **kwargs):
-        if SKIP_SLOW_TESTS:
-            raise unittest.SkipTest('Skipping slow tests')
-        return func(*args, **kwargs)
-
-    return _
-
-
-def requires_qe_access(func):
-    """
-    Decorator that signals that the test uses the online API:
-        * determines if the test should be skipped by checking environment
-            variables.
-        * if the test is not skipped, it reads `QE_TOKEN` and `QE_URL` from
-            `Qconfig.py` or from environment variables.
-        * if the test is not skipped, it appends `QE_TOKEN` and `QE_URL` as
-            arguments to the test function.
-    Args:
-        func (callable): test function to be decorated.
-
-    Returns:
-        callable: the decorated function.
-    """
-
-    @functools.wraps(func)
-    def _(*args, **kwargs):
-        # pylint: disable=invalid-name
-        if SKIP_ONLINE_TESTS:
-            raise unittest.SkipTest('Skipping online tests')
-
-        # Try to read the variables from Qconfig.
-        try:
-            import Qconfig
-            QE_TOKEN = Qconfig.APItoken
-            QE_URL = Qconfig.config['url']
-            QE_HUB = Qconfig.config.get('hub')
-            QE_GROUP = Qconfig.config.get('group')
-            QE_PROJECT = Qconfig.config.get('project')
-        except ImportError:
-            # Try to read them from environment variables (ie. Travis).
-            QE_TOKEN = os.getenv('QE_TOKEN')
-            QE_URL = os.getenv('QE_URL')
-            QE_HUB = os.getenv('QE_HUB')
-            QE_GROUP = os.getenv('QE_GROUP')
-            QE_PROJECT = os.getenv('QE_PROJECT')
-        if not QE_TOKEN or not QE_URL:
-            raise Exception(
-                'Could not locate a valid "Qconfig.py" file nor read the QE '
-                'values from the environment')
-
-        kwargs['QE_TOKEN'] = QE_TOKEN
-        kwargs['QE_URL'] = QE_URL
-        kwargs['hub'] = QE_HUB
-        kwargs['group'] = QE_GROUP
-        kwargs['project'] = QE_PROJECT
-        return func(*args, **kwargs)
-
-    return _
-
-
 def _is_ci_fork_pull_request():
     """
     Check if the tests are being run in a CI environment and if it is a pull
@@ -338,7 +256,3 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
         op(circuit, *angles, *qubits)
 
     return circuit
-
-
-SKIP_ONLINE_TESTS = os.getenv('SKIP_ONLINE_TESTS', _is_ci_fork_pull_request())
-SKIP_SLOW_TESTS = os.getenv('SKIP_SLOW_TESTS', True) not in ['false', 'False', '-1']
