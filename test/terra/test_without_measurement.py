@@ -32,13 +32,10 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         # !!!  Replace with register(provider_class=AerQvProvider)
         # Restricted to 2 qubits until Issue #46 is solved
         self._number_of_qubits = 2
-        
 
-    def single_circuit_test(self, circuit):     
-        """Test the final statevector in circuits whose simulation is deterministic, i.e., contain no measurement or noise"""
 
-        # ***
-        # !!!  Add circuit.state_snapshot('final')
+    def get_qv_snapshot(self, circuit):
+        """Run the qv simulator and return the final state"""
 
         exception_msg = self.generate_circuit_exception_msg(circuit)
 
@@ -56,11 +53,32 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         # The following lines are needed because the statevector represents complex numbers by a pair of real numbers.
         # See Issue #46.
         vector_qv = [np.complex(real, imag) for [real, imag] in vector_qv_raw[0]]
-        
-        # Compare with the result of the Python simulator
+
+        return vector_qv
+
+
+    def get_py_snapshot(self, circuit):
+        """Run the Python simulator and return the final state"""
+
+        exception_msg = self.generate_circuit_exception_msg(circuit)
+
         result_py = execute(circuit, backend='local_statevector_simulator_py').result()
         self.assertEqual(result_py.get_status(), 'COMPLETED', msg=exception_msg)
         vector_py = result_py.get_statevector()
+
+        return vector_py
+        
+
+    def single_circuit_test(self, circuit):     
+        """Test the final statevector in circuits whose simulation is deterministic, i.e., contain no measurement or noise"""
+
+        # ***
+        # !!!  Add circuit.state_snapshot('final')
+
+        exception_msg = self.generate_circuit_exception_msg(circuit)
+
+        vector_qv = self.get_qv_snapshot(circuit)
+        vector_py = self.get_py_snapshot(circuit)
 
         # Verify the same statevector
         # for the Python and Aer simulators
