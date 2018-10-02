@@ -23,7 +23,7 @@ from qiskit_addon_qv import AerQvSimulator
 # !!!  Replace with  from qiskit_addon_qv import AerQvProvider
 
 
-class QvNoMeasurementTest(common.QiskitQvTestCase):
+class QvNoMeasurementTest(common.QiskitAerTestCase):
     """Test the final statevector in circuits whose simulation is deterministic, i.e., contain no measurement or noise"""
 
     def setUp(self):        
@@ -49,7 +49,7 @@ class QvNoMeasurementTest(common.QiskitQvTestCase):
         self.assertEqual(result_qv.get_status(), 'COMPLETED')
         # ***
         vector_qv_raw = result_qv.get_snapshots()['state']['final']
-        # !!!  Replace with vector_qv = result_qv.get_state__snapshot(slot='final')
+        # !!!  Replace with vector_qv = result_qv.get_state_snapshot(slot='final')
 
         # The following lines are needed because the statevector represents complex numbers by a pair of real numbers.
         # See Issue #46.
