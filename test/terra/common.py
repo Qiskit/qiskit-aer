@@ -172,6 +172,22 @@ class QiskitAerTestCase(unittest.TestCase):
         raise self.failureException(msg)
 
 
+    def generate_circuit_exception_msg(self, circuit):
+        '''
+        Generate a string, which can be appendede to exception messages,
+        to provide information about the circuit that triggered the exception
+
+        Args:
+            circuit (QuantumCircuit): a quantum circuit.
+
+        Returns:
+            a string.
+        '''
+
+        return '\n Circuit that triggered the exception: \n' + circuit.qasm()
+        
+
+
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
     """A context manager used to implement TestCase.assertNoLogs()."""
 

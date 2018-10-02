@@ -46,7 +46,7 @@ class TestSimple(common.QiskitAerTestCase):
             '0x1': qobj.config.shots/2
         }
         threshold = 0.04 * qobj.config.shots
-        self.assertDictAlmostEqual(counts, target, threshold)
+        self.assertDictAlmostEqual(counts, target, threshold, msg=self.generate_circuit_exception_msg(q_circuit))
 
 if __name__ == '__main__':
     unittest.main()

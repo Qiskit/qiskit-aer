@@ -40,13 +40,15 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         # ***
         # !!!  Add circuit.state_snapshot('final')
 
+        exception_msg = self.generate_circuit_exception_msg(circuit)
+
         # ***
         qobj_dict_qv = compile(circuit, backend=self.backend_qv, shots=1).as_dict()
         qobj_dict_qv['experiments'][0]['instructions'].append({'name': 'snapshot', 'type': 'state', 'label': 'final'})
         qobj_qv = Qobj.from_dict(qobj_dict_qv)
         result_qv = self.backend_qv.run(qobj_qv).result()
         # !!!  Replace with  result_qv = execute(circuit, backend='local_qv_simulator').result()        
-        self.assertEqual(result_qv.get_status(), 'COMPLETED')
+        self.assertEqual(result_qv.get_status(), 'COMPLETED', msg=exception_msg)
         # ***
         vector_qv_raw = result_qv.get_snapshots()['state']['final']
         # !!!  Replace with vector_qv = result_qv.get_state_snapshot(slot='final')
@@ -57,13 +59,13 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         
         # Compare with the result of the Python simulator
         result_py = execute(circuit, backend='local_statevector_simulator_py').result()
-        self.assertEqual(result_py.get_status(), 'COMPLETED')
+        self.assertEqual(result_py.get_status(), 'COMPLETED', msg=exception_msg)
         vector_py = result_py.get_statevector()
 
         # Verify the same statevector
         # for the Python and Aer simulators
         for a, b in zip(vector_qv, vector_py):
-            self.assertAlmostEqual(a, b)
+            self.assertAlmostEqual(a, b, msg=exception_msg)
 
 
     def test_random_circuits(self):
