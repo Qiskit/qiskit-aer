@@ -90,6 +90,14 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         for _ in repeat(None, 30):
             circuit = common.generate_random_circuit(6, 4, ['u1', 'u2', 'u3', 'iden', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg', 'cx', 'cz'])
             self.single_circuit_test(circuit)
+
+
+    def test_bell(self):
+        q = QuantumRegister(2)
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cx(q[0], q[1])
+        self.single_circuit_test(circuit)
         
 
 if __name__ == '__main__':
