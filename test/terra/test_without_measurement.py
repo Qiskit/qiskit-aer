@@ -77,10 +77,11 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         return vector_py
 
 
-    def single_circuit_test(self, circuit):
+    def single_circuit_helper_function(self, circuit):
         '''
-        Test the final statevector in circuits whose simulation is deterministic,
-        i.e., contain no measurement or noise
+        A helper function, to be called from tests.
+        Given a circuit, this function runs the aer and Python simulators,
+        and compares the resulting statevectors.
         '''
 
         # ***
@@ -107,7 +108,7 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
                                                      ['u1', 'u2', 'u3', 'iden', 'x',
                                                       'y', 'z', 'h', 's', 'sdg',
                                                       't', 'tdg', 'cx', 'cz'])
-            self.single_circuit_test(circuit)
+            self.single_circuit_helper_function(circuit)
 
 
     def test_bell(self):
@@ -119,7 +120,7 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         circuit = qiskit.QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
-        self.single_circuit_test(circuit)
+        self.single_circuit_helper_function(circuit)
 
 
 if __name__ == '__main__':
