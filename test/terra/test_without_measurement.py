@@ -59,13 +59,8 @@ class QvNoMeasurementTest(common.QiskitAerTestCase):
         #      result_qv = qiskit.execute(circuit, backend='local_qv_simulator').result()
         self.assertEqual(result_qv.get_status(), 'COMPLETED', msg=exception_msg)
         # ***
-        vector_qv_raw = result_qv.get_snapshots()['state']['final']
+        vector_qv = result_qv.get_snapshots()['state']['final'][0]
         # !!!  Replace with vector_qv = result_qv.get_state_snapshot(slot='final')
-
-        # The following lines are needed because the statevector represents
-        # complex numbers by a pair of real numbers.
-        # See Issue #46.
-        vector_qv = [np.complex(real, imag) for [real, imag] in vector_qv_raw[0]]
 
         return vector_qv
 
