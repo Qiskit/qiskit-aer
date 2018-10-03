@@ -25,7 +25,7 @@ SCENARIO("We can get snapshots from different simulator types") {
         qobj_snapshots["matrix"] =
             AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_matrix.json");
 
-        using State = AER::QubitVector::State<QV::QubitVector>;
+        using State = AER::QubitVector::State<QV::QubitVector<>>;
         AER::Base::Controller sim{};
 
         WHEN("we get the expected results"){
@@ -35,7 +35,7 @@ SCENARIO("We can get snapshots from different simulator types") {
                 "middle":[[[0.7071067811865476,0.0],[0.7071067811865475,0.0],[0.0,0.0],[0.0,0.0]]]
             })"_json;
             THEN("the state simulator should pass"){
-                auto result = sim.execute<QV::QubitVector, State>(qobj_snapshots["state"]);
+                auto result = sim.execute<QV::QubitVector<>, State>(qobj_snapshots["state"]);
                 result = result["result"][0]["data"]["snapshots"]["state"];
                 REQUIRE(result == expected_result);
             }
