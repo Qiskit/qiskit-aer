@@ -58,6 +58,7 @@ set_target_properties(aer_simulator_cpp PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
+enable_cxx_compiler_flag_if_supported("-ffast-math")
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deplyment target" to 10.7
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
@@ -140,6 +141,10 @@ endif()
 #get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
 #message(STATUS "OpenMP = ${KK}")
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+	enable_cxx_compiler_flag_if_supported("-mcpu=native")
+endif()
+
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
@@ -150,12 +155,17 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 message(STATUS "Lookgin for OpenBLAS library...")
-set(BLA_VENDOR "OpenBLAS")
-find_package(BLAS QUIET)
-if(NOT BLAS_FOUND)
-	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
-	unset(BLA_VENDOR)
-	find_package(BLAS REQUIRED)
+
+if(APPLE)
+	enable_cxx_compiler_flag_if_supported("-framework Accelerate")
+else()
+	set(BLA_VENDOR "OpenBLAS")
+	find_package(BLAS QUIET)
+	if(NOT BLAS_FOUND)
+		message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
+		unset(BLA_VENDOR)
+		find_package(BLAS REQUIRED)
+	endif()
 endif()
 
 # Set dependent libraries
