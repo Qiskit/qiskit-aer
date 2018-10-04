@@ -21,6 +21,7 @@ from qiskit.qobj import qobj_to_dict
 from qiskit.result._result import Result
 from .aerjob import AerJob
 from .simulatortools import AerJSONEncoder
+from .aersimulatorerror import AerSimulatorError
 from qv_wrapper import QvSimulatorWrapper
 
 # Logger
@@ -71,6 +72,11 @@ class QasmSimulator(BaseBackend):
         return Result(qobj_result, experiment_names=experiment_names)
 
     def set_noise_model(self, noise_model):
+        if not isinstance(noise_model, dict):
+            try:
+                noise_model = noise_model.as_dict()
+            except:
+                raise AerSimulatorError("Noise model must be a dict or NoiseModel object.")
         self.simulator.set_noise_model(json.dumps(noise_model, cls=AerJSONEncoder))
 
     def clear_noise_model(self):
