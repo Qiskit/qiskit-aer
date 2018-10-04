@@ -339,7 +339,7 @@ void Engine::apply_roerror(const Operations::Op &op, RngEngine &rng) {
   std::string mem_str;
   // Get values of bits as binary string
   // We iterate from the end of the list of memory bits
-  for (auto it = op.memory.rbegin(); it < op.memory.rend();) {
+  for (auto it = op.memory.rbegin(); it < op.memory.rend(); ++it) {
     mem_str.push_back(creg_memory_[*it]);
   }
   auto mem_val = std::stoull(mem_str, nullptr, 2);
