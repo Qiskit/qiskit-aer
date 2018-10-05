@@ -142,12 +142,6 @@ endif()
 #get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
 #message(STATUS "OpenMP = ${KK}")
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
-	enable_cxx_compiler_flag_if_supported("-mcpu=native")
-else()
-	enable_cxx_compiler_flag_if_supported("-march=native")
-endif()
-
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 
