@@ -2,11 +2,8 @@
 Cython quantum circuit simulator.
 """
 
-import sys
-import os
 import json
 import logging
-import warnings
 import datetime
 import uuid
 import numpy as np
@@ -14,10 +11,9 @@ import numpy as np
 # Import qiskit classes
 import qiskit
 from qiskit.backends import BaseBackend
-from qiskit.backends.local.localjob import LocalJob
+from qiskit.backends.aer.aerjob import AerJob
 from qiskit.qobj import qobj_to_dict
 from qiskit.result._result import Result
-from qiskit.result._utils import copy_qasm_from_qobj_into_result
 
 # Import Simulator tools
 from aer_qv_wrapper import AerQvSimulatorWrapper
@@ -39,31 +35,26 @@ class AerQvSimulator(BaseBackend):
         "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
     }
 
-    def __init__(self, configuration=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy())
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         provider=provider)
         self.simulator = AerQvSimulatorWrapper()
 
     def run(self, qobj):
-        """Run qobj asynchronously.
+        """Run a qobj on the backend."""
+        job_id = str(uuid.uuid4())
+        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job.submit()
+        return aer_job
 
-        Args:
-            qobj (dict): job description
-
-        Returns:
-            LocalJob: derived from BaseJob
-        """
-        local_job = LocalJob(self._run_job, qobj)
-        local_job.submit()
-        return local_job
-
-    def _run_job(self, qobj):
+    def _run_job(self, job_id, qobj):
         self._validate(qobj)
         qobj_str = json.dumps(qobj_to_dict(qobj), cls=QvSimulatorJSONEncoder)
         output = json.loads(self.simulator.execute(qobj_str),
                             cls=QvSimulatorJSONDecoder)
         # Add result metadata
+        output["job_id"] = job_id
         output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        output["job_id"] = str(uuid.uuid4())
         output["backend_name"] = self.DEFAULT_CONFIGURATION['name']
         output["backend_version"] = "0.0.1"  # TODO: get this from somewhere else
         # Parse result dict into Result class
