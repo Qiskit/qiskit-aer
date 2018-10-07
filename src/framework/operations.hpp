@@ -106,7 +106,7 @@ inline void check_qubits(const reg_t &qubits) {
 // Generator functions
 //------------------------------------------------------------------------------
 
-Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
   op.name = "mat";
@@ -115,64 +115,64 @@ Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
   if (label != "")
     op.string_params = {label};
   return op;
-};
+}
 
 template <typename T> // real or complex numeric type
-Op make_u1(uint_t qubit, T lam) {
+inline Op make_u1(uint_t qubit, T lam) {
   Op op;
   op.type = OpType::gate;
   op.name = "u1";
   op.qubits = {qubit};
   op.params = {lam};
   return op;
-};
+}
 
 template <typename T> // real or complex numeric type
-Op make_u2(uint_t qubit, T phi, T lam) {
+inline Op make_u2(uint_t qubit, T phi, T lam) {
   Op op;
   op.type = OpType::gate;
   op.name = "u2";
   op.qubits = {qubit};
   op.params = {phi, lam};
   return op;
-};
+}
 
 template <typename T> // real or complex numeric type
-Op make_u3(uint_t qubit, T theta, T phi, T lam) {
+inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   Op op;
   op.type = OpType::gate;
   op.name = "u3";
   op.qubits = {qubit};
   op.params = {theta, phi, lam};
   return op;
-};
+}
 
-Op make_reset(const reg_t & qubits, uint_t state = 0) {
+inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   Op op;
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
   op.params = {static_cast<double>(state)};
   return op;
-};
+}
 
-Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
   op.qubits = qubits;
   op.mats = mats;
   return op;
-};
+}
 
-Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
+inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
   Op op;
   op.type = OpType::roerror;
   op.name = "roerror";
   op.memory = memory;
   op.probs = probs;
   return op;
-};
+}
 
 //------------------------------------------------------------------------------
 // JSON conversion

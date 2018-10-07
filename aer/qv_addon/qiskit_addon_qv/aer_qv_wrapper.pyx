@@ -5,14 +5,12 @@ Cython interface to C++ quantum circuit simulator.
 # Import C++ Classes
 from libcpp.string cimport string
 
-# QubitVector State class
-cdef extern from "simulators/qubitvector/qubitvector.hpp" namespace "QV":
-    cdef cppclass QubitVector:
-        State() except +
 
 # QubitVector State class
 cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVector":
-    cdef cppclass State[QubitVector]:
+    cdef cppclass QubitVector:
+        QubitVector() except +
+    cdef cppclass State[T=*]:
         State() except +
 
 
@@ -20,7 +18,7 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
 cdef extern from "framework/interface.hpp" namespace "AER":
     cdef cppclass Interface:
         Interface() except+
-        string execute[STATE, STATECLASS](string &qobj) except +
+        string execute[STATE](string &qobj) except +
 
         void load_noise_model(string &qobj) except +
         void load_engine_config(string &qobj) except +
@@ -51,7 +49,7 @@ cdef class AerQvSimulatorWrapper:
     def execute(self, qobj):
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
-        return self.iface.execute[QubitVector, State[QubitVector]](qobj_enc)
+        return self.iface.execute[State](qobj_enc)
         # Execute
 
     def load_noise_model(self, config):
@@ -73,7 +71,6 @@ cdef class AerQvSimulatorWrapper:
         self.iface.clear_noise_model()
 
     def clear_state_config(self):
-
         self.iface.clear_state_config()
 
     def clear_engine_config(self):

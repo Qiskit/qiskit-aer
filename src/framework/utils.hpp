@@ -554,7 +554,7 @@ bool is_unitary(const matrix<T> &mat, double threshold) {
   // Check if diagonal row-matrix
   if (nrows == 1) {
     for (size_t j=0; j < ncols; j++) {
-      bool delta = std::abs(1.0 - std::real(std::abs(mat(0, j))));
+      double delta = std::abs(1.0 - std::real(std::abs(mat(0, j))));
       if (delta > threshold)
         return false;
     }
