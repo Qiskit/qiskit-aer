@@ -58,14 +58,12 @@ set_target_properties(aer_simulator_cpp PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
-enable_cxx_compiler_flag_if_supported("-ffast-math")
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deplyment target" to 10.7
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
 	# use C++11/14
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
-	enable_cxx_compiler_flag_if_supported("-framework Accelerate")
 endif()
 
 if(STATIC_LINKING)
@@ -88,6 +86,7 @@ if(STATIC_LINKING)
 endif()
 
 if(NOT MSVC)
+	enable_cxx_compiler_flag_if_supported("-ffast-math")
 	# Warnings and Errors
 	enable_cxx_compiler_flag_if_supported("-pedantic")
 	enable_cxx_compiler_flag_if_supported("-Wall")
@@ -127,10 +126,7 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 
 				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-				# Create OpenMP::OpenMP_CXX target
-				add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
-				set_property(TARGET OpenMP::OpenMP_CXX PROPERTY
-					INTERFACE_LINK_LIBRARIES "${OpenMP_omp_LIBRARY}")
+				set(OPENMP_EXTERNAL_LIB "${OpenMP_omp_LIBRARY}")
 				message(STATUS "OpenMP found!")
 			endif()
 		else()
@@ -138,9 +134,6 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 		endif()
 	endif()
 endif()
-
-#get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
-#message(STATUS "OpenMP = ${KK}")
 
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
@@ -158,7 +151,6 @@ if(APPLE)
 else()
     set(BLA_VENDOR "OpenBLAS")
 endif()
-find_package(BLAS QUIET)
 
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
@@ -169,7 +161,7 @@ endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
-		OpenMP::OpenMP_CXX
+		${OPENMP_EXTERNAL_LIB}
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 	    Threads::Threads)
