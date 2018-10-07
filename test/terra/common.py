@@ -22,7 +22,6 @@ from random import choice, sample
 from math import pi
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.wrapper.defaultqiskitprovider import DefaultQISKitProvider
 from qiskit_addon_qv import __path__ as main_path
 
 
