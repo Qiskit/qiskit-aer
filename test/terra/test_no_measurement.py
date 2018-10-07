@@ -5,11 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-
-# This file will be modified when the QCircuit interface is updated with new simulator commands (Issue #10).
-# Thoughout, code segments that are to be removed in this change are surrounded with *** and !!!
-
-
 import test.terra.common as common
 import unittest
 
@@ -17,7 +12,6 @@ import qiskit.extensions.simulator
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute)
 from qiskit_addon_qv import AerQvSimulator
 from qiskit.tools.qi.qi import state_fidelity
-
 
 
 class NoMeasurementTest(common.QiskitAerTestCase):
@@ -30,6 +24,7 @@ class NoMeasurementTest(common.QiskitAerTestCase):
         # !!!  Replace with register(provider_class=AerQvProvider)
 
     def test_qv_snapshot(self):
+        """ Test QV snapshot instruction """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         circuit = QuantumCircuit(qr, cr)

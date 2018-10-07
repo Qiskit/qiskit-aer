@@ -6,25 +6,19 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-# This file will be modified when the QCircuit interface is updated with new simulator commands (Issue #10).
-# Thoughout, code segments that are to be removed in this change are surrounded with *** and !!!
-
-
 import test.terra.common as common
 import unittest
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
                     compile, execute)
-# ***
 from qiskit_addon_qv import AerQvSimulator
-# !!!  Replace with  from qiskit_addon_qv import AerQvProvider
 
 
 class TestSimple(common.QiskitAerTestCase):
     """Simple integrations tests"""
     def setUp(self):
-        # ***
         self.qv_backend = AerQvSimulator()
+
 
     def test_simple_cricuit_execution(self):
         """Test the result of executing a simple H"""
