@@ -87,6 +87,11 @@ endif()
 
 if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-ffast-math")
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+		# PowerPC builds are not meant to be redistributable, we build them
+		# in place, so we can have CPU = native.
+		enable_cxx_compiler_flag_if_supported("-mcpu=native")
+	endif()
 	# Warnings and Errors
 	enable_cxx_compiler_flag_if_supported("-pedantic")
 	enable_cxx_compiler_flag_if_supported("-Wall")
