@@ -86,8 +86,12 @@ if(STATIC_LINKING)
 endif()
 
 if(NOT MSVC)
-	# Compiler flags
-	enable_cxx_compiler_flag_if_supported("-O3")
+	enable_cxx_compiler_flag_if_supported("-ffast-math")
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+		# PowerPC builds are not meant to be redistributable, we build them
+		# in place, so we can have CPU = native.
+		enable_cxx_compiler_flag_if_supported("-mcpu=native")
+	endif()
 	# Warnings and Errors
 	enable_cxx_compiler_flag_if_supported("-pedantic")
 	enable_cxx_compiler_flag_if_supported("-Wall")
@@ -127,10 +131,7 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 
 				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-				# Create OpenMP::OpenMP_CXX target
-				add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
-				set_property(TARGET OpenMP::OpenMP_CXX PROPERTY
-					INTERFACE_LINK_LIBRARIES "${OpenMP_omp_LIBRARY}")
+				set(OPENMP_EXTERNAL_LIB "${OpenMP_omp_LIBRARY}")
 				message(STATUS "OpenMP found!")
 			endif()
 		else()
@@ -138,9 +139,6 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 		endif()
 	endif()
 endif()
-
-#get_property(KK TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES )
-#message(STATUS "OpenMP = ${KK}")
 
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
@@ -152,7 +150,13 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 message(STATUS "Lookgin for OpenBLAS library...")
-set(BLA_VENDOR "OpenBLAS")
+
+if(APPLE)
+    set(BLA_VENDOR "Apple")
+else()
+    set(BLA_VENDOR "OpenBLAS")
+endif()
+
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
 	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
@@ -162,7 +166,7 @@ endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
-		OpenMP::OpenMP_CXX
+		${OPENMP_EXTERNAL_LIB}
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 	    Threads::Threads)

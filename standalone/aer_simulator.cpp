@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
     using namespace AER;
-    using State = QubitVector::State<QV::QubitVector>;       // State class
+    using State = QubitVector::State<>;       // State class
 
     // Initialize simulator
     Base::Controller sim;
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
       sim.load_noise_model(noise_model);
     } 
 
-    out << sim.execute<QV::QubitVector, State>(qobj).dump(4) << std::endl;
+    out << sim.execute<State>(qobj).dump(4) << std::endl;
 
     return 0;
   } catch (std::exception &e) {

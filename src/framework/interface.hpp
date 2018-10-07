@@ -24,10 +24,10 @@ public:
   //-----------------------------------------------------------------------
 
   // Execute from string to string
-  template <class state_t, class DerivedState>
+  template <class State_t>
   inline std::string execute(const std::string &qobj_str) {
-    return controller_.execute<state_t, DerivedState>(json_t::parse(qobj_str)).dump(-1);
-  };
+    return controller_.execute<State_t>(json_t::parse(qobj_str)).dump(-1);
+  }
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -36,32 +36,32 @@ public:
   // Load controller config from string
   inline void load_noise_model(const std::string &config) {
     controller_.load_noise_model(json_t::parse(config));
-  };
+  }
 
   // Load controller config from string
   inline void load_state_config(const std::string &config) {
     controller_.load_state_config(json_t::parse(config));
-  };
+  }
 
   // Load engine config from string
   inline void load_engine_config(const std::string &config) {
     controller_.load_engine_config(json_t::parse(config));
-  };
+  }
 
   // Load controller config from string
   inline void clear_noise_model() {
     controller_.clear_noise_model();
-  };
+  }
 
   // Load controller config from string
   inline void clear_state_config() {
     controller_.clear_state_config();
-  };
+  }
 
   // Load engine config from string
   inline void clear_engine_config() {
     controller_.clear_engine_config();
-  };
+  }
 
   //-----------------------------------------------------------------------
   // OpenMP Parallelization settings

@@ -221,7 +221,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng) const {
           break;
         // Switch noise on or off during current circuit sample
         case Operations::OpType::noise_switch:
-          noise_active = std::real(op.params[0]);
+          noise_active = static_cast<int>(std::real(op.params[0]));
           break;
         default:
           if (noise_active) {
@@ -618,7 +618,7 @@ void NoiseModel::load_from_json(const json_t &js) {
   }
 }
 
-void from_json(const json_t &js, NoiseModel &model) {
+inline void from_json(const json_t &js, NoiseModel &model) {
   model = NoiseModel(js);
 }
 

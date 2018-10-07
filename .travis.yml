@@ -1,0 +1,30 @@
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+language: python
+python:
+  - "3.6"
+os: linux
+dist: trusty
+
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get -y update
+  - sudo apt-get -y install g++-7
+  - sudo apt-get -y install cmake
+  - sudo apt-get -y install libopenblas-dev
+
+install:
+  - pip install -r aer/qv_addon/requirements-dev.txt
+
+before_script:
+  - mkdir out
+  - cd out
+  - cmake .. -DCMAKE_CXX_COMPILER=g++-7
+
+script:
+  - cmake --build . -- -j4
+  - cd ../aer/qv_addon
+  - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4

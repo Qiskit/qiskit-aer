@@ -103,7 +103,7 @@ KrausError::NoiseOps KrausError::sample_noise(const reg_t &qubits,
       // We shouldn't get here, but just in case...
       throw std::invalid_argument("KrausError type is out of range.");
   }
-};
+}
 
 
 void KrausError::set_probabilities(double p_identity, double p_unitary, double p_kraus) {

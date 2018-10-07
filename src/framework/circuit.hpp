@@ -104,7 +104,7 @@ void Circuit::set_sizes() {
 }
 
 
-Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {};
+Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
 
 Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
 
