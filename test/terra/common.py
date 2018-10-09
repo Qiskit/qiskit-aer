@@ -9,20 +9,19 @@
 Shared functionality and helpers for the unit tests.
 """
 
-#pylint disable=eval-used
-
 from enum import Enum
+
 import inspect
 import logging
 import os
 import unittest
 from unittest.util import safe_repr
+import numpy as np
 from itertools import repeat
 from random import choice, sample
 from math import pi
-import numpy as np
 
-from qiskit import (QuantumRegister, QuantumCircuit)
+from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit_addon_qv import __path__ as main_path
 
 
@@ -170,22 +169,6 @@ class QiskitAerTestCase(unittest.TestCase):
 
         msg = self._formatMessage(msg, standard_msg)
         raise self.failureException(msg)
-
-
-    def generate_circuit_exception_msg(self, circuit):
-        '''
-        Generate a string, which can be appendede to exception messages,
-        to provide information about the circuit that triggered the exception
-
-        Args:
-            circuit (QuantumCircuit): a quantum circuit.
-
-        Returns:
-            string: an exceotion message.
-        '''
-
-        return '\n Circuit that triggered the exception: \n' + circuit.qasm()
-
 
 
 class _AssertNoLogsContext(unittest.case._AssertLogsContext):
