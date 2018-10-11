@@ -59,18 +59,15 @@ set_target_properties(aer_simulator_cpp PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deplyment target" to 10.7
+	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deployment target" to 10.7
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
 	# use C++11/14
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
+	# We are forcing deployment target by command line parameter: --plat-name macosx-10.9-x86_64
+	set(CMAKE_OSX_DEPLOYMENT_TARGET “10.7” CACHE STRING “” FORCE)
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
 endif()
 
 if(STATIC_LINKING)
-	# Hack: Seems like enable_cxx_compiler_flag_if_supported() is not properly
-	# working on MacOS, when a flag is not supported, it cascades errors
-	# to the rest of the flags being tested... and -static compilation on Mac
-	# with gcc is failing
 	if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
 		unset(STATIC_LINKING)
@@ -107,6 +104,13 @@ endif()
 
 target_include_directories(aer_simulator_cpp PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 
+if(STATIC_LINKING)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    if(WIN32)
+        SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
+endif()
+
 # Looking for external libraries
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
@@ -114,30 +118,35 @@ find_package(OpenMP QUIET)
 # NOTE: CMake >= 3.12.0 doesn't need this hack. It will just find OpenMP in the
 # first find_package(OpenMP) call
 if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
-	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7")
-		message(STATUS "AppleClang >= 7.0 detected, adding OpenMP. Disable with -DAPPLE_OMP_AUTOADD=OFF")
-		find_program(BREW NAMES brew)
-		if(BREW)
-			execute_process(COMMAND ${BREW} ls libomp RESULT_VARIABLE BREW_RESULT_CODE OUTPUT_QUIET ERROR_QUIET)
-			if(BREW_RESULT_CODE)
-				message(STATUS "This program supports OpenMP on Mac through Brew. Please run \"brew install libomp\"")
-			else()
-				execute_process(COMMAND ${BREW} --prefix libomp OUTPUT_VARIABLE BREW_LIBOMP_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
-				set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
-				set(OpenMP_CXX_LIB_NAMES "omp")
-				set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
-				include_directories("${BREW_LIBOMP_PREFIX}/include")
-				message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
-
-				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-				set(OPENMP_EXTERNAL_LIB "${OpenMP_omp_LIBRARY}")
-				message(STATUS "OpenMP found!")
-			endif()
+	find_program(BREW NAMES brew)
+	if(BREW)
+		execute_process(COMMAND ${BREW} ls libomp RESULT_VARIABLE BREW_RESULT_CODE OUTPUT_QUIET ERROR_QUIET)
+		if(BREW_RESULT_CODE)
+			message(STATUS "This program supports OpenMP on Mac through Brew. Please run \"brew install libomp\"")
 		else()
-			message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
+			execute_process(COMMAND ${BREW} --prefix libomp OUTPUT_VARIABLE BREW_LIBOMP_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+			set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+			set(OpenMP_CXX_LIB_NAMES "omp")
+			set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
+			include_directories("${BREW_LIBOMP_PREFIX}/include")
+			message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
+			set(OPENMP_FOUND TRUE)
 		endif()
+	else()
+		message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
 	endif()
+endif()
+
+if(OPENMP_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	#if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	if(APPLE)
+		# On Apple and clang, we do need to link against the library
+		set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
+		message("Adding Clang: ${OPENMP_EXTERNAL_LIB}")
+	endif()
+	message("OpenMP found!")
 endif()
 
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
@@ -149,11 +158,12 @@ if(STATIC_LINKING)
 	message(STATUS "Setting BLA_STATIC")
 	set(BLA_STATIC TRUE)
 endif()
-message(STATUS "Lookgin for OpenBLAS library...")
 
 if(APPLE)
+	message(STATUS "Looking for Apple BLAS library...")
     set(BLA_VENDOR "Apple")
 else()
+	message(STATUS "Looking for OpenBLAS library...")
     set(BLA_VENDOR "OpenBLAS")
 endif()
 
@@ -163,6 +173,8 @@ if(NOT BLAS_FOUND)
 	unset(BLA_VENDOR)
 	find_package(BLAS REQUIRED)
 endif()
+
+message("BLAS: ${BLAS_LIBRARIES}")
 
 # Set dependent libraries
 set(AER_LIBRARIES
