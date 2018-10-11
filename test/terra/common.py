@@ -16,12 +16,12 @@ import logging
 import os
 import unittest
 from unittest.util import safe_repr
-import numpy as np
 from itertools import repeat
 from random import choice, sample
 from math import pi
+import numpy as np
 
-from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit)
+from qiskit import (QuantumRegister, QuantumCircuit)
 from qiskit_addon_qv import __path__ as main_path
 
 

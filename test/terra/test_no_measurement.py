@@ -5,10 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+"""Test the final statevector in circuits whose simulation is deterministic,
+    i.e., contain no measurement or noise"""
+
 import test.terra.common as common
 import unittest
 
-import qiskit.extensions.simulator
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute)
 from qiskit_addon_qv import AerQvSimulator
 from qiskit.tools.qi.qi import state_fidelity

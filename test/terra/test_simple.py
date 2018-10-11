@@ -9,8 +9,7 @@
 import test.terra.common as common
 import unittest
 
-from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
-                    compile, execute)
+from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute)
 from qiskit_addon_qv import AerQvSimulator
 
 
@@ -29,15 +28,14 @@ class TestSimple(common.QiskitAerTestCase):
         q_circuit.h(q_reg[0])
         q_circuit.measure(q_reg[0], c_reg[0])
 
-        qobj = compile(q_circuit, backend=self.qv_backend, seed=73846087)
-        job = self.qv_backend.run(qobj)
-        result = job.result()
+        shots = 1000
+        result = execute(q_circuit, self.qv_backend, shots=shots).result()
         counts = result.get_counts(q_circuit)
         target = {
-            '0x0': qobj.config.shots/2,
-            '0x1': qobj.config.shots/2
+            '0x0': shots/2,
+            '0x1': shots/2
         }
-        threshold = 0.04 * qobj.config.shots
+        threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
 
