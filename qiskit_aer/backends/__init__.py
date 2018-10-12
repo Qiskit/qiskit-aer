@@ -11,6 +11,7 @@ from .aerprovider import AerProvider
 from .aerjob import AerJob
 from .qasm_simulator import QasmSimulator
 from .statevector_simulator import StatevectorSimulator
+from .unitary_simulator import UnitarySimulator
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name
