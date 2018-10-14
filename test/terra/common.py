@@ -21,7 +21,7 @@ from random import choice, sample
 from math import pi
 import numpy as np
 
-from qiskit import (QuantumRegister, QuantumCircuit)
+from qiskit import (QuantumRegister, QuantumCircuit, compile)
 from qiskit_addon_qv import __path__ as main_path
 
 
@@ -80,6 +80,18 @@ class QiskitAerTestCase(unittest.TestCase):
         """
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
+
+    def compare_circuit_counts(self, circuit, target, shots,
+                               seed=None, threshold=0.04):
+        """Execute and compare circuit counts to target.
+        """
+        qobj = compile(circuit, backend=self.qv_backend,
+                       shots=shots, seed=seed)
+        threshold = threshold * qobj.config.shots
+        job = self.qv_backend.run(qobj)
+        result = job.result()
+        counts = result.get_counts(circuit)
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):
