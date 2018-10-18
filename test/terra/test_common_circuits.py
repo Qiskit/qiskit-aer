@@ -20,7 +20,7 @@ class TestGroverCircuit(common.QiskitAerTestCase):
         self.qv_backend = AerQvSimulator()
 
 
-    def run_circuit(self, circuit, target_distribution, shots, threshold_factor=0.4):
+    def run_circuit(self, circuit, target_distribution, shots, threshold_factor=0.05):
         result = execute(circuit, self.qv_backend, shots=shots).result()
         counts = result.get_counts(circuit)
         target = {base_element: amplitude*shots
@@ -81,7 +81,6 @@ class TestGroverCircuit(common.QiskitAerTestCase):
         c2 = ClassicalRegister(1)
         circuit = QuantumCircuit(qreg, c0, c1, c2)
 
-        circuit.u3(0.3, 0.2, 0.1, qreg[0])
         circuit.h(qreg[1])
         circuit.cx(qreg[1], qreg[2])
         circuit.barrier(qreg)
@@ -94,14 +93,14 @@ class TestGroverCircuit(common.QiskitAerTestCase):
         circuit.measure(qreg[2], c2[0])
 
         target_distribution = {
-            '0x000': 0.25,
-            '0x001': 0.25,
-            '0x010': 0.25,
-            '0x011': 0.25,
-            '0x100': 0,
-            '0x101': 0,
-            '0x110': 0,
-            '0x111': 0
+            '0x0': 0,
+            '0x1': 0,
+            '0x2': 0.25,
+            '0x3': 0.25,
+            '0x4': 0.25,
+            '0x5': 0.25,
+            '0x6': 0,
+            '0x7': 0
         }
 
         self.run_circuit(circuit, target_distribution, shots=1000)
