@@ -13,6 +13,7 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
     cdef cppclass State[T=*]:
         State() except +
 
+10 + 1
 
 # Import C++ simulator Interface class
 cdef extern from "framework/interface.hpp" namespace "AER":
@@ -39,7 +40,7 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         int get_max_threads_state()
 
 
-cdef class AerQvSimulatorWrapper:
+cdef class QvSimulatorWrapper:
 
     cdef Interface iface
 

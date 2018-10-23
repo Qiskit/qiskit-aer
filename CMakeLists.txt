@@ -194,7 +194,7 @@ if(BUILD_TESTS)
 	add_subdirectory(test)
 endif()
 
-# Cyhton build is only enabnled if building through scikit-build.
+# Cython build is only enabled if building through scikit-build.
 if(SKBUILD)
-	add_subdirectory(aer/qv_addon/qiskit_addon_qv)
+	add_subdirectory(aer/qiskit_aer/backends/wrappers)
 endif()

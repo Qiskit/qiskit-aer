@@ -2,10 +2,10 @@ from skbuild import setup
 from setuptools import find_packages
 
 setup(
-    name='qiskit_addon_qv', # This will change once Terra accepts addons
-    packages=['qiskit_addon_qv'],
-    cmake_source_dir='../..',
-    description="AER - QV Quantum Simulator addon for Qiskit",
+    name='qiskit_aer',
+    packages=find_packages(),
+    cmake_source_dir='..',
+    description="Qiskit Aer - High performance simulators for Qiskit",
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
@@ -22,5 +22,5 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering",
     ],
-    keywords="qiskit simulator quantum addon backend"
+    keywords="qiskit aer simulator quantum addon backend"
 )

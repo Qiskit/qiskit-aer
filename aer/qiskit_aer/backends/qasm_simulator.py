@@ -11,22 +11,23 @@ import numpy as np
 # Import qiskit classes
 import qiskit
 from qiskit.backends import BaseBackend
-from qiskit.backends.aer.aerjob import AerJob
 from qiskit.qobj import qobj_to_dict
 from qiskit.result._result import Result
+from .aerjob import AerJob
 
 # Import Simulator tools
-from aer_qv_wrapper import AerQvSimulatorWrapper
+from ._simulatortools import AerJSONEncoder
+from qv_wrapper import QvSimulatorWrapper
 
 # Logger
 logger = logging.getLogger(__name__)
 
 
-class AerQvSimulator(BaseBackend):
-    """Cython quantum circuit simulator"""
+class QasmSimulator(BaseBackend):
+    """Aer quantum circuit simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'local_qv_simulator',
+        'name': 'qasm_simulator',
         'url': 'NA',
         'simulator': True,
         'local': True,
@@ -38,7 +39,7 @@ class AerQvSimulator(BaseBackend):
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
                          provider=provider)
-        self.simulator = AerQvSimulatorWrapper()
+        self.simulator = QvSimulatorWrapper()
 
     def run(self, qobj):
         """Run a qobj on the backend."""
@@ -49,9 +50,9 @@ class AerQvSimulator(BaseBackend):
 
     def _run_job(self, job_id, qobj):
         self._validate(qobj)
-        qobj_str = json.dumps(qobj_to_dict(qobj), cls=QvSimulatorJSONEncoder)
+        qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
         output = json.loads(self.simulator.execute(qobj_str),
-                            cls=QvSimulatorJSONDecoder)
+                            cls=QasmSimulatorJSONDecoder)
         # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
@@ -66,14 +67,14 @@ class AerQvSimulator(BaseBackend):
         return Result(qobj_result, experiment_names=experiment_names)
 
     def set_noise_model(self, noise_model):
-        self.simulator.set_noise_model(json.dumps(noise_model, cls=QvSimulatorJSONEncoder))
+        self.simulator.set_noise_model(json.dumps(noise_model, cls=AerJSONEncoder))
 
     def clear_noise_model(self):
         self.simulator.clear_noise_model()
 
     def set_config(self, config):
-        self.simulator.set_engine_config(json.dumps(config, cls=QvSimulatorJSONEncoder))
-        self.simulator.set_state_config(json.dumps(config, cls=QvSimulatorJSONEncoder))
+        self.simulator.set_engine_config(json.dumps(config, cls=AerJSONEncoder))
+        self.simulator.set_state_config(json.dumps(config, cls=AerJSONEncoder))
 
     def set_max_threads_shot(self, threads):
         """
@@ -117,26 +118,7 @@ class AerQvSimulator(BaseBackend):
         return
 
 
-class QvSimulatorJSONEncoder(json.JSONEncoder):
-    """
-    JSON encoder for NumPy arrays and complex numbers.
-
-    This functions as the standard JSON Encoder but adds support
-    for encoding:
-        complex numbers z as lists [z.real, z.imag]
-        ndarrays as nested lists.
-    """
-
-    # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        return json.JSONEncoder.default(self, obj)
-
-
-class QvSimulatorJSONDecoder(json.JSONDecoder):
+class QasmSimulatorJSONDecoder(json.JSONDecoder):
     """
     JSON decoder for the output with complex vector snapshots.
 
