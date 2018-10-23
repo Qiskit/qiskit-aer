@@ -11,16 +11,16 @@ import unittest
 
 from qiskit.backends import BaseBackend
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit_addon_qv import AerQvSimulator
+from qiskit_aer.backends import QasmSimulator
 
 
 class TestCliffordCircuits(common.QiskitAerTestCase):
     """Integration tests for Clifford circuits."""
     def setUp(self, backend=None):
         if backend is None:
-            self.qv_backend = AerQvSimulator()
+            self.backend = QasmSimulator()
         elif isinstance(backend, BaseBackend):
-            self.qv_backend = backend
+            self.backend = backend
 
     def test_h_gate(self):
         """Test the result of H gate circuits."""

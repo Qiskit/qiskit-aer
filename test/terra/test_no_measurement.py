@@ -14,8 +14,7 @@ import unittest
 import numpy as np
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, compile)
-from qiskit_addon_qv import AerQvSimulator
-from qiskit.tools.qi.qi import state_fidelity
+from qiskit_aer.backends import QasmSimulator
 
 
 class NoMeasurementTest(common.QiskitAerTestCase):
@@ -24,8 +23,7 @@ class NoMeasurementTest(common.QiskitAerTestCase):
 
     def setUp(self):
         # ***
-        self.backend_qv = AerQvSimulator()
-        # !!!  Replace with register(provider_class=AerQvProvider)
+        self.backend = QasmSimulator()
 
     def insert_state_snapshots_before_barrier(self, qobj):
         """Insert state snapshots before each full barrier in a qobj.
@@ -73,9 +71,9 @@ class NoMeasurementTest(common.QiskitAerTestCase):
         circuit.barrier(qr)  # snapshot "1" inserted here
 
         # Add snapshots to Qobj
-        qobj = compile(circuit, self.backend_qv, shots=1)
+        qobj = compile(circuit, self.backend, shots=1)
         self.insert_state_snapshots_before_barrier(qobj)
-        result = self.backend_qv.run(qobj).result()
+        result = self.backend.run(qobj).result()
         self.assertEqual(result.get_status(), 'COMPLETED')
         snapshots = result.get_snapshots(circuit)
 

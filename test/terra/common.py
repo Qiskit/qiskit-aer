@@ -22,7 +22,7 @@ from math import pi
 import numpy as np
 
 from qiskit import (QuantumRegister, QuantumCircuit, compile)
-from qiskit_addon_qv import __path__ as main_path
+from qiskit_aer import __path__ as main_path
 
 
 class Path(Enum):
@@ -85,10 +85,10 @@ class QiskitAerTestCase(unittest.TestCase):
                                seed=None, threshold=0.04):
         """Execute and compare circuit counts to target.
         """
-        qobj = compile(circuit, backend=self.qv_backend,
+        qobj = compile(circuit, backend=self.backend,
                        shots=shots, seed=seed)
         threshold = threshold * qobj.config.shots
-        job = self.qv_backend.run(qobj)
+        job = self.backend.run(qobj)
         result = job.result()
         counts = result.get_counts(circuit)
         self.assertDictAlmostEqual(counts, target, threshold)
