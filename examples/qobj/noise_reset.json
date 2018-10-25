@@ -1,0 +1,87 @@
+{
+    "qobj_id": "reset_noise_example",
+    "schema_version": "1.0.0",
+    "type": "QASM",
+    "config": {
+        "noise_model": {
+            "errors": [ 
+                {
+                    "type": "qerror",
+                    "operations": ["h"],
+                    "gate_qubits": [[0]],
+                    "probabilities": [1],
+                    "instructions": [[{"name": "reset", "qubits": [0]}]]
+                },
+                {
+                    "type": "qerror",
+                    "operations": ["h"],
+                    "gate_qubits": [[1]],
+                    "probabilities": [1],
+                    "instructions": [[{"name": "reset", "qubits": [0]},
+                                      {"name": "x", "qubits": [0]}]]
+                },
+                {
+                    "type": "qerror",
+                    "operations": ["x"],
+                    "probabilities": [0.5, 0.25, 0.25],
+                    "instructions": [
+                        [{"name": "id", "qubits": [0]}],
+                        [{"name": "reset", "qubits": [0]}],
+                        [{"name": "reset", "qubits": [0]}, {"name": "x", "qubits": [0]}]
+                    ]
+                },
+                {
+                    "type": "qerror",
+                    "operations": ["y"],
+                    "probabilities": [0.25, 0.5, 0.25],
+                    "instructions": [
+                        [{"name": "id", "qubits": [0]}],
+                        [{"name": "reset", "qubits": [0]}],
+                        [{"name": "reset", "qubits": [0]}, {"name": "x", "qubits": [0]}]
+                    ]
+                }
+            ]
+        }
+    },
+    "experiments": [
+        {   
+            "config": {
+                "shots": 2000,
+                "memory_slots": 2,
+                "n_qubits": 2
+            },
+            "header": {"expected_output": {"0x2": 2000}},
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "h", "qubits": [1]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]}
+            ]
+        },
+        {   
+            "config": {
+                "shots": 2000,
+                "memory_slots": 2,
+                "n_qubits": 2
+            },
+            "header": {"expected_output": {"0x0": 125, "0x1": 375, "0x2": 375, "0x3": 1125}},
+            "instructions": [
+                {"name": "x", "qubits": [0]},
+                {"name": "x", "qubits": [1]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]}
+            ]
+        },
+        {   
+            "config": {
+                "shots": 2000,
+                "memory_slots": 2,
+                "n_qubits": 2
+            },
+            "header": {"expected_output": {"0x0": 500, "0x1": 500, "0x2": 500, "0x3": 500}},
+            "instructions": [
+                {"name": "y", "qubits": [0]},
+                {"name": "y", "qubits": [1]},
+                {"name": "measure", "qubits": [0, 1], "memory": [0, 1]}
+            ]
+        }
+    ]
+}

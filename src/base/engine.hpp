@@ -8,8 +8,6 @@
 #ifndef _aer_base_engine_hpp_
 #define _aer_base_engine_hpp_
 
-#include <unordered_map>
-
 #include "framework/circuit.hpp"
 #include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
@@ -54,7 +52,7 @@ public:
   json_t json() const;
 
   // Load any settings for the State class from a config JSON
-  void load_config(const json_t &config);
+  void set_config(const json_t &config);
 
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
@@ -65,7 +63,7 @@ public:
   // returns true if all ops in circuit are supported by the state and engine
   // otherwise it returns false
   template <class State_t>
-  std::set<std::string> validate_circuit(const Circuit &circ, State_t &state);
+  stringset_t validate_circuit(const Circuit &circ, State_t &state);
 
   
 protected:
@@ -369,7 +367,7 @@ void Engine::execute_with_measure_sampling(const Circuit &circ,
   uint_t pos = 0;
   while (pos < number_of_ops) {
     const auto &op = circ.ops[pos];
-    if (op.name == "measure")
+    if (op.type == Operations::OpType::measure)
       break;
     apply_op(op, state);
     pos++;
@@ -426,11 +424,13 @@ void Engine::execute_with_measure_sampling(const Circuit &circ,
 //============================================================================
 
 template <class State_t>
-std::set<std::string> Engine::validate_circuit(const Circuit &circ,
-                                               State_t &state) {
+stringset_t Engine::validate_circuit(const Circuit &circ, State_t &state) {
+
   auto state_ops = state.allowed_ops();
-  state_ops.insert("bfunc"); // handled by engine alone
-  return circ.invalid_ops(state_ops);
+  auto state_gates = state.allowed_gates();
+  state_ops.insert(Operations::OpType::bfunc); // handled by engine alone
+  state_ops.insert(Operations::OpType::roerror); // handled by engine alone
+  return circ.invalid_ops(state_ops, state_gates);
 }
 
 
@@ -470,7 +470,7 @@ void Engine::combine(Engine &eng) {
 }
 
 
-void Engine::load_config(const json_t &js) {
+void Engine::set_config(const json_t &js) {
   JSON::get_value(snapshot_state_label_, "snapshot_label", js);
   JSON::get_value(show_snapshots_, "show_snapshots", js);
   JSON::get_value(return_counts_, "counts", js);

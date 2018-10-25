@@ -40,7 +40,8 @@ public:
   std::vector<Circuit> circuits;  // List of circuits
   json_t header;                  // (optional) passed through to result;
   json_t config;                  // (optional) not currently used?
-  
+  int_t seed = -1;                // Seed for qobj (-1 for random)
+
   //----------------------------------------------------------------
   // Loading Functions
   //----------------------------------------------------------------
@@ -77,6 +78,8 @@ void Qobj::load_qobj_from_json(const json_t &js) {
   // Get header and config;
   JSON::get_value(config, "config", js);
   JSON::get_value(header, "header", js);
+  // Check for fixed seed
+  JSON::get_value(seed, "seed", config);
   // Get type
   JSON::get_value(type, "type", js);
   if (type != "QASM") {
@@ -86,9 +89,19 @@ void Qobj::load_qobj_from_json(const json_t &js) {
   if (JSON::check_key("experiments", js) == false) {
     throw std::invalid_argument("Invalid qobj: no \"experiments\" field.");
   }
+  // Parse experiments
   const json_t &circs = js["experiments"];
-  for (auto it = circs.cbegin(); it != circs.cend(); ++it) {
-    circuits.emplace_back(*it, config);
+  uint_t seed_shift = 0;
+  for (const auto &circ : circs) {
+    Circuit circuit(circ, config);
+    // override random seed with fixed seed if set
+    // We shift the seed for each successive experiment
+    // So that results aren't correlated between experiments
+    if (seed >= 0) {
+      circuit.set_seed(seed + seed_shift);
+      seed_shift += 2113; // Shift the seed
+    }
+    circuits.push_back(circuit);
   }
 }
 

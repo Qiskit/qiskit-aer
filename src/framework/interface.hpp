@@ -34,18 +34,18 @@ public:
   //-----------------------------------------------------------------------
 
   // Load controller config from string
-  inline void load_noise_model(const std::string &config) {
-    controller_.load_noise_model(json_t::parse(config));
+  inline void set_noise_model(const std::string &config) {
+    controller_.set_noise_model(json_t::parse(config));
   }
 
   // Load controller config from string
-  inline void load_state_config(const std::string &config) {
-    controller_.load_state_config(json_t::parse(config));
+  inline void set_state_config(const std::string &config) {
+    controller_.set_state_config(json_t::parse(config));
   }
 
   // Load engine config from string
-  inline void load_engine_config(const std::string &config) {
-    controller_.load_engine_config(json_t::parse(config));
+  inline void set_engine_config(const std::string &config) {
+    controller_.set_engine_config(json_t::parse(config));
   }
 
   // Load controller config from string

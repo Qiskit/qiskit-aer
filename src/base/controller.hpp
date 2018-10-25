@@ -70,13 +70,13 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a noise model from a noise_model JSON file
-  void load_noise_model(const json_t &config);
+  void set_noise_model(const json_t &config);
 
   // Load a default Engine config file from a JSON
-  void load_engine_config(const json_t &config);
+  void set_engine_config(const json_t &config);
 
   // Load a default State config file from a JSON
-  void load_state_config(const json_t &config);
+  void set_state_config(const json_t &config);
 
   // Clear the current noise model
   inline void clear_noise_model() {noise_model_ = Noise::NoiseModel();}
@@ -222,15 +222,15 @@ void Controller::set_max_threads_state(int max_threads) {
   max_threads_state_ = max_threads;
 }
 
-void Controller::load_noise_model(const json_t &config) {
+void Controller::set_noise_model(const json_t &config) {
   noise_model_.load_from_json(config);
 }
 
-void Controller::load_engine_config(const json_t &config) {
+void Controller::set_engine_config(const json_t &config) {
   engine_config_ = config;
 }
 
-void Controller::load_state_config(const json_t &config) {
+void Controller::set_state_config(const json_t &config) {
   state_config_ = config;
 }
 
@@ -405,13 +405,11 @@ Engine Controller::execute_circuit(Circuit &circ,
                                    int num_threads_state) {
   // Initialize Engine and load config
   Engine engine;
-  engine.load_config(engine_config_); // load stored config
-  engine.load_config(circ.config); // override with circuit config
+  engine.set_config(engine_config_); // load stored config
 
   // Initialize state class and load config
   State_t state; 
-  state.load_config(state_config_); // load stored config
-  state.load_config(circ.config); // override with circuit config
+  state.set_config(state_config_); // load stored config
   state.set_rng_seed(state_seed); 
   state.set_available_threads(num_threads_state);
 
@@ -419,7 +417,7 @@ Engine Controller::execute_circuit(Circuit &circ,
   const auto invalid = engine.validate_circuit(circ, state);
   if (!invalid.empty()) {
     std::stringstream ss;
-    ss << "Circuit contains invalid operations: " << invalid;
+    ss << "Circuit contains invalid instructions: " << invalid;
     throw std::invalid_argument(ss.str());
   }
 

@@ -1,9 +1,14 @@
 {
-    "id": "state_snapshot_example",
+    "qobj_id": "state_snapshot_example",
+    "schema_version": "1.0.0",
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1},
+            "config": {
+                "shots": 1,
+                "memory_slots": 0,
+                "n_qubits": 2
+            },
             "instructions": [
                 {"name": "snapshot", "type": "state", "label": "initial"},
                 {"name": "h", "qubits": [0]},

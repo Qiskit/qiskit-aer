@@ -65,17 +65,15 @@ class AerQvSimulator(BaseBackend):
         qobj_result.results = [qiskit.qobj.ExperimentResult(**res) for res in exp_results]
         return Result(qobj_result, experiment_names=experiment_names)
 
-    def load_noise_model(self, noise_model):
-        self.simulator.load_noise_model(json.dumps(noise_model, cls=QvSimulatorJSONEncoder))
+    def set_noise_model(self, noise_model):
+        self.simulator.set_noise_model(json.dumps(noise_model, cls=QvSimulatorJSONEncoder))
 
     def clear_noise_model(self):
         self.simulator.clear_noise_model()
 
-    def load_config(self, engine=None, state=None):
-        if engine is not None:
-            self.simulator.load_engine_config(json.dumps(engine, cls=QvSimulatorJSONEncoder))
-        if state is not None:
-            self.simulator.load_state_config(json.dumps(state, cls=QvSimulatorJSONEncoder))
+    def set_config(self, config):
+        self.simulator.set_engine_config(json.dumps(config, cls=QvSimulatorJSONEncoder))
+        self.simulator.set_state_config(json.dumps(config, cls=QvSimulatorJSONEncoder))
 
     def set_max_threads_shot(self, threads):
         """

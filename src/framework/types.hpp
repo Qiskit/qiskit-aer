@@ -13,6 +13,9 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "framework/matrix.hpp" // matrix class
@@ -34,6 +37,9 @@ namespace AER {
   using rvector_t = std::vector<double>;
   using rmatrix_t = matrix<double>; 
   using reg_t = std::vector<uint_t>;
+  using stringset_t = std::unordered_set<std::string>;
+  template <typename T>
+  using stringmap_t = std::unordered_map<std::string, T>;
 }
 
 //============================================================================
@@ -49,6 +55,10 @@ template <typename T, size_t N>
 std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v);
 template <typename T1, typename T2, typename T3>
 std::ostream &operator<<(std::ostream &out, const std::map<T1, T2, T3> &m);
+template <typename T1, typename T2, typename T3>
+std::ostream &operator<<(std::ostream &out, const std::unordered_map<T1, T2, T3> &m);
+template <typename T1>
+std::ostream &operator<<(std::ostream &out, const std::unordered_set<T1> &s);
 template <typename T1>
 std::ostream &operator<<(std::ostream &out, const std::set<T1> &s);
 
@@ -101,7 +111,37 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2, T3> &m) {
   return out;
 }
 
+// ostream overload for unordered maps
+template <typename T1, typename T2, typename T3>
+std::ostream &operator<<(std::ostream &out, const std::unordered_map<T1, T2, T3> &m) {
+  out << "{";
+  size_t pos = 0, last = m.size() - 1;
+  for (auto const &p : m) {
+    out << p.first << ":" << p.second;
+    if (pos != last)
+      out << ", ";
+    pos++;
+  }
+  out << "}";
+  return out;
+}
+
 // ostream overload for sets
+template <typename T1>
+std::ostream &operator<<(std::ostream &out, const std::unordered_set<T1> &s) {
+  out << "{";
+  size_t pos = 0, last = s.size() - 1;
+  for (auto const &elt : s) {
+    out << elt;
+    if (pos != last)
+      out << ", ";
+    pos++;
+  }
+  out << "}";
+  return out;
+}
+
+// ostream overload for unordered sets
 template <typename T1>
 std::ostream &operator<<(std::ostream &out, const std::set<T1> &s) {
   out << "{";

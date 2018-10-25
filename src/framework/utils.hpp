@@ -8,6 +8,7 @@
 #ifndef _aer_framework_utils_hpp_
 #define _aer_framework_utils_hpp_
 
+#include <algorithm>
 #include <sstream>
 
 #include "framework/types.hpp"
@@ -73,7 +74,7 @@ public:
 
 private:
   // Lookup table that returns a pointer to the static data member
-  const static std::unordered_map<std::string, const cmatrix_t*> label_map_;
+  const static stringmap_t<const cmatrix_t*> label_map_;
 };
 
 //------------------------------------------------------------------------------
@@ -106,6 +107,9 @@ template <class T>
 bool is_square(const matrix<T> &mat);
 
 template <class T> 
+bool is_diagonal(const matrix<T> &mat);
+
+template <class T> 
 bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold);
 
 template <class T> 
@@ -115,6 +119,9 @@ template <class T>
 bool is_identity(const matrix<T> &mat, double threshold);
 
 template <class T> 
+bool is_diagonal_identity(const matrix<T> &mat, double threshold);
+
+template <class T> 
 bool is_unitary(const matrix<T> &mat, double threshold);
 
 template <class T> 
@@ -122,6 +129,9 @@ bool is_hermitian(const matrix<T> &mat, double threshold);
 
 template <class T> 
 bool is_symmetrix(const matrix<T> &mat, double threshold);
+
+template <class T>
+bool is_cptp_kraus(const std::vector<matrix<T>> &kraus, double threshold);
 
 //------------------------------------------------------------------------------
 // Vector functions
@@ -134,10 +144,19 @@ matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra);
 template <typename T>
 inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket, ket);}
 
-// Truncate the first argument its absolute value is less than epsilon
-// this function returns a refernce to the chopped first argument
+// Tensor product vector
 template <typename T>
-std::vector<T> multiply(const std::vector<T> &vec, T val);
+std::vector<T> tensor_product(const std::vector<T> &v, const std::vector<T> &w);
+
+// Return a new vector formed by multiplying each element of the input vector
+// with a scalar. The product of types T1 * T2 must be valid.
+template <typename T1, typename T2>
+std::vector<T1> scalar_multiply(const std::vector<T1> &vec, T2 val);
+
+// Inplace multiply each entry in a vector by a scalar and returns a reference to
+// the input vector argument. The product of types T1 * T2 must be valid.
+template <typename T1, typename T2>
+std::vector<T1>& scalar_multiply_inplace(std::vector<T1> &vec, T2 scalar);
 
 // Truncate the first argument its absolute value is less than epsilon
 // this function returns a refernce to the chopped first argument
@@ -258,7 +277,7 @@ const cmatrix_t Matrix::SWAP = make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, 
 // TODO const cmatrix_t Matrix::CR90 = ...
 
 // Lookup table
-const std::unordered_map<std::string, const cmatrix_t*> Matrix::label_map_ = {
+const stringmap_t<const cmatrix_t*> Matrix::label_map_ = {
   {"id", &Matrix::I}, {"x", &Matrix::X}, {"y", &Matrix::Y}, {"z", &Matrix::Z},
   {"h", &Matrix::H}, {"s", &Matrix::S}, {"sdg", &Matrix::Sdg},
   {"t", &Matrix::T}, {"tdg", &Matrix::Tdg}, {"x90", &Matrix::X90},
@@ -497,6 +516,14 @@ bool is_square(const matrix<T> &mat) {
 }
 
 template <class T> 
+bool is_diagonal(const matrix<T> &mat) {
+  // Check if row-matrix for diagonal
+  if (mat.GetRows() == 1 && mat.GetColumns() > 0)
+    return true;
+  return false;
+}
+
+template <class T> 
 bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold) {
   
   // Check matrices are same shape
@@ -548,6 +575,19 @@ bool is_identity(const matrix<T> &mat, double threshold) {
 }
 
 template <class T> 
+bool is_diagonal_identity(const matrix<T> &mat, double threshold) {
+  // Check U matrix is identity
+  if (is_diagonal(mat, threshold) == false)
+    return false;
+  double delta = 0.;
+  const auto ncols = mat.GetColumns();
+  for (size_t j=0; j < ncols; j++) {
+    delta += std::real(std::abs(mat(0, j) - 1.0));
+  }
+  return (delta < threshold);
+}
+
+template <class T> 
 bool is_unitary(const matrix<T> &mat, double threshold) {
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
@@ -579,6 +619,14 @@ bool is_symmetrix(const matrix<T> &mat, double threshold) {
   return is_equal(mat, transpose(mat), threshold);
 }
 
+template <class T> 
+bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
+  matrix<T> cptp(mats[0].size());
+  for (const auto &mat : mats) {
+    cptp = cptp + dagger(mat) * mat;
+  }
+  return is_identity(cptp, threshold);
+}
 
 //==============================================================================
 // Implementations: Vector functions
@@ -596,15 +644,35 @@ matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra) {
   return ret;
 }
 
-
 template <typename T>
-std::vector<T> multiply(const std::vector<T> &vec, T val) {
-  std::vector<T> ret;
+std::vector<T> tensor_product(const std::vector<T> &vec1,
+                              const std::vector<T> &vec2) {
+  std::vector<double> ret;
+  ret.reserve(vec1.size() * vec2.size());
+  for (const auto &a : vec1)
+    for (const auto &b : vec2) {
+        ret.push_back(a * b);
+  }                              
+  return ret;
+}
+
+template <typename T1, typename T2>
+std::vector<T1> scalar_multiply(const std::vector<T1> &vec, T2 val) {
+  std::vector<T1> ret;
   ret.reserve(vec.size());
   for (const auto &elt : vec) {
     ret.push_back(val * elt);
   }
   return ret;
+}
+
+
+template <typename T1, typename T2>
+std::vector<T1>& scalar_multiply_inplace(std::vector<T1> &vec, T2 val) {
+  for (auto &elt : vec) {
+    elt = val * elt; // use * incase T1 doesn't have *= method
+  }
+  return vec;
 }
 
 

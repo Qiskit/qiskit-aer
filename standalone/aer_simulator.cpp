@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     if (JSON::check_key("config", qobj) &&
         JSON::check_key("noise_model", qobj["config"])) {
       json_t noise_model = qobj["config"]["noise_model"];
-      sim.load_noise_model(noise_model);
+      sim.set_noise_model(noise_model);
     } 
 
     out << sim.execute<State>(qobj).dump(4) << std::endl;

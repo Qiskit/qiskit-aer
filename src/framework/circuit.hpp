@@ -8,12 +8,7 @@
 #ifndef _aer_framework_circuit_hpp_
 #define _aer_framework_circuit_hpp_
 
-#include <algorithm>  // for std::copy
 #include <random>
-#include <set>
-#include <stdexcept>
-#include <string>
-#include <vector>
 
 #include "framework/operations.hpp"
 #include "framework/json.hpp"
@@ -29,11 +24,11 @@ namespace AER {
 class Circuit {
 public:
   using Op = Operations::Op;
+  using OpType = Operations::OpType;
   std::vector<Op> ops;      // circuit operations
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
   uint_t num_memory = 0;    // maxmimum number of memory clbits needed for ops
   uint_t num_registers = 0; // maxmimum number of registers clbits needed for ops
-
   uint_t shots = 1;
   uint_t seed;
 
@@ -42,12 +37,11 @@ public:
 
   // Optional data members from QOBJ
   json_t header;
-  json_t config;
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
   // parameters by scaning the input list of ops.
-  Circuit() {seed = std::random_device()();};
+  Circuit() {set_random_seed();};
   inline Circuit(const std::vector<Op> &_ops) : Circuit() {ops = _ops; set_sizes();};
 
   // Construct a circuit from JSON
@@ -57,12 +51,19 @@ public:
   // Automatically set the number of qubits, memory, registers based on ops
   void set_sizes();
 
+  // Set the circuit rng seed to a fixed value
+  inline void set_seed(uint_t s) {seed = s;}
+
+  // Set the circuit rng seed to random value
+  inline void set_random_seed() {seed = std::random_device()();}
+
   // Check if all circuit ops are in an allowed op set
-  bool check_ops(const std::set<std::string> &allowed_ops) const;
+  bool check_ops(const std::unordered_set<OpType> &allowed_ops,
+                 const stringset_t &allowed_gates) const;
 
   // Return a set of all invalid circuit op names
-  std::set<std::string>
-  invalid_ops(const std::set<std::string> &allowed_ops) const;
+  stringset_t invalid_ops(const std::unordered_set<OpType> &allowed_ops,
+                          const stringset_t &allowed_gates) const;
 
   // Check if any circuit ops are conditional ops
   bool has_conditional() const;
@@ -100,6 +101,11 @@ void Circuit::set_sizes() {
       auto max = std::max_element(std::begin(op.registers), std::end(op.registers));
       num_registers = std::max(num_registers, 1UL + *max);
     }
+    if (!op.memory.empty()) {
+      auto max = std::max_element(std::begin(op.memory), std::end(op.memory));
+      num_memory = std::max(num_registers, 1UL + *max);
+    }
+    
   }
 }
 
@@ -109,19 +115,14 @@ Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
 Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
 
   // Get config
-  config = qobj_config;
+  json_t config = qobj_config;
   if (JSON::check_key("config", circ)) {
     for (auto it = circ["config"].cbegin(); it != circ["config"].cend();
          ++it) {
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
-  JSON::get_value(header, "header", circ);
-  JSON::get_value(shots, "shots", config);
-  JSON::get_value(seed, "seed", config);
-  JSON::get_value(num_memory, "memory_slots", config);
-
-  // Get operations
+  // Load instructions
   if (JSON::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
   }
@@ -130,24 +131,53 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   for (auto it = jops.cbegin(); it != jops.cend(); ++it) {
     ops.emplace_back(Operations::json_to_op(*it));
   }
+  // Set minimum sizes from operations
   set_sizes();
+
+  // Load metadata
+  JSON::get_value(header, "header", circ);
+  JSON::get_value(shots, "shots", config);
+
+  // Check for specified memory slots
+  uint_t memory_slots = 0;
+  JSON::get_value(memory_slots, "memory_slots", config);
+  if (memory_slots < num_memory) {
+    throw std::invalid_argument("Invalid Qobj experiment: not enough memory slots.");
+  }
+  // override memory slot number
+  num_memory = memory_slots;
+
+  // Check for specified n_qubits
+  if (JSON::check_key("n_qubits", config)) {
+    uint_t n_qubits = config["n_qubits"];
+    if (n_qubits < num_qubits) {
+      throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
+    }
+    // override qubit number
+    num_qubits = n_qubits;
+  }
 }
 
 
-std::set<std::string>
-Circuit::invalid_ops(const std::set<std::string> &allowed_ops) const {
-  std::set<std::string> invalid;
+stringset_t Circuit::invalid_ops(const std::unordered_set<OpType> &allowed_ops,
+                                 const stringset_t &allowed_gates) const {
+  stringset_t invalid;
   for (const auto &op : ops) {
-    if (allowed_ops.find(op.name) == allowed_ops.end())
+    if (allowed_ops.find(op.type) == allowed_ops.end() ||
+        (op.type == OpType::gate &&
+         allowed_gates.find(op.name) == allowed_gates.end()))
       invalid.insert(op.name);
   }
   return invalid;
 }
 
 
-bool Circuit::check_ops(const std::set<std::string> &allowed_ops) const {
+bool Circuit::check_ops(const std::unordered_set<OpType> &allowed_ops,
+                        const stringset_t &allowed_gates) const {
   for (const auto &op : ops) {
-    if (allowed_ops.find(op.name) == allowed_ops.end())
+    if (allowed_ops.find(op.type) == allowed_ops.end() ||
+        (op.type == OpType::gate &&
+         allowed_gates.find(op.name) == allowed_gates.end()))
       return false;
   }
   return true;

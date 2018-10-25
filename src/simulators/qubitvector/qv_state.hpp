@@ -9,11 +9,6 @@
 #define _qubitvector_qv_state_hpp
 
 #include <algorithm>
-#include <array>
-#include <complex>
-#include <unordered_map>
-#include <string>
-#include <vector>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -23,17 +18,11 @@
 #include "qubitvector.hpp"
 
 
-//------------------------------------------------------------------------------
-// QubitVector ostream and JSON serialization
-//------------------------------------------------------------------------------
-
 namespace AER {
 namespace QubitVector {
   
-// Enum class and gateset map for switching based on gate name
+// Allowed gates enum class
 enum class Gates {
-  mat, kraus, // special
-  measure, reset, barrier,
   u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
   cx, cz, rzz, swap, // two qubit
   ccx // three qubit
@@ -57,13 +46,28 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
-  // Allowed operations are:
-  // {"snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
-  //  "barrier", "measure", "reset", "mat", "kraus",
-  //  "u0", "u1", "u2", "u3", "cx", "cz", "swap", "ccx",
-  //  "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"}
-  virtual std::set<std::string> allowed_ops() const override;
-    
+  // Return the set of qobj instruction types supported by the State
+  inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
+    return std::unordered_set<Operations::OpType>({
+      Operations::OpType::gate,
+      Operations::OpType::measure,
+      Operations::OpType::reset,
+      Operations::OpType::barrier,
+      Operations::OpType::matrix,
+      Operations::OpType::snapshot_state,
+      Operations::OpType::snapshot_probs,
+      Operations::OpType::snapshot_pauli,
+      Operations::OpType::snapshot_matrix,
+      Operations::OpType::kraus
+    });
+  }
+
+  // Return the set of qobj gate instruction names supported by the State
+  inline virtual stringset_t allowed_gates() const override {
+    return {"U", "CX", "u0", "u1", "u2", "u3", "cx", "cz", "swap",
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
+  }
+
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
@@ -82,7 +86,7 @@ public:
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 14}
   // TODO: Check optimal default value for a desktop i7 CPU
-  virtual void load_config(const json_t &config) override;
+  virtual void set_config(const json_t &config) override;
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function it then "measure" 
@@ -110,13 +114,22 @@ public:
 
 protected:
 
-  const static std::unordered_map<std::string, Gates> gateset;
+  const static stringmap_t<Gates> gateset;
 
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
 
   int omp_qubit_threshold_ = 14; // Test this on desktop i7 to find best setting 
+
+  //-----------------------------------------------------------------------
+  // Apply Gates
+  //-----------------------------------------------------------------------
+
+  // Applies a Gate operation to the state class.
+  // This should support all and only the operations defined in
+  // allowed_operations.
+  void apply_gate(const Operations::Op &op);
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -183,20 +196,7 @@ protected:
 //============================================================================
 
 template <class statevec_t>
-std::set<std::string> State<statevec_t>::allowed_ops() const {
-  return { "barrier", "measure", "reset",
-    "snapshot_state", "snapshot_probs", "snapshot_pauli", "snapshot_matrix",
-    "mat", "kraus",
-    "u0", "u1", "u2", "u3", "cx", "cz", "swap", "ccx",
-    "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"};
-} 
-
-template <class statevec_t>
-const std::unordered_map<std::string, Gates> State<statevec_t>::gateset({
-  {"reset", Gates::reset}, // Reset operation
-  {"barrier", Gates::barrier}, // barrier does nothing
-  // Matrix multiplication
-  {"mat", Gates::mat},     // matrix multiplication
+const stringmap_t<Gates> State<statevec_t>::gateset({
   // Single qubit gates
   {"id", Gates::id},   // Pauli-Identity gate
   {"x", Gates::x},    // Pauli-X gate
@@ -218,11 +218,8 @@ const std::unordered_map<std::string, Gates> State<statevec_t>::gateset({
   {"rzz", Gates::rzz}, // ZZ-rotation gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-  {"ccx", Gates::ccx},  // Controlled-CX gate (Toffoli)
-  // Type-2 Noise
-  {"kraus", Gates::kraus} // Kraus error
+  {"ccx", Gates::ccx}  // Controlled-CX gate (Toffoli)
 }); 
-
 
 //============================================================================
 // Implementation: Base class method overrides
@@ -240,7 +237,7 @@ uint_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 }
 
 template <class statevec_t>
-void State<statevec_t>::load_config(const json_t &config) {
+void State<statevec_t>::set_config(const json_t &config) {
   
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
@@ -287,7 +284,7 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const {
 
 template <class statevec_t>
 std::vector<reg_t>
-State<statevec_t>::sample_measure(const reg_t &qubits, uint_t shots){
+State<statevec_t>::sample_measure(const reg_t &qubits, uint_t shots) {
   std::vector<double> rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
@@ -377,102 +374,107 @@ complex_t State<statevec_t>::matrix_observable_value(const Operations::Op &op) c
 template <class statevec_t>
 void State<statevec_t>::apply_op(const Operations::Op &op) {
 
+  // Check if op is measure, reset, mat or kraus
+  switch (op.type) {
+    case Operations::OpType::barrier:
+      break;
+    case Operations::OpType::reset:
+      apply_reset(op.qubits, 0);
+      break;
+    case Operations::OpType::matrix:
+      apply_matrix(op.qubits, op.mats[0]);
+      break;
+    case Operations::OpType::kraus:
+      apply_kraus(op.qubits, op.mats);
+      break;
+    case Operations::OpType::gate:
+      apply_gate(op);
+      break;
+    default: {
+      std::stringstream msg;
+      msg << "QubitVector::State::invalid instruction \'" << op.name << "\'.";
+      throw std::invalid_argument(msg.str());
+    }
+  }
+}
 
-  // Check Op is supported by State
+
+template <class statevec_t>
+void State<statevec_t>::apply_gate(const Operations::Op &op) {
+  // Look for gate name in gateset
   auto it = gateset.find(op.name);
   if (it == gateset.end()) {
     std::stringstream msg;
-    msg << "QubitVectorState::invalid operation \'" << op.name << "\'.";
+    msg << "QubitVectorState::invalid gate instruction \'" << op.name << "\'.";
     throw std::invalid_argument(msg.str());
   }
-
   Gates g = it -> second;
   switch (g) {
-  // Matrix multiplication
-  case Gates::mat:
-    apply_matrix(op.qubits, op.mats[0]);
-    break;
-  // Special Noise operations
-  case Gates::kraus:
-    apply_kraus(op.qubits, op.mats);
-    break;
-  // Base gates
-  case Gates::u3:
-    apply_gate_u3(op.qubits[0],
-                  std::real(op.params[0]),
-                  std::real(op.params[1]),
-                  std::real(op.params[2]));
-    break;
-  case Gates::u2:
-    apply_gate_u3(op.qubits[0],
-                  M_PI / 2.,
-                  std::real(op.params[0]),
-                  std::real(op.params[1]));
-    break;
-  case Gates::u1:
-    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
-    break;
-  case Gates::cx:
-    BaseState::data_.apply_cnot(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::cz:
-    BaseState::data_.apply_cz(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::reset:
-    apply_reset(op.qubits, uint_t(std::real(op.params[0])));
-    break;
-  case Gates::barrier:
-    break;
-  // Waltz gates
-  case Gates::u0: // u0 = id in ideal State
-    break;
-  // QIP gates
-  case Gates::id:
-    break;
-  case Gates::x:
-    BaseState::data_.apply_x(op.qubits[0]);
-    break;
-  case Gates::y:
-    BaseState::data_.apply_y(op.qubits[0]);
-    break;
-  case Gates::z:
-    BaseState::data_.apply_z(op.qubits[0]);
-    break;
-  case Gates::h:
-    apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
-    break;
-  case Gates::s:
-    apply_gate_phase(op.qubits[0], complex_t(0., 1.));
-    break;
-  case Gates::sdg:
-    apply_gate_phase(op.qubits[0], complex_t(0., -1.));
-    break;
-  case Gates::t: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
-  } break;
-  case Gates::tdg: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
-  } break;
-  // 2-qubit SWAP gate
-  case Gates::swap: {
-    BaseState::data_.apply_swap(op.qubits[0], op.qubits[1]);
-  } break;
-  // ZZ rotation by angle lambda
-  case Gates::rzz: {
-    const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
-    BaseState::data_.apply_matrix(reg_t({op.qubits[0], op.qubits[1]}), dmat);
-  } break;
-  // 3-qubit toffoli gate
-  case Gates::ccx:
-    BaseState::data_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-    break;
-  // Invalid Gate (we shouldn't get here)
-  default:
-    std::stringstream msg;
-    msg << "QubitVectorState::invalid State operation \'" << op.name << "\'.";
-    throw std::invalid_argument(msg.str());
+    case Gates::u3:
+      apply_gate_u3(op.qubits[0],
+                    std::real(op.params[0]),
+                    std::real(op.params[1]),
+                    std::real(op.params[2]));
+      break;
+    case Gates::u2:
+      apply_gate_u3(op.qubits[0],
+                    M_PI / 2.,
+                    std::real(op.params[0]),
+                    std::real(op.params[1]));
+      break;
+    case Gates::u1:
+      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      break;
+    case Gates::cx:
+      BaseState::data_.apply_cnot(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cz:
+      BaseState::data_.apply_cz(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::u0: // u0 = id in ideal State
+      break;
+    case Gates::id:
+      break;
+    case Gates::x:
+      BaseState::data_.apply_x(op.qubits[0]);
+      break;
+    case Gates::y:
+      BaseState::data_.apply_y(op.qubits[0]);
+      break;
+    case Gates::z:
+      BaseState::data_.apply_z(op.qubits[0]);
+      break;
+    case Gates::h:
+      apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
+      break;
+    case Gates::s:
+      apply_gate_phase(op.qubits[0], complex_t(0., 1.));
+      break;
+    case Gates::sdg:
+      apply_gate_phase(op.qubits[0], complex_t(0., -1.));
+      break;
+    case Gates::t: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
+    } break;
+    case Gates::tdg: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
+    } break;
+    case Gates::swap: {
+      BaseState::data_.apply_swap(op.qubits[0], op.qubits[1]);
+    } break;
+    case Gates::rzz: {
+      const auto dmat = rzz_diagonal_matrix(std::real(op.params[0]));
+      BaseState::data_.apply_matrix(reg_t({op.qubits[0], op.qubits[1]}), dmat);
+    } break;
+    case Gates::ccx:
+      BaseState::data_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+      break;
+    default: {
+      // We shouldn't reach here unless there is a bug in gateset
+      throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" + op.name + "\'.");
+    }
   }
 }
 
@@ -616,10 +618,7 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
     // check if we need to apply this operator
     if (accum > r) {
       // rescale vmat so projection is normalized
-      complex_t renorm = 1 / std::sqrt(p);
-      for (auto &v : vmat) {
-        v *= renorm;
-      }
+      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
       // apply Kraus projection operator
       apply_matrix(qubits, vmat);
       complete = true;

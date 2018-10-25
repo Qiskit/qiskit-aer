@@ -9,13 +9,9 @@
 #define _aer_framework_operations_hpp_
 
 #include <algorithm> 
-#include <set>
 #include <stdexcept>
-#include <string>
 #include <sstream>
-#include <vector>
 #include <tuple>
-#include <unordered_map>
 
 #include "framework/types.hpp"
 #include "framework/json.hpp"
@@ -152,7 +148,6 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
-  op.params = {static_cast<double>(state)};
   return op;
 }
 
@@ -184,6 +179,7 @@ inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 
 // Standard operations
 Op json_to_op_gate(const json_t &js);
+Op json_to_op_barrier(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
@@ -214,6 +210,9 @@ Op json_to_op(const json_t &js) {
   // load operation identifier
   std::string name;
   JSON::get_value(name, "name", js);
+  // Barrier
+  if (name == "barrier")
+    return json_to_op_barrier(js);
   // Measure & Reset
   if (name == "measure")
     return json_to_op_measure(js);
@@ -221,6 +220,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_reset(js);
   // Arbitrary matrix gates
   if (name == "mat")
+    return json_to_op_mat(js);
+  if (name == "unitary")
     return json_to_op_mat(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
@@ -254,6 +255,15 @@ Op json_to_op_gate(const json_t &js) {
   // Validation
   check_name(op.name);
   check_qubits(op.qubits);
+  return op;
+}
+
+
+Op json_to_op_barrier(const json_t &js) {
+  Op op;
+  op.type = OpType::barrier;
+  op.name = "barrier";
+  JSON::get_value(op.qubits, "qubits", js);
   return op;
 }
 
@@ -315,7 +325,7 @@ Op json_to_op_bfunc(const json_t &js) {
   Utils::format_hex_inplace(op.string_params[0]);
   Utils::format_hex_inplace(op.string_params[1]);
 
-  const std::unordered_map<std::string, RegComparison> comp_table({
+  const stringmap_t<RegComparison> comp_table({
     {"==", RegComparison::Equal},
     {"!=", RegComparison::NotEqual},
     {"<", RegComparison::Less},
@@ -367,9 +377,8 @@ Op json_to_op_mat(const json_t &js) {
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);
-  if (!label.empty()) {
-    op.string_params.push_back(label);
-  }
+  op.string_params.push_back(label);
+
   // Validation
   check_qubits(op.qubits);
   // Check unitary
@@ -439,7 +448,8 @@ Op json_to_op_snapshot_probs(const json_t &js) {
   op.name = "snapshot_probs";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
-  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.qubits, "qubits", js); // depreciated
+  JSON::get_value(op.qubits, "params", js);
   // Validation
   check_qubits(op.qubits);
   return op;
@@ -514,7 +524,7 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
       }
       // Check subset are ok
       size_t num = 0;
-      std::set<uint_t> unique;
+      std::unordered_set<uint_t> unique;
       for (const auto &reg : qubits) {
         num += reg.size();
         unique.insert(reg.begin(), reg.end());

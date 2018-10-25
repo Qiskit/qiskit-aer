@@ -8,9 +8,6 @@
 #ifndef _aer_base_state_hpp_
 #define _aer_base_state_hpp_
 
-#include <set>
-#include <string>
-
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
 #include "framework/rng.hpp"
@@ -35,18 +32,26 @@ public:
   // Abstract methods that must be defined by derived classes
   //----------------------------------------------------------------
   
-  // Return the set of allowed operations for the state class.
-  // Example: {"u1", "u2", "u3", "cx", "measure", "reset"};
-  // * If the State allows measurement it should contain: "measure"
-  // * If the State allows probability snapshots it should contain
-  //   "snapshot_probs"
-  // * If the State allows Pauli observable snapshots it should contain
-  //   "snapshot_pauli"
-  // * If the State allows matrix observable snapshots it should contain
-  //   "snapshot_pauli"
-  // * If the State allows snapshots of its internal state representation
-  //   it should contain "snapshot_state"
-  virtual std::set<std::string> allowed_ops() const = 0;
+  // Return the set of qobj instruction types supported by the State
+  // by the Operations::OpType enum class. 
+  // Standard OpTypes that can be included here are:
+  // - `OpType::gate` if gates are supported
+  // - `OpType::measure` if measure is supported
+  // - `OpType::reset` if reset is supported
+  // - `OpType::barrier` if barrier is supported
+  // - `OpType::matrix` if arbitrary unitary matrices are supported
+  // - `OpType::snapshot_state` if state snapshots are supported
+  // - `OpType::snapshot_probs` if probabilities snapshots are supported
+  // - `OpType::snapshot_pauli` if pauli expectation value snapshots are supported
+  // - `OpType::snapshot_matrix` if matrix expectation value snapshots are supported
+  // - `OpType::kraus` if general Kraus noise channels are supported
+  // For the case of gates the specific allowed gates are checked
+  // with the `allowed_gates` function.
+  virtual std::unordered_set<Operations::OpType> allowed_ops() const = 0;
+  
+  // Return the set of qobj gate instruction names supported by the state class
+  // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
+  virtual stringset_t allowed_gates() const = 0;
 
   // Applies an operation to the state class.
   // This should support all and only the operations defined in
@@ -67,7 +72,7 @@ public:
   //----------------------------------------------------------------
   
   // Load any settings for the State class from a config JSON
-  inline virtual void load_config(const json_t &config) {
+  inline virtual void set_config(const json_t &config) {
     (ignore_argument)config;
   };
 
@@ -160,9 +165,6 @@ public:
   inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed); };
 
 protected:
-  // Allowed ops
-  const std::set<std::string> allowed_ops_ = {};
-
   // The quantum state data structure
   state_t data_;
 

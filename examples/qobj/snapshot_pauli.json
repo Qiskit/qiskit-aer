@@ -1,9 +1,14 @@
 {
-    "id": "pauli_observable_snapshot_example",
+    "qobj_id": "pauli_observable_snapshot_example",
+    "schema_version": "1.0.0",
     "type": "QASM",
     "experiments": [
         {   
-            "config": {"shots": 1000},
+            "config": {
+                "shots": 1000,
+                "memory_slots": 2,
+                "n_qubits": 2
+            },
             "instructions": [
                 {"name": "h", "qubits": [0]},
                 {"name": "cx", "qubits": [0, 1]},

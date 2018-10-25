@@ -26,16 +26,9 @@ public:
   // Error base required methods
   //-----------------------------------------------------------------------
 
-  // Return a character labeling the error type
-  inline char error_type() const override {return 'C';}
-
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &memory,
                         RngEngine &rng) const override;
-  
-  // TODO
-  // Check that the readout error probabilities are valid
-  std::pair<bool, std::string> validate() const override;
 
   // Load a ReadoutError object from a JSON Error object
   void load_from_json(const json_t &js) override;
@@ -65,7 +58,7 @@ ReadoutError::NoiseOps ReadoutError::sample_noise(const reg_t &memory,
                                                   RngEngine &rng) const {
   (void)rng; // RNG is unused for readout error since it is handled by engine
   // Check assignment fidelity matrix is correct size
-  if (memory.size() > assignment_probabilities_.size())
+  if (memory.size() > get_num_qubits())
     throw std::invalid_argument("ReadoutError: number of qubits don't match assignment probability matrix.");
   // Initialize return ops,
   return {Operations::make_roerror(memory, assignment_probabilities_)};
@@ -74,6 +67,7 @@ ReadoutError::NoiseOps ReadoutError::sample_noise(const reg_t &memory,
 
 void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
   assignment_probabilities_ = probs;
+  set_num_qubits(assignment_probabilities_.size());
   for (const auto  &ps : assignment_probabilities_) {
     double total = 0.0;
     for (const auto &p : ps) {
@@ -85,12 +79,6 @@ void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
     if (std::abs(total - 1) > threshold_)
       throw std::invalid_argument("ReadoutError probability vector is not normalized.");
   }
-}
-
-
-std::pair<bool, std::string> ReadoutError::validate() const {
-  // TODO
-  return std::make_pair(true, std::string());
 }
 
 

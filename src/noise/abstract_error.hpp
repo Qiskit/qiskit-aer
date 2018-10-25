@@ -25,24 +25,20 @@ public:
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
 
-  // Return a character labeling the error type
-  // Built in errors are:
-  // 'U' for unitary, 'K' for Kraus, 'R' for reset', 'C' for readout.
-  virtual char error_type() const = 0;
-
   // Sample an realization of the error from the error model using the passed
   // in RNG engine.
   virtual NoiseOps sample_noise(const reg_t &qubits,
                                 RngEngine &rng) const = 0;
 
-  // Check that the parameters of the Error class are valid
-  // The output is a pair of a bool (true if valid, false if not)
-  // and a string containing an error message for the false case.
-  virtual std::pair<bool, std::string> validate() const = 0;
-
   // Load from a JSON file
   virtual void load_from_json(const json_t &js) = 0;
   
+  // Set number of qubits or memory bits for error
+  inline void set_num_qubits(uint_t num_qubits) {num_qubits_ = num_qubits;}
+
+  // Get number of qubits or memory bits for error
+  inline uint_t get_num_qubits() const {return num_qubits_;}
+
   // Set the sampled errors to be applied after the original operation
   inline void set_errors_after() {errors_after_op_ = true;}
 
@@ -55,6 +51,9 @@ public:
 private:
   // flag for where errors should be applied relative to the sampled op
   bool errors_after_op_ = true;
+
+  // Number of qubits / memory bits the error applies to
+  uint_t num_qubits_ = 0;
 };
 
 

@@ -20,9 +20,9 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         Interface() except+
         string execute[STATE](string &qobj) except +
 
-        void load_noise_model(string &qobj) except +
-        void load_engine_config(string &qobj) except +
-        void load_state_config(string &qobj) except +
+        void set_noise_model(string &qobj) except +
+        void set_engine_config(string &qobj) except +
+        void set_state_config(string &qobj) except +
 
         void clear_noise_model()
         void clear_engine_config()
@@ -52,29 +52,23 @@ cdef class AerQvSimulatorWrapper:
         return self.iface.execute[State](qobj_enc)
         # Execute
 
-    def load_noise_model(self, config):
+    def set_noise_model(self, config):
         # Convert input to C++ string
         cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.load_noise_model(config_enc)
-
-    def load_state_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.load_state_config(config_enc)
-
-    def load_engine_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.load_engine_config(config_enc)
+        self.iface.set_noise_model(config_enc)
 
     def clear_noise_model(self):
         self.iface.clear_noise_model()
 
-    def clear_state_config(self):
-        self.iface.clear_state_config()
+    def set_config(self, config):
+        # Convert input to C++ string
+        cdef string config_enc = str(config).encode('UTF-8')
+        self.iface.set_state_config(config_enc)
+        self.iface.set_engine_config(config_enc)        
 
-    def clear_engine_config(self):
-        self.iface.clear_engine_config()
+    def clear_config(self):
+        self.iface.clear_state_config()
+        self.iface.clear_engine_config()        
 
     def set_max_threads(self, threads):
         self.iface.set_max_threads(int(threads))

@@ -10,7 +10,6 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <unordered_set>
 
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
@@ -19,9 +18,7 @@
 #include "noise/abstract_error.hpp"
 
 // For JSON parsing of specific error types
-#include "noise/unitary_error.hpp"
-#include "noise/kraus_error.hpp"
-#include "noise/reset_error.hpp"
+#include "noise/quantum_error.hpp"
 #include "noise/readout_error.hpp"
 
 namespace AER {
@@ -53,21 +50,23 @@ public:
   // Load a noise model from JSON
   void load_from_json(const json_t &js);
 
-  // Add a non-local Error type to the model for specific qubits
-  template <class DerivedError>
-  void add_error(const DerivedError &error,
-                 const std::unordered_set<std::string> &op_labels,
-                 const std::vector<reg_t> &op_qubits = {},
-                 const std::vector<reg_t> &noise_qubits = {});
-
-  // Return true if there is the noise model is ideal
-  // ie. there is no noise added
+  // Add a QuantumError to the noise model
+  void add_quantum_error(const QuantumError &error,
+                         const stringset_t &op_labels,
+                         const std::vector<reg_t> &op_qubits = {},
+                         const std::vector<reg_t> &noise_qubits = {});
+  
+  // Add a ReadoutError to the noise model
+  void add_readout_error(const ReadoutError &error,
+                         const std::vector<reg_t> &op_qubits = {});
+  
+  // Return true if the noise model is ideal
   inline bool ideal() {
-    return !(local_errors_ || nonlocal_errors_);
+    return !(local_quantum_errors_ || nonlocal_quantum_errors_) && readout_errors_.empty();
   }
 
   // Set which single qubit gates should use the X90 waltz error model
-  inline void set_x90_gates(const std::unordered_set<std::string> &x90_gates) {
+  inline void set_x90_gates(const stringset_t &x90_gates) {
     x90_gates_ = x90_gates;
   }
 
@@ -83,16 +82,23 @@ private:
   NoiseOps sample_noise(const Operations::Op &op, RngEngine &rng) const;
 
   // Sample noise for the current operation
-  void sample_noise_local(const Operations::Op &op,
-                          NoiseOps &noise_before,
-                          NoiseOps &noise_after, RngEngine &rng)  const;
+  void sample_readout_noise(const Operations::Op &op,
+                            NoiseOps &noise_after,
+                            RngEngine &rng)  const;
 
-  void sample_noise_nonlocal(const Operations::Op &op,
-                             NoiseOps &noise_before,
-                             NoiseOps &noise_after, RngEngine &rng)  const;
+  void sample_local_quantum_noise(const Operations::Op &op,
+                                  NoiseOps &noise_before,
+                                  NoiseOps &noise_after,
+                                  RngEngine &rng)  const;
+
+  void sample_nonlocal_quantum_noise(const Operations::Op &op,
+                                     NoiseOps &noise_before,
+                                     NoiseOps &noise_after,
+                                     RngEngine &rng)  const;
 
   // Sample noise for the current operation
-  NoiseOps sample_noise_helper(const Operations::Op &op, RngEngine &rng) const;
+  NoiseOps sample_noise_helper(const Operations::Op &op,
+                               RngEngine &rng) const;
 
   // Sample a noisy implementation of a two-X90 pulse u3 gate
   NoiseOps sample_noise_x90_u3(uint_t qubit, complex_t theta,
@@ -103,45 +109,50 @@ private:
   NoiseOps sample_noise_x90_u2(uint_t qubit, complex_t phi, complex_t lambda,
                                RngEngine &rng) const;
 
-
-  // Add a local error to the noise model for specific qubits
-  template <class DerivedError>
-  void add_local_error(const DerivedError &error,
-                 const std::unordered_set<std::string> &op_labels,
-                 const std::vector<reg_t> &op_qubits);
+  // Add a local quantum error to the noise model for specific qubits
+  void add_local_quantum_error(const QuantumError &error,
+                               const stringset_t &op_labels,
+                               const std::vector<reg_t> &op_qubits);
 
   // Add a non-local Error type to the model for specific qubits
-  template <class DerivedError>
-  void add_nonlocal_error(const DerivedError &error,
-                          const std::unordered_set<std::string> &op_labels,
-                          const std::vector<reg_t> &op_qubits,
-                          const std::vector<reg_t> &noise_qubits);
+  void add_nonlocal_quantum_error(const QuantumError &error,
+                                  const stringset_t &op_labels,
+                                  const std::vector<reg_t> &op_qubits,
+                                  const std::vector<reg_t> &noise_qubits);
 
   // Flags which say whether the local or nonlocal error tables are used
-  bool local_errors_ = false;
-  bool nonlocal_errors_ = false;
+  bool local_quantum_errors_ = false;
+  bool nonlocal_quantum_errors_ = false;
 
-  // Table of errors
-  std::vector<std::unique_ptr<AbstractError>> error_ptrs_;
+  // List of quantum errors
+  std::vector<QuantumError> quantum_errors_;
+
+  // List of readout errors
+  std::vector<ReadoutError> readout_errors_;
+
+  using inner_table_t = stringmap_t<std::vector<size_t>>;
+  using outer_table_t = stringmap_t<inner_table_t>;
 
   // Table indexes a name with a vector of the position of noise operations
-  // Cant make inner map and unordered map due to lack of hashing for vector<uint_t>
-  using qubit_map_t = std::map<reg_t, std::vector<size_t>>;
-  std::unordered_map<std::string, qubit_map_t> local_error_table_;
+  inner_table_t readout_error_table_;
+  outer_table_t local_quantum_error_table_;
 
   // Nonlocal noise lookup table. Things get messy here...
   // the outer map is a table from gate strings to gate qubit maps
   // the gate qubit map is a map from qubits to another map of target qubits
   // which is then the final qubit map from target qubits to error_ptr positions
-  using nonlocal_qubit_map_t = std::map<reg_t, qubit_map_t>;
-  std::unordered_map<std::string, nonlocal_qubit_map_t> nonlocal_error_table_;
+  stringmap_t<outer_table_t> nonlocal_quantum_error_table_;
+
+  // Helper function to convert reg to string for key of unordered maps/sets
+  std::string reg2string(const reg_t &reg) const;
+  reg_t string2reg(std::string s) const;
 
   // Table of single-qubit gates to use a Waltz X90 based error model
-  std::unordered_set<std::string> x90_gates_;
+  stringset_t x90_gates_;
 
   // Lookup table for gate strings to enum
   enum class WaltzGate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
-  const static std::unordered_map<std::string, WaltzGate> waltz_gate_table_;
+  const static stringmap_t<WaltzGate> waltz_gate_table_;
 
   // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
   double u1_threshold_ = 1e-10;
@@ -153,7 +164,7 @@ private:
 //=========================================================================
 
 NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
-                                             RngEngine &rng) const {
+                                              RngEngine &rng) const {
   // Look to see if gate is a waltz gate for this error model
   auto it = x90_gates_.find(op.name);
   if (it == x90_gates_.end()) {
@@ -235,76 +246,93 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng) const {
 }
 
 
-template <class DerivedError>
-void NoiseModel::add_error(const DerivedError &error,
-                           const std::unordered_set<std::string> &op_labels,
-                           const std::vector<reg_t> &op_qubits,
-                           const std::vector<reg_t> &noise_qubits) {
+void NoiseModel::add_readout_error(const ReadoutError &error,
+                                         const std::vector<reg_t> &op_qubits) {
+  // Add error term as unique pointer
+  readout_errors_.push_back(error);
+  // Get position of error in error vector
+  const auto error_pos = readout_errors_.size() - 1;
+
+  // Add error index to the error table
+  if (op_qubits.empty()) {
+    readout_error_table_[""].push_back(error_pos);
+  } else {
+    for (const auto &qubits : op_qubits)
+      readout_error_table_[reg2string(qubits)].push_back(error_pos);
+  }
+}
+
+
+void NoiseModel::add_quantum_error(const QuantumError &error,
+                                   const stringset_t &op_labels,
+                                   const std::vector<reg_t> &op_qubits,
+                                   const std::vector<reg_t> &noise_qubits) {
 
   if (op_qubits.empty()) {
     // Add default local error
-    add_local_error(error, op_labels, {reg_t()});
+    add_local_quantum_error(error, op_labels, {reg_t()});
   } else if (noise_qubits.empty()) {
     // Add local error for specific qubits
-    add_local_error(error, op_labels, op_qubits);
+    add_local_quantum_error(error, op_labels, op_qubits);
   } else {
     // Add non local error for specific qubits and target qubits
-    add_nonlocal_error(error, op_labels, op_qubits, noise_qubits);
+    add_nonlocal_quantum_error(error, op_labels, op_qubits, noise_qubits);
   }
 }
 
 
-template <class DerivedError>
-void NoiseModel::add_local_error(const DerivedError &error,
-                           const std::unordered_set<std::string> &op_labels,
-                           const std::vector<reg_t> &op_qubits) {
+void NoiseModel::add_local_quantum_error(const QuantumError &error,
+                                         const stringset_t &op_labels,
+                                         const std::vector<reg_t> &op_qubits) {
   // Turn on local error flag
   if (!op_labels.empty()) {
-    local_errors_ = true;
+    local_quantum_errors_ = true;
   }
   // Add error term as unique pointer
-  error_ptrs_.push_back(std::unique_ptr<AbstractError>(std::make_unique<DerivedError>(error)));
-  // position is error vector is length - 1
-  const auto error_pos = error_ptrs_.size() - 1;
+  quantum_errors_.push_back(error);
+  // Get position of error in error vector
+  const auto error_pos = quantum_errors_.size() - 1;
   // Add error index to the error table
   for (const auto &gate: op_labels)
     for (const auto &qubits : op_qubits)
-      local_error_table_[gate][qubits].push_back(error_pos);
+      local_quantum_error_table_[gate][reg2string(qubits)].push_back(error_pos);
 }
 
 
-template <class DerivedError>
-void NoiseModel::add_nonlocal_error(const DerivedError &error,
-                                    const std::unordered_set<std::string> &op_labels,
-                                    const std::vector<reg_t> &op_qubits,
-                                    const std::vector<reg_t> &noise_qubits) {
+void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
+                                            const stringset_t &op_labels,
+                                            const std::vector<reg_t> &op_qubits,
+                                            const std::vector<reg_t> &noise_qubits) {
 
   // Turn on nonlocal error flag
   if (!op_labels.empty() && !op_qubits.empty() && !noise_qubits.empty()) {
-    nonlocal_errors_ = true;
+    nonlocal_quantum_errors_ = true;
   }
   // Add error term as unique pointer
-  error_ptrs_.push_back(std::unique_ptr<AbstractError>(std::make_unique<DerivedError>(error)));
-  // position is error vector is length - 1
-  const auto error_pos = error_ptrs_.size() - 1;
+  quantum_errors_.push_back(error);
+  // Get position of error in error vector
+  const auto error_pos = quantum_errors_.size() - 1;
   // Add error index to the error table
   for (const auto &gate: op_labels)
     for (const auto &qubits_gate : op_qubits)
       for (const auto &qubits_noise : noise_qubits)
-        nonlocal_error_table_[gate][qubits_gate][qubits_noise].push_back(error_pos);
+        nonlocal_quantum_error_table_[gate][reg2string(qubits_gate)][reg2string(qubits_noise)].push_back(error_pos);
 }
 
 
 NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
-                                                     RngEngine &rng) const {
-
+                                                     RngEngine &rng) const {                                                
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
   // Apply local errors first
-  sample_noise_local(op, noise_before, noise_after, rng);
+  sample_local_quantum_noise(op, noise_before, noise_after, rng);
   // Apply nonlocal errors second
-  sample_noise_nonlocal(op, noise_before, noise_after, rng);
+  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng);
+  // Apply readout error to measure ops
+  if (op.type == Operations::OpType::measure) {
+    sample_readout_noise(op, noise_after, rng);
+  }
 
   // combine the original op with the noise ops before and after
   noise_before.reserve(noise_before.size() + noise_after.size() + 1);
@@ -313,75 +341,186 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
   return noise_before;
 }
 
-// MEASURE
-void NoiseModel::sample_noise_local(const Operations::Op &op,
-                                    NoiseOps &noise_before,
-                                    NoiseOps &noise_after,
-                                    RngEngine &rng) const {
-  if (local_errors_) {
-    // Check if op is a measure op
-    bool is_measure = (op.type == Operations::OpType::measure);
-    // Check if measure op writes only to memory, or also to registers
-    // We will use the same error model for both memory and registers
-    bool has_registers = !op.registers.empty();
-    // Get the qubit error map for  gate name
-    auto iter = local_error_table_.find(op.name);
-    if (iter != local_error_table_.end()) {
+
+void NoiseModel::sample_readout_noise(const Operations::Op &op,
+                                      NoiseOps &noise_after,
+                                      RngEngine &rng) const {
+  // If no readout errors are defined pass
+  if (readout_errors_.empty()) {
+    return;
+  }
+  // Check if measure op writes only to memory, or also to registers
+  // We will use the same error model for both memory and registers
+  bool has_registers = !op.registers.empty();
+  
+  //
+  std::string op_qubits = reg2string(op.qubits);
+
+  // Check if the qubits are listed in the readout error model
+  auto iter_default = readout_error_table_.find(std::string());
+
+  // Format qubit sets
+  std::vector<std::string> qubit_keys;
+  std::vector<reg_t> memory_sets, registers_sets;
+  if (readout_error_table_.find(op_qubits) == readout_error_table_.end()) {
+    // Since measure can be defined on multiple qubits
+    // but error model may be specified only on single qubits we add
+    // each one separately. If a multi-qubit model is found for specified
+    // qubits however, that will be used instead.
+    for (const auto &q : op.qubits) {
+      qubit_keys.push_back(std::to_string(q));
+    }
+    // Add the classical register sets for measure ops
+    for (const auto &q : op.memory) {
+      memory_sets.push_back({q});
+    }
+    if (has_registers) {
+      for (const auto &q : op.registers) {
+        registers_sets.push_back({q});
+      }
+    }
+  } else {
+    // for gate operations we use the qubits as specified
+    qubit_keys.push_back(op_qubits);
+    memory_sets.push_back(op.memory);
+    if (has_registers)
+      registers_sets.push_back(op.registers);
+  }
+  // Iterate over qubits
+  for (size_t qs=0; qs < qubit_keys.size(); ++qs) {
+    auto iter_qubits = readout_error_table_.find(qubit_keys[qs]);
+    if (iter_qubits != readout_error_table_.end() ||
+        iter_default != readout_error_table_.end()) {
+      auto &error_positions = (iter_qubits != readout_error_table_.end())
+        ? iter_qubits->second
+        : iter_default->second;
+      for (auto &pos : error_positions) {
+        // Sample Readout error
+        auto noise_ops = readout_errors_[pos].sample_noise(memory_sets[qs], rng);
+        if (has_registers) {
+          for (auto& noise_op: noise_ops) {
+            noise_op.registers = registers_sets[qs];
+          }
+        }
+        // Add noise after the error 
+        noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
+      }
+    }
+  }
+}
+
+
+void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
+                                            NoiseOps &noise_before,
+                                            NoiseOps &noise_after,
+                                            RngEngine &rng) const {
+  
+  // If no errors are defined pass
+  if (local_quantum_errors_ == false)
+    return;
+
+  // Get op name, or label if it is a matrix
+  std::string name = (op.type == Operations::OpType::matrix)
+    ? op.string_params[0]
+    : op.name;
+
+  // Check if op is a measure or reset
+  bool is_measure_or_reset = (op.type == Operations::OpType::measure ||
+                              op.type == Operations::OpType::reset);
+
+  // Convert qubits to string for table lookup
+  std::string op_qubits = reg2string(op.qubits);
+
+  // Get the qubit error map for  gate name
+  auto iter = local_quantum_error_table_.find(name);
+  if (iter != local_quantum_error_table_.end()) {
+    // Check if the qubits are listed in the inner model
+    const auto qubit_map = iter->second;
+    // Get the default qubit model incase a specific qubit model is not found
+    // The default model is stored under the empty key string ""
+    auto iter_default = qubit_map.find(std::string());
+    // Format qubit sets
+    std::vector<std::string> qubit_keys;
+    if (is_measure_or_reset && qubit_map.find(op_qubits) == qubit_map.end()) {
+      // Since measure and reset ops can be defined on multiple qubits
+      // but error model may be specified only on single qubits we add
+      // each one separately. If a multi-qubit model is found for specified
+      // qubits however, that will be used instead.
+      for (const auto &q : op.qubits)
+        qubit_keys.push_back(std::to_string(q));
+    } else {
+      // for gate operations we use the qubits as specified
+      qubit_keys.push_back(op_qubits);
+    }
+    for (size_t qs=0; qs < qubit_keys.size(); ++qs) {
+      auto iter_qubits = qubit_map.find(qubit_keys[qs]);
+      if (iter_qubits != qubit_map.end() ||
+          iter_default != qubit_map.end()) {
+        auto &error_positions = (iter_qubits != qubit_map.end())
+          ? iter_qubits->second
+          : iter_default->second;
+        for (auto &pos : error_positions) {
+          auto noise_ops = quantum_errors_[pos].sample_noise(string2reg(qubit_keys[qs]), rng);
+          // Duplicate same sampled error operations
+          if (quantum_errors_[pos].errors_after())
+            noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
+          else
+            noise_before.insert(noise_before.end(), noise_ops.begin(), noise_ops.end());
+        }
+      }
+    }
+  }
+}
+
+
+void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
+                                               NoiseOps &noise_before,
+                                               NoiseOps &noise_after,
+                                               RngEngine &rng) const {
+  
+  // If no errors are defined pass
+  if (nonlocal_quantum_errors_ == false)
+    return;
+  
+  // Get op name, or label if it is a matrix
+  std::string name = (op.type == Operations::OpType::matrix)
+    ? op.string_params[0]
+    : op.name;
+
+  // Convert qubits to string for table lookup
+  std::string qubits_str = reg2string(op.qubits);
+  // Get the inner error map for  gate name
+  auto iter = nonlocal_quantum_error_table_.find(name);
+  if (iter != nonlocal_quantum_error_table_.end()) {
+    const auto qubit_map = iter->second;
+    // Format qubit sets
+    std::vector<std::string> qubit_keys;
+
+    if ((op.type == Operations::OpType::measure || op.type == Operations::OpType::reset)
+        && qubit_map.find(qubits_str) == qubit_map.end()) {
+      // Since measure and reset ops can be defined on multiple qubits
+      // but error model may be specified only on single qubits we add
+      // each one separately. If a multi-qubit model is found for specified
+      // qubits however, that will be used instead.
+      for (const auto &q : op.qubits)
+        qubit_keys.push_back(std::to_string(q));
+    } else {
+      // for gate operations we use the qubits as specified
+      qubit_keys.push_back(reg2string(op.qubits));
+    }
+    for (const auto &qubits: qubit_keys) {
       // Check if the qubits are listed in the inner model
-      const auto qubit_map = iter->second;
-      auto iter_default = qubit_map.find({});
-      // Format qubit sets
-      std::vector<reg_t> qubit_sets, memory_sets, registers_sets;
-      if ((is_measure || op.type == Operations::OpType::reset)
-           && qubit_map.find(op.qubits) == qubit_map.end()) {
-        // since measure and reset ops can be defined on multiple qubits
-        // but error model may be specified only on single qubits we add
-        // each one separately. If a multi-qubit model is found for specified
-        // qubits however, that will be used instead.
-        for (const auto &q : op.qubits)
-          qubit_sets.push_back({q});
-        // Add the classical register sets for measure ops
-        if (is_measure) {
-          for (const auto &q : op.memory)
-            memory_sets.push_back({q});
-          if (has_registers)
-            for (const auto &q : op.registers)
-              registers_sets.push_back({q});
-        }
-      } else {
-        // for gate operations we use the qubits as specified
-        qubit_sets.push_back(op.qubits);
-        if (is_measure) {
-          memory_sets.push_back(op.memory);
-          if (has_registers)
-            registers_sets.push_back(op.registers);
-        }
-      }
-      for (size_t ii=0; ii < qubit_sets.size(); ++ii) {
-        auto iter_qubits = qubit_map.find(qubit_sets[ii]);
-        if (iter_qubits != qubit_map.end() ||
-            iter_default != qubit_map.end()) {
-          auto &error_positions = (iter_qubits != qubit_map.end())
-            ? iter_qubits->second
-            : iter_default->second;
+      auto iter_qubits = qubit_map.find(qubits);
+      if (iter_qubits != qubit_map.end()) {
+        for (auto &target_pair : iter_qubits->second) {
+          auto &target_qubits = target_pair.first;
+          auto &error_positions = target_pair.second;
           for (auto &pos : error_positions) {
-            NoiseOps noise_ops;
-            // Check if error is a ReadoutError, not that his only happens
-            // if the input op is a measure op
-            if (is_measure && error_ptrs_[pos]->error_type() == 'C') {
-              // Readout error
-              noise_ops = error_ptrs_[pos]->sample_noise(memory_sets[ii], rng);
-              if (has_registers)
-                for (auto& noise_op: noise_ops)
-                  noise_op.registers = registers_sets[ii];
-            } else {
-              noise_ops = error_ptrs_[pos]->sample_noise(qubit_sets[ii], rng);
-            }
-            // Duplicate same sampled error operations
-            if (error_ptrs_[pos]->errors_after())
-              noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
+            auto ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits), rng);
+            if (quantum_errors_[pos].errors_after())
+              noise_after.insert(noise_after.end(), ops.begin(), ops.end());
             else
-              noise_before.insert(noise_before.end(), noise_ops.begin(), noise_ops.end());
+              noise_before.insert(noise_before.end(), ops.begin(), ops.end());
           }
         }
       }
@@ -390,52 +529,7 @@ void NoiseModel::sample_noise_local(const Operations::Op &op,
 }
 
 
-void NoiseModel::sample_noise_nonlocal(const Operations::Op &op,
-                                       NoiseOps &noise_before,
-                                       NoiseOps &noise_after,
-                                       RngEngine &rng) const {
-  if (nonlocal_errors_) {
-    // Get the inner error map for  gate name
-    auto iter = nonlocal_error_table_.find(op.name);
-    if (iter != nonlocal_error_table_.end()) {
-      const auto qubit_map = iter->second;
-      // Format qubit sets
-      std::vector<reg_t> qubit_sets;
-      if ((op.type == Operations::OpType::measure || op.type == Operations::OpType::reset)
-          && qubit_map.find(op.qubits) == qubit_map.end()) {
-        // since measure and reset ops can be defined on multiple qubits
-        // but error model may be specified only on single qubits we add
-        // each one separately. If a multi-qubit model is found for specified
-        // qubits however, that will be used instead.
-        for (const auto &q : op.qubits)
-          qubit_sets.push_back({q});
-      } else {
-        // for gate operations we use the qubits as specified
-        qubit_sets.push_back(op.qubits);
-      }
-      for (const auto &qubits: qubit_sets) {
-        // Check if the qubits are listed in the inner model
-        auto iter_qubits = qubit_map.find(qubits);
-        if (iter_qubits != qubit_map.end()) {
-          for (auto &target_pair : iter_qubits->second) {
-            auto &target_qubits = target_pair.first;
-            auto &error_positions = target_pair.second;
-            for (auto &pos : error_positions) {
-              auto ops = error_ptrs_[pos]->sample_noise(target_qubits, rng);
-              if (error_ptrs_[pos]->errors_after())
-                noise_after.insert(noise_after.end(), ops.begin(), ops.end());
-              else
-                noise_before.insert(noise_before.end(), ops.begin(), ops.end());
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-
-const std::unordered_map<std::string, NoiseModel::WaltzGate>
+const stringmap_t<NoiseModel::WaltzGate>
 NoiseModel::waltz_gate_table_ = {
   {"u3", WaltzGate::u3}, {"u2", WaltzGate::u2}, {"u1", WaltzGate::u1}, {"u0", WaltzGate::u0},
   {"id", WaltzGate::id}, {"x", WaltzGate::x}, {"y", WaltzGate::y}, {"z", WaltzGate::z},
@@ -484,6 +578,24 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
   return ret;
 }
 
+
+std::string NoiseModel::reg2string(const reg_t &reg) const {
+  std::stringstream result;
+  std::copy(reg.begin(), reg.end(), std::ostream_iterator<reg_t::value_type>(result, ","));
+  return result.str();
+}
+
+
+reg_t NoiseModel::string2reg(std::string s) const {
+  reg_t result;
+  size_t pos = 0;
+  while ((pos = s.find(",")) != std::string::npos) {
+    result.push_back(std::stoi(s.substr(0, pos)));
+    s.erase(0, pos + 1);
+  }
+  return result;
+}
+
 //=========================================================================
 // JSON Conversion
 //=========================================================================
@@ -497,43 +609,26 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
     }
   }
 
-  General error:
-  {
-    "type": "error type",
-    "operations": ["x", "y", ..],  // ops to apply error to
-    "op_qubits": [[0], [1]]        // error only apples when op is on these qubits (blank for all)
-    "noise_qubits": [[2], ...]     // error term will be applied to these qubits (blank for input qubits)
-    "noise_after": true            // apply the error term before the ideal op (blank for default of true)
-                                   // if false noise will be applied before op
-  }
-
   Specific types additional parameters
-  Unitary
+  Quantum Error
   {
-    "type": "unitary",
+    "type": "qerror",
+    "operations": ["x", "y", ...],  // ops to apply error to
+    "gate_qubits": [[0], [1]]      // error only apples when op is on these qubits (blank for all)
+    "noise_qubits": [[2], ...]     // error term will be applied to these qubits (blank for input qubits)
+                                   // if false noise will be applied before op
     "probabilities": [p0, p1, ..],
-    "matrices": [U0, U1, ...]
+    "instructions": [qobj_circuit_instrs0, qobj_circuit_instrs1, ...]
   }
 
-  Kraus
+  Readout Error (note: readout errors can only be local)
   {
-    "type": "kraus",
-    "matrices": [A0, A1, ...]
-  }
-
-  Reset
-  {
-    "type": "reset",
-    "probabilities": probs
-  }
-
-  Readout (note: readout errors can only be local)
-  {
-    "type": "readout",
+    "type": "roerror",
+    "operations": ["measure"],
     "probabilities": [[P(0|0), P(0|1)], [P(1|0), P(1|1)]]
+    "gate_qubits": [[0]]  // error only apples when op is on these qubits (blank for all)
   }
 */
-// Allowed types: "unitary_error", "kraus_error", "reset_error"
 
 void NoiseModel::load_from_json(const json_t &js) {
 
@@ -558,7 +653,7 @@ void NoiseModel::load_from_json(const json_t &js) {
     for (const auto &gate_js : js["errors"]) {
       std::string type;
       JSON::get_value(type, "type", gate_js);
-      std::unordered_set<std::string> ops; // want set so ops are unique, and we can pull out measure
+      stringset_t ops; // want set so ops are unique, and we can pull out measure
       JSON::get_value(ops, "operations", gate_js);
       std::vector<reg_t> gate_qubits;
       JSON::get_value(gate_qubits, "gate_qubits", gate_js);
@@ -567,51 +662,29 @@ void NoiseModel::load_from_json(const json_t &js) {
 
       // We treat measure as a separate error op so that it can be applied before
       // the measure operation, rather than after like the other gates
-      if (ops.find("measure") != ops.end() && type != "readout") {
+      if (ops.find("measure") != ops.end() && type != "roerror") {
         ops.erase("measure"); // remove measure from set of ops
-        if (type == "unitary") {
-          UnitaryError error;
-          error.load_from_json(gate_js);
-          error.set_errors_before(); // set errors before the op
-          add_error(error, {"measure"}, gate_qubits, noise_qubits);
-        } else if (type == "kraus") {
-          KrausError error;
-          error.load_from_json(gate_js);
-          error.set_errors_before(); // set errors before the op
-          add_error(error, {"measure"}, gate_qubits, noise_qubits);
-        } else if (type == "reset") {
-          ResetError error;
-          error.load_from_json(gate_js);
-          error.set_errors_before(); // set errors before the op
-          add_error(error, {"measure"}, gate_qubits, noise_qubits);
-        } else if (type == "readout") {
-          ReadoutError error; // readout error goes after
-          error.load_from_json(gate_js);
-          // We do not allow non-local readout errors
-          if (!noise_qubits.empty()) {
-            throw std::invalid_argument("Readout error must be a local error");
-          }
-          add_error(error, {"measure"}, gate_qubits, {});
-        }
-        else {
+        if (type != "qerror")
           throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
+        QuantumError error;
+        error.load_from_json(gate_js);
+        error.set_errors_before(); // set errors before the op
+        add_quantum_error(error, {"measure"}, gate_qubits, noise_qubits);
+      }
+      // Load the remaining ops as errors that come after op
+      if (type == "qerror") {
+        QuantumError error;
+        error.load_from_json(gate_js);
+        add_quantum_error(error, ops, gate_qubits, noise_qubits);
+      } else if (type == "roerror") {
+        // We do not allow non-local readout errors
+        if (!noise_qubits.empty()) {
+          throw std::invalid_argument("Readout error must be a local error");
         }
-      }
-      // Load the remaining non-measure ops as a separate error
-      if (type == "unitary") {
-        UnitaryError error;
+        ReadoutError error; // readout error goes after
         error.load_from_json(gate_js);
-        add_error(error, ops, gate_qubits, noise_qubits);
-      } else if (type == "kraus") {
-        KrausError error;
-        error.load_from_json(gate_js);
-        add_error(error, ops, gate_qubits, noise_qubits);
-      } else if (type == "reset") {
-        ResetError error;
-        error.load_from_json(gate_js);
-        add_error(error, ops, gate_qubits, noise_qubits);
-      }
-      else {
+        add_readout_error(error, gate_qubits);
+      }else {
         throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
       }
     }
