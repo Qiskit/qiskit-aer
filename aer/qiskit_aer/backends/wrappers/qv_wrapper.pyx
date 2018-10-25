@@ -13,7 +13,6 @@ cdef extern from "simulators/qubitvector/qv_state.hpp" namespace "AER::QubitVect
     cdef cppclass State[T=*]:
         State() except +
 
-10 + 1
 
 # Import C++ simulator Interface class
 cdef extern from "framework/interface.hpp" namespace "AER":

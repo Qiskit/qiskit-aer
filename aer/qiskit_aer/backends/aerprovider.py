@@ -22,7 +22,7 @@ class AerProvider(BaseProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of local Sympy backends.
+        # Populate the list of Aer simulator backends.
         self._backends = [QasmSimulator(provider=self),
                           StatevectorSimulator(provider=self)]
 
