@@ -8,7 +8,7 @@
 # pylint: disable=invalid-name
 
 """
-Interface to C++ quantum circuit simulator with realistic noise.
+Qiskit Aer statevector simulator backend.
 """
 
 import logging

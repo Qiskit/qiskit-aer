@@ -1,5 +1,12 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 """
-Cython quantum circuit simulator.
+Qiskit Aer qasm simulator backend.
 """
 
 import json
@@ -8,14 +15,11 @@ import datetime
 import uuid
 import numpy as np
 
-# Import qiskit classes
 import qiskit
 from qiskit.backends import BaseBackend
 from qiskit.qobj import qobj_to_dict
 from qiskit.result._result import Result
 from .aerjob import AerJob
-
-# Import Simulator tools
 from ._simulatortools import AerJSONEncoder
 from qv_wrapper import QvSimulatorWrapper
 
