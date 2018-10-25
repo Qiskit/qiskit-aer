@@ -22,25 +22,25 @@ with more detailed information about the project.
 
 ## Installation
 
-Follow these steps for installing Terra simulator addons:
+Follow these steps for installing the **Qiskit Aer** package:
 
 ```bash
-qiskit-aer$ cd aer/qv_addon
+qiskit-aer$ cd aer
 qiskit-aer$ pip install -r requirements-dev.txt
-qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
+qiskit-aer/aer$ python ./setup.py bdist_wheel
 ```
 
 Once the build finishes, we just need to install the wheel package in our
-prefered python virtual environment:
+preferred python virtual environment:
 
 ```bash
-qiskit-aer/aer/qv_addon$ cd dist
-qiskit-aer/aer/qv_addon/dist$ pip install qiskit_addon_qv-0.0.0-cp36-cp36m-linux_x86_64.whl
+qiskit-aer/aer$ pip install dist/qiskit_addon_qv-0.0.0-cp36-cp36m-linux_x86_64.whl
 ```
 
 We are all set! Now we ready to start using the simulator in our python code:
 ```python
-from qiskit_addon_qv import AerQvSimulator
 
-simulator = AerQvSimulator()
+from qiskit_aer import Aer  # Imports the Aer Provider
+
+aer.backends() # List Aer backends
 ```
