@@ -15,7 +15,7 @@ import logging
 
 from qiskit.qobj import QobjInstruction
 from .qasm_simulator import QasmSimulator
-from ._aersimulatorerror import AerSimulatorError
+from .aersimulatorerror import AerSimulatorError
 
 # Logger
 logger = logging.getLogger(__name__)

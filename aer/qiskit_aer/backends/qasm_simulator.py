@@ -20,7 +20,7 @@ from qiskit.backends import BaseBackend
 from qiskit.qobj import qobj_to_dict
 from qiskit.result._result import Result
 from .aerjob import AerJob
-from ._simulatortools import AerJSONEncoder
+from .simulatortools import AerJSONEncoder
 from qv_wrapper import QvSimulatorWrapper
 
 # Logger
