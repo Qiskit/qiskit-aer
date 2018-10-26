@@ -14,8 +14,8 @@ errors (package)
 |
 |-- mixed_unitary_error
 |-- coherent_unitary_error
-|-- pauli_channel_error
-|-- depolarizing_channel_error
+|-- pauli_error
+|-- depolarizing_error
 |-- thermal_relaxation_error
 |-- phase_amplitude_damping_error
 |-- amplitude_damping_error
@@ -24,8 +24,8 @@ errors (package)
 
 from .standard_errors import mixed_unitary_error
 from .standard_errors import coherent_unitary_error
-from .standard_errors import pauli_channel_error
-from .standard_errors import depolarizing_channel_error
+from .standard_errors import pauli_error
+from .standard_errors import depolarizing_error
 from .standard_errors import thermal_relaxation_error
 from .standard_errors import phase_amplitude_damping_error
 from .standard_errors import amplitude_damping_error

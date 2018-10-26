@@ -10,16 +10,168 @@ Helper functions for noise model creation.
 """
 
 import numpy as np
-
 from .aernoiseerror import AerNoiseError
 
 
-def make_unitary_instruction(mat, qubits, threshold=1e-10):
+def standard_gates_instructions(instructions, threshold=1e-10):
+    """Convert a list with unitary matrix instructions into standard gates.
+
+    Args:
+        instructions (list): A list of qobj instructions.
+        threshold (double): The threshold parameter for comparing unitary to
+                            standard gate matrices.
+
+    Returns:
+        list: a list of qobj instructions equivalent to in input instruction.
+    """
+    output_instructions = []
+    for instruction in instructions:
+        output_instructions += standard_gate_instruction(instruction,
+                                                         threshold=threshold)
+    return output_instructions
+
+
+def standard_gate_instruction(instruction, threshold=1e-10):
+    """Convert a unitary matrix instruction into a standard gate instruction.
+
+    Args:
+        instruction (dict): A qobj instruction.
+        threshold (double): The threshold parameter for comparing unitary to
+                            standard gate matrices.
+
+    Returns:
+        list: a list of qobj instructions equivalent to in input instruction.
+    """
+    if instruction.get("name", None) not in ["mat", "unitary"]:
+        return [instruction]
+
+    qubits = instruction["qubits"]
+    mat = instruction["params"]
+
+    # Check single qubit gates
+    if len(qubits) == 1:
+        for name in ["id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"]:
+            if np.linalg.norm(mat - standard_gate_unitary(name)) < threshold:
+                return [{"name": name, "qubits": qubits}]
+    # Check two qubit gates
+    if len(qubits) == 2:
+        for name in ["cx", "cz", "swap"]:
+            if np.linalg.norm(mat - standard_gate_unitary(name)) < threshold:
+                return [{"name": name, "qubits": qubits}]
+        # Check reversed CX
+        if np.linalg.norm(mat - standard_gate_unitary("cx_10")) < threshold:
+            return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
+        # Check 2-qubit Pauli's
+        paulis = ["id", "x", "y", "z"]
+        for q0 in paulis:
+            for q1 in paulis:
+                pmat = np.kron(standard_gate_unitary(q1), standard_gate_unitary(q0))
+                if np.linalg.norm(mat - pmat) < threshold:
+                    if q0 is "id":
+                        return [{"name": q1, "qubits": [qubits[1]]}]
+                    elif q1 is "id":
+                        return [{"name": q0, "qubits": [qubits[0]]}]
+                    else:
+                        return [{"name": q0, "qubits": [qubits[0]]},
+                                {"name": q1, "qubits": [qubits[1]]}]
+    # Check three qubit toffoli
+    if len(qubits) == 3:
+        if np.linalg.norm(mat - standard_gate_unitary("ccx_012")) < threshold:
+            return [{"name": "ccx", "qubits": qubits}]
+        if np.linalg.norm(mat - standard_gate_unitary("ccx_021")) < threshold:
+            return [{"name": "ccx", "qubits": [qubits[0], qubits[2], qubits[1]]}]
+        if np.linalg.norm(mat - standard_gate_unitary("ccx_120")) < threshold:
+            return [{"name": "ccx", "qubits": [qubits[1], qubits[2], qubits[0]]}]
+    # Else return input in
+    return [instruction]
+
+
+def standard_gate_unitary(name):
+    """Return the unitary matrix for a standard gate."""
+    if name in ["id", "I"]:
+        return np.eye(2, dtype=complex)
+    if name in ["x", "X"]:
+        return np.array([[0, 1],
+                         [1, 0]], dtype=complex)
+    if name in ["y", "Y"]:
+        return np.array([[0, -1j],
+                         [1j, 0]], dtype=complex)
+    if name in ["z", "Z"]:
+        return np.array([[1, 0],
+                         [0, -1]], dtype=complex)
+    if name in ["h", "H"]:
+        return np.array([[1, 1],
+                         [1, -1]], dtype=complex) / np.sqrt(2)
+    if name in ["s", "S"]:
+        return np.array([[1, 0],
+                         [0, 1j]], dtype=complex)
+    if name in ["sdg", "Sdg"]:
+        return np.array([[1, 0],
+                         [0, -1j]], dtype=complex)
+    if name in ["t", "T"]:
+        return np.array([[1, 0],
+                         [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+    if name in ["tdg", "Tdg"]:
+        return np.array([[1, 0],
+                         [0, np.exp(-1j * np.pi / 4)]], dtype=complex)
+    if name in ["cx", "CX", "cx_01"]:
+        return np.array([[1, 0, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0],
+                         [0, 1, 0, 0]], dtype=complex)
+    if name is "cx_10":
+        return np.array([[1, 0, 0, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 0, 1],
+                         [0, 0, 1, 0]], dtype=complex)
+    if name in ["cz", "CZ"]:
+        return np.array([[1, 0, 0, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 1, 0],
+                         [0, 0, 0, -1]], dtype=complex)
+    if name in ["swap", "SWAP"]:
+        return np.array([[1, 0, 0, 0],
+                         [0, 0, 1, 0],
+                         [0, 1, 0, 0],
+                         [0, 0, 0, 1]], dtype=complex)
+    if name in ["ccx", "CCX", "ccx_012", "ccx_102"]:
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 1, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 1, 0],
+                         [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
+    if name in ["ccx_021", "ccx_201"]:
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 0, 0, 1, 0],
+                         [0, 0, 0, 0, 0, 1, 0, 0]], dtype=complex)
+    if name in ["ccx_120", "ccx_210"]:
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 0, 0, 1, 0]], dtype=complex)
+    return None
+
+
+def make_unitary_instruction(mat, qubits, standard_gates=True, threshold=1e-10):
     """Return a qobj instruction for a unitary matrix gate.
 
     Args:
         mat (matrix): A square or diagonal unitary matrix.
         qubits (list[int]): The qubits the matrix is applied to.
+        standard_gates (bool): Check if the matrix instruction is a
+                               standard instruction.
         threshold (double): The threshold parameter for testing if the
                             input matrix is unitary (default: 1e-10).
     Returns:
@@ -28,11 +180,15 @@ def make_unitary_instruction(mat, qubits, threshold=1e-10):
     Raises:
         AerNoiseError: if the input is not a unitary matrix.
     """
-    if is_unitary(mat, threshold) is False:
+    if is_unitary(mat, threshold=threshold) is False:
         raise AerNoiseError("Input matrix is not unitary.")
     elif isinstance(qubits, int):
         qubits = [qubits]
-    return {"name": "mat", "qubits": qubits, "params": mat}
+    instruction = {"name": "unitary", "qubits": qubits, "params": mat}
+    if standard_gates is True:
+        return standard_gate_instruction(instruction, threshold=threshold)
+    else:
+        return [instruction]
 
 
 def make_kraus_instruction(mats, qubits, threshold=1e-10):
@@ -49,11 +205,11 @@ def make_kraus_instruction(mats, qubits, threshold=1e-10):
     Raises:
         AerNoiseError: if the input is not a CPTP Kraus channel.
     """
-    if is_cptp(mats, threshold) is False:
+    if is_cptp(mats, threshold=threshold) is False:
         raise AerNoiseError("Input Kraus ops are not a CPTP channel.")
     elif isinstance(qubits, int):
         qubits = [qubits]
-    return {"name": "kraus", "qubits": qubits, "params": mats}
+    return [{"name": "kraus", "qubits": qubits, "params": mats}]
 
 
 def qubits_from_mat(mat):
@@ -109,12 +265,12 @@ def is_unitary(op, threshold=1e-10):
     """Test if an array is a unitary matrix."""
     mat = np.array(op)
     if is_diagonal(mat):
-        return is_identity(np.conj(mat) * mat, threshold)
+        return is_identity(np.conj(mat) * mat, threshold=threshold)
     else:
-        return is_identity(np.conj(mat.T).dot(mat), threshold)
+        return is_identity(np.conj(mat.T).dot(mat), threshold=threshold)
 
 
-def kraus2instructions(kraus_ops, threshold=1e-10):
+def kraus2instructions(kraus_ops, standard_gates=True, threshold=1e-10):
     """
     Convert a list of Kraus matrices into qobj circuits.
 
@@ -124,6 +280,8 @@ def kraus2instructions(kraus_ops, threshold=1e-10):
 
     Args:
         kraus_ops (list[matrix]): A list of Kraus matrices for a CPTP map.
+        standard_gates (bool): Check if the matrix instruction is a
+                               standard instruction.
         threshold (double): The threshold for testing if Kraus matrices are
                             unitary or identity matrices (default: 1e-10).
 
@@ -136,7 +294,7 @@ def kraus2instructions(kraus_ops, threshold=1e-10):
         AerNoiseError: If the input Kraus channel is not CPTP.
     """
     # Check CPTP
-    if is_cptp(kraus_ops, threshold) is False:
+    if is_cptp(kraus_ops, threshold=threshold) is False:
         raise AerNoiseError("Input Kraus channel is not CPTP.")
 
     # Get number of qubits
@@ -168,12 +326,12 @@ def kraus2instructions(kraus_ops, threshold=1e-10):
             rescaled_op = np.array(op) / np.sqrt(prob)
 
             # Check if identity operator
-            if is_identity(rescaled_op, threshold):
+            if is_identity(rescaled_op, threshold=threshold):
                 prob_identity += prob
                 prob_unitary += prob
 
             # Check if unitary
-            elif is_unitary(rescaled_op, threshold):
+            elif is_unitary(rescaled_op, threshold=threshold):
                 probabilities.append(prob)
                 prob_unitary += prob
                 unitaries.append(rescaled_op)
@@ -188,7 +346,9 @@ def kraus2instructions(kraus_ops, threshold=1e-10):
 
     # Add unitary instructions
     for unitary in unitaries:
-        instructions.append([make_unitary_instruction(unitary, qubits, threshold)])
+        instructions.append(make_unitary_instruction(unitary, qubits,
+                                                     standard_gates=standard_gates,
+                                                     threshold=threshold))
 
     # Add identity instruction
     if prob_identity > threshold:
@@ -200,7 +360,8 @@ def kraus2instructions(kraus_ops, threshold=1e-10):
     if abs(prob_kraus) > threshold:
         # Rescale kraus operators by probabilities
         non_unitaries = [np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries]
-        instructions.append([make_kraus_instruction(non_unitaries, qubits, threshold)])
+        instructions.append(make_kraus_instruction(non_unitaries, qubits,
+                                                   threshold=threshold))
         probabilities.append(prob_kraus)
 
     return zip(probabilities, instructions)

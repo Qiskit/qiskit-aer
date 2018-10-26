@@ -20,7 +20,8 @@ class QuantumError:
     Quantum error class for Qiskit Aer noise model
     """
 
-    def __init__(self, noise_ops, number_of_qubits=None, threshold=1e-10):
+    def __init__(self, noise_ops, number_of_qubits=None,
+                 standard_gates=True, threshold=1e-10):
         """
         Create a quantum error for a noise model.
 
@@ -29,6 +30,7 @@ class QuantumError:
             number_of_qubits (int): specify the number of qubits for the
                                     error. If None this will be determined
                                     automatically (default None).
+            standard_gates (bool): Check if input matrices are standard gates.
             threshold (double): The threshold parameter for testing if
                                 probabilities are normalized and Kraus
                                 operators are unitary (default: 1e-10).
@@ -63,7 +65,9 @@ class QuantumError:
 
         # Check if Kraus
         if isinstance(noise_ops, (list, tuple)) and isinstance(noise_ops[0], np.ndarray):
-            noise_ops = kraus2instructions(noise_ops, threshold)
+            noise_ops = kraus2instructions(noise_ops,
+                                           standard_gates=standard_gates,
+                                           threshold=threshold)
 
         minimum_qubits = 0
         # Add non-zero probability error circuits to the error

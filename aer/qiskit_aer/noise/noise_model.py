@@ -32,6 +32,7 @@ class NoiseModel:
 
     def __init__(self):
         # Initialize empty quantum errors
+        self._noise_instructions = set()  # Store gates with a noise model defined
         # TODO: Code would be cleaner if these were replaced with classes
         self._default_quantum_errors = {}  # Type: dict(str: list(QuantumError)
         self._local_quantum_errors = {}    # Type: dict(str: dict(str: list(QuantumError))
@@ -40,6 +41,11 @@ class NoiseModel:
         self._default_readout_error = None    # Type: ReadoutError
         self._local_readout_errors = {}    # Type: dict(str: ReadoutError)
         self._x90_gates = []
+
+    @property
+    def noise_instructions(self):
+        """Return the set of noisy instructions for this noise model."""
+        return self._noise_instructions
 
     def set_x90_single_qubit_gates(self, operations):
         """
@@ -57,6 +63,8 @@ class NoiseModel:
         for op in operations:
             if not isinstance(op, str):
                 raise AerNoiseError("Qobj invalid operations.")
+            # Add X-90 based gate to noisy gates
+            self._noise_instructions.add(op)
         self._x90_gates = operations
 
     def add_all_qubit_quantum_error(self, error, operations):
@@ -92,13 +100,13 @@ class NoiseModel:
                 self._default_quantum_errors[op].append(error)
             else:
                 self._default_quantum_errors[op] = [error]
-
             # Check if a specific qubit error has been applied for this operation
             if op in self._local_quantum_errors:
                 local_qubits = self._keys2str(self._local_quantum_errors[op].keys())
                 logger.warning("WARNING: all-qubit error for operation " +
                                "\"{}\" will not apply to qubits: ".format(op) +
                                "{} as specific error already exists.".format(local_qubits))
+            self._noise_instructions.add(op)
 
     def add_quantum_error(self, error, operations, qubits):
         """
@@ -157,6 +165,7 @@ class NoiseModel:
                                "on qubits {} overrides previously defined ".format(qubits) +
                                "all-qubit error for these qubits.")
                 self._default_quantum_errors[op].append(error)
+            self._noise_instructions.add(op)
 
     def add_nonlocal_quantum_error(self, error, operations, qubits, noise_qubits):
         """
@@ -207,6 +216,7 @@ class NoiseModel:
                 qubit_dict[qubits_str] = [(error, noise_qubits)]
             # Add updated dictionary
             self._nonlocal_quantum_errors[op] = qubit_dict
+            self._noise_instructions.add(op)
 
     def add_all_qubit_readout_error(self, error):
         """
@@ -221,11 +231,11 @@ class NoiseModel:
 
         # Error checking
         if not isinstance(error, ReadoutError):
-            raise AerNoiseError("Input is not a QuantumError object.")
+            raise AerNoiseError("Input is not a ReadoutError object.")
 
         # Check number of qubits is correct for standard operations
         if error.number_of_qubits != 1:
-            raise AerNoiseError("")
+            raise AerNoiseError("All-qubit readout errors must defined as single-qubit errors.")
         if self._default_readout_error is not None:
             logger.warning("WARNING: all-qubit readout error already exists, " +
                            "overriding with new readout error.")
@@ -237,6 +247,7 @@ class NoiseModel:
             logger.warning("WARNING: The all-qubit readout error will not" +
                            "apply to measure of qubits qubits: {} ".format(local_qubits) +
                            "as specific readout errors already exist.")
+        self._noise_instructions.add("measure")
 
     def add_readout_error(self, error, qubits):
         """
@@ -251,8 +262,8 @@ class NoiseModel:
         """
 
         # Error checking
-        if not isinstance(error, QuantumError):
-            raise AerNoiseError("Input is not a QuantumError object.")
+        if not isinstance(error, ReadoutError):
+            raise AerNoiseError("Input is not a ReadoutError object.")
         if not isinstance(qubits, (list, tuple)):
             raise AerNoiseError("Qubits must be a list of integers.")
 
@@ -273,6 +284,7 @@ class NoiseModel:
             logger.warning("WARNING: Specific readout error on qubits "
                            "{} overrides previously defined ".format(qubits) +
                            "all-qubit readout error for these qubits.")
+        self._noise_instructions.add("measure")
 
     def __repr__(self):
         """Display noise model"""
@@ -307,6 +319,8 @@ class NoiseModel:
         if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
             output += " Ideal"
         else:
+            if len(self._noise_instructions) > 0:
+                output += "\n  Instructions with noise: {}".format(list(self._noise_instructions))
             if len(self._x90_gates) > 0:
                 output += "\n  X-90 based single qubit gates: {}".format(list(self._x90_gates))
             if default_error_ops != []:

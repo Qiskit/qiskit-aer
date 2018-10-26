@@ -15,12 +15,12 @@ from itertools import product
 from ..aernoiseerror import AerNoiseError
 from ..quantum_error import QuantumError
 from ..noise_utils import (make_unitary_instruction, qubits_from_mat,
-                           is_identity)
+                           is_identity, standard_gate_unitary)
 
 
 def mixed_unitary_error(unitaries, probabilities, threshold=1e-10):
     """
-    Return a mixed unitary quantum error for a noise model.
+    Mixed unitary quantum error channel.
 
     Args:
         unitaries (list[matrix like]): unitary error matricies.
@@ -58,7 +58,7 @@ def mixed_unitary_error(unitaries, probabilities, threshold=1e-10):
 
 def coherent_unitary_error(unitary, threshold=1e-10):
     """
-    Return a coherent unitary quantum error for a noise model.
+    Coherent unitary quantum error channel.
 
     Args:
         unitary (matrix like): unitary error matrix.
@@ -70,9 +70,9 @@ def coherent_unitary_error(unitary, threshold=1e-10):
     return mixed_unitary_error([unitary], [1], threshold)
 
 
-def pauli_channel_error(pauli_dict, threshold=1e-10, as_matrix=True):
+def pauli_error(pauli_dict, threshold=1e-10, as_matrix=False):
     """
-    Return a Pauli channel quantum error for a noise model.
+    Pauli quantum error channel.
 
     Args:
         pauli_dict (dict[str, double]): Pauli error specification.
@@ -98,13 +98,13 @@ def pauli_channel_error(pauli_dict, threshold=1e-10, as_matrix=True):
     if as_matrix is True:
         def single_pauli(s):
             if s == 'I':
-                return np.eye(2, dtype=complex)
+                return standard_gate_unitary('id')
             if s == 'X':
-                return np.array([[0, 1], [1, 0]], dtype=complex)
+                return standard_gate_unitary('x')
             if s == 'Y':
-                return np.array([[0, -1j], [1j, 0]], dtype=complex)
+                return standard_gate_unitary('y')
             if s == 'Z':
-                return np.array([[1, 0], [0, -1]], dtype=complex)
+                return standard_gate_unitary('z')
 
         prob_identity = 0.0
         pauli_mats = []
@@ -185,9 +185,9 @@ def pauli_channel_error(pauli_dict, threshold=1e-10, as_matrix=True):
         return error
 
 
-def depolarizing_channel_error(prob, num_qubits, threshold=1e-10, as_matrix=True):
+def depolarizing_error(prob, num_qubits, threshold=1e-10, as_matrix=False):
     """
-    Return a depolarizing channel quantum error for a noise model.
+    Depolarizing quantum error channel.
 
     Args:
         prob (double): completely depolarizing channel error probability.
@@ -212,12 +212,12 @@ def depolarizing_channel_error(prob, num_qubits, threshold=1e-10, as_matrix=True
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
     paulis = ["".join(tup) for tup in product(['I', 'X', 'Y', 'Z'], repeat=num_qubits)]
-    return pauli_channel_error(dict(zip(paulis, probs)), as_matrix=as_matrix)
+    return pauli_error(dict(zip(paulis, probs)), as_matrix=as_matrix)
 
 
 def thermal_relaxation_error(t1, t2, time, polarization=0):
     """
-    Single-qubit thermal relaxation error.
+    Single-qubit thermal relaxation quantum error channel.
 
     Args:
         t1 (double > 0): the T_1 relaxation time constant.
@@ -299,7 +299,7 @@ def thermal_relaxation_error(t1, t2, time, polarization=0):
 
 def phase_amplitude_damping_error(param_amp, param_phase, polarization=0):
     """
-    Single-qubit combined phase and amplitude damping channel error.
+    Single-qubit combined phase and amplitude damping quantum error channel.
 
     Args:
         param_amp (double): the amplitude damping error parameter.
@@ -351,7 +351,7 @@ def phase_amplitude_damping_error(param_amp, param_phase, polarization=0):
 
 def amplitude_damping_error(param_amp, polarization=0):
     """
-    Single-qubit generalized amplitude damping channel error.
+    Single-qubit generalized amplitude damping quantum error channel.
 
     Args:
         param_amp (double): the amplitude damping parameter.
@@ -377,7 +377,7 @@ def amplitude_damping_error(param_amp, polarization=0):
 
 def phase_damping_error(param_phase):
     """
-    Single-qubit combined phase and amplitude damping channel error.
+    Single-qubit combined phase and amplitude damping quantum error channel.
 
     Args:
         param_phase (double): the phase damping parameter.
