@@ -11,26 +11,24 @@ import unittest
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
                     execute)
-from qiskit_addon_qv import AerQvSimulator
+from qiskit_aer.backends import QasmSimulator
 
 
 class TestGroverCircuit(common.QiskitAerTestCase):
     """Testing circuits originated in the famous algorithms"""
     def setUp(self):
-        self.qv_backend = AerQvSimulator()
-
+        self.backend = QasmSimulator()
 
     def run_circuit(self, circuit, target_distribution, shots, threshold_factor=0.05):
-        result = execute(circuit, self.qv_backend, shots=shots).result()
+        result = execute(circuit, self.backend, shots=shots).result()
         counts = result.get_counts(circuit)
-        target = {base_element: amplitude*shots
+        target = {base_element: amplitude * shots
                   for base_element, amplitude in target_distribution.items()}
-        self.assertDictAlmostEqual(counts, target, threshold_factor*shots)
-        
+        self.assertDictAlmostEqual(counts, target, threshold_factor * shots)
 
     def test_grover_circuit(self):
         """Testing a circuit originated in the Grover algorithm"""
-        
+
         qreg = QuantumRegister(6)
         creg = ClassicalRegister(2)
         circuit = QuantumCircuit(qreg, creg)
@@ -61,7 +59,7 @@ class TestGroverCircuit(common.QiskitAerTestCase):
         circuit.h(qreg[4])
         circuit.measure(qreg[0], creg[0])
         circuit.measure(qreg[1], creg[1])
-        
+
         target_distribution = {
             '0x0': 0.625,
             '0x1': 0.125,
@@ -70,7 +68,6 @@ class TestGroverCircuit(common.QiskitAerTestCase):
         }
 
         self.run_circuit(circuit, target_distribution, shots=1000)
-
 
     def test_teleport_circuit(self):
         """Testing a circuit originated in the teleportation algorithm"""

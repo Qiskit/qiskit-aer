@@ -1,5 +1,12 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
 """
-Cython interface to C++ quantum circuit simulator.
+Cython wrapper for Aer C++ qubit vector simulator.
 """
 
 # Import C++ Classes
@@ -39,7 +46,7 @@ cdef extern from "framework/interface.hpp" namespace "AER":
         int get_max_threads_state()
 
 
-cdef class AerQvSimulatorWrapper:
+cdef class QvSimulatorWrapper:
 
     cdef Interface iface
 

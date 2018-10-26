@@ -17,7 +17,7 @@ before_install:
   - sudo apt-get -y install libopenblas-dev
 
 install:
-  - pip install -r aer/qv_addon/requirements-dev.txt
+  - pip install -r aer/requirements-dev.txt
 
 before_script:
   - mkdir out
@@ -26,5 +26,5 @@ before_script:
 
 script:
   - cmake --build . -- -j4
-  - cd ../aer/qv_addon
+  - cd ../aer
   - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4

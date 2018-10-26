@@ -14,7 +14,7 @@ from itertools import repeat
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
                     register, compile, execute)
 from qiskit.qobj import Qobj
-from qiskit_addon_qv import AerQvSimulator
+from qiskit_aer.backends import QasmSimulator
 from qiskit import Aer
 
 
@@ -24,7 +24,7 @@ class TestFallback(common.QiskitAerTestCase):
 
     def setUp(self):
         # ***
-        self.backend_qv = AerQvSimulator()
+        self.backend = QasmSimulator()
         # TODO Replace with register(provider_class=AerQvProvider)
         # Restricted to 2 qubits until Issue #46 is solved
         # The test still fails if all gates operate on a single qubit
@@ -35,14 +35,14 @@ class TestFallback(common.QiskitAerTestCase):
         returns the same results for the given circuit."""
 
         # TODO  Add circuit.state_snapshot('final')
-        qobj_dict_qv = compile(circuit, backend=self.backend_qv, shots=1).as_dict()
+        qobj_dict_qv = compile(circuit, backend=self.backend, shots=1).as_dict()
         qobj_dict_qv['experiments'][0]['instructions'].append(
             {'name': 'snapshot',
              'type': 'state',
              'label': 'final'}
-            )
+        )
         qobj_qv = Qobj.from_dict(qobj_dict_qv)
-        result_qv = self.backend_qv.run(qobj_qv).result()
+        result_qv = self.backend.run(qobj_qv).result()
         # TODO Replace with  result_qv = execute(circuit, backend='local_qv_simulator').result()
         self.assertEqual(result_qv.get_status(), 'COMPLETED')
         # ***
@@ -60,7 +60,6 @@ class TestFallback(common.QiskitAerTestCase):
         # TODO consider comparing the vectors using fidelity
         self.assertAlmostEqual(np.linalg.norm(vector_qv - vector_py), 0.,
                                msg=lambda circuit: 'Error on circuit: ' + circuit.qasm())
-
 
     def test_qv_fallback(self):
         """ Test that the fallback for QV simulator returns the same results."""

@@ -52,7 +52,7 @@ Pre-requisites
 
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file that exists on every simulator addon directory, eg:
-``pip install -r qiskit-aer/aer/qv_addon/requirements-dev.txt``.
+``pip install -r qiskit-aer/aer/requirements-dev.txt``.
 
 As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
@@ -114,8 +114,8 @@ For the former, we just need to call the ``setup.py`` script:
 
 .. code::
 
-  qiskit-aer$ cd aer/qv_addon
-  qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel
+  qiskit-aer$ cd aer/qiskit_aer
+  qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel
 
 We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
 This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
@@ -123,13 +123,13 @@ the undelying build system (depending on your platform). The way to pass variabl
 
 .. code::
 
-    qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
+    qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
     
 So a real example could be:
 
 .. code::
 
-    qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
+    qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
     
 This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
 library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
@@ -139,8 +139,8 @@ After this command is executed successfully, we will have a wheel package into t
 
 .. code::
 
-  qiskit-aer/aer/qv_addon$ cd dist
-  qiskit-aer/aer/qv_addon/dist$ pip install qiskit_addon_qv-0.0.0-cp36-cp36m-linux_x86_64.whl
+  qiskit-aer/aer/qiskit_aer$ cd dist
+  qiskit-aer/aer/qiskit_aer/dist$ pip install qiskit_aer-0.0.0-cp36-cp36m-linux_x86_64.whl
 
 
 Standalone executable
@@ -184,7 +184,7 @@ In the case of building the Terra addon, you have to pass these flags after writ
 
 .. code::
 
-  qiskit-aer/aer/qv_addon$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
+  qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
 
 
 These are the flags:
