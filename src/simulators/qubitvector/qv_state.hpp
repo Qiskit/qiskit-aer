@@ -198,27 +198,29 @@ protected:
 template <class statevec_t>
 const stringmap_t<Gates> State<statevec_t>::gateset({
   // Single qubit gates
-  {"id", Gates::id},   // Pauli-Identity gate
-  {"x", Gates::x},    // Pauli-X gate
-  {"y", Gates::y},    // Pauli-Y gate
-  {"z", Gates::z},    // Pauli-Z gate
-  {"s", Gates::s},    // Phase gate (aka sqrt(Z) gate)
-  {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
-  {"h", Gates::h},    // Hadamard gate (X + Z / sqrt(2))
-  {"t", Gates::t},    // T-gate (sqrt(S))
-  {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
+  {"id", Gates::id},     // Pauli-Identity gate
+  {"x", Gates::x},       // Pauli-X gate
+  {"y", Gates::y},       // Pauli-Y gate
+  {"z", Gates::z},       // Pauli-Z gate
+  {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
+  {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
+  {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
+  {"t", Gates::t},       // T-gate (sqrt(S))
+  {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u0", Gates::u0},  // idle gate in multiples of X90
-  {"u1", Gates::u1},  // zero-X90 pulse waltz gate
-  {"u2", Gates::u2},  // single-X90 pulse waltz gate
-  {"u3", Gates::u3},  // two X90 pulse waltz gate
+  {"u0", Gates::u0},     // idle gate in multiples of X90
+  {"u1", Gates::u1},     // zero-X90 pulse waltz gate
+  {"u2", Gates::u2},     // single-X90 pulse waltz gate
+  {"u3", Gates::u3},     // two X90 pulse waltz gate
+  {"U", Gates::u3},      // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::cx},  // Controlled-X gate (CNOT)
-  {"cz", Gates::cz},  // Controlled-Z gate
-  {"rzz", Gates::rzz}, // ZZ-rotation gate
+  {"CX", Gates::cx},     // Controlled-X gate (CNOT)
+  {"cx", Gates::cx},     // Controlled-X gate (CNOT)
+  {"cz", Gates::cz},     // Controlled-Z gate
+  {"rzz", Gates::rzz},   // ZZ-rotation gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-  {"ccx", Gates::ccx}  // Controlled-CX gate (Toffoli)
+  {"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
 }); 
 
 //============================================================================
