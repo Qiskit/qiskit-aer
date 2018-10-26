@@ -378,7 +378,14 @@ class NoiseModel:
             error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
             error_list.append(error_dict)
 
-        return {"errors": error_list, "x90_gates": self._x90_gates}
+        # Convert noise instructions to basis_gates string
+        basis_gates = self._noise_instructions
+        basis_gates.discard("measure")  # remove measure since it is not a gate
+        basis_gates = ",".join(basis_gates)
+
+        return {"errors": error_list,
+                "x90_gates": self._x90_gates,
+                "basis_gates": basis_gates}
 
     def _check_number_of_qubits(self, error, operation):
         """

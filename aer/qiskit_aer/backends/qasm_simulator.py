@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 class QasmSimulator(BaseBackend):
     """Aer quantum circuit simulator"""
 
+    DEFAULT_BASIS_GATES = 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
+
     DEFAULT_CONFIGURATION = {
         'name': 'qasm_simulator',
         'url': 'NA',
@@ -38,7 +40,7 @@ class QasmSimulator(BaseBackend):
         'local': True,
         'description': 'A C++ statevector simulator for qobj files',
         'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
+        "basis_gates": DEFAULT_BASIS_GATES
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -72,15 +74,23 @@ class QasmSimulator(BaseBackend):
         return Result(qobj_result, experiment_names=experiment_names)
 
     def set_noise_model(self, noise_model):
+        """Set a simulation noise model for the backend."""
         if not isinstance(noise_model, dict):
             try:
                 noise_model = noise_model.as_dict()
             except:
                 raise AerSimulatorError("Noise model must be a dict or NoiseModel object.")
         self.simulator.set_noise_model(json.dumps(noise_model, cls=AerJSONEncoder))
+        # Update basis gates to use the gates in the noise model
+        basis_gates = noise_model.get("basis_gates", None)
+        if isinstance(basis_gates, str):
+            self.DEFAULT_CONFIGURATION["basis_gates"] = basis_gates
 
     def clear_noise_model(self):
+        """Reset simulator to ideal (no noise)."""
         self.simulator.clear_noise_model()
+        # Reset to default basis gates
+        self.DEFAULT_CONFIGURATION["basis_gates"] = self.DEFAULT_BASIS_GATES
 
     def set_config(self, config):
         self.simulator.set_engine_config(json.dumps(config, cls=AerJSONEncoder))
