@@ -269,9 +269,9 @@ json_t Controller::execute(const json_t &qobj_js) {
 
   // Check for OpenMP and number of available CPUs
   #ifdef _OPENMP
-    int omp_ncpus = std::max(1, omp_get_num_procs());
+    int omp_nthreads = std::max(1, omp_get_max_threads());
     omp_set_nested(1); // allow nested parallel threads for states
-    available_threads_ = omp_ncpus;
+    available_threads_ = omp_nthreads;
     if (max_threads_total_ < 1)
       max_threads_total_ = available_threads_;
 
@@ -287,7 +287,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     
     // Add thread metatdata to output
     ret["metadata"]["omp_enabled"] = true;
-    ret["metadata"]["omp_available_threads"] = omp_ncpus;
+    ret["metadata"]["omp_available_threads"] = omp_nthreads;
     ret["metadata"]["omp_circuit_threads"] = num_threads_circuit;
   #else
     ret["metadata"]["omp_enabled"] = false;
