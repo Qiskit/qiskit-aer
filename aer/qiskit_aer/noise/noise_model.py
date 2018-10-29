@@ -42,6 +42,10 @@ class NoiseModel:
         self._local_readout_errors = {}    # Type: dict(str: ReadoutError)
         self._x90_gates = []
 
+    def reset(self):
+        """Reset the noise model."""
+        self.__init__()
+
     @property
     def noise_instructions(self):
         """Return the set of noisy instructions for this noise model."""
@@ -84,7 +88,10 @@ class NoiseModel:
             operations = (operations,)
 
         if not isinstance(error, QuantumError):
-            raise AerNoiseError("Input is not a QuantumError object.")
+            try:
+                error = QuantumError(error)
+            except:
+                raise AerNoiseError("Input is not a valid quantum error.")
         if not isinstance(operations, (list, tuple)):
             raise AerNoiseError("Qobj invalid operations.")
 
@@ -127,7 +134,10 @@ class NoiseModel:
 
         # Error checking
         if not isinstance(error, QuantumError):
-            raise AerNoiseError("Input is not a QuantumError object.")
+            try:
+                error = QuantumError(error)
+            except:
+                raise AerNoiseError("Input is not a valid quantum error.")
         if not isinstance(qubits, (list, tuple)):
             raise AerNoiseError("Qubits must be a list of integers.")
         if not isinstance(operations, (list, tuple)):
@@ -188,7 +198,10 @@ class NoiseModel:
 
         # Error checking
         if not isinstance(error, QuantumError):
-            raise AerNoiseError("Input is not a QuantumError object.")
+            try:
+                error = QuantumError(error)
+            except:
+                raise AerNoiseError("Input is not a valid quantum error.")
         if not isinstance(qubits, (list, tuple)):
             raise AerNoiseError("Qubits must be a list of integers.")
         if not isinstance(noise_qubits, (list, tuple)):
@@ -231,7 +244,10 @@ class NoiseModel:
 
         # Error checking
         if not isinstance(error, ReadoutError):
-            raise AerNoiseError("Input is not a ReadoutError object.")
+            try:
+                error = ReadoutError(error)
+            except:
+                raise AerNoiseError("Input is not a valid readout error.")
 
         # Check number of qubits is correct for standard operations
         if error.number_of_qubits != 1:
@@ -263,7 +279,10 @@ class NoiseModel:
 
         # Error checking
         if not isinstance(error, ReadoutError):
-            raise AerNoiseError("Input is not a ReadoutError object.")
+            try:
+                error = ReadoutError(error)
+            except:
+                raise AerNoiseError("Input is not a valid readout error.")
         if not isinstance(qubits, (list, tuple)):
             raise AerNoiseError("Qubits must be a list of integers.")
 
@@ -288,7 +307,6 @@ class NoiseModel:
 
     def __repr__(self):
         """Display noise model"""
-        output = "NoiseModel"
 
         # Get default errors
         default_error_ops = []
@@ -315,7 +333,7 @@ class NoiseModel:
                 for error in errors:
                     nonlocal_error_ops.append((op, self._str2qubits(q_str), error[1]))
 
-        output = "Noise Model:"
+        output = "NoiseModel:"
         if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
             output += " Ideal"
         else:
@@ -386,6 +404,61 @@ class NoiseModel:
         return {"errors": error_list,
                 "x90_gates": self._x90_gates,
                 "basis_gates": basis_gates}
+
+    def from_dict(self, noise_model):
+        """
+        Load NoiseModel from a dictionary.
+
+        Returns:
+            NoiseModel: the noise model.
+        """
+        # Reset noise model to empty state
+        self.reset()
+
+        # Set X90 gates
+        self.set_x90_single_qubit_gates(noise_model.get('x90_gates', []))
+
+        # Get error terms
+        errors = noise_model.get('errors', [])
+
+        for error in errors:
+            error_type = error['type']
+            noise_ops = tuple(zip(error['probabilities'], error['instructions']))
+            operations = error['operations']
+            all_gate_qubits = error.get('gate_qubits', None)
+            all_noise_qubits = error.get('noise_qubits', None)
+
+            # Add QuantumError
+            if error_type is 'qerror':
+                qerror = QuantumError(noise_ops)
+                if all_gate_qubits is not None:
+                    for gate_qubits in all_gate_qubits:
+                        # Load non-local quantum error
+                        if all_noise_qubits is not None:
+                            for noise_qubits in all_noise_qubits:
+                                self.add_nonlocal_quantum_error(qerror,
+                                                                operations,
+                                                                gate_qubits,
+                                                                noise_qubits)
+                        # Add local quantum error
+                        else:
+                            self.add_quantum_error(qerror, operations, gate_qubits)
+                else:
+                    # Add all-qubit quantum error
+                    self.add_all_qubit_quantum_error(qerror, operations)
+            # Add ReadoutError
+            elif error_type is 'roerror':
+                roerror = ReadoutError(noise_ops)
+                # Add local readout error
+                if all_gate_qubits is not None:
+                    for gate_qubits in all_gate_qubits:
+                        self.add_readout_error(roerror, gate_qubits)
+                # Add all-qubit readout error
+                else:
+                    self.add_all_qubit_readout_error(roerror)
+            # Invalid error type
+            else:
+                raise AerNoiseError("Invalid error type: {}".format(error_type))
 
     def _check_number_of_qubits(self, error, operation):
         """
