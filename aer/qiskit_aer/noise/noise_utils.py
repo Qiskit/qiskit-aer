@@ -31,11 +31,13 @@ def standard_gates_instructions(instructions, threshold=1e-10):
     return output_instructions
 
 
-def standard_gate_instruction(instruction, threshold=1e-10):
+def standard_gate_instruction(instruction, ignore_phase=True, threshold=1e-10):
     """Convert a unitary matrix instruction into a standard gate instruction.
 
     Args:
         instruction (dict): A qobj instruction.
+        ignore_phase (bool): Ignore global phase on unitary matrix in
+                             comparison to canonical unitary.
         threshold (double): The threshold parameter for comparing unitary to
                             standard gate matrices.
 
@@ -46,27 +48,40 @@ def standard_gate_instruction(instruction, threshold=1e-10):
         return [instruction]
 
     qubits = instruction["qubits"]
-    mat = instruction["params"]
+    mat_dagger = np.conj(instruction["params"])
+
+    def compare_mat(target):
+        tr = np.trace(np.dot(mat_dagger, target)) / len(target)
+        if ignore_phase:
+            return np.abs(np.abs(tr) - 1) < threshold
+        else:
+            return np.abs(tr - 1) < threshold
 
     # Check single qubit gates
     if len(qubits) == 1:
-        for name in ["id", "x", "y", "z", "h", "s", "sdg", "t", "tdg"]:
-            if np.linalg.norm(mat - standard_gate_unitary(name)) < threshold:
+        # Check clifford gates
+        for j in range(24):
+            if compare_mat(single_qubit_clifford_matrix(j)):
+                return single_qubit_clifford_instructions(j, qubit=qubits[0])
+        # Check t gates
+        for name in ["t", "tdg"]:
+            if compare_mat(standard_gate_unitary(name)):
                 return [{"name": name, "qubits": qubits}]
+        # TODO: u1,u2,u3 decomposition
     # Check two qubit gates
     if len(qubits) == 2:
         for name in ["cx", "cz", "swap"]:
-            if np.linalg.norm(mat - standard_gate_unitary(name)) < threshold:
+            if compare_mat(standard_gate_unitary(name)):
                 return [{"name": name, "qubits": qubits}]
         # Check reversed CX
-        if np.linalg.norm(mat - standard_gate_unitary("cx_10")) < threshold:
-            return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
+        if compare_mat(standard_gate_unitary("cx_10")):
+                return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
         # Check 2-qubit Pauli's
         paulis = ["id", "x", "y", "z"]
         for q0 in paulis:
             for q1 in paulis:
                 pmat = np.kron(standard_gate_unitary(q1), standard_gate_unitary(q0))
-                if np.linalg.norm(mat - pmat) < threshold:
+                if compare_mat(pmat):
                     if q0 is "id":
                         return [{"name": q1, "qubits": [qubits[1]]}]
                     elif q1 is "id":
@@ -76,14 +91,97 @@ def standard_gate_instruction(instruction, threshold=1e-10):
                                 {"name": q1, "qubits": [qubits[1]]}]
     # Check three qubit toffoli
     if len(qubits) == 3:
-        if np.linalg.norm(mat - standard_gate_unitary("ccx_012")) < threshold:
+        if compare_mat(standard_gate_unitary("ccx_012")):
             return [{"name": "ccx", "qubits": qubits}]
-        if np.linalg.norm(mat - standard_gate_unitary("ccx_021")) < threshold:
+        if compare_mat(standard_gate_unitary("ccx_021")):
             return [{"name": "ccx", "qubits": [qubits[0], qubits[2], qubits[1]]}]
-        if np.linalg.norm(mat - standard_gate_unitary("ccx_120")) < threshold:
+        if compare_mat(standard_gate_unitary("ccx_120")):
             return [{"name": "ccx", "qubits": [qubits[1], qubits[2], qubits[0]]}]
+
     # Else return input in
     return [instruction]
+
+
+def single_qubit_clifford_gates(j):
+    """Return a QASM gate names for a single qubit clifford.
+
+    The labels are returned in a basis set consisting of
+    ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
+    use the minimum number of X-90 pulses in a (u1, u2, u3)
+    decomposition.
+
+    Args:
+        j (int): Clifford index 0, ..., 23.
+
+    Returns:
+        tuple(str): The tuple of basis gates."""
+
+    if not isinstance(j, int) or j < 0 or j > 23:
+        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+
+    labels = [
+        ('id',), ('s',), ('sdg',), ('z',),
+        # u2 gates
+        ('h',), ('h', 'z'), ('z', 'h'), ('h', 's'), ('s', 'h'), ('h', 'sdg'), ('sdg', 'h'),
+        ('s', 'h', 's'), ('sdg', 'h', 's'), ('z', 'h', 's'),
+        ('s', 'h', 'sdg'), ('sdg', 'h', 'sdg'), ('z', 'h', 'sdg'),
+        ('s', 'h', 'z'), ('sdg', 'h', 'z'), ('z', 'h', 'z'),
+        # u3 gates
+        ('x',), ('y',), ('s', 'x'), ('sdg', 'x')
+    ]
+    return labels[j]
+
+
+def single_qubit_clifford_matrix(j):
+    """Return Numpy array for a single qubit clifford.
+
+    Args:
+        j (int): Clifford index 0, ..., 23.
+
+    Returns:
+        np.array: The matrix for the indexed clifford."""
+
+    if not isinstance(j, int) or j < 0 or j > 23:
+        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+
+    basis_dict = {
+        'id': np.eye(2),
+        'x': np.array([[0, 1], [1, 0]]),
+        'y': np.array([[0, -1j], [1j, 0]]),
+        'z': np.array([[1, 0], [0, -1]]),
+        'h': np.array([[1, 1], [1, -1]]) / np.sqrt(2),
+        's': np.array([[1, 0], [0, 1j]]),
+        'sdg': np.array([[1, 0], [0, -1j]])
+    }
+    mat = np.eye(2)
+    for gate in single_qubit_clifford_gates(j):
+        mat = np.dot(basis_dict[gate], mat)
+    return mat
+
+
+def single_qubit_clifford_instructions(j, qubit=0):
+    """Return a list of qobj instructions for a single qubit cliffords.
+
+    The instructions are returned in a basis set consisting of
+    ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
+    use the minimum number of X-90 pulses in a (u1, u2, u3)
+    decomposition.
+
+    Args:
+        j (int): Clifford index 0, ..., 23.
+
+    Returns:
+        list(dict): The list of instructions."""
+
+    if not isinstance(j, int) or j < 0 or j > 23:
+        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+    if not isinstance(qubit, int) or qubit < 0:
+        raise AerNoiseError("qubit position must be positive integer.")
+
+    instructions = []
+    for gate in single_qubit_clifford_gates(j):
+        instructions.append({"name": gate, "qubits": [qubit]})
+    return instructions
 
 
 def standard_gate_unitary(name):
