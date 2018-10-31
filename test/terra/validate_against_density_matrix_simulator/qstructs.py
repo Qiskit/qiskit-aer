@@ -94,6 +94,24 @@ def arraydot(a, b):
     return np.tensordot(a, b, axes=1)
 
 
+# ** get_state_as_str
+def get_state_as_str(basis_state_as_num, nqubits):
+    return '{0:b}'.format(basis_state_as_num).zfill(nqubits)
+
+
+# ** get_state_as_num
+def get_state_as_num(basis_state_as_str):
+    return int(basis_state_as_str, 2)
+
+
+# ** get_reverse_hex
+def get_reverse_hex(basis_state_as_num, nqubits):
+    basis_state_as_str = get_state_as_str(basis_state_as_num, nqubits)
+    new_str = basis_state_as_str[::-1]
+    new_num = get_state_as_num(new_str)
+    return hex(new_num)
+
+
 # ** ProbabilityDistribution **
 class ProbabilityDistribution:
     """A vector of real non-negative numbers whose sum is 1"""
@@ -361,13 +379,12 @@ class DensityMatrix:
 
             for basis_state_as_num in range(2**self.nqubits):
                 
-                basis_state_as_str = '{0:b}'.format(basis_state_as_num).zfill(self.nqubits)
-                basis_state_as_array = np.array(list(basis_state_as_str), dtype=int)
-                
+                basis_state_as_str = get_state_as_str(basis_state_as_num, self.nqubits)
+                basis_state_as_array = np.array(list(basis_state_as_str), dtype=int)                
 
                 matching_state_as_array = basis_state_as_array[qubits_extended]
                 matching_state_as_str = (''.join(map(str, matching_state_as_array)))
-                matching_state_as_num = int(matching_state_as_str, 2)
+                matching_state_as_num = get_state_as_num(matching_state_as_str)
 
                 if matching_state_as_num > basis_state_as_num:
                     new_op[[basis_state_as_num, matching_state_as_num], :] = new_op[[matching_state_as_num, basis_state_as_num], :]
@@ -376,6 +393,23 @@ class DensityMatrix:
             extended_ops.append(new_op)
 
         return self.qop(extended_ops)
+
+
+    def extract_probs(self):
+
+        probs = dict()
+        for basis_state_as_num in range(2**self.nqubits):
+
+            rho_entry = self.rho[basis_state_as_num, basis_state_as_num]
+
+            if is_close(0, rho_entry) == False:
+                reverse_hex = get_reverse_hex(basis_state_as_num, self.nqubits)
+                if reverse_hex in probs.keys():
+                    probs[reverse_hex] += rho_entry
+                else:
+                    probs[reverse_hex] = rho_entry
+
+        return probs
 
 
     def __str__(self):
