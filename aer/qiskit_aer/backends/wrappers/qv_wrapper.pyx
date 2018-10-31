@@ -71,11 +71,11 @@ cdef class QvSimulatorWrapper:
         # Convert input to C++ string
         cdef string config_enc = str(config).encode('UTF-8')
         self.iface.set_state_config(config_enc)
-        self.iface.set_engine_config(config_enc)        
+        self.iface.set_engine_config(config_enc)
 
     def clear_config(self):
         self.iface.clear_state_config()
-        self.iface.clear_engine_config()        
+        self.iface.clear_engine_config()
 
     def set_max_threads(self, threads):
         self.iface.set_max_threads(int(threads))

@@ -10,24 +10,13 @@ Qiskit Aer qasm simulator backend.
 """
 
 import json
-import logging
-import datetime
-import uuid
 import numpy as np
 
-import qiskit
-from qiskit.backends import BaseBackend
-from qiskit.qobj import qobj_to_dict
-from qiskit.result._result import Result
-from .aerjob import AerJob
-from .simulatortools import AerJSONEncoder
+from .aerbackend import AerBackend
 from qv_wrapper import QvSimulatorWrapper
 
-# Logger
-logger = logging.getLogger(__name__)
 
-
-class QasmSimulator(BaseBackend):
+class QasmSimulator(AerBackend):
     """Aer quantum circuit simulator"""
 
     DEFAULT_CONFIGURATION = {
@@ -42,80 +31,8 @@ class QasmSimulator(BaseBackend):
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
-                         provider=provider)
-        self.simulator = QvSimulatorWrapper()
-
-    def run(self, qobj):
-        """Run a qobj on the backend."""
-        job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
-        aer_job.submit()
-        return aer_job
-
-    def _run_job(self, job_id, qobj):
-        self._validate(qobj)
-        qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
-        output = json.loads(self.simulator.execute(qobj_str),
-                            cls=QasmSimulatorJSONDecoder)
-        # Add result metadata
-        output["job_id"] = job_id
-        output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        output["backend_name"] = self.DEFAULT_CONFIGURATION['name']
-        output["backend_version"] = "0.0.1"  # TODO: get this from somewhere else
-        # Parse result dict into Result class
-        exp_results = output.get("results", {})
-        experiment_names = [data.get("header", {}).get("name", None)
-                            for data in exp_results]
-        qobj_result = qiskit.qobj.Result(**output)
-        qobj_result.results = [qiskit.qobj.ExperimentResult(**res) for res in exp_results]
-        return Result(qobj_result, experiment_names=experiment_names)
-
-    def set_noise_model(self, noise_model):
-        self.simulator.set_noise_model(json.dumps(noise_model, cls=AerJSONEncoder))
-
-    def clear_noise_model(self):
-        self.simulator.clear_noise_model()
-
-    def set_config(self, config):
-        self.simulator.set_engine_config(json.dumps(config, cls=AerJSONEncoder))
-        self.simulator.set_state_config(json.dumps(config, cls=AerJSONEncoder))
-
-    def set_max_threads_shot(self, threads):
-        """
-        Set the maximum threads used for parallel shot execution.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available
-
-        Note that using parallel shot evaluation disables parallel circuit
-        evaluation.
-        """
-
-        self.simulator.set_max_threads_shot(int(threads))
-
-    def set_max_threads_circuit(self, threads):
-        """
-        Set the maximum threads used for parallel circuit execution.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available
-
-        Note that using parallel circuit evaluation disables parallel shot
-        evaluation.
-        """
-        self.simulator.set_max_threads_circuit(int(threads))
-
-    def set_max_threads_state(self, threads):
-        """
-        Set the maximum threads used for state update parallel  routines.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available.
-
-        Note that using parallel circuit or shot execution takes precidence over
-        parallel state evaluation.
-        """
-        self.simulator.set_max_threads_state(int(threads))
+                         QvSimulatorWrapper(), provider=provider,
+                         json_decoder=QasmSimulatorJSONDecoder)
 
     def _validate(self, qobj):
         # TODO
@@ -130,7 +47,7 @@ class QasmSimulatorJSONDecoder(json.JSONDecoder):
     for the following keys.
     """
     def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def decode_complex(self, obj):
         if isinstance(obj, list) and len(obj) == 2:

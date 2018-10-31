@@ -34,6 +34,9 @@ class StatevectorSimulator(QasmSimulator):
         "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
     }
 
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(), provider=provider)
+
     def _run_job(self, job_id, qobj):
         # Add final snapshots to circuits
         final_state_key = '__AER_FINAL_STATE__'
@@ -41,7 +44,7 @@ class StatevectorSimulator(QasmSimulator):
             experiment.instructions.append(
                 QobjInstruction(name='snapshot', type='state', label=final_state_key)
             )
-        # Get result
+        # Get result from parent class _run_job method
         result = super()._run_job(job_id, qobj)
         # Remove added snapshot from qobj
         for experiment in qobj.experiments:
