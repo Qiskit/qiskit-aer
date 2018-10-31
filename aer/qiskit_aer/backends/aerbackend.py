@@ -142,25 +142,27 @@ class AerBackend(BaseBackend):
         if noise_model is None:
             # If None clear current noise model
             self.clear_noise_model()
+            return
+
+        # Attach noise model to backend
+        if isinstance(noise_model, NoiseModel):
+            self._noise_model = noise_model
+            # Convert to dict for json serialization
+            noise_model_dict = noise_model.as_dict()
+        elif isinstance(noise_model, dict):
+            noise_model_dict = noise_model
+            # Convert to NoiseModel object to attach
+            self._noise_model = NoiseModel()
+            self._noise_model.from_dict(noise_model)
         else:
-            # Attach noise model to backend
-            if isinstance(noise_model, NoiseModel):
-                self._noise_model = noise_model
-                # Convert to dict for json serialization
-                noise_model_dict = noise_model.as_dict()
-            elif isinstance(noise_model, dict):
-                noise_model_dict = noise_model
-                # Convert to NoiseModel object to attach
-                self._noise_model = NoiseModel()
-                self._noise_model.from_dict(noise_model)
-            else:
-                raise AerSimulatorError("Invalid Qiskit Aer noise model.")
-            # Attach noise model to wrapper
-            self._simulator.set_noise_model(json.dumps(noise_model_dict, cls=AerJSONEncoder))
-            # Update basis gates to use the gates in the noise model
-            basis_gates = noise_model_dict.get("basis_gates", None)
-            if isinstance(basis_gates, str):
-                self._configuration["basis_gates"] = basis_gates
+            raise AerSimulatorError("Invalid Qiskit Aer noise model.")
+
+        # Attach noise model to wrapper
+        self._simulator.set_noise_model(json.dumps(noise_model_dict, cls=AerJSONEncoder))
+        # Update basis gates to use the gates in the noise model
+        basis_gates = noise_model_dict.get("basis_gates", None)
+        if isinstance(basis_gates, str):
+            self._configuration["basis_gates"] = basis_gates
 
     def get_noise_model(self):
         """Return the current backend noise model."""
