@@ -17,7 +17,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
-option(BUILD_TESTS "Specify whether we want to build tests or not" TRUE)
+option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 include(CTest)
 include(compiler_utils)

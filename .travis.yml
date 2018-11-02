@@ -17,14 +17,13 @@ before_install:
   - sudo apt-get -y install libopenblas-dev
 
 install:
-  - pip install -r aer/requirements-dev.txt
-
-before_script:
-  - mkdir out
-  - cd out
-  - cmake .. -DCMAKE_CXX_COMPILER=g++-7
+  - cd aer
+  - pip install -r requirements-dev.txt
 
 script:
-  - cmake --build . -- -j4
-  - cd ../aer
   - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+
+after_success:
+  - pip install dist/qiskit_aer*whl
+  - cd ..
+  - python -m unittest discover -s test -v

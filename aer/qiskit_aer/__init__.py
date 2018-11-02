@@ -5,8 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+import os
+from pathlib import Path
+
 from .backends import Aer
 from . import backends
 from . import noise
 
-__version__ = '0.0.1'
+
+ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
+    __version__ = version_file.read().strip()
