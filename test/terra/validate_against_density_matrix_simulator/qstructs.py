@@ -94,21 +94,35 @@ def arraydot(a, b):
     return np.tensordot(a, b, axes=1)
 
 
-# ** get_state_as_str
-def get_state_as_str(basis_state_as_num, nqubits):
+# ** state_num2str
+def state_num2str(basis_state_as_num, nqubits):
     return '{0:b}'.format(basis_state_as_num).zfill(nqubits)
 
-
-# ** get_state_as_num
-def get_state_as_num(basis_state_as_str):
+# ** state_str2num
+def state_str2num(basis_state_as_str):
     return int(basis_state_as_str, 2)
 
+# ** state_array2str
+def state_array2str(basis_state_as_array):
+    return (''.join(map(str, basis_state_as_array)))
+
+# ** state_str2array
+def state_str2array(basis_state_as_str):
+    return np.array(list(basis_state_as_str), dtype=int)
+
+# ** state_num2array
+def state_num2array(basis_state_as_num, nqubits):
+    return state_str2array(state_num2str(basis_state_as_num, nqubits))
+
+# ** state_array2num
+def state_array2num(basis_state_as_array):
+    return state_str2num(state_array2str(basis_state_as_array))
 
 # ** get_reverse_hex
 def get_reverse_hex(basis_state_as_num, nqubits):
-    basis_state_as_str = get_state_as_str(basis_state_as_num, nqubits)
+    basis_state_as_str = state_num2str(basis_state_as_num, nqubits)
     new_str = basis_state_as_str[::-1]
-    new_num = get_state_as_num(new_str)
+    new_num = state_str2num(new_str)
     return hex(new_num)
 
 
@@ -372,23 +386,26 @@ class DensityMatrix:
         extended_ops = []
         all_qubits = np.array(range(self.nqubits))
         diffset = np.setdiff1d(all_qubits, qubits)
-        qubits_extended = np.concatenate([qubits, diffset])
 
         for op in operators:
-            new_op = np.kron(op, np.identity(2**(self.nqubits-len(qubits))))
+            new_op = np.zeros([2**self.nqubits, 2**self.nqubits], dtype=complex)
 
-            for basis_state_as_num in range(2**self.nqubits):
-                
-                basis_state_as_str = get_state_as_str(basis_state_as_num, self.nqubits)
-                basis_state_as_array = np.array(list(basis_state_as_str), dtype=int)                
+            for row in range(2**self.nqubits):
+                for col in range(2**self.nqubits):
 
-                matching_state_as_array = basis_state_as_array[qubits_extended]
-                matching_state_as_str = (''.join(map(str, matching_state_as_array)))
-                matching_state_as_num = get_state_as_num(matching_state_as_str)
+                    row_as_array = state_num2array(row, self.nqubits)
+                    col_as_array = state_num2array(col, self.nqubits)
 
-                if matching_state_as_num > basis_state_as_num:
-                    new_op[[basis_state_as_num, matching_state_as_num], :] = new_op[[matching_state_as_num, basis_state_as_num], :]
-                    new_op[:, [basis_state_as_num, matching_state_as_num]] = new_op[:, [matching_state_as_num, basis_state_as_num]]
+                    if all(row_as_array[diffset] == col_as_array[diffset]) == False:
+                        continue
+
+                    row_in_op_array = row_as_array[qubits]
+                    col_in_op_array = col_as_array[qubits]
+
+                    row_in_op = state_array2num(row_in_op_array)
+                    col_in_op = state_array2num(col_in_op_array)
+
+                    new_op[row][col] = op[row_in_op][col_in_op]
 
             extended_ops.append(new_op)
 
