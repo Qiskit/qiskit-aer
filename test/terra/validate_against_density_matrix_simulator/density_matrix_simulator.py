@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from qstructs import DensityMatrix, QuantumState
+from qstructs import DensityMatrix, QuantumState, phase
 
 class DensityMatrixSimulator:
 
@@ -12,6 +12,10 @@ class DensityMatrixSimulator:
             'x': [np.array([[0, 1], [1, 0]])],
             'y': [np.complex(0, 1)*np.array([[0, -1], [1, 0]])],
             'z': [np.array([[1, 0], [0, -1]])],
+            't': [np.array([[1, 0], [0, phase(math.pi/4)]])],
+            'tdg': [np.array([[1, 0], [0, phase(-math.pi/4)]])],
+            's': [np.array([[1, 0], [0, np.complex(0,1)]])],
+            'sdg': [np.array([[1, 0], [0, -np.complex(0,1)]])],
             'cx': [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])]
             }
 
