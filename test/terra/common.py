@@ -21,7 +21,8 @@ from random import choice, sample
 from math import pi
 import numpy as np
 
-from qiskit import (QuantumRegister, QuantumCircuit, compile)
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import compile
 from qiskit_aer import __path__ as main_path
 
 
@@ -241,12 +242,15 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
     with the justification that it is moved to ignes.
     """
     qr = QuantumRegister(n_qubits)
-    circuit = QuantumCircuit(qr)
+    cr = ClassicalRegister(n_qubits)
+    circuit = QuantumCircuit(qr, cr)
 
     for _ in repeat(None, n_gates):
 
         # Choose the next gate
         op_name = choice(gate_types)
+        if op_name == 'id':
+            op_name = 'iden'
         operation = eval('QuantumCircuit.' + op_name)
 
         # Check if operation is one of u1, u2, u3
