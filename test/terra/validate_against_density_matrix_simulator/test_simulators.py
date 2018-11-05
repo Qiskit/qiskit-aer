@@ -42,7 +42,7 @@ class TestSimulators(common.QiskitAerTestCase):
         
         print(qc.qasm())
 
-        qobj = compile(qc, self.qasm_sim, shots=10000)
+        qobj = compile(qc, self.qasm_sim, shots=10000, seed=1)
         den_result = self.den_sim.run(qobj)
 
         qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='probabilities',
@@ -77,7 +77,7 @@ class TestSimulators(common.QiskitAerTestCase):
         print(qc.qasm())
 
         shots = 10000
-        qobj = compile(qc, self.qasm_sim, shots=shots)
+        qobj = compile(qc, self.qasm_sim, shots=shots, seed=1)
         den_result = self.den_sim.run(qobj)
 
         qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='state', label='final'))

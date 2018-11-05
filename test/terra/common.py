@@ -274,6 +274,8 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
         angles = np.random.rand(n_angles)*pi
 
         # Measurement operation
+        # In all measure operations, the classical register is not random,
+        # but has the same index as the quantum register
         if op_name == 'measure':
             classical_regs = [cr[i] for i in qubit_indices]
         else:
