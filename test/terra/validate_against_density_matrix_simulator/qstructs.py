@@ -417,6 +417,31 @@ class DensityMatrix:
         return self.qop(extended_ops)
 
 
+    def reset(self, qubit):
+        """
+        Reset the specified qubit
+        """
+
+        new_rho = np.zeros([2**self.nqubits, 2**self.nqubits], dtype=complex)
+
+        for row in range(2**self.nqubits):
+            for col in range(2**self.nqubits):
+
+                row_as_array = state_num2array(row, self.nqubits)
+                col_as_array = state_num2array(col, self.nqubits)
+
+                if row_as_array[qubit] == col_as_array[qubit]:
+                    row_as_array[qubit] = 0
+                    col_as_array[qubit] = 0
+
+                    new_row = state_array2num(row_as_array)
+                    new_col = state_array2num(col_as_array)
+
+                    new_rho[new_row][new_col] += self.rho[row][col]
+
+        return DensityMatrix(mat=new_rho)
+    
+
     def extract_probs(self):
         """
         Specify the probability for each basis state.

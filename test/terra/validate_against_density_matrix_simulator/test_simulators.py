@@ -29,11 +29,9 @@ class TestSimulators(common.QiskitAerTestCase):
 
     def test_probs_snapshot(self, qc=None):
 
-        list_of_keys = list(set(self.den_sim.gate2mats.keys()))
-
         if qc == None:
-            qc = common.generate_random_circuit(2+np.random.randint(6), 1+np.random.randint(8),
-                                                list_of_keys)
+            qc = common.generate_random_circuit(2+np.random.randint(4), 1+np.random.randint(15),
+                                                self.den_sim.get_supported_gates())
 
         # The following lines implement a hack,
         # which allows to test the probabilities snapshot
@@ -94,10 +92,9 @@ class TestSimulators(common.QiskitAerTestCase):
 
     def test_state_snapshot(self, qc=None):
 
-        list_of_keys = list(set(self.den_sim.gate2mats.keys()))
         if qc == None:
-            qc = common.generate_random_circuit(2+np.random.randint(5), 1+np.random.randint(5),
-                                                list_of_keys)
+            qc = common.generate_random_circuit(2+np.random.randint(4), 1+np.random.randint(15),
+                                                self.den_sim.get_supported_gates())
         print(qc.qasm())
 
         shots = 10000

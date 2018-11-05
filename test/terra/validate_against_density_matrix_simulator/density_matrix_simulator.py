@@ -1,6 +1,7 @@
 import numpy as np
 import math
-from qstructs import DensityMatrix, QuantumState, phase
+from qstructs import DensityMatrix, QuantumState
+from qstructs import phase
 
 class DensityMatrixSimulator:
 
@@ -22,6 +23,12 @@ class DensityMatrixSimulator:
             }
 
 
+    def get_supported_gates(self):
+        result = list(self.gate2mats.keys())
+        result.append('reset')
+        return result
+
+
     def run(self, qobj):
 
         for circuit in qobj.experiments:
@@ -29,6 +36,9 @@ class DensityMatrixSimulator:
             density_matrix = DensityMatrix(QuantumState.basic_state(0, n_qubits))
 
             for op in circuit.instructions:
-                density_matrix = density_matrix.qop_on_qubits(op.qubits, self.gate2mats[op.name])
+                if op.name == 'reset':
+                    density_matrix = density_matrix.reset(op.qubits[0])
+                else:
+                    density_matrix = density_matrix.qop_on_qubits(op.qubits, self.gate2mats[op.name])
 
         return density_matrix
