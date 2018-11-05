@@ -24,20 +24,25 @@ class TestSimulators(common.QiskitAerTestCase):
         qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['values']
         print(qasm_probs)
         
-        self.assertDictAlmostEqual(den_probs, qasm_probs)
+        self.assertDictAlmostEqual(den_probs, qasm_probs, delta=1e-2)
 
 
     def test_probs_snapshot(self, qc=None):
 
         list_of_keys = list(set(self.den_sim.gate2mats.keys()))
-        list_of_keys.remove('measure')
 
         if qc == None:
-            qc = common.generate_random_circuit(2+np.random.randint(8), 1+np.random.randint(12),
+            qc = common.generate_random_circuit(2+np.random.randint(6), 1+np.random.randint(8),
                                                 list_of_keys)
+
+        q_dummy = QuantumRegister(1, 'q_dummy')
+        qc.add(q_dummy)
+        for classical_register in qc.get_cregs()['cr']:
+            qc.measure(q_dummy[0], classical_register)
+        
         print(qc.qasm())
 
-        qobj = compile(qc, self.qasm_sim)
+        qobj = compile(qc, self.qasm_sim, shots=10000)
         den_result = self.den_sim.run(qobj)
 
         qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='probabilities',
@@ -60,7 +65,7 @@ class TestSimulators(common.QiskitAerTestCase):
             adjusted_states.append(QuantumState(adjusted_state))
         
         qasm_den_mat = DensityMatrix(adjusted_states, ProbabilityDistribution([1]*len(adjusted_states), not_normalized=True))
-        self.assertTrue(is_close(den_result.rho, qasm_den_mat.rho))
+        self.assertTrue(is_close(den_result.rho, qasm_den_mat.rho, rel_tol=1e-2, abs_tol=1e-2))
         
 
     def test_state_snapshot(self, qc=None):
@@ -71,7 +76,7 @@ class TestSimulators(common.QiskitAerTestCase):
                                                 list_of_keys)
         print(qc.qasm())
 
-        shots = 3
+        shots = 10000
         qobj = compile(qc, self.qasm_sim, shots=shots)
         den_result = self.den_sim.run(qobj)
 
