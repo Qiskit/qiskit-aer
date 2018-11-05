@@ -382,8 +382,14 @@ class DensityMatrix:
         Apply a set of operators on the specified qubits
         """
 
+        # extended_ops will be the input operators,
+        # stretched over all qubits
         extended_ops = []
+
+        # a list of all qubits
         all_qubits = np.array(range(self.nqubits))
+        # a list of qubits not in "qubits", i.e.,
+        # qubits that are not affected by the opertors
         diffset = np.setdiff1d(all_qubits, qubits)
 
         for op in operators:
@@ -412,6 +418,16 @@ class DensityMatrix:
 
 
     def extract_probs(self):
+        """
+        Specify the probability for each basis state.
+        Format matches the simulator's output,
+        meaning that the basis states are displayed in hexa,
+        and more importantly qubit 0 is LSB.
+        For example, for two qubits:
+        {'0x0: 0.3, '0x1': 0.7}
+        means probability 0.3 for a state where both qubits are 0,
+        and probability 0.7 for a state where qubit 0 is 1 and qubit 1 is 0.
+        """
 
         probs = dict()
         for basis_state_as_num in range(2**self.nqubits):
