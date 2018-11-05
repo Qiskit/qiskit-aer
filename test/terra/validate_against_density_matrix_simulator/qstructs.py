@@ -118,12 +118,11 @@ def state_num2array(basis_state_as_num, nqubits):
 def state_array2num(basis_state_as_array):
     return state_str2num(state_array2str(basis_state_as_array))
 
-# ** get_reverse_hex
-def get_reverse_hex(basis_state_as_num, nqubits):
+# ** state_reverse
+def state_reverse(basis_state_as_num, nqubits):
     basis_state_as_str = state_num2str(basis_state_as_num, nqubits)
     new_str = basis_state_as_str[::-1]
-    new_num = state_str2num(new_str)
-    return hex(new_num)
+    return state_str2num(new_str)
 
 
 # ** ProbabilityDistribution **
@@ -420,7 +419,7 @@ class DensityMatrix:
             rho_entry = self.rho[basis_state_as_num, basis_state_as_num]
 
             if is_close(0, rho_entry) == False:
-                reverse_hex = get_reverse_hex(basis_state_as_num, self.nqubits)
+                reverse_hex = hex(state_reverse(basis_state_as_num, self.nqubits))
                 if reverse_hex in probs.keys():
                     probs[reverse_hex] += rho_entry
                 else:

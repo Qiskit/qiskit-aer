@@ -16,7 +16,9 @@ class DensityMatrixSimulator:
             'tdg': [np.array([[1, 0], [0, phase(-math.pi/4)]])],
             's': [np.array([[1, 0], [0, np.complex(0,1)]])],
             'sdg': [np.array([[1, 0], [0, -np.complex(0,1)]])],
-            'cx': [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])]
+            'cx': [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])],
+            'cz': [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]])],
+            'measure': [np.array([[1, 0], [0, 0]]), np.array([[0, 0], [0, 1]])]
             }
 
 
