@@ -11,7 +11,7 @@ from qiskit import compile
 from qiskit_aer.backends import QasmSimulator
 from qiskit.qobj import QobjItem
 
-class TestSimulators(common.QiskitAerTestCase):
+class TestByReferenceModel(common.QiskitAerTestCase):
 
     def setUp(self):
         self.qasm_sim = QasmSimulator()
