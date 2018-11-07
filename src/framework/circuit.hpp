@@ -103,7 +103,7 @@ void Circuit::set_sizes() {
     }
     if (!op.memory.empty()) {
       auto max = std::max_element(std::begin(op.memory), std::end(op.memory));
-      num_memory = std::max(num_registers, 1UL + *max);
+      num_memory = std::max(num_memory, 1UL + *max);
     }
     
   }
