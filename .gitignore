@@ -15,5 +15,4 @@ out/*
 *_skbuild*
 *.whl
 *.egg*
-src/simulators/qubitvector/qv_wrapper.cpp
 build/*
