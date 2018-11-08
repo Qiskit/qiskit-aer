@@ -34,7 +34,7 @@ Once the build finishes, we just need to install the wheel package in our
 preferred python virtual environment:
 
 ```bash
-qiskit-aer/aer$ pip install dist/qiskit_aer-0.0.0-cp36-cp36m-linux_x86_64.whl
+qiskit-aer/aer$ pip install dist/qiskit_aer-0.1.0-cp36-cp36m-linux_x86_64.whl
 ```
 
 We are all set! Now we ready to start using the simulator in our python code:
