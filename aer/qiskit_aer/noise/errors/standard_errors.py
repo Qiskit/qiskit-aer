@@ -47,7 +47,7 @@ def mixed_unitary_error(unitaries, probabilities, threshold=1e-10):
         if is_identity(unitary, threshold):
             prob_identity += prob
         else:
-            instructions.append([make_unitary_instruction(unitary, qubits, threshold)])
+            instructions.append(make_unitary_instruction(unitary, qubits, threshold))
             instructions_probs.append(prob)
     if prob_identity > threshold:
         instructions.append([{"name": "id", "qubits": [0]}])
