@@ -21,7 +21,8 @@ from random import choice, sample
 from math import pi
 import numpy as np
 
-from qiskit import (QuantumRegister, QuantumCircuit, compile)
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import compile
 from qiskit_aer import __path__ as main_path
 
 
@@ -240,13 +241,16 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
     Aqua had an issue of writing a random circuit generator, which was closed
     with the justification that it is moved to ignes.
     """
-    qr = QuantumRegister(n_qubits)
-    circuit = QuantumCircuit(qr)
+    qr = QuantumRegister(n_qubits, 'qr')
+    cr = ClassicalRegister(n_qubits, 'cr')
+    circuit = QuantumCircuit(qr, cr)
 
     for _ in repeat(None, n_gates):
 
         # Choose the next gate
         op_name = choice(gate_types)
+        if op_name == 'id':
+            op_name = 'iden'
         operation = eval('QuantumCircuit.' + op_name)
 
         # Check if operation is one of u1, u2, u3
@@ -257,7 +261,10 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
             n_params = 1
         else:
             n_angles = 0
-            n_params = len(inspect.signature(operation).parameters) - 1
+            if op_name == 'measure':
+                n_params = 1
+            else:
+                n_params = len(inspect.signature(operation).parameters) - 1
 
         # Choose qubits
         qubit_indices = sample(range(n_qubits), n_params)
@@ -266,7 +273,15 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
         # Choose angles
         angles = np.random.rand(n_angles)*pi
 
+        # Measurement operation
+        # In all measure operations, the classical register is not random,
+        # but has the same index as the quantum register
+        if op_name == 'measure':
+            classical_regs = [cr[i] for i in qubit_indices]
+        else:
+            classical_regs = []
+
         # Add operation to the circuit
-        operation(circuit, *angles, *qubits)
+        operation(circuit, *angles, *qubits, *classical_regs)
 
     return circuit
