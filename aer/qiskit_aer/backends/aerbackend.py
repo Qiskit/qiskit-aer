@@ -124,6 +124,10 @@ class AerBackend(BaseBackend):
         qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
         output = json.loads(self._simulator.execute(qobj_str),
                             cls=self._json_decoder)
+        # Check results
+        if not output.get("success", False):
+            logger.warning("AerBackend: simulation failed")
+            raise AerSimulatorError(output.get("status", None))
         # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
