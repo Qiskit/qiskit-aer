@@ -1,4 +1,5 @@
 import test.terra.common as common
+import test.terra.qobj_hacks as qobj_hacks
 import unittest
 import numpy as np
 import math
@@ -45,8 +46,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         den_result = self.den_sim.run(qobj)
 
         # Add a probabilities snapshot at the end of the circuit
-        qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='probabilities', label='final',
-                                                         params=list(range(len(qc.get_qregs()['qr'])))))
+        qobj.experiments[0].instructions.append(qobj_hacks.qobj_snapshot_probs(label='final', qubits=list(range(len(qc.get_qregs()['qr'])))))
         qasm_result = self.qasm_sim.run(qobj).result()
         
         den_probs = den_result.extract_probs()
@@ -68,7 +68,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         qobj = compile(qc, self.qasm_sim, shots=shots, seed=1)
         den_result = self.den_sim.run(qobj)
 
-        qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='state', label='final'))
+        qobj.experiments[0].instructions.append(qobj_hacks.qobj_snapshot_state('final'))
         qasm_result = self.qasm_sim.run(qobj).result()
 
         nqubits = len(qc.get_qregs()['qr'])
