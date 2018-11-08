@@ -18,15 +18,6 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         self.den_sim = DensityMatrixSimulator()
 
 
-    def verify_probs(self, den_result, qasm_result, qc):
-        den_probs = den_result.extract_probs()
-        self.log.debug(den_probs)
-        qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['values']
-        self.log.debug(qasm_probs)
-        
-        self.assertDictAlmostEqual(den_probs, qasm_probs, delta=1e-2)
-
-
     def test_probs_snapshot(self, qc=None):
 
         if qc == None:
@@ -58,36 +49,12 @@ class TestByReferenceModel(common.QiskitAerTestCase):
                                                          params=list(range(len(qc.get_qregs()['qr'])))))
         qasm_result = self.qasm_sim.run(qobj).result()
         
-        self.verify_probs(den_result, qasm_result, qc)
-
-
-    def verify_states(self, den_result, qasm_result, qc):
+        den_probs = den_result.extract_probs()
+        self.log.debug(den_probs)
+        qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['values']
+        self.log.debug(qasm_probs)
         
-        nqubits = len(qc.get_qregs()['qr'])
-
-        # all statevectors, from all shots
-        states = qasm_result.get_snapshots(qc)['state']['final']
-
-        # adjusted_states will reflect the fact that the statevector
-        # amplitudes are ordered lexicographically, where qubit 0
-        # is LSB, whereas the rows and columns of the density matrix
-        # are ordered with qubit 0 as MSB
-        adjusted_states = []
-
-        # Note that len(states) is not always equal to the number of shots,
-        # bacause the simulator has an optimization when all measurements are
-        # at the end. If the optimization occurs the 'states' consists of
-        # a single state.
-        for shot in range(len(states)):
-            state = states[shot]
-            adjusted_state = np.zeros(2**nqubits, dtype=complex)
-            for basis_state in range(2**nqubits):
-                adjusted_state[state_reverse(basis_state, nqubits)] = state[basis_state]
-            adjusted_states.append(QuantumState(adjusted_state))
-        
-        qasm_den_mat = DensityMatrix(adjusted_states,
-                                     ProbabilityDistribution([1]*len(adjusted_states), not_normalized=True))
-        self.assertTrue(is_close(den_result.rho, qasm_den_mat.rho, rel_tol=1e-2, abs_tol=1e-2))
+        self.assertDictAlmostEqual(den_probs, qasm_probs, delta=1e-2)
         
 
     def test_state_snapshot(self, qc=None):
@@ -104,7 +71,31 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         qobj.experiments[0].instructions.append(QobjItem(name='snapshot', type='state', label='final'))
         qasm_result = self.qasm_sim.run(qobj).result()
 
-        self.verify_states(den_result, qasm_result, qc)
+        nqubits = len(qc.get_qregs()['qr'])
+
+        # all statevectors, from all shots
+        states = qasm_result.get_snapshots(qc)['state']['final']
+
+        # adjusted_states will reflect the fact that the statevector
+        # amplitudes are ordered lexicographically, where qubit 0
+        # is LSB, whereas the rows and columns of the density matrix
+        # are ordered with qubit 0 as MSB.
+        adjusted_states = []
+
+        # Note that len(states) is not always equal to the number of shots,
+        # bacause the simulator has an optimization when all measurements are
+        # at the end. If the optimization occurs the 'states' consists of
+        # a single state.
+        for shot in range(len(states)):
+            state = states[shot]
+            adjusted_state = np.zeros(2**nqubits, dtype=complex)
+            for basis_state in range(2**nqubits):
+                adjusted_state[state_reverse(basis_state, nqubits)] = state[basis_state]
+            adjusted_states.append(QuantumState(adjusted_state))
+        
+        qasm_den_mat = DensityMatrix(adjusted_states,
+                                     ProbabilityDistribution([1]*len(adjusted_states), not_normalized=True))
+        self.assertTrue(is_close(den_result.rho, qasm_den_mat.rho, rel_tol=1e-2, abs_tol=1e-2))
 
 
 if __name__ == '__main__':
