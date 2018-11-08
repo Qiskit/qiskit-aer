@@ -20,9 +20,9 @@ class TestByReferenceModel(common.QiskitAerTestCase):
 
     def verify_probs(self, den_result, qasm_result, qc):
         den_probs = den_result.extract_probs()
-        print(den_probs)
+        self.log.debug(den_probs)
         qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['values']
-        print(qasm_probs)
+        self.log.debug(qasm_probs)
         
         self.assertDictAlmostEqual(den_probs, qasm_probs, delta=1e-2)
 
@@ -48,7 +48,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         for classical_register in qc.get_cregs()['cr']:
             qc.measure(q_dummy[0], classical_register)
         
-        print(qc.qasm())
+        self.log.debug(qc.qasm())
 
         qobj = compile(qc, self.qasm_sim, shots=10000, seed=1)
         den_result = self.den_sim.run(qobj)
@@ -95,7 +95,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         if qc == None:
             qc = common.generate_random_circuit(2+np.random.randint(4), 1+np.random.randint(15),
                                                 self.den_sim.get_supported_gates())
-        print(qc.qasm())
+        self.log.debug(qc.qasm())
 
         shots = 10000
         qobj = compile(qc, self.qasm_sim, shots=shots, seed=1)
