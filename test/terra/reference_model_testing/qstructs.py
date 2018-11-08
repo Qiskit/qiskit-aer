@@ -76,10 +76,10 @@ def is_close_to_id(mat):
 # ** randcomplex **
 def randcomplex(n):
     """ Create a random vector of complex numbers """
-    
-    assert float(n).is_integer() and n >= 1, \
-           'A request to generate a complex array of length ' + str(n) + '.' \
-           'Length must be an integer strictly greater than 0.'
+
+    if float(n).is_integer() == False or n<1:
+        raise ValueError('A request to generate a complex array of length ' + str(n) + '.' \
+                         'Length must be an integer strictly greater than 0.')
 
     real_array = np.random.rand(n, 2)
     return np.array([complex(row[0], ((-1)**np.random.randint(2))*row[1]) for row in real_array ])
@@ -138,23 +138,24 @@ class ProbabilityDistribution:
         in which case we normalize the probability vector.
         """
 
-        assert (n is None) or (float(n).is_integer() and n >= 1), \
-               'A request to generate a probability distribution of length ' + str(n) + '. ' \
-               'Length must be an integer strictly greater than 0.'
+        if n is not None and (float(n).is_integer() == False or n<1):
+            raise ValueError('A request to generate a probability distribution of length ' + str(n) + '. ' \
+                             'Length must be an integer strictly greater than 0.')
         
         if probs is None:
             # Will generate a random probability vector with the given length
 
-            assert not_normalized is None, \
-                  "Constructor of ProbabilityDistribution: " \
-                  "argument 'not_normalized' is irrelevant " \
-                  "if argument 'probs' is None"
+
+            if not_normalized is not None:
+                raise ValueError("Constructor of ProbabilityDistribution: " \
+                                 "argument 'not_normalized' is irrelevant " \
+                                 "if argument 'probs' is None")
 
             not_normalized = True
 
-            assert n is not None, \
-                   "Constructor of ProbabilityDistribution expects either " \
-                   "argument 'probs' or argument 'n' to be set."
+            if n is None:
+                raise ValueError("Constructor of ProbabilityDistribution expects either " \
+                                 "argument 'probs' or argument 'n' to be set.")
             
             # FIXME: give more thought about how to randomize the probability distribution
             before_normalization = np.random.rand(n)
@@ -168,19 +169,19 @@ class ProbabilityDistribution:
 
             if n is None:
                 n = len(probs)
-            else:            
-                assert n == len(probs), \
-                       "Constructor of ProbabilityDistribution received " \
-                       "argument 'probs' with length " + str(len(probs)) + \
-                       " and argument 'n' equal to " + str(n) + ", " \
-                       "whereas it expects these two quntities to be equal to each other."                   
+            else:
+                if n != len(probs):
+                    raise ValueError("Constructor of ProbabilityDistribution received " \
+                                     "argument 'probs' with length " + str(len(probs)) + \
+                                     " and argument 'n' equal to " + str(n) + ", " \
+                                     "whereas it expects these two quntities to be equal to each other.")
             
             before_normalization = np.array(probs, dtype=float)
             
-            assert before_normalization.ndim == 1, \
-                   'Constructor of ProbabilityDistribution received a vector of ' + \
-                   str(before_normalization.ndim) + 'dimensions, \
-                   whereas it expects exactly 1 dimension.'
+            if before_normalization.ndim != 1:
+                raise ValueError('Constructor of ProbabilityDistribution received a vector of ' + \
+                                 str(before_normalization.ndim) + 'dimensions, \
+                                 whereas it expects exactly 1 dimension.')
 
         # math.fsum is probably more stable than np.sum
         if not_normalized == True:
@@ -188,8 +189,8 @@ class ProbabilityDistribution:
         else:
             self.probs = before_normalization
 
-        assert is_close(1, math.fsum(self.probs)), \
-               'Probability vector is not normalized'
+        if is_close(1, math.fsum(self.probs)) == False:
+            raise ValueError('Probability vector is not normalized')
 
 
     def __len__(self):
@@ -213,17 +214,17 @@ class QuantumState:
         if amplitudes is None:
            # Will generate a random quantum state for the given number of qubits
 
-           assert nqubits is not None, \
-                  "Constructor of QuantumState: argument 'nqubits' cannot be None if argument 'amplitudes' is None"
+           if nqubits is None:
+               raise ValueError("Constructor of QuantumState: argument 'nqubits' cannot be None if argument 'amplitudes' is None")
 
-           assert not_normalized is None, \
-                  "Constructor of QuantumState: " \
-                  "argument 'not_normalized' is irrelevant " \
-                  "if argument 'amplitudes' is None"
+           if not_normalized is not None:
+               raise ValueError("Constructor of QuantumState: " \
+                                "argument 'not_normalized' is irrelevant " \
+                                "if argument 'amplitudes' is None")
 
-           assert float(nqubits).is_integer() and nqubits >= 1, \
-                  'A request to generate a quantum state with ' + str(n) + ' qubits. ' \
-                  'Number of qubits must be an integer strictly greater than 0.'
+           if float(nqubits).is_integer() == False or nqubits < 1:
+               raise ValueError('A request to generate a quantum state with ' + str(n) + ' qubits. ' \
+                                'Number of qubits must be an integer strictly greater than 0.')
 
            not_normalized = True
 
@@ -236,31 +237,31 @@ class QuantumState:
 
            if nqubits is None:
                nqubits = math.log2(len(amplitudes))
-               assert nqubits.is_integer(), \
-                      'Constructor of QuantumState received an amplitudes vector ' \
-                      'of length ' + len(amplitudes) + \
-                      ', whereas the number of amplitudes must be a power of 2.'
+               if nqubits.is_integer() == False:
+                   raise ValueError('Constructor of QuantumState received an amplitudes vector ' \
+                                    'of length ' + len(amplitudes) + \
+                                    ', whereas the number of amplitudes must be a power of 2.')
            else:           
-               assert nqubits == math.log2(len(amplitudes)), \
-                      'Constructor of QuantumState received ' + \
-                      str(len(amplitudes)) + ' amplitudes for ' + \
-                      str(nqubits) + ' qubits, ' \
-                      'whereas it expects the number of amplitudes to be 2 to the power of the number of qubits.'
+               if nqubits != math.log2(len(amplitudes)):
+                   raise ValueError('Constructor of QuantumState received ' + \
+                                    str(len(amplitudes)) + ' amplitudes for ' + \
+                                    str(nqubits) + ' qubits, ' \
+                                    'whereas it expects the number of amplitudes to be 2 to the power of the number of qubits.')
 
            before_normalization = np.array(amplitudes, dtype=complex)
 
-           assert before_normalization.ndim == 1, \
-                  'Constructor of QuantumState received a vector of ' + \
-                  str(before_normalization.ndim) + 'dimensions, \
-                  whereas it expects exactly 1 dimension.'
+           if before_normalization.ndim != 1:
+               raise ValueError('Constructor of QuantumState received a vector of ' + \
+                                str(before_normalization.ndim) + 'dimensions, \
+                                whereas it expects exactly 1 dimension.')
 
         if not_normalized == True:
             self.amplitudes = before_normalization / np.linalg.norm(before_normalization)
         else:
             self.amplitudes = before_normalization
 
-        assert is_close(1, np.linalg.norm(self.amplitudes)), \
-               'Quantum state is not normalized'
+        if is_close(1, np.linalg.norm(self.amplitudes)) == False:
+            raise ValueError('Quantum state is not normalized')
        
         self.nqubits = nqubits
         self.nstates = 2**nqubits
@@ -274,8 +275,8 @@ class QuantumState:
         If state=1 then the created state is the excited state.
         """
 
-        assert state==0 or state==1, \
-               'basic_state: state must be either 0 or 1'
+        if state!=0 and state!=1:
+            raise ValueError('basic_state: state must be either 0 or 1')
         
         amplitudes = np.zeros(2**n_qubits)
         if state==0:
@@ -305,18 +306,18 @@ class DensityMatrix:
         # and then sum with the given weights.
 
         if mat is not None:
-            assert states is None and probs is None, \
-                   "Constructor of DensityMatrix: " \
-                   "If argument 'mat' is not None " \
-                   "then arguments 'states' and 'probs' must be set to None"
+            if states is not None or probs is not None:
+                raise ValueError("Constructor of DensityMatrix: " \
+                                 "If argument 'mat' is not None " \
+                                 "then arguments 'states' and 'probs' must be set to None")
 
             self.rho = np.array(mat, dtype=complex)
 
         else:
-            assert states is not None, \
-                   "Constructor of DensityMatrix: " \
-                   "If argument 'mat' is None " \
-                   "then argument 'states' cannot be set to None" 
+            if states is None:
+                raise ValueError("Constructor of DensityMatrix: " \
+                                 "If argument 'mat' is None " \
+                                 "then argument 'states' cannot be set to None" )
             
             if isinstance(states, QuantumState):
                 states = [states]
@@ -324,46 +325,46 @@ class DensityMatrix:
             if probs is None:
                 probs = ProbabilityDistribution(1)
                 
-            assert isinstance(states, list) and all(isinstance(s, QuantumState) for s in states) , \
-                   'Constructor of DensityMatrix expects a list of QuantumState'
+            if isinstance(states, list) == False or any(isinstance(s, QuantumState) == False for s in states):
+                raise ValueError('Constructor of DensityMatrix expects a list of QuantumState')
 
-            assert isinstance(probs, ProbabilityDistribution), \
-                   'Constructor of DensityMatrix expects a probability vector'
+            if isinstance(probs, ProbabilityDistribution) == False:
+                raise ValueError('Constructor of DensityMatrix expects a probability vector')
 
-            assert len(probs) == len(states), \
-                   'Constructor of DensityMatrix received ' \
-                   'a state vector of length ' + str(len(states)) + \
-                   ' and a probability distribution of length ' + str(len(probs)) + \
-                   ', whereas it expects both to be of the same length.'
+            if len(probs) != len(states):
+                raise ValueError('Constructor of DensityMatrix received ' \
+                                 'a state vector of length ' + str(len(states)) + \
+                                 ' and a probability distribution of length ' + str(len(probs)) + \
+                                 ', whereas it expects both to be of the same length.')
 
-            assert all(s.nqubits == states[0].nqubits for s in states), \
-                   'Constructor of DensityMatrix expects all quantum states to have the same number of qubits'
+            if any(s.nqubits != states[0].nqubits for s in states):
+                raise ValueError('Constructor of DensityMatrix expects all quantum states to have the same number of qubits')
 
             mats = [np.outer(x, np.conj(x)) for x in [s.amplitudes for s in states]]
             self.rho = arraydot(probs.probs, mats)
 
-        assert len(self.rho) == len(self.rho[0]), \
-               'Constructor of DensityMatrix received a matrix with ' + \
-               len(self.rho) + ' rows and ' + len(self.rho[0]) + 'columns, ' \
-               'whereas it expects a sqaured matrix.'
+        if len(self.rho) != len(self.rho[0]):
+            raise ValueError('Constructor of DensityMatrix received a matrix with ' + \
+                             len(self.rho) + ' rows and ' + len(self.rho[0]) + 'columns, ' \
+                             'whereas it expects a sqaured matrix.')
 
         self.nstates = len(self.rho)
         self.nqubits = math.log2(self.nstates)
 
-        assert self.nqubits.is_integer(), \
-               'Constructor of DensityMatrix received a matrix with ' + \
-               self.nstates + ' rows and columns, ' \
-               'whereas the number of rows and columns must be a power of 2.'
+        if self.nqubits.is_integer() == False:
+            raise ValueError('Constructor of DensityMatrix received a matrix with ' + \
+                             self.nstates + ' rows and columns, ' \
+                             'whereas the number of rows and columns must be a power of 2.')
 
         self.nqubits = int(self.nqubits)
 
-        assert is_close(1, np.trace(self.rho)), \
-               'Constructor of DensityMatrix received a matrix with ' \
-               'trace ' + str(np.trace(self.rho)) + \
-               ', whereas the trace must be equal to 1.'
+        if is_close(1, np.trace(self.rho)) == False:
+            raise ValueError('Constructor of DensityMatrix received a matrix with ' \
+                             'trace ' + str(np.trace(self.rho)) + \
+                             ', whereas the trace must be equal to 1.')
 
-        assert np.all(np.linalg.eigvals(self.rho) >= -0.05), \
-               'Constructor of DensityMatrix expects a positive matrix.'
+        if np.any(np.linalg.eigvals(self.rho) < -0.05):
+            raise ValueError('Constructor of DensityMatrix expects a positive matrix.')
 
 
     def qop(self, operators):
@@ -489,21 +490,23 @@ class UnitaryOperation:
         which is a tensor product of n 2x2 random unitary matrices.
         """
 
-        assert n is None or n>=1
+        if n is not None and n<1:
+            raise ValueError("Constructor of UnitaryOperation: Matrix dimensions must be positive.")
 
         if mat is not None:
-            assert angles is None, \
-                   "Constructor of UnitaryOperation: " \
-                   "If argument 'mat' is not None " \
-                   "then argument 'angles' must be set to None"
+            if angles is not None:
+                raise ValueError("Constructor of UnitaryOperation: " \
+                                 "If argument 'mat' is not None " \
+                                 "then argument 'angles' must be set to None")
 
             self.mat = np.array(mat, dtype=complex)
-            assert is_square_matrix(self.mat), \
-                   "Constructor of UnitaryOperation: " \
-                   "Parameter 'mat' must be a square matrix"
+            if is_square_matrix(self.mat) == False:
+                raise ValueError("Constructor of UnitaryOperation: " \
+                                 "Parameter 'mat' must be a square matrix")
                    
             if n is not None:
-                assert all(x==2**n for x in np.shape(self.mat))
+                if any(x!=2**n for x in np.shape(self.mat)):
+                    raise ValueError("Constructor of UnitaryOperation: Wrong matrix dimensions")
                                                     
         else:
             self.mat = np.array([1])
@@ -517,7 +520,8 @@ class UnitaryOperation:
                     angles = np.random.rand(3)*math.pi
                 else:
                     angles = np.array(angles)
-                    assert len(angles)==3
+                    if len(angles)!=3:
+                        raise ValueError("There must be 3 angles for the Unitary operation")
 
                 [beta, gamma, delta] = angles
 
@@ -528,5 +532,5 @@ class UnitaryOperation:
                 mat = np.dot(mat_beta, np.dot(mat_gamma, mat_delta))
                 self.mat = np.kron(mat, self.mat)
 
-        assert is_close_to_id(np.dot(np.matrix(self.mat).H, self.mat)), \
-               'Constructor of UnitaryOperation: matrix is not unitary'
+        if is_close_to_id(np.dot(np.matrix(self.mat).H, self.mat)) == False:
+            raise ValueError('Constructor of UnitaryOperation: matrix is not unitary')
