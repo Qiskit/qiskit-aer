@@ -126,7 +126,7 @@ class AerBackend(BaseBackend):
                             cls=self._json_decoder)
         # Check results
         if not output.get("success", False):
-            logger.warning("AerBackend: simulation failed")
+            logger.error("AerBackend: simulation failed")
             raise AerSimulatorError(output.get("status", None))
         # Add result metadata
         output["job_id"] = job_id
