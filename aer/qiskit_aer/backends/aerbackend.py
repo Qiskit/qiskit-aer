@@ -125,6 +125,9 @@ class AerBackend(BaseBackend):
         output = json.loads(self._simulator.execute(qobj_str),
                             cls=self._json_decoder)
         # Check results
+        # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
+        #       is merged this should be updated to deal with errors using
+        #       the Result object methods
         if not output.get("success", False):
             logger.error("AerBackend: simulation failed")
             raise AerSimulatorError(output.get("status", None))
