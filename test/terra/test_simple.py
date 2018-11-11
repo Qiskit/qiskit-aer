@@ -18,7 +18,7 @@ class TestSimple(common.QiskitAerTestCase):
     def setUp(self):
         self.backend = QasmSimulator()
 
-    def test_simple_cricuit_execution(self):
+    def test_simple_circuit_execution(self):
         """Test the result of executing a simple H"""
         q_reg = QuantumRegister(1)
         c_reg = ClassicalRegister(1)
