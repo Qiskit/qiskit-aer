@@ -125,6 +125,44 @@ def state_reverse(basis_state_as_num, nqubits):
     return state_str2num(new_str)
 
 
+# ** get_extended_ops
+def get_extended_ops(operators, qubits, nqubits):
+    """
+    Return the input operators, stretched over all qubits
+    """
+
+    # a list of all qubits
+    all_qubits = np.array(range(nqubits))
+    # a list of qubits not in "qubits", i.e.,
+    # qubits that are not affected by the opertor
+    diffset = np.setdiff1d(all_qubits, qubits)
+
+    extended_ops = []
+    for op in operators:
+        new_op = np.zeros([2**nqubits, 2**nqubits], dtype=complex)
+
+        for row in range(2**nqubits):
+            for col in range(2**nqubits):
+                
+                row_as_array = state_num2array(row, nqubits)
+                col_as_array = state_num2array(col, nqubits)
+
+                if all(row_as_array[diffset] == col_as_array[diffset]) == False:
+                    continue
+
+                row_in_op_array = row_as_array[qubits]
+                col_in_op_array = col_as_array[qubits]
+
+                row_in_op = state_array2num(row_in_op_array)
+                col_in_op = state_array2num(col_in_op_array)
+
+                new_op[row][col] = op[row_in_op][col_in_op]
+
+        extended_ops.append(new_op)
+
+    return extended_ops
+
+
 # ** ProbabilityDistribution **
 class ProbabilityDistribution:
     """A vector of real non-negative numbers whose sum is 1"""
@@ -268,21 +306,13 @@ class QuantumState:
 
 
     @staticmethod
-    def basic_state(state, n_qubits):
+    def ground_state(nqubits):
         """
-        Creates a single qubit state.
-        If state=0 then the created state is the ground state.
-        If state=1 then the created state is the excited state.
+        Creates a ground state.
         """
 
-        if state!=0 and state!=1:
-            raise ValueError('basic_state: state must be either 0 or 1')
-        
-        amplitudes = np.zeros(2**n_qubits)
-        if state==0:
-            amplitudes[0] = 1
-        else:
-            amplitudes[n_qubits-1] = 1
+        amplitudes = np.zeros(2**nqubits)
+        amplitudes[0] = 1
         return QuantumState(amplitudes = amplitudes)
 
 
@@ -381,41 +411,21 @@ class DensityMatrix:
     def qop_on_qubits(self, qubits, operators):
         """
         Apply a set of operators on the specified qubits
-        """
+        """    
+        return self.qop(get_extended_ops(operators, qubits, self.nqubits))
 
-        # extended_ops will be the input operators,
-        # stretched over all qubits
-        extended_ops = []
 
-        # a list of all qubits
-        all_qubits = np.array(range(self.nqubits))
-        # a list of qubits not in "qubits", i.e.,
-        # qubits that are not affected by the opertors
-        diffset = np.setdiff1d(all_qubits, qubits)
+    def observable(self, params):
 
-        for op in operators:
-            new_op = np.zeros([2**self.nqubits, 2**self.nqubits], dtype=complex)
+        result = 0
+        for component in params:
+            mat = np.identity(2**self.nqubits, dtype=complex)
+            for block in component[1]:
+                extended_mat = get_extended_ops([block[1]], block[0], self.nqubits)[0]
+                mat = np.dot(extended_mat, mat)
+            result += component[0]*np.trace(np.dot(mat, self.rho))
 
-            for row in range(2**self.nqubits):
-                for col in range(2**self.nqubits):
-
-                    row_as_array = state_num2array(row, self.nqubits)
-                    col_as_array = state_num2array(col, self.nqubits)
-
-                    if all(row_as_array[diffset] == col_as_array[diffset]) == False:
-                        continue
-
-                    row_in_op_array = row_as_array[qubits]
-                    col_in_op_array = col_as_array[qubits]
-
-                    row_in_op = state_array2num(row_in_op_array)
-                    col_in_op = state_array2num(col_in_op_array)
-
-                    new_op[row][col] = op[row_in_op][col_in_op]
-
-            extended_ops.append(new_op)
-
-        return self.qop(extended_ops)
+        return result
 
 
     def reset(self, qubit):

@@ -554,6 +554,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   // Compute expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_matrix) {
+    complex_t coeff = param.first;
     // Revert the quantum state to cached checkpoint
     if (first)
       first = false;
@@ -561,7 +562,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       BaseState::qreg_.revert(true);
 
     // Apply each matrix component
-    for (const auto &pair: param) {
+    for (const auto &pair: param.second) {
       const reg_t &qubits = pair.first;
       const cmatrix_t &mat = pair.second;
       cvector_t vmat = (mat.GetColumns() == 1)
@@ -574,7 +575,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       }
       
     }
-    expval += BaseState::qreg_.inner_product();
+    expval += coeff*BaseState::qreg_.inner_product();
   }
   // add to snapshot
   Utils::chop_inplace(expval, snapshot_chop_threshold_);
