@@ -11,7 +11,7 @@ setup(
     name='qiskit_aer',
     version=VERSION,
     packages=find_packages(),
-    cmake_source_dir='..',
+    cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",

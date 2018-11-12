@@ -196,5 +196,5 @@ endif()
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD)
-	add_subdirectory(aer/qiskit_aer/backends/wrappers)
+	add_subdirectory(qiskit_aer/backends/wrappers)
 endif()
