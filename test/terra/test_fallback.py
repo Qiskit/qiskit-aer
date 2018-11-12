@@ -12,7 +12,7 @@ import numpy as np
 from itertools import repeat
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
-                    register, compile, execute)
+                    compile, execute)
 from qiskit.qobj import Qobj
 from qiskit_aer.backends import QasmSimulator
 from qiskit import Aer
@@ -25,7 +25,6 @@ class TestFallback(common.QiskitAerTestCase):
     def setUp(self):
         # ***
         self.backend = QasmSimulator()
-        # TODO Replace with register(provider_class=AerQvProvider)
         # Restricted to 2 qubits until Issue #46 is solved
         # The test still fails if all gates operate on a single qubit
         self._number_of_qubits = 2
