@@ -114,8 +114,7 @@ For the former, we just need to call the ``setup.py`` script:
 
 .. code::
 
-  qiskit-aer$ cd aer/qiskit_aer
-  qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel
+  qiskit-aer$ python ./setup.py bdist_wheel
 
 We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
 This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
@@ -123,13 +122,13 @@ the undelying build system (depending on your platform). The way to pass variabl
 
 .. code::
 
-    qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
     
 So a real example could be:
 
 .. code::
 
-    qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
     
 This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
 library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
@@ -139,8 +138,8 @@ After this command is executed successfully, we will have a wheel package into t
 
 .. code::
 
-  qiskit-aer/aer/qiskit_aer$ cd dist
-  qiskit-aer/aer/qiskit_aer/dist$ pip install qiskit_aer-0.0.0-cp36-cp36m-linux_x86_64.whl
+  qiskit-aer/$ cd dist
+  qiskit-aer/dist$ pip install qiskit_aer-0.0.0-cp36-cp36m-linux_x86_64.whl
 
 
 Standalone executable
@@ -193,6 +192,7 @@ USER_LIB_PATH
     This flag tells CMake to look for libraries that are needed by some of the native
     components to be built, but they are not in a common place where CMake could find
     it automatically.
+
     Values: An absolute path with file included.
     Default: No value.
     Example: ``cmake -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so ..``
@@ -202,14 +202,57 @@ STATIC_LINKING
     NOTE: On MacOS static linking is not fully working for all versions of GNU G++/Clang
     compilers, so depending on the version of the compiler installed in the system,
     enable this flag in this platform could cause errors.
+
     Values: True|False
     Default: False
     Example: ``cmake -DSTATIC_LINKING=True ..``
 
+BUILD_TESTS
+    It will tell the build system to build C++ tests along with the simulator.
 
-Test
-~~~~
-TODO
+    Values: True|False
+    Default: False
+    Example: ``cmake -DBUILD_TESTS=True ..``
+
+CMAKE_CXX_COMPILER
+    This is an internal CMake flag. It forces CMake to use the provided toolchain to build everthing.
+    If it's not set, CMake system will use one of the toolchains installed in system.
+
+    Values: g++|clang++|g++-8
+    Default: Depends on the running platform and the toolchains installed
+    Example: ``cmake -DCMAKE_CXX_COMPILER=g++``
+
+
+Tests
+~~~~~
+
+Almost every code contribution should be accompained by it's corresponding set of tests.
+You won't probably hear complaints if there are too many tests in your PR :), but the other
+way around is unnacceptable :(
+We have two types of tests in the codebase: Qiskit Terra integration tests and Standalone integration tests.
+
+For Qiskit Terra integration tests, you first need to build and install the Terra addon,
+and then run `unittest` Python framework.
+
+.. code::
+
+  qiskit-aer$ python ./setup.py install
+  qiskit-aer$ python -m unittest discover -s test
+
+The integration tests for Terra addon are included in: `test/terra`.
+
+
+For the Standalone version of the simulator, we have C++ tests that use the Catch library.
+Tests are located in `test/src` directory, and in order to run them, you have to build them first:
+
+.. code::
+
+  qiskit-aer$ mkdir out
+  qiskit-aer$ cd out
+  qiskit-aer/out$ cmake .. -DBUILD_TESTS=True
+  qiskit-aer/out$ cmake --build . --config Release -- -j4
+  qiskit-aer/out$ ctest -VV
+
 
 Style guide
 ~~~~~~~~~~~
