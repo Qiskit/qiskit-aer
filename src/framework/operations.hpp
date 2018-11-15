@@ -27,9 +27,8 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 
 // Enum class for operation types
 enum class OpType {
-  gate, measure, reset, barrier,
-  matrix, snapshot_state, snapshot_probs, snapshot_pauli, snapshot_matrix,
-  bfunc, kraus, roerror, noise_switch
+  gate, measure, reset, bfunc, barrier, snapshot,
+  matrix, kraus, roerror, noise_switch
 };
 
 //------------------------------------------------------------------------------
@@ -186,7 +185,7 @@ Op json_to_op_bfunc(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
-Op json_to_op_snapshot_state(const json_t &js);
+Op json_to_op_snapshot_default(const json_t &js);
 Op json_to_op_snapshot_matrix(const json_t &js);
 Op json_to_op_snapshot_pauli(const json_t &js);
 Op json_to_op_snapshot_probs(const json_t &js);
@@ -417,25 +416,21 @@ Op json_to_op_noise_switch(const json_t &js) {
 Op json_to_op_snapshot(const json_t &js) {
   std::string type;
   JSON::get_value(type, "type", js);
-  if (type == "state")
-    return json_to_op_snapshot_state(js);
   if (type == "probabilities")
     return json_to_op_snapshot_probs(js);
   if (type == "pauli_observable")
     return json_to_op_snapshot_pauli(js);
   if (type == "matrix_observable")
     return json_to_op_snapshot_matrix(js);
-  // Error handling
-  std::stringstream msg;
-  msg << "Invalid snapshot type: \"" << type << "\".";
-  throw std::invalid_argument(msg.str());
+  // Default snapshot type
+  return json_to_op_snapshot_default(js);
 }
 
 
-Op json_to_op_snapshot_state(const json_t &js) {
+Op json_to_op_snapshot_default(const json_t &js) {
   Op op;
-  op.type = OpType::snapshot_state;
-  op.name = "snapshot_state";
+  op.type = OpType::snapshot;
+  JSON::get_value(op.name, "type", js);
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
   return op;
@@ -444,8 +439,8 @@ Op json_to_op_snapshot_state(const json_t &js) {
 
 Op json_to_op_snapshot_probs(const json_t &js) {
   Op op;
-  op.type = OpType::snapshot_probs;
-  op.name = "snapshot_probs";
+  op.type = OpType::snapshot;
+  op.name = "probabilities";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
   JSON::get_value(op.qubits, "qubits", js); // depreciated
@@ -458,8 +453,8 @@ Op json_to_op_snapshot_probs(const json_t &js) {
 
 Op json_to_op_snapshot_pauli(const json_t &js) {
   Op op;
-  op.type = OpType::snapshot_pauli;
-  op.name = "snapshot_pauli";
+  op.type = OpType::snapshot;
+  op.name = "pauli_observable";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
   double threshold = 1e-10; // drop small Pauli values
@@ -503,8 +498,8 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
 
 Op json_to_op_snapshot_matrix(const json_t &js) {
   Op op;
-  op.type = OpType::snapshot_matrix;
-  op.name = "snapshot_matrix";
+  op.type = OpType::snapshot;
+  op.name = "matrix_observable";
   op.string_params.push_back(std::string()); // add empty string param for label
   JSON::get_value(op.string_params[0], "label", js);
 

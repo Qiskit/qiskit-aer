@@ -10,15 +10,17 @@
 
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
-#include "framework/rng.hpp"
+#include "framework/circuit.hpp"
 #include "framework/types.hpp"
+#include "framework/data.hpp"
+#include "framework/creg.hpp"
 
 namespace AER {
 namespace Base {
 
-//============================================================================
+//=========================================================================
 // State interface base class for Qiskit-Aer
-//============================================================================
+//=========================================================================
 
 template <class state_t>
 class State {
@@ -28,9 +30,20 @@ public:
   State() = default;
   virtual ~State() = default;
   
-  //----------------------------------------------------------------
-  // Abstract methods that must be defined by derived classes
-  //----------------------------------------------------------------
+  //=======================================================================
+  // Subclass Override Methods
+  // 
+  // The following methods should be implemented by any State subclasses.
+  // Abstract methods are required, while some methods are optional for
+  // State classes that support measurement to be compatible with a general
+  // QasmController.
+  //=======================================================================
+
+  //-----------------------------------------------------------------------
+  // Abstract methods
+  // 
+  // The implementation of these methods must be defined in all subclasses
+  //-----------------------------------------------------------------------
   
   // Return the set of qobj instruction types supported by the State
   // by the Operations::OpType enum class. 
@@ -38,12 +51,9 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
+  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
-  // - `OpType::snapshot_state` if state snapshots are supported
-  // - `OpType::snapshot_probs` if probabilities snapshots are supported
-  // - `OpType::snapshot_pauli` if pauli expectation value snapshots are supported
-  // - `OpType::snapshot_matrix` if matrix expectation value snapshots are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   // For the case of gates the specific allowed gates are checked
   // with the `allowed_gates` function.
@@ -53,131 +63,240 @@ public:
   // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
   virtual stringset_t allowed_gates() const = 0;
 
-  // Applies an operation to the state class.
-  // This should support all and only the operations defined in
-  // allowed_operations.
-  virtual void apply_op(const Operations::Op &op) = 0;
+  // Return the set of qobj gate instruction names supported by the state class
+  // For example this could include {"probabilities", "pauli_observable"}
+  virtual stringset_t allowed_snapshots() const = 0;
 
-  // Initializes an n-qubit state to the all |0> state
-  virtual void initialize(uint_t num_qubits) = 0;
+  // Apply a sequence of operations to the current state of the State class.
+  // It is up to the State subclass to decide how this sequence should be
+  // executed (ie in sequence, or some other execution strategy.)
+  // If this sequence contains operations not in allowed_operations
+  // an exeption will be thrown.
+  virtual void apply_ops(const std::vector<Operations::Op> &ops,
+                                OutputData &data,
+                                RngEngine &rng)  = 0;
 
-  // Returns the required memory for storing an n-qubit state in megabytes.
-  // TODO: Is this enough? Some State representaitons might also depend on 
-  // the circuit (eg. tensor slicing, clifford+t simulator)
+  // Initializes the State to the default state.
+  // Typically this is the n-qubit all |0> state
+  virtual void initialize_qreg(uint_t num_qubits) = 0;
+
+  // Initializes the State to a specific state.
+  virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
+
+  // Return an estimate of the required memory for implementing the 
+  // specified sequence of operations on a `num_qubit` sized State.
   virtual uint_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) = 0;
 
-  //----------------------------------------------------------------
-  // Optional methods: Config
-  //----------------------------------------------------------------
-  
+  //-----------------------------------------------------------------------
+  // Optional: Load config settings
+  //-----------------------------------------------------------------------
+
   // Load any settings for the State class from a config JSON
-  inline virtual void set_config(const json_t &config) {
-    (ignore_argument)config;
-  };
+  virtual void set_config(const json_t &config);
 
-  //----------------------------------------------------------------
-  // Optional methods: Measurement 
-  //----------------------------------------------------------------
-
-  // Note that if measurement is supported by the derrived class
-  // it should contain a "measure" and "snapshot_probs" in the
-  // return of 'allowed_ops'.
-  
-  // Measure qubits and return a list of outcomes [q0, q1, ...]
-  // If a state subclass supports this function it then "measure" 
-  // should be contained in the set returned by the 'allowed_ops'
-  // method.
-  inline virtual reg_t apply_measure(const reg_t& qubits) {
-    return reg_t(qubits.size(), 0); // dummy return for base class
-  };
-
-  // Return vector of measure probabilities for specified qubits
-  // If a state subclass supports this function it then "measure" 
-  // should be contained in the set returned by the 'allowed_ops'
-  // method.
-  inline virtual rvector_t measure_probs(const reg_t &qubits) const {
-    return rvector_t(1ULL << qubits.size(), 0);
-  };
+  //-----------------------------------------------------------------------
+  // Optional: measurement sampling
+  // 
+  // This method is only required for a State subclass to be compatible with
+  // the measurement sampling optimization of a general the QasmController
+  //-----------------------------------------------------------------------
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state. This leaves the system unchanged. The return is
   // a vector containing n outcomes, where each outcome is the same as
   // one that would be returned from the 'apply_measure' operation
-  inline virtual std::vector<reg_t>
-  sample_measure(const reg_t& qubits, uint_t shots = 1) {
-    const rvector_t probs = measure_probs(qubits);
-    std::vector<reg_t> samples;
-    samples.reserve(shots);
-    while (shots-- > 0) { // loop over shots
-      samples.push_back(Utils::int2reg(rng_.rand_int(probs), 2, qubits.size()));
-    }
-    return samples;
-  };
+  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
+                                            uint_t shots,
+                                            RngEngine &rng) const;
 
-  //----------------------------------------------------------------
-  // Optional methods: Operator observables
-  //----------------------------------------------------------------
+  //=======================================================================
+  // Standard Methods
+  //
+  // Typically these methods do not need to be modified for a State
+  // subclass, but can be should it be necessary.
+  //=======================================================================
 
-  // Return the complex expectation value for a single Pauli string
-  // If a state subclass supports this function it then 
-  // "snapshot_pauli" should be contained in the set returned by the
-  // 'allowed_ops' method.
-  inline virtual
-  double pauli_observable_value(const reg_t& qubits,
-                                const std::string &pauli) const {
-    (ignore_argument)qubits;
-    (ignore_argument)pauli;
-    return 0.; // dummy return for base class
-  };
+  //-----------------------------------------------------------------------
+  // Circuit validation
+  //-----------------------------------------------------------------------
 
-  // Return the complex expectation value for an observable operator.
-  // If a state subclass supports this function it then 
-  // "snapshot_matrix" should be contained in the set returned by the
-  // 'allowed_ops' method.
-  inline virtual 
-  complex_t matrix_observable_value(const Operations::Op &op) const {
-    (ignore_argument)op;
-    return complex_t(); // dummy return for base class
-  };
+  // Return false if circuit contains an unsupported instruction for
+  // the state class. Otherwise return true.
+  bool virtual validate_circuit(const Circuit &circ) const;
 
-  //----------------------------------------------------------------
-  // Members that should not be modified by derrived classes
-  //----------------------------------------------------------------
-  
-  // Returns a reference to the states data structure
-  inline state_t &data() { return data_; };
+  // Raise an exeption if the circuit contains unsupported
+  // instructions for the state class. The exception message 
+  // contains the name of the unsupported instructions.
+  void virtual validate_circuit_except(const Circuit &circ) const;
 
-  // Set the state data to a fixed value 
-  inline void set_state(const state_t &state) {data_ = state;};
-  inline void set_state(state_t &&state) {data_ = std::move(state);};
+  //=======================================================================
+  // Standard non-virtual methods
+  //
+  // These methods should not be modified in any State subclasses
+  //=======================================================================
+
+  //-----------------------------------------------------------------------
+  // ClassicalRegister methods
+  //-----------------------------------------------------------------------
+
+  // Initialize classical memory and register to default value (all-0)
+  void initialize_creg(uint_t num_memory, uint_t num_register);
+
+  // Initialize classical memory and register to specific values
+  void initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex);
+
+  // Add current creg classical bit values to a OutputData container
+  void add_creg_to_data(OutputData &data) const;
+
+  //-----------------------------------------------------------------------
+  // Standard snapshots
+  //-----------------------------------------------------------------------
+
+  // Snapshot the current statevector (single-shot)
+  void snapshot_state(const Operations::Op &op, OutputData &data) const;
+
+  // Snapshot the classical memory bits state (single-shot)
+  void snapshot_creg_memory(const Operations::Op &op, OutputData &data) const;
+
+  // Snapshot the classical register bits state (single-shot)
+  void snapshot_creg_register(const Operations::Op &op, OutputData &data) const;
+
+  //-----------------------------------------------------------------------
+  // OpenMP thread settings
+  //-----------------------------------------------------------------------
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_available_threads(int n) {threads_ = n;};
-  inline int get_available_threads() {return threads_;};
-  
-  // Access the RngEngine for random number generation
-  inline RngEngine &access_rng() { return rng_; };
+  inline void set_available_threads(int n) {threads_ = n;}
+  inline int get_available_threads() const {return threads_;}
 
-  // Set the RngEngine seed to a fixed value
-  // Otherwise it is initialized with a random value
-  inline void set_rng_seed(uint_t seed) { rng_ = RngEngine(seed); };
+  //-----------------------------------------------------------------------
+  // Data accessors
+  //-----------------------------------------------------------------------
+
+  // Returns a const reference to the states data structure
+  inline const state_t &qreg() const {return qreg_;}
+  inline const auto &creg() const {return creg_;}
 
 protected:
+
   // The quantum state data structure
-  state_t data_;
+  state_t qreg_;
+
+  // Classical register data
+  ClassicalRegister creg_;
 
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
   int threads_ = 1;
-
-  // The RngEngine for the state
-  RngEngine rng_;
 };
 
-//------------------------------------------------------------------------------
+
+//=========================================================================
+// Implementations
+//=========================================================================
+
+template <class state_t>
+void State<state_t>::set_config(const json_t &config) {
+  (ignore_argument)config;
+}
+
+
+template <class state_t>
+std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
+                                                  uint_t shots,
+                                                  RngEngine &rng) const {
+  (ignore_argument)qubits;
+  (ignore_argument)shots;
+  return std::vector<reg_t>();
+}
+
+
+template <class state_t>
+bool State<state_t>::validate_circuit(const Circuit &circ) const {
+  return circ.check_ops(allowed_ops(),
+                        allowed_gates(),
+                        allowed_snapshots());
+}
+
+
+template <class state_t>
+void State<state_t>::validate_circuit_except(const Circuit &circ) const {
+  // Check operations are allowed
+  const auto invalid = circ.invalid_ops(allowed_ops(),
+                                        allowed_gates(),
+                                        allowed_snapshots());
+  if (!invalid.empty()) {
+    std::stringstream ss;
+    ss << "Circuit contains invalid instructions: " << invalid;
+    throw std::invalid_argument(ss.str());
+  }
+}
+
+
+template <class state_t>
+void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) {
+  creg_.initialize(num_memory, num_register);
+}
+
+
+template <class state_t>
+void State<state_t>::initialize_creg(uint_t num_memory,
+                                     uint_t num_register,
+                                     const std::string &memory_hex,
+                                     const std::string &register_hex) {
+  creg_.initialize(num_memory, num_register, memory_hex, register_hex);
+}
+
+
+template <class state_t>
+void State<state_t>::snapshot_state(const Operations::Op &op,
+                                    OutputData &data) const {
+  data.add_singleshot_snapshot(op.name,
+                                op.string_params[0],
+                                qreg_);
+}
+
+
+template <class state_t>
+void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
+                                          OutputData &data) const {
+  data.add_singleshot_snapshot("memory",
+                                op.string_params[0],
+                                creg_.memory_hex());
+}
+
+
+template <class state_t>
+void State<state_t>::snapshot_creg_register(const Operations::Op &op,
+                                            OutputData &data) const {
+  data.add_singleshot_snapshot("register",
+                                op.string_params[0],
+                                creg_.register_hex());
+}
+
+
+template <class state_t>
+void State<state_t>::add_creg_to_data(OutputData &data) const {
+  if (creg_.memory_size() > 0) {
+    std::string memory_hex = creg_.memory_hex();
+    data.add_memory_count(memory_hex);
+    data.add_memory_singleshot(memory_hex);
+  }
+  // Register bits value
+  if (creg_.register_size() > 0) {
+    data.add_register_singleshot(creg_.register_hex());
+  }
+}
+
+
+//-------------------------------------------------------------------------
 } // end namespace Base
+//-------------------------------------------------------------------------
 } // end namespace AER
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 #endif

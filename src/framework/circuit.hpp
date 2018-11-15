@@ -59,11 +59,13 @@ public:
 
   // Check if all circuit ops are in an allowed op set
   bool check_ops(const std::unordered_set<OpType> &allowed_ops,
-                 const stringset_t &allowed_gates) const;
+                 const stringset_t &allowed_gates,
+                 const stringset_t &allowed_snapshots) const;
 
   // Return a set of all invalid circuit op names
   stringset_t invalid_ops(const std::unordered_set<OpType> &allowed_ops,
-                          const stringset_t &allowed_gates) const;
+                          const stringset_t &allowed_gates,
+                          const stringset_t &allowed_snapshots) const;
 
   // Check if any circuit ops are conditional ops
   bool has_conditional() const;
@@ -160,12 +162,15 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
 
 
 stringset_t Circuit::invalid_ops(const std::unordered_set<OpType> &allowed_ops,
-                                 const stringset_t &allowed_gates) const {
+                                 const stringset_t &allowed_gates,
+                                 const stringset_t &allowed_snapshots) const {
   stringset_t invalid;
   for (const auto &op : ops) {
     if (allowed_ops.find(op.type) == allowed_ops.end() ||
         (op.type == OpType::gate &&
-         allowed_gates.find(op.name) == allowed_gates.end()))
+         allowed_gates.find(op.name) == allowed_gates.end()) ||
+        (op.type == OpType::snapshot &&
+         allowed_snapshots.find(op.name) == allowed_snapshots.end()))
       invalid.insert(op.name);
   }
   return invalid;
@@ -173,11 +178,14 @@ stringset_t Circuit::invalid_ops(const std::unordered_set<OpType> &allowed_ops,
 
 
 bool Circuit::check_ops(const std::unordered_set<OpType> &allowed_ops,
-                        const stringset_t &allowed_gates) const {
+                        const stringset_t &allowed_gates,
+                        const stringset_t &allowed_snapshots) const {
   for (const auto &op : ops) {
     if (allowed_ops.find(op.type) == allowed_ops.end() ||
         (op.type == OpType::gate &&
-         allowed_gates.find(op.name) == allowed_gates.end()))
+         allowed_gates.find(op.name) == allowed_gates.end()) ||
+        (op.type == OpType::snapshot &&
+         allowed_snapshots.find(op.name) == allowed_snapshots.end()))
       return false;
   }
   return true;

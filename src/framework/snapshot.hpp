@@ -11,69 +11,46 @@
 #include "framework/types.hpp"
 
 namespace AER {
-namespace Snapshots {
 
 //------------------------------------------------------------------------------
 // Snapshot data storage class
 //------------------------------------------------------------------------------
 
-template <typename Key, typename Data, template<typename> class DataClass>
-class Snapshot {
+class SingleShotSnapshot {
 
 // Inner snapshot data map type
-using SlotData = std::map<Key, DataClass<Data>>;
 
 public:
 
   // Add a new datum to the snapshot at the specified key
-  inline void add_data(const Key &key, const Data& datum) {
-    data_[key].add(datum);
-  };
-
-  // Return a const reference copy of a DataClass object for a given
-  // key value. If the key do not exist an error will be thrown
-  const DataClass<Data>& get_data(const Key &key) const;
-
-  // Return current snapshot keys
-  std::set<Key> keys() const;
+  // This uses the `to_json` function for convertion
+  template <typename T>
+  inline void add_data(const std::string &key, T &datum) {
+    json_t tmp = datum;
+    data_[key].push_back(tmp);
+  }
 
   // Combine with another snapshot object clearing each inner map
   // as it is copied, and then clearing the resulting object.
-  void combine(Snapshot<Key, Data, DataClass> &snapshot) ;
+  void combine(SingleShotSnapshot &snapshot);
 
   // Clear all data from current snapshot
-  inline void clear() {data_.clear();};
+  inline void clear() {data_.clear();}
+
+  // Clear all snapshot data for a given label
+  inline void erase(const std::string &label) {data_.erase(label);}
+
+  // Dump all snapshots to JSON;
+  json_t json() const;
+
+  // Return true if snapshot container is empty
+  inline bool empty() const {return data_.empty();}
 
 private:
 
   // Internal Storage
-  std::map<Key, DataClass<Data>> data_;
-};
-
-
-//------------------------------------------------------------------------------
-// ShotData class for storage each shot of snapshot quantities
-//------------------------------------------------------------------------------
-
-// Data class for storing snapshots of for individual shots
-template<class data_t>
-class ShotData {
-
-public:
-  // Return the shot data vector
-  inline const std::vector<data_t>& data() const {return data_;};
-  inline std::vector<data_t>& data() {return data_;};
-
-  // Add another datum by appending it to the data vector
-  inline void add(const data_t &datum) {data_.push_back(datum);};
-
-  // Add another ShotData class by appending its data vector to the current 
-  // data vector. This is done by moving the contents to the second ShotData
-  // object is empty after the operation.
-  void combine(ShotData<data_t> &rhs);
-  
-private:
-  std::vector<data_t> data_;
+  // Map key is the snapshot label string
+  stringmap_t<std::vector<json_t>> data_;
 };
 
 
@@ -85,179 +62,187 @@ private:
 // 'accum' stores the data type as an accumualted sum of each recorded shots data type
 // 'count' keeps track of how many datum have been accumulated to return the average.
 // the 'average' function returns the average of the data as accum / counts.
-template<class data_t>
 class AverageData {
 public:
   
   // Return the averaged data: accum / count
-  data_t data() const;
+  json_t data() const;
 
   // Add another datum by adding to accum and incrementing count by 1.
-  void add(const data_t &datum);
+  void add(json_t &datum);
 
   // Combine with another AverageData class by combining accum and count members
   // This clears the values of the combined rhs argument
-  void combine(AverageData<data_t> &rhs);
+  void combine(AverageData &rhs);
 
 private:
 
-  data_t accum_; // stores the accumulated data for multiple datum
+  json_t accum_; // stores the accumulated data for multiple datum
   uint_t count_; // stores number of datum that have been accumulatede
 
-  // Define helper functions for averaging several sorts of data types
-  // There is probably a better way to implement this...
-
-  template <class T>
-  void accum_helper(std::vector<T> &lhs, const std::vector<T> &rhs) const;
-
-  template <class T1, class T2>
-  void accum_helper(std::map<T1, T2> &lhs, const std::map<T1, T2> &rhs) const;
-
-  template <class T>
-  void accum_helper(T &lhs, const T &rhs) const;
+  // Adds the rhs JSON to the lhs JSON: lhs = lhs + rhs
+  static void accum_helper(json_t &lhs, json_t &rhs);
   
-  template <class T>
-  inline std::vector<T> average_helper(const std::vector<T> &accum) const;
+  // Average the input json in place: accum = accum / count
+  static void average_helper(json_t &accum, uint_t count);
 
-  template <class T1, class T2>
-  inline std::map<T1, T2> average_helper(const std::map<T1, T2> &accum) const;
-
-  template <class T>
-  inline T average_helper(const T &accum) const;
 };
 
 
 //------------------------------------------------------------------------------
-// Implementation: Snapshot class methods
+// Snapshot data storage class
 //------------------------------------------------------------------------------
 
+class AverageSnapshot {
 
-template <typename Key, typename Data, template<typename> class DataClass>
-std::set<Key> Snapshot<Key, Data, DataClass>::keys() const {
-  std::set<Key> ret;
-  for (const auto &pair : data_) {
-    ret.insert(pair.first);
+// Inner snapshot data map type
+
+public:
+
+  // Add a new datum to the snapshot at the specified key
+  // This uses the `to_json` function for convertion
+  template <typename T>
+  inline void add_data(const std::string &key,
+                       const std::string &memory,
+                       T &datum) {
+    json_t tmp = datum;
+    data_[key][memory].add(datum);
   }
-  return ret;
-}
 
-template <typename Key, typename Data, template<typename> class DataClass>
-const DataClass<Data>&
-Snapshot<Key, Data, DataClass>::get_data(const Key &key) const {
-  auto it = data_.find(key);
-  if (it == data_.end()) {
-    throw std::invalid_argument("Snapshot key does not exist.");
-  }
-  return it->second;
-}
+  // Combine with another snapshot object clearing each inner map
+  // as it is copied, and then clearing the resulting object.
+  void combine(AverageSnapshot &snapshot);
 
-template <typename Key, typename Data, template<typename> class DataClass>
-void Snapshot<Key, Data, DataClass>::combine(Snapshot<Key, Data, DataClass> &snapshot) {
+  // Clear all data from current snapshot
+  inline void clear() {data_.clear();}
+
+  // Clear all snapshot data for a given label
+  inline void erase(const std::string &label) {data_.erase(label);}
+
+  // Dump all snapshots to JSON;
+  json_t json() const;
+
+  // Return true if snapshot container is empty
+  inline bool empty() const {return data_.empty();}
+
+private:
+
+  // Internal Storage
+  // Outer map key is the snapshot label string
+  // Inner map key is the memory value string
+  stringmap_t<stringmap_t<AverageData>> data_;
+};
+
+
+//------------------------------------------------------------------------------
+// Implementation: SingleShotSnapshot class methods
+//------------------------------------------------------------------------------
+
+void SingleShotSnapshot::combine(SingleShotSnapshot &snapshot) {
   for (auto &data : snapshot.data_) {
-    data_[data.first].combine(data.second);
+    auto &slot = data_[data.first];
+    auto &new_data = data.second;
+    slot.insert(slot.end(), std::make_move_iterator(new_data.begin()), 
+                            std::make_move_iterator(new_data.end()));
+    new_data.clear();
   }
   snapshot.clear(); // clear added snapshot
 }
 
+
+json_t SingleShotSnapshot::json() const {
+  json_t result;
+  for (const auto &pair : data_) {
+    result[pair.first] = pair.second;
+  }
+  return result;
+}
+
+
 //------------------------------------------------------------------------------
-// Implementation: ShotData class methods
+// Implementation: AverageSnapshot class methods
 //------------------------------------------------------------------------------
 
-template <class data_t>
-void ShotData<data_t>::combine(ShotData<data_t> &rhs) {
-  data_.insert(data_.end(), std::make_move_iterator(rhs.data_.begin()), 
-                            std::make_move_iterator(rhs.data_.end()));
-  rhs.data_.clear();
+void AverageSnapshot::combine(AverageSnapshot &snapshot) {
+  for (auto &data : snapshot.data_) {
+    for (auto &ave_data : data.second) {
+      data_[data.first][ave_data.first].combine(ave_data.second);
+    }
+  }
+  snapshot.clear(); // clear added snapshot
 }
+
+
+json_t AverageSnapshot::json() const {
+  json_t result;
+  for (const auto &outer_pair : data_) {
+    for (const auto &inner_pair : outer_pair.second) {
+      json_t datum;
+      datum["memory"] = inner_pair.first;
+      datum["value"] = inner_pair.second.data();
+      result[outer_pair.first].push_back(datum);
+    }
+  }
+  return result;
+}
+
 
 //------------------------------------------------------------------------------
 // Implementation: AverageData class methods
 //------------------------------------------------------------------------------
 
-template<class data_t>
-void AverageData<data_t>::add(const data_t &datum) {
+void AverageData::add(json_t &datum) {
   accum_helper(accum_, datum);
   count_++;
 }
 
-template<class data_t>
-void AverageData<data_t>::combine(AverageData<data_t> &rhs) {
+
+void AverageData::combine(AverageData &rhs) {
   accum_helper(accum_, rhs.accum_);
   count_ += rhs.count_;
-  rhs.accum_ = data_t();
+  // zero rhs data
+  rhs.accum_ = json_t();
   rhs.count_ = 0;
 }
   
-template<class data_t>
-data_t AverageData<data_t>::data() const {
-  return average_helper(accum_);
+
+json_t AverageData::data() const {
+  json_t result = accum_;
+  average_helper(result, count_);
+  return result;
 }
   
-template <class data_t>
-template <class T>
-void AverageData<data_t>::accum_helper(std::vector<T> &lhs, const std::vector<T> &rhs) const {
-  if (lhs.empty()) {
+
+void AverageData::accum_helper(json_t &lhs, json_t &rhs) {
+  if (lhs.is_null()) {
     lhs = rhs;
-  } else if (!rhs.empty()) {
-    if (lhs.size() != rhs.size())
-      throw std::invalid_argument("Snapshots::AverageData::add (vectors are not equal.)");
-    for (size_t pos = 0; pos < lhs.size(); ++ pos)
-      lhs[pos] += rhs[pos];
+  } else if (lhs.is_number() && rhs.is_number()) {
+    lhs = double(lhs) + double(rhs);
+  } else if (lhs.is_array() && rhs.is_array() && lhs.size() == rhs.size()) {
+    for (size_t pos = 0; pos < lhs.size(); pos++)
+      accum_helper(lhs[pos], rhs[pos]);
+  } else if (lhs.is_object() && rhs.is_object()) {
+    for (auto it = rhs.begin(); it != rhs.end(); ++it)
+      accum_helper(lhs[it.key()], it.value());
+  } else {
+    throw std::invalid_argument("Input JSON data cannot be accumulated.");
   }
 }
 
-template <class data_t>
-template <class T1, class T2>
-void AverageData<data_t>::accum_helper(std::map<T1, T2> &lhs, const std::map<T1, T2> &rhs) const {
-  for (const auto &pair : rhs)
-    lhs[pair.first] += pair.second;
+
+void AverageData::average_helper(json_t &js, uint_t count) {
+  if (js.is_number())
+    js = double(js) / count;
+  else if (js.is_array()) {
+    for (auto &item : js)
+      average_helper(item, count);
+  } else if (js.is_object()) {
+    for (auto it = js.begin(); it != js.end(); ++it)
+      average_helper(it.value(), count);
+  } else
+    throw std::invalid_argument("Input JSON data type cannot be averaged.");
 }
 
-template <class data_t>
-template <class T>
-void AverageData<data_t>::accum_helper(T &lhs, const T &rhs) const {
-  try {lhs += rhs;}
-  catch (std::exception &e) {
-    throw std::invalid_argument("Snapshots::AverageData::add (cannot combine data types)");
-  };
-}
-
-template <class data_t>
-template <class T>
-inline std::vector<T> AverageData<data_t>::average_helper(const std::vector<T> &accum) const {
-  double renorm = 1.0 / count_;
-  std::vector<T> ret;
-  ret.reserve(accum.size());
-  for (const auto &elt : accum) {
-    ret.push_back(elt * renorm);
-  }
-  return ret;
-}
-
-template <class data_t>
-template <class T1, class T2>
-inline std::map<T1, T2> AverageData<data_t>::average_helper(const std::map<T1, T2> &accum) const {
-  double renorm = 1.0 / count_;
-  std::map<T1, T2> ret;
-  for (const auto &pair : accum) {
-    ret[pair.first] = renorm * pair.second;
-  }
-  return ret;
-}
-
-template <class data_t>
-template <class T>
-inline T AverageData<data_t>::average_helper(const T &accum) const {
-  try { 
-    double renorm = 1.0 / count_;
-    return renorm * accum;
-  } catch (std::exception&) {
-    throw std::invalid_argument("Snapshots::AverageData::add (Cannot average data type)");
-  };
-}
-
-//------------------------------------------------------------------------------
-} // end namespace Snapshot
 //------------------------------------------------------------------------------
 } // end namespace AER
 //------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, IBM.
+ * Copyright 2018, IBM.
  *
  * This source code is licensed under the Apache License, Version 2.0 found in
  * the LICENSE.txt file in the root directory of this source tree.
@@ -17,9 +17,7 @@
 #include <string>
 
 // Simulator
-#include "base/controller.hpp"
-#include "simulators/qubitvector/qubitvector.hpp"
-#include "simulators/qubitvector/qv_state.hpp"
+#include "simulators/qasm/qasm_controller.hpp"
 
 /*******************************************************************************
  *
@@ -63,11 +61,9 @@ int main(int argc, char **argv) {
 
   // Execute simulation
   try {
-    using namespace AER;
-    using State = QubitVector::State<>;       // State class
 
     // Initialize simulator
-    Base::Controller sim;
+    AER::Simulator::QasmController sim;
     // Disable shot and circuit parallelization for testing
     sim.set_max_threads_shot(1);
     sim.set_max_threads_circuit(1);
@@ -79,7 +75,7 @@ int main(int argc, char **argv) {
       sim.set_noise_model(noise_model);
     } 
 
-    out << sim.execute<State>(qobj).dump(4) << std::endl;
+    out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;
   } catch (std::exception &e) {

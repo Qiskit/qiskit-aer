@@ -161,12 +161,11 @@ std::vector<T1>& scalar_multiply_inplace(std::vector<T1> &vec, T2 scalar);
 // Truncate the first argument its absolute value is less than epsilon
 // this function returns a refernce to the chopped first argument
 double &chop_inplace(double &val, double epsilon);
+std::complex<double> &chop_inplace(std::complex<double> &val, double epsilon);
 
 double chop(double val, double epsilon);
 // As above for complex first arguments
 
-template <typename T>
-std::complex<T> &chop_inplace(std::complex<T> &val, double epsilon);
 
 template <typename T>
 std::complex<T> chop(std::complex<T> val, double epsilon);
@@ -201,18 +200,22 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
 std::string format_hex(const std::string &hex);
 std::string& format_hex_inplace(std::string &hex);
 
+// Pad string with a char if it is less
+std::string padleft(const std::string &s, char c, size_t min_length);
+std::string& padleft_inplace(std::string &s, char c, size_t min_length);
+
 // Convert integers and hexadecimals to register vectors
 reg_t int2reg(uint_t n, uint_t base = 2);
 reg_t int2reg(uint_t n, uint_t base, uint_t minlen);
 reg_t hex2reg(std::string str);
 
 // Convert bit-strings to hex-strings
-// TODO: add prefix case 0b for input and 0x for output
-std::string bin2hex(const std::string bin);
+// if prefix is true "0x" will prepend the output string
+std::string bin2hex(const std::string bin, bool prefix = true);
 
 // Convert hex-strings to bit-strings
-// TODO: add prefix case 0x for input and 0b for output
-std::string hex2bin(const std::string bs);
+// if prefix is true "0b" will prepend the output string
+std::string hex2bin(const std::string bs, bool prefix = true);
 
 // Convert 64-bit unsigned integers to dit-string (dit base = 2 to 10)
 std::string int2string(uint_t n, uint_t base = 2);
@@ -683,10 +686,9 @@ double &chop_inplace(double &val, double epsilon) {
 }
 
 
-template <typename T>
-std::complex<T> &chop_inplace(std::complex<T> &val, double epsilon) {
-  val.real(chop_inplace(val.real(), epsilon));
-  val.imag(chop_inplace(val.imag(), epsilon));
+std::complex<double> &chop_inplace(std::complex<double> &val, double epsilon) {
+  val.real(chop(val.real(), epsilon));
+  val.imag(chop(val.imag(), epsilon));
   return val;
 }
 
@@ -792,6 +794,20 @@ std::string format_hex(const std::string &hex) {
 }
 
 
+std::string& padleft_inplace(std::string &s, char c, size_t min_length) {
+  auto l = s.size();
+  if (l < min_length)
+    s = std::string(min_length - l, c) + s;
+  return s;
+}
+
+
+std::string padleft(const std::string &s, char c, size_t min_length) {
+  std::string tmp = s;
+  return padleft_inplace(tmp, c, min_length);
+}
+
+
 reg_t int2reg(uint_t n, uint_t base) {
   reg_t ret;
   while (n >= base) {
@@ -835,7 +851,7 @@ reg_t hex2reg(std::string str) {
 }
 
 
-std::string hex2bin(std::string str) {
+std::string hex2bin(std::string str, bool prefix) {
   // empty case
   if (str.empty())
     return std::string();
@@ -852,8 +868,11 @@ std::string hex2bin(std::string str) {
   const size_t chunks = len / block;
   const size_t remain = len % block;
 
+  // Initialize output string
+  std::string bin = (prefix) ? "0b" : "";
+
   // Start with remain
-  std::string bin = "0b" + int2string(std::stoull(str.substr(0, remain), nullptr, 16), 2);
+  bin += int2string(std::stoull(str.substr(0, remain), nullptr, 16), 2);
   for (size_t j=0; j < chunks; ++j) {
     std::string part = int2string(std::stoull(str.substr(remain + j * block, block), nullptr, 16), 2, 64);
     bin += part;
@@ -862,7 +881,7 @@ std::string hex2bin(std::string str) {
 }
 
 
-std::string bin2hex(std::string str) {
+std::string bin2hex(std::string str, bool prefix) {
   // empty case
   if (str.empty())
     return std::string();
@@ -879,10 +898,13 @@ std::string bin2hex(std::string str) {
   const size_t chunks = len / block;
   const size_t remain = len % block;
 
+  // initialize output string
+  std::string hex = (prefix) ? "0x" : "";
+
   // Start with remain
   std::stringstream ss;
   ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
-  std::string hex = "0x" + ss.str(); // the return string
+  hex += ss.str();
   for (size_t j=0; j < chunks; ++j) {
     ss.str(std::string()); // clear string stream
     ss << std::hex << std::stoull(str.substr(remain + j * block, block), nullptr, 2);
@@ -904,12 +926,10 @@ std::string int2string(uint_t n, uint_t base) {
     return int2string(n / base, base) + std::to_string(n % base);
 }
 
+
 std::string int2string(uint_t n, uint_t base, uint_t minlen) {
-  std::string s = int2string(n, base);
-  auto l = s.size();
-  if (l < minlen)
-    s = std::string(minlen - l, '0') + s;
-  return s;
+  std::string tmp = int2string(n, base);
+  return padleft_inplace(tmp, '0', minlen);
 }
 
 

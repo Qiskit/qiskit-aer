@@ -14,6 +14,7 @@ import logging
 import datetime
 import uuid
 import numpy as np
+from numbers import Number
 
 import qiskit
 from qiskit.backends import BaseBackend
@@ -53,32 +54,65 @@ class AerJSONDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
-    def decode_complex(self, obj):
-        if isinstance(obj, list) and len(obj) == 2:
+    # pylint: disable=method-hidden
+    def object_hook(self, obj):
+        """Special decoding rules for simulator output."""
+        # Decode statevector
+        if 'statevector' in obj:
+            obj['statevector'] = self._decode_complex_vector(obj['statevector'])
+        # Decode unitary
+        if 'unitary' in obj:
+            obj['unitary'] = self._decode_complex_matrix(obj['unitary'])
+        # Decode snapshots
+        if 'snapshots' in obj:
+            # Decode statevector snapshot
+            if 'statevector' in obj['snapshots']:
+                for key, val in obj['snapshots']['statevector'].items():
+                    obj['snapshots']['statevector'][key] = [
+                        self._decode_complex_vector(vec) for vec in val]
+            # Decode unitary snapshot
+            if 'unitary' in obj['snapshots']:
+                for key, val in obj['snapshots']['unitary'].items():
+                    obj['snapshots']['unitary'][key] = [
+                        self._decode_complex_matrix(mat) for mat in val]
+            # Decode expectation value snapshot
+            if 'observables' in obj['snapshots']:
+                for key, val in obj['snapshots']['observables'].items():
+                    for j, expval in enumerate(val):
+                        val[j]['value'] = self._decode_complex(expval['value'])
+        return obj
+
+    def _decode_complex(self, obj):
+        """Deserialize JSON real or complex number"""
+        if isinstance(obj, list) and np.shape(obj) == (2,) and \
+           isinstance(obj[0], Number) and isinstance(obj[1], Number):
             if obj[1] == 0.:
                 obj = obj[0]
             else:
                 obj = obj[0] + 1j * obj[1]
         return obj
 
-    # pylint: disable=method-hidden
-    def object_hook(self, obj):
-        """Special decoding rules for simulator output."""
+    def _decode_complex_vector(self, obj):
+        """Deserialize JSON real or complex vector"""
+        if isinstance(obj, list):
+            obj = np.array([self._decode_complex(z) for z in obj])
+        return obj
 
-        # Decode snapshots
-        if 'snapshots' in obj:
-            # Decode observables
-            if 'observables' in obj['snapshots']:
-                for key in obj['snapshots']['observables']:
-                    for j, val in enumerate(obj['snapshots']['observables'][key]):
-                        obj['snapshots']['observables'][key][j]['value'] = self.decode_complex(val['value'])
+    def _decode_complex_matrix(self, obj):
+        """Deserialize JSON real or complex matrix"""
+        if isinstance(obj, list):
+            shape = np.shape(obj)
+            # Check if dimension is consistant with complex or real matrix
+            if len(shape) in [3, 2]:
+                obj = np.array([[self._decode_complex(z) for z in row]
+                                for row in obj])
         return obj
 
 
 class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
-    def __init__(self, configuration, simulator_wrapper, provider=None,
+    def __init__(self, configuration, controller_wrapper, provider=None,
                  json_decoder=AerJSONDecoder):
         """Aer class for backends.
 
@@ -89,7 +123,7 @@ class AerBackend(BaseBackend):
         Args:
             configuration (dict): configuration dictionary
             provider (BaseProvider): provider responsible for this backend
-            simulator_wrapper (class): Aer simulator wrapper cython class
+            controller_wrapper (class): Aer Controller cython wrapper class
             provider (BaseProvider): provider responsible for this backend
             json_decoder (JSONDecoder): JSON decoder for simulator output
 
@@ -101,7 +135,7 @@ class AerBackend(BaseBackend):
         # Extract the default basis gates set from backend configuration
         self._default_basis_gates = configuration.get('basis_gates')
         self._noise_model = None
-        self._simulator = simulator_wrapper
+        self._controller = controller_wrapper
         self._json_decoder = json_decoder
 
     def reset(self):
@@ -122,7 +156,7 @@ class AerBackend(BaseBackend):
     def _run_job(self, job_id, qobj):
         self._validate(qobj)
         qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
-        output = json.loads(self._simulator.execute(qobj_str),
+        output = json.loads(self._controller.execute(qobj_str),
                             cls=self._json_decoder)
         # Check results
         # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
@@ -165,7 +199,7 @@ class AerBackend(BaseBackend):
             raise AerSimulatorError("Invalid Qiskit Aer noise model.")
 
         # Attach noise model to wrapper
-        self._simulator.set_noise_model(json.dumps(noise_model_dict, cls=AerJSONEncoder))
+        self._controller.set_noise_model(json.dumps(noise_model_dict, cls=AerJSONEncoder))
         # Update basis gates to use the gates in the noise model
         basis_gates = noise_model_dict.get("basis_gates", None)
         if isinstance(basis_gates, str):
@@ -178,7 +212,7 @@ class AerBackend(BaseBackend):
     def clear_noise_model(self):
         """Reset simulator to ideal (no noise)."""
         self._noise_model = None
-        self._simulator.clear_noise_model()
+        self._controller.clear_noise_model()
         # Reset to default basis gates
         self._configuration["basis_gates"] = self._default_basis_gates
 
@@ -187,11 +221,11 @@ class AerBackend(BaseBackend):
         if config is None:
             self.clear_config()
         else:
-            self._simulator.set_config(json.dumps(config, cls=AerJSONEncoder))
+            self._controller.set_config(json.dumps(config, cls=AerJSONEncoder))
 
     def clear_config(self):
         """Clear config of simulator backend."""
-        self._simulator.clear_config()
+        self._controller.clear_config()
 
     def set_max_threads_shot(self, threads):
         """
@@ -203,7 +237,7 @@ class AerBackend(BaseBackend):
         Note that using parallel shot evaluation disables parallel circuit
         evaluation.
         """
-        self._simulator.set_max_threads_shot(int(threads))
+        self._controller.set_max_threads_shot(int(threads))
 
     def set_max_threads_circuit(self, threads):
         """
@@ -215,7 +249,7 @@ class AerBackend(BaseBackend):
         Note that using parallel circuit evaluation disables parallel shot
         evaluation.
         """
-        self._simulator.set_max_threads_circuit(int(threads))
+        self._controller.set_max_threads_circuit(int(threads))
 
     def set_max_threads_state(self, threads):
         """
@@ -227,7 +261,7 @@ class AerBackend(BaseBackend):
         Note that using parallel circuit or shot execution takes precidence over
         parallel state evaluation.
         """
-        self._simulator.set_max_threads_state(int(threads))
+        self._controller.set_max_threads_state(int(threads))
 
     def _validate(self, qobj):
         # TODO

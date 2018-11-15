@@ -481,7 +481,12 @@ void QubitVector<statevector_t>::initialize(const cvector_t &statevec) {
     ss << num_states_ << "!=" << statevec.size() << ")";
     throw std::runtime_error(ss.str());
   }
-  statevector_ = statevec;
+  initialize(); // set statevec to correct size
+  const int_t end = num_states_;
+  #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t j=0; j < end; j++) {
+    statevector_[j] = statevec[j];
+  }
 }
 
 template <class statevector_t>

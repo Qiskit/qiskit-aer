@@ -13,15 +13,15 @@ Qiskit Aer statevector simulator backend.
 
 import logging
 
-from qiskit.qobj import QobjInstruction
-from .qasm_simulator import QasmSimulator
+from .aerbackend import AerBackend
 from .aersimulatorerror import AerSimulatorError
+from statevector_controller_wrapper import StatevectorControllerWrapper
 
 # Logger
 logger = logging.getLogger(__name__)
 
 
-class StatevectorSimulator(QasmSimulator):
+class StatevectorSimulator(AerBackend):
     """Aer statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
@@ -35,47 +35,17 @@ class StatevectorSimulator(QasmSimulator):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(), provider=provider)
-
-    def _run_job(self, job_id, qobj):
-        # Add final snapshots to circuits
-        final_state_key = '__AER_FINAL_STATE__'
-        for experiment in qobj.experiments:
-            experiment.instructions.append(
-                QobjInstruction(name='snapshot', type='state', label=final_state_key)
-            )
-        # Get result from parent class _run_job method
-        result = super()._run_job(job_id, qobj)
-        # Remove added snapshot from qobj
-        for experiment in qobj.experiments:
-            del experiment.instructions[-1]
-        # Extract final state snapshot and move to 'statevector' data field
-        for experiment_result in result.results.values():
-            snapshots = experiment_result.snapshots
-
-            # Pop off final snapshot added above
-            if 'state' in snapshots:
-                final_state = snapshots['state'].pop(final_state_key, None)
-                final_state = final_state[0]
-            # Add final state to results data
-            experiment_result.data['statevector'] = final_state
-            # Remove snapshot dict if empty
-            if 'state' in snapshots:
-                if snapshots['state'] == {}:
-                    snapshots.pop('state', None)
-            if snapshots == {}:
-                experiment_result.data.pop('snapshots', None)
-        return result
+        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
+                         StatevectorControllerWrapper(), provider=provider)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
         Some of these may later move to backend schemas.
 
-        1. No shots
-        2. No measurements in the middle
+        This forces the simulation to execute with shots=1. 
         """
         if qobj.config.shots != 1:
-            logger.warning("statevector simulator only supports 1 shot. "
+            logger.warning("Statevector simulator only supports 1 shot. "
                            "Setting shots=1.")
             qobj.config.shots = 1
         for experiment in qobj.experiments:
@@ -84,13 +54,17 @@ class StatevectorSimulator(QasmSimulator):
                 logger.warning("statevector simulator only supports 1 shot. "
                                "Setting shots=1 for circuit %s.", experiment.header.name)
                 experiment.config.shots = 1
-            # Set memory slots to 0
-            if getattr(experiment.config, 'memory_slots', 0) != 0:
-                logger.warning("statevector simulator does not use classical registers. "
-                               "Setting memory_slots=0 for circuit %s.", experiment.header.name)
-                experiment.config.memory_slots = 0
-            for op in experiment.instructions:
-                if op.name in ['measure', 'reset']:
-                    raise AerSimulatorError(
-                        "In circuit {}: statevector simulator does not support "
-                        "measure or reset.".format(experiment.header.name))
+
+    # The following are overrides of base class methods that don't apply to this class
+    # since it does not support noise
+    def set_noise_model(self, noise_model=None):
+        """Unused base class method."""
+        raise AerSimulatorError("StatevectorSimulator does not support noise.")
+
+    def get_noise_model(self):
+        """Unused base class method."""
+        raise AerSimulatorError("StatevectorSimulator does not support noise.")
+
+    def clear_noise_model(self):
+        """Unused base class method."""
+        raise AerSimulatorError("StatevectorSimulator does not support noise.")

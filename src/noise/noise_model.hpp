@@ -61,7 +61,7 @@ public:
                          const std::vector<reg_t> &op_qubits = {});
   
   // Return true if the noise model is ideal
-  inline bool ideal() {
+  inline bool ideal() const {
     return !(local_quantum_errors_ || nonlocal_quantum_errors_) && readout_errors_.empty();
   }
 
@@ -207,18 +207,9 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng) const {
       switch (op.type) {
         // Operations that cannot have noise
         case Operations::OpType::barrier:
-          // Don't need barrier in circuit
-          break;
-        case Operations::OpType::snapshot_state:
           noisy_circ.ops.push_back(op);
           break;
-        case Operations::OpType::snapshot_probs:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::snapshot_pauli:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::snapshot_matrix:
+        case Operations::OpType::snapshot:
           noisy_circ.ops.push_back(op);
           break;
         case Operations::OpType::kraus:
