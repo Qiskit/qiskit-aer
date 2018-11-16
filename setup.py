@@ -30,5 +30,6 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     include_package_data=True,
+    cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.7"],
     keywords="qiskit aer simulator quantum addon backend"
 )

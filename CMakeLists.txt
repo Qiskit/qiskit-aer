@@ -7,7 +7,7 @@
 #
 # For Mac, you'll probably need to install static versions of the toolchain in
 # order to make a static executable.
-# Additionaly, OpenMP support is only available in clang from
+# Additionally, OpenMP support is only available in clang from
 
 cmake_minimum_required(VERSION 3.6)
 project(aer_simulator_cpp LANGUAGES CXX C)
@@ -62,8 +62,7 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deployment target" to 10.7
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
 	# use C++11/14
-	# We are forcing deployment target by command line parameter: --plat-name macosx-10.9-x86_64
-	set(CMAKE_OSX_DEPLOYMENT_TARGET “10.7” CACHE STRING “” FORCE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
 endif()
 
@@ -133,7 +132,7 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 			set(OPENMP_FOUND TRUE)
 		endif()
 	else()
-		message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommmended https://brew.sh")
+		message(STATUS "This program supports OpenMP on Mac through Homebrew, installing Homebrew recommended https://brew.sh")
 	endif()
 endif()
 
