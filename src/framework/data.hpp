@@ -48,11 +48,14 @@ public:
   // Add a new datum to the snapshot of the specified type and label
   // This will use the json conversion method `to_json` for
   // data type T
+  // if variance is true the variance of the averaged sample will also
+  // be computed
   template <typename T>
   void add_average_snapshot(const std::string &type,
                             const std::string &label,
                             const std::string &memory,
-                            const T &datum);
+                            const T &datum,
+                            bool variance = false);
 
   // Delete all singleshot snapshots of a given type
   void clear_singleshot_snapshot(const std::string &type);
@@ -180,10 +183,11 @@ template <typename T>
 void OutputData::add_average_snapshot(const std::string &type,
                                       const std::string &label,
                                       const std::string &memory,
-                                      const T &datum) {
+                                      const T &datum,
+                                      bool variance) {
   if (return_snapshots_) {   
     json_t js = datum; // use implicit to_json conversion function for T
-    average_snapshots_[type].add_data(label, memory, js);
+    average_snapshots_[type].add_data(label, memory, js, variance);
   }
 }
 

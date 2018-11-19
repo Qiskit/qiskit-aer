@@ -60,41 +60,39 @@ struct Op {
   std::vector<rvector_t> probs;
 
   // Snapshots
-  using qubit_set_t = std::set<uint_t, std::greater<uint_t>>;
-  using pauli_component_t = std::tuple<complex_t,    // component coefficient
-                                       qubit_set_t,  // component qubits
-                                       std::string>; // component Pauli string
-  using matrix_component_t = std::tuple<complex_t,          // component coefficient
-                                        std::vector<reg_t>, // qubit sub-registers Ex: [[2], [1, 0]]
-                                        std::vector<cmatrix_t>>; // sub-matrices Ex: [M2, M10]
-  std::vector<pauli_component_t> params_pauli_obs;
-  std::vector<matrix_component_t> params_mat_obs; // not that diagonal matrices are stored as
-                                                  // 1 x M row-matrices
-                                                  // Projector vectors are stored as
-                                                  // M x 1 column-matrices
+  using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
+  using matrix_component_t = std::vector<std::pair<reg_t, cmatrix_t>>; // vector of Pair(qubits, matrix)
+  std::vector<pauli_component_t> params_expval_pauli;
+  std::vector<matrix_component_t> params_expval_matrix; // note that diagonal matrices are stored as
+                                                        // 1 x M row-matrices
+                                                        // Projector vectors are stored as
+                                                        // M x 1 column-matrices
 };
 
 //------------------------------------------------------------------------------
 // Error Checking
 //------------------------------------------------------------------------------
 
-inline void check_name(const std::string &name) {
-  if (name.empty()) {
-    throw std::invalid_argument("Invalid gate operation: \"name\" is empty.");
-  }
+// Raise an exception if name string is empty
+inline void check_empty_name(const Op &op) {
+  if (op.name.empty())
+    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty.");
 }
 
-inline void check_qubits(const reg_t &qubits) {
-  // Check qubits isn't empty
-  if (qubits.empty()) {
-    throw std::invalid_argument("Invalid operation (\"qubits\" are empty)");
-  }
-  // Check qubits are unique
-  auto cpy = qubits;
+// Raise an exception if qubits list is empty
+inline void check_empty_qubits(const Op &op) {
+  if (op.qubits.empty())
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"qubits\" are empty");
+}
+
+// Raise an exception if qubits list contains duplications
+inline void check_duplicate_qubits(const Op &op) {
+  auto cpy = op.qubits;
   std::unique(cpy.begin(), cpy.end());
-  if (cpy != qubits) {
-    throw std::invalid_argument("Invalid operation (\"qubits\" are not unique)");
-  }
+  if (cpy != op.qubits)
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"qubits\" are not unique)");
 }
 
 //------------------------------------------------------------------------------
@@ -188,10 +186,9 @@ Op json_to_op_snapshot(const json_t &js);
 Op json_to_op_snapshot_default(const json_t &js);
 Op json_to_op_snapshot_matrix(const json_t &js);
 Op json_to_op_snapshot_pauli(const json_t &js);
-Op json_to_op_snapshot_probs(const json_t &js);
 
 // Matrices
-Op json_to_op_mat(const json_t &js);
+Op json_to_op_unitary(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
@@ -218,24 +215,22 @@ Op json_to_op(const json_t &js) {
   if (name == "reset")
     return json_to_op_reset(js);
   // Arbitrary matrix gates
-  if (name == "mat")
-    return json_to_op_mat(js);
   if (name == "unitary")
-    return json_to_op_mat(js);
-  if (name == "kraus")
-    return json_to_op_kraus(js);
+    return json_to_op_unitary(js);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
   // Bit functions
   if (name == "bfunc")
     return json_to_op_bfunc(js);
-  // Bit functions
+  // Noise functions
   if (name == "noise_switch")
     return json_to_op_noise_switch(js);
+  if (name == "kraus")
+    return json_to_op_kraus(js);
   if (name == "roerror")
     return json_to_op_roerror(js);
-  // Gates
+  // Default assume gate
   return json_to_op_gate(js);
 }
 
@@ -252,8 +247,9 @@ Op json_to_op_gate(const json_t &js) {
   JSON::get_value(op.params, "params", js);
 
   // Validation
-  check_name(op.name);
-  check_qubits(op.qubits);
+  check_empty_name(op);
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
   return op;
 }
 
@@ -276,7 +272,8 @@ Op json_to_op_measure(const json_t &js) {
   JSON::get_value(op.registers, "register", js);
 
   // Validation
-  check_qubits(op.qubits);
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
   if (op.memory.empty() == false && op.memory.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid measure operation: \"memory\" and \"qubits\" are different lengths.");
   }
@@ -297,7 +294,8 @@ Op json_to_op_reset(const json_t &js) {
     op.params[0] = js["params"].get<reg_t>()[0];
   }
   // Validation
-  check_qubits(op.qubits);
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
   if (op.params.size() != op.qubits.size()) {
     throw std::invalid_argument("Invalid reset operation: \"params\" and \"qubits\" are different lengths.");
   }
@@ -365,25 +363,24 @@ Op json_to_op_roerror(const json_t &js) {
 // Implementation: Matrix and Kraus deserialization
 //------------------------------------------------------------------------------
 
-Op json_to_op_mat(const json_t &js) {
+Op json_to_op_unitary(const json_t &js) {
   Op op;
   op.type = OpType::matrix;
   op.name = "mat";
   JSON::get_value(op.qubits, "qubits", js);
   cmatrix_t mat;
   JSON::get_value(mat, "params", js);
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  if (!Utils::is_unitary(mat, 1e-10)) {
+    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  }
   op.mats.push_back(mat);
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);
   op.string_params.push_back(label);
-
-  // Validation
-  check_qubits(op.qubits);
-  // Check unitary
-  if (!Utils::is_unitary(op.mats[0], 1e-10)) {
-    throw std::invalid_argument("\"mat\" matrix is not unitary.");
-  }
   return op;
 }
 
@@ -396,7 +393,8 @@ Op json_to_op_kraus(const json_t &js) {
   JSON::get_value(op.mats, "params", js);
 
   // Validation
-  check_qubits(op.qubits);
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
   return op;
 }
 
@@ -416,13 +414,11 @@ Op json_to_op_noise_switch(const json_t &js) {
 Op json_to_op_snapshot(const json_t &js) {
   std::string type;
   JSON::get_value(type, "type", js);
-  if (type == "probabilities")
-    return json_to_op_snapshot_probs(js);
-  if (type == "pauli_observable")
+  if (type == "expval_pauli")
     return json_to_op_snapshot_pauli(js);
-  if (type == "matrix_observable")
+  if (type == "expval_matrix")
     return json_to_op_snapshot_matrix(js);
-  // Default snapshot type
+  // Default snapshot: has "type", "label", "qubits"
   return json_to_op_snapshot_default(js);
 }
 
@@ -431,104 +427,100 @@ Op json_to_op_snapshot_default(const json_t &js) {
   Op op;
   op.type = OpType::snapshot;
   JSON::get_value(op.name, "type", js);
-  op.string_params.push_back(std::string()); // add empty string param for label
+  // If missing use "default" for label
+  op.string_params.push_back("default");
   JSON::get_value(op.string_params[0], "label", js);
-  return op;
-}
-
-
-Op json_to_op_snapshot_probs(const json_t &js) {
-  Op op;
-  op.type = OpType::snapshot;
-  op.name = "probabilities";
-  op.string_params.push_back(std::string()); // add empty string param for label
-  JSON::get_value(op.string_params[0], "label", js);
-  JSON::get_value(op.qubits, "qubits", js); // depreciated
-  JSON::get_value(op.qubits, "params", js);
-  // Validation
-  check_qubits(op.qubits);
+  // Add optional qubits field
+  JSON::get_value(op.qubits, "qubits", js);
+  // If qubits is not empty, check for duplicates
+  check_duplicate_qubits(op);
   return op;
 }
 
 
 Op json_to_op_snapshot_pauli(const json_t &js) {
-  Op op;
-  op.type = OpType::snapshot;
-  op.name = "pauli_observable";
-  op.string_params.push_back(std::string()); // add empty string param for label
-  JSON::get_value(op.string_params[0], "label", js);
-  double threshold = 1e-10; // drop small Pauli values
+  // Load default snapshot parameters
+  Op op = json_to_op_snapshot_default(js);
+  // override name for depreciated "pauli_observable"
+  op.name = "expval_pauli"; 
+  // Check qubits are valid
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
 
-  // Sort qubits (needed for storing cached Pauli terms)
-  reg_t unsorted = op.qubits; // store original unsorted order
-  std::sort(op.qubits.begin(), op.qubits.end(), std::greater<uint_t>());
-
+  // Parse Pauli operator components
+  const auto threshold = 1e-10; // drop small components
   // Get components
-  if (JSON::check_key("params", js)) {
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
-      complex_t coeff;
-      JSON::get_value(coeff, "coeff", comp);
-      if (std::abs(coeff) > threshold) { // if coeff is too small ignore component
-        // When qubits are loaded as a set they are sorted in descending order
-        // So we need to sort the Pauli string to match:
-        reg_t qubits_unsorted;
-        JSON::get_value(qubits_unsorted, "qubits", comp);
-        Op::qubit_set_t qubits_sorted(qubits_unsorted.begin(), qubits_unsorted.end());
-        std::string pauli_unsorted, pauli_sorted;
-        JSON::get_value(pauli_unsorted, "op", comp);
-        // Sort Pauli string to match sorted qubit order
-        for (const auto qubit: qubits_sorted) {
-          auto pos = std::distance(qubits_unsorted.begin(),
-                                   std::find(qubits_unsorted.begin(), qubits_unsorted.end(), qubit));
-          pauli_sorted.push_back(pauli_unsorted[pos]);
-        }
-        if (pauli_sorted.size() != qubits_sorted.size()) {
-          throw std::invalid_argument("Invalid Pauli snapshot (length \"coeffs\" != length \"qubits\").");
+      // Check component is length-2 array
+      if (!comp.is_array() || comp.size() != 2)
+        throw std::invalid_argument("Invalid Pauli expval snapshot (param component " + 
+                                    comp.dump() + " invalid).");
+      // Get complex coefficient
+      complex_t coeff = comp[0];
+      // If coefficient is above threshold, get the Pauli operator string
+      // This string may contain I, X, Y, Z
+      // qubits are stored as a list where position is qubit number:
+      // eq op.qubits = [a, b, c], a is qubit-0, b is qubit-1, c is qubit-2
+      // Pauli string labels are stored in little-endian ordering:
+      // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
+      if (std::abs(coeff) > threshold) {
+        std::string pauli = comp[1];
+        if (pauli.size() != op.qubits.size()) {
+          throw std::invalid_argument("Invalid Pauli snapshot (Pauli label does not match qubit number.).");
         }
         // make tuple and add to components
-        op.params_pauli_obs.push_back(std::make_tuple(coeff, qubits_sorted, pauli_sorted));
+        op.params_expval_pauli.push_back(std::make_pair(coeff, pauli));
       } // end if > threshold
     } // end component loop
   } else {
-    throw std::invalid_argument("Invalid Pauli snapshot  (\"params\" field missing).");
+    throw std::invalid_argument("Invalid Pauli snapshot \"params\".");
   }
   return op;
 }
 
 
 Op json_to_op_snapshot_matrix(const json_t &js) {
-  Op op;
-  op.type = OpType::snapshot;
-  op.name = "matrix_observable";
-  op.string_params.push_back(std::string()); // add empty string param for label
-  JSON::get_value(op.string_params[0], "label", js);
+  // Load default snapshot parameters
+  Op op = json_to_op_snapshot_default(js);
+  // override name for depreciated "pauli_observable"
+  op.name = "expval_matrix"; 
 
-  // Get components
-  if (JSON::check_key("params", js)) {
+  const auto threshold = 1e-10; // drop small components
+  // Get matrix operator components
+  // TODO: fix repeated throw string
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
-      
-      Op::matrix_component_t param;
-      auto &qubits = std::get<1>(param);
-      auto &mats = std::get<2>(param);
-      JSON::get_value(std::get<0>(param), "coeff", comp);
-      JSON::get_value(qubits, "qubits", comp);
-      JSON::get_value(mats, "ops", comp);
-      // Check correct lengths
-      if (qubits.size() != mats.size()) {
-        throw std::invalid_argument("Invalid matrix snapshot (number of qubit subsets and matrices unequal).");
+      // Check component is length-2 array
+      if (!comp.is_array() || comp.size() != 2) {
+        throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
+                                    comp.dump() + " invalid).");
       }
-      // Check subset are ok
-      size_t num = 0;
-      std::unordered_set<uint_t> unique;
-      for (const auto &reg : qubits) {
-        num += reg.size();
-        unique.insert(reg.begin(), reg.end());
+      // Get complex coefficient
+      complex_t coeff = comp[0];
+      if (std::abs(coeff) > threshold) {
+        if (!comp[1].is_array()) {
+          throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
+                                      comp.dump() + " invalid).");
+        }
+        Op::matrix_component_t param;
+        for (const auto &subcomp : comp[1]) {
+          if (!subcomp.is_array() || subcomp.size() != 2) {
+            throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
+                                        comp.dump() + " invalid).");
+          }
+          reg_t comp_qubits = subcomp[0];
+          cmatrix_t comp_matrix = subcomp[1];
+          // Check qubits are ok
+          std::unordered_set<uint_t> unique = {comp_qubits.begin(), comp_qubits.end()};
+          if (unique.size() != comp_qubits.size()) {
+            throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
+                                        comp.dump() + " invalid).");
+          }
+          param.push_back(std::make_pair(comp_qubits, coeff * comp_matrix));
+        }
+        op.params_expval_matrix.push_back(param);
       }
-      if (unique.size() != qubits.size() || num != qubits.size()) {
-        throw std::invalid_argument("Invalid matrix snapshot (param qubit specification invalid.");
-      }
-      // make tuple and add to components
-      op.params_mat_obs.push_back(param);
     } // end component loop
   } else {
     throw std::invalid_argument("Invalid matrix snapshot  (\"params\" field missing).");

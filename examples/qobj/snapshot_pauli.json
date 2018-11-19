@@ -11,22 +11,50 @@
             },
             "instructions": [
                 {"name": "h", "qubits": [0]},
-                {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "type": "pauli_observable",
-                 "label": "<ZZ>pre_measure",
-                 "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZZ"}]},
-                {"name": "snapshot", "type": "pauli_observable",
-                 "label": "<ZI+IZ>pre_measure",
-                 "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZI"},
-                            {"coeff": 1, "qubits": [1, 0], "op": "IZ"}]},
+                {"name": "x", "qubits": [1]},
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
+                    "label": "<ZI> pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[1, "ZI"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
+                    "label": "<IZ> pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[1, "IZ"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
+                    "label": "<XI> pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[1, "XI"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
+                    "label": "<IX> pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[1, "IX"]]
+                },
                 {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
-                {"name": "snapshot", "type": "pauli_observable",
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
                     "label": "<ZZ>post_measure",
-                    "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZZ"}]},
-                   {"name": "snapshot", "type": "pauli_observable",
+                    "qubits": [0, 1],
+                    "params": [[1, "ZZ"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expval_pauli",
                     "label": "<ZI+IZ>post_measure",
-                    "params": [{"coeff": 1, "qubits": [1, 0], "op": "ZI"},
-                               {"coeff": 1, "qubits": [1, 0], "op": "IZ"}]}
+                    "qubits": [0, 1],
+                    "params": [[1, "ZI"], [1, "IZ"]]
+                }
             ]
         }
     ]

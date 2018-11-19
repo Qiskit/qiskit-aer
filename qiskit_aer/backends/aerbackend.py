@@ -76,8 +76,8 @@ class AerJSONDecoder(json.JSONDecoder):
                     obj['snapshots']['unitary'][key] = [
                         self._decode_complex_matrix(mat) for mat in val]
             # Decode expectation value snapshot
-            if 'observables' in obj['snapshots']:
-                for key, val in obj['snapshots']['observables'].items():
+            if 'expval' in obj['snapshots']:
+                for key, val in obj['snapshots']['expval'].items():
                     for j, expval in enumerate(val):
                         val[j]['value'] = self._decode_complex(expval['value'])
         return obj
@@ -158,13 +158,11 @@ class AerBackend(BaseBackend):
         qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
         output = json.loads(self._controller.execute(qobj_str),
                             cls=self._json_decoder)
-        # Check results
-        # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
-        #       is merged this should be updated to deal with errors using
-        #       the Result object methods
-        if not output.get("success", False):
-            logger.error("AerBackend: simulation failed")
-            raise AerSimulatorError(output.get("status", None))
+        self._validate_controller_output(output)
+        return self._format_results(job_id, output)
+
+    def _format_results(self, job_id, output):
+        """Construct Result object from simulator output."""
         # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
@@ -178,8 +176,27 @@ class AerBackend(BaseBackend):
         qobj_result.results = [qiskit.qobj.ExperimentResult(**res) for res in exp_results]
         return Result(qobj_result, experiment_names=experiment_names)
 
+    def _validate_controller_output(self, output):
+        """Validate output from the controller wrapper."""
+        # Check results
+        # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
+        #       is merged this should be updated to deal with errors using
+        #       the Result object methods
+        if not output.get("success", False):
+            logger.error("AerBackend: simulation failed")
+            # Check for error message in the failed circuit
+            for res in output.get('results'):
+                if not res.get('success', False):
+                    raise AerSimulatorError(res.get("status", None))
+            # If no error was found check for error message at qobj level
+            raise AerSimulatorError(output.get("status", None))
+
     def set_noise_model(self, noise_model=None):
-        """Set a simulation noise model for the backend."""
+        """Set a simulation noise model for the backend.
+
+        Args:
+            noise_model (NoiseModel): the simulator noise model.
+        """
         if noise_model is None:
             # If None clear current noise model
             self.clear_noise_model()

@@ -103,12 +103,12 @@ public:
   //-----------------------------------------------------------------------
 
   // Sample n-measurement outcomes without applying the measure operation
-  // to the system state. This leaves the system unchanged. The return is
-  // a vector containing n outcomes, where each outcome is the same as
-  // one that would be returned from the 'apply_measure' operation
+  // to the system state. Even though this method is not marked as const
+  // at the end of sample the system should be left in the same state 
+  // as before sampling
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
-                                            RngEngine &rng) const;
+                                            RngEngine &rng);
 
   //=======================================================================
   // Standard Methods
@@ -157,13 +157,17 @@ public:
   //-----------------------------------------------------------------------
 
   // Snapshot the current statevector (single-shot)
-  void snapshot_state(const Operations::Op &op, OutputData &data) const;
+  // if type_label is the empty string the operation type will be used for the type
+  void snapshot_state(const Operations::Op &op, OutputData &data,
+                      std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, OutputData &data) const;
+  void snapshot_creg_memory(const Operations::Op &op, OutputData &data,
+                            std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, OutputData &data) const;
+  void snapshot_creg_register(const Operations::Op &op, OutputData &data,
+                              std::string name = "register") const;
 
   //-----------------------------------------------------------------------
   // OpenMP thread settings
@@ -209,7 +213,7 @@ void State<state_t>::set_config(const json_t &config) {
 template <class state_t>
 std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
                                                   uint_t shots,
-                                                  RngEngine &rng) const {
+                                                  RngEngine &rng) {
   (ignore_argument)qubits;
   (ignore_argument)shots;
   return std::vector<reg_t>();
@@ -255,28 +259,30 @@ void State<state_t>::initialize_creg(uint_t num_memory,
 
 template <class state_t>
 void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    OutputData &data) const {
-  data.add_singleshot_snapshot(op.name,
-                                op.string_params[0],
-                                qreg_);
+                                    OutputData &data,
+                                    std::string name) const {
+  name = (name.empty()) ? op.name : name;
+  data.add_singleshot_snapshot(name, op.string_params[0], qreg_);
 }
 
 
 template <class state_t>
 void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
-                                          OutputData &data) const {
-  data.add_singleshot_snapshot("memory",
-                                op.string_params[0],
-                                creg_.memory_hex());
+                                          OutputData &data,
+                                          std::string name) const {
+  data.add_singleshot_snapshot(name,
+                               op.string_params[0],
+                               creg_.memory_hex());
 }
 
 
 template <class state_t>
 void State<state_t>::snapshot_creg_register(const Operations::Op &op,
-                                            OutputData &data) const {
-  data.add_singleshot_snapshot("register",
-                                op.string_params[0],
-                                creg_.register_hex());
+                                            OutputData &data,
+                                            std::string name) const {
+  data.add_singleshot_snapshot(name,
+                               op.string_params[0],
+                               creg_.register_hex());
 }
 
 
