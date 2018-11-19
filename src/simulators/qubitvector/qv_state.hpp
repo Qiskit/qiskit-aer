@@ -37,7 +37,7 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
-template <class statevector_t = cvector_t>
+template <class statevector_t = complex_t*>
 class State : public Base::State<QV::QubitVector<statevector_t>> {
 public:
   using BaseState = Base::State<QV::QubitVector<statevector_t>>;
@@ -294,7 +294,6 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
   BaseState::qreg_.initialize();
 }
 
-
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits,
                                    const QV::QubitVector<statevec_t> &state) {
@@ -302,10 +301,10 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
-  BaseState::qreg_ = state;
   initialize_omp();
+  BaseState::qreg_.set_num_qubits(num_qubits);
+  BaseState::qreg_.initialize(state.data(), 1ULL << num_qubits);
 }
-
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits,
@@ -464,18 +463,23 @@ template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
                                               OutputData &data) {
   
+  BaseState::qreg_.checkpoint();
+
+  bool first = true;
   complex_t expval(0., 0.);
   // Compute expval components
   for (const auto &param : op.params_pauli_obs) {
-    
     const auto& coeff = std::get<0>(param);
     const auto& qubits_set = std::get<1>(param);
     const auto& pauli = std::get<2>(param);
     // Convert qubit set to reg
     reg_t qubits(qubits_set.begin(), qubits_set.end());
     
-    // Copy the quantum state;
-    QV::QubitVector<statevec_t> qreg_copy = BaseState::qreg_;
+    // Revert the quantum state if necessary
+    if (first)
+      first = false;
+    else
+      BaseState::qreg_.revert(true);
     
     // Apply each pauli operator as a gate to the corresponding qubit
     for (uint_t pos=0; pos < qubits.size(); ++pos) {
@@ -483,13 +487,13 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
         case 'I':
           break;
         case 'X':
-          qreg_copy.apply_x(qubits[pos]);
+          BaseState::qreg_.apply_x(qubits[pos]);
           break;
         case 'Y':
-          qreg_copy.apply_y(qubits[pos]);
+          BaseState::qreg_.apply_y(qubits[pos]);
           break;
         case 'Z':
-          qreg_copy.apply_z(qubits[pos]);
+          BaseState::qreg_.apply_z(qubits[pos]);
           break;
         default: {
           std::stringstream msg;
@@ -500,14 +504,14 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
     }
     // Pauli expecation values should always be real for a valid state
     // so we truncate the imaginary part
-    expval += coeff * std::real(qreg_copy.inner_product(BaseState::qreg_));
+    expval += coeff * std::real(BaseState::qreg_.inner_product());
   }
   // add to snapshot
   Utils::chop_inplace(expval, snapshot_chop_threshold_);
   data.add_average_snapshot("observables", op.string_params[0],
                                    BaseState::creg_.memory_hex(), expval);
+  BaseState::qreg_.revert(false);
 }
-
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
@@ -517,28 +521,42 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
   
+  BaseState::qreg_.checkpoint();
+
+  bool first = true;
   complex_t expval(0., 0.);
   // Compute expectation value from components
   for (const auto &param : op.params_mat_obs) {
+
     const auto& coeff = std::get<0>(param);
     const auto& qubits = std::get<1>(param);
     const auto& matrices = std::get<2>(param);
 
-    QV::QubitVector<statevec_t> qreg_copy = BaseState::qreg_; // Copy the quantum state
+    // Revert the quantum state if necessary
+    if (first)
+      first = false;
+    else
+      BaseState::qreg_.revert(true);
+
     // Apply each qubit subset gate
     for (size_t pos=0; pos < qubits.size(); ++pos) {
+      if (first)
+        first = false;
+      else
+        BaseState::qreg_.revert(true);
+
       const cmatrix_t &mat = matrices[pos];
       cvector_t vmat = (mat.GetColumns() == 1)
         ? Utils::vectorize_matrix(Utils::projector(Utils::vectorize_matrix(mat))) // projector case
         : Utils::vectorize_matrix(mat); // diagonal or square matrix case
       if (vmat.size() == 1ULL << qubits[pos].size()) {
-        qreg_copy.apply_diagonal_matrix(qubits[pos], vmat);
+        BaseState::qreg_.apply_diagonal_matrix(qubits[pos], vmat);
       } else {
-        qreg_copy.apply_matrix(qubits[pos], vmat);
+        BaseState::qreg_.apply_matrix(qubits[pos], vmat);
       }
       
     }
-    expval += coeff * qreg_copy.inner_product(BaseState::qreg_);
+    expval += coeff * BaseState::qreg_.inner_product();
   }
   // add to snapshot
   Utils::chop_inplace(expval, snapshot_chop_threshold_);

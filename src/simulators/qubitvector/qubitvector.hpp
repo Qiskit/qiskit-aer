@@ -49,7 +49,7 @@ using rvector_t = std::vector<double>;
 // If the template argument does not have these methods then template
 // specialization must be used to override the default implementations.
 
-template <class statevector_t = cvector_t>
+template <class statevector_t = complex_t*>
 class QubitVector {
 
 public:
@@ -61,6 +61,8 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   ~QubitVector();
+  QubitVector(const QubitVector& obj) = delete;
+  QubitVector &operator=(const QubitVector& obj) = delete;
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -84,9 +86,14 @@ public:
   // Returns a copy of the underlying statevector_t data as a complex vector
   cvector_t vector() const;
 
-  // Compute the inner product with another complex vector and returns the value
-  // This is equivalent to: self.dot(sconj(qv));
-  complex_t inner_product(const QubitVector &qv) const;
+  // Create a checkpoint to calculate inner_product
+  void checkpoint();
+
+  // Compute the inner product with checkpoint and returns the value
+  complex_t inner_product() const;
+
+  // Revert to the checkpoint
+  void revert(bool keep);
 
   // Returns the norm of the current vector
   double norm() const;
@@ -98,6 +105,10 @@ public:
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
   void initialize(const cvector_t &statevec);
+
+  // Initializes the vector to a custom initial state.
+  // If num_states does not match the number of qubits an exception is raised.
+  void initialize(const statevector_t &statevec, const size_t num_states);
 
   //-----------------------------------------------------------------------
   // Configuration settings
@@ -222,6 +233,7 @@ protected:
   size_t num_qubits_;
   size_t num_states_;
   statevector_t statevector_;
+  statevector_t checkpoint_;
 
  //-----------------------------------------------------------------------
   // Config settings
@@ -286,14 +298,6 @@ protected:
                              const cvector_t &mat);
   void apply_diagonal_matrix(const std::array<uint_t, 1> &qubits,
                              const cvector_t &mat);
-  void apply_diagonal_matrix(const std::array<uint_t, 2> &qubits,
-                             const cvector_t &mat);
-  void apply_diagonal_matrix(const std::array<uint_t, 3> &qubits,
-                             const cvector_t &mat);
-  void apply_diagonal_matrix(const std::array<uint_t, 4> &qubits,
-                             const cvector_t &mat);
-  void apply_diagonal_matrix(const std::array<uint_t, 5> &qubits,
-                             const cvector_t &mat);
 
   // Permute an N-qubit vectorized matrix to match a reordering of qubits
   template <size_t N>
@@ -341,6 +345,7 @@ protected:
   void check_vector(const cvector_t &diag, uint_t nqubits) const;
   void check_matrix(const cvector_t &mat, uint_t nqubits) const;
   void check_dimension(const QubitVector &qv) const;
+  void check_checkpoint() const;
 
 };
 
@@ -407,12 +412,19 @@ void QubitVector<statevector_t>::check_dimension(const QubitVector &qv) const {
   }
 }
 
+template <class statevector_t>
+void QubitVector<statevector_t>::check_checkpoint() const {
+  if (!checkpoint_) {
+    throw std::runtime_error("QubitVector: checkpoint must exist for inner_product() or revert()");
+  }
+}
+
 //------------------------------------------------------------------------------
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
 template <class statevector_t>
-QubitVector<statevector_t>::QubitVector(size_t num_qubits) {
+QubitVector<statevector_t>::QubitVector(size_t num_qubits) : num_qubits_(0), statevector_(0), checkpoint_(0){
   set_num_qubits(num_qubits);
 }
 
@@ -420,7 +432,13 @@ template <class statevector_t>
 QubitVector<statevector_t>::QubitVector() : QubitVector(0) {}
 
 template <class statevector_t>
-QubitVector<statevector_t>::~QubitVector() = default;
+QubitVector<statevector_t>::~QubitVector() {
+  if (statevector_)
+    free(statevector_);
+
+  if (checkpoint_)
+    free(checkpoint_);
+}
 
 //------------------------------------------------------------------------------
 // Element access operators
@@ -469,7 +487,12 @@ cvector_t QubitVector<statevector_t>::vector() const {
 
 template <class statevector_t>
 void QubitVector<statevector_t>::initialize() {
-  statevector_.assign(num_states_, 0.);
+  const int_t end = num_states_;    // end for k loop
+
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < end; ++k)
+    statevector_[k] = 0.0;
+
   statevector_[0] = 1.;
 }
 
@@ -481,19 +504,46 @@ void QubitVector<statevector_t>::initialize(const cvector_t &statevec) {
     ss << num_states_ << "!=" << statevec.size() << ")";
     throw std::runtime_error(ss.str());
   }
-  initialize(); // set statevec to correct size
-  const int_t end = num_states_;
-  #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (int_t j=0; j < end; j++) {
-    statevector_[j] = statevec[j];
+
+  const int_t end = num_states_;    // end for k loop
+
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < end; ++k)
+    statevector_[k] = statevec[k];
+}
+
+template <class statevector_t>
+void QubitVector<statevector_t>::initialize(const statevector_t &statevec, const size_t num_states) {
+  if (num_states_ != num_states) {
+    std::stringstream ss;
+    ss << "QubitVector<statevector_t>::initialize input vector is incorrect length (";
+    ss << num_states_ << "!=" << num_states << ")";
+    throw std::runtime_error(ss.str());
   }
+
+  const int_t end = num_states_;    // end for k loop
+
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < end; ++k)
+    statevector_[k] = statevec[k];
 }
 
 template <class statevector_t>
 void QubitVector<statevector_t>::set_num_qubits(size_t num_qubits) {
   num_qubits_ = num_qubits;
   num_states_ = 1ULL << num_qubits;
-  statevector_.assign(num_states_, 0.);
+
+  // Free any currently assigned memory
+  if (statevector_)
+    free(statevector_);
+
+  if (checkpoint_) {
+    free(checkpoint_);
+    checkpoint_ = 0;
+  }
+
+  // Allocate memory for new vector
+  statevector_ = reinterpret_cast<complex_t*>(malloc(sizeof(complex_t) * num_states_));
 }
 
 template <class statevector_t>
@@ -510,25 +560,55 @@ double QubitVector<statevector_t>::norm() const {
 }
 
 template <class statevector_t>
-complex_t QubitVector<statevector_t>::inner_product(const QubitVector &qv) const {
-  // Error checking
-#ifdef DEBUG
-  check_dimension(qv);
-#endif
+void QubitVector<statevector_t>::checkpoint() {
+  if (!checkpoint_)
+    checkpoint_ = reinterpret_cast<complex_t*>(malloc(sizeof(complex_t) * num_states_));
 
-double z_re = 0., z_im = 0.;
-const int_t end = num_states_;    // end for k loop
+  const int_t end = num_states_;    // end for k loop
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < end; ++k)
+    checkpoint_[k] = statevector_[k];
+}
+
+template <class statevector_t>
+complex_t QubitVector<statevector_t>::inner_product() const {
+
+  #ifdef DEBUG
+  check_checkpoint();
+  #endif
+
+  double z_re = 0., z_im = 0.;
+  const int_t end = num_states_;    // end for k loop
 #pragma omp parallel reduction(+:z_re, z_im) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
   #pragma omp for
     for (int_t k = 0; k < end; k++) {
-      const complex_t z = statevector_[k] * std::conj(qv.statevector_[k]);
+      const complex_t z = statevector_[k] * std::conj(checkpoint_[k]);
       z_re += std::real(z);
       z_im += std::imag(z);
     }
   } // end omp parallel
   return complex_t(z_re, z_im);
 }
+
+template <class statevector_t>
+void QubitVector<statevector_t>::revert(bool keep) {
+
+  #ifdef DEBUG
+  check_checkpoint();
+  #endif
+
+  const int_t end = num_states_;    // end for k loop
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < end; ++k)
+    statevector_[k] = checkpoint_[k];
+
+  if (!keep) {
+    free(checkpoint_);
+    checkpoint_ = 0;
+  }
+}
+
 
 /*******************************************************************************
  *
@@ -835,14 +915,44 @@ void QubitVector<statevector_t>::apply_matrix(const std::array<uint_t, 1> &qubit
 template <class statevector_t>
 void QubitVector<statevector_t>::apply_diagonal_matrix(const std::array<uint_t, 1> &qubits,
                                                        const cvector_t &diag) {
-  // Lambda function for diagonal matrix multiplication
-  auto lambda = [&](const cvector_t &_mat, const int_t &k1, const int_t &k2,
+
+  if (diag[0] == 1.0) {
+    if (diag[1] == complex_t(0., -1.)) {
+      auto lambda = [&](const cvector_t &_mat, const int_t &k1, const int_t &k2,
+          const int_t &end2)->void {
+        const auto k = k1 | k2;
+        double cache = statevector_[k | end2].imag();
+        statevector_[k | end2].imag(statevector_[k | end2].real());
+        statevector_[k | end2].real(cache * -1.);
+      };
+      apply_matrix_lambda(qubits[0], diag, lambda);
+    } else if (diag[1] == complex_t(0., 1.)) {
+      auto lambda = [&](const cvector_t &_mat, const int_t &k1, const int_t &k2,
+          const int_t &end2)->void {
+        const auto k = k1 | k2;
+        double cache = statevector_[k | end2].imag();
+        statevector_[k | end2].imag(statevector_[k | end2].real());
+        statevector_[k | end2].real(cache);
+      };
+      apply_matrix_lambda(qubits[0], diag, lambda);
+    } else {
+      auto lambda = [&](const cvector_t &_mat, const int_t &k1, const int_t &k2,
+          const int_t &end2)->void {
+        const auto k = k1 | k2;
+        statevector_[k | end2] *= _mat[1];
+      };
+      apply_matrix_lambda(qubits[0], diag, lambda);
+    }
+  } else {
+    // Lambda function for diagonal matrix multiplication
+    auto lambda = [&](const cvector_t &_mat, const int_t &k1, const int_t &k2,
                     const int_t &end2)->void {
-    const auto k = k1 | k2;
-    statevector_[k] *= _mat[0];
-    statevector_[k | end2] *= _mat[1];
-  };
-  apply_matrix_lambda(qubits[0], diag, lambda);
+      const auto k = k1 | k2;
+      statevector_[k] *= _mat[0];
+      statevector_[k | end2] *= _mat[1];
+    };
+    apply_matrix_lambda(qubits[0], diag, lambda);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1191,25 +1301,25 @@ void QubitVector<statevector_t>::apply_matrix(const std::vector<uint_t> &qubits,
   // Special low N cases using faster static indexing
   switch (qubits.size()) {
   case 1:
-    apply_matrix<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
+    apply_matrix(std::array<uint_t, 1>({{qubits[0]}}), mat);
     break;
   case 2:
-    apply_matrix<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
+    apply_matrix(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
     break;
   case 3: {
     std::array<uint_t, 3> qubits_arr;
     std::copy_n(qubits.begin(), 3, qubits_arr.begin());
-    apply_matrix<3>(qubits_arr, mat);
+    apply_matrix(qubits_arr, mat);
   } break;
   case 4: {
     std::array<uint_t, 4> qubits_arr;
     std::copy_n(qubits.begin(), 4, qubits_arr.begin());
-    apply_matrix<4>(qubits_arr, mat);
+    apply_matrix(qubits_arr, mat);
   } break;
   case 5: {
     std::array<uint_t, 5> qubits_arr;
     std::copy_n(qubits.begin(), 5, qubits_arr.begin());
-    apply_matrix<5>(qubits_arr, mat);
+    apply_matrix(qubits_arr, mat);
   } break;
   case 6: {
     std::array<uint_t, 6> qubits_arr;
@@ -1309,7 +1419,7 @@ void QubitVector<statevector_t>::apply_diagonal_matrix(const std::vector<uint_t>
   // Special low N cases using faster static indexing
   switch (qubits.size()) {
   case 1:
-    apply_diagonal_matrix<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
+    apply_diagonal_matrix(std::array<uint_t, 1>({{qubits[0]}}), mat);
     break;
   case 2:
     apply_diagonal_matrix<2>(std::array<uint_t, 2>({{qubits[0], qubits[1]}}), mat);
