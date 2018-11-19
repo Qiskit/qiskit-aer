@@ -2,10 +2,7 @@
 #include <map>
 #include <catch.hpp>
 
-#include <base/controller.hpp>
-#include <base/engine.hpp>
-#include <simulators/qubitvector/qubitvector.hpp>
-#include <simulators/qubitvector/qv_state.hpp>
+#include <simulators/qasm/qasm_controller.hpp>
 
 #include "utils.hpp"
 
@@ -24,7 +21,7 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
         AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_matrix.json");
 
     using State = AER::QubitVector::State<>;
-    AER::Base::Controller sim{};
+    AER::Simulator::QasmController sim{};
 
     SECTION( "State simulator snapshot" ) {
         auto expected_result = R"({
@@ -32,8 +29,8 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
                 "initial":[[[1.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0]]],
                 "middle":[[[0.7071067811865476,0.0],[0.7071067811865475,0.0],[0.0,0.0],[0.0,0.0]]]
             })"_json;
-        auto result = sim.execute<State>(qobj_snapshots["state"]);
-        result = result["result"][0]["data"]["snapshots"]["state"];
+        auto result = sim.execute(qobj_snapshots["state"]);
+        result = result["results"][0]["data"]["snapshots"]["state"];
         REQUIRE(result == expected_result);
     }
     SECTION( "Probs simulator snapshot" ) {
