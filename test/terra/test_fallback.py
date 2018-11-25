@@ -37,7 +37,7 @@ class TestFallback(common.QiskitAerTestCase):
         qobj_dict_qv = compile(circuit, backend=self.backend, shots=1).as_dict()
         qobj_dict_qv['experiments'][0]['instructions'].append(
             {'name': 'snapshot',
-             'type': 'state',
+             'type': 'statevector',
              'label': 'final'}
         )
         qobj_qv = Qobj.from_dict(qobj_dict_qv)
@@ -46,7 +46,7 @@ class TestFallback(common.QiskitAerTestCase):
         self.assertEqual(result_qv.get_status(), 'COMPLETED')
         # ***
         vector_qv = result_qv.get_snapshots()['statevector']['final'][0]
-        # TODO Replace with vector_qv = result_qv.get_state__snapshot(slot='final')
+        # TODO Replace with vector_qv = result_qv.get_state_snapshot(slot='final')
 
         # Compare with the result of the fallback Python simulator
         result = execute(circuit, Aer.get_backend('statevector_simulator_py'))
@@ -58,7 +58,8 @@ class TestFallback(common.QiskitAerTestCase):
         # for the Python and Aer simulators
         # TODO consider comparing the vectors using fidelity
         self.assertAlmostEqual(np.linalg.norm(vector_qv - vector_py), 0.,
-                               msg=lambda circuit: 'Error on circuit: ' + circuit.qasm())
+                               msg=(lambda circ: 'Error on circuit: ' + circ.qasm())(circuit))
+
 
     def test_qv_fallback(self):
         """ Test that the fallback for QV simulator returns the same results."""

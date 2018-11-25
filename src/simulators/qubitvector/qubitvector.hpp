@@ -922,8 +922,8 @@ void QubitVector<statevector_t>::apply_diagonal_matrix(const std::array<uint_t, 
           const int_t &end2)->void {
         const auto k = k1 | k2;
         double cache = statevector_[k | end2].imag();
-        statevector_[k | end2].imag(statevector_[k | end2].real());
-        statevector_[k | end2].real(cache * -1.);
+        statevector_[k | end2].imag(statevector_[k | end2].real() * -1.);
+        statevector_[k | end2].real(cache);
       };
       apply_matrix_lambda(qubits[0], diag, lambda);
     } else if (diag[1] == complex_t(0., 1.)) {
@@ -932,7 +932,7 @@ void QubitVector<statevector_t>::apply_diagonal_matrix(const std::array<uint_t, 
         const auto k = k1 | k2;
         double cache = statevector_[k | end2].imag();
         statevector_[k | end2].imag(statevector_[k | end2].real());
-        statevector_[k | end2].real(cache);
+        statevector_[k | end2].real(cache * -1.);
       };
       apply_matrix_lambda(qubits[0], diag, lambda);
     } else {
