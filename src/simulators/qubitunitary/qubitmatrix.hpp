@@ -240,9 +240,10 @@ inline void to_json(json_t &js, const QubitMatrix<statematrix_t> &qmat) {
 template <class statematrix_t>
 void QubitMatrix<statematrix_t>::check_qubit(const uint_t qubit) const {
   if (qubit + 1 > num_qubits_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: qubit index " << qubit << " > " << num_qubits_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error(
+      "QubitMatrix: qubit index " + std::to_string(qubit) + " > " +
+      std::to_string(num_qubits_)
+    );
   }
 }
 
@@ -267,17 +268,16 @@ QubitMatrix<statematrix_t>::~QubitMatrix() = default;
 
 template <class statematrix_t>
 complex_t &QubitMatrix<statematrix_t>::operator()(uint_t row, uint_t col) {
+  // TODO: Juan: No error checking out of DEBUG mode?
   // Error checking
   #ifdef DEBUG
   if (row > num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: row index " << row << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: row index " + std::to_string(row) +
+                             " > " + std::to_string(num_states_));
   }
   if (col > num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: row index " << col << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: row index " + std::to_string(col) +
+                             " > " + std::to_string(num_states_));
   }
   #endif
   return statematrix_(row, col);
@@ -288,14 +288,12 @@ complex_t QubitMatrix<statematrix_t>::operator()(uint_t row, uint_t col) const {
   // Error checking
   #ifdef DEBUG
   if (row > num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: row index " << row << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: row index " + std::to_string(row) +
+                             " > " + std::to_string(num_states_));
   }
   if (col > num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: row index " << col << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: row index " + std::to_string(col) +
+                             " > " + std::to_string(num_states_));
   }
   #endif
   return statematrix_(row, col);
@@ -306,9 +304,8 @@ complex_t &QubitMatrix<statematrix_t>::operator[](uint_t element) {
   // Error checking
   #ifdef DEBUG
   if (element > num_states_ * num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: vector index " << element << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: vector index " + std::to_string(element) +
+                             " > " + std::to_string(num_states_));
   }
   #endif
   return statematrix_[element];
@@ -319,9 +316,8 @@ complex_t QubitMatrix<statematrix_t>::operator[](uint_t element) const {
   // Error checking
   #ifdef DEBUG
   if (element > num_states_ * num_states_) {
-    std::stringstream ss;
-    ss << "QubitMatrix: vector index " << element << " > " << num_states_;
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("QubitMatrix: vector index " + std::to_string(element) +
+                             " > " + std::to_string(num_states_));
   }
   #endif
   return statematrix_[element];
@@ -332,7 +328,7 @@ cmatrix_t QubitMatrix<statematrix_t>::matrix() const {
 
   cmatrix_t ret(num_states_, num_states_);
   const int_t end = num_states_;
-  
+
   #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
   #ifdef _WIN32
@@ -360,16 +356,16 @@ void QubitMatrix<statematrix_t>::initialize() {
 template <class statematrix_t>
 void QubitMatrix<statematrix_t>::initialize(const cmatrix_t &mat) {
   if (num_states_ != mat.GetRows() || num_states_ != mat.GetColumns()) {
-    std::stringstream ss;
-    ss << "QubitMatrix<statematrix_t>::initialize input matrix is incorrect shape (";
-    ss << num_states_ << "," << num_states_ << ")!=(";
-    ss << mat.GetRows() << "," << mat.GetColumns() << ").";
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error(
+      "QubitMatrix<statematrix_t>::initialize input matrix is incorrect shape (" +
+      std::to_string(num_states_) + "," + std::to_string(num_states_) + ")!=(" +
+      std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
+    );
   }
   if (AER::Utils::is_unitary(mat, 1e-10) == false) {
-    std::stringstream ss;
-    ss << "QubitMatrix<statematrix_t>::initialize input matrix is not unitary.";
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error(
+      "QubitMatrix<statematrix_t>::initialize input matrix is not unitary."
+    );
   }
   statematrix_ = mat;
 }
@@ -698,10 +694,8 @@ void QubitMatrix<statematrix_t>::apply_matrix(const std::vector<uint_t> &qubits,
       apply_matrix<15>(qubits_arr, mat);
     } break;
     default: {
-      std::stringstream ss;
-      ss << "QubitMatrix::apply_matrix: " << qubits.size();
-      ss << "-qubit matrix is too large to apply.";
-      throw std::runtime_error(ss.str());
+      throw std::runtime_error("QubitMatrix::apply_matrix: " +
+        std::to_string(qubits.size()) + "-qubit matrix is too large to apply.");
       break;
     }
   } // end switch
@@ -724,6 +718,7 @@ template <class statematrix_t>
 void QubitMatrix<statematrix_t>::apply_diagonal_matrix(const std::vector<uint_t> &qubits,
                                                        const cmatrix_t &mat) {
   // Special low N cases using faster static indexing
+  //TODO: Juan: Let's see if vector with an special allocator can replace this
   switch (qubits.size()) {
     case 1:
       apply_diagonal_matrix<1>(std::array<uint_t, 1>({{qubits[0]}}), mat);
@@ -937,3 +932,4 @@ inline std::ostream &operator<<(std::ostream &out, const QM::QubitMatrix<statema
 
 //------------------------------------------------------------------------------
 #endif // end module
+

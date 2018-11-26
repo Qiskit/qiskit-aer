@@ -20,7 +20,7 @@
 
 namespace AER {
 namespace QubitUnitary {
-  
+
 // Allowed gates enum class
 enum class Gates {
   u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
@@ -121,7 +121,7 @@ protected:
   //-----------------------------------------------------------------------
   // 1-Qubit Gates
   //-----------------------------------------------------------------------
-  
+
   void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
@@ -170,7 +170,7 @@ const stringmap_t<Gates> State<statemat_t>::gateset_({
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
   {"ccx", Gates::ccx}  // Controlled-CX gate (Toffoli)
-}); 
+});
 
 //============================================================================
 // Implementation: Base class method overrides
@@ -216,7 +216,7 @@ uint_t State<statemat_t>::required_memory_mb(uint_t num_qubits,
 
 
 template <class statemat_t>
-void State<statemat_t>::set_config(const json_t &config) {  
+void State<statemat_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
 
@@ -273,7 +273,7 @@ void State<statemat_t>::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
-    throw std::invalid_argument("QubitMatrix::State::invalid gate instruction \'" + 
+    throw std::invalid_argument("QubitMatrix::State::invalid gate instruction \'" +
                                 op.name + "\'.");
   Gates g = it -> second;
   switch (g) {
@@ -331,12 +331,12 @@ void State<statemat_t>::apply_gate(const Operations::Op &op) {
     case Gates::swap: {
       BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
     } break;
-    case Gates::ccx:
+    case Gates::ccx: {
       BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-      break;
+    } break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
-      throw std::invalid_argument("QubitMatrix::State::invalid gate instruction \'" + 
+      throw std::invalid_argument("QubitMatrix::State::invalid gate instruction \'" +
                                   op.name + "\'.");
   }
 }
@@ -345,9 +345,9 @@ void State<statemat_t>::apply_gate(const Operations::Op &op) {
 template <class statemat_t>
 void State<statemat_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (qubits.empty() == false && mat.size() > 0) {
-    if (mat.GetRows() == 1)
+    if (mat.GetRows() == 1){
       BaseState::qreg_.apply_diagonal_matrix(qubits, mat);
-    else {
+    } else {
       BaseState::qreg_.apply_matrix(qubits, mat);
     }
   }
@@ -376,7 +376,7 @@ void State<statemat_t>::apply_snapshot(const Operations::Op &op,
   if (op.name == "unitary" || op.name == "state") {
     BaseState::snapshot_state(op, data);
   } else {
-    throw std::invalid_argument("QubitMatrix::State::invalid snapshot instruction \'" + 
+    throw std::invalid_argument("QubitMatrix::State::invalid snapshot instruction \'" +
                                 op.name + "\'.");
   }
 }
