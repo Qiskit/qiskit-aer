@@ -21,7 +21,5 @@ install:
 
 script:
   - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
-
-after_success:
   - pip install dist/qiskit_aer*whl
   - python -m unittest discover -s test -v
