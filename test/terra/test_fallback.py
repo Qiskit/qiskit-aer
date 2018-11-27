@@ -45,7 +45,7 @@ class TestFallback(common.QiskitAerTestCase):
         # TODO Replace with  result_qv = execute(circuit, backend='local_qv_simulator').result()
         self.assertEqual(result_qv.get_status(), 'COMPLETED')
         # ***
-        vector_qv = result_qv.get_snapshots()['state']['final'][0]
+        vector_qv = result_qv.get_snapshots()['statevector']['final'][0]
         # TODO Replace with vector_qv = result_qv.get_state__snapshot(slot='final')
 
         # Compare with the result of the fallback Python simulator
