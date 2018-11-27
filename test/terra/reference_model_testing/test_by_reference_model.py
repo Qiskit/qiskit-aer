@@ -1,5 +1,5 @@
 import test.terra.common as common
-import test.terra.qobj_hacks as qobj_hacks
+from qiskit_aer.utils import qobj_utils
 import unittest
 import numpy as np
 import math
@@ -46,12 +46,12 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         den_result = self.den_sim.run(qobj)
 
         # Add a probabilities snapshot at the end of the circuit
-        qobj.experiments[0].instructions.append(qobj_hacks.qobj_snapshot_probs(label='final', qubits=list(range(len(qc.get_qregs()['qr'])))))
+        qobj.experiments[0].instructions.append(qobj_utils.qobj_snapshot_item(snapshot_type='probabilities', label='final', qubits=list(range(len(qc.get_qregs()['qr'])))))
         qasm_result = self.qasm_sim.run(qobj).result()
         
         den_probs = den_result.extract_probs()
         self.log.debug(den_probs)
-        qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['values']
+        qasm_probs = qasm_result.get_snapshots(qc)['probabilities']['final'][0]['value']
         self.log.debug(qasm_probs)
         
         self.assertDictAlmostEqual(den_probs, qasm_probs, delta=1e-2)
@@ -68,13 +68,13 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         qobj = compile(qc, self.qasm_sim, shots=shots, seed=1)
         den_result = self.den_sim.run(qobj)
 
-        qobj.experiments[0].instructions.append(qobj_hacks.qobj_snapshot_state('final'))
+        qobj.experiments[0].instructions.append(qobj_utils.qobj_snapshot_item(snapshot_type='statevector', label='final'))
         qasm_result = self.qasm_sim.run(qobj).result()
 
         nqubits = len(qc.get_qregs()['qr'])
 
         # all statevectors, from all shots
-        states = qasm_result.get_snapshots(qc)['state']['final']
+        states = qasm_result.get_snapshots(qc)['statevector']['final']
 
         # adjusted_states will reflect the fact that the statevector
         # amplitudes are ordered lexicographically, where qubit 0
