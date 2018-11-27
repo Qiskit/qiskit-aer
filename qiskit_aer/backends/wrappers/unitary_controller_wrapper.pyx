@@ -6,23 +6,22 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Cython wrapper for Aer C++ qubit vector simulator.
+Cython wrapper for Aer UnitaryController
 """
 
 # Import C++ Classes
 from libcpp.string cimport string
 
+
 # QubitVector State class
-cdef extern from "simulators/qasm/qasm_controller.hpp" namespace "AER::Simulator":
-    cdef cppclass QasmController:
-        QasmController() except +
+cdef extern from "simulators/qubitunitary/unitary_controller.hpp" namespace "AER::Simulator":
+    cdef cppclass UnitaryController:
+        UnitaryController() except +
         string execute(string &qobj) except +
 
-        void set_noise_model(string &qobj) except +
         void set_data_config(string &qobj) except +
         void set_state_config(string &qobj) except +
 
-        void clear_noise_model()
         void clear_data_config()
         void clear_state_config()
 
@@ -37,9 +36,9 @@ cdef extern from "simulators/qasm/qasm_controller.hpp" namespace "AER::Simulator
         int get_max_threads_state()
 
 
-cdef class QasmControllerWrapper:
+cdef class UnitaryControllerWrapper:
 
-    cdef QasmController iface
+    cdef UnitaryController iface
 
     def __reduce__(self):
         return (self.__class__,())
@@ -49,14 +48,6 @@ cdef class QasmControllerWrapper:
         cdef string qobj_enc = str(qobj).encode('UTF-8')
         return self.iface.execute(qobj_enc)
         # Execute
-
-    def set_noise_model(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.set_noise_model(config_enc)
-
-    def clear_noise_model(self):
-        self.iface.clear_noise_model()
 
     def set_config(self, config):
         # Convert input to C++ string
