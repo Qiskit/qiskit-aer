@@ -3,10 +3,11 @@ from qiskit_aer.utils import qobj_utils
 import unittest
 import numpy as np
 import math
+import random
 
 from density_matrix_simulator import DensityMatrixSimulator
 from qstructs import DensityMatrix, QuantumState, ProbabilityDistribution
-from qstructs import is_close, state_reverse
+from qstructs import is_close, state_reverse, get_extended_ops, randcomplex
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import compile
 from qiskit_aer.backends import QasmSimulator
@@ -27,7 +28,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
 
         # The following lines implement a hack,
         # which allows to test the probabilities snapshot
-        # for circuits that contain mwasurements.
+        # for circuits that contain measurements.
         # The probabilities snapshot provides a vector of probabilities
         # for each possible state of the classical registers.
         # We would like to obtain the probabilities regardless
@@ -64,8 +65,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
                                                 self.den_sim.get_supported_gates())
         self.log.debug(qc.qasm())
 
-        shots = 10000
-        qobj = compile(qc, self.qasm_sim, shots=shots, seed=1)
+        qobj = compile(qc, self.qasm_sim, shots=10000, seed=1)
         den_result = self.den_sim.run(qobj)
 
         qobj.experiments[0].instructions.append(qobj_utils.qobj_snapshot_item(snapshot_type='statevector', label='final'))
@@ -82,12 +82,7 @@ class TestByReferenceModel(common.QiskitAerTestCase):
         # are ordered with qubit 0 as MSB.
         adjusted_states = []
 
-        # Note that len(states) is not always equal to the number of shots,
-        # bacause the simulator has an optimization when all measurements are
-        # at the end. If the optimization occurs the 'states' consists of
-        # a single state.
-        for shot in range(len(states)):
-            state = states[shot]
+        for state in states:
             adjusted_state = np.zeros(2**nqubits, dtype=complex)
             for basis_state in range(2**nqubits):
                 adjusted_state[state_reverse(basis_state, nqubits)] = state[basis_state]

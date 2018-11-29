@@ -61,7 +61,7 @@ struct Op {
 
   // Snapshots
   using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
-  using matrix_component_t = std::vector<std::pair<reg_t, cmatrix_t>>; // vector of Pair(qubits, matrix)
+  using matrix_component_t = std::pair<complex_t, std::vector<std::pair<reg_t, cmatrix_t>>>; // vector of Pair(qubits, matrix), combined with coefficient
   std::vector<pauli_component_t> params_expval_pauli;
   std::vector<matrix_component_t> params_expval_matrix; // note that diagonal matrices are stored as
                                                         // 1 x M row-matrices
@@ -498,6 +498,7 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
       }
       // Get complex coefficient
       complex_t coeff = comp[0];
+      std::vector<std::pair<reg_t, cmatrix_t>> mats;
       if (std::abs(coeff) > threshold) {
         if (!comp[1].is_array()) {
           throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
@@ -517,9 +518,9 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
                                         comp.dump() + " invalid).");
           }
-          param.push_back(std::make_pair(comp_qubits, coeff * comp_matrix));
+          mats.push_back(std::make_pair(comp_qubits, comp_matrix));
         }
-        op.params_expval_matrix.push_back(param);
+        op.params_expval_matrix.push_back(std::make_pair(coeff, mats));
       }
     } // end component loop
   } else {

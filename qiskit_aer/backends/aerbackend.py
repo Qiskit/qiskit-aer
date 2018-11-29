@@ -76,8 +76,8 @@ class AerJSONDecoder(json.JSONDecoder):
                     obj['snapshots']['unitary'][key] = [
                         self._decode_complex_matrix(mat) for mat in val]
             # Decode expectation value snapshot
-            if 'expval' in obj['snapshots']:
-                for key, val in obj['snapshots']['expval'].items():
+            if 'expectation_value' in obj['snapshots']:
+                for key, val in obj['snapshots']['expectation_value'].items():
                     for j, expval in enumerate(val):
                         val[j]['value'] = self._decode_complex(expval['value'])
         return obj

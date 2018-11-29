@@ -33,7 +33,7 @@ class DensityMatrixSimulator:
 
         for circuit in qobj.experiments:
             n_qubits = circuit.header.number_of_qubits
-            density_matrix = DensityMatrix(QuantumState.basic_state(0, n_qubits))
+            density_matrix = DensityMatrix(QuantumState.ground_state(n_qubits))
 
             for op in circuit.instructions:
                 if op.name == 'reset':
