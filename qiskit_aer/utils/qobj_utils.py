@@ -196,3 +196,8 @@ def qobj_reset_item(qubits):
 def qobj_barrier_item(num_qubits):
     """Create a barrier QobjItem."""
     return QobjItem(name='barrier', qubits=list(range(num_qubits)))
+
+
+def qobj_iden_item(qubit):
+    """Create a barrier QobjItem."""
+    return QobjItem(name='id', qubits=[qubit])

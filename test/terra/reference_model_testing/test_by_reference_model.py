@@ -1,4 +1,4 @@
-import test.terra.common as common
+from test.terra.utils import common
 from qiskit_aer.utils import qobj_utils
 import unittest
 import numpy as np

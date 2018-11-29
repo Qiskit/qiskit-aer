@@ -84,54 +84,50 @@ class QiskitAerTestCase(unittest.TestCase):
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
-    def compare_circuit_counts(self, circuit, target, shots,
-                               seed=None, threshold=0.04):
-        """Execute and compare circuit counts to target.
-
-        NOTE: To be removed: use compare_counts method instead.
-        """
-        qobj = compile(circuit, backend=self.backend,
-                       shots=shots, seed=seed)
-        threshold = threshold * qobj.config.shots
-        job = self.backend.run(qobj)
-        result = job.result()
-        counts = result.get_counts(circuit)
-        self.assertDictAlmostEqual(counts, target, threshold)
+    def is_completed(self, result):
+        """Check a Result is completed"""
+        self.assertEqual(result.status, 'COMPLETED')
 
     def compare_statevector(self, result, circuits, targets,
                             global_phase=True, places=None):
         """Compare final statevectors to targets."""
-        for circuit, target in zip(circuits, targets):
+        for pos, test_case in enumerate(zip(circuits, targets)):
+            circuit, target = test_case
             output = result.get_statevector(circuit)
+            msg = "Test circuit {}: {} != {}".format(pos, output, target)
             if (global_phase):
                 # Test equal including global phase
                 self.assertAlmostEqual(norm(output - target), 0, places=places,
-                                       msg="{} != {}".format(output, target))
+                                       msg=msg)
             else:
                 # Test equal ignorning global phase
                 self.assertAlmostEqual(state_fidelity(output, target) - 1, 0, places=places,
-                                       msg="{} != {} up to global phase".format(output, target))
+                                       msg=msg + " up to global phase")
 
     def compare_unitary(self, result, circuits, targets,
                         global_phase=True, places=None):
         """Compare final unitary matrices to targets."""
-        for circuit, target in zip(circuits, targets):
+        for pos, test_case in enumerate(zip(circuits, targets)):
+            circuit, target = test_case
             output = result.get_unitary(circuit)
+            msg = "Test circuit {}: {} != {}".format(pos, output, target)
             if (global_phase):
                 # Test equal including global phase
-                self.assertAlmostEqual(norm(output - target), 0, places=places,
-                                       msg="{} != {}".format(output, target))
+                self.assertAlmostEqual(norm(output - target), 0,
+                                       places=places, msg=msg)
             else:
                 # Test equal ignorning global phase
                 delta = np.trace(np.dot(np.conj(np.transpose(output)), target)) - len(output)
                 self.assertAlmostEqual(delta, 0, places=places,
-                                       msg="{} != {} up to global phase".format(output, target))
+                                       msg=msg + " up to global phase")
 
     def compare_counts(self, result, circuits, targets, delta=0):
         """Compare counts dictionary to targets."""
-        for circuit, target in zip(circuits, targets):
+        for pos, test_case in enumerate(zip(circuits, targets)):
+            circuit, target = test_case
             output = result.get_counts(circuit)
-            self.assertDictAlmostEqual(output, target, delta=delta)
+            msg = "Test circuit {}: {} != {}".format(pos, output, target)
+            self.assertDictAlmostEqual(output, target, delta=delta, msg=msg)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):

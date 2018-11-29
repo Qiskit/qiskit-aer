@@ -34,12 +34,15 @@ class NoiseModel:
         # Initialize empty quantum errors
         self._noise_instructions = set()  # Store gates with a noise model defined
         # TODO: Code would be cleaner if these were replaced with classes
-        self._default_quantum_errors = {}  # Type: dict(str: list(QuantumError)
-        self._local_quantum_errors = {}    # Type: dict(str: dict(str: list(QuantumError))
-        self._nonlocal_quantum_errors = {}  # Type: dict(str: dict(str: list(pair(list(QuantumError), list(int)))))
+        # Type: dict(str: list(QuantumError)
+        self._default_quantum_errors = {}
+        # Type: dict(str: dict(str: list(QuantumError))
+        self._local_quantum_errors = {}
+        # Type: dict(str: dict(str: list(pair(list(QuantumError), list(int)))))
+        self._nonlocal_quantum_errors = {}
         # Initialize empty readout errors
-        self._default_readout_error = None    # Type: ReadoutError
-        self._local_readout_errors = {}    # Type: dict(str: ReadoutError)
+        self._default_readout_error = None  # Type: ReadoutError
+        self._local_readout_errors = {}     # Type: dict(str: ReadoutError)
         self._x90_gates = []
 
     def reset(self):

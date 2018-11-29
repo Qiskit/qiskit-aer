@@ -6,7 +6,7 @@
 # Thoughout, code segments that are to be removed in this change are surrounded with *** and TODO
 
 
-import test.terra.common as common
+import test.terra.utils.common as common
 import unittest
 import numpy as np
 from itertools import repeat
