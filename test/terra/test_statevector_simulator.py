@@ -78,7 +78,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
-    def DIASABLED_test_conditional_1bit(self):
+    def test_conditional_1bit(self):
         """Test conditional operations on 1-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False)
         targets = ref_conditionals.conditional_statevector_1bit()
@@ -87,7 +87,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-    def DIASABLED_test_conditional_2bit(self):
+    def test_conditional_2bit(self):
         """Test conditional operations on 2-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False)
         targets = ref_conditionals.conditional_statevector_2bit()

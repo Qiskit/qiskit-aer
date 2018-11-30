@@ -21,9 +21,9 @@ def conditional_circuits_1bit(final_measure=True):
     """Conditional test circuits on single bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
-    cond = ClassicalRegister(1)
+    cond = ClassicalRegister(1, 'cond')
     if final_measure:
-        cr = ClassicalRegister(1)
+        cr = ClassicalRegister(1, 'meas')
         regs = (qr, cr, cond)
     else:
         regs = (qr, cond)
@@ -105,9 +105,9 @@ def conditional_statevector_1bit():
     # Conditional on 0 (cond = 1)
     targets.append(np.array([1, 0]))
     # Conditional on 1 (cond = 0)
-    targets.append(np.array([0, 1]))
-    # Conditional on 1 (cond = 1)
     targets.append(np.array([1, 0]))
+    # Conditional on 1 (cond = 1)
+    targets.append(np.array([0, 1]))
     return targets
 
 
@@ -119,9 +119,9 @@ def conditional_circuits_2bit(final_measure=True):
     """Conditional test circuits on 2-bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
-    cond = ClassicalRegister(2)
+    cond = ClassicalRegister(2, 'cond')
     if final_measure:
-        cr = ClassicalRegister(1)
+        cr = ClassicalRegister(1, 'meas')
         regs = (qr, cr, cond)
     else:
         regs = (qr, cond)

@@ -94,7 +94,8 @@ class QiskitAerTestCase(unittest.TestCase):
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
             output = result.get_statevector(circuit)
-            msg = "Test circuit {}: {} != {}".format(pos, output, target)
+            msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+                   " {} != {}".format(output, target))
             if (global_phase):
                 # Test equal including global phase
                 self.assertAlmostEqual(norm(output - target), 0, places=places,
@@ -110,7 +111,8 @@ class QiskitAerTestCase(unittest.TestCase):
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
             output = result.get_unitary(circuit)
-            msg = "Test circuit {}: {} != {}".format(pos, output, target)
+            msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+                   " {} != {}".format(output, target))
             if (global_phase):
                 # Test equal including global phase
                 self.assertAlmostEqual(norm(output - target), 0,
@@ -126,7 +128,8 @@ class QiskitAerTestCase(unittest.TestCase):
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
             output = result.get_counts(circuit)
-            msg = "Test circuit {}: {} != {}".format(pos, output, target)
+            msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+                   " {} != {}".format(output, target))
             self.assertDictAlmostEqual(output, target, delta=delta, msg=msg)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,

@@ -87,8 +87,10 @@ def teleport_circuit():
     c0 = ClassicalRegister(1)
     c1 = ClassicalRegister(1)
     c2 = ClassicalRegister(1)
+    # Compiles to creg order [c2, c1, c0]
     circuit = QuantumCircuit(qr, c0, c1, c2)
 
+    # Teleport the |0> state from qr[0] to qr[2]
     circuit.h(qr[1])
     circuit.cx(qr[1], qr[2])
     circuit.barrier(qr)
@@ -109,10 +111,10 @@ def teleport_counts(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Classical 3-qubit teleport
-        targets.append({'0x2': shots / 4, '0x3': shots / 4,
-                        '0x4': shots / 4, '0x5': shots / 4})
+        targets.append({'0x0': shots / 4, '0x1': shots / 4,
+                        '0x2': shots / 4, '0x3': shots / 4})
     else:
         # Classical 3-qubit teleport
-        targets.append({'0 1 0': shots / 4, '0 1 1': shots / 4,
-                        '1 0 0': shots / 4, '1 0 1': shots / 4})
+        targets.append({'0 0 0': shots / 4, '0 0 1': shots / 4,
+                        '0 1 0': shots / 4, '0 1 1': shots / 4})
     return targets

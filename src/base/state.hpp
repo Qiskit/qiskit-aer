@@ -73,8 +73,8 @@ public:
   // If this sequence contains operations not in allowed_operations
   // an exeption will be thrown.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                                OutputData &data,
-                                RngEngine &rng)  = 0;
+                         OutputData &data,
+                         RngEngine &rng)  = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state

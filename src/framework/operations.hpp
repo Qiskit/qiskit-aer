@@ -49,6 +49,11 @@ struct Op {
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
 
+  // DEPRECIATED: old style conditionals (will be removed when Terra supports new style)
+  bool old_conditional = false;     // is gate old style conditional gate
+  std::string old_conditional_mask; // hex string for conditional mask
+  std::string old_conditional_val;  // hex string for conditional value
+
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
   reg_t registers;          // (opt) register locations it acts on (measure, conditional)
@@ -246,10 +251,25 @@ Op json_to_op_gate(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
 
+  // Check conditional
+  if (JSON::check_key("conditional", js)) {
+    if (js["conditional"].is_number()) {
+      // New style conditional
+      op.conditional_reg = js["conditional"];
+      op.conditional = true;
+    } else {
+      // DEPRECIATED: old style conditional
+      JSON::get_value(op.old_conditional_mask, "mask", js["conditional"]);
+      JSON::get_value(op.old_conditional_val, "val", js["conditional"]);
+      op.old_conditional = true;
+    }
+  }
+
   // Validation
   check_empty_name(op);
   check_empty_qubits(op);
   check_duplicate_qubits(op);
+
   return op;
 }
 

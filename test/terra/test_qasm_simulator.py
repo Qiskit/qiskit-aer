@@ -23,7 +23,6 @@ from qiskit import execute
 from qiskit_aer.backends import QasmSimulator
 
 # TODO: Enable minimal basis (U,X) tests once bugs in terra are fixed
-# TODO: Enable conditional tests once terra supports bfunc conditionals
 
 
 class TestQasmSimulator(common.QiskitAerTestCase):
@@ -153,21 +152,21 @@ class TestQasmSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
-    def DIASABLED_test_conditional_1bit(self):
+    def test_conditional_1bit(self):
         """Test conditional operations on 1-bit conditional register."""
         shots = 100
         circuits = ref_conditionals.conditional_circuits_1bit(final_measure=True)
-        targets = ref_conditionals.conditional_counts_1bit()
+        targets = ref_conditionals.conditional_counts_1bit(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def DIASABLED_test_conditional_2bit(self):
+    def test_conditional_2bit(self):
         """Test conditional operations on 2-bit conditional register."""
         shots = 100
         circuits = ref_conditionals.conditional_circuits_2bit(final_measure=True)
-        targets = ref_conditionals.conditional_statevector_2bit()
+        targets = ref_conditionals.conditional_counts_2bit(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
         result = job.result()
         self.is_completed(result)

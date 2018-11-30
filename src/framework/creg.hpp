@@ -128,11 +128,26 @@ void ClassicalRegister::store_measure(const reg_t &outcome,
 
 
 bool ClassicalRegister::check_conditional(const Operations::Op &op) const {
-  // Check if op is not conditional
-  if (op.conditional == false)
-    return true;
-  // Check if specified register bit is 1
-  return (creg_register_[creg_register_.size() - op.conditional_reg] == '1');
+  // Check if op is conditional
+  if (op.conditional)
+    return (creg_register_[creg_register_.size() - op.conditional_reg - 1] == '1');
+  
+  // DEPRECIATED: old style conditional
+  if (op.old_conditional) {
+    std::string current;
+    auto mask = Utils::padleft(Utils::hex2bin(op.old_conditional_mask, false),
+                               '0', creg_memory_.size());
+    for (size_t pos=0; pos < mask.size(); pos++) {
+      if (mask[pos] == '1')
+        current.push_back(creg_memory_[pos]);
+    }
+    auto val = Utils::padleft(Utils::hex2bin(op.old_conditional_val, false),
+                              '0', current.size());
+    return (val == current);
+  }
+
+  // Op is not conditional
+  return true;
 }
 
 
