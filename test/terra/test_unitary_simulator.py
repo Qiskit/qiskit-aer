@@ -45,7 +45,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_h_gate_deterministic_minimal_basis_gates(self):
+    def test_h_gate_deterministic_minimal_basis_gates(self):
         """Test h-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.h_gate_unitary_deterministic()
@@ -72,7 +72,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_h_gate_nondeterministic_minimal_basis_gates(self):
+    def test_h_gate_nondeterministic_minimal_basis_gates(self):
         """Test h-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_1q_clifford.h_gate_unitary_nondeterministic()
@@ -102,7 +102,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_x_gate_deterministic_minimal_basis_gates(self):
+    def test_x_gate_deterministic_minimal_basis_gates(self):
         """Test x-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.x_gate_unitary_deterministic()
@@ -132,7 +132,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_z_gate_deterministic_minimal_basis_gates(self):
+    def test_z_gate_deterministic_minimal_basis_gates(self):
         """Test z-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.z_gate_unitary_deterministic()
@@ -162,7 +162,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_y_gate_deterministic_minimal_basis_gates(self):
+    def test_y_gate_deterministic_minimal_basis_gates(self):
         """Test y-gate gate circuits compiling to U,CX
         DISABLED until transpiler bug is fixed.
         """
@@ -194,7 +194,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_s_gate_deterministic_minimal_basis_gates(self):
+    def test_s_gate_deterministic_minimal_basis_gates(self):
         """Test s-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.s_gate_unitary_deterministic()
@@ -221,7 +221,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_s_gate_nondeterministic_minimal_basis_gates(self):
+    def test_s_gate_nondeterministic_minimal_basis_gates(self):
         """Test s-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_1q_clifford.s_gate_unitary_nondeterministic()
@@ -251,7 +251,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_sdg_gate_deterministic_minimal_basis_gates(self):
+    def test_sdg_gate_deterministic_minimal_basis_gates(self):
         """Test sdg-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.sdg_gate_unitary_deterministic()
@@ -278,7 +278,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_sdg_gate_nondeterministic_minimal_basis_gates(self):
+    def test_sdg_gate_nondeterministic_minimal_basis_gates(self):
         """Test sdg-gate gate circuits compiling to U,CX"""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_1q_clifford.sdg_gate_unitary_nondeterministic()
@@ -308,7 +308,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_cx_gate_deterministic_minimal_basis_gates(self):
+    def test_cx_gate_deterministic_minimal_basis_gates(self):
         """Test cx-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(final_measure=False)
         targets = ref_2q_clifford.cx_gate_unitary_deterministic()
@@ -335,7 +335,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_cx_gate_nondeterministic_minimal_basis_gates(self):
+    def test_cx_gate_nondeterministic_minimal_basis_gates(self):
         """Test cx-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_2q_clifford.cx_gate_unitary_nondeterministic()
@@ -365,7 +365,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_cz_gate_deterministic_minimal_basis_gates(self):
+    def test_cz_gate_deterministic_minimal_basis_gates(self):
         """Test cz-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(final_measure=False)
         targets = ref_2q_clifford.cz_gate_unitary_deterministic()
@@ -392,7 +392,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_cz_gate_nondeterministic_minimal_basis_gates(self):
+    def test_cz_gate_nondeterministic_minimal_basis_gates(self):
         """Test cz-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_2q_clifford.cz_gate_unitary_nondeterministic()
@@ -422,7 +422,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_swap_gate_deterministic_minimal_basis_gates(self):
+    def test_swap_gate_deterministic_minimal_basis_gates(self):
         """Test swap-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(final_measure=False)
         targets = ref_2q_clifford.swap_gate_unitary_deterministic()
@@ -449,7 +449,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_swap_gate_nondeterministic_minimal_basis_gates(self):
+    def test_swap_gate_nondeterministic_minimal_basis_gates(self):
         """Test swap-gate gate circuits compiling to U,CX"""
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_2q_clifford.swap_gate_unitary_nondeterministic()
@@ -479,7 +479,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_t_gate_deterministic_minimal_basis_gates(self):
+    def test_t_gate_deterministic_minimal_basis_gates(self):
         """Test t-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.t_gate_circuits_deterministic(final_measure=False)
         targets = ref_non_clifford.t_gate_unitary_deterministic()
@@ -506,7 +506,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_t_gate_nondeterministic_minimal_basis_gates(self):
+    def test_t_gate_nondeterministic_minimal_basis_gates(self):
         """Test t-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_non_clifford.t_gate_unitary_nondeterministic()
@@ -536,7 +536,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_tdg_gate_deterministic_minimal_basis_gates(self):
+    def test_tdg_gate_deterministic_minimal_basis_gates(self):
         """Test tdg-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=False)
         targets = ref_non_clifford.tdg_gate_unitary_deterministic()
@@ -563,7 +563,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_tdg_gate_nondeterministic_minimal_basis_gates(self):
+    def test_tdg_gate_nondeterministic_minimal_basis_gates(self):
         """Test tdg-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_non_clifford.tdg_gate_unitary_nondeterministic()
@@ -593,7 +593,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_ccx_gate_deterministic_minimal_basis_gates(self):
+    def test_ccx_gate_deterministic_minimal_basis_gates(self):
         """Test ccx-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(final_measure=False)
         targets = ref_non_clifford.ccx_gate_unitary_deterministic()
@@ -620,7 +620,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_ccx_gate_nondeterministic_minimal_basis_gates(self):
+    def test_ccx_gate_nondeterministic_minimal_basis_gates(self):
         """Test ccx-gate gate circuits compiling to U,CX"""
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_non_clifford.ccx_gate_unitary_nondeterministic()

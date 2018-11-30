@@ -33,10 +33,11 @@ class AerProvider(BaseProvider):
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
+        backends = self._backends
         if name:
-            kwargs.update({'name': name})
+            backends = [backend for backend in backends if backend.name() == name]
 
-        return filter_backends(self._backends, filters=filters, **kwargs)
+        return filter_backends(backends, filters=filters, **kwargs)
 
     def __str__(self):
         return 'AerProvider'

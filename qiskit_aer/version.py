@@ -8,9 +8,6 @@
 import os
 from pathlib import Path
 
-from .backends import Aer
-from . import backends
-from . import noise
-from .version import VERSION
-
-__version__ = VERSION
+ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
+    VERSION = version_file.read().strip()
