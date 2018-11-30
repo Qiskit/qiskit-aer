@@ -19,7 +19,7 @@ from qiskit.backends.models import BackendConfiguration
 from ..version import VERSION
 from .aerbackend import AerBackend
 from .aersimulatorerror import AerSimulatorError
-from unitary_controller_wrapper import UnitaryControllerWrapper
+from unitary_controller_wrapper import unitary_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -46,9 +46,8 @@ class UnitarySimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(UnitaryControllerWrapper(),
-                         (configuration or
-                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(unitary_controller_execute,
+                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def run(self, qobj, backend_options=None):

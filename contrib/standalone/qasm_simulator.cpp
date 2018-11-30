@@ -5,12 +5,6 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-/**
- * @file main.cpp
- * @brief QASM Simulator
- * @author Christopher J. Wood <cjwood@us.ibm.com>
- */
-
 //#define DEBUG // Uncomment for verbose debugging output
 #include <cstdio>
 #include <iostream>
@@ -64,14 +58,6 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
-  
-    // Check for noise_params
-    if (JSON::check_key("config", qobj) &&
-        JSON::check_key("noise_model", qobj["config"])) {
-      json_t noise_model = qobj["config"]["noise_model"];
-      sim.set_noise_model(noise_model);
-    } 
-
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;

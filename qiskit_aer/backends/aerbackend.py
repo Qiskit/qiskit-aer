@@ -12,10 +12,12 @@ Qiskit Aer qasm simulator backend.
 import json
 import logging
 import datetime
+import time
 import uuid
 from numpy import ndarray
 
 from qiskit.backends import BaseBackend
+from qiskit.qobj import QobjConfig
 from qiskit.result import Result
 
 from .aerjob import AerJob
@@ -49,7 +51,7 @@ class AerJSONEncoder(json.JSONEncoder):
 class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
-    def __init__(self, controller_wrapper, configuration, provider=None):
+    def __init__(self, controller, configuration, provider=None):
         """Aer class for backends.
 
         This method should initialize the module and its configuration, and
@@ -57,7 +59,7 @@ class AerBackend(BaseBackend):
         not available.
 
         Args:
-            controller_wrapper (class): Aer Controller cython wrapper class
+            controller (function): Aer Controller cython execute
             configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
 
@@ -66,7 +68,7 @@ class AerBackend(BaseBackend):
             QISKitError: if there is no name in the configuration
         """
         super().__init__(configuration, provider=provider)
-        self._controller = controller_wrapper
+        self._controller = controller
 
     def run(self, qobj, backend_options=None, noise_model=None):
         """Run a qobj on the backend."""
@@ -82,32 +84,44 @@ class AerBackend(BaseBackend):
 
     def _run_job(self, job_id, qobj, backend_options, noise_model):
         """Run a qobj job"""
+        start = time.time()
         self._validate(qobj)
-        options_str = self._format_options(qobj, backend_options)
-        qobj_str = json.dumps(qobj.as_dict(), cls=AerJSONEncoder)
-        noise_str = json.dumps(noise_model, cls=AerJSONEncoder)
-        output = json.loads(self._controller.execute(qobj_str, options_str, noise_str))
+        qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
+        output = json.loads(self._controller(qobj_str).decode('UTF-8'))
         self._validate_controller_output(output)
-        return self._format_results(job_id, output)
+        end = time.time()
+        return self._format_results(job_id, output, end - start)
 
-    def _format_options(self, qobj, backend_options):
-        """Format options string for qiskit aer controller"""
-        # Note: This is a temp workaround until PR #127 is merged
-        # Add qobj config to backend_options
-        if backend_options is None:
-            backend_options = {}
-        for key, val in qobj.config.as_dict().items():
-            backend_options[key] = val
+    def _format_qobj_str(self, qobj, backend_options, noise_model):
+        """Format qobj string for qiskit aer controller"""
+        # Save original qobj config so we can revert our modification
+        # after execution
+        original_config = qobj.config
+        # Convert to dictionary and add new parameters
+        # from noise model and backend options
+        config = original_config.as_dict()
+        if backend_options is not None:
+            for key, val in backend_options.items():
+                config[key] = val
+        # Add noise model
+        if noise_model is not None:
+            config["noise_model"] = noise_model
+        qobj.config = QobjConfig.from_dict(config)
         # Get the JSON serialized string
-        return json.dumps(backend_options, cls=AerJSONEncoder)
+        output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
+        # Revert original qobj
+        qobj.config = original_config
+        # Return output
+        return output
 
-    def _format_results(self, job_id, output):
+    def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
         # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.DEFAULT_CONFIGURATION['backend_name']
         output["backend_version"] = self.DEFAULT_CONFIGURATION['backend_version']
+        output["time_taken"] = time_taken
         return Result.from_dict(output)
 
     def _validate_controller_output(self, output):
@@ -124,42 +138,6 @@ class AerBackend(BaseBackend):
                     raise AerSimulatorError(res.get("status", None))
             # If no error was found check for error message at qobj level
             raise AerSimulatorError(output.get("status", None))
-
-    def set_max_threads_shot(self, threads):
-        """
-        Set the maximum threads used for parallel shot execution.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available
-
-        Note that using parallel shot evaluation disables parallel circuit
-        evaluation.
-        """
-        self._controller.set_max_threads_shot(int(threads))
-
-    def set_max_threads_circuit(self, threads):
-        """
-        Set the maximum threads used for parallel circuit execution.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available
-
-        Note that using parallel circuit evaluation disables parallel shot
-        evaluation.
-        """
-        self._controller.set_max_threads_circuit(int(threads))
-
-    def set_max_threads_state(self, threads):
-        """
-        Set the maximum threads used for state update parallel  routines.
-
-        Args:
-            threads (int): the thread limit, set to -1 to use maximum available.
-
-        Note that using parallel circuit or shot execution takes precidence over
-        parallel state evaluation.
-        """
-        self._controller.set_max_threads_state(int(threads))
 
     def _validate(self, qobj):
         # TODO

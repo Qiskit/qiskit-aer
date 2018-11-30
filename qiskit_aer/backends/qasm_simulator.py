@@ -15,7 +15,7 @@ from qiskit.backends.models import BackendConfiguration
 
 from ..version import VERSION
 from .aerbackend import AerBackend
-from qasm_controller_wrapper import QasmControllerWrapper
+from qasm_controller_wrapper import qasm_controller_execute
 
 
 class QasmSimulator(AerBackend):
@@ -39,7 +39,10 @@ class QasmSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(QasmControllerWrapper(),
-                         (configuration or
-                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(qasm_controller_execute,
+                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
+
+    def _validate(self, qobj):
+        # TODO
+        return

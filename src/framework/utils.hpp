@@ -172,9 +172,8 @@ double &chop_inplace(double &val, double epsilon);
 std::complex<double> &chop_inplace(std::complex<double> &val, double epsilon);
 
 double chop(double val, double epsilon);
+
 // As above for complex first arguments
-
-
 template <typename T>
 std::complex<T> chop(std::complex<T> val, double epsilon);
 // Truncate each element in a vector if its absolute value is less than epsilon

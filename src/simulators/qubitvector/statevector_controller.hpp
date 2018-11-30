@@ -84,9 +84,9 @@ void StatevectorController::clear_config() {
 //-------------------------------------------------------------------------
 
 OutputData StatevectorController::run_circuit(const Circuit &circ,
-                                       uint_t shots,
-                                       uint_t rng_seed,
-                                       int num_threads_state) const {  
+                                              uint_t shots,
+                                              uint_t rng_seed,
+                                              int num_threads_state) const {  
   
   // Check if circuit can run on a statevector simulator
   // TODO: Should we make validate circuit a static method of the class?
@@ -134,7 +134,6 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   return data;
 }
-
 
 //-------------------------------------------------------------------------
 } // end namespace Simulator

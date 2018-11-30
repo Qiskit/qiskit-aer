@@ -30,6 +30,20 @@
 
 
 namespace AER {
+
+//=========================================================================
+// Controller Execute interface
+//=========================================================================
+
+// This is used to make wrapping Controller classes in Cython easier
+// by handling the parsing of std::string input into JSON objects.
+
+template <class controller_t> 
+std::string controller_execute(const std::string &qobj_str) {
+  controller_t controller;
+  return controller.execute(json_t::parse(qobj_str)).dump(-1);
+}
+
 namespace Base {
 
 //=========================================================================
@@ -54,6 +68,8 @@ namespace Base {
 class Controller {
 public:
 
+  Controller() {set_threads_default();}
+
   //-----------------------------------------------------------------------
   // Execute qobj
   //-----------------------------------------------------------------------
@@ -62,72 +78,31 @@ public:
   // class.
   virtual json_t execute(const json_t &qobj);
 
-  // Execute from string to string
-  inline virtual std::string execute_string(const std::string &qobj_str) {
-    return execute(json_t::parse(qobj_str)).dump(-1);
-  }
-
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
 
-  // Load a noise model from a noise_model JSON file
-  virtual void set_noise_model(const json_t &config);
-
-  // Load a default OutputData config file from a JSON
+  // Load Controller, State and Data config from a JSON
+  // config settings will be passed to the State and Data classes
+  // Allowed Controller config options:
+  // - "noise_model": NoiseModel JSON
+  //   A noise model JSON dictionary for the simulator.
+  // - "max_threads": int
+  //   Set the maximum OpenMP threads that may be used across all levels
+  //   of parallelization. Set to -1 for maximum available (Default: -1)
+  // - "max_threads_circuit": int
+  //   Set the maximum OpenMP threads that may be used for parallel
+  //   circuit evaluation. Set to -1 for maximum available (Default: 1)
+  // - "max_threads_shot": int
+  //   Set the maximum OpenMP threads that may be used for parallel
+  //   shot evaluation. Set to -1 for maximum available (Default: 1)
+   // - "max_threads_state": int
+  //   Set the maximum OpenMP threads that may be used by the State
+  //   class. Set to -1 for maximum available (Default: -1)
   virtual void set_config(const json_t &config);
 
-  // Load a noise model from string
-  inline virtual void set_noise_model_string(const std::string &config) {
-    set_noise_model(json_t::parse(config));
-  }
-
-  // Load state config from string
-  inline virtual void set_config_string(const std::string &config) {
-    set_config(json_t::parse(config));
-  }
-
-  // Clear the current noise model
-  inline virtual void clear_noise_model() {noise_model_ = Noise::NoiseModel();}
-
   // Clear the current config
-  inline virtual void clear_config() {config_ = json_t();}
-
-  //-----------------------------------------------------------------------
-  // OpenMP Parallelization settings
-  //-----------------------------------------------------------------------
-
-  // Set the maximum OpenMP threads that may be used across all levels
-  // of parallelization. Set to -1 for maximum available.
-  void set_max_threads(int max_threads = -1);
-
-  // Return the current value for maximum threads
-  inline int get_max_threads() const {return max_threads_total_;}
-
-  // Set the maximum OpenMP threads that may be used for parallel
-  // circuit evaluation. Set to -1 for maximum available.
-  // Setting this to any number than 1 automatically sets the maximum
-  // shot threads to 1.
-  void set_max_threads_circuit(int max_threads = -1);
-
-  // Return the current value for maximum circuit threads
-  inline int get_max_threads_circuit() const {return max_threads_circuit_;}
-
-  // Set the maximum OpenMP threads that may be used for parallel
-  // shot evaluation. Set to -1 for maximum available.
-  // Setting this to any number than 1 automatically sets the maximum
-  // circuit threads to 1.
-  void set_max_threads_shot(int max_threads = -1);
-
-  // Return the current value for maximum shot threads
-  inline int get_max_threads_shot() const {return max_threads_shot_;}
-
-  // Set the maximum OpenMP threads that may be by the state class
-  // for parallelization of operations. Set to -1 for maximum available.
-  void set_max_threads_state(int max_threads = -1);
-
-  // Return the current value for maximum state threads
-  inline int get_max_threads_state() const {return max_threads_state_;}
+  void virtual clear_config();
 
 protected:
 
@@ -155,7 +130,7 @@ protected:
   // Timer type
   using myclock_t = std::chrono::high_resolution_clock;
 
-  // Config settings
+  // Controller config settings
   json_t config_;
 
   // Noise model
@@ -164,6 +139,9 @@ protected:
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
+
+  // Set OpenMP thread settings to default values
+  void set_threads_default();
 
   // Internal counter of number of threads still available for subthreads
   int available_threads_ = 1;
@@ -185,36 +163,37 @@ protected:
 //=========================================================================
 
 //-------------------------------------------------------------------------
-// Config settings: parallelization
+// Config settings
 //-------------------------------------------------------------------------
-
-void Controller::set_max_threads(int max_threads) {
-  max_threads_total_ = max_threads;
-}
-
-void Controller::set_max_threads_circuit(int max_threads) {
-  max_threads_circuit_ = max_threads;
-  if (max_threads != 1)
-    max_threads_shot_ = 1;
-}
-
-void Controller::set_max_threads_shot(int max_threads) {
-  max_threads_shot_ = max_threads;
-  if (max_threads != 1)
-    max_threads_circuit_ = 1;
-}
-
-void Controller::set_max_threads_state(int max_threads) {
-  max_threads_state_ = max_threads;
-}
-
-void Controller::set_noise_model(const json_t &config) {
-  noise_model_ = Noise::NoiseModel(config);
-}
 
 void Controller::set_config(const json_t &config) {
   config_ = config;
+  // Add noise model
+  if (JSON::check_key("noise_model", config))
+    noise_model_ = Noise::NoiseModel(config["noise_model"]);
+  // Default: max_threads = -1 (all available threads)
+  JSON::get_value(max_threads_total_, "max_threads", config);
+  // Default: max_threads_circuit = 1
+  JSON::get_value(max_threads_circuit_, "max_threads_circuit", config);
+  // Default: max_threads_shot = 1
+  JSON::get_value(max_threads_shot_, "max_threads_shot", config);
+  // Default: max_threads_state = -1 (all available threads)
+  JSON::get_value(max_threads_shot_, "max_threads_state", config);
 }
+
+void Controller::clear_config() {
+  config_ = json_t();
+  noise_model_ = Noise::NoiseModel();
+  set_threads_default();
+}
+
+void Controller::set_threads_default() {
+  max_threads_total_ = -1;
+  max_threads_circuit_ = 1;
+  max_threads_shot_ = 1;
+  max_threads_state_ = -1;
+}
+
 
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output
@@ -224,6 +203,11 @@ json_t Controller::execute(const json_t &qobj_js) {
   
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
+
+  // Look for config and load
+  if (JSON::check_key("config", qobj_js)) {
+    set_config(qobj_js["config"]);
+  }
 
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
