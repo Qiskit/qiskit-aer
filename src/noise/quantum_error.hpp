@@ -67,11 +67,11 @@ protected:
 //-------------------------------------------------------------------------
 
 QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
-                                                        RngEngine &rng) const {
-  if (qubits.size() != get_num_qubits()) {
+                                                  RngEngine &rng) const {
+  if (qubits.size() < get_num_qubits()) {
     std::stringstream msg;
     msg << "QuantumError: qubits size (" << qubits.size() << ")";
-    msg << " does not match number of qubits (" << get_num_qubits() << ").";
+    msg << " < error qubits (" << get_num_qubits() << ").";
     throw std::invalid_argument(msg.str());
   }
   auto r = rng.rand_int(probabilities_);
