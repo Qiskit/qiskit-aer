@@ -488,12 +488,12 @@ class NoiseModel:
             raise AerNoiseError(error_message(3))
 
     def _qubits2str(self, qubits):
-        """Convert qubits list to qubits string."""
-        return "".join([str(j) for j in qubits])
+        """Convert qubits list to comma seperated qubits string."""
+        return ",".join([str(q) for q in qubits])
 
     def _str2qubits(self, qubits_str):
         """Convert qubits string to qubits list."""
-        return [int(s) for s in list(qubits_str)]
+        return [int(q) for q in qubits_str.split(',')]
 
     def _keys2str(self, keys):
         """Convert dicitonary keys to comma seperated print string."""
