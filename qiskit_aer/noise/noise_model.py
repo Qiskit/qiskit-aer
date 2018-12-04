@@ -236,7 +236,7 @@ class NoiseModel:
 
     def add_all_qubit_readout_error(self, error):
         """
-        Add a readout error to the noise model that applies to all qubits.
+        Add a single-qubit readout error that applies measure on all qubits.
 
         Args:
             error (ReadoutError): the quantum error object.
@@ -352,6 +352,14 @@ class NoiseModel:
                 output += "\n  Non-local specific qubit errors: {}".format(nonlocal_error_ops)
         return output
 
+    def basis_gates(self):
+        """Return basis_gates for compiling to the noise model."""
+        # Convert noise instructions to basis_gates string
+        basis_gates = self._noise_instructions
+        basis_gates.discard("measure")  # remove measure since it is not a gate
+        basis_gates = ",".join(basis_gates)
+        return basis_gates
+
     def as_dict(self):
         """
         Return dictionary for noise model.
@@ -399,14 +407,7 @@ class NoiseModel:
             error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
             error_list.append(error_dict)
 
-        # Convert noise instructions to basis_gates string
-        basis_gates = self._noise_instructions
-        basis_gates.discard("measure")  # remove measure since it is not a gate
-        basis_gates = ",".join(basis_gates)
-
-        return {"errors": error_list,
-                "x90_gates": self._x90_gates,
-                "basis_gates": basis_gates}
+        return {"errors": error_list, "x90_gates": self._x90_gates}
 
     def from_dict(self, noise_model):
         """

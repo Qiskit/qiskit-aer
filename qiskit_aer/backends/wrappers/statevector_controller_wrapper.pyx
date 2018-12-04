@@ -18,9 +18,11 @@ cdef extern from "simulators/qubitvector/statevector_controller.hpp" namespace "
         StatevectorController() except +
         string execute(string &qobj) except +
 
+        void set_noise_model(string &qobj) except +
         void set_data_config(string &qobj) except +
         void set_state_config(string &qobj) except +
 
+        void clear_noise_model()
         void clear_data_config()
         void clear_state_config()
 
@@ -42,11 +44,21 @@ cdef class StatevectorControllerWrapper:
     def __reduce__(self):
         return (self.__class__,())
 
-    def execute(self, qobj):
+    def execute(self, qobj, options, noise_model):
+        # Note: noise model is not used for this controller
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
-        return self.iface.execute(qobj_enc)
-        # Execute
+        cdef string options_enc = str(options).encode('UTF-8')
+        # Load options
+        self.iface.set_state_config(options_enc)
+        self.iface.set_data_config(options_enc)
+        # Execute simulation
+        cdef string output = self.iface.execute(qobj_enc)
+        # Clear options
+        self.iface.clear_state_config()
+        self.iface.clear_data_config()
+        # Return output
+        return output
 
     def set_config(self, config):
         # Convert input to C++ string

@@ -25,7 +25,7 @@
  *
  ******************************************************************************/
 
-inline void failed(std::string msg, std::ostream &o = std::cout,
+inline void failed(const std::string &msg, std::ostream &o = std::cout,
                    int indent = -1) {
   json_t ret;
   ret["success"] = false;

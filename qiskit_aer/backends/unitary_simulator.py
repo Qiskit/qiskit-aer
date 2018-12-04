@@ -38,6 +38,10 @@ class UnitarySimulator(AerBackend):
         super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
                          UnitaryControllerWrapper(), provider=provider)
 
+    def run(self, qobj):
+        """Run a qobj on the backend."""
+        return super().run(qobj)
+
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
         Some of these may later move to backend schemas.
@@ -64,17 +68,3 @@ class UnitarySimulator(AerBackend):
             # Set memory slots to 0
             if getattr(experiment.config, 'memory_slots', 0) != 0:
                 experiment.config.memory_slots = 0
-
-    # The following are overrides of base class methods that don't apply to this class
-    # since it does not support noise
-    def set_noise_model(self, noise_model=None):
-        """Unused base class method."""
-        raise AerSimulatorError("UnitarySimulator does not support noise.")
-
-    def get_noise_model(self):
-        """Unused base class method."""
-        raise AerSimulatorError("UnitarySimulator does not support noise.")
-
-    def clear_noise_model(self):
-        """Unused base class method."""
-        raise AerSimulatorError("UnitarySimulator does not support noise.")

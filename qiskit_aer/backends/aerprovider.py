@@ -14,6 +14,7 @@ from qiskit.backends.providerutils import filter_backends
 
 from .qasm_simulator import QasmSimulator
 from .statevector_simulator import StatevectorSimulator
+from .unitary_simulator import UnitarySimulator
 
 
 class AerProvider(BaseProvider):
@@ -24,7 +25,8 @@ class AerProvider(BaseProvider):
 
         # Populate the list of Aer simulator backends.
         self._backends = [QasmSimulator(provider=self),
-                          StatevectorSimulator(provider=self)]
+                          StatevectorSimulator(provider=self),
+                          UnitarySimulator(provider=self)]
 
     def get_backend(self, name=None, **kwargs):
         return super().get_backend(name=name, **kwargs)

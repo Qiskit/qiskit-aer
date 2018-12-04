@@ -18,6 +18,11 @@ from .noise_utils import (kraus2instructions, mat_dot, kraus_dot,
 class QuantumError:
     """
     Quantum error class for Qiskit Aer noise model
+
+    WARNING: The init interface for this class is not finalized and may
+             change in future releases. For maximum backwards compatibility
+             use the QuantumError generating functions in the `noise.errors`
+             module.
     """
 
     def __init__(self, noise_ops, number_of_qubits=None,
@@ -37,7 +42,7 @@ class QuantumError:
 
         Additional Information:
             Noise ops may either be specified as list of Kraus operators
-            for a general CPTP map, or as a list of `(p, circuit)` pairs
+            for a general CPTP map, or as a list of `(circuit, p)` pairs
             where `circuit` is a qobj circuit for the noise, and `p` is
             the probability of the error circuit. If the input is Kraus
             operators they will be converted to the circuit format, with
@@ -48,8 +53,8 @@ class QuantumError:
             An example noise_ops for a bit-flip error with error probability
             p = 0.1 is:
             ```
-            noise_ops = [(0.9, [{"name": "id", "qubits": 0}]),
-                         (0.1, [{"name": "x", "qubits": 0}])]
+            noise_ops = [([{"name": "id", "qubits": 0}], 0.9),
+                         ([{"name": "x", "qubits": 0}], 0.1)]
             ```
             The same error represented as a Kraus channel can be input as:
             ```
@@ -71,7 +76,7 @@ class QuantumError:
 
         minimum_qubits = 0
         # Add non-zero probability error circuits to the error
-        for prob, circuit in noise_ops:
+        for circuit, prob in noise_ops:
             if prob > 0:
                 self._noise_circuits.append(circuit)
                 self._noise_probabilities.append(prob)
@@ -146,7 +151,7 @@ class QuantumError:
             the quantum error.
         """
         if position < self.size:
-            return self.probabilities[position], self.circuits[position]
+            return self.circuits[position], self.probabilities[position]
         else:
             raise AerNoiseError("Position {} is greater than the number".format(position) +
                                 "of error outcomes {}".format(self.size))
@@ -177,7 +182,48 @@ class QuantumError:
             Two quantum errors can only be composed if they apply to the
             same number of qubits.
         """
-        return _compose(self, error)
+        # Error checking
+        if not isinstance(error, QuantumError):
+            raise AerNoiseError("error1 is not a QuantumError")
+        if self.number_of_qubits != error.number_of_qubits:
+            raise AerNoiseError("QuantumErrors are not defined on same number of qubits.")
+
+        combined_noise_circuits = []
+        combined_noise_probabilities = []
+
+        # Combine subcircuits and probabilities
+        for circuit0, prob0 in zip(self._noise_circuits, self._noise_probabilities):
+            for circuit1, prob1 in zip(error._noise_circuits, error._noise_probabilities):
+                combined_noise_probabilities.append(prob0 * prob1)
+                tmp_combined = circuit0 + circuit1
+
+                # Fuse compatible ops to reduce noise operations:
+                combined_circuit = [tmp_combined[0]]
+                for op in tmp_combined[1:]:
+                    last_op = combined_circuit[-1]
+                    name = op['name']
+                    if name == 'id':
+                        # Pass identity operation
+                        pass
+                    if (name == 'mat' and last_op['name'] == 'mat' and
+                            op['qubits'] == last_op['qubits']):
+                        # Combine unitary matrix operations
+                        combined_circuit[-1] = mat_dot(last_op, op)
+                    elif (name == 'kraus' and last_op['name'] == 'kraus' and
+                          op['qubits'] == last_op['qubits']):
+                        # Combine Kraus operations
+                        combined_circuit[-1] = kraus_dot(last_op, op)
+                    else:
+                        # Append the operation
+                        combined_circuit.append(op)
+                # Check if circuit is empty and add identity
+                if len(combined_circuit) == 0:
+                    combined_circuit.append({'name': 'id', 'qubits': [0]})
+                # Add circuit
+                combined_noise_circuits.append(combined_circuit)
+        noise_ops = zip(combined_noise_circuits,
+                        combined_noise_probabilities)
+        return QuantumError(noise_ops)
 
     def kron(self, error):
         """
@@ -195,136 +241,51 @@ class QuantumError:
             second error will be shifted by the number of qubits in the
             first error.
         """
-        return _kron(self, error)
 
+        # Error checking
+        if not isinstance(error, QuantumError):
+            raise AerNoiseError("{} is not a QuantumError".format(error))
 
-def _compose(error0, error1):
-    """
-        Compose two quantum errors.
+        combined_noise_circuits = []
+        combined_noise_probabilities = []
 
-        The composed error will be equivalent to applying `error0`
-        followed by applying `error1`.
+        # Combine subcircuits and probabilities
+        shift_qubits = self.number_of_qubits
+        for circuit0, prob0 in zip(self._noise_circuits, self._noise_probabilities):
+            for circuit1, prob1 in zip(error._noise_circuits, error._noise_probabilities):
+                combined_noise_probabilities.append(prob0 * prob1)
 
-        Args:
-            error0 (QuantumError): the first quantum error.
-            error1 (QuantumError): the second quantum error.
-
-        Returns:
-            QauntumError: the composed quantum error.
-
-        Additional Information:
-            Two quantum errors can only be composed if they apply to the
-            same number of qubits.
-        """
-    # Error checking
-    if not isinstance(error0, QuantumError):
-        raise AerNoiseError("error0 is not a QuantumError")
-    if not isinstance(error1, QuantumError):
-        raise AerNoiseError("error1 is not a QuantumError")
-    if error0.number_of_qubits != error1.number_of_qubits:
-        raise AerNoiseError("QuantumErrors are not defined on same number of qubits.")
-
-    combined_noise_circuits = []
-    combined_noise_probabilities = []
-
-    # Combine subcircuits and probabilities
-    for circuit0, prob0 in zip(error0._noise_circuits, error0._noise_probabilities):
-        for circuit1, prob1 in zip(error1._noise_circuits, error1._noise_probabilities):
-            combined_noise_probabilities.append(prob0 * prob1)
-            tmp_combined = circuit0 + circuit1
-
-            # Fuse compatible ops to reduce noise operations:
-            combined_circuit = [tmp_combined[0]]
-            for op in tmp_combined[1:]:
-                last_op = combined_circuit[-1]
-                name = op['name']
-                if name == 'id':
-                    # Pass identity operation
-                    pass
-                if (name == 'mat' and last_op['name'] == 'mat' and
-                   op['qubits'] == last_op['qubits']):
-                    # Combine unitary matrix operations
-                    combined_circuit[-1] = mat_dot(last_op, op)
-                elif (name == 'kraus' and last_op['name'] == 'kraus' and
-                      op['qubits'] == last_op['qubits']):
-                    # Combine Kraus operations
-                    combined_circuit[-1] = kraus_dot(last_op, op)
-                else:
-                    # Append the operation
-                    combined_circuit.append(op)
-            # Check if circuit is empty and add identity
-            if len(combined_circuit) == 0:
-                combined_circuit.append({'name': 'id', 'qubits': [0]})
-            # Add circuit
-            combined_noise_circuits.append(combined_circuit)
-    noise_ops = zip(combined_noise_probabilities,
-                    combined_noise_circuits)
-    return QuantumError(noise_ops)
-
-
-def _kron(error0, error1):
-    """
-        Kronecker product two quantum errors.
-
-        Args:
-            error0 (QuantumError): the first quantum error.
-            error1 (QuantumError): the second quantum error.
-
-        Returns:
-            QauntumError: the composite quantum error.
-
-        Additional Information:
-            The resulting qauntum error will be defined on a number of
-            qubits equal to the sum of both errors. The qubits of the
-            second error will be shifted by the number of qubits in the
-            first error.
-        """
-    # Error checking
-    if not isinstance(error0, QuantumError):
-        raise AerNoiseError("error0 is not a QuantumError")
-    if not isinstance(error1, QuantumError):
-        raise AerNoiseError("error1 is not a QuantumError")
-
-    combined_noise_circuits = []
-    combined_noise_probabilities = []
-
-    # Combine subcircuits and probabilities
-    shift_qubits = error0.number_of_qubits
-    for circuit0, prob0 in zip(error0._noise_circuits, error0._noise_probabilities):
-        for circuit1, prob1 in zip(error1._noise_circuits, error1._noise_probabilities):
-            combined_noise_probabilities.append(prob0 * prob1)
-
-            # Shift qubits in circuit1
-            circuit1_shift = []
-            for op in circuit1:
-                tmp = op.copy()
-                tmp['qubits'] = [q + shift_qubits for q in tmp['qubits']]
-                circuit1_shift.append(tmp)
-            tmp_combined = circuit0 + circuit1_shift
-            # Fuse compatible ops to reduce noise operations:
-            combined_circuit = [tmp_combined[0]]
-            for op in tmp_combined[1:]:
-                last_op = combined_circuit[-1]
-                name = op['name']
-                if name == 'id':
-                    # Pass identity operation
-                    pass
-                if (name == 'mat' and last_op['name'] == 'mat' and
-                   qubits_distinct(last_op['qubits'], op['qubits'])):
-                    # Combine unitary matrix operations
-                    combined_circuit[-1] = mat_kron(last_op, op)
-                elif (name == 'kraus' and last_op['name'] == 'kraus' and
-                      qubits_distinct(last_op['qubits'], op['qubits'])):
-                    # Combine Kraus operations
-                    combined_circuit[-1] = kraus_kron(last_op, op)
-                else:
-                    # Append the operation
-                    combined_circuit.append(op)
-            # Check if circuit is empty and add identity
-            if len(combined_circuit) == 0:
-                combined_circuit.append({'name': 'id', 'qubits': [0]})
-            # Add circuit
-            combined_noise_circuits.append(combined_circuit)
-    noise_ops = zip(combined_noise_probabilities,
-                    combined_noise_circuits)
-    return QuantumError(noise_ops)
+                # Shift qubits in circuit1
+                circuit1_shift = []
+                for op in circuit1:
+                    tmp = op.copy()
+                    tmp['qubits'] = [q + shift_qubits for q in tmp['qubits']]
+                    circuit1_shift.append(tmp)
+                tmp_combined = circuit0 + circuit1_shift
+                # Fuse compatible ops to reduce noise operations:
+                combined_circuit = [tmp_combined[0]]
+                for op in tmp_combined[1:]:
+                    last_op = combined_circuit[-1]
+                    name = op['name']
+                    if name == 'id':
+                        # Pass identity operation
+                        pass
+                    if (name == 'mat' and last_op['name'] == 'mat' and
+                            qubits_distinct(last_op['qubits'], op['qubits'])):
+                        # Combine unitary matrix operations
+                        combined_circuit[-1] = mat_kron(last_op, op)
+                    elif (name == 'kraus' and last_op['name'] == 'kraus' and
+                          qubits_distinct(last_op['qubits'], op['qubits'])):
+                        # Combine Kraus operations
+                        combined_circuit[-1] = kraus_kron(last_op, op)
+                    else:
+                        # Append the operation
+                        combined_circuit.append(op)
+                # Check if circuit is empty and add identity
+                if len(combined_circuit) == 0:
+                    combined_circuit.append({'name': 'id', 'qubits': [0]})
+                # Add circuit
+                combined_noise_circuits.append(combined_circuit)
+        noise_ops = zip(combined_noise_circuits,
+                        combined_noise_probabilities)
+        return QuantumError(noise_ops)

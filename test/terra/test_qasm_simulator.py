@@ -47,7 +47,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
         """Test QasmSimulator reset with for circuits with non-deterministic counts"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 1000
+        shots = 2000
         circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
         targets = ref_reset.reset_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -80,7 +80,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_with_sampling(self):
         """Test QasmSimulator reset with deterministic counts"""
-        shots = 1000
+        shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=True)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -90,7 +90,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_without_sampling(self):
         """Test QasmSimulator reset with deterministic counts"""
-        shots = 1000
+        shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -127,7 +127,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test QasmSimulator reset with non-deterministic counts"""
-        shots = 1000
+        shots = 2000
         qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=True)
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
@@ -139,7 +139,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test QasmSimulator reset with non-deterministic counts"""
-        shots = 1000
+        shots = 2000
         qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=False)
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
@@ -207,7 +207,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_h_gate_nondeterministic_default_basis_gates(self):
         """Test h-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -217,7 +217,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_h_gate_nondeterministic_waltz_basis_gates(self):
         """Test h-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -227,7 +227,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_h_gate_nondeterministic_minimal_basis_gates(self):
         """Test h-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -369,7 +369,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_s_gate_nondeterministic_default_basis_gates(self):
         """Test s-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -379,7 +379,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_s_gate_nondeterministic_waltz_basis_gates(self):
         """Test s-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -389,7 +389,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_s_gate_nondeterministic_minimal_basis_gates(self):
         """Test s-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -431,7 +431,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_sdg_gate_nondeterministic_default_basis_gates(self):
-        shots = 1000
+        shots = 2000
         """Test sdg-gate circuits compiling to backend default basis_gates."""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
@@ -442,7 +442,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_sdg_gate_nondeterministic_waltz_basis_gates(self):
         """Test sdg-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -452,7 +452,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_sdg_gate_nondeterministic_minimal_basis_gates(self):
         """Test sdg-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -495,7 +495,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_cx_gate_nondeterministic_default_basis_gates(self):
         """Test cx-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -505,7 +505,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_cx_gate_nondeterministic_waltz_basis_gates(self):
         """Test cx-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -515,7 +515,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_cx_gate_nondeterministic_minimal_basis_gates(self):
         """Test cx-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -558,7 +558,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_cz_gate_nondeterministic_default_basis_gates(self):
         """Test cz-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -568,7 +568,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_cz_gate_nondeterministic_waltz_basis_gates(self):
         """Test cz-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -578,7 +578,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_cz_gate_nondeterministic_minimal_basis_gates(self):
         """Test cz-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -621,7 +621,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_swap_gate_nondeterministic_default_basis_gates(self):
         """Test swap-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -631,7 +631,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_swap_gate_nondeterministic_waltz_basis_gates(self):
         """Test swap-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -641,7 +641,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_swap_gate_nondeterministic_minimal_basis_gates(self):
         """Test swap-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -684,7 +684,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
         """Test t-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -694,7 +694,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_t_gate_nondeterministic_waltz_basis_gates(self):
         """Test t-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -704,7 +704,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_t_gate_nondeterministic_minimal_basis_gates(self):
         """Test t-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -747,7 +747,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_tdg_gate_nondeterministic_default_basis_gates(self):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -757,7 +757,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
         """Test tdg-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -767,7 +767,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_tdg_gate_nondeterministic_minimal_basis_gates(self):
         """Test tdg-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -810,7 +810,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -820,7 +820,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
         """Test ccx-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -830,7 +830,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_ccx_gate_nondeterministic_minimal_basis_gates(self):
         """Test ccx-gate gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')
@@ -843,7 +843,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     def test_grovers_default_basis_gates(self):
         """Test grovers circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -854,7 +854,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_grovers_waltz_basis_gates(self):
         """Test grovers gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -865,7 +865,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_grovers_minimal_basis_gates(self):
         """Test grovers circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -876,7 +876,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_teleport_default_basis_gates(self):
         """Test teleport circuits compiling to backend default basis_gates."""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, QasmSimulator(), shots=shots)
@@ -886,7 +886,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def test_teleport_waltz_basis_gates(self):
         """Test teleport gate circuits compiling to u1,u2,u3,cx"""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='u1,u2,u3,cx')
@@ -896,7 +896,7 @@ class TestQasmSimulator(common.QiskitAerTestCase):
 
     def DISABLED_test_teleport_minimal_basis_gates(self):
         """Test teleport gate circuits compiling to U,CX"""
-        shots = 1000
+        shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, QasmSimulator(), shots=shots, basis_gates='U,CX')

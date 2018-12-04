@@ -462,7 +462,7 @@ def kraus2instructions(kraus_ops, standard_gates=True, threshold=1e-10):
                                                    threshold=threshold))
         probabilities.append(prob_kraus)
 
-    return zip(probabilities, instructions)
+    return zip(instructions, probabilities)
 
 
 def qubits_distinct(qubits0, qubits1):

@@ -12,6 +12,7 @@ standard noise channels in quantum information science.
 
 errors (package)
 |
+|-- kraus_error
 |-- mixed_unitary_error
 |-- coherent_unitary_error
 |-- pauli_error
@@ -22,6 +23,7 @@ errors (package)
 |-- phase_damping_error
 """
 
+from .standard_errors import kraus_error
 from .standard_errors import mixed_unitary_error
 from .standard_errors import coherent_unitary_error
 from .standard_errors import pauli_error

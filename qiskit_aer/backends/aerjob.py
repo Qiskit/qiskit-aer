@@ -50,10 +50,12 @@ class AerJob(BaseJob):
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, backend, job_id, fn, qobj):
+    def __init__(self, backend, job_id, fn, qobj, backend_options, noise_model):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
+        self._backend_options = backend_options
+        self._noise_model = noise_model
         self._future = None
 
     def submit(self):
@@ -69,7 +71,9 @@ class AerJob(BaseJob):
             raise JobError("We have already submitted the job!")
 
         validate_qobj_against_schema(self._qobj)
-        self._future = self._executor.submit(self._fn, self._job_id, self._qobj)
+        self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
+                                             self._backend_options,
+                                             self._noise_model)
 
     @requires_submit
     def result(self, timeout=None):

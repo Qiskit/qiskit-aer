@@ -44,29 +44,25 @@ cdef class QasmControllerWrapper:
     def __reduce__(self):
         return (self.__class__,())
 
-    def execute(self, qobj):
+    def execute(self, qobj, options, noise_model):
         # Convert input to C++ string
         cdef string qobj_enc = str(qobj).encode('UTF-8')
-        return self.iface.execute(qobj_enc)
-        # Execute
-
-    def set_noise_model(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.set_noise_model(config_enc)
-
-    def clear_noise_model(self):
-        self.iface.clear_noise_model()
-
-    def set_config(self, config):
-        # Convert input to C++ string
-        cdef string config_enc = str(config).encode('UTF-8')
-        self.iface.set_state_config(config_enc)
-        self.iface.set_data_config(config_enc)
-
-    def clear_config(self):
+        cdef string options_enc = str(options).encode('UTF-8')
+        cdef string noise_model_enc = str(noise_model).encode('UTF-8')
+        # Load options
+        self.iface.set_state_config(options_enc)
+        self.iface.set_data_config(options_enc)
+        # Load noise model
+        self.iface.set_noise_model(noise_model_enc)
+        # Execute simulation
+        cdef string output = self.iface.execute(qobj_enc)
+        # Clear options
         self.iface.clear_state_config()
         self.iface.clear_data_config()
+        # Clear noise model
+        self.iface.clear_noise_model()
+        # Return output
+        return output
 
     def set_max_threads(self, threads):
         self.iface.set_max_threads(int(threads))

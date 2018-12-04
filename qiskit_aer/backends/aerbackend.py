@@ -122,7 +122,6 @@ class AerBackend(BaseBackend):
 
         Args:
             configuration (dict): configuration dictionary
-            provider (BaseProvider): provider responsible for this backend
             controller_wrapper (class): Aer Controller cython wrapper class
             provider (BaseProvider): provider responsible for this backend
             json_decoder (JSONDecoder): JSON decoder for simulator output
@@ -133,8 +132,6 @@ class AerBackend(BaseBackend):
         """
         super().__init__(configuration, provider=provider)
         # Extract the default basis gates set from backend configuration
-        self._default_basis_gates = configuration.get('basis_gates')
-        self._noise_model = None
         self._controller = controller_wrapper
         self._json_decoder = json_decoder
 
@@ -146,17 +143,25 @@ class AerBackend(BaseBackend):
         self.clear_config()
         self.clear_noise_model()
 
-    def run(self, qobj):
+    def run(self, qobj, backend_options=None, noise_model=None):
         """Run a qobj on the backend."""
+        # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj)
+        aer_job = AerJob(self, job_id, self._run_job, qobj, backend_options, noise_model)
         aer_job.submit()
         return aer_job
 
-    def _run_job(self, job_id, qobj):
+    def _run_job(self, job_id, qobj, backend_options, noise_model):
+        """Run a qobj job"""
         self._validate(qobj)
-        qobj_str = json.dumps(qobj_to_dict(qobj), cls=AerJSONEncoder)
-        output = json.loads(self._controller.execute(qobj_str),
+        qobj_str = json.dumps(qobj.as_dict(), cls=AerJSONEncoder)
+        options_str = json.dumps(backend_options, cls=AerJSONEncoder)
+        if isinstance(noise_model, NoiseModel):
+            noise_model = noise_model.as_dict()
+        elif not isinstance(noise_model, dict) and noise_model is not None:
+            raise AerSimulatorError("Invalid Qiskit Aer noise model.")
+        noise_str = json.dumps(noise_model, cls=AerJSONEncoder)
+        output = json.loads(self._controller.execute(qobj_str, options_str, noise_str),
                             cls=self._json_decoder)
         self._validate_controller_output(output)
         return self._format_results(job_id, output)
@@ -190,59 +195,6 @@ class AerBackend(BaseBackend):
                     raise AerSimulatorError(res.get("status", None))
             # If no error was found check for error message at qobj level
             raise AerSimulatorError(output.get("status", None))
-
-    def set_noise_model(self, noise_model=None):
-        """Set a simulation noise model for the backend.
-
-        Args:
-            noise_model (NoiseModel): the simulator noise model.
-        """
-        if noise_model is None:
-            # If None clear current noise model
-            self.clear_noise_model()
-            return
-
-        # Attach noise model to backend
-        if isinstance(noise_model, NoiseModel):
-            self._noise_model = noise_model
-            # Convert to dict for json serialization
-            noise_model_dict = noise_model.as_dict()
-        elif isinstance(noise_model, dict):
-            noise_model_dict = noise_model
-            # Convert to NoiseModel object to attach
-            self._noise_model = NoiseModel()
-            self._noise_model.from_dict(noise_model)
-        else:
-            raise AerSimulatorError("Invalid Qiskit Aer noise model.")
-
-        # Attach noise model to wrapper
-        self._controller.set_noise_model(json.dumps(noise_model_dict, cls=AerJSONEncoder))
-        # Update basis gates to use the gates in the noise model
-        basis_gates = noise_model_dict.get("basis_gates", None)
-        if isinstance(basis_gates, str):
-            self._configuration["basis_gates"] = basis_gates
-
-    def get_noise_model(self):
-        """Return the current backend noise model."""
-        return self._noise_model
-
-    def clear_noise_model(self):
-        """Reset simulator to ideal (no noise)."""
-        self._noise_model = None
-        self._controller.clear_noise_model()
-        # Reset to default basis gates
-        self._configuration["basis_gates"] = self._default_basis_gates
-
-    def set_config(self, config=None):
-        """Set config of simulator backend."""
-        if config is None:
-            self.clear_config()
-        else:
-            self._controller.set_config(json.dumps(config, cls=AerJSONEncoder))
-
-    def clear_config(self):
-        """Clear config of simulator backend."""
-        self._controller.clear_config()
 
     def set_max_threads_shot(self, threads):
         """
@@ -289,6 +241,4 @@ class AerBackend(BaseBackend):
         display = "{}('{}')".format(self.__class__.__name__, self.name())
         if self.provider is not None:
             display = display + " from {}()".format(self.provider)
-        if self._noise_model is not None:
-            display = display + " with {}".format(self._noise_model)
         return "<" + display + ">"
