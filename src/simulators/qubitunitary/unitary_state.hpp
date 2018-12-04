@@ -164,7 +164,9 @@ const stringmap_t<Gates> State<statemat_t>::gateset_({
   {"u1", Gates::u1},  // zero-X90 pulse waltz gate
   {"u2", Gates::u2},  // single-X90 pulse waltz gate
   {"u3", Gates::u3},  // two X90 pulse waltz gate
+  {"U", Gates::u3},   // two X90 pulse waltz gate
   // Two-qubit gates
+  {"CX", Gates::cx},  // Controlled-X gate (CNOT)
   {"cx", Gates::cx},  // Controlled-X gate (CNOT)
   {"cz", Gates::cz},  // Controlled-Z gate
   {"swap", Gates::swap}, // SWAP gate

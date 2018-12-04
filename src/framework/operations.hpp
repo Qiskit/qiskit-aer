@@ -309,16 +309,10 @@ Op json_to_op_reset(const json_t &js) {
   op.type = OpType::reset;
   op.name = "reset";
   JSON::get_value(op.qubits, "qubits", js);
-  op.params = {0}; // default reset to 0 state
-  if (JSON::check_key("params", js)) {
-    op.params[0] = js["params"].get<reg_t>()[0];
-  }
+
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (op.params.size() != op.qubits.size()) {
-    throw std::invalid_argument("Invalid reset operation: \"params\" and \"qubits\" are different lengths.");
-  }
   return op;
 }
 
