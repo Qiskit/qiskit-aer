@@ -39,7 +39,7 @@ class TestNoise(common.QiskitAerTestCase):
         # target = {'10': shots / 2, '11': shots / 2}
         target = {'0x2': shots / 2, '0x3': shots / 2}
         qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates())
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -53,7 +53,7 @@ class TestNoise(common.QiskitAerTestCase):
         # target = {'01': shots / 4, '11': 3 * shots / 4}
         target = {'0x1': shots / 4, '0x3': 3 * shots / 4}
         qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates())
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -80,7 +80,7 @@ class TestNoise(common.QiskitAerTestCase):
         # target = {'00': shots}
         target = {'0x0': shots}
         qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates())
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)

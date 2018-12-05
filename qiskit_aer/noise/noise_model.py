@@ -352,6 +352,7 @@ class NoiseModel:
                 output += "\n  Non-local specific qubit errors: {}".format(nonlocal_error_ops)
         return output
 
+    @property
     def basis_gates(self):
         """Return basis_gates for compiling to the noise model."""
         # Convert noise instructions to basis_gates string
