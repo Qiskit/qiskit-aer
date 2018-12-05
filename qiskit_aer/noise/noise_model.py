@@ -325,7 +325,7 @@ class NoiseModel:
             for q_str in dic.keys():
                 local_error_ops.append((op, self._str2qubits(q_str)))
         for q_str in self._local_readout_errors.keys():
-            tmp = ('meaure', self._str2qubits(q_str))
+            tmp = ('measure', self._str2qubits(q_str))
             if tmp not in local_error_ops:
                 local_error_ops.append(tmp)
 

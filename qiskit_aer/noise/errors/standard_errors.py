@@ -369,7 +369,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         p_z = 0.5 * (1 - pr) * (1 - np.exp(-0.5 * (rate2 - rate1) * time))
         p_identity = 1 - p_z - p_reset0 - p_reset1
         probabilities = [p_identity, p_z, p_reset0, p_reset1]
-        return QuantumError(zip(probabilities, circuits))
+        return QuantumError(zip(circuits, probabilities))
 
 
 def phase_amplitude_damping_error(param_amp, param_phase,
