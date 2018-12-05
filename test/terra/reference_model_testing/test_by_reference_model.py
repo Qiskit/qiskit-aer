@@ -7,7 +7,7 @@ import random
 
 from density_matrix_simulator import DensityMatrixSimulator
 from qstructs import DensityMatrix, QuantumState, ProbabilityDistribution
-from qstructs import is_close, state_reverse, get_extended_ops, randcomplex
+from qstructs import is_close, get_extended_ops, randcomplex
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import compile
 from qiskit_aer.backends import QasmSimulator
@@ -75,21 +75,9 @@ class TestByReferenceModel(common.QiskitAerTestCase):
 
         # all statevectors, from all shots
         states = qasm_result.get_snapshots(qc)['statevector']['final']
-
-        # adjusted_states will reflect the fact that the statevector
-        # amplitudes are ordered lexicographically, where qubit 0
-        # is LSB, whereas the rows and columns of the density matrix
-        # are ordered with qubit 0 as MSB.
-        adjusted_states = []
-
-        for state in states:
-            adjusted_state = np.zeros(2**nqubits, dtype=complex)
-            for basis_state in range(2**nqubits):
-                adjusted_state[state_reverse(basis_state, nqubits)] = state[basis_state]
-            adjusted_states.append(QuantumState(adjusted_state))
         
-        qasm_den_mat = DensityMatrix(adjusted_states,
-                                     ProbabilityDistribution([1]*len(adjusted_states), not_normalized=True))
+        qasm_den_mat = DensityMatrix([QuantumState(state) for state in states],
+                                     ProbabilityDistribution([1]*len(states), not_normalized=True))
         self.assertTrue(is_close(den_result.rho, qasm_den_mat.rho, rel_tol=1e-2, abs_tol=1e-2))
 
 

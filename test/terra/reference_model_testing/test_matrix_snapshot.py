@@ -7,7 +7,7 @@ import random
 
 from density_matrix_simulator import DensityMatrixSimulator
 from qstructs import DensityMatrix, QuantumState, ProbabilityDistribution
-from qstructs import is_close, state_reverse, get_extended_ops, randcomplex
+from qstructs import is_close, get_extended_ops, randcomplex
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import compile
 from qiskit_aer.backends import QasmSimulator
@@ -19,7 +19,7 @@ class TestMatrixSnapshot(common.QiskitAerTestCase):
         self.qasm_sim = QasmSimulator()
         self.den_sim = DensityMatrixSimulator()
 
-    def test_matrix_snapshot(self, qc=None, den_params=None):
+    def test_matrix_snapshot(self, qc=None, params=None):
 
         if qc == None:
             qc = common.generate_random_circuit(2+np.random.randint(4), 1+np.random.randint(15),
@@ -43,11 +43,11 @@ class TestMatrixSnapshot(common.QiskitAerTestCase):
         self.log.debug(qc.qasm())
         nqubits = len(qc.get_qregs()['qr'])
  
-        qobj = compile(qc, self.qasm_sim, shots=10000, seed=1)
+        qobj = compile(qc, self.qasm_sim, shots=50000, seed=1)
 
-        if den_params == None:
+        if params == None:
             num_of_components = 1 + np.random.randint(2)
-            den_params = []
+            params = []
              
             for _ in range(num_of_components):
                 num_of_mats = 1 + np.random.randint(2)
@@ -64,29 +64,21 @@ class TestMatrixSnapshot(common.QiskitAerTestCase):
                         qubits = random.sample(range(nqubits), num_of_involved_qubits)
                         blocks.append([qubits, mat])    
                         
-                den_params.append([coeff, blocks])
+                params.append([coeff, blocks])
 
-        self.log.debug(den_params)
+        self.log.debug(params)
 
         den_result = self.den_sim.run(qobj)
-        den_expectation_value = den_result.observable(den_params)
-
-        # Need to fit 'qubits' to the Qiskit qubit ordering
-        qasm_params = []
-        for component in den_params:
-            qasm_blocks = []
-            for block in component[1]:
-                qasm_blocks.append([block[0][::-1], block[1]])
-            qasm_params.append([component[0], qasm_blocks])
+        den_expectation_value = den_result.observable(params)
 
         # Add a matrix snapshot at the end of the circuit
         qobj.experiments[0].instructions.append(
-            qobj_utils.qobj_snapshot_item(snapshot_type='expval_matrix', label='final', params=qasm_params))
+            qobj_utils.qobj_snapshot_item(snapshot_type='expval_matrix', label='final', params=params))
 
         qasm_result = self.qasm_sim.run(qobj).result()
         qasm_expectation_value = qasm_result.get_snapshots(qc)['expectation_value']['final'][0]['value']
 
-        self.assertTrue(is_close(qasm_expectation_value, den_expectation_value, rel_tol=1e-2, abs_tol=1e-2))
+        self.assertTrue(is_close(qasm_expectation_value, den_expectation_value, rel_tol=0.3, abs_tol=1e-2))
 
 
 if __name__ == '__main__':

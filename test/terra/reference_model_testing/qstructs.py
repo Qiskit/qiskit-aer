@@ -118,13 +118,6 @@ def state_num2array(basis_state_as_num, nqubits):
 def state_array2num(basis_state_as_array):
     return state_str2num(state_array2str(basis_state_as_array))
 
-# ** state_reverse
-def state_reverse(basis_state_as_num, nqubits):
-    basis_state_as_str = state_num2str(basis_state_as_num, nqubits)
-    new_str = basis_state_as_str[::-1]
-    return state_str2num(new_str)
-
-
 # ** get_extended_ops
 def get_extended_ops(operators, qubits, nqubits):
     """
@@ -136,6 +129,7 @@ def get_extended_ops(operators, qubits, nqubits):
     # a list of qubits not in "qubits", i.e.,
     # qubits that are not affected by the opertor
     diffset = np.setdiff1d(all_qubits, qubits)
+    qubs = np.array(qubits)
 
     extended_ops = []
     for op in operators:
@@ -147,11 +141,11 @@ def get_extended_ops(operators, qubits, nqubits):
                 row_as_array = state_num2array(row, nqubits)
                 col_as_array = state_num2array(col, nqubits)
 
-                if all(row_as_array[diffset] == col_as_array[diffset]) == False:
+                if all(row_as_array[nqubits-1-diffset] == col_as_array[nqubits-1-diffset]) == False:
                     continue
-
-                row_in_op_array = row_as_array[qubits]
-                col_in_op_array = col_as_array[qubits]
+                
+                row_in_op_array = row_as_array[(nqubits-1-qubs)[::-1]]
+                col_in_op_array = col_as_array[(nqubits-1-qubs)[::-1]]
 
                 row_in_op = state_array2num(row_in_op_array)
                 col_in_op = state_array2num(col_in_op_array)
@@ -441,9 +435,9 @@ class DensityMatrix:
                 row_as_array = state_num2array(row, self.nqubits)
                 col_as_array = state_num2array(col, self.nqubits)
 
-                if row_as_array[qubit] == col_as_array[qubit]:
-                    row_as_array[qubit] = 0
-                    col_as_array[qubit] = 0
+                if row_as_array[self.nqubits-1-qubit] == col_as_array[self.nqubits-1-qubit]:
+                    row_as_array[self.nqubits-1-qubit] = 0
+                    col_as_array[self.nqubits-1-qubit] = 0
 
                     new_row = state_array2num(row_as_array)
                     new_col = state_array2num(col_as_array)
@@ -471,11 +465,11 @@ class DensityMatrix:
             rho_entry = self.rho[basis_state_as_num, basis_state_as_num]
 
             if is_close(0, rho_entry) == False:
-                reverse_hex = hex(state_reverse(basis_state_as_num, self.nqubits))
-                if reverse_hex in probs.keys():
-                    probs[reverse_hex] += rho_entry
+                basis_state_as_hex = hex(basis_state_as_num)
+                if basis_state_as_hex in probs.keys():
+                    probs[bais_state_as_hex] += rho_entry
                 else:
-                    probs[reverse_hex] = rho_entry
+                    probs[basis_state_as_hex] = rho_entry
 
         return probs
 
