@@ -27,3 +27,4 @@ from .noise_model import NoiseModel
 from .quantum_error import QuantumError
 from .readout_error import ReadoutError
 from . import errors
+from . import device
