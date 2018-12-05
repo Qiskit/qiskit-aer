@@ -8,6 +8,8 @@ python:
   - "3.6"
 os: linux
 dist: trusty
+env:
+  - PYTHONPATH=qiskit-terra/
 
 before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -17,6 +19,8 @@ before_install:
   - sudo apt-get -y install libopenblas-dev
 
 install:
+  - git clone https://github.com/Qiskit/qiskit-terra.git
+  - pip install -r qiskit-terra/requirements.txt
   - pip install -r requirements-dev.txt
 
 script:

@@ -157,7 +157,7 @@ class TestNoise(common.QiskitAerTestCase):
         # target = {'00': shots}
         target = {'0x0': shots}
         qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates())
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
