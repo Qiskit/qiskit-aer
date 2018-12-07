@@ -36,7 +36,6 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model = NoiseModel()
         noise_model.add_quantum_error(error, "u3", [0])
         shots = 2000
-        # target = {'10': shots / 2, '11': shots / 2}
         target = {'0x2': shots / 2, '0x3': shots / 2}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
@@ -100,10 +99,12 @@ class TestNoise(common.QiskitAerTestCase):
         error = ReadoutError([[0.5, 0.5], [0.5, 0.5]])
         noise_model = NoiseModel()
         noise_model.add_readout_error(error, [0])
+
         shots = 2000
         # target = {'00': shots / 2, '01': shots / 2}
         target = {'0x0': shots / 2, '0x1': shots / 2}
-        qobj = compile([circuit], backend, shots=shots)
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -112,10 +113,12 @@ class TestNoise(common.QiskitAerTestCase):
         error = ReadoutError([[0.75, 0.25], [0.25, 0.75]])
         noise_model = NoiseModel()
         noise_model.add_readout_error(error, [1])
+
         shots = 2000
         # target = {'01': 3 * shots / 4, '11': shots / 4}
         target = {'0x1': 3 * shots / 4, '0x3': shots / 4}
-        qobj = compile([circuit], backend, shots=shots)
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -135,10 +138,12 @@ class TestNoise(common.QiskitAerTestCase):
         error = ReadoutError([[0, 1], [1, 0]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_readout_error(error)
+
         shots = 2000
         # target = {'10': shots}
         target = {'0x2': shots}
-        qobj = compile([circuit], backend, shots=shots)
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -147,10 +152,12 @@ class TestNoise(common.QiskitAerTestCase):
         error = ReadoutError([[1, 0], [1, 0]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_readout_error(error)
+
         shots = 2000
         # target = {'00': shots}
         target = {'0x0': shots}
-        qobj = compile([circuit], backend, shots=shots)
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)

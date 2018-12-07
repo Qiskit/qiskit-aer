@@ -12,9 +12,12 @@ Qiskit Aer statevector simulator backend.
 """
 
 import logging
+from math import log2
+from qiskit._util import local_hardware_info
+from qiskit.backends.models import BackendConfiguration
 
+from ..version import VERSION
 from .aerbackend import AerBackend
-from .aersimulatorerror import AerSimulatorError
 from statevector_controller_wrapper import StatevectorControllerWrapper
 
 # Logger
@@ -25,18 +28,27 @@ class StatevectorSimulator(AerBackend):
     """Aer statevector simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'statevector_simulator',
-        'url': 'NA',
+        'backend_name': 'statevector_simulator',
+        'backend_version': VERSION,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
+        'url': 'TODO',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
+        'conditional': True,
+        'open_pulse': False,
+        'memory': True,
+        'max_shots': 1,
+        'description': 'A C++ statevector simulator for QASM experiments',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap', 'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
-                         StatevectorControllerWrapper(), provider=provider)
+        super().__init__(StatevectorControllerWrapper(),
+                         (configuration or
+                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+                         provider=provider)
 
     def run(self, qobj):
         """Run a qobj on the backend."""
@@ -58,4 +70,3 @@ class StatevectorSimulator(AerBackend):
                 logger.warning("statevector simulator only supports 1 shot. "
                                "Setting shots=1 for circuit %s.", experiment.header.name)
                 experiment.config.shots = 1
-

@@ -9,6 +9,11 @@
 Qiskit Aer qasm simulator backend.
 """
 
+from math import log2
+from qiskit._util import local_hardware_info
+from qiskit.backends.models import BackendConfiguration
+
+from ..version import VERSION
 from .aerbackend import AerBackend
 from qasm_controller_wrapper import QasmControllerWrapper
 
@@ -17,19 +22,24 @@ class QasmSimulator(AerBackend):
     """Aer quantum circuit simulator"""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'qasm_simulator',
-        'url': 'NA',
+        'backend_name': 'qasm_simulator',
+        'backend_version': VERSION,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
+        'url': 'TODO',
         'simulator': True,
         'local': True,
-        'description': 'A C++ statevector simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,rzz,ccx,swap'
+        'conditional': True,
+        'open_pulse': False,
+        'memory': True,
+        'max_shots': 100000,
+        'description': 'A C++ simulator for QASM experiments with noise',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap', 'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
-                         QasmControllerWrapper(), provider=provider)
-
-    def _validate(self, qobj):
-        # TODO
-        return
+        super().__init__(QasmControllerWrapper(),
+                         (configuration or
+                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+                         provider=provider)

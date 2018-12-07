@@ -18,8 +18,7 @@ from numbers import Number
 
 import qiskit
 from qiskit.backends import BaseBackend
-from qiskit.qobj import qobj_to_dict
-from qiskit.result._result import Result
+from qiskit.result import Result
 from .aerjob import AerJob
 from .aersimulatorerror import AerSimulatorError
 from ..noise import NoiseModel
@@ -47,73 +46,10 @@ class AerJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-class AerJSONDecoder(json.JSONDecoder):
-    """
-    JSON decoder for complex expectation value snapshots.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
-
-    # pylint: disable=method-hidden
-    def object_hook(self, obj):
-        """Special decoding rules for simulator output."""
-        # Decode statevector
-        if 'statevector' in obj:
-            obj['statevector'] = self._decode_complex_vector(obj['statevector'])
-        # Decode unitary
-        if 'unitary' in obj:
-            obj['unitary'] = self._decode_complex_matrix(obj['unitary'])
-        # Decode snapshots
-        if 'snapshots' in obj:
-            # Decode statevector snapshot
-            if 'statevector' in obj['snapshots']:
-                for key, val in obj['snapshots']['statevector'].items():
-                    obj['snapshots']['statevector'][key] = [
-                        self._decode_complex_vector(vec) for vec in val]
-            # Decode unitary snapshot
-            if 'unitary' in obj['snapshots']:
-                for key, val in obj['snapshots']['unitary'].items():
-                    obj['snapshots']['unitary'][key] = [
-                        self._decode_complex_matrix(mat) for mat in val]
-            # Decode expectation value snapshot
-            if 'expectation_value' in obj['snapshots']:
-                for key, val in obj['snapshots']['expectation_value'].items():
-                    for j, expval in enumerate(val):
-                        val[j]['value'] = self._decode_complex(expval['value'])
-        return obj
-
-    def _decode_complex(self, obj):
-        """Deserialize JSON real or complex number"""
-        if isinstance(obj, list) and np.shape(obj) == (2,) and \
-           isinstance(obj[0], Number) and isinstance(obj[1], Number):
-            if obj[1] == 0.:
-                obj = obj[0]
-            else:
-                obj = obj[0] + 1j * obj[1]
-        return obj
-
-    def _decode_complex_vector(self, obj):
-        """Deserialize JSON real or complex vector"""
-        if isinstance(obj, list):
-            obj = np.array([self._decode_complex(z) for z in obj])
-        return obj
-
-    def _decode_complex_matrix(self, obj):
-        """Deserialize JSON real or complex matrix"""
-        if isinstance(obj, list):
-            shape = np.shape(obj)
-            # Check if dimension is consistant with complex or real matrix
-            if len(shape) in [3, 2]:
-                obj = np.array([[self._decode_complex(z) for z in row]
-                                for row in obj])
-        return obj
-
-
 class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
-    def __init__(self, configuration, controller_wrapper, provider=None,
-                 json_decoder=AerJSONDecoder):
+    def __init__(self, controller_wrapper, configuration, provider=None):
         """Aer class for backends.
 
         This method should initialize the module and its configuration, and
@@ -121,27 +57,16 @@ class AerBackend(BaseBackend):
         not available.
 
         Args:
-            configuration (dict): configuration dictionary
             controller_wrapper (class): Aer Controller cython wrapper class
+            configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
-            json_decoder (JSONDecoder): JSON decoder for simulator output
 
         Raises:
             FileNotFoundError if backend executable is not available.
             QISKitError: if there is no name in the configuration
         """
         super().__init__(configuration, provider=provider)
-        # Extract the default basis gates set from backend configuration
         self._controller = controller_wrapper
-        self._json_decoder = json_decoder
-
-    def reset(self):
-        """Reset the Aer Backend.
-
-        This clears any set noise model or config.
-        """
-        self.clear_config()
-        self.clear_noise_model()
 
     def run(self, qobj, backend_options=None, noise_model=None):
         """Run a qobj on the backend."""
@@ -150,6 +75,10 @@ class AerBackend(BaseBackend):
         aer_job = AerJob(self, job_id, self._run_job, qobj, backend_options, noise_model)
         aer_job.submit()
         return aer_job
+
+    def properties(self):
+        """Return backend properties."""
+        return None
 
     def _run_job(self, job_id, qobj, backend_options, noise_model):
         """Run a qobj job"""
@@ -161,8 +90,7 @@ class AerBackend(BaseBackend):
         elif not isinstance(noise_model, dict) and noise_model is not None:
             raise AerSimulatorError("Invalid Qiskit Aer noise model.")
         noise_str = json.dumps(noise_model, cls=AerJSONEncoder)
-        output = json.loads(self._controller.execute(qobj_str, options_str, noise_str),
-                            cls=self._json_decoder)
+        output = json.loads(self._controller.execute(qobj_str, options_str, noise_str))
         self._validate_controller_output(output)
         return self._format_results(job_id, output)
 
@@ -170,16 +98,10 @@ class AerBackend(BaseBackend):
         """Construct Result object from simulator output."""
         # Add result metadata
         output["job_id"] = job_id
-        output["date"] = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        output["backend_name"] = self.DEFAULT_CONFIGURATION['name']
-        output["backend_version"] = "0.0.1"  # TODO: get this from somewhere else
-        # Parse result dict into Result class
-        exp_results = output.get("results", {})
-        experiment_names = [data.get("header", {}).get("name", None)
-                            for data in exp_results]
-        qobj_result = qiskit.qobj.Result(**output)
-        qobj_result.results = [qiskit.qobj.ExperimentResult(**res) for res in exp_results]
-        return Result(qobj_result, experiment_names=experiment_names)
+        output["date"] = datetime.datetime.now().isoformat()
+        output["backend_name"] = self.DEFAULT_CONFIGURATION['backend_name']
+        output["backend_version"] = self.DEFAULT_CONFIGURATION['backend_version']
+        return Result.from_dict(output)
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
@@ -240,5 +162,5 @@ class AerBackend(BaseBackend):
         """Official string representation of an AerBackend."""
         display = "{}('{}')".format(self.__class__.__name__, self.name())
         if self.provider is not None:
-            display = display + " from {}()".format(self.provider)
+            display = display + " from {}()".format(self._provider)
         return "<" + display + ">"

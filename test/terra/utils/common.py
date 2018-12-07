@@ -123,11 +123,16 @@ class QiskitAerTestCase(unittest.TestCase):
                 self.assertAlmostEqual(delta, 0, places=places,
                                        msg=msg + " up to global phase")
 
-    def compare_counts(self, result, circuits, targets, delta=0):
+    def compare_counts(self, result, circuits, targets, hex_counts=True, delta=0):
         """Compare counts dictionary to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
-            output = result.get_counts(circuit)
+            if hex_counts:
+                # Don't use get_counts method which converts hex
+                output = result.data(circuit)["counts"]
+            else:
+                # Use get counts method which converts hex
+                output = result.get_counts(circuit)
             msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
                    " {} != {}".format(output, target))
             self.assertDictAlmostEqual(output, target, delta=delta, msg=msg)

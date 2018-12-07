@@ -12,7 +12,11 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
+from math import log2
+from qiskit._util import local_hardware_info
+from qiskit.backends.models import BackendConfiguration
 
+from ..version import VERSION
 from .aerbackend import AerBackend
 from .aersimulatorerror import AerSimulatorError
 from unitary_controller_wrapper import UnitaryControllerWrapper
@@ -25,18 +29,27 @@ class UnitarySimulator(AerBackend):
     """Unitary circuit simulator."""
 
     DEFAULT_CONFIGURATION = {
-        'name': 'unitary_simulator',
-        'url': 'NA',
+        'backend_name': 'unitary_simulator',
+        'backend_version': VERSION,
+        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
+        'url': 'TODO',
         'simulator': True,
         'local': True,
-        'description': 'A C++ unitary simulator for qobj files',
-        'coupling_map': 'all-to-all',
-        "basis_gates": 'u0,u1,u2,u3,cx,cz,id,x,y,z,h,s,sdg,t,tdg,ccx,swap'
+        'conditional': False,
+        'open_pulse': False,
+        'memory': False,
+        'max_shots': 1,
+        'description': 'A C++ unitary simulator for QASM experiments',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap', 'snapshot'],
+        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration or self.DEFAULT_CONFIGURATION.copy(),
-                         UnitaryControllerWrapper(), provider=provider)
+        super().__init__(UnitaryControllerWrapper(),
+                         (configuration or
+                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+                         provider=provider)
 
     def run(self, qobj):
         """Run a qobj on the backend."""
