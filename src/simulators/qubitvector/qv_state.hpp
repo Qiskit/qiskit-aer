@@ -228,8 +228,8 @@ protected:
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
 
-  // Snapshot type key for state snapshot
-  double snapshot_chop_threshold_ = 1e-10;
+  // Threshold for chopping small values to zero in JSON
+  double json_chop_threshold_ = 1e-15;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -351,8 +351,9 @@ template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
-  JSON::get_value(snapshot_chop_threshold_, "chop_threshold", config);
-  
+  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
+
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
   
@@ -472,7 +473,7 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
                                                bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
-                              snapshot_chop_threshold_, 16); 
+                              json_chop_threshold_, 16); 
   data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(), probs, variance);
 }
@@ -531,7 +532,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
     expval += coeff * std::real(BaseState::qreg_.inner_product());
   }
   // add to snapshot
-  Utils::chop_inplace(expval, snapshot_chop_threshold_);
+  Utils::chop_inplace(expval, json_chop_threshold_);
   data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, variance);
   // Revert to original state
@@ -578,7 +579,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
     expval += coeff*BaseState::qreg_.inner_product();
   }
   // add to snapshot
-  Utils::chop_inplace(expval, snapshot_chop_threshold_);
+  Utils::chop_inplace(expval, json_chop_threshold_);
   data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, variance);
   // Revert to original state

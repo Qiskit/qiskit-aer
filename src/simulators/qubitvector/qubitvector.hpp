@@ -86,6 +86,9 @@ public:
   // Returns a copy of the underlying statevector_t data as a complex vector
   cvector_t vector() const;
 
+  // Return JSON serialization of QubitVector;
+  json_t json() const;
+
   // Create a checkpoint to calculate inner_product
   void checkpoint();
 
@@ -113,6 +116,12 @@ public:
   //-----------------------------------------------------------------------
   // Configuration settings
   //-----------------------------------------------------------------------
+
+  // Set the threshold for chopping values to 0 in JSON
+  void set_json_chop_threshold(double threshold);
+
+  // Set the threshold for chopping values to 0 in JSON
+  double get_json_chop_threshold() {return json_chop_threshold_;}
 
   // Set the maximum number of OpenMP thread for operations.
   void set_omp_threads(int n);
@@ -242,7 +251,8 @@ protected:
   uint_t omp_threshold_ = 16;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   bool gate_opt_ = false; // enable large-qubit optimized gates
-
+  double json_chop_threshold_ = 0;  // Threshold for choping small values
+                                    // in JSON serialization
   //-----------------------------------------------------------------------
   // State update functions with Lambda function bodies
   //-----------------------------------------------------------------------
@@ -361,10 +371,31 @@ protected:
 
 template <class statevector_t>
 inline void to_json(json_t &js, const QubitVector<statevector_t> &qv) {
-  js = json_t();
-  for (uint_t j=0; j < qv.size(); j++) {
-    js.push_back(qv[j]);
+  js = qv.json();
+}
+
+template <class statevector_t>
+json_t QubitVector<statevector_t>::json() const {
+  const int_t end = num_states_;
+  const json_t zero = complex_t(0.0, 0.0);
+  json_t js = json_t(num_states_, zero);
+  
+  if (json_chop_threshold_ > 0) {
+    #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t j=0; j < end; j++) {
+      if (std::abs(statevector_[j].real()) > json_chop_threshold_)
+        js[j][0] = statevector_[j].real();
+      if (std::abs(statevector_[j].imag()) > json_chop_threshold_)
+        js[j][1] = statevector_[j].imag();
+    }
+  } else {
+    #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t j=0; j < end; j++) {
+      js[j][0] = statevector_[j].real();
+      js[j][1] = statevector_[j].imag();
+    }
   }
+  return js;
 }
 
 //------------------------------------------------------------------------------
@@ -615,6 +646,12 @@ void QubitVector<statevector_t>::revert(bool keep) {
  * CONFIG SETTINGS
  *
  ******************************************************************************/
+
+template <class statevector_t>
+void QubitVector<statevector_t>::set_json_chop_threshold(double threshold) {
+  json_chop_threshold_ = threshold;
+}
+
 
 template <class statevector_t>
 void QubitVector<statevector_t>::set_omp_threads(int n) {

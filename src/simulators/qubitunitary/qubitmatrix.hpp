@@ -86,6 +86,9 @@ public:
   // Returns a copy of the underlying statematrix_t data as a complex vector
   cmatrix_t matrix() const;
 
+  // Return JSON serialization of QubitMatrix;
+  json_t json() const;
+
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
@@ -97,6 +100,12 @@ public:
   //-----------------------------------------------------------------------
   // Configuration settings
   //-----------------------------------------------------------------------
+
+  // Set the threshold for chopping values to 0 in JSON
+  void set_json_chop_threshold(double threshold);
+
+  // Set the threshold for chopping values to 0 in JSON
+  double get_json_chop_threshold() {return json_chop_threshold_;}
 
   // Set the maximum number of OpenMP thread for operations.
   void set_omp_threads(int n);
@@ -173,6 +182,8 @@ protected:
   //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 16;  // Qubit threshold for multithreading when enabled
+  double json_chop_threshold_ = 0;  // Threshold for choping small values
+                                    // in JSON serialization
 
   //-----------------------------------------------------------------------
   // State update functions with Lambda function bodies
@@ -230,7 +241,50 @@ protected:
 
 template <class statematrix_t>
 inline void to_json(json_t &js, const QubitMatrix<statematrix_t> &qmat) {
-  js = qmat.matrix();
+  js = qmat.json();
+}
+
+template <class statematrix_t>
+json_t QubitMatrix<statematrix_t>::json() const {
+  const int_t end = num_states_;
+  // Initialize empty matrix
+  const json_t zero = complex_t(0.0, 0.0);
+  json_t js = json_t(num_states_, json_t(num_states_, zero));
+  
+  if (json_chop_threshold_ > 0) {
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+    #ifdef _WIN32
+      #pragma omp for
+    #else
+      #pragma omp for collapse(2)
+    #endif
+    for (int_t i=0; i < end; i++)
+      for (int_t j=0; j < end; j++) {
+        const auto val = statematrix_(i, j);
+        if (std::abs(val.real()) > json_chop_threshold_)
+          js[i][j][0] = val.real();
+        if (std::abs(val.imag()) > json_chop_threshold_)
+          js[i][j][1] = val.imag();
+      }
+    }
+  } else {
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+    #ifdef _WIN32
+      #pragma omp for
+    #else
+      #pragma omp for collapse(2)
+    #endif
+    for (int_t i=0; i < end; i++)
+      for (int_t j=0; j < end; j++) {
+        const auto val = statematrix_(i, j);
+        js[i][j][0] = val.real();
+        js[i][j][1] = val.imag();
+      }
+    }
+  }
+  return js;
 }
 
 //------------------------------------------------------------------------------
@@ -382,6 +436,11 @@ void QubitMatrix<statematrix_t>::set_num_qubits(size_t num_qubits) {
  * CONFIG SETTINGS
  *
  ******************************************************************************/
+
+template <class statematrix_t>
+void QubitMatrix<statematrix_t>::set_json_chop_threshold(double threshold) {
+  json_chop_threshold_ = threshold;
+}
 
 template <class statematrix_t>
 void QubitMatrix<statematrix_t>::set_omp_threads(int n) {

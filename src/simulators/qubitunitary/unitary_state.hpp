@@ -135,8 +135,8 @@ protected:
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 7;
 
-  // Snapshot type key for state snapshot
-  double snapshot_chop_threshold_ = 1e-10;
+  // Threshold for chopping small values to zero in JSON
+  double json_chop_threshold_ = 1e-15;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -222,6 +222,9 @@ void State<statemat_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
 
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 
 
