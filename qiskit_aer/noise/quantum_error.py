@@ -11,8 +11,7 @@ Quantum error class for Qiskit Aer noise model
 
 import numpy as np
 from .aernoiseerror import AerNoiseError
-from .noise_utils import (kraus2instructions, mat_dot, kraus_dot,
-                          mat_kron, kraus_kron, qubits_distinct)
+from .noise_utils import kraus2instructions
 
 
 class QuantumError:
@@ -26,7 +25,7 @@ class QuantumError:
     """
 
     def __init__(self, noise_ops, number_of_qubits=None,
-                 standard_gates=True, threshold=1e-10):
+                 standard_gates=True, precision=12):
         """
         Create a quantum error for a noise model.
 
@@ -36,9 +35,9 @@ class QuantumError:
                                     error. If None this will be determined
                                     automatically (default None).
             standard_gates (bool): Check if input matrices are standard gates.
-            threshold (double): The threshold parameter for testing if
-                                probabilities are normalized and Kraus
-                                operators are unitary (default: 1e-10).
+            precision (int): Number of digits precision for testing if
+                            probabilities are normalized and Kraus operators
+                            are unitary (default: 15).
 
         Additional Information:
             Noise ops may either be specified as list of Kraus operators
@@ -68,15 +67,17 @@ class QuantumError:
         self._noise_circuits = []
         self._noise_probabilities = []
 
+        # Convert iterable input into list
+        noise_ops = list(noise_ops)
         # Check if Kraus
-        if isinstance(noise_ops, (list, tuple)) and isinstance(noise_ops[0], np.ndarray):
+        if isinstance(noise_ops[0], np.ndarray):
             noise_ops = kraus2instructions(noise_ops,
                                            standard_gates=standard_gates,
-                                           threshold=threshold)
-
+                                           precision=precision)
         minimum_qubits = 0
         # Add non-zero probability error circuits to the error
         for circuit, prob in noise_ops:
+            prob = round(prob, precision)
             if prob > 0:
                 self._noise_circuits.append(circuit)
                 self._noise_probabilities.append(prob)
@@ -97,15 +98,15 @@ class QuantumError:
                                 "but number_of_qubits is {}".format(number_of_qubits))
         if len(self._noise_circuits) != len(self._noise_probabilities):
             raise AerNoiseError("Number of error circuits does not match length of probabilities")
-        total_probs = np.sum(self._noise_probabilities)
-        if abs(total_probs - 1) > threshold:
+        total_probs = round(np.sum(self._noise_probabilities), precision)
+        if round(total_probs, precision) != 1:
             raise AerNoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         if len([p for p in self._noise_probabilities if p < 0]) > 0:
             raise AerNoiseError("Probabilities are invalid.")
 
     def __repr__(self):
         """Display QuantumError."""
-        return "QuantumError({})".format(list(zip(self.probabilities, self.circuits)))
+        return "QuantumError({})".format(list(zip(self.circuits, self.probabilities)))
 
     def __str__(self):
         """Print error information."""
@@ -205,14 +206,14 @@ class QuantumError:
                     if name == 'id':
                         # Pass identity operation
                         pass
-                    if (name == 'mat' and last_op['name'] == 'mat' and
+                    if (name == 'unitary' and last_op['name'] == 'unitary' and
                             op['qubits'] == last_op['qubits']):
                         # Combine unitary matrix operations
-                        combined_circuit[-1] = mat_dot(last_op, op)
+                        combined_circuit[-1] = self._compose_unitary(last_op, op)
                     elif (name == 'kraus' and last_op['name'] == 'kraus' and
                           op['qubits'] == last_op['qubits']):
                         # Combine Kraus operations
-                        combined_circuit[-1] = kraus_dot(last_op, op)
+                        combined_circuit[-1] = self._compose_kraus(last_op, op)
                     else:
                         # Append the operation
                         combined_circuit.append(op)
@@ -238,8 +239,12 @@ class QuantumError:
         Additional Information:
             The resulting qauntum error will be defined on a number of
             qubits equal to the sum of both errors. The qubits of the
-            second error will be shifted by the number of qubits in the
-            first error.
+            current error will be shifted by the number of qubits in the
+            second error.
+
+            Example: For two single qubit errors E0 E1, E1.kron(E0) will
+            be a two-qubit error where E0 acts on qubit-0 and E1 acts on
+            qubit-1.
         """
 
         # Error checking
@@ -250,9 +255,9 @@ class QuantumError:
         combined_noise_probabilities = []
 
         # Combine subcircuits and probabilities
-        shift_qubits = self.number_of_qubits
-        for circuit0, prob0 in zip(self._noise_circuits, self._noise_probabilities):
-            for circuit1, prob1 in zip(error._noise_circuits, error._noise_probabilities):
+        shift_qubits = error.number_of_qubits
+        for circuit1, prob1 in zip(self._noise_circuits, self._noise_probabilities):
+            for circuit0, prob0 in zip(error._noise_circuits, error._noise_probabilities):
                 combined_noise_probabilities.append(prob0 * prob1)
 
                 # Shift qubits in circuit1
@@ -270,14 +275,14 @@ class QuantumError:
                     if name == 'id':
                         # Pass identity operation
                         pass
-                    if (name == 'mat' and last_op['name'] == 'mat' and
-                            qubits_distinct(last_op['qubits'], op['qubits'])):
+                    if (name == 'unitary' and last_op['name'] == 'unitary' and
+                            self._qubits_distinct(last_op['qubits'], op['qubits'])):
                         # Combine unitary matrix operations
-                        combined_circuit[-1] = mat_kron(last_op, op)
+                        combined_circuit[-1] = self._kron_unitary(op, last_op)
                     elif (name == 'kraus' and last_op['name'] == 'kraus' and
-                          qubits_distinct(last_op['qubits'], op['qubits'])):
+                          self._qubits_distinct(last_op['qubits'], op['qubits'])):
                         # Combine Kraus operations
-                        combined_circuit[-1] = kraus_kron(last_op, op)
+                        combined_circuit[-1] = self._kron_kraus(op, last_op)
                     else:
                         # Append the operation
                         combined_circuit.append(op)
@@ -289,3 +294,47 @@ class QuantumError:
         noise_ops = zip(combined_noise_circuits,
                         combined_noise_probabilities)
         return QuantumError(noise_ops)
+
+    @staticmethod
+    def _kron_kraus(kraus1, kraus0):
+        """
+        Helper function for kron of two kraus qobj instructions.
+        """
+        qubits = kraus0['qubits'] + kraus1['qubits']
+        params = [np.kron(b, a) for a in kraus0['params']
+                  for b in kraus1['params']]
+        return {'name': 'kraus', 'qubits': qubits, 'params': params}
+
+    @staticmethod
+    def _kron_unitary(unitary1, unitary0):
+        """
+        Helper function for kron of two unitary qobj instructions.
+        """
+        qubits = unitary0['qubits'] + unitary1['qubits']
+        params = np.kron(unitary1['params'], unitary0['params'])
+        return {'name': 'unitary', 'qubits': qubits, 'params': params}
+
+    @staticmethod
+    def _compose_kraus(kraus0, kraus1):
+        qubits0 = kraus0['qubits']
+        qubits1 = kraus1['qubits']
+        if qubits0 != qubits1:
+            raise AerNoiseError("Kraus instructions are on different qubits")
+        params = [np.dot(b, a) for a in kraus0['params']
+                  for b in kraus1['params']]
+        return {'name': 'kraus', 'qubits': qubits0, 'params': params}
+
+    @staticmethod
+    def _compose_unitary(mat0, mat1):
+        qubits0 = mat0['qubits']
+        qubits1 = mat1['qubits']
+        if qubits0 != qubits1:
+            raise AerNoiseError("Unitary instructions are on different qubits")
+        params = np.dot(mat1['params'], mat0['params'])
+        return {'name': 'unitary', 'qubits': qubits0, 'params': params}
+
+    @staticmethod
+    def _qubits_distinct(qubits0, qubits1):
+        """Return true if two lists of qubits are distinct."""
+        joint = qubits0 + qubits1
+        return len(set(joint)) == len(joint)
