@@ -439,6 +439,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
       // qubits however, that will be used instead.
       for (const auto &q : op.qubits) {
         qubit_keys.push_back(std::to_string(q) + std::string(","));
+      }
     } else {
       // for gate operations we use the qubits as specified
       qubit_keys.push_back(op_qubits);
