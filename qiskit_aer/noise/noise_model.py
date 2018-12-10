@@ -216,13 +216,11 @@ class NoiseModel:
         for op in operations:
             if not isinstance(op, str):
                 raise AerNoiseError("Qobj invalid operations.")
-            # Check number of qubits is correct for standard operations
-            self._check_number_of_qubits(error, op)
             if op in self._nonlocal_quantum_errors:
                 qubit_dict = self._nonlocal_quantum_errors[op]
             else:
                 qubit_dict = {}
-            qubits_str = "".join([str(j) for j in qubits])
+            qubits_str = self._qubits2str(qubits)
             if qubits_str in qubit_dict:
                 logger.warning("WARNING: nonlocal error already exists for " +
                                "operation \"{}\" on qubits {}.".format(op, qubits) +

@@ -437,8 +437,9 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
       // but error model may be specified only on single qubits we add
       // each one separately. If a multi-qubit model is found for specified
       // qubits however, that will be used instead.
-      for (const auto &q : op.qubits)
-        qubit_keys.push_back(std::to_string(q));
+      for (const auto &q : op.qubits) {
+        qubit_keys.push_back(std::to_string(q) + std::string(","));
+      }
     } else {
       // for gate operations we use the qubits as specified
       qubit_keys.push_back(op_qubits);

@@ -24,7 +24,6 @@ from numpy.linalg import norm
 
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, compile
 from qiskit_aer import __path__ as main_path
 
 
@@ -83,6 +82,30 @@ class QiskitAerTestCase(unittest.TestCase):
         """
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
+
+    def check_position(self, obj, items, precision=15):
+        """Return position of numeric object in a list."""
+        for pos, item in enumerate(items):
+            # Try numeric difference first
+            try:
+                delta = round(np.linalg.norm(np.array(obj) - np.array(item)),
+                              precision)
+                if delta == 0:
+                    return pos
+            # If objects aren't numeric try direct equality comparison
+            except:
+                try:
+                    if obj == item:
+                        return pos
+                except:
+                    return None
+        return None
+
+    def remove_if_found(self, obj, items, precision=15):
+        """If obj is in list of items, remove first instance"""
+        pos = self.check_position(obj, items)
+        if pos is not None:
+            items.pop(pos)
 
     def is_completed(self, result):
         """Check a Result is completed"""
@@ -252,6 +275,7 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
 
             self._raiseFailure(msg)
 
+
 def _is_ci_fork_pull_request():
     """
     Check if the tests are being run in a CI environment and if it is a pull
@@ -314,7 +338,7 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
         qubits = [qr[i] for i in qubit_indices]
 
         # Choose angles
-        angles = np.random.rand(n_angles)*pi
+        angles = np.random.rand(n_angles) * pi
 
         # Measurement operation
         # In all measure operations, the classical register is not random,

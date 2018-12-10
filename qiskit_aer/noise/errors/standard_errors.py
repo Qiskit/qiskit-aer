@@ -12,26 +12,29 @@ Standard quantum computing error channels for Qiskit Aer.
 import numpy as np
 from itertools import product
 
+from qiskit.quantum_info.operators.pauli import Pauli
 from ..aernoiseerror import AerNoiseError
 from ..quantum_error import QuantumError
-from ..noise_utils import (make_unitary_instruction, qubits_from_mat,
-                           is_identity, standard_gate_unitary)
+from ..noise_utils import make_unitary_instruction
+from ..noise_utils import qubits_from_mat
+from ..noise_utils import canonical_kraus_matrices
+from ..noise_utils import choi2kraus
+from ..noise_utils import standard_gate_unitary
+from ..noise_utils import is_unitary_matrix
+from ..noise_utils import is_identity_matrix
 
-# Temporary try block until qiskit 0.7 is released to stable
-try:
-    from qiskit.quantum_info.operators.pauli import Pauli
-except:
-    Pauli = None.__class__
 
-
-def kraus_error(noise_ops, standard_gates=True, threshold=1e-10):
+def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False,
+                precision=12):
     """Kraus error channel.
 
     Args:
         noise_ops (list[matrix]): Kraus matrices.
         standard_gates (bool): Check if input matrices are standard gates.
-        threshold (double): The threshold parameter for testing if
-                            Kraus operators are unitary (default: 1e-10).
+        canonical_kraus (bool): Convert input Kraus matrices into the
+                                canoical Kraus representation (default: False)
+        precision (int): Number of digits precions in testing if kraus
+                         matrices are unitary (default: 15).
 
     Returns:
         QuantumError: The quantum error object.
@@ -43,12 +46,14 @@ def kraus_error(noise_ops, standard_gates=True, threshold=1e-10):
         raise AerNoiseError("Invalid Kraus error input.")
     if len(noise_ops) == 0:
         raise AerNoiseError("Kraus error noise_ops must not be empty.")
-    return QuantumError([np.array(a, dtype=complex) for a in noise_ops],
-                        standard_gates=standard_gates,
-                        threshold=1e-10)
+    kraus_ops = [np.array(a, dtype=complex) for a in noise_ops]
+    if canonical_kraus:
+        kraus_ops = canonical_kraus_matrices(kraus_ops)
+    return QuantumError(kraus_ops, standard_gates=standard_gates,
+                        precision=precision)
 
 
-def mixed_unitary_error(noise_ops, number_of_qubits=None, threshold=1e-10):
+def mixed_unitary_error(noise_ops, standard_gates=True, precision=12):
     """
     Mixed unitary quantum error channel.
 
@@ -58,7 +63,9 @@ def mixed_unitary_error(noise_ops, number_of_qubits=None, threshold=1e-10):
 
     Args:
         noise_ops (list[pair[matrix, double]]): unitary error matricies.
-        threshold (double): threshold for checking if unitary is identity.
+        standard_gates (bool): Check if input matrices are standard gates.
+        precision (int): Number of digits precions in probabilities and
+                         testing if matrices are unitary (default: 15).
 
     Returns:
         QuantumError: The quantum error object.
@@ -70,7 +77,9 @@ def mixed_unitary_error(noise_ops, number_of_qubits=None, threshold=1e-10):
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
         raise AerNoiseError("Input noise ops is not a list.")
-    noise_ops = list(noise_ops)
+
+    # Convert to numpy arrays
+    noise_ops = [(np.array(op, dtype=complex), p) for op, p in noise_ops]
     if len(noise_ops) == 0:
         raise AerNoiseError("Input noise list is empty.")
 
@@ -78,36 +87,47 @@ def mixed_unitary_error(noise_ops, number_of_qubits=None, threshold=1e-10):
     prob_identity = 0.
     instructions = []
     instructions_probs = []
-    qubits = list(range(qubits_from_mat(noise_ops[0][0])))
+    num_qubits = qubits_from_mat(noise_ops[0][0])
+    qubits = list(range(num_qubits))
     for unitary, prob in noise_ops:
-        if is_identity(unitary, threshold):
+        # Check unitary
+        if qubits_from_mat(unitary) != num_qubits:
+            raise AerNoiseError("Input matrices different size.")
+        if not is_unitary_matrix(unitary, precision):
+            raise AerNoiseError("Input matrix is not unitary.")
+        prob = round(prob, precision)
+        if is_identity_matrix(unitary, precision):
             prob_identity += prob
         else:
-            instructions.append(make_unitary_instruction(unitary, qubits, threshold))
+            instr = make_unitary_instruction(unitary, qubits,
+                                             standard_gates=standard_gates,
+                                             precision=precision)
+            instructions.append(instr)
             instructions_probs.append(prob)
-    if prob_identity > threshold:
+    if prob_identity > 0:
         instructions.append([{"name": "id", "qubits": [0]}])
         instructions_probs.append(prob_identity)
 
     return QuantumError(zip(instructions, instructions_probs),
-                        number_of_qubits=number_of_qubits)
+                        precision=precision)
 
 
-def coherent_unitary_error(unitary, threshold=1e-10):
+def coherent_unitary_error(unitary, precision=12):
     """
     Coherent unitary quantum error channel.
 
     Args:
         unitary (matrix like): unitary error matrix.
-        threshold (double): threshold for checking if unitary is identity.
+        precision (int): Number of digits precions in testing if kraus
+                         matrices are unitary (default: 15).
 
     Returns:
         QuantumError: The quantum error object.
     """
-    return mixed_unitary_error([(unitary, 1)], threshold)
+    return mixed_unitary_error([(unitary, 1)], precision)
 
 
-def pauli_error(noise_ops, standard_gates=False):
+def pauli_error(noise_ops, standard_gates=False, precision=12):
     """
     Pauli quantum error channel.
 
@@ -120,6 +140,7 @@ def pauli_error(noise_ops, standard_gates=False):
         standard_gates (bool): if True return the operators as standard qobj
                                Pauli gate instructions. If false return as
                                unitary matrix qobj instructions. (Default: False)
+        precision (int): Number of digits precions in probabilities (default: 15).
 
     Returns:
         QuantumError: The quantum error object.
@@ -150,13 +171,13 @@ def pauli_error(noise_ops, standard_gates=False):
 
     # Compute Paulis as single matrix
     if standard_gates is False:
-        return _pauli_error_unitary(noise_ops, num_qubits)
+        return _pauli_error_unitary(noise_ops, num_qubits, precision)
     # Compute as qobj Pauli gate instructions
     else:
-        return _pauli_error_standard(noise_ops, num_qubits)
+        return _pauli_error_standard(noise_ops, num_qubits, precision)
 
 
-def _pauli_error_unitary(noise_ops, num_qubits):
+def _pauli_error_unitary(noise_ops, num_qubits, precision=12):
     """Return Pauli error as unitary qobj instructions."""
     def single_pauli(s):
         if s == 'I':
@@ -169,10 +190,10 @@ def _pauli_error_unitary(noise_ops, num_qubits):
             return standard_gate_unitary('z')
 
     prob_identity = 0.0
-    pauli_mats = []
-    pauli_qubits = []
+    pauli_circs = []
     pauli_probs = []
     for pauli, prob in noise_ops:
+        prob = round(prob, precision)
         if prob > 0:
             # Pauli strings go from qubit-0 on left to qubit-N on right
             # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
@@ -192,28 +213,23 @@ def _pauli_error_unitary(noise_ops, num_qubits):
             if mat is 1:
                 prob_identity += prob
             else:
-                pauli_mats.append(mat)
+                circ = make_unitary_instruction(mat, qubits,
+                                                standard_gates=False,
+                                                precision=precision)
+                pauli_circs.append(circ)
                 pauli_probs.append(prob)
-                pauli_qubits.append(qubits)
+    prob_identity = round(prob_identity, 15)
     if prob_identity > 0:
         pauli_probs.append(prob_identity)
-        pauli_mats.append(np.eye(2))
-        pauli_qubits.append([0])
+        pauli_circs.append([{"name": "id", "qubits": [0]}])
 
-    error = mixed_unitary_error(zip(pauli_mats, pauli_probs),
-                                number_of_qubits=num_qubits)
-    # Update Pauli qubits
-    new_circuits = []
-    for circ, qubits in zip(error._noise_circuits, pauli_qubits):
-        circ[0]["qubits"] = qubits
-        new_circuits.append(circ)
-    error._noise_circuits = new_circuits
-    error._number_of_qubits = num_qubits
-
+    error = QuantumError(zip(pauli_circs, pauli_probs),
+                         number_of_qubits=num_qubits,
+                         precision=precision)
     return error
 
 
-def _pauli_error_standard(noise_ops, num_qubits):
+def _pauli_error_standard(noise_ops, num_qubits, precision=12):
     """Return Pauli error as standard Pauli gate qobj instructions."""
 
     def single_pauli(s):
@@ -229,6 +245,7 @@ def _pauli_error_standard(noise_ops, num_qubits):
     pauli_circuits = []
     pauli_probs = []
     for pauli, prob in noise_ops:
+        prob = round(prob, precision)
         if prob > 0:
             # Pauli strings go from qubit-0 on left to qubit-N on right
             # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
@@ -250,16 +267,18 @@ def _pauli_error_standard(noise_ops, num_qubits):
             else:
                 pauli_circuits.append(circuit)
                 pauli_probs.append(prob)
+    prob_identity = round(prob_identity, precision)
     if prob_identity > 0:
         pauli_circuits.append([{"name": "id", "qubits": [0]}])
         pauli_probs.append(prob_identity)
 
     error = QuantumError(zip(pauli_circuits, pauli_probs),
-                         number_of_qubits=num_qubits)
+                         number_of_qubits=num_qubits,
+                         precision=precision)
     return error
 
 
-def depolarizing_error(prob, num_qubits, standard_gates=False):
+def depolarizing_error(prob, num_qubits, standard_gates=False, precision=12):
     """
     Depolarizing quantum error channel.
 
@@ -269,6 +288,7 @@ def depolarizing_error(prob, num_qubits, standard_gates=False):
         standard_gates (bool): if True return the operators as standard qobj
                                Pauli gate instructions. If false return as
                                unitary matrix qobj instructions. (Default: False)
+        precision (int): Number of digits precions in QuantumError (default: 15).
 
     Returns:
         QuantumError: The quantum error object.
@@ -282,14 +302,15 @@ def depolarizing_error(prob, num_qubits, standard_gates=False):
     probs = ((4 ** num_qubits) - 1) * [prob / 4 ** num_qubits]
     # Add identity probability of identity component
     probs = [1.0 - np.sum(probs)] + probs
-
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
     paulis = ["".join(tup) for tup in product(['I', 'X', 'Y', 'Z'], repeat=num_qubits)]
-    return pauli_error(zip(paulis, probs), standard_gates=standard_gates)
+    return pauli_error(zip(paulis, probs), standard_gates=standard_gates,
+                       precision=precision)
 
 
-def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
+def thermal_relaxation_error(t1, t2, time, excited_state_population=0,
+                             precision=12):
     """
     Single-qubit thermal relaxation quantum error channel.
     TODO: check kraus form
@@ -300,6 +321,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         gate_time (double >= 0): the time period for relaxation error.
         excited_state_population (double): the population of |1> state at
                                            equilibrium (default: 0).
+        precision (int): Number of digits precions in QuantumError (default: 15).
 
     Returns:
         QuantumError: a quantum error object for a noise model.
@@ -351,10 +373,8 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
                          [0, 0, p0 * pr, 0],
                          [p2, 0, 0, 1 - p0 * pr]])
         # Find canonical Kraus operators by eigendecomposition of Choi-matrix
-        w, v = np.linalg.eigh(choi)
-        kraus = [np.sqrt(val) * vec.reshape((2, 2), order='F')
-                 for val, vec in zip(w, v.T) if val > 0]
-        return QuantumError(kraus)
+        kraus = choi2kraus(choi, precision=precision)
+        return QuantumError(kraus, precision=precision)
     else:
         # If T_2 < T_1 we can express this channel as a probabilistic
         # mixture of reset operations and unitary errors:
@@ -364,16 +384,18 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
             [{'name': 'reset', 'qubits': [0]}],
             [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]]
         # Probability
-        p_reset0 = pr * p0
-        p_reset1 = pr * p1
-        p_z = 0.5 * (1 - pr) * (1 - np.exp(-0.5 * (rate2 - rate1) * time))
-        p_identity = 1 - p_z - p_reset0 - p_reset1
+        p_reset0 = round(pr * p0, precision)
+        p_reset1 = round(pr * p1, precision)
+        p_z = round(0.5 * (1 - pr) * (1 - np.exp(-0.5 * (rate2 - rate1) * time)), precision)
+        p_identity = round(1 - p_z - p_reset0 - p_reset1, precision)
         probabilities = [p_identity, p_z, p_reset0, p_reset1]
-        return QuantumError(zip(circuits, probabilities))
+        return QuantumError(zip(circuits, probabilities), precision=precision)
 
 
 def phase_amplitude_damping_error(param_amp, param_phase,
-                                  excited_state_population=0):
+                                  excited_state_population=0,
+                                  canonical_kraus=True,
+                                  precision=12):
     """
     Single-qubit combined phase and amplitude damping quantum error channel.
 
@@ -382,26 +404,33 @@ def phase_amplitude_damping_error(param_amp, param_phase,
         param_phase (double): the phase damping error parameter.
         excited_state_population (double): the population of |1> state at
                                            equilibrium (default: 0).
+        canonical_kraus (bool): Convert input Kraus matrices into the
+                                canoical Kraus representation (default: True)
+        precision (int): Number of digits precions in QuantumError (default: 15).
 
     Returns:
         QuantumError: a quantum error object for a noise model.
 
     Additional information:
-        The single-qubit amplitude damping channel is described by the
-        following Kraus matrices:
+        The single-qubit combined phase and amplitude damping channel is
+        described by the following Kraus matrices:
             A0 = sqrt(1 - p1) * [[1, 0],
                                  [0, sqrt(1 - a - b)]]
             A1 = sqrt(1 - p1) * [[0, sqrt(a)],
                                  [0, 0]]
-            A2 = sqrt(p1) * [[sqrt(1 - a - b), 0],
-                             [0, 0]]
-            A3 = sqrt(p1) * [[0, 0],
+            A2 = sqrt(1 - p1) * [[0, 0],
+                                  [0, sqrt(b)]]
+            B0 = sqrt(p1) * [[sqrt(1 - a - b), 0],
+                             [0, 1]]
+            B1 = sqrt(p1) * [[0, 0],
                              [sqrt(a), 0]]
-            A4 = [[0, 0],
-                  [0, sqrt(b)]]
+            B2 = sqrt(p1) * [[sqrt(b), 0],
+                             [0, 0]]
+            where a = param_amp, b = param_phase, p1 = excited_state_population
         The equilibrium state after infinitely many applications of the
         channel is:
-            rho = [[1 - p1]], [0, p1]]
+            rho = [[1 - p1, 0]],
+                   [0, p1]]
     """
 
     if param_amp < 0:
@@ -422,15 +451,22 @@ def phase_amplitude_damping_error(param_amp, param_phase,
     c0 = np.sqrt(1 - excited_state_population)
     c1 = np.sqrt(excited_state_population)
     par = np.sqrt(1 - param_amp - param_phase)
+    # Damping ops to 0 state
     A0 = c0 * np.array([[1, 0], [0, par]], dtype=complex)
     A1 = c0 * np.array([[0, np.sqrt(param_amp)], [0, 0]], dtype=complex)
-    A2 = c1 * np.array([[par, 0], [0, 0]], dtype=complex)
-    A3 = c1 * np.array([[0, 0], [np.sqrt(param_amp), 0]], dtype=complex)
-    A4 = np.array([[0, 0], [0, np.sqrt(param_phase)]], dtype=complex)
-    return QuantumError((A0, A1, A2, A3, A4))
+    A2 = c0 * np.array([[0, 0], [0, np.sqrt(param_phase)]], dtype=complex)
+    # Damping ops to 1 state
+    B0 = c1 * np.array([[par, 0], [0, 1]], dtype=complex)
+    B1 = c1 * np.array([[0, 0], [np.sqrt(param_amp), 0]], dtype=complex)
+    B2 = c1 * np.array([[np.sqrt(param_phase), 0], [0, 0]], dtype=complex)
+    # Select non-zero ops
+    noise_ops = [a for a in [A0, A1, A2, B0, B1, B2]
+                 if round(np.linalg.norm(a), precision) > 0]
+    return kraus_error(noise_ops, canonical_kraus=canonical_kraus, precision=precision)
 
 
-def amplitude_damping_error(param_amp, excited_state_population=0):
+def amplitude_damping_error(param_amp, excited_state_population=0,
+                            canonical_kraus=True, precision=12):
     """
     Single-qubit generalized amplitude damping quantum error channel.
 
@@ -438,42 +474,64 @@ def amplitude_damping_error(param_amp, excited_state_population=0):
         param_amp (double): the amplitude damping parameter.
         excited_state_population (double): the population of |1> state at
                                            equilibrium (default: 0).
+        canonical_kraus (bool): Convert input Kraus matrices into the
+                                canoical Kraus representation (default: True)
+        precision (int): Number of digits precions in QuantumError (default: 15).
 
     Returns:
         QuantumError: a quantum error object for a noise model.
 
     Additional information:
-        The single-qubit amplitude damping channel is described by the
-        following Kraus matrices:
-            A0 = sqrt(1 - p1) * [[1, 0], [0, sqrt(1 - a)]]
-            A1 = sqrt(1 - p1) * [[0, sqrt(a)], [0, 0]]
-            A2 = sqrt(p1) * [[sqrt(1 - a), 0], [0, 0]]
-            A3 = sqrt(p1) * [[0, 0], [sqrt(a), 0]]
+        The single-qubit amplitude damping channel is
+        described by the following Kraus matrices:
+            A0 = sqrt(1 - p1) * [[1, 0],
+                                 [0, sqrt(1 - a)]]
+            A1 = sqrt(1 - p1) * [[0, sqrt(a)],
+                                 [0, 0]]
+            B0 = sqrt(p1) * [[sqrt(1 - a), 0],
+                             [0, 1]]
+            B1 = sqrt(p1) * [[0, 0],
+                             [sqrt(a), 0]]
+            where a = param_amp, p1 = excited_state_population
         The equilibrium state after infinitely many applications of the
         channel is:
-            rho = [[1 - p1]], [0, p1]]
+            rho = [[1 - p1, 0]],
+                   [0, p1]]
     """
     return phase_amplitude_damping_error(param_amp, 0,
-                                         excited_state_population)
+                                         excited_state_population=excited_state_population,
+                                         canonical_kraus=canonical_kraus,
+                                         precision=precision)
 
 
-def phase_damping_error(param_phase):
+def phase_damping_error(param_phase, canonical_kraus=True, precision=12):
     """
     Single-qubit combined phase and amplitude damping quantum error channel.
 
     Args:
         param_phase (double): the phase damping parameter.
+        canonical_kraus (bool): Convert input Kraus matrices into the
+                                canoical Kraus representation (default: True)
+        precision (int): Number of digits precions in QuantumError (default: 15).
 
     Returns:
         QuantumError: a quantum error object for a noise model.
 
     Additional information:
-        The single-qubit combined phase and amplitude damping channel
-        with phase damping parameter 'a', and amplitude damping param 'b'
-        is described by the following Kraus matrices:
-            A0 = [[1, 0], [0, sqrt(1 - a - b)]]
-            A1 = [[0, 0], [0, sqrt(a)]]
-            A2 = [[0, sqrt(b)], [0, 0]]
+        The single-qubit combined phase and amplitude damping channel is
+        described by the following Kraus matrices:
+            A0 = [[1, 0],
+                  [0, sqrt(1 - b)]]
+            A2 = [[0, 0],
+                  [0, sqrt(b)]]
+            where a = param_amp, b = param_phase, p1 = excited_state_population
+        The equilibrium state after infinitely many applications of the
+        channel is:
+            rho = [[rho[0, 0], 0]],
+                   [0, rho[1, 1]]]
     """
 
-    return phase_amplitude_damping_error(0, param_phase, 0)
+    return phase_amplitude_damping_error(0, param_phase,
+                                         excited_state_population=0,
+                                         canonical_kraus=canonical_kraus,
+                                         precision=precision)
