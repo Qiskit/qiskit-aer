@@ -17,6 +17,18 @@ import numpy as np
 from qiskit.qobj import QobjItem
 
 
+def qobj_append_item(qobj, exp_index, item):
+    """Append a QobjItem to a Qobj experiment.
+
+    Args:
+        qobj (Qobj): a Qobj object
+        exp_index (int): The index of the experiment in the qobj
+        item (QobjItem): The Qobj item to insert
+    """
+    qobj.experiments[exp_index].instructions.append(item)
+    return qobj
+
+
 def qobj_insert_item(qobj, exp_index, item, pos):
     """Insert a QobjItem into a Qobj experiment.
 

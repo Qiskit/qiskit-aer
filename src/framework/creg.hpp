@@ -216,10 +216,12 @@ void ClassicalRegister::apply_roerror(const Operations::Op &op, RngEngine &rng) 
   // Get values of bits as binary string
   // We iterate from the end of the list of memory bits
   for (auto it = op.memory.rbegin(); it < op.memory.rend(); ++it) {
-    mem_str.push_back(creg_memory_[*it]);
+    auto bit = *it;
+    mem_str.push_back(creg_memory_[creg_memory_.size() - 1 - bit]);
   }
   auto mem_val = std::stoull(mem_str, nullptr, 2);
-  auto noise_str = Utils::int2string(rng.rand_int(op.probs[mem_val]), 2, op.memory.size());
+  auto outcome = rng.rand_int(op.probs[mem_val]);
+  auto noise_str = Utils::int2string(outcome, 2, op.memory.size());
   for (size_t pos = 0; pos < op.memory.size(); ++pos) {
     auto bit = op.memory[pos];
     creg_memory_[creg_memory_.size() - 1 - bit] = noise_str[noise_str.size() - 1 - pos];

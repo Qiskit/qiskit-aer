@@ -10,59 +10,77 @@ import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
-from qiskit_aer.noise import NoiseModel, QuantumError, ReadoutError
+from qiskit_aer.noise import NoiseModel, QuantumError
 from qiskit_aer.backends import QasmSimulator
 from qiskit_aer.noise.errors.standard_errors import pauli_error
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit_aer.utils.qobj_utils import qobj_measure_item
+from qiskit_aer.utils.qobj_utils import qobj_append_item
 
 
 class TestNoise(common.QiskitAerTestCase):
     """Testing noise model"""
 
-    def test_readout_error_specific_qubit_50percent(self):
-        """Test 50% readout error on qubit 0"""
+    def test_readout_error_qubit0(self):
+        """Test readout error on qubit 0 for bell state"""
 
-        # Test circuit: ideal outcome "01"
+        # Test circuit: ideal bell state
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.x(qr[0])
-        circuit.measure(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        # Ensure qubit 0 is measured before qubit 1
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
         backend = QasmSimulator()
 
-        # 25% readout error on qubit-1 only.
-        error = ReadoutError([[0.75, 0.25], [0.25, 0.75]])
+        # Asymetric readout error on qubit-0 only
+        probs_given0 = [0.9, 0.1]
+        probs_given1 = [0.3, 0.7]
         noise_model = NoiseModel()
-        noise_model.add_readout_error(error, [1])
+        noise_model.add_readout_error([probs_given0, probs_given1], [0])
 
-        shots = 1000
-        # target = {'01': 3 * shots / 4, '11': shots / 4}
-        target = {'0x1': 3 * shots / 4, '0x3': shots / 4}
+        shots = 2000
+        target = {'0x0': probs_given0[0] * shots / 2,
+                  '0x1': probs_given0[1] * shots / 2,
+                  '0x2': probs_given1[0] * shots / 2,
+                  '0x3': probs_given1[1] * shots / 2}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    def test_readout_error_specific_qubit_25percent(self):
-        """Test 50% readout error on qubit 1"""
+    def test_readout_error_qubit1(self):
+        """Test readout error on qubit 1 for bell state"""
 
-        # Test circuit: ideal outcome "01"
+        # Test circuit: ideal bell state
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.x(qr[0])
-        circuit.measure(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        # Ensure qubit 0 is measured before qubit 1
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
         backend = QasmSimulator()
 
-        # 25% readout error on qubit-1 only.
-        error = ReadoutError([[0.75, 0.25], [0.25, 0.75]])
+        # Asymetric readout error on qubit-0 only
+        probs_given0 = [0.9, 0.1]
+        probs_given1 = [0.3, 0.7]
         noise_model = NoiseModel()
-        noise_model.add_readout_error(error, [1])
+        noise_model.add_readout_error([probs_given0, probs_given1], [1])
 
-        shots = 1000
-        # target = {'01': 3 * shots / 4, '11': shots / 4}
-        target = {'0x1': 3 * shots / 4, '0x3': shots / 4}
+        shots = 2000
+        target = {'0x0': probs_given0[0] * shots / 2,
+                  '0x1': probs_given1[0] * shots / 2,
+                  '0x2': probs_given0[1] * shots / 2,
+                  '0x3': probs_given1[1] * shots / 2}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
@@ -72,41 +90,78 @@ class TestNoise(common.QiskitAerTestCase):
     def test_readout_error_all_qubit(self):
         """Test 100% readout error on all qubits"""
 
-        # Test circuit: ideal outcome "01"
+        # Test circuit: ideal bell state
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.x(qr[0])
-        circuit.measure(qr, cr)
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        # Ensure qubit 0 is measured before qubit 1
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[1])
         backend = QasmSimulator()
 
-        # 100% readout error on both qubits
-        error = ReadoutError([[0, 1], [1, 0]])
+        # Asymetric readout error on qubit-0 only
+        probs_given0 = [0.9, 0.1]
+        probs_given1 = [0.3, 0.7]
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_readout_error(error)
+        noise_model.add_all_qubit_readout_error([probs_given0, probs_given1])
 
-        shots = 100
-        # target = {'10': shots}
-        target = {'0x2': shots}
+        # Expected counts
+        shots = 2000
+        p00 = 0.5 * (probs_given0[0] ** 2 + probs_given1[0] ** 2)
+        p01 = 0.5 * (probs_given0[0] * probs_given0[1] + probs_given1[0] * probs_given1[1])
+        p10 = 0.5 * (probs_given0[0] * probs_given0[1] + probs_given1[0] * probs_given1[1])
+        p11 = 0.5 * (probs_given0[1] ** 2 + probs_given1[1] ** 2)
+        target = target = {'0x0': p00 * shots, '0x1': p01 * shots,
+                           '0x2': p10 * shots, '0x3': p11 * shots}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
-        self.compare_counts(result, [circuit], [target], delta=0)
+        self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-        # asymetric readout error on both qubits (always readout 0)
-        error = ReadoutError([[1, 0], [1, 0]])
+    def test_readout_error_correlated_2qubit(self):
+        """Test a correlated two-qubit readout error"""
+        # Test circuit: prepare all plus state
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        circuit.barrier(qr)
+        # We will manually add a correlated measure operation to
+        # the compiled qobj
+        backend = QasmSimulator()
+
+        # Correlated 2-qubit readout error
+        probs_given00 = [0.3, 0, 0, 0.7]
+        probs_given01 = [0, 0.6, 0.4, 0]
+        probs_given10 = [0, 0, 1, 0]
+        probs_given11 = [0.1, 0, 0, 0.9]
+        probs_noise = [probs_given00, probs_given01, probs_given10, probs_given11]
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_readout_error(error)
+        noise_model.add_readout_error(probs_noise, [0, 1])
 
-        shots = 100
-        # target = {'00': shots}
-        target = {'0x0': shots}
+        # Expected counts
+        shots = 2000
+        probs_ideal = [0.25, 0.25, 0.25, 0.25]
+        p00 = sum([ideal * noise[0] for ideal, noise in zip(probs_ideal, probs_noise)])
+        p01 = sum([ideal * noise[1] for ideal, noise in zip(probs_ideal, probs_noise)])
+        p10 = sum([ideal * noise[2] for ideal, noise in zip(probs_ideal, probs_noise)])
+        p11 = sum([ideal * noise[3] for ideal, noise in zip(probs_ideal, probs_noise)])
+        target = {'0x0': p00 * shots, '0x1': p01 * shots,
+                  '0x2': p10 * shots, '0x3': p11 * shots}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
+        # Add measure to qobj
+        item = qobj_measure_item([0, 1], [0, 1])
+        qobj_append_item(qobj, 0, item)
+        # Execute
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
-        self.compare_counts(result, [circuit], [target], delta=0)
+        self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     def test_reset_error_specific_qubit_50percent(self):
         """Test 50% perecent reset error on qubit-0"""

@@ -408,60 +408,65 @@ class NoiseModel:
 
         return {"errors": error_list, "x90_gates": self._x90_gates}
 
-    def from_dict(self, noise_model):
+    @staticmethod
+    def from_dict(noise_dict):
         """
         Load NoiseModel from a dictionary.
 
         Returns:
             NoiseModel: the noise model.
         """
-        # Reset noise model to empty state
-        self.reset()
+        # Return noise model
+        noise_model = NoiseModel()
 
         # Set X90 gates
-        self.set_x90_single_qubit_gates(noise_model.get('x90_gates', []))
+        noise_model.set_x90_single_qubit_gates(noise_dict.get('x90_gates', []))
 
         # Get error terms
-        errors = noise_model.get('errors', [])
+        errors = noise_dict.get('errors', [])
 
         for error in errors:
             error_type = error['type']
-            noise_ops = tuple(zip(error['probabilities'], error['instructions']))
-            operations = error['operations']
-            all_gate_qubits = error.get('gate_qubits', None)
-            all_noise_qubits = error.get('noise_qubits', None)
 
             # Add QuantumError
             if error_type is 'qerror':
+                noise_ops = tuple(zip(error['instructions'], error['probabilities']))
+                operations = error['operations']
+                all_gate_qubits = error.get('gate_qubits', None)
+                all_noise_qubits = error.get('noise_qubits', None)
                 qerror = QuantumError(noise_ops)
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Load non-local quantum error
                         if all_noise_qubits is not None:
                             for noise_qubits in all_noise_qubits:
-                                self.add_nonlocal_quantum_error(qerror,
-                                                                operations,
-                                                                gate_qubits,
-                                                                noise_qubits)
+                                noise_model.add_nonlocal_quantum_error(qerror,
+                                                                       operations,
+                                                                       gate_qubits,
+                                                                       noise_qubits)
                         # Add local quantum error
                         else:
-                            self.add_quantum_error(qerror, operations, gate_qubits)
+                            noise_model.add_quantum_error(qerror, operations, gate_qubits)
                 else:
                     # Add all-qubit quantum error
-                    self.add_all_qubit_quantum_error(qerror, operations)
+                    noise_model.add_all_qubit_quantum_error(qerror, operations)
+
             # Add ReadoutError
             elif error_type is 'roerror':
-                roerror = ReadoutError(noise_ops)
+                probabilities = error['probabilities']
+                all_gate_qubits = error.get('gate_qubits', None)
+                roerror = ReadoutError(probabilities)
                 # Add local readout error
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
-                        self.add_readout_error(roerror, gate_qubits)
+                        noise_model.add_readout_error(roerror, gate_qubits)
                 # Add all-qubit readout error
                 else:
-                    self.add_all_qubit_readout_error(roerror)
+                    noise_model.add_all_qubit_readout_error(roerror)
             # Invalid error type
             else:
                 raise AerNoiseError("Invalid error type: {}".format(error_type))
+        return noise_model
 
     def _check_number_of_qubits(self, error, operation):
         """
