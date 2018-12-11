@@ -299,9 +299,10 @@ def depolarizing_error(prob, num_qubits, standard_gates=False, precision=12):
 
     # Rescale completely depolarizing channel error probs
     # with the identity component removed
-    probs = ((4 ** num_qubits) - 1) * [prob / 4 ** num_qubits]
-    # Add identity probability of identity component
-    probs = [1.0 - np.sum(probs)] + probs
+    num_terms = 4 ** num_qubits  # terms in completely depolarizing channel
+    prob_error = round(prob / num_terms, precision)
+    prob_iden = 1 - (num_terms - 1) * prob_error  # subtract off non-identity terms
+    probs = [prob_iden] + (num_terms - 1) * [prob_error]
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
     paulis = ["".join(tup) for tup in product(['I', 'X', 'Y', 'Z'], repeat=num_qubits)]
@@ -360,14 +361,14 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0,
     else:
         rate2 = 2 / t2 - rate1
     # Relaxation probabilities
-    pr = 1 - np.exp(-rate1 * time)
+    pr = round(1 - np.exp(-rate1 * time), precision)
     p0 = 1 - excited_state_population
     p1 = excited_state_population
 
     if t2 > t1:
         # If T_2 > T_1 we must express this as a Kraus channel
         # We start with the Choi-matrix representation:
-        p2 = np.exp(-0.5 * (rate1 + rate2) * time)
+        p2 = round(np.exp(-0.5 * (rate1 + rate2) * time), precision)
         choi = np.array([[1 - p1 * pr, 0, 0, p2],
                          [0, p1 * pr, 0, 0],
                          [0, 0, p0 * pr, 0],

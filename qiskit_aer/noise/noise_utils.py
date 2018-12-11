@@ -389,7 +389,7 @@ def kraus2choi(kraus_ops):
 def choi2kraus(choi, precision=12):
     """Convert a Choi matrix to canonical Kraus matrices"""
     # Compute eigensystem of Choi matrix
-    w, v = np.linalg.eigh(choi)
+    w, v = np.linalg.eig(choi)
     kraus = []
     for val, vec in zip(w, v.T):
         val = round(val, precision)

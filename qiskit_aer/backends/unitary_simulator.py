@@ -63,8 +63,8 @@ class UnitarySimulator(AerBackend):
         2. No measurements or reset
         """
         if qobj.config.shots != 1:
-            logger.warning("UnitarySimulator only supports 1 shot. "
-                           "Setting shots=1.")
+            logger.info("UnitarySimulator only supports 1 shot. "
+                        "Setting shots=1.")
             qobj.config.shots = 1
         for experiment in qobj.experiments:
             # Check for measure or reset operations
@@ -75,8 +75,8 @@ class UnitarySimulator(AerBackend):
                     raise AerSimulatorError("UnitarySimulator: circuit contains reset.")
             # Set shots to 1
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.warning("UnitarySimulator only supports 1 shot. "
-                               "Setting shots=1 for circuit %s.", experiment.header.name)
+                logger.info("UnitarySimulator only supports 1 shot. "
+                            "Setting shots=1 for circuit %s.", experiment.header.name)
                 experiment.config.shots = 1
             # Set memory slots to 0
             if getattr(experiment.config, 'memory_slots', 0) != 0:

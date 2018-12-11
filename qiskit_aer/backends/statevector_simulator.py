@@ -61,12 +61,12 @@ class StatevectorSimulator(AerBackend):
         This forces the simulation to execute with shots=1. 
         """
         if qobj.config.shots != 1:
-            logger.warning("Statevector simulator only supports 1 shot. "
-                           "Setting shots=1.")
+            logger.info("Statevector simulator only supports 1 shot. "
+                        "Setting shots=1.")
             qobj.config.shots = 1
         for experiment in qobj.experiments:
             # Set shots to 1
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.warning("statevector simulator only supports 1 shot. "
-                               "Setting shots=1 for circuit %s.", experiment.header.name)
+                logger.info("statevector simulator only supports 1 shot. "
+                            "Setting shots=1 for circuit %s.", experiment.header.name)
                 experiment.config.shots = 1
