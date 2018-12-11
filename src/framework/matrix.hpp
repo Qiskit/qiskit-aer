@@ -236,6 +236,7 @@ public:
   size_t GetRows() const;    // gives the number of rows
   size_t GetLD() const;      // gives the leading dimension -- number of rows
   size_t size() const;       // gives the size of the underlying vector
+  bool empty() const;        // Return true if size == 0;
   void resize(size_t row, size_t col); // sets the size of the underlying vector
   void SetOutputStyle(enum OutputStyle outputstyle); // sets the style the
                                                      // matrix is display by <<
@@ -491,6 +492,10 @@ template <class T> inline size_t matrix<T>::GetLD() const {
 template <class T> inline size_t matrix<T>::size() const {
   // returns the size of the underlying vector
   return size_;
+}
+template <class T> inline bool matrix<T>::empty() const {
+  // returns the size of the underlying vector
+  return (size() == 0);
 }
 template <class T> inline T *matrix<T>::GetMat() const {
   // returns the ptr for the matrix data

@@ -19,6 +19,21 @@ namespace Simulator {
 //=========================================================================
 
 class StatevectorController : public Base::Controller {
+public:
+  //-----------------------------------------------------------------------
+  // Base class config override
+  //-----------------------------------------------------------------------
+  
+  // Load Controller, State and Data config from a JSON
+  // config settings will be passed to the State and Data classes
+  // Allowed config options:
+  // - "initial_statevector: complex_vector"
+  // Plus Base Controller config options
+  virtual void set_config(const json_t &config) override;
+
+  // Clear the current config
+  void virtual clear_config() override;
+
 private:
 
   //-----------------------------------------------------------------------
@@ -31,14 +46,41 @@ private:
                                  uint_t shots,
                                  uint_t rng_seed,
                                  int num_threads_state) const override;
+
+  //-----------------------------------------------------------------------
+  // Custom initial state
+  //-----------------------------------------------------------------------        
+  cvector_t initial_state_;
 };
 
 //=========================================================================
 // Implementations
 //=========================================================================
 
+
 //-------------------------------------------------------------------------
-// Base class override
+// Config
+//-------------------------------------------------------------------------
+
+void StatevectorController::set_config(const json_t &config) {
+  // Set base controller config
+  Base::Controller::set_config(config);
+
+  //Add custom initial state
+  if (JSON::get_value(initial_state_, "initial_statevector", config)) {
+    // Check initial state is normalized
+    if (!Utils::is_unit_vector(initial_state_, 1e-10))
+      throw std::runtime_error("StatevectorController: initial_statevector is not a unit vector");
+  }
+}
+
+void StatevectorController::clear_config() {
+  Base::Controller::clear_config();
+  initial_state_ = cvector_t();
+}
+
+//-------------------------------------------------------------------------
+// Run circuit
 //-------------------------------------------------------------------------
 
 OutputData StatevectorController::run_circuit(const Circuit &circ,
@@ -54,9 +96,20 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
     QubitVector::State<>().validate_circuit_except(circ);
   }
 
+  // Check for custom initial state, and if so check it matches num qubits
+  if (!initial_state_.empty()) {
+    if (initial_state_.size() != 1ULL << circ.num_qubits) {
+      uint_t num_qubits(std::log2(initial_state_.size()));
+      std::stringstream msg;
+      msg << "StatevectorController: " << num_qubits << "-qubit initial state ";
+      msg << "cannot be used for a " << circ.num_qubits << "-qubit circuit.";
+      throw std::runtime_error(msg.str());
+    }
+  }
+
   // Initialize statevector
   QubitVector::State<> state;
-  state.set_config(Base::Controller::state_config_);
+  state.set_config(Base::Controller::config_);
   state.set_available_threads(num_threads_state);
   
   // Rng engine
@@ -65,10 +118,13 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::data_config_);
+  data.set_config(Base::Controller::config_);
   
   // Run single shot collecting measure data or snapshots
-  state.initialize_qreg(circ.num_qubits);
+  if (initial_state_.empty())
+    state.initialize_qreg(circ.num_qubits);
+  else
+    state.initialize_qreg(circ.num_qubits, initial_state_);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops, data, rng);
   state.add_creg_to_data(data);

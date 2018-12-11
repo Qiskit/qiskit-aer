@@ -252,7 +252,7 @@ template <class statemat_t>
 void State<statemat_t>::initialize_qreg(uint_t num_qubits,
                                         const cmatrix_t &unitary) {
   // Check dimension of unitary
-  if (unitary.size() != 1ULL << num_qubits) {
+  if (unitary.size() != 1ULL << (2 * num_qubits)) {
     throw std::invalid_argument("QubitMatrix::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();

@@ -137,6 +137,14 @@ bool is_cptp_kraus(const std::vector<matrix<T>> &kraus, double threshold);
 // Vector functions
 //------------------------------------------------------------------------------
 
+// Return true of the vector has norm-1.
+template <typename T>
+double is_unit_vector(const std::vector<T> &vec);
+
+// Compute the Euclidean 2-norm of a vector
+template <typename T>
+double norm(const std::vector<T> &vec);
+
 // Return the matrix formed by taking the outproduct of two vector |ket><bra|
 template <typename T>
 matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra);
@@ -634,6 +642,20 @@ bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
 //==============================================================================
 // Implementations: Vector functions
 //==============================================================================
+
+template <class T> 
+bool is_unit_vector(const std::vector<T> &vec, double threshold) {
+  return (std::abs(norm<T>(vec) - 1.0) < threshold);
+}
+
+template <typename T>
+double norm(const std::vector<T> &vec) {
+  double val = 0.0;
+  for (const auto v : vec) {
+    val += std::real(v * std::conj(v));
+  }
+  return std::sqrt(val);
+}
 
 template <typename T>
 matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra) {
