@@ -17,6 +17,7 @@ import uuid
 from numpy import ndarray
 
 from qiskit.backends import BaseBackend
+from qiskit.backends.models import BackendStatus
 from qiskit.qobj import QobjConfig
 from qiskit.result import Result
 
@@ -78,9 +79,17 @@ class AerBackend(BaseBackend):
         aer_job.submit()
         return aer_job
 
-    def properties(self):
-        """Return backend properties."""
-        return None
+    def status(self):
+        """Return backend status.
+
+        Returns:
+            BackendStatus: the status of the backend.
+        """
+        return BackendStatus(backend_name=self.name(),
+                             backend_version=self.configuration().backend_version,
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')
 
     def _run_job(self, job_id, qobj, backend_options, noise_model):
         """Run a qobj job"""
@@ -119,8 +128,8 @@ class AerBackend(BaseBackend):
         # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.DEFAULT_CONFIGURATION['backend_name']
-        output["backend_version"] = self.DEFAULT_CONFIGURATION['backend_version']
+        output["backend_name"] = self.name()
+        output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
 
@@ -146,6 +155,7 @@ class AerBackend(BaseBackend):
     def __repr__(self):
         """Official string representation of an AerBackend."""
         display = "{}('{}')".format(self.__class__.__name__, self.name())
-        if self.provider is not None:
-            display = display + " from {}()".format(self._provider)
+        provider = self.provider()
+        if provider is not None:
+            display = display + " from {}()".format(provider)
         return "<" + display + ">"

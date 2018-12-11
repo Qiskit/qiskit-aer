@@ -10,4 +10,4 @@ from pathlib import Path
 
 ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    VERSION = version_file.read().strip()
+    __version__ = version_file.read().strip()

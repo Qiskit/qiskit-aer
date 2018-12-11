@@ -16,7 +16,7 @@ from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 
-from ..version import VERSION
+from ..version import __version__
 from .aerbackend import AerBackend
 from statevector_controller_wrapper import statevector_controller_execute
 
@@ -29,7 +29,7 @@ class StatevectorSimulator(AerBackend):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
-        'backend_version': VERSION,
+        'backend_version': __version__,
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
         'url': 'TODO',
         'simulator': True,

@@ -11,6 +11,4 @@ from pathlib import Path
 from .backends import Aer
 from . import backends
 from . import noise
-from .version import VERSION
-
-__version__ = VERSION
+from .version import __version__
