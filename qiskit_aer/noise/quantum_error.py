@@ -135,6 +135,14 @@ class QuantumError:
         """Return the list of error probabilities."""
         return self._noise_probabilities
 
+    def ideal(self):
+        """Return True if current error object is an identity"""
+        instructions, p = self.error_term(0)
+        if p == 1 and instructions == [{"name": "id", "qubits": [0]}]:
+            print("DEBUG: IDEAL")
+            return True
+        return False
+
     def error_term(self, position):
         """
         Return a single term from the error.
