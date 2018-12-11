@@ -124,8 +124,6 @@ protected:
   // Config
   //----------------------------------------------------------------
 
-  // TODO: set config
-  double snapshot_chop_threshold_ = 1e-10;
   bool return_counts_ = true;
   bool return_memory_ = false;
   bool return_register_ = false;
@@ -139,11 +137,9 @@ protected:
 
 void OutputData::set_config(const json_t &config) {
   JSON::get_value(return_counts_, "counts", config);
-  JSON::get_value(return_memory_, "singleshot_memory", config);
-  JSON::get_value(return_register_, "singleshot_register", config);
+  JSON::get_value(return_memory_, "memory", config);
+  JSON::get_value(return_register_, "register", config);
   JSON::get_value(return_snapshots_, "snapshots", config);
-  JSON::get_value(snapshot_chop_threshold_, "additional_data", config);
-  JSON::get_value(snapshot_chop_threshold_, "chop_threshold", config);
 }
 
 

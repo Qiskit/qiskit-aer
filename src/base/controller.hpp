@@ -63,7 +63,7 @@ public:
   virtual json_t execute(const json_t &qobj);
 
   // Execute from string to string
-  inline virtual std::string execute(const std::string &qobj_str) {
+  inline virtual std::string execute_string(const std::string &qobj_str) {
     return execute(json_t::parse(qobj_str)).dump(-1);
   }
 
@@ -72,37 +72,26 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a noise model from a noise_model JSON file
-  void set_noise_model(const json_t &config);
-
-  // Load a default State config file from a JSON
-  void set_state_config(const json_t &config);
+  virtual void set_noise_model(const json_t &config);
 
   // Load a default OutputData config file from a JSON
-  void set_data_config(const json_t &config);
+  virtual void set_config(const json_t &config);
 
   // Load a noise model from string
-  inline void set_noise_model(const std::string &config) {
+  inline virtual void set_noise_model_string(const std::string &config) {
     set_noise_model(json_t::parse(config));
   }
 
   // Load state config from string
-  inline void set_state_config(const std::string &config) {
-    set_state_config(json_t::parse(config));
-  }
-
-  // Load engine config from string
-  inline void set_data_config(const std::string &config) {
-    set_data_config(json_t::parse(config));
+  inline virtual void set_config_string(const std::string &config) {
+    set_config(json_t::parse(config));
   }
 
   // Clear the current noise model
-  inline void clear_noise_model() {noise_model_ = Noise::NoiseModel();}
+  inline virtual void clear_noise_model() {noise_model_ = Noise::NoiseModel();}
 
-  // Clear the current State config
-  inline void clear_state_config() {state_config_ = json_t();}
-
-  // Clear the current OutputData config
-  inline void clear_data_config() {data_config_ = json_t();}
+  // Clear the current config
+  inline virtual void clear_config() {config_ = json_t();}
 
   //-----------------------------------------------------------------------
   // OpenMP Parallelization settings
@@ -166,11 +155,8 @@ protected:
   // Timer type
   using myclock_t = std::chrono::high_resolution_clock;
 
-  // State config settings
-  json_t state_config_;
-
-  // Output data config settings
-  json_t data_config_;
+  // Config settings
+  json_t config_;
 
   // Noise model
   Noise::NoiseModel noise_model_;
@@ -226,12 +212,8 @@ void Controller::set_noise_model(const json_t &config) {
   noise_model_ = Noise::NoiseModel(config);
 }
 
-void Controller::set_state_config(const json_t &config) {
-  state_config_ = config;
-}
-
-void Controller::set_data_config(const json_t &config) {
-  data_config_ = config;
+void Controller::set_config(const json_t &config) {
+  config_ = config;
 }
 
 //-------------------------------------------------------------------------

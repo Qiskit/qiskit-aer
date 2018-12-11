@@ -17,15 +17,10 @@ from libcpp.string cimport string
 cdef extern from "simulators/qubitunitary/unitary_controller.hpp" namespace "AER::Simulator":
     cdef cppclass UnitaryController:
         UnitaryController() except +
-        string execute(string &qobj) except +
+        string execute_string(string &qobj) except +
 
-        void set_noise_model(string &qobj) except +
-        void set_data_config(string &qobj) except +
-        void set_state_config(string &qobj) except +
-
-        void clear_noise_model()
-        void clear_data_config()
-        void clear_state_config()
+        void set_config_string(string &qobj) except +
+        void clear_config()
 
         void set_max_threads(int threads)
         void set_max_threads_circuit(int threads)
@@ -51,13 +46,11 @@ cdef class UnitaryControllerWrapper:
         cdef string qobj_enc = str(qobj).encode('UTF-8')
         cdef string options_enc = str(options).encode('UTF-8')
         # Load options
-        self.iface.set_state_config(options_enc)
-        self.iface.set_data_config(options_enc)
+        self.iface.set_config_string(options_enc)
         # Execute simulation
-        cdef string output = self.iface.execute(qobj_enc)
+        cdef string output = self.iface.execute_string(qobj_enc)
         # Clear options
-        self.iface.clear_state_config()
-        self.iface.clear_data_config()
+        self.iface.clear_config()
         # Return output
         return output
 

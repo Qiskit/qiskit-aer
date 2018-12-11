@@ -51,9 +51,9 @@ class UnitarySimulator(AerBackend):
                           BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
-    def run(self, qobj):
+    def run(self, qobj, backend_options=None):
         """Run a qobj on the backend."""
-        return super().run(qobj)
+        return super().run(qobj, backend_options=backend_options)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
