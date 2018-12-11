@@ -10,7 +10,7 @@
 # Additionally, OpenMP support is only available in clang from
 
 cmake_minimum_required(VERSION 3.6)
-project(aer_simulator_cpp LANGUAGES CXX C)
+project(qasm_simulator LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -24,7 +24,7 @@ include(compiler_utils)
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/standalone/aer_simulator.cpp")
+    "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
     "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
@@ -47,14 +47,14 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
 # Target definition
-add_executable(aer_simulator_cpp ${AER_SIMULATOR_CPP_MAIN})
+add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 
 # Target properties: C++ program
-set_target_properties(aer_simulator_cpp PROPERTIES
+set_target_properties(qasm_simulator PROPERTIES
 	LINKER_LANGUAGE CXX
 	CXX_STANDARD 14)
 
-set_target_properties(aer_simulator_cpp PROPERTIES
+set_target_properties(qasm_simulator PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
@@ -101,7 +101,7 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 endif()
 
-target_include_directories(aer_simulator_cpp PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
+target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 
 if(STATIC_LINKING)
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -186,7 +186,7 @@ set(AER_LIBRARIES
 # This will add the linter as part of the compiling build target
 include(Linter)
 
-target_link_libraries(aer_simulator_cpp	PRIVATE ${AER_LIBRARIES})
+target_link_libraries(qasm_simulator	PRIVATE ${AER_LIBRARIES})
 
 # Tests
 if(BUILD_TESTS)

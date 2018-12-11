@@ -64,9 +64,6 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
-    // Disable shot and circuit parallelization for testing
-    sim.set_max_threads_shot(1);
-    sim.set_max_threads_circuit(1);
   
     // Check for noise_params
     if (JSON::check_key("config", qobj) &&
