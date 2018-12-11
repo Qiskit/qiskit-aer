@@ -13,15 +13,13 @@ import json
 import logging
 import datetime
 import uuid
-import numpy as np
-from numbers import Number
+from numpy import ndarray
 
-import qiskit
 from qiskit.backends import BaseBackend
 from qiskit.result import Result
+
 from .aerjob import AerJob
 from .aersimulatorerror import AerSimulatorError
-from ..noise import NoiseModel
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -39,10 +37,12 @@ class AerJSONEncoder(json.JSONEncoder):
 
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
-        if isinstance(obj, np.ndarray):
+        if isinstance(obj, ndarray):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
+        if hasattr(obj, "as_dict"):
+            return obj.as_dict()
         return super().default(obj)
 
 
@@ -83,16 +83,23 @@ class AerBackend(BaseBackend):
     def _run_job(self, job_id, qobj, backend_options, noise_model):
         """Run a qobj job"""
         self._validate(qobj)
+        options_str = self._format_options(qobj, backend_options)
         qobj_str = json.dumps(qobj.as_dict(), cls=AerJSONEncoder)
-        options_str = json.dumps(backend_options, cls=AerJSONEncoder)
-        if isinstance(noise_model, NoiseModel):
-            noise_model = noise_model.as_dict()
-        elif not isinstance(noise_model, dict) and noise_model is not None:
-            raise AerSimulatorError("Invalid Qiskit Aer noise model.")
         noise_str = json.dumps(noise_model, cls=AerJSONEncoder)
         output = json.loads(self._controller.execute(qobj_str, options_str, noise_str))
         self._validate_controller_output(output)
         return self._format_results(job_id, output)
+
+    def _format_options(self, qobj, backend_options):
+        """Format options string for qiskit aer controller"""
+        # Note: This is a temp workaround until PR #127 is merged
+        # Add qobj config to backend_options
+        if backend_options is None:
+            backend_options = {}
+        for key, val in qobj.config.as_dict().items():
+            backend_options[key] = val
+        # Get the JSON serialized string
+        return json.dumps(backend_options, cls=AerJSONEncoder)
 
     def _format_results(self, job_id, output):
         """Construct Result object from simulator output."""
