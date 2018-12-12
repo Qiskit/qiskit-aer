@@ -84,6 +84,9 @@ class NoiseModel:
 
         Raises:
             AerNoiseError: if the input parameters are invalid.
+
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
 
         # Convert single operation to list
@@ -97,6 +100,10 @@ class NoiseModel:
                 raise AerNoiseError("Input is not a valid quantum error.")
         if not isinstance(operations, (list, tuple)):
             raise AerNoiseError("Qobj invalid operations.")
+
+        # Check if error is ideal and if so don't add to the noise model
+        if error.ideal():
+            return
 
         # Add operations
         for op in operations:
@@ -129,6 +136,9 @@ class NoiseModel:
 
         Raises:
             AerNoiseError: if the input parameters are invalid.
+
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
 
         # Convert single operation to list
@@ -145,6 +155,10 @@ class NoiseModel:
             raise AerNoiseError("Qubits must be a list of integers.")
         if not isinstance(operations, (list, tuple)):
             raise AerNoiseError("Qobj invalid operations.")
+
+        # Check if error is ideal and if so don't add to the noise model
+        if error.ideal():
+            return
 
         # Add operations
         for op in operations:
@@ -193,6 +207,9 @@ class NoiseModel:
                                       to the operation qubits.
         Raises:
             AerNoiseError: if the input parameters are invalid.
+
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
 
         # Convert single operation to list
@@ -211,6 +228,10 @@ class NoiseModel:
             raise AerNoiseError("Noise qubits must be a list of integers.")
         if not isinstance(operations, (list, tuple)):
             raise AerNoiseError("Qobj invalid operations.")
+
+        # Check if error is ideal and if so don't add to the noise model
+        if error.ideal():
+            return
 
         # Add operations
         for op in operations:
@@ -241,6 +262,9 @@ class NoiseModel:
 
         Raises:
             AerNoiseError: if the input parameters are invalid.
+
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
 
         # Error checking
@@ -249,6 +273,10 @@ class NoiseModel:
                 error = ReadoutError(error)
             except:
                 raise AerNoiseError("Input is not a valid readout error.")
+
+        # Check if error is ideal and if so don't add to the noise model
+        if error.ideal():
+            return
 
         # Check number of qubits is correct for standard operations
         if error.number_of_qubits != 1:
@@ -276,6 +304,9 @@ class NoiseModel:
 
         Raises:
             AerNoiseError: if the input parameters are invalid.
+
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
 
         # Error checking
@@ -286,6 +317,10 @@ class NoiseModel:
                 raise AerNoiseError("Input is not a valid readout error.")
         if not isinstance(qubits, (list, tuple)):
             raise AerNoiseError("Qubits must be a list of integers.")
+
+        # Check if error is ideal and if so don't add to the noise model
+        if error.ideal():
+            return
 
         # Convert qubits list to hashable string
         qubits_str = self._qubits2str(qubits)

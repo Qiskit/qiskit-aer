@@ -9,7 +9,8 @@
 Readout error class for Qiskit Aer noise model.
 """
 
-from numpy import array, log2
+from numpy import array, log2, eye
+from numpy.linalg import norm
 
 from .noise_utils import qubits_from_mat
 from .aernoiseerror import AerNoiseError
@@ -37,7 +38,7 @@ class ReadoutError:
             Example: 1-qubit
                 probabilities[0] = [P("0"|"0"), P("1"|"0")
                 probabilities[1] = [P("0"|"1"), P("1"|"1")
-            
+
             Example: 2-qubit
                 probabilities[0] = [P("00"|"00"), P("01"|"00"), P("10"|"00"), P("11"|"00")]
                 probabilities[1] = [P("00"|"01"), P("01"|"01"), P("10"|"01"), P("11"|"01")]
@@ -57,6 +58,14 @@ class ReadoutError:
     def probabilities(self):
         """Return the readout error probabilities matrix."""
         return self._probabilities
+
+    def ideal(self):
+        """Return True if current error object is an identity"""
+        iden = eye(2 ** self.number_of_qubits)
+        delta = round(norm(array(self.probabilities) - iden), 12)
+        if delta == 0:
+            return True
+        return False
 
     def as_dict(self):
         """Return the current error as a dictionary."""

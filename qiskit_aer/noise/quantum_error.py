@@ -8,11 +8,12 @@
 """
 Quantum error class for Qiskit Aer noise model
 """
-
+import logging
 import numpy as np
 from .aernoiseerror import AerNoiseError
 from .noise_utils import kraus2instructions
 
+logger = logging.getLogger(__name__)
 
 class QuantumError:
     """
@@ -134,6 +135,14 @@ class QuantumError:
     def probabilities(self):
         """Return the list of error probabilities."""
         return self._noise_probabilities
+
+    def ideal(self):
+        """Return True if current error object is an identity"""
+        instructions, probability = self.error_term(0)
+        if probability == 1 and instructions == [{"name": "id", "qubits": [0]}]:
+            logger.debug("Error object is ideal")
+            return True
+        return False
 
     def error_term(self, position):
         """
