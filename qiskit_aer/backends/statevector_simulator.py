@@ -16,9 +16,9 @@ from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 
-from ..version import VERSION
+from ..version import __version__
 from .aerbackend import AerBackend
-from statevector_controller_wrapper import StatevectorControllerWrapper
+from statevector_controller_wrapper import statevector_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class StatevectorSimulator(AerBackend):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
-        'backend_version': VERSION,
+        'backend_version': __version__,
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
         'url': 'TODO',
         'simulator': True,
@@ -45,9 +45,8 @@ class StatevectorSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(StatevectorControllerWrapper(),
-                         (configuration or
-                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(statevector_controller_execute,
+                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def run(self, qobj, backend_options=None):
@@ -58,7 +57,7 @@ class StatevectorSimulator(AerBackend):
         """Semantic validations of the qobj which cannot be done via schemas.
         Some of these may later move to backend schemas.
 
-        This forces the simulation to execute with shots=1. 
+        This forces the simulation to execute with shots=1.
         """
         if qobj.config.shots != 1:
             logger.info("Statevector simulator only supports 1 shot. "

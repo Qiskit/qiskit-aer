@@ -16,10 +16,10 @@ from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.backends.models import BackendConfiguration
 
-from ..version import VERSION
+from ..version import __version__
 from .aerbackend import AerBackend
 from .aersimulatorerror import AerSimulatorError
-from unitary_controller_wrapper import UnitaryControllerWrapper
+from unitary_controller_wrapper import unitary_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class UnitarySimulator(AerBackend):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
-        'backend_version': VERSION,
+        'backend_version': __version__,
         'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
         'url': 'TODO',
         'simulator': True,
@@ -46,9 +46,8 @@ class UnitarySimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(UnitaryControllerWrapper(),
-                         (configuration or
-                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(unitary_controller_execute,
+                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def run(self, qobj, backend_options=None):

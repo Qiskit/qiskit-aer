@@ -134,7 +134,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
     QubitVector::State<>().validate_circuit_except(circ);
   }
 
-    // Check for custom initial state, and if so check it matches num qubits
+  // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
     if (initial_state_.size() != 1ULL << circ.num_qubits) {
       uint_t num_qubits(std::log2(initial_state_.size()));
@@ -213,9 +213,9 @@ void QasmController::run_circuit_measure_sampler(const Circuit &circ,
   // Run circuit instructions before first measure
   std::vector<Operations::Op> ops(circ.ops.begin(), circ.ops.begin() + pos);
   if (initial_state_.empty())
-      state.initialize_qreg(circ.num_qubits);
-    else
-      state.initialize_qreg(circ.num_qubits, initial_state_);
+    state.initialize_qreg(circ.num_qubits);
+  else
+    state.initialize_qreg(circ.num_qubits, initial_state_);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(ops, data, rng);
 
