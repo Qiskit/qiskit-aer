@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Simplified noise models for devices backends.
+Simplified noise models for devices providers.
 """
 
 from numpy import inf, exp

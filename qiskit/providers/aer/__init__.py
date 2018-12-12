@@ -9,9 +9,13 @@
 
 from .aerprovider import AerProvider
 from .aerjob import AerJob
-from .qasm_simulator import QasmSimulator
-from .statevector_simulator import StatevectorSimulator
-from .unitary_simulator import UnitarySimulator
+from .backends import *
+#from .backends.qasm_simulator import QasmSimulator
+#from .backends.statevector_simulator import StatevectorSimulator
+#from .backends.unitary_simulator import UnitarySimulator
+from .noise import *
+from .utils import *
+from .version import __version__
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name

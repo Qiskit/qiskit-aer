@@ -1,5 +1,5 @@
 from test.terra.utils import common
-from qiskit_aer.utils import qobj_utils
+from qiskit.providers.aer.utils import qobj_utils
 import unittest
 import numpy as np
 import math
@@ -10,7 +10,7 @@ from qstructs import DensityMatrix, QuantumState, ProbabilityDistribution
 from qstructs import is_close, get_extended_ops, randcomplex
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import compile
-from qiskit_aer.backends import QasmSimulator
+from qiskit.providers.aer.backends import QasmSimulator
 from qiskit.qobj import QobjItem
 
 class TestByReferenceModel(common.QiskitAerTestCase):

@@ -20,45 +20,32 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-- Added feature example (#662)
 
 
 Changed
 -------
-- Some description related to a change made in the code. (#634)
 
 
 Removed
 -------
-- etc (#661)
 
 
 Fixed
 -----
-- etc (#663)
 
 
-`0.1.0`_ - 2018-08-29
+
+`0.1.0`_ - 2018-12-19
 =====================
 
 Added
 -----
-- Added ... description
-
-
-Changed
--------
-- Changed ... description
-
-
-Removed
--------
-- Removed ... description
-
-
-Fixed
------
-- Fixed ... description
+- QASM Simulator
+- Statevector Simulator
+- Unitary Simulator
+- Noise models
+- Terra integration
+- Standalone Simulators support
 
 
 .. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.4.0...HEAD

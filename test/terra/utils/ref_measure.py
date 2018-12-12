@@ -16,10 +16,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # to test multi-qubit measurements which must be implemeted
 # direclty by qobj instructions until terra compiler supports them
 from qiskit import compile
-from qiskit_aer.backends import QasmSimulator
-from qiskit_aer.utils.qobj_utils import qobj_insert_item
-from qiskit_aer.utils.qobj_utils import qobj_measure_item
-from qiskit_aer.utils.qobj_utils import qobj_iden_item
+from qiskit.providers.aer.backends import QasmSimulator
+from qiskit.providers.aer.utils.qobj_utils import qobj_insert_item
+from qiskit.providers.aer.utils.qobj_utils import qobj_measure_item
+from qiskit.providers.aer.utils.qobj_utils import qobj_iden_item
 
 
 # ==========================================================================

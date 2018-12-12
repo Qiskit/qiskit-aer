@@ -14,12 +14,11 @@ Qiskit Aer Unitary Simulator Backend.
 import logging
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
-
-from ..version import __version__
+from qiskit.providers.models import BackendConfiguration
+from ..aersimulatorerror import AerSimulatorError
 from .aerbackend import AerBackend
-from .aersimulatorerror import AerSimulatorError
 from unitary_controller_wrapper import unitary_controller_execute
+from ..version import __version__
 
 # Logger
 logger = logging.getLogger(__name__)

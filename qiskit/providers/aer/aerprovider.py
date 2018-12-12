@@ -7,23 +7,23 @@
 
 # pylint: disable=invalid-name, bad-continuation
 
-"""Provider for Qiskit Aer backends."""
+"""Provider for Qiskit Aer providers."""
 
-from qiskit.backends import BaseProvider
-from qiskit.backends.providerutils import filter_backends
+from qiskit.providers import BaseProvider
+from qiskit.providers.providerutils import filter_backends
 
-from .qasm_simulator import QasmSimulator
-from .statevector_simulator import StatevectorSimulator
-from .unitary_simulator import UnitarySimulator
+from .backends.qasm_simulator import QasmSimulator
+from .backends.statevector_simulator import StatevectorSimulator
+from .backends.unitary_simulator import UnitarySimulator
 
 
 class AerProvider(BaseProvider):
-    """Provider for Qiskit Aer backends."""
+    """Provider for Qiskit Aer providers."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of Aer simulator backends.
+        # Populate the list of Aer simulator providers.
         self._backends = [QasmSimulator(provider=self),
                           StatevectorSimulator(provider=self),
                           UnitarySimulator(provider=self)]

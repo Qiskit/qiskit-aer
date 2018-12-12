@@ -16,13 +16,13 @@ import time
 import uuid
 from numpy import ndarray
 
-from qiskit.backends import BaseBackend
-from qiskit.backends.models import BackendStatus
+from qiskit.providers import BaseBackend
+from qiskit.providers.models import BackendStatus
 from qiskit.qobj import QobjConfig
 from qiskit.result import Result
 
-from .aerjob import AerJob
-from .aersimulatorerror import AerSimulatorError
+from ..aerjob import AerJob
+from ..aersimulatorerror import AerSimulatorError
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
     def __init__(self, controller, configuration, provider=None):
-        """Aer class for backends.
+        """Aer class for providers.
 
         This method should initialize the module and its configuration, and
         raise an exception if a component of the module is

@@ -10,12 +10,12 @@ import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
-from qiskit_aer.noise import NoiseModel, QuantumError
-from qiskit_aer.backends import QasmSimulator
-from qiskit_aer.noise.errors.standard_errors import pauli_error
-from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit_aer.utils.qobj_utils import qobj_measure_item
-from qiskit_aer.utils.qobj_utils import qobj_append_item
+from qiskit.providers.aer.noise import NoiseModel, QuantumError
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.utils.qobj_utils import qobj_measure_item
+from qiskit.providers.aer.utils.qobj_utils import qobj_append_item
 
 
 class TestNoise(common.QiskitAerTestCase):

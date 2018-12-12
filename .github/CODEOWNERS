@@ -11,11 +11,11 @@
 * @chriseclectic @atilag
 
 # Individual folders on root directory
-/aer            @chriseclectic @atilag
+/qiskit         @chriseclectic @atilag
 /cmake          @atilag
 /doc            @chriseclectic @atilag
 /examples       @chriseclectic @atilag
-/legacy-build   @chriseclectic @atilag
+/contrib        @chriseclectic @atilag
 /test           @chriseclectic @atilag
 /src            @chriseclectic @atilag
 

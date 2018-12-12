@@ -9,9 +9,9 @@ from test.terra.utils import common
 import unittest
 import numpy as np
 
-from qiskit_aer.noise.noise_utils import standard_gate_unitary
-from qiskit_aer.noise import QuantumError
-from qiskit_aer.noise.aernoiseerror import AerNoiseError
+from qiskit.providers.aer.noise.noise_utils import standard_gate_unitary
+from qiskit.providers.aer.noise import QuantumError
+from qiskit.providers.aer.noise.aernoiseerror import AerNoiseError
 
 # TODO:
 # * Test compose error for different qubit number

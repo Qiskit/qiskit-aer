@@ -8,8 +8,8 @@
 from test.terra.utils import common
 import unittest
 
-from qiskit_aer.noise import ReadoutError
-from qiskit_aer.noise.aernoiseerror import AerNoiseError
+from qiskit.providers.aer.noise import ReadoutError
+from qiskit.providers.aer.noise.aernoiseerror import AerNoiseError
 
 
 class TestReadoutError(common.QiskitAerTestCase):

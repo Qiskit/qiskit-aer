@@ -51,8 +51,8 @@ Pre-requisites
 ~~~~~~~~~~~~~~
 
 Most of the required dependencies can be installed via ``pip``, using the
-``requirements-dev.txt`` file that exists on every simulator addon directory, eg:
-``pip install -r qiskit-aer/aer/requirements-dev.txt``.
+``requirements-dev.txt`` file, eg:
+``pip install -r requirements-dev.txt``.
 
 As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
@@ -183,7 +183,7 @@ In the case of building the Terra addon, you have to pass these flags after writ
 
 .. code::
 
-  qiskit-aer/aer/qiskit_aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
+  qiskit-aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
 
 
 These are the flags:
@@ -237,7 +237,7 @@ and then run `unittest` Python framework.
 .. code::
 
   qiskit-aer$ python ./setup.py install
-  qiskit-aer$ python -m unittest discover -s test
+  qiskit-aer$ python -m unittest discover -s test -v
 
 The integration tests for Terra addon are included in: `test/terra`.
 
@@ -394,17 +394,3 @@ There are two main branches in the repository:
     stable software ready for production environments.
   - All the tags from the release versions are created from this branch.
 
-Release cycle
-~~~~~~~~~~~~~
-
-TODO: TBD
-
-What version should I use: development or stable?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-TODO: TBD
-
-Documentation
--------------
-
-TODO: TBD
