@@ -9,6 +9,8 @@
 Simplified noise models for devices backends.
 """
 
+from numpy import inf, exp
+
 from .parameters import readout_error_values
 from .parameters import gate_time_values
 from .parameters import gate_error_values
@@ -20,11 +22,15 @@ from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
 
 
-def depolarizing_noise_model(properties, standard_gates=True):
+def depolarizing_noise_model(properties,
+                             readout_error=True,
+                             standard_gates=True):
     """Generae a depolarizing noise model from device backend properties.
 
     Params:
         properties (BackendProperties): backend properties
+        readout_error (Bool): Include readout errors in model
+                               (Default: True)
         standard_gates (bool): If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions (Default: True)
@@ -35,9 +41,10 @@ def depolarizing_noise_model(properties, standard_gates=True):
     Additional Information:
 
         The noise model will consist:
-        * Single qubit readout errors on measurements.
         * Depolarizing errors on gates defined be defined in
           `BackendProperties.gates`.
+        * Single qubit readout errors on measurements if `readout_errors`
+          is set to True.
 
         For best practice in simulating a backend make sure that the
         circuit is compiled using the set of basis gates in the noise
@@ -49,8 +56,9 @@ def depolarizing_noise_model(properties, standard_gates=True):
     noise_model = NoiseModel()
 
     # Add single-qubit readout errors
-    for qubits, error in device_readout_errors(properties):
-        noise_model.add_readout_error(error, qubits)
+    if readout_error:
+        for qubits, error in device_readout_errors(properties):
+            noise_model.add_readout_error(error, qubits)
 
     # Add depolarizing gate errors
     gate_errors = device_depolarizing_errors(properties,
@@ -61,36 +69,48 @@ def depolarizing_noise_model(properties, standard_gates=True):
     return noise_model
 
 
-def thermal_relaxation_noise_model(properties, gate_times=None):
+def thermal_relaxation_noise_model(properties,
+                                   readout_error=True,
+                                   temperature=0,
+                                   gate_times=None):
     """Thermal relaxation noise model derived from backend properties.
-
-    NOTE: gate_time field may be removed in the future when online
-    backends return full gate time information.
 
     Params:
         properties (BackendProperties): backend properties
+        readout_errors (Bool): Include readout errors in model
+                               (Default: True)
+        temperature (double): qubit temperature in milli-Kelvin (mK)
+                              (Default: 0)
         gate_times (list): Override device gate times with custom
                            values. If None use gate times from
                            backend properties. (Default: None)
 
     Returns:
-        NoiseModel: A noise model for the IBM backend containing.
+        NoiseModel: An approximate noise model for the device backend.
 
     Additional Information:
 
+        Secifying custom gate times:
+
+        The `gate_times` kwarg can be used to specify custom gate times
+        to add gate errors using the T1 and T2 values from the backend
+        properties. This should be passed as a list of tuples
+            `gate_times=[(name, value), ...]`
+        where `name` is the gate name string, and `value` is the gate time
+        in nanoseconds.
+
+        If a custom gate is specified that already exists in
+        the backend properties, the `gate_times` value will override the
+        gate time value from the backend properties.
+        If non-default values are used gate_times should be a list
+
         The noise model will consist:
+
         * Single qubit readout errors on measurements.
         * Single-qubit relaxation errors on all qubits participating in
           a noisy quantum gate. The relaxation strength is determined by
           the individual qubit T1 and T2 values and the gate_time of the
           gate as defined in `BackendProperties.gates`.
-
-        Secifying custom gate times:
-        If non-default values are used gate_times should be a list
-        of tuples (name, qubits, value) where name is the gate name
-        string, qubits is a list of qubits the gate acts on, and value
-        is the gate time in nanoseconds. This replaces gate times
-        extracted from backend properties.
 
         For best practice in simulating a backend make sure that the
         circuit is compiled using the set of basis gates in the noise
@@ -103,11 +123,14 @@ def thermal_relaxation_noise_model(properties, gate_times=None):
     noise_model = NoiseModel()
 
     # Add single-qubit readout errors
-    for qubits, error in device_readout_errors(properties):
-        noise_model.add_readout_error(error, qubits)
+    if readout_error:
+        for qubits, error in device_readout_errors(properties):
+            noise_model.add_readout_error(error, qubits)
 
     # Add depolarizing gate errors
-    gate_errors = device_thermal_relaxation_errors(properties)
+    gate_errors = device_thermal_relaxation_errors(properties,
+                                                   temperature=temperature,
+                                                   gate_times=gate_times)
     for name, qubits, error in gate_errors:
         noise_model.add_quantum_error(error, name, qubits)
 
@@ -153,11 +176,12 @@ def device_readout_errors(properties):
     return errors
 
 
-def device_thermal_relaxation_errors(properties, gate_times=None):
+def device_thermal_relaxation_errors(properties, temperature=0, gate_times=None):
     """Get depolarizing noise quantum error objects for backend gates
 
     Args:
         properties (BackendProperties): device backend properties
+        temperature (double): qubit temperature in milli-Kelvin (mK).
         gate_times (list): Override device gate times with custom
                            values. If None use gate times from
                            backend properties. (Default: None)
@@ -169,14 +193,24 @@ def device_thermal_relaxation_errors(properties, gate_times=None):
 
     Additional Information:
         If non-default values are used gate_times should be a list
-        of tuples (name, qubits, value) where name is the gate name
-        string, qubits is a list of qubits the gate acts on, and value
-        is the gate time in nanoseconds.
+        of tuples (name, value) where name is the gate name string,
+        and value is the gate time in nanoseconds.
     """
-    gate_times = gate_time_values(properties)
+    # Generate custom gate time dict
+    custom_times = {}
+    if gate_times:
+        custom_times = {name: value for name, value in gate_times}
+    else:
+        custom_times = {}
+    # Append device gate times to custom gate times
+    device_gate_times = gate_time_values(properties)
     relax_values = thermal_relaxation_values(properties)
     errors = []
-    for name, qubits, gate_time in gate_times:
+    for name, qubits, value in device_gate_times:
+        if name in custom_times:
+            gate_time = custom_times[name]
+        else:
+            gate_time = value
         if gate_time is not None and gate_time > 0:
             # convert gate time to same units as T1 and T2 (microseconds)
             gate_time = gate_time / 1000
@@ -186,11 +220,28 @@ def device_thermal_relaxation_errors(properties, gate_times=None):
             error = None
             for qubit in reversed(qubits):
                 t1, t2, freq = relax_values[qubit]
+                population = 0
+                if freq != inf and temperature != 0:
+                    # Compute the excited state population from qubit
+                    # frequency and temperature
+                    # Boltzman constant  kB = 6.62607015e-34 (eV/K)
+                    # Planck constant h =  6.62607015e-34 (eV.s)
+                    # qubit temperature temperatue = T (mK)
+                    # qubit frequency frequency = f (GHz)
+                    # excited state population = 1/(1+exp((2hf*1e9)/(kbT*1e-3)))
+                    exp_param = exp((95.9849 * freq) / abs(temperature))
+                    population = 1 / (1 + exp_param)
+                    if temperature < 0:
+                        # negative temperate implies |1> is thermal ground
+                        population = 1 - population
                 if first:
-                    error = thermal_relaxation_error(t1, t2, gate_time)
+                    error = thermal_relaxation_error(t1, t2, gate_time,
+                                                     population)
                     first = False
                 else:
-                    error = error.kron(thermal_relaxation_error(t1, t2, gate_time))
+                    single = thermal_relaxation_error(t1, t2, gate_time,
+                                                      population)
+                    error = error.kron(single)
             if error is not None:
                 errors.append((name, qubits, error))
     return errors
