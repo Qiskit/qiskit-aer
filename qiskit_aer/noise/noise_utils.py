@@ -13,33 +13,28 @@ import numpy as np
 from .aernoiseerror import AerNoiseError
 
 
-def standard_gates_instructions(instructions, precision=12):
+def standard_gates_instructions(instructions):
     """Convert a list with unitary matrix instructions into standard gates.
 
     Args:
         instructions (list): A list of qobj instructions.
-        precision (int): Number of digits of precision in testing if
-                         standard instruction.
 
     Returns:
         list: a list of qobj instructions equivalent to in input instruction.
     """
     output_instructions = []
     for instruction in instructions:
-        output_instructions += standard_gate_instruction(instruction,
-                                                         precision=precision)
+        output_instructions += standard_gate_instruction(instruction)
     return output_instructions
 
 
-def standard_gate_instruction(instruction, ignore_phase=True, precision=12):
+def standard_gate_instruction(instruction, ignore_phase=True):
     """Convert a unitary matrix instruction into a standard gate instruction.
 
     Args:
         instruction (dict): A qobj instruction.
         ignore_phase (bool): Ignore global phase on unitary matrix in
                              comparison to canonical unitary.
-        precision (int): Number of digits of precision in testing if
-                         standard instruction.
 
     Returns:
         list: a list of qobj instructions equivalent to in input instruction.
@@ -51,6 +46,7 @@ def standard_gate_instruction(instruction, ignore_phase=True, precision=12):
     mat_dagger = np.conj(instruction["params"])
 
     def compare_mat(target):
+        precision = 7
         try:
             tr = np.trace(np.dot(mat_dagger, target)) / len(target)
         except:
@@ -266,8 +262,7 @@ def standard_gate_unitary(name):
     return None
 
 
-def make_unitary_instruction(mat, qubits, standard_gates=True,
-                             precision=12):
+def make_unitary_instruction(mat, qubits, standard_gates=True):
     """Return a qobj instruction for a unitary matrix gate.
 
     Args:
@@ -275,41 +270,40 @@ def make_unitary_instruction(mat, qubits, standard_gates=True,
         qubits (list[int]): The qubits the matrix is applied to.
         standard_gates (bool): Check if the matrix instruction is a
                                standard instruction.
-        precision (int): Number of digits of precision for testing if
-                         matrices are identity (default: 15).
+
     Returns:
         dict: The qobj instruction object.
 
     Raises:
         AerNoiseError: if the input is not a unitary matrix.
     """
-    if not is_unitary_matrix(mat, precision=precision):
+    if not is_unitary_matrix(mat):
         raise AerNoiseError("Input matrix is not unitary.")
     elif isinstance(qubits, int):
         qubits = [qubits]
-    instruction = {"name": "unitary", "qubits": qubits, "params": mat}
+    instruction = {"name": "unitary",
+                   "qubits": qubits,
+                   "params": mat}
     if standard_gates:
-        return standard_gate_instruction(instruction, precision=precision)
+        return standard_gate_instruction(instruction)
     else:
         return [instruction]
 
 
-def make_kraus_instruction(mats, qubits, precision=12):
+def make_kraus_instruction(mats, qubits):
     """Return a qobj instruction for a Kraus error.
 
     Args:
         mats (list[matrix]): A list of square or diagonal Kraus matrices.
         qubits (list[int]): The qubits the matrix is applied to.
-        precision (int): Number of digits to round floating point numbers
-                         to in testing CPTP (default: 15).
     Returns:
         dict: The qobj instruction object.
 
     Raises:
         AerNoiseError: if the input is not a CPTP Kraus channel.
     """
-    if not is_cptp_kraus(mats, precision=precision):
-        raise AerNoiseError("Input Kraus ops are not a CPTP channel.")
+    if not is_cptp_kraus(mats):
+        raise AerNoiseError("Input Kraus matrices are not a CPTP channel.")
     elif isinstance(qubits, int):
         qubits = [qubits]
     return [{"name": "kraus", "qubits": qubits, "params": mats}]
@@ -339,7 +333,7 @@ def is_matrix_diagonal(op):
     return len(shape) == 2 and shape[0] == 1
 
 
-def is_cptp_kraus(kraus_ops, precision=12):
+def is_cptp_kraus(kraus_ops, precision=7):
     """Test if a list of Kraus matrices is a CPTP map."""
     accum = 0j
     for op in kraus_ops:
@@ -350,7 +344,7 @@ def is_cptp_kraus(kraus_ops, precision=12):
                               precision=precision)
 
 
-def is_identity_matrix(op, ignore_phase=False, precision=12):
+def is_identity_matrix(op, ignore_phase=False, precision=7):
     """Test if an array is an identity matrix."""
     mat = np.array(op)
     if is_matrix_diagonal(mat):
@@ -365,7 +359,7 @@ def is_identity_matrix(op, ignore_phase=False, precision=12):
     return delta == 0
 
 
-def is_unitary_matrix(op, precision=12):
+def is_unitary_matrix(op, precision=7):
     """Test if an array is a unitary matrix."""
     mat = np.array(op)
     # Compute A^dagger.A and see if it is identity matrix
@@ -386,21 +380,26 @@ def kraus2choi(kraus_ops):
     return choi
 
 
-def choi2kraus(choi, precision=12):
+def choi2kraus(choi, threshold=1e-10):
     """Convert a Choi matrix to canonical Kraus matrices"""
+    # Check threshold
+    if threshold < 0:
+        raise AerNoiseError("Threshold value cannot be negative")
+    if threshold > 1e-3:
+        raise AerNoiseError("Threshold value is too large. It should be close to zero.")
     # Compute eigensystem of Choi matrix
     w, v = np.linalg.eig(choi)
     kraus = []
     for val, vec in zip(w, v.T):
-        val = round(val, precision)
-        if val > 0:
+        if val > threshold:
             kraus.append(np.sqrt(val) * vec.reshape((2, 2), order='F'))
-        if val < 0:
-            raise AerNoiseError("Input Choi-matrix is not CP.")
+        if val < -threshold:
+            raise AerNoiseError("Input Choi-matrix is not CP " +
+                                " (eigenvalue {} < 0)".format(val))
     return kraus
 
 
-def canonical_kraus_matrices(kraus_ops, precision=12):
+def canonical_kraus_matrices(kraus_ops, threshold=1e-10):
     """Convert a list of Kraus ops into the canonical representation.
 
     In the canonical representation the vecorized Kraus operators are
@@ -408,13 +407,13 @@ def canonical_kraus_matrices(kraus_ops, precision=12):
 
     Args:
         kraus_ops (list[matrix]): A list of Kraus matrices for a CPTP map.
-        precision (int): Number of digits of precision in in Choi-matrix
-                         eigenvalues (default: 15).
+        threshold (double): Threshold for checking if eigenvalues are zero
+                            (Default: 1e-10)
     """
-    return choi2kraus(kraus2choi(kraus_ops), precision=precision)
+    return choi2kraus(kraus2choi(kraus_ops), threshold=threshold)
 
 
-def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
+def kraus2instructions(kraus_ops, standard_gates, threshold):
     """
     Convert a list of Kraus matrices into qobj circuits.
 
@@ -426,8 +425,8 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
         kraus_ops (list[matrix]): A list of Kraus matrices for a CPTP map.
         standard_gates (bool): Check if the matrix instruction is a
                                standard instruction (default: True).
-        precision (int): Number of digits of precision in testing if
-                         matrices are unitary of identity (default: 15).
+        threshold (double): Threshold for testing if probabilities are zero.
+
 
     Returns:
         A list of pairs (p, circuit) where `circuit` is a list of qobj
@@ -437,8 +436,14 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
     Raises:
         AerNoiseError: If the input Kraus channel is not CPTP.
     """
+    # Check threshold
+    if threshold < 0:
+        raise AerNoiseError("Threshold cannot be negative")
+    if threshold > 1e-3:
+        raise AerNoiseError("Threhsold value is too large. It should be close to zero.")
+
     # Check CPTP
-    if not is_cptp_kraus(kraus_ops, precision=precision):
+    if not is_cptp_kraus(kraus_ops):
         raise AerNoiseError("Input Kraus channel is not CPTP.")
 
     # Get number of qubits
@@ -452,9 +457,9 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
     # 3. a non-unitary Kraus operator
 
     # Probabilities
-    prob_identity = 0.
-    prob_unitary = 0.   # total probability of all unitary ops (including id)
-    prob_kraus = 0.     # total probability of non-unitary ops
+    prob_identity = 0
+    prob_unitary = 0    # total probability of all unitary ops (including id)
+    prob_kraus = 0      # total probability of non-unitary ops
     probabilities = []  # initialize with probability of Identity
 
     # Matrices
@@ -464,17 +469,19 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
     for op in kraus_ops:
         # Get the value of the maximum diagonal element
         # of op.H * op for rescaling
-        prob = round(np.real(max(np.diag(np.conj(np.transpose(op)).dot(op)))),
-                     precision)
-        if prob > 0:
-            # Rescale the operator by square root of prob
-            rescaled_op = np.array(op) / np.sqrt(prob)
+        prob = abs(max(np.diag(np.conj(np.transpose(op)).dot(op))))
+        if prob > threshold:
+            if abs(prob - 1) > threshold:
+                # Rescale the operator by square root of prob
+                rescaled_op = np.array(op) / np.sqrt(prob)
+            else:
+                rescaled_op = op
             # Check if identity operator
-            if is_identity_matrix(rescaled_op, ignore_phase=True, precision=precision):
+            if is_identity_matrix(rescaled_op, ignore_phase=True):
                 prob_identity += prob
                 prob_unitary += prob
             # Check if unitary
-            elif is_unitary_matrix(rescaled_op, precision=precision):
+            elif is_unitary_matrix(rescaled_op):
                 probabilities.append(prob)
                 prob_unitary += prob
                 unitaries.append(rescaled_op)
@@ -483,25 +490,23 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
                 non_unitaries.append(op)
 
     # Check probabilities
-    prob_unitary = round(prob_unitary, precision)
-    prob_identity = round(prob_identity, precision)
-    prob_kraus = round(1 - prob_unitary, precision)
-    if prob_unitary > 1:
+    prob_kraus = 1 - prob_unitary
+    if prob_unitary - 1 > threshold:
         raise AerNoiseError("Invalid kraus matrices: unitary probability" +
                             " {} > 1".format(prob_unitary))
-    if prob_unitary < 0:
+    if prob_unitary < -threshold:
         raise AerNoiseError("Invalid kraus matrices: unitary probability" +
                             " {} < 1".format(prob_unitary))
-    if prob_identity > 1:
+    if prob_identity - 1 > threshold:
         raise AerNoiseError("Invalid kraus matrices: identity probability" +
                             " {} > 1".format(prob_identity))
-    if prob_identity < 0:
+    if prob_identity < -threshold:
         raise AerNoiseError("Invalid kraus matrices: identity probability" +
                             " {} < 1".format(prob_identity))
-    if prob_kraus > 1:
+    if prob_kraus - 1 > threshold:
         raise AerNoiseError("Invalid kraus matrices: non-unitary probability" +
                             " {} > 1".format(prob_kraus))
-    if prob_kraus < 0:
+    if prob_kraus < -threshold:
         raise AerNoiseError("Invalid kraus matrices: non-unitary probability" +
                             " {} < 1".format(prob_kraus))
 
@@ -512,22 +517,23 @@ def kraus2instructions(kraus_ops, standard_gates=True, precision=12):
     # Add unitary instructions
     for unitary in unitaries:
         instructions.append(make_unitary_instruction(unitary, qubits,
-                                                     standard_gates=standard_gates,
-                                                     precision=precision))
+                                                     standard_gates=standard_gates))
 
     # Add identity instruction
-    if prob_identity > 0:
-        probabilities.append(prob_identity)
+    if prob_identity > threshold:
+        if abs(prob_identity - 1) < threshold:
+            probabilities.append(1)
+        else:
+            probabilities.append(prob_identity)
         instructions.append([{"name": "id", "qubits": [0]}])
 
     # Add Kraus
-    if prob_kraus == 0:
+    if prob_kraus < threshold:
         # No Kraus operators
         return zip(instructions, probabilities)
     if prob_kraus < 1:
         # Rescale kraus operators by probabilities
         non_unitaries = [np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries]
-    instructions.append(make_kraus_instruction(non_unitaries, qubits,
-                                               precision=precision))
+    instructions.append(make_kraus_instruction(non_unitaries, qubits))
     probabilities.append(prob_kraus)
     return zip(instructions, probabilities)
