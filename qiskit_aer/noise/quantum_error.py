@@ -15,6 +15,7 @@ from .noise_utils import kraus2instructions
 
 logger = logging.getLogger(__name__)
 
+
 class QuantumError:
     """
     Quantum error class for Qiskit Aer noise model
@@ -26,7 +27,7 @@ class QuantumError:
     """
 
     def __init__(self, noise_ops, number_of_qubits=None,
-                 standard_gates=True, precision=12):
+                 standard_gates=True, threshold=1e-10):
         """
         Create a quantum error for a noise model.
 
@@ -36,9 +37,8 @@ class QuantumError:
                                     error. If None this will be determined
                                     automatically (default None).
             standard_gates (bool): Check if input matrices are standard gates.
-            precision (int): Number of digits precision for testing if
-                            probabilities are normalized and Kraus operators
-                            are unitary (default: 15).
+            threshold (double): Threshold for testing if probabilities are
+                                equal to 0 or 1 (Default: 1e-10).
 
         Additional Information:
             Noise ops may either be specified as list of Kraus operators
@@ -72,14 +72,12 @@ class QuantumError:
         noise_ops = list(noise_ops)
         # Check if Kraus
         if isinstance(noise_ops[0], np.ndarray):
-            noise_ops = kraus2instructions(noise_ops,
-                                           standard_gates=standard_gates,
-                                           precision=precision)
+            noise_ops = kraus2instructions(noise_ops, standard_gates,
+                                           threshold)
         minimum_qubits = 0
         # Add non-zero probability error circuits to the error
         for circuit, prob in noise_ops:
-            prob = round(prob, precision)
-            if prob > 0:
+            if prob > threshold:
                 self._noise_circuits.append(circuit)
                 self._noise_probabilities.append(prob)
                 # Determinine minimum qubit number for error from circuits
@@ -99,8 +97,8 @@ class QuantumError:
                                 "but number_of_qubits is {}".format(number_of_qubits))
         if len(self._noise_circuits) != len(self._noise_probabilities):
             raise AerNoiseError("Number of error circuits does not match length of probabilities")
-        total_probs = round(np.sum(self._noise_probabilities), precision)
-        if round(total_probs, precision) != 1:
+        total_probs = np.sum(self._noise_probabilities)
+        if abs(total_probs - 1) > threshold:
             raise AerNoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         if len([p for p in self._noise_probabilities if p < 0]) > 0:
             raise AerNoiseError("Probabilities are invalid.")
