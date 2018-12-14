@@ -428,9 +428,11 @@ Op json_to_op_noise_switch(const json_t &js) {
 Op json_to_op_snapshot(const json_t &js) {
   std::string type;
   JSON::get_value(type, "type", js);
-  if (type == "expval_pauli")
+  if (type == "expectation_value_pauli" ||
+      type == "expectation_value_pauli_with_variance")
     return json_to_op_snapshot_pauli(js);
-  if (type == "expval_matrix")
+  if (type == "expectation_value_matrix" ||
+      type == "expectation_value_matrix_with_variance")
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   return json_to_op_snapshot_default(js);
@@ -455,8 +457,7 @@ Op json_to_op_snapshot_default(const json_t &js) {
 Op json_to_op_snapshot_pauli(const json_t &js) {
   // Load default snapshot parameters
   Op op = json_to_op_snapshot_default(js);
-  // override name for depreciated "pauli_observable"
-  op.name = "expval_pauli"; 
+
   // Check qubits are valid
   check_empty_qubits(op);
   check_duplicate_qubits(op);
@@ -481,7 +482,8 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
       if (std::abs(coeff) > threshold) {
         std::string pauli = comp[1];
         if (pauli.size() != op.qubits.size()) {
-          throw std::invalid_argument("Invalid Pauli snapshot (Pauli label does not match qubit number.).");
+          throw std::invalid_argument(std::string("Invalid Pauli expectation value snapshot ") +
+                                      "(Pauli label does not match qubit number.).");
         }
         // make tuple and add to components
         op.params_expval_pauli.push_back(std::make_pair(coeff, pauli));
@@ -497,8 +499,6 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
 Op json_to_op_snapshot_matrix(const json_t &js) {
   // Load default snapshot parameters
   Op op = json_to_op_snapshot_default(js);
-  // override name for depreciated "pauli_observable"
-  op.name = "expval_matrix"; 
 
   const auto threshold = 1e-10; // drop small components
   // Get matrix operator components
@@ -538,7 +538,8 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
       }
     } // end component loop
   } else {
-    throw std::invalid_argument("Invalid matrix snapshot  (\"params\" field missing).");
+    throw std::invalid_argument(std::string("Invalid matrix expectation value snapshot ") +
+                                "(\"params\" field missing).");
   }
   return op;
 }

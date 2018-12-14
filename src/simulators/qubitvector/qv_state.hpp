@@ -76,9 +76,9 @@ public:
   // Return the set of qobj snapshot types supported by the State
   inline virtual stringset_t allowed_snapshots() const override {
     return {"statevector", "memory", "register",
-            "probabilities", "probabilities_var",
-            "expval_pauli", "expval_pauli_var",
-            "expval_matrix", "expval_matrix_var"};
+            "probabilities", "probabilities_with_variance",
+            "expectation_value_pauli", "expectation_value_pauli_with_variance",
+            "expectation_value_matrix", "expectation_value_matrix_with_variance"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -278,11 +278,11 @@ template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"statevector", Snapshots::statevector},
   {"probabilities", Snapshots::probs},
-  {"expval_pauli", Snapshots::expval_pauli},
-  {"expval_matrix", Snapshots::expval_matrix},
-  {"probabilities_var", Snapshots::probs_var},
-  {"expval_pauli_var", Snapshots::expval_pauli_var},
-  {"expval_matrix_var", Snapshots::expval_matrix_var},
+  {"expectation_value_pauli", Snapshots::expval_pauli},
+  {"expectation_value_matrix", Snapshots::expval_matrix},
+  {"probabilities_with_variance", Snapshots::probs_var},
+  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
