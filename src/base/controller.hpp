@@ -77,7 +77,7 @@ namespace Base {
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
  *      be used across all levels of parallelization. Set to 0 for maximum
  *      available. [Default : 0]
- * - "max_parallel_circuits" (int): Set number of circuits that may be
+ * - "max_parallel_experiments" (int): Set number of circuits that may be
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
@@ -189,7 +189,7 @@ void Controller::set_config(const json_t &config) {
   // Load OpenMP maximum thread settings
   JSON::get_value(max_threads_total_, "max_parallel_threads", config);
   JSON::get_value(max_threads_shot_, "max_parallel_shots", config);
-  JSON::get_value(max_threads_circuit_, "max_parallel_circuits", config);
+  JSON::get_value(max_threads_circuit_, "max_parallel_experiments", config);
 
   // Prevent using both parallel circuits and parallel shots
   // with preference given to parallel circuit execution

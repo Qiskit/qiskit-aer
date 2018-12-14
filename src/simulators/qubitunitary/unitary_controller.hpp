@@ -30,14 +30,14 @@ namespace Simulator {
  *      zero in result data [Default: 1e-15]
  * - "unitary_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
- *      level [Default: 13]
+ *      level [Default: 6]
  * 
  * From BaseController Class
  *
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
  *      be used across all levels of parallelization. Set to 0 for maximum
  *      available. [Default : 0]
- * - "max_parallel_circuits" (int): Set number of circuits that may be
+ * - "max_parallel_experiments" (int): Set number of circuits that may be
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
