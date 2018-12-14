@@ -17,6 +17,39 @@ _NANOSECOND_UNITS = {'s': 1e9, 'ms': 1e6, 'µs': 1e3, 'us': 1e3, 'ns': 1}
 _GHZ_UNITS = {'Hz': 1e-9, 'KHz': 1e-6, 'MHz': 1e-3, 'GHz': 1, 'THz': 1e3}
 
 
+def gate_param_values(properties):
+    """Get gate error values for backend gate from backend properties
+
+    Args:
+        properties (BackendProperties): device backend properties
+
+    Returns:
+        list: A list of tuples (name, qubits, time, error). If gate
+        error or gate_time information is not available None will be
+        returned for value.
+    """
+    values = []
+    for gate in properties.gates:
+        name = gate.gate
+        qubits = gate.qubits
+        # Check for gate time information
+        gate_time = None  # default value
+        time_param = _check_for_item(gate.parameters, 'gate_time')
+        if hasattr(time_param, 'value'):
+            gate_time = time_param.value
+            if hasattr(time_param, 'unit'):
+                # Convert gate time to ns
+                gate_time *= _NANOSECOND_UNITS.get(time_param.unit, 1)
+        # Check for gate error information
+        gate_error = None  # default value
+        error_param = _check_for_item(gate.parameters, 'gate_error')
+        if hasattr(error_param, 'value'):
+            gate_error = error_param.value
+        values.append((name, qubits, gate_time, gate_error))
+
+    return values
+
+
 def gate_error_values(properties):
     """Get gate error values for backend gate from backend properties
 
