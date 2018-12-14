@@ -10,8 +10,8 @@ Quantum error class for Qiskit Aer noise model
 """
 import logging
 import numpy as np
-from .aernoiseerror import AerNoiseError
-from .noise_utils import kraus2instructions
+from ..noiseerror import NoiseError
+from .errorutils import kraus2instructions
 
 logger = logging.getLogger(__name__)
 
@@ -93,15 +93,15 @@ class QuantumError:
 
         # Error checking
         if minimum_qubits > self._number_of_qubits:
-            raise AerNoiseError("Input errors require {} qubits, ".format(minimum_qubits) +
+            raise NoiseError("Input errors require {} qubits, ".format(minimum_qubits) +
                                 "but number_of_qubits is {}".format(number_of_qubits))
         if len(self._noise_circuits) != len(self._noise_probabilities):
-            raise AerNoiseError("Number of error circuits does not match length of probabilities")
+            raise NoiseError("Number of error circuits does not match length of probabilities")
         total_probs = np.sum(self._noise_probabilities)
         if abs(total_probs - 1) > threshold:
-            raise AerNoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
+            raise NoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         if len([p for p in self._noise_probabilities if p < 0]) > 0:
-            raise AerNoiseError("Probabilities are invalid.")
+            raise NoiseError("Probabilities are invalid.")
 
     def __repr__(self):
         """Display QuantumError."""
@@ -155,13 +155,13 @@ class QuantumError:
             is the list of qobj instructions for the error term.
 
         Raises:
-            AerNoiseError: If the position is greater than the size of
+            NoiseError: If the position is greater than the size of
             the quantum error.
         """
         if position < self.size:
             return self.circuits[position], self.probabilities[position]
         else:
-            raise AerNoiseError("Position {} is greater than the number".format(position) +
+            raise NoiseError("Position {} is greater than the number".format(position) +
                                 "of error outcomes {}".format(self.size))
 
     def as_dict(self):
@@ -192,9 +192,9 @@ class QuantumError:
         """
         # Error checking
         if not isinstance(error, QuantumError):
-            raise AerNoiseError("error1 is not a QuantumError")
+            raise NoiseError("error1 is not a QuantumError")
         if self.number_of_qubits != error.number_of_qubits:
-            raise AerNoiseError("QuantumErrors are not defined on same number of qubits.")
+            raise NoiseError("QuantumErrors are not defined on same number of qubits.")
 
         combined_noise_circuits = []
         combined_noise_probabilities = []
@@ -256,7 +256,7 @@ class QuantumError:
 
         # Error checking
         if not isinstance(error, QuantumError):
-            raise AerNoiseError("{} is not a QuantumError".format(error))
+            raise NoiseError("{} is not a QuantumError".format(error))
 
         combined_noise_circuits = []
         combined_noise_probabilities = []
@@ -326,7 +326,7 @@ class QuantumError:
         qubits0 = kraus0['qubits']
         qubits1 = kraus1['qubits']
         if qubits0 != qubits1:
-            raise AerNoiseError("Kraus instructions are on different qubits")
+            raise NoiseError("Kraus instructions are on different qubits")
         params = [np.dot(b, a) for a in kraus0['params']
                   for b in kraus1['params']]
         return {'name': 'kraus', 'qubits': qubits0, 'params': params}
@@ -336,7 +336,7 @@ class QuantumError:
         qubits0 = mat0['qubits']
         qubits1 = mat1['qubits']
         if qubits0 != qubits1:
-            raise AerNoiseError("Unitary instructions are on different qubits")
+            raise NoiseError("Unitary instructions are on different qubits")
         params = np.dot(mat1['params'], mat0['params'])
         return {'name': 'unitary', 'qubits': qubits0, 'params': params}
 

@@ -6,13 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Exception for errors raised by Qiskit Aer.
+Exception for errors raised by Qiskit Aer noise module.
 """
 
-from qiskit import QISKitError
+from qiskit.qiskiterror import QiskitError
 
 
-class AerNoiseError(QISKitError):
+class NoiseError(QiskitError):
     """Class for errors raised in qiskit_aer.noise package."""
 
     def __init__(self, *message):

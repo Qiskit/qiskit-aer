@@ -12,11 +12,10 @@ Test circuits and reference outputs for measure instruction.
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, compile
-
 from qiskit_aer.backends import QasmSimulator
-from qiskit_aer.utils.qobj_utils import qobj_unitary_item
-from qiskit_aer.utils.qobj_utils import qobj_insert_item
-from qiskit_aer.utils.qobj_utils import qobj_measure_item
+from qiskit_aer.utils.qobj_utils import unitary_instr
+from qiskit_aer.utils.qobj_utils import append_instr
+from qiskit_aer.utils.qobj_utils import measure_instr
 
 
 # ==========================================================================
@@ -51,64 +50,64 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX01.(X^I), |10> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(x_mat, [1]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(x_mat, [1]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10.(I^X), |01> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(x_mat, [0]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(x_mat, [0]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX01.(I^X), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(x_mat, [0]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(x_mat, [0]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10.(X^I), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(x_mat, [1]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(x_mat, [1]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     return final_qobj
@@ -217,65 +216,64 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
-
 
     # CX01.(Y^I), |10> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(y_mat, [1]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(y_mat, [1]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10.(I^Y), |01> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(y_mat, [0]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(y_mat, [0]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX01.(I^Y), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(y_mat, [0]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [0, 1]), -1)
+    append_instr(qobj, 0, unitary_instr(y_mat, [0]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     # CX10.(Y^I), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(y_mat, [1]), -1)
-    qobj_insert_item(qobj, 0, qobj_unitary_item(cx_mat, [1, 0]), -1)
+    append_instr(qobj, 0, unitary_instr(y_mat, [1]))
+    append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
-        qobj_insert_item(qobj, 0, qobj_measure_item([0], [0]), -1)
-        qobj_insert_item(qobj, 0, qobj_measure_item([1], [1]), -1)
+        append_instr(qobj, 0, measure_instr([0], [0]))
+        append_instr(qobj, 0, measure_instr([1], [1]))
     final_qobj.experiments.append(qobj.experiments[0])
 
     return final_qobj

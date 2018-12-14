@@ -6,7 +6,7 @@ import time
 from multiprocessing import cpu_count
 
 import qiskit
-from qiskit import QISKitError
+from qiskit import QiskitError
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit_aer.backends.qasm_simulator import QasmSimulator
 from qiskit_aer.noise import NoiseModel
@@ -65,7 +65,7 @@ def benchmark_circuits(backend, circuits, shots=1):
         number of circuits.
 
     Raises:
-        QISKitError: If the simulation execution fails.
+        QiskitError: If the simulation execution fails.
     """
     qobj = qiskit.compile(circuits, backend, shots=shots)
     start_time = time.time()
@@ -76,7 +76,7 @@ def benchmark_circuits(backend, circuits, shots=1):
     else:
         average_time = (end_time - start_time) / len(circuits)
     if result.status != 'COMPLETED':
-        raise QISKitError("Simulation failed. Status: " + result.status)
+        raise QiskitError("Simulation failed. Status: " + result.status)
     return average_time
 
 

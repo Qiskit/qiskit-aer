@@ -40,32 +40,30 @@ Custom Noise Models
 -------------------
 Custom noise models may be constructed by adding errors to a NoiseModel
 object. Errors are represented using by the `QuantumError` and
-`ReadoutError` classes:
+`ReadoutError` classes from the `noise.errors` module:
 
-    * `QuantumErrors`: Errors that affect the quantum state during a
+    * `QuantumError`: Errors that affect the quantum state during a
        simulation. They may be applied after specific circuit gates or
        reset operations, or before measure operations of qubits.
 
-    * `ReadoutErrors`: Errors that apply to classical bit registers
+    * `ReadoutError`: Errors that apply to classical bit registers
        after a measurement. They do not change the quantum state of the
        system, only the recorded classical measurement outcome.
 
 Helper functions exist for generating standard quantum error channels in
-the `errors` submodule. These functions are:
+the `noise.errors` module. These functions are:
 
-    * `errors.kraus_error`
-    * `errors.mixed_unitary_error`
-    * `errors.coherent_unitary_error`
-    * `errors.pauli_error`
-    * `errors.depolarizing_error`
-    * `errors.thermal_relaxation_error`
-    * `errors.phase_amplitude_damping_error`
-    * `errors.amplitude_damping_error`
-    * `errors.phase_damping_error`
+    * `kraus_error`
+    * `mixed_unitary_error`
+    * `coherent_unitary_error`
+    * `pauli_error`
+    * `depolarizing_error`
+    * `thermal_relaxation_error`
+    * `phase_amplitude_damping_error`
+    * `amplitude_damping_error`
+    * `phase_damping_error`
 """
 
 from .noise_model import NoiseModel
-from .quantum_error import QuantumError
-from .readout_error import ReadoutError
 from . import errors
 from . import device

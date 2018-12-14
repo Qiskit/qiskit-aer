@@ -10,7 +10,7 @@ Helper functions for noise model creation.
 """
 
 import numpy as np
-from .aernoiseerror import AerNoiseError
+from ..noiseerror import NoiseError
 
 
 def standard_gates_instructions(instructions):
@@ -117,7 +117,7 @@ def single_qubit_clifford_gates(j):
         tuple(str): The tuple of basis gates."""
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
 
     labels = [
         ('id',), ('s',), ('sdg',), ('z',),
@@ -142,7 +142,7 @@ def single_qubit_clifford_matrix(j):
         np.array: The matrix for the indexed clifford."""
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
 
     basis_dict = {
         'id': np.eye(2),
@@ -174,9 +174,9 @@ def single_qubit_clifford_instructions(j, qubit=0):
         list(dict): The list of instructions."""
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise AerNoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
     if not isinstance(qubit, int) or qubit < 0:
-        raise AerNoiseError("qubit position must be positive integer.")
+        raise NoiseError("qubit position must be positive integer.")
 
     instructions = []
     for gate in single_qubit_clifford_gates(j):
@@ -275,10 +275,10 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
         dict: The qobj instruction object.
 
     Raises:
-        AerNoiseError: if the input is not a unitary matrix.
+        NoiseError: if the input is not a unitary matrix.
     """
     if not is_unitary_matrix(mat):
-        raise AerNoiseError("Input matrix is not unitary.")
+        raise NoiseError("Input matrix is not unitary.")
     elif isinstance(qubits, int):
         qubits = [qubits]
     instruction = {"name": "unitary",
@@ -300,10 +300,10 @@ def make_kraus_instruction(mats, qubits):
         dict: The qobj instruction object.
 
     Raises:
-        AerNoiseError: if the input is not a CPTP Kraus channel.
+        NoiseError: if the input is not a CPTP Kraus channel.
     """
     if not is_cptp_kraus(mats):
-        raise AerNoiseError("Input Kraus matrices are not a CPTP channel.")
+        raise NoiseError("Input Kraus matrices are not a CPTP channel.")
     elif isinstance(qubits, int):
         qubits = [qubits]
     return [{"name": "kraus", "qubits": qubits, "params": mats}]
@@ -315,7 +315,7 @@ def qubits_from_mat(mat):
     shape = arr.shape
     num_qubits = int(np.log2(shape[1]))
     if shape[1] != 2 ** num_qubits:
-        raise AerNoiseError("Input Kraus channel is not a multi-qubit channel.")
+        raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
     return num_qubits
 
 
@@ -384,9 +384,9 @@ def choi2kraus(choi, threshold=1e-10):
     """Convert a Choi matrix to canonical Kraus matrices"""
     # Check threshold
     if threshold < 0:
-        raise AerNoiseError("Threshold value cannot be negative")
+        raise NoiseError("Threshold value cannot be negative")
     if threshold > 1e-3:
-        raise AerNoiseError("Threshold value is too large. It should be close to zero.")
+        raise NoiseError("Threshold value is too large. It should be close to zero.")
     # Compute eigensystem of Choi matrix
     w, v = np.linalg.eig(choi)
     kraus = []
@@ -394,7 +394,7 @@ def choi2kraus(choi, threshold=1e-10):
         if val > threshold:
             kraus.append(np.sqrt(val) * vec.reshape((2, 2), order='F'))
         if val < -threshold:
-            raise AerNoiseError("Input Choi-matrix is not CP " +
+            raise NoiseError("Input Choi-matrix is not CP " +
                                 " (eigenvalue {} < 0)".format(val))
     return kraus
 
@@ -434,22 +434,22 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
         given error.
 
     Raises:
-        AerNoiseError: If the input Kraus channel is not CPTP.
+        NoiseError: If the input Kraus channel is not CPTP.
     """
     # Check threshold
     if threshold < 0:
-        raise AerNoiseError("Threshold cannot be negative")
+        raise NoiseError("Threshold cannot be negative")
     if threshold > 1e-3:
-        raise AerNoiseError("Threhsold value is too large. It should be close to zero.")
+        raise NoiseError("Threhsold value is too large. It should be close to zero.")
 
     # Check CPTP
     if not is_cptp_kraus(kraus_ops):
-        raise AerNoiseError("Input Kraus channel is not CPTP.")
+        raise NoiseError("Input Kraus channel is not CPTP.")
 
     # Get number of qubits
     num_qubits = int(np.log2(len(kraus_ops[0])))
     if len(kraus_ops[0]) != 2 ** num_qubits:
-        raise AerNoiseError("Input Kraus channel is not a multi-qubit channel.")
+        raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
 
     # Check if each matrix is a:
     # 1. scaled identity matrix
@@ -492,22 +492,22 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
     # Check probabilities
     prob_kraus = 1 - prob_unitary
     if prob_unitary - 1 > threshold:
-        raise AerNoiseError("Invalid kraus matrices: unitary probability" +
+        raise NoiseError("Invalid kraus matrices: unitary probability" +
                             " {} > 1".format(prob_unitary))
     if prob_unitary < -threshold:
-        raise AerNoiseError("Invalid kraus matrices: unitary probability" +
+        raise NoiseError("Invalid kraus matrices: unitary probability" +
                             " {} < 1".format(prob_unitary))
     if prob_identity - 1 > threshold:
-        raise AerNoiseError("Invalid kraus matrices: identity probability" +
+        raise NoiseError("Invalid kraus matrices: identity probability" +
                             " {} > 1".format(prob_identity))
     if prob_identity < -threshold:
-        raise AerNoiseError("Invalid kraus matrices: identity probability" +
+        raise NoiseError("Invalid kraus matrices: identity probability" +
                             " {} < 1".format(prob_identity))
     if prob_kraus - 1 > threshold:
-        raise AerNoiseError("Invalid kraus matrices: non-unitary probability" +
+        raise NoiseError("Invalid kraus matrices: non-unitary probability" +
                             " {} > 1".format(prob_kraus))
     if prob_kraus < -threshold:
-        raise AerNoiseError("Invalid kraus matrices: non-unitary probability" +
+        raise NoiseError("Invalid kraus matrices: non-unitary probability" +
                             " {} < 1".format(prob_kraus))
 
     # Build qobj instructions

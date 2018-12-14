@@ -18,6 +18,43 @@ namespace Simulator {
 // QasmController class
 //=========================================================================
 
+/**************************************************************************
+ * Config settings:
+ * 
+ * From QubitVector::State class
+ * 
+ * - "initial_statevector" (json complex vector): Use a custom initial
+ *      statevector for the simulation [Default: null].
+ * - "chop_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-15]
+ * - "statevector_parallel_threshold" (int): Threshold that number of qubits
+ *      must be greater than to enable OpenMP parallelization at State
+ *      level [Default: 13]
+ * - "statevector_sample_measure_opt" (int): Threshold that number of qubits
+ *      must be greater than to enable indexing optimization during
+ *      measure sampling [Default: 10]
+ * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
+ *      [Default: False]
+ * 
+ * From BaseController Class
+ *
+ * - "noise_model" (json): A noise model to use for simulation [Default: null]
+ * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
+ *      be used across all levels of parallelization. Set to 0 for maximum
+ *      available. [Default : 0]
+ * - "max_parallel_experiments" (int): Set number of circuits that may be
+ *      executed in parallel. Set to 0 to use the number of max parallel
+ *      threads [Default: 1]
+ * - "max_parallel_shots" (int): Set number of shots that maybe be executed
+ *      in parallel for each circuit. Sset to 0 to use the number of max
+ *      parallel threads [Default: 1].
+ * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
+ * - "memory" (bool): Return memory array in circuit data [Default: False]
+ * - "register" (bool): Return register array in circuit data [Default: False]
+ * 
+ **************************************************************************/
+
 class QasmController : public Base::Controller {
 public:
   //-----------------------------------------------------------------------

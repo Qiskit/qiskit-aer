@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=arguments-differ
+
 """This module implements the job class used for AerBackend objects."""
 
 import warnings
@@ -39,7 +41,7 @@ def requires_submit(func):
 
 
 class AerJob(BaseJob):
-    """Aer Job class.
+    """AerJob class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
@@ -118,21 +120,12 @@ class AerJob(BaseJob):
         elif self._future.done():
             _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
-            raise JobError('Unexpected behavior of {0}'.format(
-                self.__class__.__name__))
+            # Note: There is an undocumented Future state: PENDING, that seems to show up when
+            # the job is enqueued, waiting for someone to pick it up. We need to deal with this
+            # state but there's no public API for it, so we are assuming that if the job is not
+            # in any of the previous states, is PENDING, ergo INITIALIZING for us.
+            _status = JobStatus.INITIALIZING
         return _status
-
-    def backend_name(self):
-        """
-        Return the name of the backend used for this job.
-
-        .. deprecated:: 0.6+
-            After 0.6, this function is deprecated. Please use
-            `job.backend().name()` instead.
-        """
-        warnings.warn('The use of `job.backend_name()` is deprecated, use '
-                      '`job.backend().name()` instead.', DeprecationWarning)
-        return self._backend.name()
 
     def backend(self):
         """Return the instance of the backend used for this job."""

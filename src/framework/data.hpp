@@ -18,6 +18,15 @@ namespace AER {
 // Output data class for Qiskit-Aer
 //============================================================================
 
+/**************************************************************************
+ * Data config options:
+ * 
+ * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
+ * - "memory" (bool): Return memory array in circuit data [Default: False]
+ * - "register" (bool): Return register array in circuit data [Default: False]
+ **************************************************************************/
+
 class OutputData {
 public:
   //----------------------------------------------------------------

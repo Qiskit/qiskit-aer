@@ -17,7 +17,7 @@ from .parameters import gate_error_values
 from .parameters import thermal_relaxation_values
 
 from ..noise_model import NoiseModel
-from ..readout_error import ReadoutError
+from ..errors.readout_error import ReadoutError
 from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
 

@@ -14,90 +14,56 @@ IS ADDED TO QISKIT TERRA. THEY WILL NOT BE SUPPORTED AFTER THAT.
 
 import copy
 import numpy as np
-from qiskit.qobj import QobjItem
+from qiskit.qobj import QobjInstruction
 
 
-def qobj_append_item(qobj, exp_index, item):
-    """Append a QobjItem to a Qobj experiment.
+def append_instr(qobj, exp_index, instruction):
+    """Append a QobjInstruction to a QobjExperiment.
 
     Args:
-        qobj (Qobj): a Qobj object
-        exp_index (int): The index of the experiment in the qobj
-        item (QobjItem): The Qobj item to insert
+        qobj (Qobj): a Qobj object.
+        exp_index (int): The index of the experiment in the qobj.
+        instruction (QobjInstruction): instruction to insert.
     """
-    qobj.experiments[exp_index].instructions.append(item)
+    qobj.experiments[exp_index].instructions.append(instruction)
     return qobj
 
 
-def qobj_insert_item(qobj, exp_index, item, pos):
-    """Insert a QobjItem into a Qobj experiment.
+def insert_instr(qobj, exp_index, item, pos):
+    """Insert a QobjInstruction into a QobjExperiment.
 
     Args:
         qobj (Qobj): a Qobj object
-        exp_index (int): The index of the experiment in the qobj
-        item (QobjItem): The Qobj item to insert
+        exp_index (int): The index of the experiment in the qobj.
+        instruction(QobjInstruction): instruction to insert.
         pos (int): the position to insert the item.
     """
     qobj.experiments[exp_index].instructions.insert(pos, item)
     return qobj
 
 
-def qobj_get_item_positions(qobj, exp_index, name):
-    """Return all locations of QobjItem in a Qobj experiment.
+def get_instr_pos(qobj, exp_index, name):
+    """Return all locations of QobjInstruction in a Qobj experiment.
+
+    The return list is sorted in reverse order so iterating over it
+    to insert new items will work as expected.
 
     Args:
         qobj (Qobj): a Qobj object
         exp_index (int): The index of the experiment in the qobj
-        name (str): QobjItem name to find
+        name (str): QobjInstruction name to find
 
     Returns:
-        list[int]: A list of positions where the QobjItem is located.
+        list[int]: A list of positions where the QobjInstruction is located.
     """
     # Check only the name string of the item
-    return [i for i, val in enumerate(qobj.experiments[exp_index].instructions)
-            if val.name == name]
+    positions = [i for i, val in enumerate(qobj.experiments[exp_index].instructions)
+                 if val.name == name]
+    return positions
 
 
-def qobj_get_specific_item_positions(qobj, exp_index, item):
-    """Return all locations of QobjItem in a Qobj experiment.
-
-    Args:
-        qobj (Qobj): a Qobj object
-        exp_index (int): The index of the experiment in the qobj
-        item (QobjItem): The item to find
-
-    Returns:
-        list[int]: A list of positions where the QobjItem is located.
-    """
-    return [i for i, val in enumerate(qobj.experiments[exp_index].instructions)
-            if val == item]
-
-
-def qobj_insert_snapshots_after_barriers(qobj, snapshot):
-    """Insert a snapshot instruction after each barrier in qobj.
-
-    The label of the input snapshot will be appended with "i" where
-    "i" ranges from 0 to the 1 - number of barriers.
-
-    Args:
-        snapshot (QobjItem): a snapshot instruction.
-
-    Additional Information:
-    """
-    if snapshot.name != "snapshot":
-        raise ValueError("Invalid snapshot instruction")
-    label = snapshot.label
-    for exp_index in range(len(qobj.experiments)):
-        positions = qobj_get_item_positions(qobj, exp_index, "barrier")
-        for i, pos in reversed(list(enumerate(positions))):
-            item = copy.copy(snapshot)
-            item.label = label + "{}".format(i)
-            qobj_insert_item(qobj, exp_index, item, pos)
-    return qobj
-
-
-def qobj_unitary_item(mat, qubits, label=None):
-    """Create a unitary gate qobj item.
+def unitary_instr(mat, qubits, label=None):
+    """Create a unitary gate QobjInstruction.
 
     Args:
         mat (matrix_like): an n-qubit unitary matrix
@@ -105,7 +71,7 @@ def qobj_unitary_item(mat, qubits, label=None):
         label (str): optional string label for the untiary matrix
 
     Returns:
-        QobjItem: The qobj item for the unitary instruction.
+        QobjInstruction: The qobj item for the unitary instruction.
 
     Raises:
         ValueError: if the input matrix is not unitary
@@ -131,10 +97,38 @@ def qobj_unitary_item(mat, qubits, label=None):
                    "params": np.array(mat, dtype=complex)}
     if label is not None:
         instruction["label"] = str(label)
-    return QobjItem(**instruction)
+    return QobjInstruction(**instruction)
 
 
-def qobj_snapshot_item(snapshot_type, label, qubits=None, params=None):
+def measure_instr(qubits, memory, registers=None):
+    """Create a multi-qubit measure instruction"""
+    if len(qubits) != len(memory):
+        raise ValueError("Number of qubits does not match number of memory")
+    if registers is None:
+        return QobjInstruction(name='measure', qubits=qubits, memory=memory)
+    # Case where we also measure to registers
+    if len(qubits) != len(registers):
+        raise ValueError("Number of qubits does not match number of registers")
+    return QobjInstruction(name='measure', qubits=qubits, memory=memory,
+                           register=registers)
+
+
+def reset_instr(qubits):
+    """Create a multi-qubit reset instruction"""
+    return QobjInstruction(name='reset', qubits=qubits)
+
+
+def barrier_instr(num_qubits):
+    """Create a barrier QobjInstruction."""
+    return QobjInstruction(name='barrier', qubits=list(range(num_qubits)))
+
+
+def iden_instr(qubit):
+    """Create a barrier QobjInstruction."""
+    return QobjInstruction(name='id', qubits=[qubit])
+
+
+def snapshot_instr(snapshot_type, label, qubits=None, params=None):
     """Create a snapshot qobj item.
 
     Args:
@@ -145,7 +139,7 @@ def qobj_snapshot_item(snapshot_type, label, qubits=None, params=None):
                          See additional information.
 
     Returns:
-        QobjItem: The qobj item for the snapshot instruction.
+        QobjInstruction: The qobj item for the snapshot instruction.
 
 
     Additional Information:
@@ -184,32 +178,28 @@ def qobj_snapshot_item(snapshot_type, label, qubits=None, params=None):
         snap["name"] = "expval_matrix"
         snap["params"] = [[1.0, qubits, params]]
     # TODO: implicit conversion for Pauli expval params
-    return QobjItem(**snap)
+    return QobjInstruction(**snap)
 
 
-def qobj_measure_item(qubits, memory, registers=None):
-    """Create a multi-qubit measure instruction"""
-    if len(qubits) != len(memory):
-        raise ValueError("Number of qubits does not match number of memory")
-    if registers is None:
-        return QobjItem(name='measure', qubits=qubits, memory=memory)
-    # Case where we also measure to registers
-    if len(qubits) != len(registers):
-        raise ValueError("Number of qubits does not match number of registers")
-    return QobjItem(name='measure', qubits=qubits, memory=memory,
-                    register=registers)
+def insert_snapshots_after_barriers(qobj, snapshot):
+    """Insert a snapshot instruction after each barrier in qobj.
 
+    The label of the input snapshot will be appended with "i" where
+    "i" ranges from 0 to the 1 - number of barriers.
 
-def qobj_reset_item(qubits):
-    """Create a multi-qubit reset instruction"""
-    return QobjItem(name='reset', qubits=qubits)
+    Args:
+        qobj (Qobj): a qobj to insert snapshots into
+        snapshot (QobjInstruction): a snapshot instruction.
 
-
-def qobj_barrier_item(num_qubits):
-    """Create a barrier QobjItem."""
-    return QobjItem(name='barrier', qubits=list(range(num_qubits)))
-
-
-def qobj_iden_item(qubit):
-    """Create a barrier QobjItem."""
-    return QobjItem(name='id', qubits=[qubit])
+    Additional Information:
+    """
+    if snapshot.name != "snapshot":
+        raise ValueError("Invalid snapshot instruction")
+    label = snapshot.label
+    for exp_index in range(len(qobj.experiments)):
+        positions = get_instr_pos(qobj, exp_index, "barrier")
+        for i, pos in reversed(list(enumerate(positions))):
+            item = copy.copy(snapshot)
+            item.label = label + "{}".format(i)
+            insert_instr(qobj, exp_index, item, pos)
+    return qobj
