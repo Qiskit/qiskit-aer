@@ -328,26 +328,28 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     # T1 relaxation rate
     if t1 == np.inf:
         rate1 = 0
+        p_reset = 0
     else:
         rate1 = 1 / t1
+        p_reset = 1 - np.exp(-time * rate1)
     # T2 dephasing rate
     if t2 == np.inf:
-        rate2 = - rate1
+        rate2 = 0
+        exp_t2 = 1
     else:
-        rate2 = 2 / t2 - rate1
-    # Relaxation probabilities
-    pr = 1 - np.exp(-rate1 * time)
+        rate2 = 1 / t2
+        exp_t2 = np.exp(-time * rate2)
+    # Qubit state equilibrium probabilities
     p0 = 1 - excited_state_population
     p1 = excited_state_population
 
     if t2 > t1:
         # If T_2 > T_1 we must express this as a Kraus channel
         # We start with the Choi-matrix representation:
-        p2 = np.exp(-0.5 * (rate1 + rate2) * time)
-        choi = np.array([[1 - p1 * pr, 0, 0, p2],
-                         [0, p1 * pr, 0, 0],
-                         [0, 0, p0 * pr, 0],
-                         [p2, 0, 0, 1 - p0 * pr]])
+        choi = np.array([[1 - p1 * p_reset, 0, 0, exp_t2],
+                         [0, p1 * p_reset, 0, 0],
+                         [0, 0, p0 * p_reset, 0],
+                         [exp_t2, 0, 0, 1 - p0 * p_reset]])
         # Find canonical Kraus operators by eigendecomposition of Choi-matrix
         kraus = choi2kraus(choi)
         return QuantumError(kraus)
@@ -360,9 +362,9 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
             [{'name': 'reset', 'qubits': [0]}],
             [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]]
         # Probability
-        p_reset0 = pr * p0
-        p_reset1 = pr * p1
-        p_z = 0.5 * (1 - pr) * (1 - np.exp(-0.5 * (rate2 - rate1) * time))
+        p_reset0 = p_reset * p0
+        p_reset1 = p_reset * p1
+        p_z = (1 - p_reset) * (1 - np.exp(-time * (rate2 - rate1))) / 2
         p_identity = 1 - p_z - p_reset0 - p_reset1
         probabilities = [p_identity, p_z, p_reset0, p_reset1]
         return QuantumError(zip(circuits, probabilities))
