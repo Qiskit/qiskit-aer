@@ -13,12 +13,13 @@ import unittest
 from test.terra.utils import common
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
-from qiskit_aer.noise import NoiseModel, QuantumError
 from qiskit_aer.backends import QasmSimulator
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors.quantum_error import QuantumError
 from qiskit_aer.noise.errors.standard_errors import pauli_error
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit_aer.utils.qobj_utils import qobj_measure_item
-from qiskit_aer.utils.qobj_utils import qobj_append_item
+from qiskit_aer.utils.qobj_utils import measure_instr
+from qiskit_aer.utils.qobj_utils import append_instr
 
 
 class TestNoise(common.QiskitAerTestCase):
@@ -159,8 +160,8 @@ class TestNoise(common.QiskitAerTestCase):
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
         # Add measure to qobj
-        item = qobj_measure_item([0, 1], [0, 1])
-        qobj_append_item(qobj, 0, item)
+        item = measure_instr([0, 1], [0, 1])
+        append_instr(qobj, 0, item)
         # Execute
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
