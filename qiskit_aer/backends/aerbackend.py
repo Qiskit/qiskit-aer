@@ -22,7 +22,7 @@ from qiskit.qobj import QobjConfig
 from qiskit.result import Result
 
 from .aerjob import AerJob
-from .aersimulatorerror import AerSimulatorError
+from .aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class AerBackend(BaseBackend):
 
         Raises:
             FileNotFoundError if backend executable is not available.
-            QISKitError: if there is no name in the configuration
+            QiskitError: if there is no name in the configuration
         """
         super().__init__(configuration, provider=provider)
         self._controller = controller
@@ -144,9 +144,9 @@ class AerBackend(BaseBackend):
             # Check for error message in the failed circuit
             for res in output.get('results'):
                 if not res.get('success', False):
-                    raise AerSimulatorError(res.get("status", None))
+                    raise AerError(res.get("status", None))
             # If no error was found check for error message at qobj level
-            raise AerSimulatorError(output.get("status", None))
+            raise AerError(output.get("status", None))
 
     def _validate(self, qobj):
         # TODO

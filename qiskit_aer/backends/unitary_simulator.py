@@ -18,7 +18,7 @@ from qiskit.backends.models import BackendConfiguration
 
 from ..version import __version__
 from .aerbackend import AerBackend
-from .aersimulatorerror import AerSimulatorError
+from .aererror import AerError
 from unitary_controller_wrapper import unitary_controller_execute
 
 # Logger
@@ -69,9 +69,9 @@ class UnitarySimulator(AerBackend):
             # Check for measure or reset operations
             for pos, instr in reversed(list(enumerate(experiment.instructions))):
                 if instr.name == "measure":
-                    raise AerSimulatorError("UnitarySimulator: circuit contains measure.")
+                    raise AerError("UnitarySimulator: circuit contains measure.")
                 if instr.name == "reset":
-                    raise AerSimulatorError("UnitarySimulator: circuit contains reset.")
+                    raise AerError("UnitarySimulator: circuit contains reset.")
             # Set shots to 1
             if getattr(experiment.config, 'shots', 1) != 1:
                 logger.info("UnitarySimulator only supports 1 shot. "

@@ -13,7 +13,7 @@ from numpy import array, log2, eye
 from numpy.linalg import norm
 
 from .noise_utils import qubits_from_mat
-from .aernoiseerror import AerNoiseError
+from .noiseerror import NoiseError
 
 
 class ReadoutError:
@@ -78,23 +78,23 @@ class ReadoutError:
     def _check_probabilities(probabilities, threshold):
         """Check probabilities are valid."""
         if len(probabilities) == 0:
-            raise AerNoiseError("Input probabilities: empty.")
+            raise NoiseError("Input probabilities: empty.")
         num_outcomes = len(probabilities[0])
         num_qubits = int(log2(num_outcomes))
         if 2 ** num_qubits != num_outcomes:
-            raise AerNoiseError("Invalid probabilities: length" +
+            raise NoiseError("Invalid probabilities: length" +
                                 "{} != 2**{}".format(num_outcomes, num_qubits))
         if len(probabilities) != num_outcomes:
-            raise AerNoiseError("Invalid probabilities.")
+            raise NoiseError("Invalid probabilities.")
         for vec in probabilities:
             arr = array(vec)
             if len(arr) != num_outcomes:
-                raise AerNoiseError("Invalid probabilities: vectors are different lengths.")
+                raise NoiseError("Invalid probabilities: vectors are different lengths.")
             if abs(sum(arr) - 1) > threshold:
-                raise AerNoiseError("Invalid probabilities: sum({})".format(vec) +
+                raise NoiseError("Invalid probabilities: sum({})".format(vec) +
                                     " = {} is not 1.".format(sum(arr)))
             if len(arr[arr < 0]) > 0:
-                raise AerNoiseError("Invalid probabilities: {}".format(vec) +
+                raise NoiseError("Invalid probabilities: {}".format(vec) +
                                     " contains a negative probability.")
 
     def __repr__(self):
