@@ -10,7 +10,7 @@ Helper functions for noise model creation.
 """
 
 import numpy as np
-from .noiseerror import NoiseError
+from ..noiseerror import NoiseError
 
 
 def standard_gates_instructions(instructions):

@@ -5,13 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-import numpy as np
-from test.terra.utils import common
+"""
+Standard error function tests
+"""
+
 import unittest
+from test.terra.utils import common
+import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit_aer.noise.noise_utils import standard_gate_unitary
 from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit_aer.noise.errors.standard_errors import kraus_error
 from qiskit_aer.noise.errors.standard_errors import mixed_unitary_error
 from qiskit_aer.noise.errors.standard_errors import coherent_unitary_error

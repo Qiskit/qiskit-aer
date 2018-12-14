@@ -5,16 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-from test.terra.utils import common
+"""
+QuantumError class tests
+"""
+
 import unittest
+from test.terra.utils import common
 import numpy as np
-
-from qiskit_aer.noise.noise_utils import standard_gate_unitary
-from qiskit_aer.noise import QuantumError
 from qiskit_aer.noise.noiseerror import NoiseError
-
-# TODO:
-# * Test compose error for different qubit number
+from qiskit_aer.noise.errors.readout_error import QuantumError
+from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
 
 
 class TestQuantumError(common.QiskitAerTestCase):

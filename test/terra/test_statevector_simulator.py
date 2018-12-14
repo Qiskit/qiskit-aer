@@ -9,6 +9,7 @@
 StatevectorSimulator Integration Tests
 """
 
+import unittest
 from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
@@ -17,12 +18,9 @@ from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
 from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_unitary_gate
-import unittest
+
 from qiskit import execute
 from qiskit_aer.backends import StatevectorSimulator
-
-# TODO: Enable minimal basis (U,X) tests once bugs in terra are fixed
-# TODO: Enable conditional tests once terra supports bfunc conditionals
 
 
 class TestStatevectorSimulator(common.QiskitAerTestCase):

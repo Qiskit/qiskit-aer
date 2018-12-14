@@ -10,8 +10,8 @@ Quantum error class for Qiskit Aer noise model
 """
 import logging
 import numpy as np
-from .noiseerror import NoiseError
-from .noise_utils import kraus2instructions
+from ..noiseerror import NoiseError
+from .errorutils import kraus2instructions
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,8 @@ Noise model class for Qiskit Aer simulators.
 import logging
 
 from .noiseerror import NoiseError
-from .quantum_error import QuantumError
-from .readout_error import ReadoutError
+from .errors.quantum_error import QuantumError
+from .errors.readout_error import ReadoutError
 
 logger = logging.getLogger(__name__)
 

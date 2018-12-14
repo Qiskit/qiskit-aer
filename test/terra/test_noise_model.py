@@ -5,9 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-import test.terra.utils.common as common
-import unittest
+"""
+NoiseModel class integration tests
+"""
 
+import unittest
+from test.terra.utils import common
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
 from qiskit_aer.noise import NoiseModel, QuantumError

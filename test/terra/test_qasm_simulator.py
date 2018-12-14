@@ -9,6 +9,7 @@
 QasmSimulator Integration Tests
 """
 
+import unittest
 from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
@@ -18,11 +19,9 @@ from test.terra.utils import ref_2q_clifford
 from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_algorithms
 from test.terra.utils import ref_unitary_gate
-import unittest
+
 from qiskit import execute
 from qiskit_aer.backends import QasmSimulator
-
-# TODO: Enable minimal basis (U,X) tests once bugs in terra are fixed
 
 
 class TestQasmSimulator(common.QiskitAerTestCase):

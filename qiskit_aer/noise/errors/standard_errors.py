@@ -14,15 +14,14 @@ from itertools import product
 
 from qiskit.quantum_info.operators.pauli import Pauli
 from ..noiseerror import NoiseError
-from ..quantum_error import QuantumError
-from ..noise_utils import make_unitary_instruction
-from ..noise_utils import qubits_from_mat
-from ..noise_utils import canonical_kraus_matrices
-from ..noise_utils import choi2kraus
-from ..noise_utils import standard_gate_unitary
-from ..noise_utils import is_unitary_matrix
-from ..noise_utils import is_identity_matrix
-
+from .errorutils import make_unitary_instruction
+from .errorutils import qubits_from_mat
+from .errorutils import canonical_kraus_matrices
+from .errorutils import choi2kraus
+from .errorutils import standard_gate_unitary
+from .errorutils import is_unitary_matrix
+from .errorutils import is_identity_matrix
+from .quantum_error import QuantumError
 
 def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
     """Kraus error channel.

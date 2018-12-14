@@ -5,11 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-from test.terra.utils import common
-import unittest
+"""
+ReadoutError class tests
+"""
 
-from qiskit_aer.noise import ReadoutError
+import unittest
+from test.terra.utils import common
 from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.noise.errors.readout_error import ReadoutError
 
 
 class TestReadoutError(common.QiskitAerTestCase):

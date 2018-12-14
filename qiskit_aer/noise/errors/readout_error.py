@@ -12,8 +12,8 @@ Readout error class for Qiskit Aer noise model.
 from numpy import array, log2, eye
 from numpy.linalg import norm
 
-from .noise_utils import qubits_from_mat
-from .noiseerror import NoiseError
+from ..noiseerror import NoiseError
+from .errorutils import qubits_from_mat
 
 
 class ReadoutError:
