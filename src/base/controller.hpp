@@ -54,16 +54,45 @@ namespace Base {
 // It manages execution of all the circuits in a QOBJ, parallelization,
 // noise sampling from a noise model, and circuit optimizations.
 
-// Parallelization:
-//    Parallel execution uses the OpenMP library. It may happen at three
-//    levels:
-//      1. Parallel execution of circuits in a QOBJ
-//      2. Parallel execution of shots in a Circuit
-//      3. Parallelization used by the State class for performing gates.
-//    Options 1 and 2 are mutually exclusive: enabling circuit parallelization
-//    disables shot parallelization and vice versa. Option 3 is available for 
-//    both cases but conservatively limits the number of threads since these
-//    are subthreads spawned by the higher level threads.
+/**************************************************************************
+ * ---------------
+ * Parallelization
+ * ---------------
+ * Parallel execution uses the OpenMP library. It may happen at three levels:
+ *   
+ *  1. Parallel execution of circuits in a QOBJ
+ *  2. Parallel execution of shots in a Circuit
+ *  3. Parallelization used by the State class for performing gates.
+ *
+ * Options 1 and 2 are mutually exclusive: enabling circuit parallelization
+ * disables shot parallelization. Option 3 is available for both cases but
+ * conservatively limits the number of threads since these are subthreads
+ * spawned by the higher level threads. If no parallelization is used for
+ * 1 and 2, all available threads will be used for 3.
+ *
+ * -------------------------
+ * Config settings:
+ * 
+ * - "noise_model" (json): A noise model to use for simulation [Default: null]
+ * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
+ *      be used across all levels of parallelization. Set to 0 for maximum
+ *      available. [Default : 0]
+ * - "max_parallel_circuits" (int): Set number of circuits that may be
+ *      executed in parallel. Set to 0 to use the number of max parallel
+ *      threads [Default: 1]
+ * - "max_parallel_shots" (int): Set number of shots that maybe be executed
+ *      in parallel for each circuit. Sset to 0 to use the number of max
+ *      parallel threads [Default: 1].
+ * 
+ * Config settings from Data class:
+ * 
+ * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
+ * - "memory" (bool): Return memory array in circuit data [Default: False]
+ * - "register" (bool): Return register array in circuit data [Default: False]
+ * - "noise_model" (json): A noise model JSON dictionary for the simulator.
+ *                         [Default: null]
+ **************************************************************************/
 
 class Controller {
 public:
@@ -84,21 +113,6 @@ public:
 
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
-  // Allowed Controller config options:
-  // - "noise_model": NoiseModel JSON
-  //   A noise model JSON dictionary for the simulator.
-  // - "max_threads": int
-  //   Set the maximum OpenMP threads that may be used across all levels
-  //   of parallelization. Set to -1 for maximum available (Default: -1)
-  // - "max_threads_circuit": int
-  //   Set the maximum OpenMP threads that may be used for parallel
-  //   circuit evaluation. Set to -1 for maximum available (Default: 1)
-  // - "max_threads_shot": int
-  //   Set the maximum OpenMP threads that may be used for parallel
-  //   shot evaluation. Set to -1 for maximum available (Default: 1)
-   // - "max_threads_state": int
-  //   Set the maximum OpenMP threads that may be used by the State
-  //   class. Set to -1 for maximum available (Default: -1)
   virtual void set_config(const json_t &config);
 
   // Clear the current config
@@ -147,13 +161,11 @@ protected:
   int available_threads_ = 1;
 
   // The maximum number of threads to use for various levels of parallelization
-  int max_threads_total_ = -1; 
-
-  int max_threads_circuit_ = 1; // -1 for maximum available
-
-  int max_threads_shot_ = 1;   // -1 for maximum available
-  
-  int max_threads_state_ = -1;   // -1 for maximum available
+  // set to 0 for maximum available
+  int max_threads_total_;
+  int max_threads_circuit_;
+  int max_threads_shot_;
+  int max_threads_state_;
 
 };
 
@@ -167,18 +179,22 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
+  // Save config for passing to State and Data classes
   config_ = config;
-  // Add noise model
+
+  // Load noise model
   if (JSON::check_key("noise_model", config))
     noise_model_ = Noise::NoiseModel(config["noise_model"]);
-  // Default: max_threads = -1 (all available threads)
-  JSON::get_value(max_threads_total_, "max_threads", config);
-  // Default: max_threads_circuit = 1
-  JSON::get_value(max_threads_circuit_, "max_threads_circuit", config);
-  // Default: max_threads_shot = 1
-  JSON::get_value(max_threads_shot_, "max_threads_shot", config);
-  // Default: max_threads_state = -1 (all available threads)
-  JSON::get_value(max_threads_shot_, "max_threads_state", config);
+
+  // Load OpenMP maximum thread settings
+  JSON::get_value(max_threads_total_, "max_parallel_threads", config);
+  JSON::get_value(max_threads_shot_, "max_parallel_shots", config);
+  JSON::get_value(max_threads_circuit_, "max_parallel_circuits", config);
+
+  // Prevent using both parallel circuits and parallel shots
+  // with preference given to parallel circuit execution
+  if (max_threads_circuit_ > 1)
+    max_threads_shot_ = 1;
 }
 
 void Controller::clear_config() {
@@ -188,10 +204,10 @@ void Controller::clear_config() {
 }
 
 void Controller::set_threads_default() {
-  max_threads_total_ = -1;
+  max_threads_total_ = 0;
+  max_threads_state_ = 0;
   max_threads_circuit_ = 1;
   max_threads_shot_ = 1;
-  max_threads_state_ = -1;
 }
 
 
@@ -204,10 +220,15 @@ json_t Controller::execute(const json_t &qobj_js) {
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
-  // Look for config and load
-  if (JSON::check_key("config", qobj_js)) {
-    set_config(qobj_js["config"]);
-  }
+  // Generate empty return JSON that matches Result spec
+  json_t result;
+  result["qobj_id"] = nullptr;
+  result["success"] = true;
+  result["status"] = nullptr;
+  result["backend_name"] = nullptr;
+  result["backend_version"] = nullptr;
+  result["date"] = nullptr;
+  result["job_id"] = nullptr;
 
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
@@ -216,21 +237,23 @@ json_t Controller::execute(const json_t &qobj_js) {
     qobj.load_qobj_from_json(qobj_js);
   } 
   catch (std::exception &e) {
-    json_t ret;
-    ret["qobj_id"] = "ERROR";
-    ret["success"] = false;
-    ret["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
-    ret["backend_name"] = nullptr;
-    ret["backend_version"] = nullptr;
-    ret["date"] = nullptr;
-    ret["job_id"] = nullptr;
-    return ret; // qobj was invalid, return valid output containing error message
+    // qobj was invalid, return valid output containing error message
+    result["success"] = false;
+    result["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
+    return result; 
+  }
+
+  // Get QOBJ id and pass through header to result
+  result["qobj_id"] = qobj.id;
+  if (!qobj.header.empty())
+      result["header"] = qobj.header;
+
+  // Check for config
+  if (JSON::check_key("config", qobj_js)) {
+    set_config(qobj_js["config"]);
   }
 
   // Qobj was loaded successfully, now we proceed
-  json_t ret;
-  bool all_success = true;
-
   try {
     int num_circuits = qobj.circuits.size();
 
@@ -253,65 +276,59 @@ json_t Controller::execute(const json_t &qobj_js) {
     available_threads_ /= num_threads_circuit;
     
     // Add thread metatdata to output
-    ret["metadata"]["omp_enabled"] = true;
-    ret["metadata"]["omp_available_threads"] = omp_nthreads;
-    ret["metadata"]["omp_circuit_threads"] = num_threads_circuit;
+    result["metadata"]["omp_enabled"] = true;
+    result["metadata"]["omp_available_threads"] = omp_nthreads;
+    result["metadata"]["omp_circuit_threads"] = num_threads_circuit;
   #else
-    ret["metadata"]["omp_enabled"] = false;
+    result["metadata"]["omp_enabled"] = false;
   #endif
 
     // Initialize container to store parallel circuit output
-    ret["results"] = std::vector<json_t>(num_circuits);
+    result["results"] = std::vector<json_t>(num_circuits);
     
     if (num_threads_circuit > 1) {
       // Parallel circuit execution
       #pragma omp parallel for if (num_threads_circuit > 1) num_threads(num_threads_circuit)
       for (int j = 0; j < num_circuits; ++j) {
-        ret["results"][j] = execute_circuit(qobj.circuits[j]);
+        result["results"][j] = execute_circuit(qobj.circuits[j]);
       }
     } else {
       // Serial circuit execution
       for (int j = 0; j < num_circuits; ++j) {
-        ret["results"][j] = execute_circuit(qobj.circuits[j]);
+        result["results"][j] = execute_circuit(qobj.circuits[j]);
       }
     }
 
     // check success
-    for (const auto& res: ret["results"]) {
-      all_success &= res["success"].get<bool>();
+    for (const auto& experiment: result["results"]) {
+      if (experiment["success"].get<bool>() == false) {
+        result["success"] = false;
+        break;
+      }
     }
-
-    // Add success data
-    ret["success"] = all_success;
-    ret["status"] = std::string("COMPLETED");
-    ret["qobj_id"] = qobj.id;
-    if (!qobj.header.empty())
-      ret["header"] = qobj.header;
-    ret["backend_name"] = nullptr;
-    ret["backend_version"] = nullptr;
-    ret["date"] = nullptr;
-    ret["job_id"] = nullptr;
+    // Set status to completed
+    result["status"] = std::string("COMPLETED");
 
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
-    ret["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
   } 
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
-    ret["success"] = false;
-    ret["status"] = std::string("ERROR: ") + e.what();
+    result["success"] = false;
+    result["status"] = std::string("ERROR: ") + e.what();
   }
-  return ret;
+  return result;
 }
 
 
 json_t Controller::execute_circuit(Circuit &circ) {
-  
+
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
   
   // Initialize circuit json return
-  json_t ret;
+  json_t result;
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
@@ -337,13 +354,13 @@ json_t Controller::execute_circuit(Circuit &circ) {
         : std::min<int>({available_threads_ , max_threads_total_, max_threads_state_});
 
       // Add thread information to result metadata
-      ret["metadata"]["omp_shot_threads"] = num_threads_shot;
-      ret["metadata"]["omp_state_threads"] = num_threads_state;
+      result["metadata"]["omp_shot_threads"] = num_threads_shot;
+      result["metadata"]["omp_state_threads"] = num_threads_state;
     #endif
 
     // Single shot thread execution
     if (num_threads_shot <= 1) {
-      ret["data"] = run_circuit(circ, circ.shots, circ.seed, num_threads_state);
+      result["data"] = run_circuit(circ, circ.shots, circ.seed, num_threads_state);
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -351,7 +368,10 @@ json_t Controller::execute_circuit(Circuit &circ) {
       for (int j = 0; j < num_threads_shot; ++j) {
         subshots.push_back(circ.shots / num_threads_shot);
       }
-      subshots[0] += (circ.shots % num_threads_shot);
+      // If shots is not perfectly divisible by threads, assign the remaineder
+      for (int j=0; j < (circ.shots % num_threads_shot); ++j) {
+        subshots[j] += 1;
+      }
 
       // Vector to store parallel thread output data
       std::vector<OutputData> data(num_threads_shot);
@@ -364,27 +384,27 @@ json_t Controller::execute_circuit(Circuit &circ) {
         data[0].combine(data[j]);
       }
       // Update output
-      ret["data"] = data[0];
+      result["data"] = data[0];
     }
     // Report success
-    ret["success"] = true;
-    ret["status"] = std::string("DONE");
+    result["success"] = true;
+    result["status"] = std::string("DONE");
 
     // Pass through circuit header and add metadata
-    ret["header"] = circ.header;
-    ret["shots"] = circ.shots;
-    ret["seed"] = circ.seed;
+    result["header"] = circ.header;
+    result["shots"] = circ.shots;
+    result["seed"] = circ.seed;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    ret["time_taken"] = time_taken;
+    result["time_taken"] = time_taken;
   } 
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
-    ret["success"] = false;
-    ret["status"] = std::string("ERROR: ") + e.what();
+    result["success"] = false;
+    result["status"] = std::string("ERROR: ") + e.what();
   }
-  return ret;
+  return result;
 }
 
 //-------------------------------------------------------------------------
