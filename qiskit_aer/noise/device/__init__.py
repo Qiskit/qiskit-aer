@@ -7,6 +7,7 @@
 
 """Device noise models module Qiskit Aer."""
 
-from .models import depolarizing_noise_model
-from .models import thermal_relaxation_noise_model
+from .models import basic_device_noise_model
+from .models import basic_device_readout_errors
+from .models import basic_device_gate_errors
 from . import parameters
