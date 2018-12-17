@@ -8,7 +8,6 @@ This is a working draft for the Qiskit-Aer simulator framework for Qiskit-Terra.
 * The **qiskit_aer** folder contains the Qiskit-Aer python module for use with Qiskit-Terra.
 * The **cmake** folder contains cmake scripts for building the simulator
 * The **src** folder contains the C++ source files for building the simulator.
-* The **examples** folder contains example Jupyter notebooks.
 * The **contrib** folder for external contributions.
 * The **test** folder contains simulator unit tests.
 
@@ -17,6 +16,7 @@ This is a working draft for the Qiskit-Aer simulator framework for Qiskit-Terra.
 There's a [contributing guide](https://github.ibm.com/IBMQuantum/qiskit-aer/blob/master/.github/CONTRIBUTING.rst)
 with more detailed information about the project.
 
+For tutorials on using Qiskit Aer visit the [qiskit-tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/qiskit/aer) Github repository.
 
 ## Installation
 
