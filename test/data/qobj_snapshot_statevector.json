@@ -10,11 +10,11 @@
                 "n_qubits": 2
             },
             "instructions": [
-                {"name": "snapshot", "type": "state", "label": "initial"},
+                {"name": "snapshot", "type": "statevector", "label": "initial"},
                 {"name": "h", "qubits": [0]},
-                {"name": "snapshot", "type": "state", "label": "middle"},
+                {"name": "snapshot", "type": "statevector", "label": "middle"},
                 {"name": "cx", "qubits": [0, 1]},
-                {"name": "snapshot", "type": "state", "label": "final"}
+                {"name": "snapshot", "type": "statevector", "label": "final"}
             ]
         }
     ]
