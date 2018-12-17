@@ -14,13 +14,13 @@ SCENARIO("We can get snapshots from different simulator types") {
 
         std::map<std::string, json_t> qobj_snapshots;
         qobj_snapshots["state"] =
-            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_state.json");
+            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_statevector.json");
         qobj_snapshots["probs"] =
             AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_probs.json");
         qobj_snapshots["pauli"] =
-            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_pauli.json");
+            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_expval_pauli.json");
         qobj_snapshots["matrix"] =
-            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_matrix.json");
+            AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_expval_matrix.json");
 
         using State = AER::QubitVector::State<>;
         AER::Simulator::QasmController sim{};

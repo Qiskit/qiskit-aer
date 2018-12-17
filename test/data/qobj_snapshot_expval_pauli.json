@@ -1,0 +1,48 @@
+{
+    "qobj_id": "pauli_observable_snapshot_example",
+    "schema_version": "1.0.0",
+    "type": "QASM",
+    "experiments": [
+        {   
+            "config": {
+                "shots": 1000,
+                "memory_slots": 2,
+                "n_qubits": 2
+            },
+            "instructions": [
+                {"name": "h", "qubits": [0]},
+                {"name": "cx", "qubits": [0, 1]},
+                {
+                    "name": "snapshot",
+                    "type": "expectation_value_pauli",
+                    "label": "<ZZ>pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[[1, 0] , "ZZ"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expectation_value_pauli",
+                    "label": "<ZI+IZ>pre_measure",
+                    "qubits": [0, 1],
+                    "params": [[[1, 0] , "ZI"], [[1, 0], "IZ"]]
+                },
+                {"name": "measure", "qubits": [0], "memory": [0]},
+                {"name": "measure", "qubits": [0], "memory": [1]},
+                {
+                    "name": "snapshot",
+                    "type": "expectation_value_pauli",
+                    "label": "<ZZ>post_measure",
+                    "qubits": [0, 1],
+                    "params": [[[1, 0] , "ZI"], [[1, 0], "ZZ"]]
+                },
+                {
+                    "name": "snapshot",
+                    "type": "expectation_value_pauli",
+                    "label": "<ZI+IZ>post_measure",
+                    "qubits": [0, 1],
+                    "params": [[[1, 0] , "ZI"], [[1, 0], "IZ"]]
+                }
+            ]
+        }
+    ]
+}

@@ -14,7 +14,7 @@
                 {"name": "cx", "qubits": [0, 1]},
                 {
                     "name": "snapshot",
-                    "type": "expval_matrix",
+                    "type": "expectation_value_matrix",
                     "label": "<ZZ>pre_measure",
                     "params": [
                         [1, [[[0], [[1, 0], [0, -1]]],
@@ -24,7 +24,7 @@
                 },
                 {
                     "name": "snapshot",
-                    "type": "expval_matrix",
+                    "type": "expectation_value_matrix",
                     "label": "<ZI+IZ>pre_measure",
                     "params": [
                         [1, [[[0], [[1, 0], [0, -1]]]]],
@@ -34,7 +34,7 @@
                 {"name": "measure", "qubits": [0, 1], "memory": [0, 1]},
                 {
                     "name": "snapshot",
-                    "type": "expval_matrix",
+                    "type": "expectation_value_matrix",
                     "label": "<ZZ>post_measure",
                     "params": [
                         [1, [[[0], [[1, 0], [0, -1]]],
@@ -44,7 +44,7 @@
                 },
                 {
                     "name": "snapshot",
-                    "type": "expval_matrix",
+                    "type": "expectation_value_matrix",
                     "label": "<ZI+IZ>post_measure",
                     "params": [
                         [1, [[[0], [[1, 0], [0, -1]]]]],
