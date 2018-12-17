@@ -730,7 +730,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
   for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qubits.size());
+    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
     reg_t sample;
     sample.reserve(qubits.size());
     for (uint_t qubit : qubits) {
