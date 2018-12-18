@@ -7,7 +7,7 @@
 
 # pylint: disable=invalid-name, bad-continuation
 
-"""Provider for Qiskit Aer providers."""
+"""Provider for Qiskit Aer backends."""
 
 from qiskit.providers import BaseProvider
 from qiskit.providers.providerutils import filter_backends
@@ -18,7 +18,7 @@ from .backends.unitary_simulator import UnitarySimulator
 
 
 class AerProvider(BaseProvider):
-    """Provider for Qiskit Aer providers."""
+    """Provider for Qiskit Aer backends."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)

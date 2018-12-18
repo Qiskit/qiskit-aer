@@ -59,7 +59,7 @@ set_target_properties(qasm_simulator PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deployment target" to 10.7
+	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
 	# use C++11/14
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "" FORCE)

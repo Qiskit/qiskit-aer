@@ -53,7 +53,7 @@ class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
     def __init__(self, controller, configuration, provider=None):
-        """Aer class for providers.
+        """Aer class for backends.
 
         This method should initialize the module and its configuration, and
         raise an exception if a component of the module is
