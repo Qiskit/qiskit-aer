@@ -1,1 +1,1 @@
-include qiskit_aer/VERSION.txt
+include qiskit/providers/aer/VERSION.txt

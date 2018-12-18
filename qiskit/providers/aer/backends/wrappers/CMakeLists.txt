@@ -2,6 +2,11 @@ find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
 
+# We need to remove the -static flag, because Python Extension system only supports
+# dynamic linked libraries, but we want to build a shared libraries with the least
+# dependencies we can, so some of these dependencies are linked statically into our
+# shared library.
+string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
 add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})

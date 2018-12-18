@@ -12,9 +12,9 @@ QuantumError class tests
 import unittest
 from test.terra.utils import common
 import numpy as np
-from qiskit_aer.noise.noiseerror import NoiseError
-from qiskit_aer.noise.errors.quantum_error import QuantumError
-from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
+from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 
 
 class TestQuantumError(common.QiskitAerTestCase):

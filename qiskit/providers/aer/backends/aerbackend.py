@@ -16,13 +16,13 @@ import time
 import uuid
 from numpy import ndarray
 
-from qiskit.backends import BaseBackend
-from qiskit.backends.models import BackendStatus
+from qiskit.providers import BaseBackend
+from qiskit.providers.models import BackendStatus
 from qiskit.qobj import QobjConfig
 from qiskit.result import Result
 
-from .aerjob import AerJob
-from .aererror import AerError
+from ..aerjob import AerJob
+from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)

@@ -15,6 +15,10 @@ project(qasm_simulator LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+# Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
+# libopenblas.a for Ubuntu (maybe others) we need to copy the file:
+# cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
+# installed in the system, but with the name: FindBLAS.cmake
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
@@ -59,10 +63,10 @@ set_target_properties(qasm_simulator PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	# In order to build for MacOSX 10.7 and above with Clang, we need to force the "deployment target" to 10.7
+	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
 	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
 	# use C++11/14
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "" FORCE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "" FORCE)
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
 endif()
 
@@ -126,7 +130,12 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 			execute_process(COMMAND ${BREW} --prefix libomp OUTPUT_VARIABLE BREW_LIBOMP_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
 			set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
 			set(OpenMP_CXX_LIB_NAMES "omp")
-			set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
+			if(STATIC_LINKING)
+				message(STATUS "Using static library for OMP Threads: libomp.a")
+				set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.a")
+			else()
+				set(OpenMP_omp_LIBRARY "${BREW_LIBOMP_PREFIX}/lib/libomp.dylib")
+			endif()
 			include_directories("${BREW_LIBOMP_PREFIX}/include")
 			message(STATUS "Using Homebrew libomp from ${BREW_LIBOMP_PREFIX}")
 			set(OPENMP_FOUND TRUE)
@@ -139,7 +148,6 @@ endif()
 if(OPENMP_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	#if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library
 		set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
@@ -195,5 +203,5 @@ endif()
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD)
-	add_subdirectory(qiskit_aer/backends/wrappers)
+	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 endif()

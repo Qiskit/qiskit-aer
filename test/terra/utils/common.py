@@ -24,7 +24,7 @@ from numpy.linalg import norm
 
 from qiskit.tools.qi.qi import state_fidelity
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit_aer import __path__ as main_path
+from qiskit.providers.aer import __path__ as main_path
 
 
 class Path(Enum):

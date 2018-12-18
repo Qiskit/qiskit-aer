@@ -11,11 +11,10 @@ Qiskit Aer qasm simulator backend.
 
 from math import log2
 from qiskit._util import local_hardware_info
-from qiskit.backends.models import BackendConfiguration
-
-from ..version import __version__
+from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from qasm_controller_wrapper import qasm_controller_execute
+from ..version import __version__
 
 
 class QasmSimulator(AerBackend):

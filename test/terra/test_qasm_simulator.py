@@ -21,7 +21,7 @@ from test.terra.utils import ref_algorithms
 from test.terra.utils import ref_unitary_gate
 
 from qiskit import execute
-from qiskit_aer.backends import QasmSimulator
+from qiskit.providers.aer import QasmSimulator
 
 
 class TestQasmSimulator(common.QiskitAerTestCase):

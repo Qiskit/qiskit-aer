@@ -36,8 +36,7 @@ qiskit-aer$ pip install dist/qiskit_aer-0.1.0-cp36-cp36m-linux_x86_64.whl
 
 We are all set! Now we ready to start using the simulator in our python code:
 ```python
-import qiskit_aer as aer
-from qiskit_aer import Aer  # Imports the Aer Provider
+from qiskit import Aer  # Imports the Aer Provider
 
-Aer.backends() # List Aer backends
+Aer.backends() # List of the backends
 ```

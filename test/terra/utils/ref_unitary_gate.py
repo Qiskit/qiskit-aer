@@ -12,10 +12,13 @@ Test circuits and reference outputs for measure instruction.
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, compile
-from qiskit_aer.backends import QasmSimulator
-from qiskit_aer.utils.qobj_utils import unitary_instr
-from qiskit_aer.utils.qobj_utils import append_instr
-from qiskit_aer.utils.qobj_utils import measure_instr
+
+from qiskit.providers.aer.backends import QasmSimulator
+from qiskit.providers.aer.utils.qobj_utils import unitary_instr
+from qiskit.providers.aer.utils.qobj_utils import append_instr
+from qiskit.providers.aer.utils.qobj_utils import measure_instr
+
+
 
 
 # ==========================================================================

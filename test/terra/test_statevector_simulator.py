@@ -20,7 +20,7 @@ from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_unitary_gate
 
 from qiskit import execute
-from qiskit_aer.backends import StatevectorSimulator
+from qiskit.providers.aer import StatevectorSimulator
 
 
 class TestStatevectorSimulator(common.QiskitAerTestCase):

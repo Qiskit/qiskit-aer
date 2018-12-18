@@ -17,7 +17,7 @@ from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_unitary_gate
 
 from qiskit import execute
-from qiskit_aer.backends import UnitarySimulator
+from qiskit.providers.aer import UnitarySimulator
 
 
 class TestUnitarySimulator(common.QiskitAerTestCase):

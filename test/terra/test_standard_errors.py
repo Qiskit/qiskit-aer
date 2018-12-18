@@ -14,17 +14,17 @@ from test.terra.utils import common
 import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit_aer.noise.noiseerror import NoiseError
-from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
-from qiskit_aer.noise.errors.standard_errors import kraus_error
-from qiskit_aer.noise.errors.standard_errors import mixed_unitary_error
-from qiskit_aer.noise.errors.standard_errors import coherent_unitary_error
-from qiskit_aer.noise.errors.standard_errors import pauli_error
-from qiskit_aer.noise.errors.standard_errors import depolarizing_error
-from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
-from qiskit_aer.noise.errors.standard_errors import phase_amplitude_damping_error
-from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit_aer.noise.errors.standard_errors import phase_damping_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
+from qiskit.providers.aer.noise.errors.standard_errors import mixed_unitary_error
+from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
+from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.standard_errors import depolarizing_error
+from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
+from qiskit.providers.aer.noise.errors.standard_errors import phase_amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import phase_damping_error
 
 # TODO: Test Kraus thermal relaxation error by comparing to amplitude damping channel
 
