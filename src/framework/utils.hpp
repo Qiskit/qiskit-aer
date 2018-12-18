@@ -235,6 +235,9 @@ inline std::string int2bin(uint_t n, uint_t length) {return int2string(n, 2, len
 // Convert integers to hex-strings
 inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 
+// Convert reg to int
+uint_t reg2int(const reg_t &reg, uint_t base);
+
 //==============================================================================
 // Implementations: Static Matrices
 //==============================================================================
@@ -951,6 +954,23 @@ std::string bin2hex(std::string str, bool prefix) {
     }
   }  
   return hex;
+}
+
+
+uint_t reg2int(const reg_t &reg, uint_t base) {
+  uint_t ret = 0;
+  if (base == 2) {
+    // For base-2 use bit-shifting
+    for (size_t j=0; j < reg.size(); j++)
+      if (reg[j])
+        ret += (1ULL << j);
+  } else {
+    // For other bases use exponentiation
+    for (size_t j=0; j < reg.size(); j++)
+      if (reg[j] > 0)
+        ret += reg[j] * static_cast<uint_t>(pow(base, j));
+  }
+  return ret;
 }
 
 
