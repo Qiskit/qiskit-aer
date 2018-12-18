@@ -48,7 +48,7 @@ Added
 - Standalone Simulators support
 
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.4.0...HEAD
-.. _0.4.0: https://github.com/Qiskit/qiskit-terra/compare/0.3.16...0.4.0
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-aer/compare/0.1.0...HEAD
+.. _0.1.0: https://github.com/Qiskit/qiskit-aer/compare/0.0.0...0.1.0
 
 .. _Keep a Changelog: http://keepachangelog.com/en/1.0.0/
