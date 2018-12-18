@@ -24,12 +24,52 @@ logger = logging.getLogger(__name__)
 
 
 class StatevectorSimulator(AerBackend):
-    """Aer statevector simulator"""
+    """Aer statevector simulator
+
+    Backend options:
+
+        The following backend options may be used with in the
+        `backend_options` kwarg diction for `StatevectorSimulator.run` or
+        `qiskit.execute`
+
+        * "initial_statevector" (vector_like): Sets a custom initial
+            statevector for the simulation instead of the all zero
+            initial state (Default: None).
+
+        * "chop_threshold" (double): Sets the threshold for truncating small
+            values to zero in the Result data (Default: 1e-15)
+
+        * "max_parallel_threads" (int): Sets the maximum number of CPU
+            cores used by OpenMP for parallelization. If set to 0 the
+            maximum will be set to the number of CPU cores (Default: 0).
+
+        * "max_parallel_experiments" (int): Sets the maximum number of
+            qobj experiments that may be executed in parallel up to the
+            max_parallel_threads value. If set to 1 parallel circuit
+            execution will be disabled. If set to 0 the maximum will be
+            automatically set to max_parallel_threads (Default: 1).
+
+        * "statevector_parallel_threshold" (int): Sets the threshold that
+            "n_qubits" must be greater than to enable OpenMP
+            parallelization for matrix multiplication during execution of
+            an experiment. If parallel circuit or shot execution is enabled
+            this will only use unallocated CPU cores up to
+            max_parallel_threads. Note that setting this too low can reduce
+            performance (Default: 12).
+
+        * "statevector_hpc_gate_opt" (bool): If set to True this enables
+            a different optimzied gate application routine that can
+            increase performance on systems with a large number of CPU
+            cores. For systems with a small number of cores it enabling
+            can reduce performance (Default: False).
+    """
+
+    MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': __version__,
-        'n_qubits': int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16)),
+        'n_qubits': MAX_QUBIT_MEMORY,
         'url': 'TODO',
         'simulator': True,
         'local': True,
@@ -37,10 +77,17 @@ class StatevectorSimulator(AerBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 1,
-        'description': 'A C++ statevector simulator for QASM experiments',
+        'description': 'A C++ statevector simulator for qobj files',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap', 'snapshot'],
-        'gates': [{'name': 'TODO', 'parameters': [], 'qasm_def': 'TODO'}]
+                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
+                        'snapshot', 'unitary'],
+        'gates': [
+            {
+                'name': 'TODO',
+                'parameters': [],
+                'qasm_def': 'TODO'
+            }
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -49,7 +96,15 @@ class StatevectorSimulator(AerBackend):
                          provider=provider)
 
     def run(self, qobj, backend_options=None):
-        """Run a qobj on the backend."""
+        """Run a qobj on the backend.
+
+        Args:
+            qobj (Qobj): a Qobj.
+            backend_options (dict): backend configuration options.
+
+        Returns:
+            AerJob: the simulation job.
+        """
         return super().run(qobj, backend_options=backend_options)
 
     def _validate(self, qobj):

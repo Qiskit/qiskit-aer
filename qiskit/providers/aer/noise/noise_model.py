@@ -11,9 +11,9 @@ Noise model class for Qiskit Aer simulators.
 
 import logging
 
-from .aernoiseerror import AerNoiseError
-from .quantum_error import QuantumError
-from .readout_error import ReadoutError
+from .noiseerror import NoiseError
+from .errors.quantum_error import QuantumError
+from .errors.readout_error import ReadoutError
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +62,14 @@ class NoiseModel:
             operations (list[str]): the operations error applies to.
 
         Raises:
-            AerNoiseError: if the input operations are not valid.
+            NoiseError: if the input operations are not valid.
         """
 
         if isinstance(operations, str):
             operations = [operations]
         for op in operations:
             if not isinstance(op, str):
-                raise AerNoiseError("Qobj invalid operations.")
+                raise NoiseError("Qobj invalid operations.")
             # Add X-90 based gate to noisy gates
             self._noise_instructions.add(op)
         self._x90_gates = operations
@@ -83,7 +83,7 @@ class NoiseModel:
             operations (str, list[str]): the operations error applies to.
 
         Raises:
-            AerNoiseError: if the input parameters are invalid.
+            NoiseError: if the input parameters are invalid.
 
         Additional Information:
             If the error object is ideal it will not be added to the model.
@@ -97,9 +97,9 @@ class NoiseModel:
             try:
                 error = QuantumError(error)
             except:
-                raise AerNoiseError("Input is not a valid quantum error.")
+                raise NoiseError("Input is not a valid quantum error.")
         if not isinstance(operations, (list, tuple)):
-            raise AerNoiseError("Qobj invalid operations.")
+            raise NoiseError("Qobj invalid operations.")
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -108,7 +108,7 @@ class NoiseModel:
         # Add operations
         for op in operations:
             if not isinstance(op, str):
-                raise AerNoiseError("Qobj invalid operations.")
+                raise NoiseError("Qobj invalid operations.")
             self._check_number_of_qubits(error, op)
             if op in self._default_quantum_errors:
                 logger.warning("WARNING: all-qubit error already exists for " +
@@ -135,7 +135,7 @@ class NoiseModel:
             qubits (list[int]): qubits operation error applies to.
 
         Raises:
-            AerNoiseError: if the input parameters are invalid.
+            NoiseError: if the input parameters are invalid.
 
         Additional Information:
             If the error object is ideal it will not be added to the model.
@@ -150,11 +150,11 @@ class NoiseModel:
             try:
                 error = QuantumError(error)
             except:
-                raise AerNoiseError("Input is not a valid quantum error.")
+                raise NoiseError("Input is not a valid quantum error.")
         if not isinstance(qubits, (list, tuple)):
-            raise AerNoiseError("Qubits must be a list of integers.")
+            raise NoiseError("Qubits must be a list of integers.")
         if not isinstance(operations, (list, tuple)):
-            raise AerNoiseError("Qobj invalid operations.")
+            raise NoiseError("Qobj invalid operations.")
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -163,7 +163,7 @@ class NoiseModel:
         # Add operations
         for op in operations:
             if not isinstance(op, str):
-                raise AerNoiseError("Qobj invalid operations.")
+                raise NoiseError("Qobj invalid operations.")
             # Check number of qubits is correct for standard operations
             self._check_number_of_qubits(error, op)
             if op in self._local_quantum_errors:
@@ -174,7 +174,7 @@ class NoiseModel:
             # Convert qubits list to hashable string
             qubits_str = self._qubits2str(qubits)
             if error.number_of_qubits != len(qubits):
-                raise AerNoiseError("Number of qubits ({}) does not match".format(len(qubits)) +
+                raise NoiseError("Number of qubits ({}) does not match".format(len(qubits)) +
                                     " the error size ({})".format(error.number_of_qubits))
             if qubits_str in qubit_dict:
                 logger.warning("WARNING: quantum error already exists for " +
@@ -206,7 +206,7 @@ class NoiseModel:
                                       should be applied to if different
                                       to the operation qubits.
         Raises:
-            AerNoiseError: if the input parameters are invalid.
+            NoiseError: if the input parameters are invalid.
 
         Additional Information:
             If the error object is ideal it will not be added to the model.
@@ -221,13 +221,13 @@ class NoiseModel:
             try:
                 error = QuantumError(error)
             except:
-                raise AerNoiseError("Input is not a valid quantum error.")
+                raise NoiseError("Input is not a valid quantum error.")
         if not isinstance(qubits, (list, tuple)):
-            raise AerNoiseError("Qubits must be a list of integers.")
+            raise NoiseError("Qubits must be a list of integers.")
         if not isinstance(noise_qubits, (list, tuple)):
-            raise AerNoiseError("Noise qubits must be a list of integers.")
+            raise NoiseError("Noise qubits must be a list of integers.")
         if not isinstance(operations, (list, tuple)):
-            raise AerNoiseError("Qobj invalid operations.")
+            raise NoiseError("Qobj invalid operations.")
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -236,7 +236,7 @@ class NoiseModel:
         # Add operations
         for op in operations:
             if not isinstance(op, str):
-                raise AerNoiseError("Qobj invalid operations.")
+                raise NoiseError("Qobj invalid operations.")
             if op in self._nonlocal_quantum_errors:
                 qubit_dict = self._nonlocal_quantum_errors[op]
             else:
@@ -261,7 +261,7 @@ class NoiseModel:
             error (ReadoutError): the quantum error object.
 
         Raises:
-            AerNoiseError: if the input parameters are invalid.
+            NoiseError: if the input parameters are invalid.
 
         Additional Information:
             If the error object is ideal it will not be added to the model.
@@ -272,7 +272,7 @@ class NoiseModel:
             try:
                 error = ReadoutError(error)
             except:
-                raise AerNoiseError("Input is not a valid readout error.")
+                raise NoiseError("Input is not a valid readout error.")
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -280,7 +280,7 @@ class NoiseModel:
 
         # Check number of qubits is correct for standard operations
         if error.number_of_qubits != 1:
-            raise AerNoiseError("All-qubit readout errors must defined as single-qubit errors.")
+            raise NoiseError("All-qubit readout errors must defined as single-qubit errors.")
         if self._default_readout_error is not None:
             logger.warning("WARNING: all-qubit readout error already exists, " +
                            "overriding with new readout error.")
@@ -303,7 +303,7 @@ class NoiseModel:
             qubits (list[int]): qubits operation error applies to.
 
         Raises:
-            AerNoiseError: if the input parameters are invalid.
+            NoiseError: if the input parameters are invalid.
 
         Additional Information:
             If the error object is ideal it will not be added to the model.
@@ -314,9 +314,9 @@ class NoiseModel:
             try:
                 error = ReadoutError(error)
             except:
-                raise AerNoiseError("Input is not a valid readout error.")
+                raise NoiseError("Input is not a valid readout error.")
         if not isinstance(qubits, (list, tuple)):
-            raise AerNoiseError("Qubits must be a list of integers.")
+            raise NoiseError("Qubits must be a list of integers.")
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -326,7 +326,7 @@ class NoiseModel:
         qubits_str = self._qubits2str(qubits)
         # Check error matches qubit size
         if error.number_of_qubits != len(qubits):
-            raise AerNoiseError("Number of qubits ({}) does not match".format(len(qubits)) +
+            raise NoiseError("Number of qubits ({}) does not match".format(len(qubits)) +
                                 " the readout error size ({})".format(error.number_of_qubits))
         # Check if we are overriding a previous error
         if qubits_str in self._local_readout_errors:
@@ -500,7 +500,7 @@ class NoiseModel:
                     noise_model.add_all_qubit_readout_error(roerror)
             # Invalid error type
             else:
-                raise AerNoiseError("Invalid error type: {}".format(error_type))
+                raise NoiseError("Invalid error type: {}".format(error_type))
         return noise_model
 
     def _check_number_of_qubits(self, error, operation):
@@ -512,7 +512,7 @@ class NoiseModel:
             operation (str): qobj operation strings to apply error to.
 
         Raises:
-            AerNoiseError: If operation and error qubit number do not match.
+            NoiseError: If operation and error qubit number do not match.
         """
         def error_message(gate_qubits):
             msg = "{} qubit QuantumError".format(error.number_of_qubits) + \
@@ -520,11 +520,11 @@ class NoiseModel:
                   " operation \"{}\".".format(operation)
             return msg
         if operation in self._1qubit_operations and error.number_of_qubits != 1:
-            raise AerNoiseError(error_message(1))
+            raise NoiseError(error_message(1))
         if operation in self._2qubit_operations and error.number_of_qubits != 2:
-            raise AerNoiseError(error_message(2))
+            raise NoiseError(error_message(2))
         if operation in self._3qubit_operations and error.number_of_qubits != 3:
-            raise AerNoiseError(error_message(3))
+            raise NoiseError(error_message(3))
 
     def _qubits2str(self, qubits):
         """Convert qubits list to comma seperated qubits string."""

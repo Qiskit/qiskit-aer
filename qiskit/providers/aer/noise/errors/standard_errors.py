@@ -13,16 +13,15 @@ import numpy as np
 from itertools import product
 
 from qiskit.quantum_info.operators.pauli import Pauli
-from ..aernoiseerror import AerNoiseError
-from ..quantum_error import QuantumError
-from ..noise_utils import make_unitary_instruction
-from ..noise_utils import qubits_from_mat
-from ..noise_utils import canonical_kraus_matrices
-from ..noise_utils import choi2kraus
-from ..noise_utils import standard_gate_unitary
-from ..noise_utils import is_unitary_matrix
-from ..noise_utils import is_identity_matrix
-
+from ..noiseerror import NoiseError
+from .errorutils import make_unitary_instruction
+from .errorutils import qubits_from_mat
+from .errorutils import canonical_kraus_matrices
+from .errorutils import choi2kraus
+from .errorutils import standard_gate_unitary
+from .errorutils import is_unitary_matrix
+from .errorutils import is_identity_matrix
+from .quantum_error import QuantumError
 
 def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
     """Kraus error channel.
@@ -37,12 +36,12 @@ def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
         QuantumError: The quantum error object.
 
     Raises:
-        AerNoiseError: if error parameters are invalid.
+        NoiseError: if error parameters are invalid.
     """
     if not isinstance(noise_ops, (list, tuple)):
-        raise AerNoiseError("Invalid Kraus error input.")
+        raise NoiseError("Invalid Kraus error input.")
     if len(noise_ops) == 0:
-        raise AerNoiseError("Kraus error noise_ops must not be empty.")
+        raise NoiseError("Kraus error noise_ops must not be empty.")
     kraus_ops = [np.array(a, dtype=complex) for a in noise_ops]
     if canonical_kraus:
         kraus_ops = canonical_kraus_matrices(kraus_ops)
@@ -65,17 +64,17 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
         QuantumError: The quantum error object.
 
     Raises:
-        AerNoiseError: if error parameters are invalid.
+        NoiseError: if error parameters are invalid.
     """
 
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
-        raise AerNoiseError("Input noise ops is not a list.")
+        raise NoiseError("Input noise ops is not a list.")
 
     # Convert to numpy arrays
     noise_ops = [(np.array(op, dtype=complex), p) for op, p in noise_ops]
     if len(noise_ops) == 0:
-        raise AerNoiseError("Input noise list is empty.")
+        raise NoiseError("Input noise list is empty.")
 
     # Check for identity unitaries
     prob_identity = 0.
@@ -86,9 +85,9 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
     for unitary, prob in noise_ops:
         # Check unitary
         if qubits_from_mat(unitary) != num_qubits:
-            raise AerNoiseError("Input matrices different size.")
+            raise NoiseError("Input matrices different size.")
         if not is_unitary_matrix(unitary):
-            raise AerNoiseError("Input matrix is not unitary.")
+            raise NoiseError("Input matrix is not unitary.")
         if is_identity_matrix(unitary):
             prob_identity += prob
         else:
@@ -134,15 +133,15 @@ def pauli_error(noise_ops, standard_gates=False):
         QuantumError: The quantum error object.
 
     Raises:
-        AerNoiseError: If depolarizing probability is less than 0 or greater than 1.
+        NoiseError: If depolarizing probability is less than 0 or greater than 1.
     """
 
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
-        raise AerNoiseError("Input noise ops is not a list.")
+        raise NoiseError("Input noise ops is not a list.")
     noise_ops = list(noise_ops)
     if len(noise_ops) == 0:
-        raise AerNoiseError("Input noise list is empty.")
+        raise NoiseError("Input noise list is empty.")
     num_qubits = None
     for op in noise_ops:
         pauli = op[0]
@@ -151,11 +150,11 @@ def pauli_error(noise_ops, standard_gates=False):
         elif isinstance(pauli, str):
             pauli_str = pauli
         else:
-            raise AerNoiseError("Invalid Pauli input operator: {}".format(pauli))
+            raise NoiseError("Invalid Pauli input operator: {}".format(pauli))
         if num_qubits is None:
             num_qubits = len(pauli_str)
         elif num_qubits != len(pauli_str):
-            raise AerNoiseError("Pauli's are not all of the same length.")
+            raise NoiseError("Pauli's are not all of the same length.")
 
     # Compute Paulis as single matrix
     if standard_gates is False:
@@ -196,7 +195,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     mat = np.kron(single_pauli(s), mat)
                     qubits.append(qubit)
                 elif s != 'I':
-                    raise AerNoiseError("Invalid Pauli string.")
+                    raise NoiseError("Invalid Pauli string.")
             if mat is 1:
                 prob_identity += prob
             else:
@@ -244,7 +243,7 @@ def _pauli_error_standard(noise_ops, num_qubits):
                     instruction["qubits"] = [qubit]
                     circuit.append(instruction)
                 elif s != 'I':
-                    raise AerNoiseError("Invalid Pauli string.")
+                    raise NoiseError("Invalid Pauli string.")
             if circuit == []:
                 prob_identity += prob
             else:
@@ -276,7 +275,7 @@ def depolarizing_error(prob, num_qubits, standard_gates=False):
     """
 
     if prob < 0 or prob > 1:
-        raise AerNoiseError("Depolarizing probability must be in between 0 and 1.")
+        raise NoiseError("Depolarizing probability must be in between 0 and 1.")
 
     # Rescale completely depolarizing channel error probs
     # with the identity component removed
@@ -312,43 +311,45 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         non-unitary Kraus error channel.
     """
     if excited_state_population < 0:
-        raise AerNoiseError("Invalid excited state population " +
+        raise NoiseError("Invalid excited state population " +
                             "({} < 0).".format(excited_state_population))
     if excited_state_population > 1:
-        raise AerNoiseError("Invalid excited state population " +
+        raise NoiseError("Invalid excited state population " +
                             "({} > 1).".format(excited_state_population))
     if time < 0:
-        raise AerNoiseError("Invalid gate_time ({} < 0)".format(time))
+        raise NoiseError("Invalid gate_time ({} < 0)".format(time))
     if t1 <= 0:
-        raise AerNoiseError("Invalid T_1 relaxation time parameter: T_1 <= 0.")
+        raise NoiseError("Invalid T_1 relaxation time parameter: T_1 <= 0.")
     if t2 <= 0:
-        raise AerNoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
+        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
     if t2 - 2 * t1 > 0:
-        raise AerNoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
+        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # T1 relaxation rate
     if t1 == np.inf:
         rate1 = 0
+        p_reset = 0
     else:
         rate1 = 1 / t1
+        p_reset = 1 - np.exp(-time * rate1)
     # T2 dephasing rate
     if t2 == np.inf:
-        rate2 = - rate1
+        rate2 = 0
+        exp_t2 = 1
     else:
-        rate2 = 2 / t2 - rate1
-    # Relaxation probabilities
-    pr = 1 - np.exp(-rate1 * time)
+        rate2 = 1 / t2
+        exp_t2 = np.exp(-time * rate2)
+    # Qubit state equilibrium probabilities
     p0 = 1 - excited_state_population
     p1 = excited_state_population
 
     if t2 > t1:
         # If T_2 > T_1 we must express this as a Kraus channel
         # We start with the Choi-matrix representation:
-        p2 = np.exp(-0.5 * (rate1 + rate2) * time)
-        choi = np.array([[1 - p1 * pr, 0, 0, p2],
-                         [0, p1 * pr, 0, 0],
-                         [0, 0, p0 * pr, 0],
-                         [p2, 0, 0, 1 - p0 * pr]])
+        choi = np.array([[1 - p1 * p_reset, 0, 0, exp_t2],
+                         [0, p1 * p_reset, 0, 0],
+                         [0, 0, p0 * p_reset, 0],
+                         [exp_t2, 0, 0, 1 - p0 * p_reset]])
         # Find canonical Kraus operators by eigendecomposition of Choi-matrix
         kraus = choi2kraus(choi)
         return QuantumError(kraus)
@@ -361,9 +362,9 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
             [{'name': 'reset', 'qubits': [0]}],
             [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]]
         # Probability
-        p_reset0 = pr * p0
-        p_reset1 = pr * p1
-        p_z = 0.5 * (1 - pr) * (1 - np.exp(-0.5 * (rate2 - rate1) * time))
+        p_reset0 = p_reset * p0
+        p_reset1 = p_reset * p1
+        p_z = (1 - p_reset) * (1 - np.exp(-time * (rate2 - rate1))) / 2
         p_identity = 1 - p_z - p_reset0 - p_reset1
         probabilities = [p_identity, p_z, p_reset0, p_reset1]
         return QuantumError(zip(circuits, probabilities))
@@ -409,19 +410,19 @@ def phase_amplitude_damping_error(param_amp, param_phase,
     """
 
     if param_amp < 0:
-        raise AerNoiseError("Invalid amplitude damping to |0> parameter " +
+        raise NoiseError("Invalid amplitude damping to |0> parameter " +
                             "({} < 0)".format(param_amp))
     if param_phase < 0:
-        raise AerNoiseError("Invalid phase damping parameter " +
+        raise NoiseError("Invalid phase damping parameter " +
                             "({} < 0)".format(param_phase))
     if param_phase + param_amp > 1:
-        raise AerNoiseError("Invalid amplitude and phase damping parameters " +
+        raise NoiseError("Invalid amplitude and phase damping parameters " +
                             "({} + {} > 1)".format(param_phase, param_amp))
     if excited_state_population < 0:
-        raise AerNoiseError("Invalid excited state population " +
+        raise NoiseError("Invalid excited state population " +
                             "({} < 0).".format(excited_state_population))
     if excited_state_population > 1:
-        raise AerNoiseError("Invalid excited state population " +
+        raise NoiseError("Invalid excited state population " +
                             "({} > 1).".format(excited_state_population))
     c0 = np.sqrt(1 - excited_state_population)
     c1 = np.sqrt(excited_state_population)

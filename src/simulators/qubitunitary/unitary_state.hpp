@@ -23,7 +23,7 @@ namespace QubitUnitary {
 
 // Allowed gates enum class
 enum class Gates {
-  u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
+  u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
   cx, cz, swap, // two qubit
   ccx // three qubit
 };
@@ -57,13 +57,13 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   inline virtual stringset_t allowed_gates() const override {
-    return {"U", "CX", "u0", "u1", "u2", "u3", "cx", "cz", "swap",
+    return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
   }
 
   // Return the set of qobj snapshot types supported by the State
   inline virtual stringset_t allowed_snapshots() const override {
-    return {"state", "unitary"};
+    return {"unitary"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -133,7 +133,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 7;
+  int omp_qubit_threshold_ = 6;
 
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-15;
@@ -160,7 +160,6 @@ const stringmap_t<Gates> State<statemat_t>::gateset_({
   {"t", Gates::t},    // T-gate (sqrt(S))
   {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u0", Gates::u0},  // idle gate in multiples of X90
   {"u1", Gates::u1},  // zero-X90 pulse waltz gate
   {"u2", Gates::u2},  // single-X90 pulse waltz gate
   {"u3", Gates::u3},  // two X90 pulse waltz gate
@@ -220,7 +219,7 @@ uint_t State<statemat_t>::required_memory_mb(uint_t num_qubits,
 template <class statemat_t>
 void State<statemat_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
+  JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "chop_threshold", config);
@@ -302,8 +301,6 @@ void State<statemat_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::cz:
       BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
-      break;
-    case Gates::u0: // u0 = id in ideal State
       break;
     case Gates::id:
       break;

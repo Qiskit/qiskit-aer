@@ -23,7 +23,7 @@ namespace QubitVector {
   
 // Allowed gates enum class
 enum class Gates {
-  u0, u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
+  u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
   cx, cz, swap, // two qubit
   ccx // three qubit
 };
@@ -69,14 +69,16 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   inline virtual stringset_t allowed_gates() const override {
-    return {"U", "CX", "u0", "u1", "u2", "u3", "cx", "cz", "swap",
+    return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
   }
 
   // Return the set of qobj snapshot types supported by the State
   inline virtual stringset_t allowed_snapshots() const override {
-    return {"state", "statevector", "probabilities", "expval_pauli",
-            "expval_matrix", "memory", "register"};
+    return {"statevector", "memory", "register",
+            "probabilities", "probabilities_with_variance",
+            "expectation_value_pauli", "expectation_value_pauli_with_variance",
+            "expectation_value_matrix", "expectation_value_matrix_with_variance"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -100,8 +102,6 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  // Config: {"omp_qubit_threshold": 14}
-  // TODO: Check optimal default value for a desktop i7 CPU
   virtual void set_config(const json_t &config) override;
 
   // Sample n-measurement outcomes without applying the measure operation
@@ -228,6 +228,9 @@ protected:
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
 
+  // QubitVector sample measure index size
+  int sample_measure_index_size_ = 10;
+
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-15;
 
@@ -257,7 +260,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u0", Gates::u0},     // idle gate in multiples of X90
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
   {"u2", Gates::u2},     // single-X90 pulse waltz gate
   {"u3", Gates::u3},     // two X90 pulse waltz gate
@@ -275,13 +277,12 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
 template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"statevector", Snapshots::statevector},
-  {"state", Snapshots::statevector},
   {"probabilities", Snapshots::probs},
-  {"expval_pauli", Snapshots::expval_pauli},
-  {"expval_matrix", Snapshots::expval_matrix},
+  {"expectation_value_pauli", Snapshots::expval_pauli},
+  {"expectation_value_matrix", Snapshots::expval_matrix},
   {"probabilities_with_variance", Snapshots::probs_var},
-  {"expval_pauli_with_variance", Snapshots::expval_pauli_var},
-  {"expval_matrix_with_variance", Snapshots::expval_matrix_var},
+  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -355,17 +356,17 @@ void State<statevec_t>::set_config(const json_t &config) {
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "omp_qubit_threshold", config);
+  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
   
   // Set the sample measure indexing size
   int index_size;
-  if (JSON::get_value(index_size, "sample_measure_index_size", config)) {
+  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
 
   // Enable sorted gate optimzations
   bool gate_opt = false;
-  JSON::get_value(gate_opt, "gate_optimization", config);
+  JSON::get_value(gate_opt, "statevector_gate_opt", config);
   if (gate_opt)
     BaseState::qreg_.enable_gate_opt();
 }
@@ -620,8 +621,6 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     case Gates::cz:
       BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
       break;
-    case Gates::u0: // u0 = id in ideal State
-      break;
     case Gates::id:
       break;
     case Gates::x:
@@ -731,7 +730,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
   for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qubits.size());
+    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
     reg_t sample;
     sample.reserve(qubits.size());
     for (uint_t qubit : qubits) {

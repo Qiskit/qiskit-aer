@@ -5,16 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-from test.terra.utils import common
+"""
+QuantumError class tests
+"""
+
 import unittest
+from test.terra.utils import common
 import numpy as np
-
-from qiskit.providers.aer.noise.noise_utils import standard_gate_unitary
-from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.noise.aernoiseerror import AerNoiseError
-
-# TODO:
-# * Test compose error for different qubit number
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
+from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 
 
 class TestQuantumError(common.QiskitAerTestCase):
@@ -81,38 +81,38 @@ class TestQuantumError(common.QiskitAerTestCase):
         """Test exception is raised for negative probabilities."""
         noise_ops = [([{"name": "id", "qubits": [0]}], 1.1),
                      ([{"name": "x", "qubits": [0]}], -0.1)]
-        self.assertRaises(AerNoiseError, lambda: QuantumError(noise_ops))
+        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
 
     def test_raise_probabilities_normalized_qobj(self):
         """Test exception is raised for qobj probabilities greater than 1."""
         noise_ops = [([{"name": "id", "qubits": [0]}], 0.9),
                      ([{"name": "x", "qubits": [0]}], 0.2)]
-        self.assertRaises(AerNoiseError, lambda: QuantumError(noise_ops))
+        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
 
     def test_raise_probabilities_normalized_unitary_kraus(self):
         """Test exception is raised for unitary kraus probs greater than 1."""
         A0 = np.sqrt(0.9) * np.eye(2)
         A1 = np.sqrt(0.2) * np.diag([1, -1])
-        self.assertRaises(AerNoiseError, lambda: QuantumError([A0, A1]))
+        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
 
     def test_raise_probabilities_normalized_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
         A0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
         A1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]])
-        self.assertRaises(AerNoiseError, lambda: QuantumError([A0, A1]))
+        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
 
     def test_raise_non_cptp_kraus(self):
         """Test exception is raised for non-CPTP input."""
         A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
         A1 = np.array([[0, 0], [np.sqrt(0.3), 0]])
-        self.assertRaises(AerNoiseError, lambda: QuantumError([A0, A1]))
-        self.assertRaises(AerNoiseError, lambda: QuantumError([A0]))
+        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
+        self.assertRaises(NoiseError, lambda: QuantumError([A0]))
 
     def test_raise_non_multiqubit_kraus(self):
         """Test exception is raised for non-multiqubit input."""
         A0 = np.sqrt(0.5) * np.diag([1, 1, 1])
         A1 = np.sqrt(0.5) * np.diag([1, 1, -1])
-        self.assertRaises(AerNoiseError, lambda: QuantumError([A0, A1]))
+        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
 
     def test_pauli_conversion_standard_gates(self):
         """Test conversion of Pauli channel kraus to gates"""
@@ -246,8 +246,8 @@ class TestQuantumError(common.QiskitAerTestCase):
         """Test composing incompatible errors raises exception"""
         error0 = QuantumError([np.diag([1, 1, 1, -1])])  # 2-qubit coherent error
         error1 = QuantumError([np.diag([1, -1])])  # 1-qubit coherent error
-        self.assertRaises(AerNoiseError, lambda: error0.compose(error1))
-        self.assertRaises(AerNoiseError, lambda: error1.compose(error0))
+        self.assertRaises(NoiseError, lambda: error0.compose(error1))
+        self.assertRaises(NoiseError, lambda: error1.compose(error0))
 
     def test_compose_both_kraus(self):
         """Test composition of two kraus errors"""

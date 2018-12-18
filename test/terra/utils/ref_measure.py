@@ -17,9 +17,9 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # direclty by qobj instructions until terra compiler supports them
 from qiskit import compile
 from qiskit.providers.aer.backends import QasmSimulator
-from qiskit.providers.aer.utils.qobj_utils import qobj_insert_item
-from qiskit.providers.aer.utils.qobj_utils import qobj_measure_item
-from qiskit.providers.aer.utils.qobj_utils import qobj_iden_item
+from qiskit.providers.aer.utils.qobj_utils import insert_item
+from qiskit.providers.aer.utils.qobj_utils import measure_item
+from qiskit.providers.aer.utils.qobj_utils import iden_item
 
 
 # ==========================================================================
@@ -182,9 +182,9 @@ def measure_circuits_qobj_deterministic(allow_sampling=True):
     circuit.x(qr[1])
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_measure_item([0, 1], [0, 1]), -1)
+    insert_instr(qobj, 0, measure_instr([0, 1], [0, 1]), -1)
     if not allow_sampling:
-        qobj_insert_item(qobj, 0, qobj_iden_item(0), -1)
+        insert_instr(qobj, 0, iden_instr(0), -1)
     final_qobj.experiments.append(qobj.experiments[0])
 
     # 3-qubit measure |101>
@@ -195,9 +195,9 @@ def measure_circuits_qobj_deterministic(allow_sampling=True):
     circuit.x(qr[2])
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_measure_item([0, 1, 2], [0, 1, 2]), -1)
+    insert_instr(qobj, 0, measure_instr([0, 1, 2], [0, 1, 2]), -1)
     if not allow_sampling:
-        qobj_insert_item(qobj, 0, qobj_iden_item(0), -1)
+        insert_instr(qobj, 0, iden_instr(0), -1)
     final_qobj.experiments.append(qobj.experiments[0])
 
     # 4-qubit measure |1010>
@@ -208,9 +208,9 @@ def measure_circuits_qobj_deterministic(allow_sampling=True):
     circuit.x(qr[3])
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_measure_item([0, 1, 2, 3], [0, 1, 2, 3]), -1)
+    insert_instr(qobj, 0, measure_instr([0, 1, 2, 3], [0, 1, 2, 3]), -1)
     if not allow_sampling:
-        qobj_insert_item(qobj, 0, qobj_iden_item(0), -1)
+        insert_instr(qobj, 0, iden_instr(0), -1)
     final_qobj.experiments.append(qobj.experiments[0])
 
     return final_qobj
@@ -264,9 +264,9 @@ def measure_circuits_qobj_nondeterministic(allow_sampling=True):
     circuit.h(qr[1])
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_measure_item([0, 1], [0, 1]), -1)
+    insert_instr(qobj, 0, measure_instr([0, 1], [0, 1]), -1)
     if not allow_sampling:
-        qobj_insert_item(qobj, 0, qobj_iden_item(0), -1)
+        insert_instr(qobj, 0, iden_instr(0), -1)
     final_qobj.experiments.append(qobj.experiments[0])
 
     # 3-qubit measure |++0>
@@ -277,9 +277,9 @@ def measure_circuits_qobj_nondeterministic(allow_sampling=True):
     circuit.h(qr[1])
     circuit.barrier(qr)
     qobj = compile(circuit, QasmSimulator(), shots=1)
-    qobj_insert_item(qobj, 0, qobj_measure_item([0, 1, 2], [0, 1, 2]), -1)
+    insert_instr(qobj, 0, measure_instr([0, 1, 2], [0, 1, 2]), -1)
     if not allow_sampling:
-        qobj_insert_item(qobj, 0, qobj_iden_item(0), -1)
+        insert_instr(qobj, 0, iden_instr(0), -1)
     final_qobj.experiments.append(qobj.experiments[0])
 
     return final_qobj

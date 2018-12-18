@@ -5,13 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-import numpy as np
-from test.terra.utils import common
+"""
+Standard error function tests
+"""
+
 import unittest
+from test.terra.utils import common
+import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit.providers.aer.noise.noise_utils import standard_gate_unitary
-from qiskit.providers.aer.noise.aernoiseerror import AerNoiseError
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import mixed_unitary_error
 from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
@@ -48,14 +52,14 @@ class TestNoise(common.QiskitAerTestCase):
         A0 = [[1, 0], [0, np.sqrt(1 - 0.3)]]
         A1 = [[0, 0], [0, np.sqrt(0.3)]]
         noise_ops = [(A0, 0.5), (A1, 0.5)]
-        self.assertRaises(AerNoiseError, lambda: mixed_unitary_error(noise_ops))
+        self.assertRaises(NoiseError, lambda: mixed_unitary_error(noise_ops))
 
     def test_mixed_unitary_error_raise_differnt_shape(self):
         """Test error is raised if input matrices different size"""
         unitaries = [np.eye(4), np.eye(2)]
         probs = [0.7, 0.4]
         noise_ops = [(unitaries[0], probs[0]), (unitaries[1], probs[1])]
-        self.assertRaises(AerNoiseError, lambda: mixed_unitary_error(noise_ops))
+        self.assertRaises(NoiseError, lambda: mixed_unitary_error(noise_ops))
 
     def test_mixed_unitary_error(self):
         """Test construction of mixed unitary error"""
@@ -79,7 +83,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_raise_invalid(self):
         """Test exception for invalid Pauli string"""
-        self.assertRaises(AerNoiseError, lambda: pauli_error([('S', 1)]))
+        self.assertRaises(NoiseError, lambda: pauli_error([('S', 1)]))
 
     def test_pauli_error_1q_unitary_from_string(self):
         """Test single-qubit pauli error as unitary qobj from string label"""
@@ -412,28 +416,28 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_amplitude_damping_error_raises_invalid_amp_param(self):
         """Test phase and amplitude damping error raises for invalid amp_param"""
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(-0.5, 0, 0))
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(1.1, 0, 0))
 
     def test_amplitude_damping_error_raises_invalid_phase_param(self):
         """Test phase and amplitude damping error raises for invalid amp_param"""
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(0, -0.5, 0))
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(0, 1.1, 0))
 
     def test_amplitude_damping_error_raises_invalid_excited_state_pop(self):
         """Test phase and amplitude damping error raises for invalid pop"""
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(0, 0, -0.5))
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(0, 0, 1.1))
 
     def test_amplitude_damping_error_raises_invalid_combined_params(self):
         """Test phase and amplitude damping error raises for invalid pop"""
-        self.assertRaises(AerNoiseError,
+        self.assertRaises(NoiseError,
                           lambda: phase_amplitude_damping_error(0.5, 0.6, 0))
 
     def test_phase_amplitude_damping_error_noncanonical(self):
@@ -571,21 +575,21 @@ class TestNoise(common.QiskitAerTestCase):
     def test_thermal_relaxation_error_raises_invalid_t2(self):
         """Test raises error for invalid t2 parameters"""
         # T2 == 0
-        self.assertRaises(AerNoiseError, lambda: thermal_relaxation_error(1, 0, 0))
+        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, 0, 0))
         # T2 < 0
-        self.assertRaises(AerNoiseError, lambda: thermal_relaxation_error(1, -1, 0))
+        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, -1, 0))
 
     def test_thermal_relaxation_error_raises_invalid_t1(self):
         """Test raises error for invalid t1 parameters"""
         # T1 == 0
-        self.assertRaises(AerNoiseError, lambda: thermal_relaxation_error(0, 0, 0))
+        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(0, 0, 0))
         # T1 < 0
-        self.assertRaises(AerNoiseError, lambda: thermal_relaxation_error(-0.1, 0.1, 0))
+        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(-0.1, 0.1, 0))
 
     def test_thermal_relaxation_error_raises_invalid_t1_t2(self):
         """Test raises error for invalid t2 > 2 * t1 parameters"""
         # T2 > 2 * T1
-        self.assertRaises(AerNoiseError, lambda: thermal_relaxation_error(1, 2.1, 0))
+        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, 2.1, 0))
 
     def test_thermal_relaxation_error_t1_t2_inf_ideal(self):
         """Test t1 = t2 = inf returns identity channel"""
