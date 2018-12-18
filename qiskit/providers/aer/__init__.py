@@ -10,8 +10,8 @@
 from .aerprovider import AerProvider
 from .aerjob import AerJob
 from .backends import *
-from .noise import *
-from .utils import *
+from . import noise
+from . import utils
 from .version import __version__
 
 # Global instance to be used as the entry point for convenience.

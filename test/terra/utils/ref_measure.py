@@ -17,9 +17,9 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # direclty by qobj instructions until terra compiler supports them
 from qiskit import compile
 from qiskit.providers.aer.backends import QasmSimulator
-from qiskit.providers.aer.utils.qobj_utils import insert_item
-from qiskit.providers.aer.utils.qobj_utils import measure_item
-from qiskit.providers.aer.utils.qobj_utils import iden_item
+from qiskit.providers.aer.utils.qobj_utils import insert_instr
+from qiskit.providers.aer.utils.qobj_utils import measure_instr
+from qiskit.providers.aer.utils.qobj_utils import iden_instr
 
 
 # ==========================================================================
