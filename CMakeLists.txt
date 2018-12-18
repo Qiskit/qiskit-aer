@@ -15,6 +15,10 @@ project(qasm_simulator LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+# Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
+# libopenblas.a for Ubuntu (maybe others) we need to copy the file:
+# cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
+# installed in the system, but with the name: FindBLAS.cmake
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
