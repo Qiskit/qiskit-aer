@@ -914,25 +914,42 @@ std::string bin2hex(std::string str, bool prefix) {
 
   // We go via long integer conversion, so we process 64-bit chunks at
   // a time
-  const size_t block = 64;
+  const size_t bin_block = 64;
+  const size_t hex_block = bin_block / 4;
   const size_t len = str.size();
-  const size_t chunks = len / block;
-  const size_t remain = len % block;
+  const size_t chunks = len / bin_block;
+  const size_t remain = len % bin_block;
 
   // initialize output string
   std::string hex = (prefix) ? "0x" : "";
 
-  // Start with remain
-  std::stringstream ss;
-  ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
-  hex += ss.str();
-  for (size_t j=0; j < chunks; ++j) {
-    ss.str(std::string()); // clear string stream
-    ss << std::hex << std::stoull(str.substr(remain + j * block, block), nullptr, 2);
-    std::string part = ss.str();
-    part.insert(0, block - part.size(), '0'); // pad out zeros
-    hex += part;
+  // Add remainder
+  if (remain > 0) {
+    // Add remainder
+    std::stringstream ss;
+    ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
+    hex += ss.str();
   }
+
+  // Add > 64 bit chunks
+  if (chunks > 0) {
+    // Add last 64-bit chunk
+    std::stringstream ss;
+    ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
+    std::string part = ss.str();
+    if (remain > 0) {
+      part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+    }
+    hex += part;
+    // Add any additional chunks
+    for (size_t j=1; j < chunks; ++j) {
+      ss = std::stringstream(); // clear string stream
+      ss << std::hex << std::stoull(str.substr(remain + j * bin_block, bin_block), nullptr, 2);
+      part = ss.str();
+      part.insert(0, hex_block - part.size(), '0');
+      hex += part;
+    }
+  }  
   return hex;
 }
 
