@@ -196,6 +196,9 @@ include(Linter)
 
 target_link_libraries(qasm_simulator	PRIVATE ${AER_LIBRARIES})
 
+# Include the standalone ch_simulator
+include("${AER_SIMULATOR_CPP_SRC_DIR}/simulators/ch/ch_standalone.cmake" OPTIONAL)
+
 # Tests
 if(BUILD_TESTS)
 	add_subdirectory(test)

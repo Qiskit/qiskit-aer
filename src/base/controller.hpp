@@ -257,6 +257,7 @@ json_t Controller::execute(const json_t &qobj_js) {
   try {
     int num_circuits = qobj.circuits.size();
 
+    int num_threads_circuit = 1;
   // Check for OpenMP and number of available CPUs
   #ifdef _OPENMP
     int omp_nthreads = std::max(1, omp_get_max_threads());
@@ -267,7 +268,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 
     // Calculate threads for parallel circuit execution
     // TODO: add memory checking for limiting thread number
-    int num_threads_circuit = (max_threads_circuit_ < 1) 
+    num_threads_circuit = (max_threads_circuit_ < 1) 
       ? std::min<int>({num_circuits, available_threads_ , max_threads_total_})
       : std::min<int>({num_circuits, available_threads_ , max_threads_total_, max_threads_circuit_});
     
