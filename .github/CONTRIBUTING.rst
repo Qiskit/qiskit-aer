@@ -52,7 +52,10 @@ Pre-requisites
 
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file, eg:
-``pip install -r requirements-dev.txt``.
+
+.. code:: sh
+
+    pip install -U -r requirements-dev.txt
 
 As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
@@ -85,7 +88,7 @@ You further need to have Command Line Tools installed on MacOS:
 
 .. code::
    
-   $ xcode-select —install
+   $ xcode-select -—install
 
 
 **Linux (Ubuntu >= 16.04)**
@@ -147,7 +150,7 @@ build in parallel, using 8 processes.
 
 .. code::
 
-   python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
+   qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
 
 
 After this command is executed successfully, we will have a wheel package into the ``dist/`` directory, so next step is installing it:
