@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit-aer)
 
-**Qiskit** is a software development kit for working with NISQ (Noisy-Intermediate Scale Quantum) computers.
+**Qiskit** is an open-source framework for working with noisy intermediate-scale quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
 
 Qiskit is made up of elements that each work together to enable quantum computing. This element is **Aer**, which provides high-performance quantum computing simulators with realistic noise models.
 
