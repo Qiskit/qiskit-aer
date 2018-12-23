@@ -137,7 +137,7 @@ So a real example could be:
 
 .. code::
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
     
 This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
 library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
