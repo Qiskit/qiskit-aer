@@ -1,6 +1,6 @@
 # Qiskit Aer
 
-[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit-aer)
+[![PyPI](https://img.shields.io/pypi/v/qiskit-aer.svg)](https://pypi.python.org/pypi/qiskit-aer)
 
 **Qiskit** is an open-source framework for working with noisy intermediate-scale quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
 
