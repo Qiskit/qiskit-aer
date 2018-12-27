@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" href="_static/theme.css" type="text/css" />
+    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans|IBM+Plex+Sans+Condensed|IBM+Plex+Serif" rel="stylesheet">
+
+    
+    <title>Use a Simple Device Noise Model &#8212; Qiskit Aer 0.7.0 documentation</title>
+
+    <link rel="stylesheet" href="_static/material-icons.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/material-design-lite-1.3.0/material.blue-indigo.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_materialdesign_theme.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    <script type="text/javascript" src="_static/themeExt.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+<body>
+  <header>
+    <div class="toolbar limited-width">
+        <a href="https://qiskit.org/aer" class="home">Qiskit Aer ™</a>
+        <nav class="first">
+        <a href="https://qiskit.org/terra">Terra</a>
+        <a href="https://qiskit.org/aqua">Aqua</a>
+        <a href="https://qiskit.org/aer">Aer</a>
+      </nav>
+      <nav class="second">
+        <a href="/documentation/device_noise_simulation.html">English</a> /
+        <a href="/documentation/de/device_noise_simulation.html">German</a> /
+        <a href="/documentation/ja/device_noise_simulation.html">Japanese</a>
+        <a class="external" href="https://qiskit.org/vscode">Tools</a>
+        <a class="external" href="https://qiskit.org/fun">Fun</a>
+      </nav>
+    </div>
+  </header>
+    <div class="mdl-layout mdl-js-layout  mdl-layout--fixed-drawer"><header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+        <main class="mdl-layout__content" tabIndex="0">
+<header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+
+    <div class="document">
+        <div class="page-content">
+        
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput,
+div.nbinput div.prompt,
+div.nbinput div.input_area,
+div.nbinput div[class*=highlight],
+div.nbinput div[class*=highlight] pre,
+div.nboutput,
+div.nbinput div.prompt,
+div.nbinput div.output_area,
+div.nboutput div[class*=highlight],
+div.nboutput div[class*=highlight] pre {
+    background: none;
+    border: none;
+    padding: 0 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* avoid gaps between output lines */
+div.nboutput div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput,
+div.nboutput {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput,
+    div.nboutput {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput div.prompt,
+div.nboutput div.prompt {
+    min-width: 7ex;
+    padding-top: 0.4em;
+    padding-right: 0.4em;
+    text-align: right;
+    flex: 0;
+}
+@media (max-width: 540px) {
+    div.nbinput div.prompt,
+    div.nboutput div.prompt {
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput div.prompt.empty {
+        padding: 0;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput div.prompt pre,
+div.nboutput div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput div.input_area,
+div.nboutput div.output_area {
+    padding: 0.4em;
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput div.input_area,
+    div.nboutput div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    background: #f5f5f5;
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="Use-a-Simple-Device-Noise-Model">
+<h1>Use a Simple Device Noise Model<a class="headerlink" href="#Use-a-Simple-Device-Noise-Model" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="Introduction">
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this headline">¶</a></h2>
+<p>This tutorial shows how to use the Qiskit Aer™ <code class="docutils literal notranslate"><span class="pre">noise.device</span></code> module to automatically generate a noise model for an IBM Q™ hardware device, and use this model to do noisy simulation of <code class="docutils literal notranslate"><span class="pre">QuantumCircuits</span></code> to study the effects of errors which occur on real devices.</p>
+<p>Note that these automatic models are only a highly simplified approximation of the real errors that occur on actual devices. The study of quantum errors on real devices is an active area of research and we discuss the Qiskit Aer tools for configuring more detailed noise models in another notebook.</p>
+</div>
+<div class="section" id="Device-noise-module">
+<h2>Device noise module<a class="headerlink" href="#Device-noise-module" title="Permalink to this headline">¶</a></h2>
+<p>The Qiskit Aer device noise module contains two functions to automatically generate a simplified noise model for a real device. This model is generated using the calibration information reported in the <code class="docutils literal notranslate"><span class="pre">BackendProperties</span></code> of a device.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">qiskit</span> <span class="k">import</span> <span class="n">Aer</span><span class="p">,</span> <span class="n">IBMQ</span><span class="p">,</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.aer</span> <span class="k">import</span> <span class="n">noise</span>
+<span class="kn">from</span> <span class="nn">qiskit</span> <span class="k">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">QuantumRegister</span><span class="p">,</span> <span class="n">ClassicalRegister</span>
+<span class="kn">from</span> <span class="nn">qiskit.tools.visualization</span> <span class="k">import</span> <span class="n">plot_histogram</span>
+<span class="kn">from</span> <span class="nn">qiskit.tools.monitor</span> <span class="k">import</span> <span class="n">job_monitor</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="IBM-Q-Provider">
+<h3>IBM Q Provider<a class="headerlink" href="#IBM-Q-Provider" title="Permalink to this headline">¶</a></h3>
+<p>We will use a real hardware device in the <code class="docutils literal notranslate"><span class="pre">IBMQ</span></code> provider as an example. First we must load our account credentials, and then select a backend from the provider.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">IBMQ</span><span class="o">.</span><span class="n">load_accounts</span><span class="p">()</span>
+<span class="n">IBMQ</span><span class="o">.</span><span class="n">backends</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>[&lt;IBMQBackend(&#39;ibmqx4&#39;) from IBMQ()&gt;,
+ &lt;IBMQBackend(&#39;ibmq_16_melbourne&#39;) from IBMQ()&gt;,
+ &lt;IBMQBackend(&#39;ibmq_qasm_simulator&#39;) from IBMQ()&gt;]
+</pre></div>
+</div>
+</div>
+<p>We will use the <code class="docutils literal notranslate"><span class="pre">ibmq_16_melbourne</span></code> device for this tutorial. We may get the properties of the backend using the <code class="docutils literal notranslate"><span class="pre">properties</span></code> method, the information in the returned <code class="docutils literal notranslate"><span class="pre">BackendProperties</span></code> object will be used to automatically generate a noise model for the device that can be used by the Qiskit Aer <code class="docutils literal notranslate"><span class="pre">QasmSimulator</span></code>. We will also want to get the <code class="docutils literal notranslate"><span class="pre">coupling_map</span></code> for the device from its <code class="docutils literal notranslate"><span class="pre">configuration</span></code> to use when compiling circuits for simulation to most closely mimic the gates that will be
+executed on a real device</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">device</span> <span class="o">=</span> <span class="n">IBMQ</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;ibmq_16_melbourne&#39;</span><span class="p">)</span>
+<span class="n">properties</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">properties</span><span class="p">()</span>
+<span class="n">coupling_map</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">coupling_map</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Test-circuit-for-device-and-simulation-comparison">
+<h3>Test circuit for device and simulation comparison<a class="headerlink" href="#Test-circuit-for-device-and-simulation-comparison" title="Permalink to this headline">¶</a></h3>
+<p>Now we construct a test circuit to compare the output of the real device with the noisy output simulated on the Qiskit Aer <code class="docutils literal notranslate"><span class="pre">QasmSimulator</span></code>. We will prepare a 3-qubit GHZ state <span class="math notranslate nohighlight">\(\frac{1}{2}(|0,0,0\rangle + |1,1,1\rangle)\)</span> on qubits 0, 1 and 2. Before running with noise or on the device we show the ideal expected output with no noise.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Construct quantum circuit</span>
+<span class="n">qr</span> <span class="o">=</span> <span class="n">QuantumRegister</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;qr&#39;</span><span class="p">)</span>
+<span class="n">cr</span> <span class="o">=</span> <span class="n">ClassicalRegister</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;cr&#39;</span><span class="p">)</span>
+<span class="n">circ</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">qr</span><span class="p">,</span> <span class="n">cr</span><span class="p">)</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qr</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qr</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">qr</span><span class="p">,</span> <span class="n">cr</span><span class="p">)</span>
+
+<span class="c1"># Select the QasmSimulator from the Aer provider</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">Aer</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;qasm_simulator&#39;</span><span class="p">)</span>
+
+<span class="c1"># Execute and get counts</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+<span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Ideal counts for 3-qubit GHZ state&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<img alt="_images/device_noise_simulation_9_0.png" src="_images/device_noise_simulation_9_0.png" />
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="Generating-a-device-noise-model">
+<h2>Generating a device noise model<a class="headerlink" href="#Generating-a-device-noise-model" title="Permalink to this headline">¶</a></h2>
+<p>Noise models in Qiskit Aer are presented using the <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code> object from the <code class="docutils literal notranslate"><span class="pre">aer.noise</span></code> module. The function we will use is the <code class="docutils literal notranslate"><span class="pre">basic_device_noise_model</span></code> function from <code class="docutils literal notranslate"><span class="pre">aer.noise.device</span></code> module which will return a basic approximate <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code> object configured from a device <code class="docutils literal notranslate"><span class="pre">BackendProperties</span></code>.</p>
+<div class="section" id="Basic-device-noise-model">
+<h3>Basic device noise model<a class="headerlink" href="#Basic-device-noise-model" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">basic_device_noise_model</span></code> constructs an approximate noise model consisting of:</p>
+<ul class="simple">
+<li><strong>Single-qubit gate errors</strong> consisting of a single qubit depolarizing error followed by a single qubit thermal relaxation error.</li>
+<li><strong>Two-qubit gate errors</strong> consisting of a two-qubit depolarizing error followed by single-qubit thermal relaxation errors on both qubits in the gate.</li>
+<li><strong>Single-qubit readout errors</strong> on the classical bit value obtained from measurements on individual qubits</li>
+</ul>
+<p>For the gate errors the error parameter of the thermal relaxation errors is derived using the <code class="docutils literal notranslate"><span class="pre">thermal_relaxation_error</span></code> function from <code class="docutils literal notranslate"><span class="pre">aer.noise.errors</span></code> module, along with the individual qubit <span class="math notranslate nohighlight">\(T_1\)</span> and <span class="math notranslate nohighlight">\(T_2\)</span> parameters, and the <code class="docutils literal notranslate"><span class="pre">gate_time</span></code> parameter from the device backend properties. The probability of the depolarizing error is then set so that the combined average gate infidelity from the depolarizing error followed by the thermal relaxaxtion is equal to the <code class="docutils literal notranslate"><span class="pre">gate_error</span></code>
+value from the backend properties.</p>
+<p>For the readout errors the probability that the recorded classical bit value will be flipped from the true outcome after a measurement is given by the qubit <code class="docutils literal notranslate"><span class="pre">readout_errors</span></code>.</p>
+<p>Let us construct the device noise model.</p>
+<p><strong>Note:</strong> <em>Since the devices don’t currently provide the gate times for gates we will manually provide them for the gates we are interested in using the optional ``gate_times`` argument for ``basic_device_noise_model``.</em></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># List of gate times for ibmq_14_melbourne device</span>
+<span class="c1"># Note that the None parameter for u1, u2, u3 is because gate</span>
+<span class="c1"># times are the same for all qubits</span>
+<span class="n">gate_times</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">&#39;u1&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;u3&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">678</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">547</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="mi">721</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="mi">733</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="mi">721</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="mi">800</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="mi">800</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="mi">895</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="mi">895</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="mi">640</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="mi">895</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="mi">800</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="mi">721</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="mi">634</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">773</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">2286</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">12</span><span class="p">],</span> <span class="mi">1504</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cx&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="mi">800</span><span class="p">)</span>
+<span class="p">]</span>
+
+<span class="c1"># Construct the noise model from backend properties</span>
+<span class="c1"># and custom gate times</span>
+<span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">basic_device_noise_model</span><span class="p">(</span><span class="n">properties</span><span class="p">,</span> <span class="n">gate_times</span><span class="o">=</span><span class="n">gate_times</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noise_model</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+NoiseModel:
+  Instructions with noise: [&#39;u3&#39;, &#39;measure&#39;, &#39;u2&#39;, &#39;cx&#39;]
+  Specific qubit errors: [(&#39;u2&#39;, [0]), (&#39;u2&#39;, [1]), (&#39;u2&#39;, [2]), (&#39;u2&#39;, [3]), (&#39;u2&#39;, [4]), (&#39;u2&#39;, [5]), (&#39;u2&#39;, [6]), (&#39;u2&#39;, [7]), (&#39;u2&#39;, [8]), (&#39;u2&#39;, [9]), (&#39;u2&#39;, [10]), (&#39;u2&#39;, [11]), (&#39;u2&#39;, [12]), (&#39;u2&#39;, [13]), (&#39;u3&#39;, [0]), (&#39;u3&#39;, [1]), (&#39;u3&#39;, [2]), (&#39;u3&#39;, [3]), (&#39;u3&#39;, [4]), (&#39;u3&#39;, [5]), (&#39;u3&#39;, [6]), (&#39;u3&#39;, [7]), (&#39;u3&#39;, [8]), (&#39;u3&#39;, [9]), (&#39;u3&#39;, [10]), (&#39;u3&#39;, [11]), (&#39;u3&#39;, [12]), (&#39;u3&#39;, [13]), (&#39;cx&#39;, [1, 0]), (&#39;cx&#39;, [1, 2]), (&#39;cx&#39;, [2, 3]), (&#39;cx&#39;, [4, 3]), (&#39;cx&#39;, [4, 10]), (&#39;cx&#39;, [5, 4]), (&#39;cx&#39;, [5, 6]), (&#39;cx&#39;, [5, 9]), (&#39;cx&#39;, [6, 8]), (&#39;cx&#39;, [7, 8]), (&#39;cx&#39;, [9, 8]), (&#39;cx&#39;, [9, 10]), (&#39;cx&#39;, [11, 3]), (&#39;cx&#39;, [11, 10]), (&#39;cx&#39;, [11, 12]), (&#39;cx&#39;, [12, 2]), (&#39;cx&#39;, [13, 1]), (&#39;cx&#39;, [13, 12]), (&#39;measure&#39;, [0]), (&#39;measure&#39;, [1]), (&#39;measure&#39;, [2]), (&#39;measure&#39;, [3]), (&#39;measure&#39;, [4]), (&#39;measure&#39;, [5]), (&#39;measure&#39;, [6]), (&#39;measure&#39;, [7]), (&#39;measure&#39;, [8]), (&#39;measure&#39;, [9]), (&#39;measure&#39;, [10]), (&#39;measure&#39;, [11]), (&#39;measure&#39;, [12]), (&#39;measure&#39;, [13])]
+</pre></div></div>
+</div>
+</div>
+</div>
+<div class="section" id="Simulating-a-quantum-circuit-with-noise">
+<h2>Simulating a quantum circuit with noise<a class="headerlink" href="#Simulating-a-quantum-circuit-with-noise" title="Permalink to this headline">¶</a></h2>
+<p>To use this noise model we must make use of several keyword arguments in the <code class="docutils literal notranslate"><span class="pre">execute</span></code> function. These are:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">noise_model</span></code>: This passes the noise model to the <code class="docutils literal notranslate"><span class="pre">QasmSimulator.run</span></code> method for noisy simulation.</li>
+<li><code class="docutils literal notranslate"><span class="pre">basis_gates</span></code>: A noise model is defined with respect to specific gates, we must pass these basis gates to the Qiskit compiler so that it compiles the circuit to the correct gates for the noise model. The basis gates of a noise model may be obtained from the <code class="docutils literal notranslate"><span class="pre">NoiseModel.basis_gates</span></code> property.</li>
+<li><code class="docutils literal notranslate"><span class="pre">coupling_map</span></code>: We also must make sure we provide the <code class="docutils literal notranslate"><span class="pre">coupling_map</span></code> for the real device so that the compiler will produce a Qobj for the simulator that will match the compiled experiment that can be executed on the real device.</li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Get the basis gates for the noise model</span>
+<span class="n">basis_gates</span> <span class="o">=</span> <span class="n">noise_model</span><span class="o">.</span><span class="n">basis_gates</span>
+
+<span class="c1"># Select the QasmSimulator from the Aer provider</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">Aer</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;qasm_simulator&#39;</span><span class="p">)</span>
+
+<span class="c1"># Execute noisy simulation and get counts</span>
+<span class="n">result_noise</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span>
+                       <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+                       <span class="n">coupling_map</span><span class="o">=</span><span class="n">coupling_map</span><span class="p">,</span>
+                       <span class="n">basis_gates</span><span class="o">=</span><span class="n">basis_gates</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">counts_noise</span> <span class="o">=</span> <span class="n">result_noise</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+<span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts_noise</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Counts for 3-qubit GHZ state with depolarizing noise model&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<img alt="_images/device_noise_simulation_13_0.png" src="_images/device_noise_simulation_13_0.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Comparison-to-the-real-device">
+<h2>Comparison to the real device<a class="headerlink" href="#Comparison-to-the-real-device" title="Permalink to this headline">¶</a></h2>
+<p>Now we will execute the circuit on the real device to see the effect of the actual noise processes on the output counts. Note that this execution may take some time to return the results.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Submit job to real device and wait for results</span>
+<span class="n">job_device</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">job_monitor</span><span class="p">(</span><span class="n">job_device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Get results from completed execution</span>
+<span class="n">result_device</span> <span class="o">=</span> <span class="n">job_device</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">counts_device</span> <span class="o">=</span> <span class="n">result_device</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts_device</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Counts for 3-qubit GHZ state on IBMQ device: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<img alt="_images/device_noise_simulation_16_0.png" src="_images/device_noise_simulation_16_0.png" />
+</div>
+</div>
+<p>You might notice that the counts returned in the above histogram don’t look exactly like our simulation. This is because the real errors that happen on a device can be very complicated, and characterizing them to create acurate models is an active area of quantum computing research. The <em>basic device noise model</em> we used for our simulation is a simplified error model that only takes into account <em>local</em> errors occuring on the qubits participating in each individual gate, and treats the erors as
+a relaxation process combined with an error operation which acts to randomize the state of the qubit with some probability <em>p</em> (the depolarizing probability). While this model is an approximation, due to its simplicity it is a useful starting point for studying the effects of noise on quantum computations.</p>
+</div>
+</div>
+
+
+        </div>
+
+      <div class="clearer"></div>
+    </div><div class="pagenation">
+        
+        </main>
+    </div>
+  </body>
+</html>

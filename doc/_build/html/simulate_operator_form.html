@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" href="_static/theme.css" type="text/css" />
+    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans|IBM+Plex+Sans+Condensed|IBM+Plex+Serif" rel="stylesheet">
+
+    
+    <title>Find the Operator Form of a Circuit &#8212; Qiskit Aer 0.7.0 documentation</title>
+
+    <link rel="stylesheet" href="_static/material-icons.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/material-design-lite-1.3.0/material.blue-indigo.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_materialdesign_theme.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    <script type="text/javascript" src="_static/themeExt.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+<body>
+  <header>
+    <div class="toolbar limited-width">
+        <a href="https://qiskit.org/aer" class="home">Qiskit Aer ™</a>
+        <nav class="first">
+        <a href="https://qiskit.org/terra">Terra</a>
+        <a href="https://qiskit.org/aqua">Aqua</a>
+        <a href="https://qiskit.org/aer">Aer</a>
+      </nav>
+      <nav class="second">
+        <a href="/documentation/simulate_operator_form.html">English</a> /
+        <a href="/documentation/de/simulate_operator_form.html">German</a> /
+        <a href="/documentation/ja/simulate_operator_form.html">Japanese</a>
+        <a class="external" href="https://qiskit.org/vscode">Tools</a>
+        <a class="external" href="https://qiskit.org/fun">Fun</a>
+      </nav>
+    </div>
+  </header>
+    <div class="mdl-layout mdl-js-layout  mdl-layout--fixed-drawer"><header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+        <main class="mdl-layout__content" tabIndex="0">
+<header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+
+    <div class="document">
+        <div class="page-content">
+        
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput,
+div.nbinput div.prompt,
+div.nbinput div.input_area,
+div.nbinput div[class*=highlight],
+div.nbinput div[class*=highlight] pre,
+div.nboutput,
+div.nbinput div.prompt,
+div.nbinput div.output_area,
+div.nboutput div[class*=highlight],
+div.nboutput div[class*=highlight] pre {
+    background: none;
+    border: none;
+    padding: 0 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* avoid gaps between output lines */
+div.nboutput div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput,
+div.nboutput {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput,
+    div.nboutput {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput div.prompt,
+div.nboutput div.prompt {
+    min-width: 7ex;
+    padding-top: 0.4em;
+    padding-right: 0.4em;
+    text-align: right;
+    flex: 0;
+}
+@media (max-width: 540px) {
+    div.nbinput div.prompt,
+    div.nboutput div.prompt {
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput div.prompt.empty {
+        padding: 0;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput div.prompt pre,
+div.nboutput div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput div.input_area,
+div.nboutput div.output_area {
+    padding: 0.4em;
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput div.input_area,
+    div.nboutput div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    background: #f5f5f5;
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="Find-the-Operator-Form-of-a-Circuit">
+<h1>Find the Operator Form of a Circuit<a class="headerlink" href="#Find-the-Operator-Form-of-a-Circuit" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="Introduction">
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this headline">¶</a></h2>
+<p>This tutorial shows how to use Qiskit Aer™ to find the operator form of ideal (noise free) Qiskit Terra™ circuits.</p>
+</div>
+<div class="section" id="Unitary-Simulator">
+<h2>Unitary Simulator<a class="headerlink" href="#Unitary-Simulator" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">UnitarySimulator</span></code> constructs the unitary matrix for a Qiskit <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> by applying each gate matrix to an identity matrix. The circuit may only contain <em>gates</em>, if it contains <em>resets</em> or <em>measure</em> operations an exception will be raised.</p>
+<p>Import the <code class="docutils literal notranslate"><span class="pre">UnitarySimulator</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Import Qiskit</span>
+<span class="kn">from</span> <span class="nn">qiskit</span> <span class="k">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">QuantumRegister</span><span class="p">,</span> <span class="n">ClassicalRegister</span>
+<span class="kn">from</span> <span class="nn">qiskit</span> <span class="k">import</span> <span class="n">Aer</span><span class="p">,</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">qiskit.tools.visualization</span> <span class="k">import</span> <span class="n">plot_histogram</span><span class="p">,</span> <span class="n">plot_state_city</span>
+
+<span class="kn">from</span> <span class="nn">qiskit.providers.aer</span> <span class="k">import</span> <span class="n">UnitarySimulator</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="Simulating-a-quantum-circuit-unitary">
+<h3>Simulating a quantum circuit unitary<a class="headerlink" href="#Simulating-a-quantum-circuit-unitary" title="Permalink to this headline">¶</a></h3>
+<p>For this example we will return the unitary matrix corresponding to the previous examples circuit which prepares a bell state.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Construct an empty quantum circuit</span>
+<span class="n">qr</span> <span class="o">=</span> <span class="n">QuantumRegister</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">circ</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">qr</span><span class="p">)</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qr</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Select the UnitarySimulator from the Aer provider</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">Aer</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;unitary_simulator&#39;</span><span class="p">)</span>
+
+<span class="c1"># Execute and get counts</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">unitary</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_unitary</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Circuit unitary:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">unitary</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit unitary:
+ [[ 0.70710678+0.j  0.70710678+0.j  0.        +0.j  0.        +0.j]
+ [ 0.        +0.j  0.        +0.j  0.70710678+0.j -0.70710678+0.j]
+ [ 0.        +0.j  0.        +0.j  0.70710678+0.j  0.70710678+0.j]
+ [ 0.70710678+0.j -0.70710678+0.j  0.        +0.j  0.        +0.j]]
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Setting-a-custom-initial-unitary">
+<h3>Setting a custom initial unitary<a class="headerlink" href="#Setting-a-custom-initial-unitary" title="Permalink to this headline">¶</a></h3>
+<p>we may also set an initial state for the <code class="docutils literal notranslate"><span class="pre">UnitarySimulator</span></code>, however this state is an initial <em>unitary matrix</em> <span class="math notranslate nohighlight">\(U_i\)</span>, not a statevector. In this case the return unitary will be <span class="math notranslate nohighlight">\(U.U_i\)</span> given by applying the circuit unitary to the initial unitary matrix.</p>
+<p><strong>Note:</strong> * The initial unitary must be a valid unitary matrix <span class="math notranslate nohighlight">\(U^\dagger.U =\mathbb{1}\)</span>. If not an exception will be raised. * If a Qobj contains multiple experiments, the initial unitary must be the correct size fo <em>all</em> experiments in the Qobj, otherwise an exception will be raised.</p>
+<p>Let us consider preparing the output unitary of the previous circuit as the initial state for the simulator:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># Construct an empty quantum circuit</span>
+<span class="n">qr</span> <span class="o">=</span> <span class="n">QuantumRegister</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">circ</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">qr</span><span class="p">)</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">iden</span><span class="p">(</span><span class="n">qr</span><span class="p">)</span>
+
+<span class="c1"># Set the initial unitary</span>
+<span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;initial_unitary&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mi">1</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">],</span>
+                                     <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                                     <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="mi">1</span><span class="p">],</span>
+                                     <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">]]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))}</span>
+
+<span class="c1"># Select the UnitarySimulator from the Aer provider</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">Aer</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;unitary_simulator&#39;</span><span class="p">)</span>
+
+<span class="c1"># Execute and get counts</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span> <span class="n">backend_options</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">unitary</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_unitary</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+<span class="n">unitary</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_unitary</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial Unitary:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">unitary</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Initial Unitary:
+ [[ 0.70710678+0.j  0.70710678+0.j  0.        +0.j  0.        +0.j]
+ [ 0.        +0.j  0.        +0.j  0.70710678+0.j -0.70710678+0.j]
+ [ 0.        +0.j  0.        +0.j  0.70710678+0.j  0.70710678+0.j]
+ [ 0.70710678+0.j -0.70710678+0.j  0.        +0.j  0.        +0.j]]
+</pre></div></div>
+</div>
+</div>
+</div>
+</div>
+
+
+        </div>
+
+      <div class="clearer"></div>
+    </div><div class="pagenation">
+        
+        </main>
+    </div>
+  </body>
+</html>

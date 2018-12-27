@@ -20,7 +20,6 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-- Added first draft of high level documentation.
 
 
 Changed

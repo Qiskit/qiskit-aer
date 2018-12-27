@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" href="_static/theme.css" type="text/css" />
+    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans|IBM+Plex+Sans+Condensed|IBM+Plex+Serif" rel="stylesheet">
+
+    
+    <title>Search &#8212; Qiskit Aer 0.7.0 documentation</title>
+
+    <link rel="stylesheet" href="_static/material-icons.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/material-design-lite-1.3.0/material.blue-indigo.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_materialdesign_theme.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <script type="text/javascript" src="_static/themeExt.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="#" />
+  <script type="text/javascript">
+    jQuery(function() { Search.loadIndex("searchindex.js"); });
+  </script>
+  
+  <script type="text/javascript" id="searchindexloader"></script>
+   
+
+  </head>
+<body>
+  <header>
+    <div class="toolbar limited-width">
+        <a href="https://qiskit.org/aer" class="home">Qiskit Aer ™</a>
+        <nav class="first">
+        <a href="https://qiskit.org/terra">Terra</a>
+        <a href="https://qiskit.org/aqua">Aqua</a>
+        <a href="https://qiskit.org/aer">Aer</a>
+      </nav>
+      <nav class="second">
+        <a href="/documentation/search.html">English</a> /
+        <a href="/documentation/de/search.html">German</a> /
+        <a href="/documentation/ja/search.html">Japanese</a>
+        <a class="external" href="https://qiskit.org/vscode">Tools</a>
+        <a class="external" href="https://qiskit.org/fun">Fun</a>
+      </nav>
+    </div>
+  </header>
+    <div class="mdl-layout mdl-js-layout  mdl-layout--fixed-drawer"><header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+        <main class="mdl-layout__content" tabIndex="0">
+<header class="mdl-layout__drawer">
+    
+          <!-- Title -->
+      <span class="mdl-layout-title">
+          <a class="title" href="index.html">
+              <img class="logo" src="_static/qiskit-aer-logo.png" alt="Qiskit Aer"/>
+          </a>
+      </span>
+    
+<div class="globaltoc">
+  <span class="mdl-layout-title toc">Table Of Contents</span>
+  
+  
+      
+      <nav class="mdl-navigation">
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#pull-request-checklist">Pull request checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#commit-messages">Commit messages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_history.html">Release history</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_history.html#qiskit-aer-0-1-0">Qiskit Aer 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+
+      </nav>
+  
+  </div>
+
+</header>
+
+    <div class="document">
+        <div class="page-content">
+        
+  <h1 id="search-documentation">Search</h1>
+  <div id="fallback" class="admonition warning">
+  <script type="text/javascript">$('#fallback').hide();</script>
+  <p>
+    Please activate JavaScript to enable the search
+    functionality.
+  </p>
+  </div>
+  <p>
+    From here you can search these documents. Enter your search
+    words into the box below and click "search". Note that the search
+    function will automatically search for all of the words. Pages
+    containing fewer words won't appear in the result list.
+  </p>
+  <form action="" method="get">
+    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+      <input class="mdl-textfield__input" type="text" name="q" id="search-input">
+      <label class="mdl-textfield__label" for="search-input">Search...</label>
+    </div>
+    <button type="submit" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored">
+      <i class="material-icons">search</i>
+    </button>
+    <span id="search-progress" style="padding-left: 10px"></span>
+  </form>
+  
+  <div id="search-results">
+  
+  </div>
+
+        </div>
+
+      <div class="clearer"></div>
+    </div><div class="pagenation">
+        
+        </main>
+    </div>
+  </body>
+</html>
