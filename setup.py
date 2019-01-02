@@ -1,4 +1,5 @@
 import os
+import sys
 from skbuild import setup
 from setuptools import find_packages
 
@@ -11,6 +12,10 @@ VERSION_PATH = os.path.join(os.path.dirname(__file__),
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
+CMAKE_ARGS = []
+if sys.platform == 'darwin':
+    CMAKE_ARGS += ['-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9',
+                   '-DCMAKE_OSX_ARCHITECTURES:STRING=x86_64']
 
 def find_qiskit_aer_packages():
     location = 'qiskit/providers'
@@ -47,5 +52,6 @@ setup(
     ],
     install_requires=requirements,
     include_package_data=True,
-    keywords="qiskit aer simulator quantum addon backend"
+    keywords="qiskit aer simulator quantum addon backend",
+    cmake_args=CMAKE_ARGS
 )
