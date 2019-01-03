@@ -1,0 +1,41 @@
+{
+    "qobj_id": "689c9d87-4cf5-454d-9882-dff8399ea6ac",
+    "config": {
+        "shots": 1,
+        "memory_slots": 5,
+        "max_credits": 10,
+        "n_qubits": 5},
+    "experiments": [
+        {"instructions": [
+            {"name": "x", "params": [], "texparams": [], "qubits": [3]},
+            {"name": "x", "params": [], "texparams": [], "qubits": [2]},
+            {"name": "x", "params": [], "texparams": [], "qubits": [0]},
+            {"name": "ccx", "params": [], "texparams": [], "qubits": [1, 0, 4]},
+            {"name": "ccx", "params": [], "texparams": [], "qubits": [4, 2, 1]},
+            {"name": "barrier", "qubits": [0, 1, 2, 3, 4]},
+            {"name": "measure", "qubits": [4], "clbits": [4], "memory": [4]},
+            {"name": "measure", "qubits": [3], "clbits": [3], "memory": [3]},
+            {"name": "measure", "qubits": [2], "clbits": [2], "memory": [2]},
+            {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]},
+            {"name": "measure", "qubits": [0], "clbits": [0], "memory": [0]}
+        ],
+        "header": {
+            "number_of_qubits": 5,
+            "number_of_clbits": 5,
+            "qubit_labels": [["q0", 0], ["q0", 1], ["q0", 2], ["q0", 3], ["q0", 4]],
+            "clbit_labels": [["c0", 5]],
+            "name": "circuit6",
+            "compiled_circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q0[5];\ncreg c0[5];\nx q0[0];\nx q0[2];\nx q0[3];\nccx q0[1],q0[0],q0[4];\nccx q0[4],q0[2],q0[1];\nbarrier q0[0],q0[1],q0[2],q0[3],q0[4];\nmeasure q0[0] -> c0[0];\nmeasure q0[1] -> c0[1];\nmeasure q0[2] -> c0[2];\nmeasure q0[3] -> c0[3];\nmeasure q0[4] -> c0[4];\n"
+        },
+        "config": {
+            "coupling_map": "all-to-all",
+            "basis_gates": "u0,u1,cx,cz,id,x,y,z,h,s,sdg,t,tdg,ccx,ccz,swap",
+            "layout": null,
+            "memory_slots": 5,
+            "n_qubits": 5
+        }}
+    ],
+    "header": {"backend_name": "qasm_simulator"}, 
+    "type": "QASM",
+    "schema_version": "1.0.0"
+}
