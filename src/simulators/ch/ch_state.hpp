@@ -517,7 +517,15 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
 
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 {
-  uint_t measure_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+  uint_t measure_string;
+  if(BaseState::qreg_.get_chi() == 1)
+  {
+    measure_string = BaseState::qreg_.StabilizerSampler(rng);
+  }
+  else
+  {
+    measure_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+  }
   std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
   for(size_t i=0; i<qubits.size(); i++)
   {
@@ -672,9 +680,16 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
     {
       mask ^= (1ULL << qubit);
     }
-    std::vector<uint_t> samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps,
-                                                                        probabilities_snapshot_samples,
-                                                                        rng);
+    std::vector<uint_t> samples;
+    if(BaseState::qreg_.get_chi() == 1)
+    {
+      samples = BaseState::qreg_.StabilizerSampler(probabilities_snapshot_samples, rng);
+    }
+    else
+    {
+      samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, probabilities_snapshot_samples,
+                                                      rng);
+    }
     #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
     for(uint_t i=0; i<dim; i++)
     {
