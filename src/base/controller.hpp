@@ -256,7 +256,6 @@ json_t Controller::execute(const json_t &qobj_js) {
   // Qobj was loaded successfully, now we proceed
   try {
     int num_circuits = qobj.circuits.size();
-
     int num_threads_circuit = 1;
   // Check for OpenMP and number of available CPUs
   #ifdef _OPENMP

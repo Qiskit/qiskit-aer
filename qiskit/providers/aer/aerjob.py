@@ -9,7 +9,6 @@
 
 """This module implements the job class used for AerBackend objects."""
 
-import warnings
 from concurrent import futures
 import logging
 import sys
@@ -130,3 +129,11 @@ class AerJob(BaseJob):
     def backend(self):
         """Return the instance of the backend used for this job."""
         return self._backend
+
+    def qobj(self):
+        """Return the Qobj submitted for this job.
+
+        Returns:
+            Qobj: the Qobj submitted for this job.
+        """
+        return self._qobj
