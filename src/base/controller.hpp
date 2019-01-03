@@ -190,7 +190,6 @@ void Controller::set_config(const json_t &config) {
   JSON::get_value(max_threads_total_, "max_parallel_threads", config);
   JSON::get_value(max_threads_shot_, "max_parallel_shots", config);
   JSON::get_value(max_threads_circuit_, "max_parallel_experiments", config);
-
   // Prevent using both parallel circuits and parallel shots
   // with preference given to parallel circuit execution
   if (max_threads_circuit_ > 1)
@@ -369,7 +368,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
         subshots.push_back(circ.shots / num_threads_shot);
       }
       // If shots is not perfectly divisible by threads, assign the remaineder
-      for (int j=0; j < (circ.shots % num_threads_shot); ++j) {
+      for (uint_t j=0; j < (circ.shots % num_threads_shot); ++j) {
         subshots[j] += 1;
       }
 

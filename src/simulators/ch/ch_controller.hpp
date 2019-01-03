@@ -193,6 +193,7 @@ void CHController::run_circuit_measure_sampler(const Circuit &circ,
   auto pos = check.second; // Position of first measurement op
   // Run circuit instructions before first measure
   std::vector<Operations::Op> ops(circ.ops.begin(), circ.ops.begin() + pos);
+
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(ops, data, rng);
@@ -256,11 +257,11 @@ void CHController::measure_sampler(const std::vector<Operations::Op> &meas_ops,
     for (size_t j=0; j < op.qubits.size(); ++j)
       meas_qubits.push_back(op.qubits[j]);
   }
+
   sort(meas_qubits.begin(), meas_qubits.end());
   meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()), meas_qubits.end());
   // Generate the samples
   auto all_samples = state.sample_measure(meas_qubits, shots, rng);
-
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
   for (uint_t j=0; j < meas_qubits.size(); ++j) {

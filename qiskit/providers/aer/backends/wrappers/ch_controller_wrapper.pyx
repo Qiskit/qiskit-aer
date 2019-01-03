@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Cython wrapper for Aer QasmController.
+Cython wrapper for Aer CHController.
 """
 
 from libcpp.string cimport string

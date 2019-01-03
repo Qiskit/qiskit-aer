@@ -186,7 +186,7 @@ public:
   inline const state_t &qreg() const {return qreg_;}
   inline const auto &creg() const {return creg_;}
 
-protected:
+// protected:
 
   // The quantum state data structure
   state_t qreg_;

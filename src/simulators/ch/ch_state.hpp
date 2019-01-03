@@ -79,7 +79,7 @@ public:
 
   virtual bool validate_circuit(const Circuit &circ) const override;
 
-protected:
+// protected:
 
   //Alongside the sample measure optimisaiton, we can parallelise
   //circuit applicaiton over the states. This reduces the threading overhead
@@ -384,7 +384,15 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng)
 {
-  std::vector<uint_t> output_samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, shots, rng);
+  std::vector<uint_t> output_samples;
+  if(BaseState::qreg_.get_chi() == 1)
+  {
+    output_samples = BaseState::qreg_.StabilizerSampler(shots, rng);
+  }
+  else
+  {
+    output_samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, shots, rng);
+  }
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
   for(uint_t sample: output_samples)
@@ -443,7 +451,10 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
     switch (op.type)
     {
       case Operations::OpType::gate:
-        apply_gate(op, rng, 0);
+        if(BaseState::creg_.check_conditional(op))
+        {
+          apply_gate(op, rng, 0);
+        }
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
@@ -472,8 +483,17 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
 {
-  //We use the metropolis algorithm to sample an output string non-destructively
-  uint_t full_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+  uint_t full_string;
+  if(BaseState::qreg_.get_chi() == 1)
+  {
+    //For a single state, we use the efficient sampler defined in Sec IV.A ofarxiv:1808.00128
+    full_string = BaseState::qreg_.StabilizerSampler(rng);
+  }
+  else
+  {
+    //We use the metropolis algorithm to sample an output string non-destructively
+    full_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+  }
   //We prepare the Pauli projector corresponding to the measurement result
   std::vector<chpauli_t>paulis(qubits.size(), chpauli_t());
   // Prepare an output register for the qubits we are measurig
@@ -485,7 +505,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
     if ((full_string >> qubits[i]) & 1ULL)
     {
       //Additionally, store the output bit for this qubit
-      outcome[i] = 1ULL;
+      outcome[qubits[i]] = 1ULL;
       paulis[i].e = 2;
     }
   }
@@ -502,14 +522,15 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
   for(size_t i=0; i<qubits.size(); i++)
   {
     uint_t qubit = qubits[i];
-    paulis[i].Z = 1ULL << qubit;
-    if((measure_string >> qubit) & 1ULL)
+    uint_t shift = 1ULL << qubit;
+    paulis[i].Z = shift;
+    if(!!(measure_string & shift))
     {
       paulis[i].e = 2;
     }
   }
   BaseState::qreg_.apply_pauli_projector(paulis);
-  #pragma omp parallel for if(BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  #pragma omp parallel for if(BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
   for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
   {
     for (auto qubit: qubits)
@@ -524,7 +545,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 
 void State::apply_gate(const Operations::Op &op, RngEngine &rng)
 {
-  #pragma omp parallel for if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  #pragma omp parallel for if (BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
   for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
   {
     if(BaseState::qreg_.check_eps(i))
@@ -544,7 +565,7 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
   }
   switch(it->second)
   {
-    case Gates::x: //TODO: Optimize w/ direct application
+    case Gates::x:
       BaseState::qreg_.apply_x(op.qubits[0], rank);
       break;
     case Gates::y:
@@ -567,6 +588,9 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
       break;
     case Gates::cz:
       BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1], rank);
+      break;
+    case Gates::swap:
+      BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1], rank);
       break;
     case Gates::t:
       BaseState::qreg_.apply_t(op.qubits[0], rng.rand(), rank);

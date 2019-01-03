@@ -86,6 +86,7 @@ public:
   //Methods for applying gates
   void apply_cx(uint_t control, uint_t target, uint_t rank);
   void apply_cz(uint_t control, uint_t target, uint_t rank);
+  void apply_swap(uint_t qubit_1, uint_t qubit_2, uint_t rank);
   void apply_h(uint_t qubit, uint_t rank);
   void apply_s(uint_t qubit, uint_t rank);
   void apply_sdag(uint_t qubit, uint_t rank);
@@ -107,8 +108,12 @@ public:
   double NormEstimation(uint_t n_samples, AER::RngEngine &rng);
   double NormEstimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng);
 
+  //Metropolis Estimation for sampling from the output distribution
   uint_t MetropolisEstimation(uint_t n_steps, AER::RngEngine &rng);
   std::vector<uint_t> MetropolisEstimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng);
+  //Efficient Sampler for the output distribution of a stabilizer state
+  uint_t StabilizerSampler(AER::RngEngine &rng);
+  std::vector<uint_t> StabilizerSampler(uint_t n_shots, AER::RngEngine &rng);
   //Utilities for the state-vector snapshot.
   complex_t amplitude(uint_t x_measure);
   void state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng);
@@ -210,6 +215,14 @@ void Runner::apply_cz(uint_t control, uint_t target, uint_t rank)
 {
   states[rank].CZ(control, target);
 }
+
+void Runner::apply_swap(uint_t qubit_1, uint_t qubit_2, uint_t rank)
+{
+  states[rank].CX(qubit_1, qubit_2);
+  states[rank].CX(qubit_2, qubit_1);
+  states[rank].CX(qubit_1, qubit_2);
+}
+
 
 void Runner::apply_h(uint_t qubit, uint_t rank)
 {
@@ -503,8 +516,9 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
     }
   }
   complex_t ampsum(real_part, imag_part);
-  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum);
-  if (rng.rand() < p_threshold)
+  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum);  
+  double rand = rng.rand();
+  if (rand < p_threshold)
   {
     accept = 1;
     old_ampsum = ampsum;
@@ -514,6 +528,26 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
   {
     accept = 0;
   }
+}
+
+uint_t Runner::StabilizerSampler(AER::RngEngine &rng)
+{
+  return states[0].Sample(rng.rand());
+}
+
+std::vector<uint_t> Runner::StabilizerSampler(uint_t n_shots, AER::RngEngine &rng)
+{
+  if(chi > 1)
+  {
+    throw std::invalid_argument("CH::Runner::StabilizerSampler: This method can only be used for a single Stabilizer state.\n");
+  }
+  std::vector<uint_t> shots;
+  shots.reserve(n_shots);
+  for(uint_t i=0; i<n_shots; i++)
+  {
+    shots.push_back(StabilizerSampler(rng));
+  }
+  return shots;
 }
 
 complex_t Runner::amplitude(uint_t x_measure)

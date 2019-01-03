@@ -9,9 +9,14 @@
 Qiskit Aer qasm simulator backend.
 """
 
-from math import log2
+import datetime
+import json
+
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
+
+from qiskit.result import Result
+
 from .aerbackend import AerBackend
 from ch_controller_wrapper import ch_controller_execute
 from ..version import __version__
@@ -66,7 +71,7 @@ class CHSimulator(AerBackend):
     """
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator',
+        'backend_name': 'ch_simulator',
         'backend_version': __version__,
         'n_qubits': 63,
         'url': 'TODO',

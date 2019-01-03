@@ -3,9 +3,7 @@
     "config": {"shots": 1, "memory_slots": 5, "max_credits": 10, "n_qubits": 2, "srank_approximation_error":0.01, "max_parallel_threads":1},
     "experiments": [{
         "instructions": [
-            {"name": "h", "params": [], "texparams": [], "qubits":[0]},
-            {"name": "h", "params": [], "texparams": [], "qubits":[1]},
-            {"name": "u1", "params": [0.7853981633974483], "texparams": ["\\frac{\\pi}{4}"], "qubits": [0]},
+            {"name": "x", "params": [], "texparams": [], "qubits":[0]},
             {"name": "barrier", "qubits": [0, 1]},
             {"name": "snapshot", "type": "statevector", "label":"output_vec"},
             {"name": "measure", "qubits": [1], "clbits": [1], "memory": [1]},
