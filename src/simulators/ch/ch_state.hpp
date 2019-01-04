@@ -505,7 +505,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
     if ((full_string >> qubits[i]) & 1ULL)
     {
       //Additionally, store the output bit for this qubit
-      outcome[qubits[i]] = 1ULL;
+      outcome[i]= 1ULL;
       paulis[i].e = 2;
     }
   }

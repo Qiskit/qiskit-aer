@@ -72,7 +72,7 @@ public:
   // measurements
   scalar_t Amplitude(uint_fast64_t x); // computes the  amplitude <x|phi>
   uint_fast64_t Sample(); // returns a sample from the distribution |<x|phi>|^2
-  uint_fast64_t Sample(double r);
+  uint_fast64_t Sample(uint_fast64_t v_mask);
   void MeasurePauli(const pauli_t P); // applies a gate (I+P)/2 
                                 // where P is an arbitrary Pauli operator
   void MeasurePauliProjector(const std::vector<pauli_t>& generators);
@@ -544,13 +544,16 @@ uint_fast64_t StabilizerState::Sample()
   return x;
 }
 
-uint_fast64_t StabilizerState::Sample(double r)
+uint_fast64_t StabilizerState::Sample(uint_fast64_t v_mask)
 {
+  //v_mask is a uniform random binary string we use to sample the bits
+  //of v in a single step.
   uint_fast64_t x=zer;
+  uint_fast64_t masked_v = v&v_mask;
   for (unsigned q=0; q<n; q++)
   {
     bool w = !!(s & (one<<q));
-    w^=( (v & (one<<q)) && (r < 0.5) );
+    w^= !!(masked_v & (one<<q));
     if (w) x^=G[q];
   }
   return x;

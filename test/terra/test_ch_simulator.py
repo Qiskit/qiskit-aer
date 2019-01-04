@@ -41,15 +41,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     targets = ref_reset.reset_counts_deterministic(shots)
     #     job = execute(circuits, CHSimulator(), shots=shots,
     #                   config={'max_parallel_experiments': 1})
-    #     qobj = qobj_to_dict(job._qobj)
-    #     with open('test_qobjs/reset.json', 'w') as json_out:
-    #         json.dump(qobj, json_out, indent=4)
     #     result = job.result()
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0)
 
     # def test_reset_nondeterministic(self):
-    #     """Test QasmSimulator reset with for circuits with non-deterministic counts"""
+    #     """Test QasmSimulaCHreset with for circuits with non-deterministic counts"""
     #     # For statevector output we can combine deterministic and non-deterministic
     #     # count output circuits
     #     shots = 2000
@@ -63,51 +60,51 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # # ---------------------------------------------------------------------
     # # Test measure
     # # ---------------------------------------------------------------------
-    # def test_measure_deterministic_with_sampling(self):
-    #     """Test QasmSimulator measure with deterministic counts with sampling"""
-    #     shots = 100
-    #     circuits = ref_measure.measure_circuits_deterministic(allow_sampling=True)
-    #     targets = ref_measure.measure_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_measure_deterministic_with_sampling(self):
+        """Test CHSimulator measure with deterministic counts with sampling"""
+        shots = 100
+        circuits = ref_measure.measure_circuits_deterministic(allow_sampling=True)
+        targets = ref_measure.measure_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_measure_deterministic_without_sampling(self):
-    #     """Test QasmSimulator measure with deterministic counts without sampling"""
-    #     shots = 100
-    #     circuits = ref_measure.measure_circuits_deterministic(allow_sampling=False)
-    #     targets = ref_measure.measure_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_measure_deterministic_without_sampling(self):
+        """Test CHSimulator measure with deterministic counts without sampling"""
+        shots = 100
+        circuits = ref_measure.measure_circuits_deterministic(allow_sampling=False)
+        targets = ref_measure.measure_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_measure_nondeterministic_with_sampling(self):
-    #     """Test QasmSimulator measure with non-deterministic counts with sampling"""
-    #     shots = 2000
-    #     circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=True)
-    #     targets = ref_measure.measure_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_measure_nondeterministic_with_sampling(self):
+        """Test CHimulator measure with non-deterministic counts with sampling"""
+        shots = 2000
+        circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=True)
+        targets = ref_measure.measure_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    # def test_measure_nondeterministic_without_sampling(self):
-    #     """Test QasmSimulator measure with nin-deterministic counts without sampling"""
-    #     shots = 2000
-    #     circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=False)
-    #     targets = ref_measure.measure_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_measure_nondeterministic_without_sampling(self):
+        """Test CHimulator measure with non-deterministic counts without sampling"""
+        shots = 2000
+        circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=False)
+        targets = ref_measure.measure_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
     # # Test multi-qubit measure qobj instruction
     # # ---------------------------------------------------------------------
     # def test_measure_deterministic_multi_qubit_with_sampling(self):
-    #     """Test QasmSimulator multi-qubit measure with deterministic counts with sampling"""
+    #     """Test CHSimulator multi-qubit measure with deterministic counts with sampling"""
     #     shots = 100
     #     qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=True)
     #     qobj.config.shots = shots
@@ -119,7 +116,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.compare_counts(result, circuits, targets, delta=0)
 
     # def test_measure_deterministic_multi_qubit_without_sampling(self):
-    #     """Test QasmSimulator multi-qubit measure with deterministic counts without sampling"""
+    #     """Test CHSimulator multi-qubit measure with deterministic counts without sampling"""
     #     shots = 100
     #     qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=False)
     #     qobj.config.shots = shots
@@ -131,7 +128,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.compare_counts(result, circuits, targets, delta=0)
 
     # def test_measure_nondeterministic_multi_qubit_with_sampling(self):
-    #     """Test QasmSimulator reset with non-deterministic counts"""
+    #     """Test QCHimulator reset with non-deterministic counts"""
     #     shots = 2000
     #     qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=True)
     #     qobj.config.shots = shots
@@ -143,7 +140,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_measure_nondeterministic_multi_qubit_without_sampling(self):
-    #     """Test QasmSimulator reset with non-deterministic counts"""
+    #     """Test QCHimulator reset with non-deterministic counts"""
     #     shots = 2000
     #     qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=False)
     #     qobj.config.shots = shots
@@ -539,9 +536,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
         job = execute(circuits, CHSimulator(), shots=shots)
         result = job.result()
-        qobj = qobj_to_dict(job._qobj)
-        with open('test_qobjs/cz.json', 'w') as json_out:
-            json.dump(qobj, json_out, indent=4)
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -605,9 +599,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
         job = execute(circuits, CHSimulator(), shots=shots)
         result = job.result()
-        qobj = qobj_to_dict(job._qobj)
-        with open('test_qobjs/swap.json', 'w') as json_out:
-            json.dump(qobj, json_out, indent=4)
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -671,9 +662,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     targets = ref_non_clifford.t_gate_counts_deterministic(shots)
     #     job = execute(circuits, CHSimulator(), shots=shots)
     #     result = job.result()
-    #     qobj = qobj_to_dict(job._qobj)
-    #     with open('test_qobjs/t.json', 'w') as json_out:
-    #         json.dump(qobj, json_out, indent=4)
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -736,9 +724,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
     #     targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
     #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     qobj = qobj_to_dict(job._qobj)
-    #     with open('test_qobjs/tdg.json', 'w') as json_out:
-    #         json.dump(qobj, json_out, indent=4)
     #     result = job.result()
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0.05*shots)
@@ -803,9 +788,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
     #     job = execute(circuits, CHSimulator(), shots=shots)
     #     result = job.result()
-    #     qobj = qobj_to_dict(job._qobj)
-    #     with open('test_qobjs/ccx.json', 'w') as json_out:
-    #         json.dump(qobj, json_out, indent=4)
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0)
 

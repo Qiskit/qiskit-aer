@@ -32,6 +32,8 @@ using chstabilizer_t = StabilizerState;
 double t_angle = M_PI/4.;
 double tdg_angle = -1.*M_PI/4.;
 
+uint_t zero = 0ULL;
+
 const U1Sample t_sample(t_angle);
 const U1Sample tdg_sample(tdg_angle);
 
@@ -453,16 +455,17 @@ std::vector<uint_t> Runner::MetropolisEstimation(uint_t n_steps, uint_t n_shots,
 void Runner::InitMetropolis(AER::RngEngine &rng)
 {
   accept = 0;
-  x_string = zer;
+  //Random initial x_string from RngEngine
+  uint_t max = (1ULL<<n_qubits) - 1;
+  x_string = rng.rand_int(zero, max);
   last_proposal=0;
-  //Generate the initial x_string
-  for (uint_t i=0; i<n_qubits; i++)
-  {
-    if (rng.rand() < 0.5)
-    {
-      x_string ^= one << i;
-    }
-  }
+  // for (uint_t i=0; i<n_qubits; i++)
+  // {
+  //   if (rng.rand() < 0.5)
+  //   {
+  //     x_string ^= one << i;
+  //   }
+  // }
   double local_real=0., local_imag=0.;
   #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:local_real) reduction(+:local_imag)
   for (uint_t i=0; i<chi; i++)
@@ -532,7 +535,8 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
 
 uint_t Runner::StabilizerSampler(AER::RngEngine &rng)
 {
-  return states[0].Sample(rng.rand());
+  uint max = (1ULL << n_qubits) -1;
+  return states[0].Sample(rng.rand_int(zero, max));
 }
 
 std::vector<uint_t> Runner::StabilizerSampler(uint_t n_shots, AER::RngEngine &rng)
