@@ -38,6 +38,11 @@ namespace Simulator {
  *.     algorithm. This is used to normalise the state vector. [Default: 100]
  * - "probabilities_snapshot_samples" (int): Number of output strings we sample to estimate
  *.     output probability.
+ * - "disable_measurement_optimisation" (bool): Flag that controls if we use an 'optimised'
+ *      measurement method that 'mixes' the monte carlo estimator once, before sampling `shots` times.
+ *      This significantly reduces the computational time needed to sample from the output
+ *      distribution, but performs poorly on strongly peaked probability distributions as it can
+ *      become stuck in local maxima. [Default: False]
  * 
  * From BaseController Class
  *
@@ -60,6 +65,20 @@ namespace Simulator {
 
 class CHController : public Base::Controller {
 private:
+
+  //-----------------------------------------------------------------------
+  // Base class config override
+  //-----------------------------------------------------------------------
+  
+  // Load Controller, State and Data config from a JSON
+  // config settings will be passed to the State and Data classes
+  // Allowed config options:
+  // - "disable_measurement_optimisation": bool
+  // Plus Base Controller config options
+  virtual void set_config(const json_t &config) override;
+
+  // Clear the current config
+  void virtual clear_config() override;
 
   //-----------------------------------------------------------------------
   // Base class abstract method override
@@ -110,12 +129,31 @@ private:
   // first measurement operation in the input circuit
   std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ) const;
   
+  //-----------------------------------------------------------------------
+  // Measurement Sampler Settings
+  //-----------------------------------------------------------------------
+  bool disable_sample_measure_ = false;
 };
 
 //=========================================================================
 // Implementations
 //=========================================================================
 
+//-------------------------------------------------------------------------
+// Config
+//-------------------------------------------------------------------------
+
+void CHController::set_config(const json_t &config) {
+  // Set base controller config
+  Base::Controller::set_config(config);
+  //Add custom initial state
+  JSON::get_value(disable_sample_measure_, "disable_measurement_opt", config);
+}
+
+void CHController::clear_config() {
+  Base::Controller::clear_config();
+  disable_sample_measure_ = false;
+}
 //-------------------------------------------------------------------------
 // Base class override
 //-------------------------------------------------------------------------
@@ -186,14 +224,14 @@ void CHController::run_circuit_measure_sampler(const Circuit &circ,
   auto check = check_measure_sampling_opt(circ);
   // Perform standard execution if we cannot apply the optimization
   // or the execution is only for a single shot
-  if (shots == 1 || check.first == false) {
+  // data.add_additional_data("Measure sampler?", check.first & !disable_sample_measure_);
+  if (shots == 1 || check.first == false || disable_sample_measure_) {
     run_circuit_default(circ, shots, state, data, rng);
     return;
   } 
   auto pos = check.second; // Position of first measurement op
   // Run circuit instructions before first measure
   std::vector<Operations::Op> ops(circ.ops.begin(), circ.ops.begin() + pos);
-
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(ops, data, rng);

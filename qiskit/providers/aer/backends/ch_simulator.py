@@ -23,7 +23,7 @@ from ..version import __version__
 
 
 class CHSimulator(AerBackend):
-    """Aer quantum circuit simulator
+    """Aer quantum circuit simulator using the CH Representation
 
     Backend options:
 
@@ -38,12 +38,20 @@ class CHSimulator(AerBackend):
         * "srank_parallel_threshold" (int): Threshold number of terms in the
             stabilizer rank decoposition before we parallelise. (Default: 100)
 
-        * "srank_mixing_time" (int): Number of steps we run of the metropolis method
-            before sampling output strings. (Default: 7000)
+        * "srank_mixing_time" (int): Number of steps we run of the metropolis
+            method before sampling output strings. (Default: 7000)
 
         * "srank_norm_estimation_samples" (int): Number of samples used by the
             Norm Estimation algorithm. This is used to normalise the
             state vector. (Default: 100)
+
+        * "disable_measurement_optimisation" (bool): Flag that controls if we
+            use an 'optimised' measurement method that 'mixes' the monte carlo
+            estimator once, before sampling `shots` times. This significantly
+            reduces the computational time needed to sample from the output
+            distribution, but performs poorly on strongly peaked probability
+            distributions as it can become stuck in local maxima.
+            (Default: False)
 
         * "probabilities_snapshot_samples" (int): Number of output strings we
             sample to estimate output probability. (Default: 3000)

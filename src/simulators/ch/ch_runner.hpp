@@ -244,6 +244,9 @@ void Runner::apply_sdag(uint_t qubit, uint_t rank)
 void Runner::apply_x(uint_t qubit, uint_t rank)
 {
   states[rank].X(qubit);
+  // states[rank].H(qubit);
+  // states[rank].Z(qubit);
+  // states[rank].H(qubit);
 }
 
 void Runner::apply_y(uint_t qubit, uint_t rank)
@@ -269,9 +272,9 @@ void Runner::apply_tdag(uint_t qubit, double r, int rank)
 {
   sample_branch_t branch = tdg_sample.sample(r);
   coefficients[rank] *= branch.first;
-  if (branch.second == Gates::s)
+  if (branch.second == Gates::sdg)
   {
-    states[rank].S(qubit);
+    states[rank].Sdag(qubit);
   }
 }
 
@@ -309,45 +312,47 @@ void Runner::apply_u1(uint_t qubit, complex_t param, double r, int rank)
 
 void Runner::apply_ccx(uint_t control_1, uint_t control_2, uint_t target, uint_t branch, int rank)
 {
-  coefficients[rank] *= ccx_coeff;
-  switch(branch) //Decomposition of the CCZ gate into Cliffords
-  {
-    case 1:
-      states[rank].CZ(control_1, control_2);
-      break;
-    case 2:
-      states[rank].CX(control_1, target);
-      break;
-    case 3:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CX(control_1, target);
-      states[rank].Z(control_1);
-      break;
-    case 4:
-      states[rank].CX(control_2, target);
-      break;
-    case 5:
-      states[rank].CX(control_2, target);
-      states[rank].CZ(control_1, control_2);
-      states[rank].Z(control_2);
-      break;
-    case 6:
-      states[rank].CX(control_1, target);
-      states[rank].CX(control_2, target);
-      states[rank].X(target);
-      break;
-    case 7:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CX(control_1, target);
-      states[rank].CX(control_2, target);
-      states[rank].Z(control_1);
-      states[rank].Z(control_2);
-      states[rank].X(target);
-      coefficients[rank] *= -1; //Additional phase
-      break;
-    default: //Identity
-      break;
-  }
+  states[rank].H(target);
+  apply_ccz(control_1, control_2, target, branch, rank);
+  states[rank].H(target);
+  // switch(branch) //Decomposition of the CCZ gate into Cliffords
+  // {
+  //   case 1:
+  //     states[rank].CZ(control_1, control_2);
+  //     break;
+  //   case 2:
+  //     states[rank].CX(control_1, target);
+  //     break;
+  //   case 3:
+  //     states[rank].CZ(control_2, target);
+  //     break;
+  //   case 4:
+  //     states[rank].CZ(control_1, control_2);
+  //     states[rank].CX(control_1, target);
+  //     states[rank].Z(control_1);
+  //     break;
+  //   case 5:
+  //     states[rank].CZ(control_1, control_2);
+  //     states[rank].CX(control_2, target);
+  //     states[rank].Z(control_2);
+  //     break;
+  //   case 6:
+  //     states[rank].CX(control_1, target);
+  //     states[rank].CX(control_2, target);
+  //     states[rank].X(target);
+  //     break;
+  //   case 7:
+  //     states[rank].CZ(control_1, control_2);
+  //     states[rank].CX(control_1, target);
+  //     states[rank].CX(control_2, target);
+  //     states[rank].Z(control_1);
+  //     states[rank].Z(control_2);
+  //     states[rank].X(target);
+  //     coefficients[rank] *= -1; //Additional phase
+  //     break;
+  //   default: //Identity
+  //     break;
+  // }
 }
 
 void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t branch, int rank)
@@ -361,16 +366,16 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
       states[rank].CZ(control_1, target);
       break;
     case 3:
+      states[rank].CZ(control_2, target);
+      break;
+    case 4:
       states[rank].CZ(control_1, control_2);
       states[rank].CZ(control_1, target);
       states[rank].Z(control_1);
       break;
-    case 4:
-      states[rank].CZ(control_2, target);
-      break;
     case 5:
-      states[rank].CZ(control_2, target);
       states[rank].CZ(control_1, control_2);
+      states[rank].CZ(control_2, target);
       states[rank].Z(control_2);
       break;
     case 6:
@@ -459,13 +464,6 @@ void Runner::InitMetropolis(AER::RngEngine &rng)
   uint_t max = (1ULL<<n_qubits) - 1;
   x_string = rng.rand_int(zero, max);
   last_proposal=0;
-  // for (uint_t i=0; i<n_qubits; i++)
-  // {
-  //   if (rng.rand() < 0.5)
-  //   {
-  //     x_string ^= one << i;
-  //   }
-  // }
   double local_real=0., local_imag=0.;
   #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:local_real) reduction(+:local_imag)
   for (uint_t i=0; i<chi; i++)
@@ -519,17 +517,34 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
     }
   }
   complex_t ampsum(real_part, imag_part);
-  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum);  
-  double rand = rng.rand();
-  if (rand < p_threshold)
+  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum);
+  #ifdef  __FAST_MATH__ //isnan doesn't behave well under fastmath, so use absolute tolerance check instead
+  if(std::isinf(p_threshold) || std::abs(std::norm(old_ampsum)-0.) < 1e-8)
+  #else
+  if(std::isinf(p_threshold) || std::isnan(p_threshold))
+  #endif
   {
     accept = 1;
     old_ampsum = ampsum;
-    last_proposal = proposal;
+    last_proposal = proposal; //We try to move away from node with 0 probability.
   }
   else
   {
-    accept = 0;
+    // if(std::abs(p_threshold - 0.) < 1e-8)
+    // {
+    //   p_threshold = 0.25;
+    // }
+    double rand = rng.rand();
+    if (rand < p_threshold)
+    {
+      accept = 1;
+      old_ampsum = ampsum;
+      last_proposal = proposal;
+    }
+    else
+    {
+      accept = 0;
+    }
   }
 }
 

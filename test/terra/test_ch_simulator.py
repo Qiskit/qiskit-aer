@@ -32,30 +32,29 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test reset
     # ---------------------------------------------------------------------
-    # def test_reset_deterministic(self):
-    #     """Test CHSimulator reset with for circuits with deterministic counts"""
-    #     # For statevector output we can combine deterministic and non-deterministic
-    #     # count output circuits
-    #     shots = 100
-    #     circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
-    #     targets = ref_reset.reset_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots,
-    #                   config={'max_parallel_experiments': 1})
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_reset_deterministic(self):
+        """Test CHSimulator reset with for circuits with deterministic counts"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        shots = 100
+        circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
+        targets = ref_reset.reset_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_reset_nondeterministic(self):
-    #     """Test QasmSimulaCHreset with for circuits with non-deterministic counts"""
-    #     # For statevector output we can combine deterministic and non-deterministic
-    #     # count output circuits
-    #     shots = 2000
-    #     circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
-    #     targets = ref_reset.reset_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_reset_nondeterministic(self):
+        """Test QasmSimulaCHreset with for circuits with non-deterministic counts"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        shots = 2000
+        circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
+        targets = ref_reset.reset_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
     # # Test measure
@@ -103,76 +102,76 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # # ---------------------------------------------------------------------
     # # Test multi-qubit measure qobj instruction
     # # ---------------------------------------------------------------------
-    # def test_measure_deterministic_multi_qubit_with_sampling(self):
-    #     """Test CHSimulator multi-qubit measure with deterministic counts with sampling"""
-    #     shots = 100
-    #     qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=True)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_measure.measure_counts_qobj_deterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_measure_deterministic_multi_qubit_with_sampling(self):
+        """Test CHSimulator multi-qubit measure with deterministic counts with sampling"""
+        shots = 100
+        qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=True)
+        qobj.config.shots = shots
+        circuits = [experiment.header.name for experiment in qobj.experiments]
+        targets = ref_measure.measure_counts_qobj_deterministic(shots)
+        job = CHSimulator().run(qobj)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_measure_deterministic_multi_qubit_without_sampling(self):
-    #     """Test CHSimulator multi-qubit measure with deterministic counts without sampling"""
-    #     shots = 100
-    #     qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=False)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_measure.measure_counts_qobj_deterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_measure_deterministic_multi_qubit_without_sampling(self):
+        """Test CHSimulator multi-qubit measure with deterministic counts without sampling"""
+        shots = 100
+        qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=False)
+        qobj.config.shots = shots
+        circuits = [experiment.header.name for experiment in qobj.experiments]
+        targets = ref_measure.measure_counts_qobj_deterministic(shots)
+        job = CHSimulator().run(qobj)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_measure_nondeterministic_multi_qubit_with_sampling(self):
-    #     """Test QCHimulator reset with non-deterministic counts"""
-    #     shots = 2000
-    #     qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=True)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_measure_nondeterministic_multi_qubit_with_sampling(self):
+        """Test CHimulator reset with non-deterministic counts"""
+        shots = 2000
+        qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=True)
+        qobj.config.shots = shots
+        circuits = [experiment.header.name for experiment in qobj.experiments]
+        targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
+        job = CHSimulator().run(qobj)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    # def test_measure_nondeterministic_multi_qubit_without_sampling(self):
-    #     """Test QCHimulator reset with non-deterministic counts"""
-    #     shots = 2000
-    #     qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=False)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_measure_nondeterministic_multi_qubit_without_sampling(self):
+        """Test CHimulator reset with non-deterministic counts"""
+        shots = 2000
+        qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=False)
+        qobj.config.shots = shots
+        circuits = [experiment.header.name for experiment in qobj.experiments]
+        targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
+        job = CHSimulator().run(qobj)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
     # # Test conditional
     # # ---------------------------------------------------------------------
-    # def test_conditional_1bit(self):
-    #     """Test conditional operations on 1-bit conditional register."""
-    #     shots = 100
-    #     circuits = ref_conditionals.conditional_circuits_1bit(final_measure=True)
-    #     targets = ref_conditionals.conditional_counts_1bit(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_conditional_1bit(self):
+        """Test conditional operations on 1-bit conditional register."""
+        shots = 100
+        circuits = ref_conditionals.conditional_circuits_1bit(final_measure=True)
+        targets = ref_conditionals.conditional_counts_1bit(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_conditional_2bit(self):
-    #     """Test conditional operations on 2-bit conditional register."""
-    #     shots = 100
-    #     circuits = ref_conditionals.conditional_circuits_2bit(final_measure=True)
-    #     targets = ref_conditionals.conditional_counts_2bit(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_conditional_2bit(self):
+        """Test conditional operations on 2-bit conditional register."""
+        shots = 100
+        circuits = ref_conditionals.conditional_circuits_2bit(final_measure=True)
+        targets = ref_conditionals.conditional_counts_2bit(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
     # Test h-gate
@@ -207,15 +206,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    # def test_h_gate_nondeterministic_default_basis_gates(self):
-    #     """Test h-gate circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
-    #     targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_h_gate_nondeterministic_default_basis_gates(self):
+        """Test h-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
+        targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_h_gate_nondeterministic_waltz_basis_gates(self):
     #     """Test h-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -655,15 +654,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test t-gate
     # ---------------------------------------------------------------------
-    # def test_t_gate_deterministic_default_basis_gates(self):
-    #     """Test t-gate circuits compiling to backend default basis_gates."""
-    #     shots = 100
-    #     circuits = ref_non_clifford.t_gate_circuits_deterministic(final_measure=True)
-    #     targets = ref_non_clifford.t_gate_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_t_gate_deterministic_default_basis_gates(self):
+        """Test t-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_non_clifford.t_gate_circuits_deterministic(final_measure=True)
+        targets = ref_non_clifford.t_gate_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_t_gate_deterministic_waltz_basis_gates(self):
     #     """Test t-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -685,15 +684,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_t_gate_nondeterministic_default_basis_gates(self):
-    #     """Test t-gate circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
-    #     targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_t_gate_nondeterministic_default_basis_gates(self):
+        """Test t-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
+        targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), config={'srank_approximation_error': 0.025}, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_t_gate_nondeterministic_waltz_basis_gates(self):
     #     """Test t-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -718,15 +717,19 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test tdg-gate
     # ---------------------------------------------------------------------
-    # def test_tdg_gate_deterministic_default_basis_gates(self):
-    #     """Test tdg-gate circuits compiling to backend default basis_gates."""
-    #     shots = 100
-    #     circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
-    #     targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05*shots)
+    def test_tdg_gate_deterministic_default_basis_gates(self):
+        """Test tdg-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
+        targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        qobj = qobj_to_dict(job.qobj())
+        with open('test_qobjs/tdq.json', 'w') as json_out:
+            json.dump(qobj, json_out, indent=4)
+        result = job.result()
+        self.is_completed(result)
+
+        self.compare_counts(result, circuits, targets, delta=0.05*shots)
 
     # def test_tdg_gate_deterministic_waltz_basis_gates(self):
     #     """Test tdg-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -748,15 +751,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_tdg_gate_nondeterministic_default_basis_gates(self):
-    #     """Test tdg-gate circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
-    #     targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_tdg_gate_nondeterministic_default_basis_gates(self):
+        """Test tdg-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
+        targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), config={'srank_approximation_error': 0.025}, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
     #     """Test tdg-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -781,15 +784,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test ccx-gate
     # ---------------------------------------------------------------------
-    # def test_ccx_gate_deterministic_default_basis_gates(self):
-    #     """Test ccx-gate circuits compiling to backend default basis_gates."""
-    #     shots = 100
-    #     circuits = ref_non_clifford.ccx_gate_circuits_deterministic(final_measure=True)
-    #     targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
+    def test_ccx_gate_deterministic_default_basis_gates(self):
+        """Test ccx-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_non_clifford.ccx_gate_circuits_deterministic(final_measure=True)
+        targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05*shots)
 
     # def test_ccx_gate_deterministic_waltz_basis_gates(self):
     #     """Test ccx-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -811,15 +814,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0)
 
-    # def test_ccx_gate_nondeterministic_default_basis_gates(self):
-    #     """Test ccx-gate circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
-    #     targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_ccx_gate_nondeterministic_default_basis_gates(self):
+        """Test ccx-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
+        targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
+        job = execute(circuits, CHSimulator(), config={'srank_approximation_error': 0.05, "srank_mixing_time": 500, "disable_measurement_opt": True}, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
     #     """Test ccx-gate gate circuits compiling to u1,u2,u3,cx"""
@@ -844,16 +847,16 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # # ---------------------------------------------------------------------
     # # Test algorithms
     # # ---------------------------------------------------------------------
-    # def test_grovers_default_basis_gates(self):
-    #     """Test grovers circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_algorithms.grovers_circuit(final_measure=True,
-    #                                               allow_sampling=True)
-    #     targets = ref_algorithms.grovers_counts(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_grovers_default_basis_gates(self):
+        """Test grovers circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_algorithms.grovers_circuit(final_measure=True,
+                                                  allow_sampling=True)
+        targets = ref_algorithms.grovers_counts(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_grovers_waltz_basis_gates(self):
     #     """Test grovers gate circuits compiling to u1,u2,u3,cx"""
@@ -877,15 +880,15 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    # def test_teleport_default_basis_gates(self):
-    #     """Test teleport circuits compiling to backend default basis_gates."""
-    #     shots = 2000
-    #     circuits = ref_algorithms.teleport_circuit()
-    #     targets = ref_algorithms.teleport_counts(shots)
-    #     job = execute(circuits, CHSimulator(), shots=shots)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+    def test_teleport_default_basis_gates(self):
+        """Test teleport circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_algorithms.teleport_circuit()
+        targets = ref_algorithms.teleport_counts(shots)
+        job = execute(circuits, CHSimulator(), shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # def test_teleport_waltz_basis_gates(self):
     #     """Test teleport gate circuits compiling to u1,u2,u3,cx"""
@@ -906,34 +909,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
     #     result = job.result()
     #     self.is_completed(result)
     #     self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-
-    # # ---------------------------------------------------------------------
-    # # Test unitary gate qobj instruction
-    # # ---------------------------------------------------------------------
-    # def test_unitary_gate_real(self):
-    #     """Test unitary qobj instruction with real matrices."""
-    #     shots = 100
-    #     qobj = ref_unitary_gate.unitary_gate_circuits_real_deterministic(final_measure=True)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_unitary_gate.unitary_gate_counts_real_deterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
-
-    # def test_unitary_gate_complex(self):
-    #     """Test unitary qobj instruction with complex matrices."""
-    #     shots = 100
-    #     qobj = ref_unitary_gate.unitary_gate_circuits_complex_deterministic(final_measure=True)
-    #     qobj.config.shots = shots
-    #     circuits = [experiment.header.name for experiment in qobj.experiments]
-    #     targets = ref_unitary_gate.unitary_gate_counts_complex_deterministic(shots)
-    #     job = CHSimulator().run(qobj)
-    #     result = job.result()
-    #     self.is_completed(result)
-    #     self.compare_counts(result, circuits, targets, delta=0)
-
 
 if __name__ == '__main__':
     unittest.main()
