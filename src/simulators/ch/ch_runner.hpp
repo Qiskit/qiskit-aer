@@ -312,47 +312,44 @@ void Runner::apply_u1(uint_t qubit, complex_t param, double r, int rank)
 
 void Runner::apply_ccx(uint_t control_1, uint_t control_2, uint_t target, uint_t branch, int rank)
 {
-  states[rank].H(target);
-  apply_ccz(control_1, control_2, target, branch, rank);
-  states[rank].H(target);
-  // switch(branch) //Decomposition of the CCZ gate into Cliffords
-  // {
-  //   case 1:
-  //     states[rank].CZ(control_1, control_2);
-  //     break;
-  //   case 2:
-  //     states[rank].CX(control_1, target);
-  //     break;
-  //   case 3:
-  //     states[rank].CZ(control_2, target);
-  //     break;
-  //   case 4:
-  //     states[rank].CZ(control_1, control_2);
-  //     states[rank].CX(control_1, target);
-  //     states[rank].Z(control_1);
-  //     break;
-  //   case 5:
-  //     states[rank].CZ(control_1, control_2);
-  //     states[rank].CX(control_2, target);
-  //     states[rank].Z(control_2);
-  //     break;
-  //   case 6:
-  //     states[rank].CX(control_1, target);
-  //     states[rank].CX(control_2, target);
-  //     states[rank].X(target);
-  //     break;
-  //   case 7:
-  //     states[rank].CZ(control_1, control_2);
-  //     states[rank].CX(control_1, target);
-  //     states[rank].CX(control_2, target);
-  //     states[rank].Z(control_1);
-  //     states[rank].Z(control_2);
-  //     states[rank].X(target);
-  //     coefficients[rank] *= -1; //Additional phase
-  //     break;
-  //   default: //Identity
-  //     break;
-  // }
+  switch(branch) //Decomposition of the CCX gate into Cliffords
+  {
+    case 1:
+      states[rank].CZ(control_1, control_2);
+      break;
+    case 2:
+      states[rank].CX(control_1, target);
+      break;
+    case 3:
+      states[rank].CX(control_2, target);
+      break;
+    case 4:
+      states[rank].CZ(control_1, control_2);
+      states[rank].CX(control_1, target);
+      states[rank].Z(control_1);
+      break;
+    case 5:
+      states[rank].CZ(control_1, control_2);
+      states[rank].CX(control_2, target);
+      states[rank].Z(control_2);
+      break;
+    case 6:
+      states[rank].CX(control_1, target);
+      states[rank].CX(control_2, target);
+      states[rank].X(target);
+      break;
+    case 7:
+      states[rank].CZ(control_1, control_2);
+      states[rank].CX(control_1, target);
+      states[rank].CX(control_2, target);
+      states[rank].Z(control_1);
+      states[rank].Z(control_2);
+      states[rank].X(target);
+      coefficients[rank] *= -1; //Additional phase
+      break;
+    default: //Identity
+      break;
+  }
 }
 
 void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t branch, int rank)

@@ -22,9 +22,7 @@ from test.terra.utils import ref_unitary_gate
 
 from qiskit import execute
 from qiskit.providers.aer import CHSimulator
-from qiskit.qobj import qobj_to_dict
 
-import json
 
 class TestCHSimulator(common.QiskitAerTestCase):
     """QasmSimulator tests."""
@@ -723,9 +721,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
         job = execute(circuits, CHSimulator(), shots=shots)
-        qobj = qobj_to_dict(job.qobj())
-        with open('test_qobjs/tdq.json', 'w') as json_out:
-            json.dump(qobj, json_out, indent=4)
         result = job.result()
         self.is_completed(result)
 
@@ -819,7 +814,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-        job = execute(circuits, CHSimulator(), config={'srank_approximation_error': 0.05, "srank_mixing_time": 500, "disable_measurement_opt": True}, shots=shots)
+        job = execute(circuits, CHSimulator(), config={"srank_mixing_time": 250, "disable_measurement_opt": True}, shots=shots)
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -853,7 +848,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        job = execute(circuits, CHSimulator(), shots=shots)
+        job = execute(circuits, CHSimulator(), config={'disable_measurement_opt': True, 'srank_mixing_time': 500}, shots=shots)
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
