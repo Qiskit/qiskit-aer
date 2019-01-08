@@ -335,7 +335,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
   try {
 
     // Calculate threads for parallel shot execution
-    // We do this rather than in the excute_circuit function so we can add the
+    // We do this rather than in the execute_circuit function so we can add the
     // number of shot threads to the JSON circuit output.
     int num_threads_shot = 1;
     int num_threads_state = 1;
