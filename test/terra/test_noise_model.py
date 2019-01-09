@@ -185,7 +185,7 @@ class TestNoise(common.QiskitAerTestCase):
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
         noise_model.add_quantum_error(error, "u3", [0])
-        shots = 1000
+        shots = 2000
         target = {'0x2': shots / 2, '0x3': shots / 2}
         qobj = compile([circuit], backend, shots=shots,
                        basis_gates=noise_model.basis_gates)
@@ -211,7 +211,7 @@ class TestNoise(common.QiskitAerTestCase):
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
         noise_model.add_quantum_error(error, "u3", [1])
-        shots = 1000
+        shots = 2000
         # target = {'01': shots / 4, '11': 3 * shots / 4}
         target = {'0x1': shots / 4, '0x3': 3 * shots / 4}
         qobj = compile([circuit], backend, shots=shots,
@@ -323,7 +323,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
@@ -347,7 +347,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('XII', 0.25), ('III', 0.75)])
         noise_model = NoiseModel()
@@ -388,7 +388,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
@@ -411,7 +411,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr[1], cr[1])
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
@@ -437,7 +437,7 @@ class TestNoise(common.QiskitAerTestCase):
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(error, 'measure')
+        noise_model.add_all_qubit_quantum_error(error, 'reset')
         # Execute
         target = {'0x0': 9 * shots / 16, '0x1': 3 * shots / 16,
                   '0x2': 3 * shots / 16, '0x3': shots / 16}
@@ -456,11 +456,11 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
-        noise_model.add_quantum_error(error, 'measure', [1])
+        noise_model.add_quantum_error(error, 'reset', [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
         qobj = compile([circuit], backend, shots=shots,
@@ -478,11 +478,11 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        shots = 1000
+        shots = 2000
         # test noise model
         error = pauli_error([('X', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
-        noise_model.add_nonlocal_quantum_error(error, 'measure', [0], [1])
+        noise_model.add_nonlocal_quantum_error(error, 'reset', [0], [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
         qobj = compile([circuit], backend, shots=shots,
@@ -503,7 +503,7 @@ class TestNoise(common.QiskitAerTestCase):
             circuit.iden(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
-        shots = 1000
+        shots = 2000
         backend = QasmSimulator()
         # test noise model
         error = amplitude_damping_error(0.75, 0.25)
