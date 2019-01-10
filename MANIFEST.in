@@ -1,1 +1,6 @@
 include qiskit/providers/aer/VERSION.txt
+recursive-include src *
+recursive-include contrib *
+include CMakeLists.txt
+include cmake/*.cmake
+
