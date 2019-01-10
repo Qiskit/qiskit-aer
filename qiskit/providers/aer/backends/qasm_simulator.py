@@ -136,8 +136,8 @@ class QasmSimulator(AerBackend):
         for experiment in qobj.experiments:
             name = experiment.header.name
             if experiment.config.memory_slots == 0:
-                logger.warning('No classical registers in circuit "%s", '
-                               'counts will be empty.', name)
+                logger.warning('No classical registers in circuit "%s": '
+                               'result data will not contain counts.', name)
             elif 'measure' not in [op.name for op in experiment.instructions]:
-                logger.warning('No measurements in circuit "%s", '
-                               'classical register will remain all zeros.', name)
+                logger.warning('No measurements in circuit "%s": '
+                               'count data will return all zeros.', name)
