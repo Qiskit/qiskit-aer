@@ -9,12 +9,16 @@
 Qiskit Aer qasm simulator backend.
 """
 
+import logging
 from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from qasm_controller_wrapper import qasm_controller_execute
+from ..aererror import AerError
 from ..version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class QasmSimulator(AerBackend):
@@ -77,7 +81,7 @@ class QasmSimulator(AerBackend):
         'backend_name': 'qasm_simulator',
         'backend_version': __version__,
         'n_qubits': MAX_QUBIT_MEMORY,
-        'url': 'TODO',
+        'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,
         'conditional': True,
@@ -117,5 +121,23 @@ class QasmSimulator(AerBackend):
                          provider=provider)
 
     def _validate(self, qobj):
-        # TODO
-        return
+        """Semantic validations of the qobj which cannot be done via schemas.
+
+        1. Check number of qubits will fit in local memory.
+        2. warn if no classical registers or measurements in circuit.
+        """
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise AerError('Number of qubits ({}) '.format(n_qubits) +
+                           'is greater than maximum ({}) '.format(max_qubits) +
+                           'for "{}" '.format(self.name()) +
+                           'with {} GB system memory.'.format(int(local_hardware_info()['memory'])))
+        for experiment in qobj.experiments:
+            name = experiment.header.name
+            if experiment.config.memory_slots == 0:
+                logger.warning('No classical registers in circuit "%s": '
+                               'result data will not contain counts.', name)
+            elif 'measure' not in [op.name for op in experiment.instructions]:
+                logger.warning('No measurements in circuit "%s": '
+                               'count data will return all zeros.', name)
