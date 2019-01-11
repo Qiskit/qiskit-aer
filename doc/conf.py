@@ -124,6 +124,7 @@ html_sidebars = {
 
 
 html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
+# pip install sphinx_materialdesign_theme
 html_theme_path = ['./']  # make sphinx search for themes in current dir
 
 

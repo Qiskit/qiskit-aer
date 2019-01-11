@@ -21,8 +21,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
     <script type="text/javascript" src="_static/themeExt.js"></script>
     <link rel="shortcut icon" href="_static/favicon.ico"/>
@@ -67,19 +66,23 @@
           <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-to-the-project">Contributing to the project</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#issue-reporting">Issue reporting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#doubts-solving">Doubts solving</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#improvement-proposal">Improvement proposal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pre-requisites">Pre-requisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building">Building</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#useful-cmake-flags">Useful CMake flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tests">Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#style-guide">Style guide</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#good-first-contributions">Good first contributions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#doc">Doc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pull-requests">Pull requests</a><ul>
@@ -89,22 +92,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#setup-with-an-environment">Setup with an environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#building-the-legacy-simulators">Building the legacy simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#dependencies">Dependencies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#building">Building</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#useful-cmake-flags">Useful CMake flags</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#test">Test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#style-guide">Style guide</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#development-cycle">Development cycle</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#branch-model">Branch model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#release-cycle">Release cycle</a></li>
 </ul>
 </li>
 </ul>
@@ -139,19 +128,23 @@
           <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-to-the-project">Contributing to the project</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#issue-reporting">Issue reporting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#doubts-solving">Doubts solving</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#improvement-proposal">Improvement proposal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pre-requisites">Pre-requisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building">Building</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#useful-cmake-flags">Useful CMake flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tests">Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#style-guide">Style guide</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#good-first-contributions">Good first contributions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#doc">Doc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pull-requests">Pull requests</a><ul>
@@ -161,22 +154,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#setup-with-an-environment">Setup with an environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#building-the-legacy-simulators">Building the legacy simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#dependencies">Dependencies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#building">Building</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#useful-cmake-flags">Useful CMake flags</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#test">Test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#style-guide">Style guide</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#development-cycle">Development cycle</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#branch-model">Branch model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#release-cycle">Release cycle</a></li>
 </ul>
 </li>
 </ul>
@@ -199,8 +178,8 @@
   <div class="section" id="contributing">
 <h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h1>
 <p><strong>We appreciate all kinds of help, so thank you!</strong></p>
-<div class="section" id="contributing-to-qiskit-aer">
-<h2>Contributing to Qiskit Aer<a class="headerlink" href="#contributing-to-qiskit-aer" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="contributing-to-the-project">
+<h2>Contributing to the project<a class="headerlink" href="#contributing-to-the-project" title="Permalink to this headline">¶</a></h2>
 <p>You can contribute in many ways to this project.</p>
 <div class="section" id="issue-reporting">
 <h3>Issue reporting<a class="headerlink" href="#issue-reporting" title="Permalink to this headline">¶</a></h3>
@@ -225,7 +204,7 @@ or a partial implementation it would be awesome.</p>
 <p>We’d love to accept your code! Before we can, we have to get a few legal
 requirements sorted out. By signing a contributor license agreement (CLA), we
 ensure that the community is free to use your contributions.</p>
-<p>When you contribute to the Qiskit Aer project with a new pull request, a bot will
+<p>When you contribute to the Qiskit project with a new pull request, a bot will
 evaluate whether you have signed the CLA. If required, the bot will comment on
 the pull request,  including a link to accept the agreement. The
 <a class="reference external" href="https://qiskit.org/license/qiskit-cla.pdf">individual CLA</a> document is
@@ -233,6 +212,123 @@ available for review as a PDF.</p>
 <p>NOTE: If you work for a company that wants to allow you to contribute your work,
 then you’ll need to sign a <a class="reference external" href="https://qiskit.org/license/qiskit-corporate-cla.pdf">corporate CLA</a>
 and email it to us at <a class="reference external" href="mailto:qiskit&#37;&#52;&#48;us&#46;ibm&#46;com">qiskit<span>&#64;</span>us<span>&#46;</span>ibm<span>&#46;</span>com</a>.</p>
+</div>
+<div class="section" id="pre-requisites">
+<h3>Pre-requisites<a class="headerlink" href="#pre-requisites" title="Permalink to this headline">¶</a></h3>
+<p>Most of the required dependencies can be installed via <code class="docutils literal notranslate"><span class="pre">pip</span></code>, using the
+<code class="docutils literal notranslate"><span class="pre">requirements-dev.txt</span></code> file, eg:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip install -U -r requirements-dev.txt
+</pre></div>
+</div>
+<p>As we are dealing with languages that build to native binaries, we will
+need to have installed any of the <a class="reference external" href="https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html">supported CMake build tools</a>.</p>
+<p>We do support most of the common available toolchains like: gcc, clang, Visual Studio.
+The only required requisite is that the toolchain needs to support C++14.</p>
+<p><strong>Mac</strong></p>
+<p>On Mac we have various options depending on the compiler we want to use.
+If we want to use Apple’s Clang compiler, we need to install an extra library for
+supporting OpenMP: libomp. The CMake build system will warn you otherwise.
+To install it manually:
+you can type:</p>
+<p>We do recommend installing OpenBLAS, which is our default choice:</p>
+<p>CMake build system will search for other BLAS implementation alternatives if
+OpenBLAS is not installed in the system.</p>
+<p>You further need to have Command Line Tools installed on MacOS:</p>
+<p><strong>Linux (Ubuntu &gt;= 16.04)</strong></p>
+<p>Most of the major distributions come with a BLAS and LAPACK library implementation,
+and this is enough to build all the simulators, but we do recommend using OpenBLAS
+here as well, so in order to install it you have to type:</p>
+<p><strong>Windows</strong></p>
+<p>On Windows you must have Anaconda3 installed in the system, and We recommend installing
+Visual Studio 2017 (Communit Edition).
+The same rules applies when searching for an OpenBLAS implementation, if CMake can’t
+find one suitable implementation installed in the system, it will take the BLAS
+library from the Anaconda3 environment.</p>
+</div>
+<div class="section" id="building">
+<h3>Building<a class="headerlink" href="#building" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways of building Aer simulators, depending on our goal they are:
+1. Build Terra compatible addon.
+2. Build standalone executable</p>
+<p><strong>Terra addon</strong></p>
+<p>For the former, we just need to call the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script:</p>
+<p>We are using <a class="reference external" href="https://scikit-build.readthedocs.io/en/latest/">scikit-build</a> as a substitute of <cite>setuptools</cite>.
+This is basically the glue between <code class="docutils literal notranslate"><span class="pre">setuptools</span></code> and <code class="docutils literal notranslate"><span class="pre">CMake</span></code>, so there are various options to pass variables to <code class="docutils literal notranslate"><span class="pre">CMake</span></code>, and
+the undelying build system (depending on your platform). The way to pass variables is:</p>
+<p>So a real example could be:</p>
+<p>This is setting the CMake variable <code class="docutils literal notranslate"><span class="pre">STATIC_LINKING</span></code> to value <code class="docutils literal notranslate"><span class="pre">True</span></code> so CMake will try to create an statically linked cython
+library, and is passing <code class="docutils literal notranslate"><span class="pre">-j8</span></code> flag to the underlaying build system, which in this case is Makefile, telling it that we want to
+build in parallel, using 8 processes.</p>
+<p><em>N.B. on MacOS:</em>, you may need to turn off static linking and specify your platform name, e.g.:</p>
+<p>After this command is executed successfully, we will have a wheel package into the <code class="docutils literal notranslate"><span class="pre">dist/</span></code> directory, so next step is installing it:</p>
+<p><strong>Standalone executable</strong></p>
+<p>If we want to build an standalone executable, we have to use CMake directly.
+The preferred way CMake is meant to be used, is by setting up an “out of source” build.
+So in order to build our standalone executable, we have to follow these steps:</p>
+<p>All platforms</p>
+<p>Once built, you will have your standalone executable into the <code class="docutils literal notranslate"><span class="pre">Release</span></code> or <code class="docutils literal notranslate"><span class="pre">Debug</span></code>
+directory (depending on the type of building choosen with the <code class="docutils literal notranslate"><span class="pre">--config</span></code> option):</p>
+</div>
+</div>
+<div class="section" id="useful-cmake-flags">
+<h2>Useful CMake flags<a class="headerlink" href="#useful-cmake-flags" title="Permalink to this headline">¶</a></h2>
+<p>There are some useful flags that can be set during cmake command invocation and
+will help you change some default behavior. To make use of them, you just need to
+pass them right after <code class="docutils literal notranslate"><span class="pre">-D</span></code> cmake argument. Example:</p>
+<p>In the case of building the Terra addon, you have to pass these flags after writing
+<code class="docutils literal notranslate"><span class="pre">--</span></code> at the end of the python command line, eg:</p>
+<p>These are the flags:</p>
+<dl class="docutils">
+<dt>USER_LIB_PATH</dt>
+<dd><p class="first">This flag tells CMake to look for libraries that are needed by some of the native
+components to be built, but they are not in a common place where CMake could find
+it automatically.</p>
+<p class="last">Values: An absolute path with file included.
+Default: No value.
+Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so</span> <span class="pre">..</span></code></p>
+</dd>
+<dt>STATIC_LINKING</dt>
+<dd><p class="first">Tells the build system whether to create static versions of the programs being built or not.
+NOTE: On MacOS static linking is not fully working for all versions of GNU G++/Clang
+compilers, so depending on the version of the compiler installed in the system,
+enable this flag in this platform could cause errors.</p>
+<p class="last">Values: True|False
+Default: False
+Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DSTATIC_LINKING=True</span> <span class="pre">..</span></code></p>
+</dd>
+<dt>BUILD_TESTS</dt>
+<dd><p class="first">It will tell the build system to build C++ tests along with the simulator.</p>
+<p class="last">Values: True|False
+Default: False
+Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DBUILD_TESTS=True</span> <span class="pre">..</span></code></p>
+</dd>
+<dt>CMAKE_CXX_COMPILER</dt>
+<dd><p class="first">This is an internal CMake flag. It forces CMake to use the provided toolchain to build everthing.
+If it’s not set, CMake system will use one of the toolchains installed in system.</p>
+<p class="last">Values: g++|clang++|g++-8
+Default: Depends on the running platform and the toolchains installed
+Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DCMAKE_CXX_COMPILER=g++</span></code></p>
+</dd>
+</dl>
+<div class="section" id="tests">
+<h3>Tests<a class="headerlink" href="#tests" title="Permalink to this headline">¶</a></h3>
+<p>Almost every code contribution should be accompained by it’s corresponding set of tests.
+You won’t probably hear complaints if there are too many tests in your PR :), but the other
+way around is unnacceptable :(
+We have two types of tests in the codebase: Qiskit Terra integration tests and Standalone integration tests.</p>
+<p>For Qiskit Terra integration tests, you first need to build and install the Terra addon,
+and then run <cite>unittest</cite> Python framework.</p>
+<p>The integration tests for Terra addon are included in: <cite>test/terra</cite>.</p>
+<p>For the Standalone version of the simulator, we have C++ tests that use the Catch library.
+Tests are located in <cite>test/src</cite> directory, and in order to run them, you have to build them first:</p>
+</div>
+<div class="section" id="style-guide">
+<h3>Style guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h3>
+<p>Please submit clean code and please make effort to follow existing conventions
+in order to keep it as readable as possible.</p>
+<p>TODO: Decide code convention</p>
+<p>A linter (clang-tidy) is passed automatically every time a building is
+invoqued. It will stop the current build if detects style erros, or common pitfalls.</p>
 </div>
 <div class="section" id="good-first-contributions">
 <h3>Good first contributions<a class="headerlink" href="#good-first-contributions" title="Permalink to this headline">¶</a></h3>
@@ -251,7 +347,7 @@ if it’s needed.</p>
 to accept the contributions.</p>
 <p>A friendly reminder! We’d love to have a previous discussion about the best way to
 implement the feature/bug you are contributing with. This is a good way to
-improve code quality in our beloved Qiskit!, so remember to file a new Issue before
+improve code quality in our beloved simulators!, so remember to file a new Issue before
 starting to code for a solution.</p>
 <p>So after having discussed the best way to land your changes into the codebase,
 you are ready to start coding (yay!). We have two options here:</p>
@@ -263,7 +359,7 @@ We are waiting for it!</li>
 great! Thanks!. In this case you can start coding and create a PR with the
 word: <strong>[WIP]</strong> as a prefix of the description. This means “Work In
 Progress”, and allow reviewers to make micro reviews from time to time
-without waiting for the big and final solution… otherwise, it would make
+without waiting to the big and final solution… otherwise, it would make
 reviewing and coming changes pretty difficult to accomplish. The reviewer
 will remove the <strong>[WIP]</strong> prefix from the description once the PR is ready
 to merge.</li>
@@ -298,261 +394,21 @@ issue.</li>
 and their relation to the rest of the code.</li>
 </ul>
 <p>A good example:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Issue #190: Short summary of the issue
-* One of the important changes
-* Another important change
-</pre></div>
+<p>A (really) bad example:</p>
 </div>
-</div>
-</div>
-</div>
-<div class="section" id="installing-qiskit-aer-from-source">
-<h2>Installing Qiskit Aer from source<a class="headerlink" href="#installing-qiskit-aer-from-source" title="Permalink to this headline">¶</a></h2>
-<p>This section include some tips that will help you install and push source code.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">We recommend using <a class="reference external" href="https://docs.python.org/3/tutorial/venv.html">Python virtual environments</a>
-to cleanly separate Qiskit from other applications and improve your experience.</p>
-</div>
-<div class="section" id="setup-with-an-environment">
-<h3>Setup with an environment<a class="headerlink" href="#setup-with-an-environment" title="Permalink to this headline">¶</a></h3>
-<p>The simplest way to use environments is by using Anaconda</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda create -y -n QiskitDevenv <span class="nv">python</span><span class="o">=</span><span class="m">3</span>
-<span class="nb">source</span> activate QiskitDevenv
-</pre></div>
-</div>
-<p>For the python code, we need some libraries that can be installed in this way:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> qiskit-aer
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-</pre></div>
-</div>
-<p>To get the examples working try</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ pip install -e .
-</pre></div>
-</div>
-<p>and then you can run them with</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ python examples/python/using_qiskit_aer_level_0.py
-</pre></div>
-</div>
-<p>We recommend that after setting up Aer you set up Aer to get more advanced simulators.</p>
-</div>
-<div class="section" id="building-the-legacy-simulators">
-<h3>Building the legacy simulators<a class="headerlink" href="#building-the-legacy-simulators" title="Permalink to this headline">¶</a></h3>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">These will become obsolete in Aer 0.8</p>
-</div>
-<div class="section" id="dependencies">
-<h4>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h4>
-<p>Our build system is based on CMake, so we need to have <a class="reference external" href="https://cmake.org/">CMake 3.5 or higher</a>
-installed. As we will deal with languages that build native binaries, we will
-need to have installed any of the <a class="reference external" href="https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html">supported CMake build tools</a>.</p>
-<p>On Linux and Mac, we recommend installing GNU g++ 6.1 or higher, on Windows
-we only support <a class="reference external" href="http://mingw-w64.org">MinGW64</a> at the moment.
-Note that a prerequiste for the C++ toolchain is that C++14 must be supported.</p>
-</div>
-<div class="section" id="building">
-<h4>Building<a class="headerlink" href="#building" title="Permalink to this headline">¶</a></h4>
-<p>The preferred way CMake is meant to be used, is by setting up an “out of source” build.
-So in order to build our native code, we have to follow these steps:</p>
-<p>Linux and Mac</p>
-<p>Windows</p>
-<p>As you can see, the Windows cmake command invocation is slightly different from
-the Linux and Mac version, this is because we need to provide CMake with some
-more info about where to find libphreads.a for later building. Furthermore,
-we are forcing CMake to generate MingGW makefiles, because we don’t support
-other toolchain at the moment.</p>
-</div>
-<div class="section" id="useful-cmake-flags">
-<h4>Useful CMake flags<a class="headerlink" href="#useful-cmake-flags" title="Permalink to this headline">¶</a></h4>
-<p>There are some useful flags that can be set during cmake command invocation and
-will help you change some default behavior. To make use of them, you just need to
-pass them right after <code class="docutils literal notranslate"><span class="pre">-D</span></code> cmake argument. Example:
-.. code:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>qiskit-aer/out$ cmake -DUSEFUL_FLAG=Value ..
-</pre></div>
-</div>
-<p>Flags:</p>
-<dl class="docutils">
-<dt>USER_LIB_PATH</dt>
-<dd>This flag tells CMake to look for libraries that are needed by some of the native
-components to be built, but they are not in a common place where CMake could find
-it automatically.
-Values: An absolute path with file included.
-Default: No value.
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DUSER_LIB_PATH=C:\path\to\mingw64\lib\libpthreads.a</span> <span class="pre">..</span></code></dd>
-<dt>STATIC_LINKING</dt>
-<dd>Tells the build system whether to create static versions of the programs being built or not.
-Notes: On MacOS static linking is not fully working for all versions of GNU G++/Clang
-compilers, so enable this flag in this platform could cause errors.
-Values: True|False
-Default: False
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DSTATIC_LINKING=True</span> <span class="pre">..</span></code></dd>
-<dt>CMAKE_BUILD_TYPE</dt>
-<dd>Tells the build system to create executables/libraries for debugging purposes
-or highly optimized binaries ready for distribution.
-Values: Debug|Release
-Default: “Release”
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DCMAKE_BUILD_TYPE=&quot;Debug&quot;</span> <span class="pre">..</span></code></dd>
-<dt>ENABLE_TARGETS_NON_PYTHON</dt>
-<dd>We can enable or disable non-python code generation by setting this flag to True or False
-respectively. This is mostly used in our CI systems so they can launch some fast tests
-for the Python code (which is currently a majority).
-Values: True|False
-Default: True
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DENABLE_TARGETS_NON_PYTHON=True</span> <span class="pre">..</span></code></dd>
-<dt>ENABLE_TARGETS_QA</dt>
-<dd>We can enable or disable QA stuff (lintering, styling and testing) by setting this flag to
-True or False respectively. This is mostly used in our CI systems so they can run light
-stages pretty fast, and fail fast if they found any issues within the code.
-Values: True|False
-Default: True
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DENABLE_TARGETS_QA=True</span> <span class="pre">..</span></code></dd>
-<dt>WHEEL_TAG</dt>
-<dd>This is used to force platform specific tag name generation when creating wheels package
-for Pypi.
-Values: “-pWhateverTagName”
-Default: No value.
-Example: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DWHEEL_TAG=&quot;-pmanylinux1_x86_64&quot;</span> <span class="pre">..</span></code></dd>
-</dl>
-</div>
-</div>
-<div class="section" id="test">
-<h3>Test<a class="headerlink" href="#test" title="Permalink to this headline">¶</a></h3>
-<p>New features often imply changes in the existent tests or new ones are
-needed. Once they’re updated/added run this be sure they keep passing.</p>
-<p>For executing the tests, a <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">test</span></code> target is available.
-The execution of the tests (both via the make target and during manual invocation)
-takes into account the <code class="docutils literal notranslate"><span class="pre">LOG_LEVEL</span></code> environment variable. If present, a <code class="docutils literal notranslate"><span class="pre">.log</span></code>
-file will be created on the test directory with the output of the log calls, which
-will also be printed to stdout. You can adjust the verbosity via the content
-of that variable, for example:</p>
-<p>Linux and Mac:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> out
-out$ <span class="nv">LOG_LEVEL</span><span class="o">=</span><span class="s2">&quot;DEBUG&quot;</span> <span class="nv">ARGS</span><span class="o">=</span><span class="s2">&quot;-V&quot;</span> make <span class="nb">test</span>
-</pre></div>
-</div>
-<p>Windows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> out
-C:<span class="se">\.</span>.<span class="se">\o</span>ut&gt; <span class="nb">set</span> <span class="nv">LOG_LEVEL</span><span class="o">=</span><span class="s2">&quot;DEBUG&quot;</span>
-C:<span class="se">\.</span>.<span class="se">\o</span>ut&gt; <span class="nb">set</span> <span class="nv">ARGS</span><span class="o">=</span><span class="s2">&quot;-V&quot;</span>
-C:<span class="se">\.</span>.<span class="se">\o</span>ut&gt; make <span class="nb">test</span>
-</pre></div>
-</div>
-<p>For executing a simple python test manually, we don’t need to change the directory
-to <code class="docutils literal notranslate"><span class="pre">out</span></code>, just run this command:</p>
-<p>Linux and Mac:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">LOG_LEVEL</span><span class="o">=</span>INFO python -m unittest test/python/circuit/test_circuit_operations.py
-</pre></div>
-</div>
-<p>Windows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>C:<span class="se">\.</span>.<span class="se">\&gt;</span> <span class="nb">set</span> <span class="nv">LOG_LEVEL</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span>
-C:<span class="se">\.</span>.<span class="se">\&gt;</span> python -m unittest test/python/circuit/test_circuit_operations.py
-</pre></div>
-</div>
-<p>Note many of the tests will not be executed unless you have setup an IBMQ
-account. To set this up please go to this
-<a class="reference external" href="https://quantumexperience.ng.bluemix.net/qx/account/advanced">page</a>  and
-register an account.</p>
-<p>By default, and if there is no user credentials available, the tests that
-require online access are run with recorded (mocked) information. This is, the
-remote requests are replayed from a <code class="docutils literal notranslate"><span class="pre">test/cassettes</span></code> and not real HTTP
-requests is generated. If user credentials are found, in that cases it use them
-to make the network requests.</p>
-<p>How and which tests are executed is controlled by a environment variable
-<code class="docutils literal notranslate"><span class="pre">QISKIT_TESTS</span></code>. The options are (where <code class="docutils literal notranslate"><span class="pre">uc_available</span> <span class="pre">=</span> <span class="pre">True</span></code> if the user
-credentials are available, and <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise):</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="9%" />
-<col width="56%" />
-<col width="11%" />
-<col width="24%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Option</th>
-<th class="head">Description</th>
-<th class="head">Default</th>
-<th class="head">If <code class="docutils literal notranslate"><span class="pre">True</span></code>, forces</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">skip_online</span></code></td>
-<td>Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials.</td>
-<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">rec</span> <span class="pre">=</span> <span class="pre">False</span></code></td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">mock_online</span></code></td>
-<td>It runs the online tests using mocked information. Does not require user credentials.</td>
-<td><code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">uc_available</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">skip_online</span> <span class="pre">=</span> <span class="pre">False</span></code></td>
-</tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">run_slow</span></code></td>
-<td>It runs tests tagged as <em>slow</em>.</td>
-<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
-<td>&#160;</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">rec</span></code></td>
-<td>It records the remote requests. It requires user credentials.</td>
-<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">skip_online</span> <span class="pre">=</span> <span class="pre">False</span></code>
-<code class="docutils literal notranslate"><span class="pre">run_slow</span> <span class="pre">=</span> <span class="pre">False</span></code></td>
-</tr>
-</tbody>
-</table>
-<p>It is possible to provide more than one option separated with commas.
-The order of precedence in the options is right to left. For example,
-<code class="docutils literal notranslate"><span class="pre">QISKIT_TESTS=skip_online,rec</span></code> will set the options as
-<code class="docutils literal notranslate"><span class="pre">skip_online</span> <span class="pre">==</span> <span class="pre">False</span></code> and <code class="docutils literal notranslate"><span class="pre">rec</span> <span class="pre">==</span> <span class="pre">True</span></code>.</p>
-</div>
-<div class="section" id="style-guide">
-<h3>Style guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h3>
-<p>Please submit clean code and please make effort to follow existing conventions
-in order to keep it as readable as possible. We use
-<a class="reference external" href="https://www.pylint.org">Pylint</a> and <a class="reference external" href="https://www.python.org/dev/peps/pep-0008">PEP
-8</a> style guide: to ensure
-your changes respect the style guidelines, run the next commands:</p>
-<p>All platforms:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$&gt; <span class="nb">cd</span> out
-out$&gt; make lint
-out$&gt; make style
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>The documentation Qiskit Aer is in the <code class="docutils literal notranslate"><span class="pre">doc</span></code> directory. The
-documentation is auto-generated from python
-docstrings using <a class="reference external" href="http://www.sphinx-doc.org">Sphinx</a> for generating the
-documentation. Please follow <a class="reference external" href="https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments">Google’s Python Style
-Guide</a>
-for docstrings. A good example of the style can also be found with
-<a class="reference external" href="http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html">sphinx’s napolean converter
-documentation</a>.
-You can see the rendered documentation for the stable version of Qiskit Aer at
-the <a class="reference external" href="https://qiskit.org/aer">landing page</a>.</p>
-<p>To generate the documentation, we need to invoke CMake first in order to generate
-all specific files for our current platform.</p>
-<p>See the previous <em>Building</em> section for details on how to run CMake.
-Once CMake is invoked, all configuration files are in place, so we can build the
-documentation running this command:</p>
-<p>All platforms:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$&gt; make doc
-</pre></div>
 </div>
 </div>
 <div class="section" id="development-cycle">
 <h2>Development cycle<a class="headerlink" href="#development-cycle" title="Permalink to this headline">¶</a></h2>
-<p>Our development cycle is straightforward, use the project boards in Github
-for project management and use milestones for releases. The features
-that we want to include in these releases will be tagged and discussed
-in the project boards. Whenever a new release is close to be launched,
-we’ll announce it and detail what has changed since the latest version in
-our Release Notes and Changelog. The channels we’ll use to announce new
-releases are still being discussed, but for now, you can
-<a class="reference external" href="https://twitter.com/qiskit">follow us</a> on Twitter!</p>
+<p>TODO: Review</p>
+<p>Our development cycle is straightforward, we define a roadmap with milestones
+for releases, and features that we want to include in these releases. The
+roadmap is not public at the moment, but it’s a committed project in our
+community and we are working to make parts of it public in a way that can be
+beneficial for everyone. Whenever a new release is close to be launched, we’ll
+announce it and detail what has changed since the latest version.
+The channels we’ll use to announce new releases are still being discussed, but
+for now you can <a class="reference external" href="https://twitter.com/qiskit">follow us</a> on Twitter!</p>
 <div class="section" id="branch-model">
 <h3>Branch model<a class="headerlink" href="#branch-model" title="Permalink to this headline">¶</a></h3>
 <p>There are two main branches in the repository:</p>
@@ -568,7 +424,7 @@ things, is more likely to eventually push code that breaks something…
 we will fix it ASAP, promise :).</li>
 <li>This should not be considered as a stable branch to use in production
 environments.</li>
-<li>The API of Qiskit could change without prior notice.</li>
+<li>The public interface could change without prior notice.</li>
 </ul>
 </li>
 <li><code class="docutils literal notranslate"><span class="pre">stable</span></code><ul>
@@ -583,22 +439,6 @@ stable software ready for production environments.</li>
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="release-cycle">
-<h3>Release cycle<a class="headerlink" href="#release-cycle" title="Permalink to this headline">¶</a></h3>
-<p>From time to time, we will release brand new versions of Qiskit Aer. These
-are well-tested versions of the software.</p>
-<p>When the time for a new release has come, we will:</p>
-<ol class="arabic simple">
-<li>Merge the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch with the <code class="docutils literal notranslate"><span class="pre">stable</span></code> branch.</li>
-<li>Create a new tag with the version number in the <code class="docutils literal notranslate"><span class="pre">stable</span></code> branch.</li>
-<li>Crate and distribute the pip package.</li>
-<li>Change the <code class="docutils literal notranslate"><span class="pre">master</span></code> version to the next release version.</li>
-<li>Announce the new version to the world!</li>
-</ol>
-<p>The <code class="docutils literal notranslate"><span class="pre">stable</span></code> branch should only receive changes in the form of bug fixes, so the
-third version number (the maintenance number: [major].[minor].[maintenance])
-will increase on every new change.</p>
 </div>
 </div>
 </div>

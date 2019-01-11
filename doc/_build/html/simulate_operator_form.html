@@ -21,8 +21,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
     <script type="text/javascript" src="_static/themeExt.js"></script>
     <link rel="shortcut icon" href="_static/favicon.ico"/>
@@ -65,19 +64,23 @@
           <ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-the-project">Contributing to the project</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pre-requisites">Pre-requisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#tests">Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
@@ -87,22 +90,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
 </ul>
 </li>
 </ul>
@@ -137,19 +126,23 @@
           <ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started_with_qiskit_aer.html">Getting Started with Qiskit Aer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#tutorials">Tutorials</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-ideal-circuits">Simulate Ideal Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started_with_qiskit_aer.html#simulate-device-noise">Simulate Device Noise</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-qiskit-aer">Contributing to Qiskit Aer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#contributing-to-the-project">Contributing to the project</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#issue-reporting">Issue reporting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doubts-solving">Doubts solving</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#improvement-proposal">Improvement proposal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#contributor-license-agreement">Contributor License Agreement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pre-requisites">Pre-requisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#tests">Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#good-first-contributions">Good first contributions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#doc">Doc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#pull-requests">Pull requests</a><ul>
@@ -159,22 +152,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#installing-qiskit-aer-from-source">Installing Qiskit Aer from source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#setup-with-an-environment">Setup with an environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#building-the-legacy-simulators">Building the legacy simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#dependencies">Dependencies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#building">Building</a></li>
-<li class="toctree-l4"><a class="reference internal" href="CONTRIBUTING.html#useful-cmake-flags">Useful CMake flags</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#test">Test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#style-guide">Style guide</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#documentation">Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html#development-cycle">Development cycle</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#branch-model">Branch model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CONTRIBUTING.html#release-cycle">Release cycle</a></li>
 </ul>
 </li>
 </ul>
