@@ -10,7 +10,6 @@
 
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
-#include "framework/circuit.hpp"
 #include "framework/types.hpp"
 #include "framework/data.hpp"
 #include "framework/creg.hpp"
@@ -118,17 +117,17 @@ public:
   //=======================================================================
 
   //-----------------------------------------------------------------------
-  // Circuit validation
+  // OpSet validation
   //-----------------------------------------------------------------------
 
   // Return false if circuit contains an unsupported instruction for
   // the state class. Otherwise return true.
-  bool virtual validate_circuit(const Circuit &circ) const;
+  virtual bool validate_opset(const Operations::OpSet& opset) const;
 
   // Raise an exeption if the circuit contains unsupported
   // instructions for the state class. The exception message 
   // contains the name of the unsupported instructions.
-  void virtual validate_circuit_except(const Circuit &circ) const;
+  virtual std::string invalid_opset_message(const Operations::OpSet& opset) const;
 
   //=======================================================================
   // Standard non-virtual methods
@@ -221,24 +220,35 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
 
 
 template <class state_t>
-bool State<state_t>::validate_circuit(const Circuit &circ) const {
-  return circ.check_ops(allowed_ops(),
+bool State<state_t>::validate_opset(const Operations::OpSet &opset) const {
+  return opset.validate(allowed_ops(),
                         allowed_gates(),
                         allowed_snapshots());
 }
 
 
+
 template <class state_t>
-void State<state_t>::validate_circuit_except(const Circuit &circ) const {
+std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset) const {
   // Check operations are allowed
-  const auto invalid = circ.invalid_ops(allowed_ops(),
-                                        allowed_gates(),
-                                        allowed_snapshots());
-  if (!invalid.empty()) {
-    std::stringstream ss;
-    ss << "Circuit contains invalid instructions: " << invalid;
-    throw std::invalid_argument(ss.str());
+  auto invalid_optypes = opset.invalid_optypes(allowed_ops());
+  auto invalid_gates = opset.invalid_gates(allowed_gates());
+  auto invalid_snapshots = opset.invalid_snapshots(allowed_snapshots());
+  bool bad_instr = !invalid_optypes.empty();
+  bool bad_gates = !invalid_gates.empty();
+  bool bad_snaps = !invalid_snapshots.empty();
+  std::stringstream ss;
+  if (bad_instr || bad_gates || bad_snaps) {
+    if (bad_gates)
+      ss << " invalid gate instructions: " << invalid_gates;
+    if (bad_snaps) 
+      ss << " invalid snapshot instructions: " << invalid_snapshots;
+    // We can't print OpTypes so we add a note if there are invalid 
+    // instructions other than gates or snapshots
+    if (bad_instr && (!bad_gates && !bad_snaps))
+      ss << " invalid non gate or snapshot instructions";
   }
+  return ss.str();
 }
 
 
