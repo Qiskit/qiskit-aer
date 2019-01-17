@@ -137,6 +137,21 @@ protected:
                                  uint_t rng_seed,
                                  int num_threads_state) const = 0;
 
+  //-------------------------------------------------------------------------
+  // State validation
+  //-------------------------------------------------------------------------
+
+  // Return True if a given circuit (and internal noise model) are valid for
+  // execution on the given state.
+  template <class state_t>
+  bool validate_state(const state_t &state, const Circuit &circ) const;
+
+  // Check if a given circuit (and internal noise model) are valid for
+  // execution on the given state. If not raise an exception listing the
+  // invalid instructions in the circuit or noise model.
+  template <class state_t>
+  void validate_state_except(const state_t &state, const Circuit &circ) const;
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -210,6 +225,43 @@ void Controller::set_threads_default() {
   max_threads_shot_ = 1;
 }
 
+
+
+//-------------------------------------------------------------------------
+// State validation
+//-------------------------------------------------------------------------
+
+template <class state_t>
+bool Controller::validate_state(const state_t &state,
+                                const Circuit &circ) const {
+  // First check if a noise model is valid a given state
+  bool noise_valid = noise_model_.ideal() || state.validate_opset(noise_model_.opset());
+  if (!noise_valid)
+    return false;
+  // If the noise model is valid, then check the circuit is valid
+  bool circ_valid = state.validate_opset(circ.opset());
+  return circ_valid;
+}
+
+
+template <class state_t>
+void Controller::validate_state_except(const state_t &state,
+                                       const Circuit &circ) const {
+  // First check if a noise model is valid a given state
+  bool noise_valid = noise_model_.ideal() || state.validate_opset(noise_model_.opset());
+  if (noise_valid == false) {
+   auto msg = state.invalid_opset_message(noise_model_.opset());
+   throw std::runtime_error(std::string("Noise model contains invalid instructions (") +
+                            msg + std::string(")"));
+  }
+  // Next check if the circuit is invalid
+  bool circ_valid = state.validate_opset(circ.opset());  
+  if (circ_valid == false) {
+   auto msg = state.invalid_opset_message(circ.opset());
+   throw std::runtime_error(std::string("Circuit contains invalid instructions (") +
+                            msg + std::string(")"));
+  }
+}
 
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output

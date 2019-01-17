@@ -120,14 +120,11 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
                                               int num_threads_state) const {  
-  
-  // Check if circuit can run on a statevector simulator
-  // TODO: Should we make validate circuit a static method of the class?
-  bool statevec_valid = QubitVector::State<>().validate_circuit(circ);  
-  // throw exception listing the invalid instructions
-  if (statevec_valid == false) {
-    QubitVector::State<>().validate_circuit_except(circ);
-  }
+  // Initialize  state
+  QubitVector::State<> state;
+
+  // Validate circuit and noise model
+  Base::Controller::validate_state_except(state, circ);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
@@ -140,8 +137,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
     }
   }
 
-  // Initialize statevector
-  QubitVector::State<> state;
+  // Set config
   state.set_config(Base::Controller::config_);
   state.set_available_threads(num_threads_state);
   

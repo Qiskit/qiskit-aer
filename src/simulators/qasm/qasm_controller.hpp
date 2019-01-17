@@ -163,27 +163,13 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                       uint_t shots,
                                       uint_t rng_seed,
                                       int num_threads_state) const {  
-  // Check if circuit can run on a statevector simulator
-  // TODO: Should we make validate circuit a static method of the class?
-  bool statevec_valid = QubitVector::State<>().validate_circuit(circ);  
-  // throw exception listing the invalid instructions
-  if (statevec_valid == false) {
-    QubitVector::State<>().validate_circuit_except(circ);
-  }
-
-  // Check for custom initial state, and if so check it matches num qubits
-  if (!initial_state_.empty()) {
-    if (initial_state_.size() != 1ULL << circ.num_qubits) {
-      uint_t num_qubits(std::log2(initial_state_.size()));
-      std::stringstream msg;
-      msg << "QasmController: " << num_qubits << "-qubit initial state ";
-      msg << "cannot be used for a " << circ.num_qubits << "-qubit circuit.";
-      throw std::runtime_error(msg.str());
-    }
-  }
-
-  // Initialize statevector
+  // Initialize state
   QubitVector::State<> state;
+
+  // Validate circuit and noise model
+  validate_state_except(state, circ);
+
+  // Set state config
   state.set_config(Base::Controller::config_);
   state.set_available_threads(num_threads_state);
   
