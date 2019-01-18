@@ -144,13 +144,17 @@ protected:
   // Return True if a given circuit (and internal noise model) are valid for
   // execution on the given state.
   template <class state_t>
-  bool validate_state(const state_t &state, const Circuit &circ) const;
+  static bool validate_state(const state_t &state,
+                             const Circuit &circ,
+                             const Noise::NoiseModel &noise = Noise::NoiseModel());
 
   // Check if a given circuit (and internal noise model) are valid for
   // execution on the given state. If not raise an exception listing the
   // invalid instructions in the circuit or noise model.
   template <class state_t>
-  void validate_state_except(const state_t &state, const Circuit &circ) const;
+  static void validate_state_except(const state_t &state,
+                                    const Circuit &circ,
+                                    const Noise::NoiseModel &noise = Noise::NoiseModel());
 
   //-----------------------------------------------------------------------
   // Config
@@ -233,9 +237,10 @@ void Controller::set_threads_default() {
 
 template <class state_t>
 bool Controller::validate_state(const state_t &state,
-                                const Circuit &circ) const {
+                                const Circuit &circ,
+                                const Noise::NoiseModel &noise) {
   // First check if a noise model is valid a given state
-  bool noise_valid = noise_model_.ideal() || state.validate_opset(noise_model_.opset());
+  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
   if (!noise_valid)
     return false;
   // If the noise model is valid, then check the circuit is valid
@@ -246,11 +251,12 @@ bool Controller::validate_state(const state_t &state,
 
 template <class state_t>
 void Controller::validate_state_except(const state_t &state,
-                                       const Circuit &circ) const {
+                                       const Circuit &circ,
+                                       const Noise::NoiseModel &noise) {
   // First check if a noise model is valid a given state
-  bool noise_valid = noise_model_.ideal() || state.validate_opset(noise_model_.opset());
+  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
   if (noise_valid == false) {
-   auto msg = state.invalid_opset_message(noise_model_.opset());
+   auto msg = state.invalid_opset_message(noise.opset());
    throw std::runtime_error(std::string("Noise model contains invalid instructions (") +
                             msg + std::string(")"));
   }
