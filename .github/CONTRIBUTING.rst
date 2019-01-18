@@ -88,7 +88,7 @@ You further need to have Command Line Tools installed on MacOS:
 
 .. code::
    
-   $ xcode-select -—install
+   $ xcode-select --install
 
 
 **Linux (Ubuntu >= 16.04)**
