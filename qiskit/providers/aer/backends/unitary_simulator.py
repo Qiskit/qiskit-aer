@@ -18,7 +18,7 @@ from qiskit.providers.models import BackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-from unitary_controller_wrapper import unitary_controller_execute
+from .unitary_controller_wrapper import unitary_controller_execute
 from ..version import __version__
 
 # Logger

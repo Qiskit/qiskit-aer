@@ -17,10 +17,6 @@
 #include <string>
 #include <vector>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 // Base Controller
 #include "framework/qobj.hpp"
 #include "framework/data.hpp"
@@ -28,6 +24,10 @@
 #include "framework/creg.hpp"
 #include "noise/noise_model.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#include "misc/hacks.hpp"
+#endif
 
 namespace AER {
 
@@ -96,7 +96,12 @@ namespace Base {
 class Controller {
 public:
 
-  Controller() {set_threads_default();}
+  Controller() {
+    // Fix for MacOS and OpenMP library double initialization crash.
+    // Issue: https://github.com/Qiskit/qiskit-aer/issues/1  
+    Hacks::maybe_load_openmp();
+    set_threads_default();
+  }
 
   //-----------------------------------------------------------------------
   // Execute qobj
