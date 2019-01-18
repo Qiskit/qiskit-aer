@@ -167,7 +167,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   QubitVector::State<> state;
 
   // Validate circuit and noise model
-  validate_state_except(state, circ);
+  validate_state_except(state, circ, noise_model_);
 
   // Set state config
   state.set_config(Base::Controller::config_);
