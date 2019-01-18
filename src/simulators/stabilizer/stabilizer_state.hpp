@@ -45,6 +45,9 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
+  // Return the string name of the State class
+  inline virtual std::string name() const override {return "stabilizer";}
+
   // Return the set of qobj instruction types supported by the State
   inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
     return std::unordered_set<Operations::OpType>({
@@ -184,7 +187,8 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},    // Hadamard gate (X + Z / sqrt(2))
   // Two-qubit gates
-  {"cx", Gates::cx},  // Controlled-X gate (CNOT)
+  {"CX", Gates::cx},  // Controlled-X gate (CNOT)
+  {"cx", Gates::cx},  // Controlled-X gate (CNOT),
   {"cz", Gates::cz},   // Controlled-Z gate
   {"swap", Gates::swap} // SWAP gate
 }); 

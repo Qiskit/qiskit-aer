@@ -441,6 +441,16 @@ json_t Controller::execute_circuit(Circuit &circ) {
     result["header"] = circ.header;
     result["shots"] = circ.shots;
     result["seed"] = circ.seed;
+    // Move any metadata from the subclass run_circuit data
+    // to the experiment resultmetadata field
+    if (JSON::check_key("metadata", result["data"])) {
+      for (auto it = result["data"]["metadata"].begin();
+           it != result["data"]["metadata"].end(); ++it) {
+        result["metadata"][it.key()] = it.value();
+      }
+      // Remove the metatdata field from data
+      result["data"].erase("metadata");
+    }
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();

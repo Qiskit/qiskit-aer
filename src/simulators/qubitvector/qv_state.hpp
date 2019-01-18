@@ -52,6 +52,9 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
+  // Return the string name of the State class
+  inline virtual std::string name() const override {return "statevector";}
+
   // Return the set of qobj instruction types supported by the State
   inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
     return std::unordered_set<Operations::OpType>({

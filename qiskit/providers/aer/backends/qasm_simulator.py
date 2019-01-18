@@ -29,6 +29,10 @@ class QasmSimulator(AerBackend):
         The following backend options may be used with in the
         `backend_options` kwarg diction for `QasmSimulator.run` or
         `qiskit.execute`
+        * "method" (str): Set the simulation method. Allowed options are
+            "statevector", "stabilizer". The default method will choose
+            automatically based on the input circuit. Note that only
+            Clifford circuits can be executed using "stabilizer method.
 
         * "initial_statevector" (vector_like): Sets a custom initial
             statevector for the simulation instead of the all zero
