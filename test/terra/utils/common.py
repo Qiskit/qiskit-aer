@@ -22,7 +22,7 @@ from math import pi
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit.tools.qi.qi import state_fidelity
+from qiskit.quantum_info import state_fidelity
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
 
