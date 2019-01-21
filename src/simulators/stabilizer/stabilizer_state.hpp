@@ -230,11 +230,16 @@ void State::initialize_qreg(uint_t num_qubits,
 
 uint_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) {
-  // TODO: estimate resource requirements of storing 
-  // clifford table
   (void)ops; // avoid unused variable compiler warning
-  (void)num_qubits;
-  return 0;
+  // The Clifford object requires very little memory.
+  // A Pauli vector consists of 2 binary vectors each with
+  // Binary vector = (4 + n // 64) 64-bit ints
+  // Pauli = 2 * binary vector
+  uint_t mem = 16 * (4 + num_qubits); // Pauli bytes
+  // Clifford = 2n * Pauli + 2n phase ints
+  mem = 2 * num_qubits * (mem + 16); // Clifford bytes
+  mem = mem >> 20; // Clifford mb
+  return mem;
 }
 
 void State::set_config(const json_t &config) {
