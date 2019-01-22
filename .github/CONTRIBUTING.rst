@@ -88,7 +88,7 @@ You further need to have Command Line Tools installed on MacOS:
 
 .. code::
    
-   $ xcode-select -—install
+   $ xcode-select --install
 
 
 **Linux (Ubuntu >= 16.04)**
@@ -257,6 +257,8 @@ and then run `unittest` Python framework.
 .. code::
 
   qiskit-aer$ python ./setup.py install
+  # if you had to use --plat-name macosx-10.9-x86_64 for bdist_wheel then you need to do this for install:
+  #   python ./setup.py install -- -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9 -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64
   qiskit-aer$ python -m unittest discover -s test -v
 
 The integration tests for Terra addon are included in: `test/terra`.
