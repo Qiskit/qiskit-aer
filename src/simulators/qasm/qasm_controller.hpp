@@ -166,13 +166,13 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   // Initialize state
   QubitVector::State<> state;
 
-  // Validate circuit and noise model
-  validate_state_except(state, circ, noise_model_);
+  // Validate circuit and throw exception if invalid operations exist
+  validate_state(state, circ, noise_model_, true);
 
   // Set state config
   state.set_config(Base::Controller::config_);
   state.set_available_threads(num_threads_state);
-  
+
   // Rng engine
   RngEngine rng;
   rng.set_seed(rng_seed);

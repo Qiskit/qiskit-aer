@@ -120,11 +120,11 @@ public:
   // OpSet validation
   //-----------------------------------------------------------------------
 
-  // Return false if circuit contains an unsupported instruction for
+  // Return false if an OpSet contains unsupported instruction for
   // the state class. Otherwise return true.
   virtual bool validate_opset(const Operations::OpSet& opset) const;
 
-  // Raise an exeption if the circuit contains unsupported
+  // Raise an exeption if the OpSet contains unsupported
   // instructions for the state class. The exception message 
   // contains the name of the unsupported instructions.
   virtual std::string invalid_opset_message(const Operations::OpSet& opset) const;
@@ -238,16 +238,14 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   bool bad_gates = !invalid_gates.empty();
   bool bad_snaps = !invalid_snapshots.empty();
   std::stringstream ss;
-  if (bad_instr || bad_gates || bad_snaps) {
-    if (bad_gates)
-      ss << " invalid gate instructions: " << invalid_gates;
-    if (bad_snaps) 
-      ss << " invalid snapshot instructions: " << invalid_snapshots;
-    // We can't print OpTypes so we add a note if there are invalid 
-    // instructions other than gates or snapshots
-    if (bad_instr && (!bad_gates && !bad_snaps))
-      ss << " invalid non gate or snapshot instructions";
-  }
+  if (bad_gates)
+    ss << " invalid gate instructions: " << invalid_gates;
+  if (bad_snaps) 
+    ss << " invalid snapshot instructions: " << invalid_snapshots;
+  // We can't print OpTypes so we add a note if there are invalid 
+  // instructions other than gates or snapshots
+  if (bad_instr && (!bad_gates && !bad_snaps))
+    ss << " invalid non gate or snapshot instructions";
   return ss.str();
 }
 

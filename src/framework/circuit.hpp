@@ -41,7 +41,7 @@ public:
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
   // parameters by scaning the input list of ops.
-  Circuit() {set_random_seed();};
+  Circuit() {set_random_seed();}
   Circuit(const std::vector<Op> &_ops);
 
   // Construct a circuit from JSON
@@ -111,7 +111,7 @@ Circuit::Circuit(const std::vector<Op> &_ops) : Circuit() {
   ops = _ops;
   set_sizes();
   opset_ = Operations::OpSet(ops);
-};
+}
 
 Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
 
