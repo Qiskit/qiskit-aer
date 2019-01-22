@@ -89,7 +89,7 @@ public:
   stringset_t snapshots;  // set of types for OpType::snapshot
 
   OpSet() = default;
-  inline OpSet(const std::vector<Op> &ops) {insert(ops);}
+  OpSet(const std::vector<Op> &ops) {insert(ops);}
 
   //-----------------------------------------------------------------------
   // Insert operations to the OpSet

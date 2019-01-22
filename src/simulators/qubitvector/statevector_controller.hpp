@@ -123,8 +123,8 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
   // Initialize  state
   QubitVector::State<> state;
 
-  // Validate circuit and noise model
-  validate_state_except(state, circ);
+  // Validate circuit and throw exception if invalid operations exist
+  validate_state(state, circ, noise_model_, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
