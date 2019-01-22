@@ -9,6 +9,7 @@
 
 from .aerprovider import AerProvider
 from .aerjob import AerJob
+from .aererror import AerError
 from .backends import *
 from . import noise
 from . import utils
