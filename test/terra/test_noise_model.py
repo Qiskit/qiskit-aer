@@ -17,6 +17,7 @@ from qiskit.providers.aer.backends import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.utils.qobj_utils import measure_instr
 from qiskit.providers.aer.utils.qobj_utils import append_instr
@@ -517,6 +518,73 @@ class TestNoise(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
+    def test_standard_reset0_error_100percent(self):
+        """Test 100% Pauli error on id gates"""
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr)
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+        backend = QasmSimulator()
+        shots = 100
+        # test noise model
+        error = reset_error(1)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+        # Execute
+        target = {'0x0': shots}
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
+        result = backend.run(qobj, noise_model=noise_model).result()
+        self.is_completed(result)
+        self.compare_counts(result, [circuit], [target], delta=0)
+
+    def test_standard_reset1_error_100percent(self):
+        """Test 100% Pauli error on id gates"""
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.iden(qr)
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+        backend = QasmSimulator()
+        shots = 100
+        # test noise model
+        error = reset_error(0, 1)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+        # Execute
+        target = {'0x1': shots}
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
+        result = backend.run(qobj, noise_model=noise_model).result()
+        self.is_completed(result)
+        self.compare_counts(result, [circuit], [target], delta=0)
+
+    def test_standard_reset0reset1_error_50percent(self):
+        """Test 100% Pauli error on id gates"""
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.iden(qr[0])
+        circuit.x(qr[1])
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+        backend = QasmSimulator()
+        shots = 2000
+        # test noise model
+        error = reset_error(0.25, 0.25)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+        # Execute
+        target = {'0x0': 3 * shots / 16, '0x1': shots / 16,
+                  '0x2': 9 * shots / 16, '0x3': 3 * shots / 16}
+        qobj = compile([circuit], backend, shots=shots,
+                       basis_gates=noise_model.basis_gates)
+        result = backend.run(qobj, noise_model=noise_model).result()
+        self.is_completed(result)
+        self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
 if __name__ == '__main__':
     unittest.main()
