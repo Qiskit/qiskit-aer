@@ -25,19 +25,19 @@ namespace BV {
 
 class BinaryVector {
 public:
-  const static size_t blockSize = 64;
+  const static size_t BLOCK_SIZE = 64;
 
   BinaryVector() : m_length(0), m_data(0){};
 
   explicit BinaryVector(uint64_t length)
-      : m_length(length), m_data((length - 1) / blockSize + 1, ZERO_){};
+      : m_length(length), m_data((length - 1) / BLOCK_SIZE + 1, ZERO_){};
 
   BinaryVector(std::vector<uint64_t> mdata)
       : m_length(mdata.size()), m_data(mdata){};
 
   explicit BinaryVector(std::string);
 
-  bool setLength(uint64_t length);
+  void setLength(uint64_t length);
 
   void setVector(std::string);
   void setValue(bool value, uint64_t pos);
@@ -55,7 +55,7 @@ public:
 
   uint64_t getLength() const { return m_length; };
 
-  inline void makeZero() { m_data.assign((m_length - 1) / blockSize + 1, ZERO_); }
+  void makeZero() { m_data.assign((m_length - 1) / BLOCK_SIZE + 1, ZERO_); }
 
   bool isZero() const;
 
@@ -63,7 +63,7 @@ public:
   bool isSame(const BinaryVector &rhs, bool pad) const;
 
   std::vector<uint64_t> nonzeroIndices() const;
-  inline std::vector<uint64_t> getData() const { return m_data; };
+  std::vector<uint64_t> getData() const { return m_data; };
 
 private:
   uint64_t m_length;
@@ -72,18 +72,20 @@ private:
   static const uint64_t ONE_;
 };
 
+
 /*******************************************************************************
  *
  * Related Functions
  *
  ******************************************************************************/
 
-inline bool operator==(const BinaryVector &lhs, const BinaryVector &rhs) {
+bool operator==(const BinaryVector &lhs, const BinaryVector &rhs) {
   return lhs.isSame(rhs, true);
 }
 
-inline int64_t gauss_eliminate(std::vector<BinaryVector> &M,
-                               const int64_t start_col = 0)
+
+int64_t gauss_eliminate(std::vector<BinaryVector> &M,
+                        const int64_t start_col = 0)
 // returns the rank of M.
 // M[] has length nrows.
 // each M[i] must have the same length ncols.
@@ -111,7 +113,8 @@ inline int64_t gauss_eliminate(std::vector<BinaryVector> &M,
   return rank;
 }
 
-inline std::vector<uint64_t> string_to_bignum(std::string val,
+
+std::vector<uint64_t> string_to_bignum(std::string val,
                                             uint64_t blockSize,
                                             uint64_t base) {
   std::vector<uint64_t> ret;
@@ -130,7 +133,8 @@ inline std::vector<uint64_t> string_to_bignum(std::string val,
   return ret;
 }
 
-inline std::vector<uint64_t> string_to_bignum(std::string val) {
+
+std::vector<uint64_t> string_to_bignum(std::string val) {
   std::string type = val.substr(0, 2);
   if (type == "0b" || type == "0B")
     // Binary string
@@ -144,6 +148,7 @@ inline std::vector<uint64_t> string_to_bignum(std::string val) {
         std::string("string must be binary (0b) or hex (0x)"));
   }
 }
+
 
 /*******************************************************************************
  *
@@ -159,30 +164,32 @@ BinaryVector::BinaryVector(std::string val) {
   m_length = m_data.size();
 }
 
-bool BinaryVector::setLength(uint64_t length) {
-  if (length == 0)
-    return false;
-  if (m_length > 0)
-    return false;
+
+void BinaryVector::setLength(uint64_t length) {
+  if (length == 0 || m_length > 0)
+    return;
+
   m_length = length;
-  m_data.assign((length - 1) / blockSize + 1, ZERO_);
-  return true;
+  m_data.assign((length - 1) / BLOCK_SIZE + 1, ZERO_);
 }
 
+
 void BinaryVector::setValue(bool value, uint64_t pos) {
-  auto q = pos / blockSize;
-  auto r = pos % blockSize;
+  auto q = pos / BLOCK_SIZE;
+  auto r = pos % BLOCK_SIZE;
   if (value)
     m_data[q] |= (ONE_ << r);
   else
     m_data[q] &= ~(ONE_ << r);
 }
 
+
 void BinaryVector::flipAt(const uint64_t pos) {
-  auto q = pos / blockSize;
-  auto r = pos % blockSize;
+  auto q = pos / BLOCK_SIZE;
+  auto r = pos % BLOCK_SIZE;
   m_data[q] ^= (ONE_ << r);
 }
+
 
 BinaryVector &BinaryVector::operator+=(const BinaryVector &rhs) {
   const auto size = m_data.size();
@@ -191,11 +198,13 @@ BinaryVector &BinaryVector::operator+=(const BinaryVector &rhs) {
   return (*this);
 }
 
+
 bool BinaryVector::operator[](const uint64_t pos) const {
-  auto q = pos / blockSize;
-  auto r = pos % blockSize;
+  auto q = pos / BLOCK_SIZE;
+  auto r = pos % BLOCK_SIZE;
   return ((m_data[q] & (ONE_ << r)) != 0);
 }
+
 
 void BinaryVector::swap(BinaryVector &rhs) {
   uint64_t tmp;
@@ -206,6 +215,7 @@ void BinaryVector::swap(BinaryVector &rhs) {
   m_data.swap(rhs.m_data);
 }
 
+
 bool BinaryVector::isZero() const {
   const size_t size = m_data.size();
   for (size_t i = 0; i < size; i++)
@@ -213,6 +223,7 @@ bool BinaryVector::isZero() const {
       return false;
   return true;
 }
+
 
 bool BinaryVector::isSame(const BinaryVector &rhs) const {
   if (m_length != rhs.m_length)
@@ -225,29 +236,30 @@ bool BinaryVector::isSame(const BinaryVector &rhs) const {
   return true;
 }
 
+
 bool BinaryVector::isSame(const BinaryVector &rhs, bool pad) const {
   if (!pad)
     return isSame(rhs);
-  else {
-    const auto sz0 = m_data.size();
-    const auto sz1 = rhs.m_data.size();
-    const auto sz = (sz0 > sz1) ? sz1 : sz0;
 
-    // Check vectors agree on overlap
-    for (size_t q = 0; q < sz; q++)
-      if (m_data[q] != rhs.m_data[q])
-        return false;
-    // Check padding of larger vector is trivial
-    for (size_t q = sz; q < sz0; q++)
-      if (m_data[q] != 0)
-        return false;
-    for (size_t q = sz; q < sz1; q++)
-      if (rhs.m_data[q] != 0)
-        return false;
+  const auto sz0 = m_data.size();
+  const auto sz1 = rhs.m_data.size();
+  const auto sz = (sz0 > sz1) ? sz1 : sz0;
 
-    return true;
-  }
+  // Check vectors agree on overlap
+  for (auto q = 0; q < sz; q++)
+    if (m_data[q] != rhs.m_data[q])
+      return false;
+  // Check padding of larger vector is trivial
+  for (auto q = sz; q < sz0; q++)
+    if (m_data[q] != 0)
+      return false;
+  for (auto q = sz; q < sz1; q++)
+    if (rhs.m_data[q] != 0)
+      return false;
+
+  return true;
 }
+
 
 std::vector<uint64_t> BinaryVector::nonzeroIndices() const {
   std::vector<uint64_t> result;
@@ -260,19 +272,20 @@ std::vector<uint64_t> BinaryVector::nonzeroIndices() const {
     }
     auto m = m_data[i];
     size_t r = 0;
-    while (r < blockSize) {
+    while (r < BLOCK_SIZE) {
       while ((m & (ONE_ << r)) == 0) {
         r++;
       }
-      if (r >= blockSize)
+      if (r >= BLOCK_SIZE)
         break;
-      result.push_back((uint64_t)(i)*blockSize + r);
+      result.push_back(static_cast<uint64_t>((i * BLOCK_SIZE) + r));
       r++;
     }
     i++;
   }
   return result;
 }
+
 
 //------------------------------------------------------------------------------
 } // end namespace BV
