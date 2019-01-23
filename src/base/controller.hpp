@@ -390,13 +390,13 @@ json_t Controller::execute_circuit(Circuit &circ) {
       int num_shots = circ.shots;
       // Calculate threads for parallel circuit execution
       // TODO: add memory checking for limiting thread number
-      num_threads_shot = (max_threads_shot_ < 1) 
+      num_threads_shot = (max_threads_shot_ < 1)
         ? std::min<int>({num_shots, available_threads_ , max_threads_total_})
         : std::min<int>({num_shots, available_threads_ , max_threads_total_, max_threads_shot_});
       available_threads_ /= num_threads_shot;
 
       // Calculate remaining threads for the State class to use
-      num_threads_state = (max_threads_state_ < 1) 
+      num_threads_state = (max_threads_state_ < 1)
         ? std::min<int>({available_threads_ , max_threads_total_,})
         : std::min<int>({available_threads_ , max_threads_total_, max_threads_state_});
 
@@ -426,7 +426,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
         for (int j = 0; j < num_threads_shot; j++) {
           data[j] = run_circuit(circ, subshots[j], circ.seed + j, num_threads_state);
         }
-      // Accumulate results across shots 
+      // Accumulate results across shots
       for (size_t j=1; j<data.size(); j++) {
         data[0].combine(data[j]);
       }
@@ -441,11 +441,21 @@ json_t Controller::execute_circuit(Circuit &circ) {
     result["header"] = circ.header;
     result["shots"] = circ.shots;
     result["seed"] = circ.seed;
+    // Move any metadata from the subclass run_circuit data
+    // to the experiment resultmetadata field
+    if (JSON::check_key("metadata", result["data"])) {
+
+      for(auto& metadata: result["data"]["metadata"].items()) {
+        result["metadata"][metadata.key()] = metadata.value();
+      }
+      // Remove the metatdata field from data
+      result["data"].erase("metadata");
+    }
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
     result["time_taken"] = time_taken;
-  } 
+  }
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
     result["success"] = false;
