@@ -37,7 +37,6 @@ namespace AER {
 
 // This is used to make wrapping Controller classes in Cython easier
 // by handling the parsing of std::string input into JSON objects.
-
 template <class controller_t> 
 std::string controller_execute(const std::string &qobj_str) {
   controller_t controller;
@@ -137,6 +136,20 @@ protected:
                                  uint_t rng_seed,
                                  int num_threads_state) const = 0;
 
+  //-------------------------------------------------------------------------
+  // State validation
+  //-------------------------------------------------------------------------
+
+  // Return True if a given circuit (and internal noise model) are valid for
+  // execution on the given state. Otherwise return false.
+  // If throw_except is true an exception will be thrown on the return false
+  // case listing the invalid instructions in the circuit or noise model.
+  template <class state_t>
+  static bool validate_state(const state_t &state,
+                             const Circuit &circ,
+                             const Noise::NoiseModel &noise,
+                             bool throw_except = false);
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -210,6 +223,40 @@ void Controller::set_threads_default() {
   max_threads_shot_ = 1;
 }
 
+
+//-------------------------------------------------------------------------
+// State validation
+//-------------------------------------------------------------------------
+
+template <class state_t>
+bool Controller::validate_state(const state_t &state,
+                                const Circuit &circ,
+                                const Noise::NoiseModel &noise,
+                                bool throw_except) {
+  // First check if a noise model is valid a given state
+  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
+  bool circ_valid = state.validate_opset(circ.opset());  
+  if (noise_valid && circ_valid)
+    return true;
+  
+  // If we didn't return true then either noise model or circ has
+  // invalid instructions.
+  if (throw_except == false)
+    return false;
+  
+  // If we are throwing an exception we include information
+  // about the invalid operations
+  std::stringstream msg;
+  if (!noise_valid) {
+    msg << "Noise model contains invalid instructions (";
+    msg << state.invalid_opset_message(noise.opset()) << ")";
+  }
+  if (!circ_valid) {
+    msg << "Circuit contains invalid instructions (";
+    msg << state.invalid_opset_message(circ.opset()) << ")";
+  }
+  throw std::runtime_error(msg.str());
+}
 
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output
@@ -369,7 +416,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
         subshots.push_back(circ.shots / num_threads_shot);
       }
       // If shots is not perfectly divisible by threads, assign the remaineder
-      for (int j=0; j < (circ.shots % num_threads_shot); ++j) {
+      for (int j=0; j < int(circ.shots % num_threads_shot); ++j) {
         subshots[j] += 1;
       }
 
