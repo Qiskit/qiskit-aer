@@ -57,6 +57,7 @@ canonical types of quantum errors:
    Coherent unitary error
    Pauli error
    Depolarizing error
+   Reset error
    Thermal relaxation error
    Amplitude damping error
    Phase damping error

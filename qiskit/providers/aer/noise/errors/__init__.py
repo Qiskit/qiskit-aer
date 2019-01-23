@@ -7,11 +7,14 @@
 
 """Standard error module for Qiskit Aer."""
 
+from .quantum_error import QuantumError
+from .readout_error import ReadoutError
 from .standard_errors import kraus_error
 from .standard_errors import mixed_unitary_error
 from .standard_errors import coherent_unitary_error
 from .standard_errors import pauli_error
 from .standard_errors import depolarizing_error
+from .standard_errors import reset_error
 from .standard_errors import thermal_relaxation_error
 from .standard_errors import phase_amplitude_damping_error
 from .standard_errors import amplitude_damping_error

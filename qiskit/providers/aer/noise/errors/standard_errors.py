@@ -289,6 +289,26 @@ def depolarizing_error(prob, num_qubits, standard_gates=False):
     return pauli_error(zip(paulis, probs), standard_gates=standard_gates)
 
 
+def reset_error(prob0, prob1=0):
+    """Single qubit reset error channel.
+
+    The probability of no reset is given by 1 - prob0 - prob1
+
+    Args:
+        prob0 (double): reset probability to |0>
+        prob1 (double): reset probability to |1>
+
+    Returns:
+        QuantumError: the quantum error object.
+    """
+    noise_ops = [
+        ([{'name': 'id', 'qubits': [0]}], 1 - prob0 - prob1),
+        ([{'name': 'reset', 'qubits': [0]}], prob0),
+        ([{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}], prob1),
+    ]
+    return QuantumError(noise_ops)
+
+
 def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     """
     Single-qubit thermal relaxation quantum error channel.
@@ -312,10 +332,10 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     """
     if excited_state_population < 0:
         raise NoiseError("Invalid excited state population " +
-                            "({} < 0).".format(excited_state_population))
+                         "({} < 0).".format(excited_state_population))
     if excited_state_population > 1:
         raise NoiseError("Invalid excited state population " +
-                            "({} > 1).".format(excited_state_population))
+                         "({} > 1).".format(excited_state_population))
     if time < 0:
         raise NoiseError("Invalid gate_time ({} < 0)".format(time))
     if t1 <= 0:
