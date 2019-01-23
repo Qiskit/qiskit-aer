@@ -28,10 +28,10 @@ public:
   using ignore_argument = void;
   State() = default;
   virtual ~State() = default;
-  
+
   //=======================================================================
   // Subclass Override Methods
-  // 
+  //
   // The following methods should be implemented by any State subclasses.
   // Abstract methods are required, while some methods are optional for
   // State classes that support measurement to be compatible with a general
@@ -40,12 +40,12 @@ public:
 
   //-----------------------------------------------------------------------
   // Abstract methods
-  // 
+  //
   // The implementation of these methods must be defined in all subclasses
   //-----------------------------------------------------------------------
-  
+
   // Return the set of qobj instruction types supported by the State
-  // by the Operations::OpType enum class. 
+  // by the Operations::OpType enum class.
   // Standard OpTypes that can be included here are:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
@@ -57,7 +57,7 @@ public:
   // For the case of gates the specific allowed gates are checked
   // with the `allowed_gates` function.
   virtual std::unordered_set<Operations::OpType> allowed_ops() const = 0;
-  
+
   // Return the set of qobj gate instruction names supported by the state class
   // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
   virtual stringset_t allowed_gates() const = 0;
@@ -82,7 +82,7 @@ public:
   // Initializes the State to a specific state.
   virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
 
-  // Return an estimate of the required memory for implementing the 
+  // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized State.
   virtual uint_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) = 0;
@@ -96,14 +96,14 @@ public:
 
   //-----------------------------------------------------------------------
   // Optional: measurement sampling
-  // 
+  //
   // This method is only required for a State subclass to be compatible with
   // the measurement sampling optimization of a general the QasmController
   //-----------------------------------------------------------------------
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state. Even though this method is not marked as const
-  // at the end of sample the system should be left in the same state 
+  // at the end of sample the system should be left in the same state
   // as before sampling
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
@@ -125,7 +125,7 @@ public:
   virtual bool validate_opset(const Operations::OpSet& opset) const;
 
   // Raise an exeption if the OpSet contains unsupported
-  // instructions for the state class. The exception message 
+  // instructions for the state class. The exception message
   // contains the name of the unsupported instructions.
   virtual std::string invalid_opset_message(const Operations::OpSet& opset) const;
 
@@ -240,9 +240,9 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   std::stringstream ss;
   if (bad_gates)
     ss << " invalid gate instructions: " << invalid_gates;
-  if (bad_snaps) 
+  if (bad_snaps)
     ss << " invalid snapshot instructions: " << invalid_snapshots;
-  // We can't print OpTypes so we add a note if there are invalid 
+  // We can't print OpTypes so we add a note if there are invalid
   // instructions other than gates or snapshots
   if (bad_instr && (!bad_gates && !bad_snaps))
     ss << " invalid non gate or snapshot instructions";

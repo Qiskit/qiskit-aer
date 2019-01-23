@@ -8,7 +8,7 @@
 #ifndef _aer_framework_operations_hpp_
 #define _aer_framework_operations_hpp_
 
-#include <algorithm> 
+#include <algorithm>
 #include <stdexcept>
 #include <sstream>
 #include <tuple>
@@ -48,7 +48,7 @@ struct Op {
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
 
-  // DEPRECIATED: old style conditionals (will be removed when Terra supports new style)
+  // DEPRECATED: old style conditionals (will be removed when Terra supports new style)
   bool old_conditional = false;     // is gate old style conditional gate
   std::string old_conditional_mask; // hex string for conditional mask
   std::string old_conditional_val;  // hex string for conditional value
