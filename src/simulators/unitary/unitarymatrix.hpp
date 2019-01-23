@@ -63,6 +63,9 @@ public:
   // Returns a copy of the underlying data_t data as a complex vector
   AER::cmatrix_t matrix() const;
 
+  // Return the trace of the unitary
+  complex_t trace() const;
+
   // Return JSON serialization of UnitaryMatrix;
   json_t json() const;
 
@@ -74,6 +77,23 @@ public:
   // an exception is raised.
   void initialize_from_matrix(const AER::cmatrix_t &mat);
 
+  //-----------------------------------------------------------------------
+  // Identity checking
+  //-----------------------------------------------------------------------
+  
+  // Return pair (True, theta) if the current matrix is equal to
+  // exp(i * theta) * identity matrix. Otherwise return (False, 0).
+  // The phase is returned as a parameter between -Pi and Pi.
+  std::pair<bool, double> check_identity() const;
+
+  // Set the threshold for verify_identity
+  void set_check_identity_threshold(double threshold) {
+    identity_threshold_ = threshold;
+  }
+
+  // Get the threshold for verify_identity
+  double get_check_identity_threshold() {return identity_threshold_;}
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -81,6 +101,14 @@ protected:
   //-----------------------------------------------------------------------
   size_t num_qubits_;
   size_t rows_;
+
+  //-----------------------------------------------------------------------
+  // Additional config settings
+  //-----------------------------------------------------------------------
+  
+  double identity_threshold_ = 1e-10; // Threshold for verifying if the
+                                      // internal matrix is identity up to
+                                      // global phase
 };
 
 /*******************************************************************************
@@ -158,8 +186,8 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
 template <class data_t>
 AER::cmatrix_t UnitaryMatrix<data_t>::matrix() const {
 
-  AER::cmatrix_t ret(rows_, rows_);
   const int_t nrows = rows_;
+  AER::cmatrix_t ret(nrows, nrows);
 
   #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   {
@@ -222,6 +250,63 @@ void UnitaryMatrix<data_t>::set_num_qubits(size_t num_qubits) {
   rows_ = 1ULL << num_qubits;
   // Set the underlying vectorized matrix to be 2 * number of qubits
   BaseVector::set_num_qubits(2 * num_qubits);
+}
+
+template <class data_t>
+complex_t UnitaryMatrix<data_t>::trace() const {
+  const int_t NROWS = rows_;
+  const int_t DIAG = NROWS + 1;
+  double val_re = 0.;
+  double val_im = 0.;
+#pragma omp parallel reduction(+:val_re, val_im) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) BaseVector::num_threads(BaseVector::omp_threads_)
+  {
+#pragma omp for
+  for (int_t k = 0; k < NROWS; ++k) {
+    val_re += std::real(BaseVector::data_[k * DIAG]);
+    val_im += std::imag(BaseVector::data_[k * DIAG]);
+  }
+  }
+  return complex_t(val_re, val_im);
+}
+
+
+//------------------------------------------------------------------------------
+// Check Identity
+//------------------------------------------------------------------------------
+
+template <class data_t>
+std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
+  // To check if identity we first check we check that:
+  // 1. U(0, 0) = exp(i * theta)
+  // 2. U(i, i) = U(0, 0)
+  // 3. U(i, j) = 0 for j != i 
+  auto failed = std::make_pair(false, 0.0);
+
+  // Check condition 1.
+  const auto u00 = BaseVector::data_[0];
+  if (std::norm(std::abs(u00) - 1.0) > identity_threshold_) {
+    return failed;
+  }
+  const auto theta = std::arg(u00);
+
+  // Check conditions 2 and 3
+  double delta = 0.;
+  for (size_t i=0; i < rows_; i++) {
+    for (size_t j=0; j < rows_; j++) {
+      auto val = (i==j) ? std::norm(BaseVector::data_[i + rows_ * j] - u00)
+                        : std::norm(BaseVector::data_[i + rows_ * j]);
+      if (val > identity_threshold_) {
+        return failed; // fail fast if single entry differs
+      } else
+        delta += val; // accumulate difference
+    }
+  }
+  // Check small errors didn't accumulate
+  if (delta > identity_threshold_) {
+    return failed;
+  }
+  // Otherwise we pass
+  return std::make_pair(true, theta);
 }
 
 //------------------------------------------------------------------------------

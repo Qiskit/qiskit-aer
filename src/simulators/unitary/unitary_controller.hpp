@@ -28,13 +28,25 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- * 
- * From QubitUnitary::State class
- * 
+ 
+ * - "identity_checker" (bool): Return a pair (bool, double) where bool is true if
+ *      the final unitary is equivalent to the identity matrix (up to
+ *      global phase) and the double is phase angle theta exp(I*theta).
+ *      If set to `true` the final unitary matrix will not be returned
+ *      [Default: False].
+ * - "validation_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-8]
  * - "initial_unitary" (json complex matrix): Use a custom initial unitary
  *      matrix for the simulation [Default: null].
+ * - "target_unitary" (json complex matrix): Use a custom target unitary
+ *      for identity_checker mode [Default: null].
+ *
+ * From QubitUnitary::State class
+ *
  * - "zero_threshold" (double): Threshold for truncating small values to
  *      zero in result data [Default: 1e-10]
+ * - "identity_checker_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-8]
  * - "unitary_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 6]
@@ -82,11 +94,17 @@ private:
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
-  
+
   //-----------------------------------------------------------------------
   // Custom initial state
   //-----------------------------------------------------------------------        
   cmatrix_t initial_unitary_;
+
+  //-----------------------------------------------------------------------
+  // Method
+  //-----------------------------------------------------------------------      
+  bool identity_checker_ = false;
+
 };
 
 //=========================================================================
@@ -101,11 +119,22 @@ void UnitaryController::set_config(const json_t &config) {
   // Set base controller config
   Base::Controller::set_config(config);
 
+  // Check if we are in identity checker mode
+  JSON::get_value(identity_checker_, "identity_checker", config);
+
   //Add custom initial unitary
-  if (JSON::get_value(initial_unitary_, "initial_unitary", config) ) {
+  if (!identity_checker_ && JSON::get_value(initial_unitary_, "initial_unitary", config) ) {
     // Check initial state is unitary
     if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
       throw std::runtime_error("UnitaryController: initial_unitary is not unitary");
+  }
+
+  //Add custom target unitary
+  if (identity_checker_ && JSON::get_value(initial_unitary_, "target_unitary", config) ) {
+    // Check target state is unitary
+    if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
+      throw std::runtime_error("UnitaryController: target_unitary is not unitary");
+    AER::Utils::dagger_inplace(initial_unitary_);
   }
 }
 
@@ -135,10 +164,6 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_unitary_.empty()) {
     auto nrows = initial_unitary_.GetRows();
-    auto ncols = initial_unitary_.GetColumns();
-    if (nrows != ncols ) {
-      throw std::runtime_error("UnitaryController: initial unitary is not square.");
-    }
     auto nstates = 1ULL << circ.num_qubits;
     if (nrows != nstates) {
       uint_t num_qubits(std::log2(nrows));
@@ -168,11 +193,14 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
     state.initialize_qreg(circ.num_qubits, initial_unitary_);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops, data, rng);
-  state.add_creg_to_data(data);
 
-  // Add final state unitary to the data
-  data.add_additional_data("unitary", state.qreg());
-
+  // If in identity checker mode add identity check to data
+  if (identity_checker_) {
+    data.add_additional_data("identity", state.qreg().check_identity());
+  } else {
+    // Otherwise add the final state unitary to the data
+    data.add_additional_data("unitary", state.qreg());
+  }
   return data;
 }
 

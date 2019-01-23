@@ -40,8 +40,16 @@ class UnitarySimulator(AerBackend):
         `backend_options` kwarg diction for `UnitarySimulator.run` or
         `qiskit.execute`
 
+        * "identity_checker" (bool): Set operation to identity checker
+            mode (Default: False)
+
         * "initial_unitary" (matrix_like): Sets a custom initial unitary
             matrix for the simulation instead of identity (Default: None).
+
+        * "target_unitary" (matrix_like): Sets a custom target unitary
+            other than the identity for identity_checker mode. This sets
+            the inital state to target_unitary^dagger and then checks
+            that the output is the identity (Defualt: None).
 
         * "validation_threshold" (double): Sets the threshold for checking
             if initial unitary and target unitary are unitary matrices.

@@ -161,6 +161,9 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
+  // Threshold for comparing state to identity matrix
+  double identity_threshold_ = 1e-8;
+
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
 };
@@ -253,6 +256,10 @@ void State<data_t>::set_config(const json_t &config) {
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
+
+  // Set threshold for general validation functions
+  JSON::get_value(identity_threshold_, "identity_checker_threshold", config);
+  BaseState::qreg_.set_check_identity_threshold(identity_threshold_);
 }
 
 
