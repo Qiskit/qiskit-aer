@@ -33,11 +33,12 @@ Removed
 Fixed
 -----
 
-`0.1.1`_ - 2019-01-23
+`0.1.1`_ - 2019-01-24
 =====================
 
 Added
 -----
+- Adds version information when using the standalone simulator (#36)
 - Adds a Clifford stabilizer simulation method to the QasmSimulator (#13)
 - Improve Circuit and NoiseModel instructions checking (#31)
 - Add reset_error function to Noise models (#34)
