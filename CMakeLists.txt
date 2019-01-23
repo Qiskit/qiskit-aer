@@ -10,7 +10,8 @@
 # Additionally, OpenMP support is only available in clang from
 
 cmake_minimum_required(VERSION 3.6)
-project(qasm_simulator LANGUAGES CXX C)
+file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -25,6 +26,13 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 include(CTest)
 include(compiler_utils)
+
+# Get version information
+if(NOT SKBUILD)
+	get_version(${VERSION_NUM})
+	configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
+				   "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
+endif()
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
