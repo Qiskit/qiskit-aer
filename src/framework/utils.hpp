@@ -40,7 +40,7 @@ public:
   const static cmatrix_t SWAP;  // name: "swap"
   const static cmatrix_t CR;    // TODO
   const static cmatrix_t CR90;  // TODO
-  
+
   // Identity Matrix
   static cmatrix_t Identity(size_t dim);
 
@@ -103,31 +103,31 @@ template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> 
 
 // Matrix comparison
 
-template <class T> 
+template <class T>
 bool is_square(const matrix<T> &mat);
 
-template <class T> 
+template <class T>
 bool is_diagonal(const matrix<T> &mat);
 
-template <class T> 
+template <class T>
 bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold);
 
-template <class T> 
+template <class T>
 bool is_diagonal(const matrix<T> &mat, double threshold);
 
-template <class T> 
+template <class T>
 bool is_identity(const matrix<T> &mat, double threshold);
 
-template <class T> 
+template <class T>
 bool is_diagonal_identity(const matrix<T> &mat, double threshold);
 
-template <class T> 
+template <class T>
 bool is_unitary(const matrix<T> &mat, double threshold);
 
-template <class T> 
+template <class T>
 bool is_hermitian(const matrix<T> &mat, double threshold);
 
-template <class T> 
+template <class T>
 bool is_symmetrix(const matrix<T> &mat, double threshold);
 
 template <class T>
@@ -244,14 +244,14 @@ uint_t reg2int(const reg_t &reg, uint_t base);
 
 const cmatrix_t Matrix::I = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {1, 0}}});
-  
+
 const cmatrix_t Matrix::X = make_matrix<complex_t>({{{0, 0}, {1, 0}},
                                                     {{1, 0}, {0, 0}}});
 
 const cmatrix_t Matrix::Y = make_matrix<complex_t>({{{0, 0}, {0, -1}},
                                                     {{0, 1}, {0, 0}}});
 
-const cmatrix_t Matrix::Z = make_matrix<complex_t>({{{1, 0}, {0, 0}}, 
+const cmatrix_t Matrix::Z = make_matrix<complex_t>({{{1, 0}, {0, 0}},
                                                     {{0, 0}, {-1, 0}}});
 
 const cmatrix_t Matrix::S = make_matrix<complex_t>({{{1, 0}, {0, 0}},
@@ -379,7 +379,7 @@ matrix<T> make_matrix(const std::vector<std::vector<T>> & mat) {
 }
 
 
-template <class T> 
+template <class T>
 matrix<T> transpose(const matrix<T> &A) {
   // Transposes a Matrix
   size_t rows = A.GetRows(), cols = A.GetColumns();
@@ -494,7 +494,7 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
   // Works out the TensorProduct of two matricies A tensor B
   // Note that if A is i x j and B is p x q then A \otimes B is an ip x jq
   // rmatrix
-  
+
   // If A or B is empty it will return the other matrix
   if (A.size() == 0)
     return B;
@@ -521,14 +521,14 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
   return temp;
 }
 
-template <class T> 
+template <class T>
 bool is_square(const matrix<T> &mat) {
   if (mat.GetRows() != mat.GetColumns())
     return false;
   return true;
 }
 
-template <class T> 
+template <class T>
 bool is_diagonal(const matrix<T> &mat) {
   // Check if row-matrix for diagonal
   if (mat.GetRows() == 1 && mat.GetColumns() > 0)
@@ -536,16 +536,16 @@ bool is_diagonal(const matrix<T> &mat) {
   return false;
 }
 
-template <class T> 
+template <class T>
 bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold) {
-  
+
   // Check matrices are same shape
   const auto nrows = mat1.GetRows();
   const auto ncols = mat1.GetColumns();
   if (nrows != mat2.GetRows() || ncols != mat2.GetColumns)
     return false;
 
-  // Check matrices are equal on an entry by entry basis 
+  // Check matrices are equal on an entry by entry basis
   double delta = 0;
   for (size_t i=0; i < nrows; i++) {
     for (size_t j=0; j < ncols; j++) {
@@ -555,7 +555,7 @@ bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold) {
   return (delta < threshold);
 }
 
-template <class T> 
+template <class T>
 bool is_diagonal(const matrix<T> &mat, double threshold) {
   // Check U matrix is identity
   const auto nrows = mat.GetRows();
@@ -570,7 +570,7 @@ bool is_diagonal(const matrix<T> &mat, double threshold) {
 }
 
 
-template <class T> 
+template <class T>
 bool is_identity(const matrix<T> &mat, double threshold) {
   // Check U matrix is identity
   double delta = 0.;
@@ -587,7 +587,7 @@ bool is_identity(const matrix<T> &mat, double threshold) {
   return (delta < threshold);
 }
 
-template <class T> 
+template <class T>
 bool is_diagonal_identity(const matrix<T> &mat, double threshold) {
   // Check U matrix is identity
   if (is_diagonal(mat, threshold) == false)
@@ -600,7 +600,7 @@ bool is_diagonal_identity(const matrix<T> &mat, double threshold) {
   return (delta < threshold);
 }
 
-template <class T> 
+template <class T>
 bool is_unitary(const matrix<T> &mat, double threshold) {
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
@@ -622,17 +622,17 @@ bool is_unitary(const matrix<T> &mat, double threshold) {
 }
 
 
-template <class T> 
+template <class T>
 bool is_hermitian_matrix(const matrix<T> &mat, double threshold) {
   return is_equal(mat, dagger(mat), threshold);
 }
 
-template <class T> 
+template <class T>
 bool is_symmetrix(const matrix<T> &mat, double threshold) {
   return is_equal(mat, transpose(mat), threshold);
 }
 
-template <class T> 
+template <class T>
 bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
   matrix<T> cptp(mats[0].size());
   for (const auto &mat : mats) {
@@ -645,7 +645,7 @@ bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
 // Implementations: Vector functions
 //==============================================================================
 
-template <class T> 
+template <class T>
 bool is_unit_vector(const std::vector<T> &vec, double threshold) {
   return (std::abs(norm<T>(vec) - 1.0) < threshold);
 }
@@ -679,7 +679,7 @@ std::vector<T> tensor_product(const std::vector<T> &vec1,
   for (const auto &a : vec1)
     for (const auto &b : vec2) {
         ret.push_back(a * b);
-  }                              
+  }
   return ret;
 }
 
@@ -952,7 +952,7 @@ std::string bin2hex(std::string str, bool prefix) {
       part.insert(0, hex_block - part.size(), '0');
       hex += part;
     }
-  }  
+  }
   return hex;
 }
 

@@ -33,11 +33,11 @@ enum class Snapshots {
 // Stabilizer Table state class
 //============================================================================
 
-class State : public Base::State<Clifford::Clifford> {  
+class State : public Base::State<Clifford::Clifford> {
 
 public:
   using BaseState = Base::State<Clifford::Clifford>;
-  
+
   State() = default;
   virtual ~State() = default;
 
@@ -46,10 +46,10 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the State class
-  inline virtual std::string name() const override {return "stabilizer";}
+  virtual std::string name() const override {return "stabilizer";}
 
   // Return the set of qobj instruction types supported by the State
-  inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
+  virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
     return std::unordered_set<Operations::OpType>({
       Operations::OpType::gate,
       Operations::OpType::measure,
@@ -62,12 +62,12 @@ public:
   }
 
   // Return the set of qobj gate instruction names supported by the State
-  inline virtual stringset_t allowed_gates() const override {
+  virtual stringset_t allowed_gates() const override {
     return {"CX", "cx", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"};
   }
 
   // Return the set of qobj snapshot types supported by the State
-  inline virtual stringset_t allowed_snapshots() const override {
+  virtual stringset_t allowed_snapshots() const override {
     return {"memory", "register"};
   }
 
@@ -109,7 +109,7 @@ protected:
   void apply_gate(const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
-  // If a state subclass supports this function it then "measure" 
+  // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   virtual void apply_measure(const reg_t &qubits,
@@ -191,7 +191,7 @@ const stringmap_t<Gates> State::gateset_({
   {"cx", Gates::cx},  // Controlled-X gate (CNOT),
   {"cz", Gates::cz},   // Controlled-Z gate
   {"swap", Gates::swap} // SWAP gate
-}); 
+});
 
 const stringmap_t<Snapshots> State::snapshotset_({
   {"memory", Snapshots::cmemory},
@@ -243,7 +243,6 @@ uint_t State::required_memory_mb(uint_t num_qubits,
 }
 
 void State::set_config(const json_t &config) {
-  
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "chop_threshold", config);
 
@@ -294,7 +293,7 @@ void State::apply_gate(const Operations::Op &op) {
   // Check Op is supported by State
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
-    throw std::invalid_argument("Stabilizer::State::invalid gate instruction \'" + 
+    throw std::invalid_argument("Stabilizer::State::invalid gate instruction \'" +
                                 op.name + "\'.");
   switch (it -> second) {
     case Gates::id:
@@ -367,6 +366,7 @@ void State::apply_reset(const reg_t &qubits, RngEngine &rng) {
   }
 }
 
+
 reg_t State::apply_measure_and_update(const reg_t &qubits,
                                       RngEngine &rng) {
   // Measurement outcome probabilities in the clifford
@@ -382,7 +382,7 @@ reg_t State::apply_measure_and_update(const reg_t &qubits,
     outcome.push_back(qreg_.measure_and_update(q, r));
   }
   return outcome;
-} 
+}
 
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
@@ -410,7 +410,7 @@ void State::apply_snapshot(const Operations::Op &op,
   if (it == snapshotset_.end())
     throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
-  switch (it -> second) {
+  switch (it->second) {
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
       break;
@@ -423,7 +423,7 @@ void State::apply_snapshot(const Operations::Op &op,
     case Snapshots::probs_var: {
       snapshot_probabilities(op, data, true);
     } break;
-    default: 
+    default:
       // We shouldn't get here unless there is a bug in the snapshotset
       throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" +
                                   op.name + "\'.");
@@ -441,30 +441,30 @@ void State::snapshot_probabilities(const Operations::Op &op,
   // to store.
   const size_t num_qubits = op.qubits.size();
   if (num_qubits > max_qubits_snapshot_probs_) {
-    std::stringstream msg;
-    msg << "Stabilizer::State::snapshot_probabilities: ";
-    msg << "cannot return measure probabilities for ";
-    msg << num_qubits << "-qubit measurement. Maximum is set to ";
-    msg << max_qubits_snapshot_probs_;
-    throw std::runtime_error(msg.str());
+    std::string msg = "Stabilizer::State::snapshot_probabilities: "
+      "cannot return measure probabilities for " + std::to_string(num_qubits) +
+      "-qubit measurement. Maximum is set to " +
+      std::to_string(max_qubits_snapshot_probs_);
+    throw std::runtime_error(msg);
   }
 
   // build X-stabilizer matrix for measure qubits
   std::vector<uint_t> x_stab;
-  for (size_t i=0; i < num_qubits; i++) {
+  for(const auto& qubit : op.qubits){
     reg_t row;
-    for (size_t j=0; j < num_qubits; j++)
-      row.push_back(qreg_.stabilizer(op.qubits[i]).X[op.qubits[j]]);
+    for(const auto& qubit2 : op.qubits){
+      row.push_back(qreg_.stabilizer(qubit).X[qubit2]);
+    }
     x_stab.push_back(Utils::reg2int(row, 2));
   }
 
   // Make a copy of the clifford table
   // and sample a single measurement outcome
-  // We don't need to use the RNG here since we will be 
+  // We don't need to use the RNG here since we will be
   // enumerating over all outcomes later.
   auto qreg_copy = BaseState::qreg_;
   reg_t sample;
-  for (const auto q : op.qubits) {
+  for (const auto& q : op.qubits) {
     sample.push_back(qreg_copy.measure_and_update(q, 0));
   }
   const uint_t sample_outcome = Utils::reg2int(sample, 2); // convert to int
@@ -472,7 +472,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   // sample’= sample + b * x_stab (mod 2),
   // where b is a bitstring, and occur with same probabilities
   stringmap_t<double> probs;
-  
+
   const uint_t num_outcomes = 1ULL << num_qubits;
   for (uint_t b=0; b < num_outcomes; b++) {
     uint_t outcome = sample_outcome;
@@ -497,7 +497,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 
   // Add snapshot to data
   data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);                                   
+                            BaseState::creg_.memory_hex(), probs, variance);
 }
 
 

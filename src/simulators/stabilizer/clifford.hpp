@@ -35,35 +35,35 @@ public:
   //-----------------------------------------------------------------------
 
   // Get number of qubits of the Clifford table
-  inline uint64_t num_qubits() const {return num_qubits_;}
+  uint64_t num_qubits() const {return num_qubits_;}
 
   // Return true if the number of qubits is 0
-  inline bool empty() const {return (num_qubits_ == 0);}
+  bool empty() const {return (num_qubits_ == 0);}
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
 
   // Access stabilizer table
-  inline Pauli::Pauli &operator[](uint64_t j) {return table_[j];}
-  inline const Pauli::Pauli& operator[](uint64_t j) const {return table_[j];}
+  Pauli::Pauli &operator[](uint64_t j) {return table_[j];}
+  const Pauli::Pauli& operator[](uint64_t j) const {return table_[j];}
 
   // Return reference to internal Stabilizer table
-  inline std::vector<Pauli::Pauli>& table() {return table_;}
-  inline const std::vector<Pauli::Pauli>& table() const {return table_;}
+  std::vector<Pauli::Pauli>& table() {return table_;}
+  const std::vector<Pauli::Pauli>& table() const {return table_;}
 
   // Return reference to internal phases vector
-  inline phasevec_t& phases() {return phases_;}
-  inline const phasevec_t& phases() const {return phases_;}
+  phasevec_t& phases() {return phases_;}
+  const phasevec_t& phases() const {return phases_;}
 
   // Return n-th destabilizer from internal stabilizer table
-  inline Pauli::Pauli &destabilizer(uint64_t n) {return table_[n];}
-  inline const Pauli::Pauli& destabilizer(uint64_t n) const {return table_[n];}
+  Pauli::Pauli &destabilizer(uint64_t n) {return table_[n];}
+  const Pauli::Pauli& destabilizer(uint64_t n) const {return table_[n];}
 
   // Return n-th stabilizer from internal stabilizer table
-  inline Pauli::Pauli &stabilizer(uint64_t n) {return table_[num_qubits_ + n];}
-  inline const Pauli::Pauli& stabilizer(uint64_t n) const {return table_[num_qubits_ + n];}
+  Pauli::Pauli &stabilizer(uint64_t n) {return table_[num_qubits_ + n];}
+  const Pauli::Pauli& stabilizer(uint64_t n) const {return table_[num_qubits_ + n];}
 
-  
+
   //-----------------------------------------------------------------------
   // Apply basic Clifford gates
   //-----------------------------------------------------------------------
@@ -127,16 +127,16 @@ private:
   std::vector<Pauli::Pauli> table_;
   phasevec_t phases_;
   uint64_t num_qubits_ = 0;
-  
+
   //-----------------------------------------------------------------------
   // Config settings
-  //----------------------------------------------------------------------- 
+  //-----------------------------------------------------------------------
 
   uint64_t omp_threads_ = 1;          // Disable multithreading by default
   uint64_t omp_threshold_ = 1000;     // Qubit threshold for multithreading when enabled
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
-  
+
   //-----------------------------------------------------------------------
   // Helper functions
   //-----------------------------------------------------------------------
@@ -149,7 +149,7 @@ private:
   // with X[qubit]. If so return pair (true, row), else return (false, 0)
   std::pair<bool, uint64_t> x_anticommuting(const uint64_t qubit) const;
 
-  void rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase, 
+  void rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
                      Pauli::Pauli &accum, phase_t &accum_phase) const;
 };
 
@@ -209,7 +209,7 @@ void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (uint64_t i = 0; i < 2 * num_qubits_; i++) {
     phases_[i] ^= (table_[i].X[qcon] && table_[i].Z[qtar] &&
-                   (table_[i].X[qtar] ^ table_[i].Z[qcon] ^ 1));
+                  (table_[i].X[qtar] ^ table_[i].Z[qcon] ^ 1));
     table_[i].X.setValue(table_[i].X[qtar] ^ table_[i].X[qcon], qtar);
     table_[i].Z.setValue(table_[i].Z[qtar] ^ table_[i].Z[qcon], qcon);
   }
@@ -279,7 +279,6 @@ std::pair<bool, uint64_t> Clifford::x_anticommuting(const uint64_t qubit) const 
 //------------------------------------------------------------------------------
 
 bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) {
-  
   // Clifford state measurements only have three probabilities:
   // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
   // The random case happens if there is a row anti-commuting with Z[qubit]
@@ -316,7 +315,7 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
   }
 }
 
-void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase, 
+void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
                              Pauli::Pauli &accum, phase_t &accum_phase) const {
   int8_t newr = ((2 * row_phase + 2 * accum_phase) +
                  Pauli::Pauli::phase_exponent(row, accum)) % 4;
@@ -343,7 +342,7 @@ json_t Clifford::json() const {
     std::string label = (phases_[i] == 0) ? "" : "-";
     label += table_[i].str();
     js["destabilizers"].push_back(label);
-    
+
     // Stabilizer
     label = (phases_[num_qubits_ + i] == 0) ? "" : "-";
     label += table_[num_qubits_ + i].str();
@@ -352,16 +351,15 @@ json_t Clifford::json() const {
   return js;
 }
 
-inline void to_json(json_t &js, const Clifford &clif) {
+void to_json(json_t &js, const Clifford &clif) {
   js = clif.json();
 }
 
-inline void from_json(const json_t &js, Clifford &clif) {
-  
+void from_json(const json_t &js, Clifford &clif) {
   bool has_keys = JSON::check_keys({"stabilizers", "destabilizers"}, js);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
-  
+
   const json_t& stab = js["stabilizers"];
   const json_t& destab = js["destabilizers"];
   const auto nq = stab.size();
@@ -420,11 +418,10 @@ inline void from_json(const json_t &js, Clifford &clif) {
 
 // ostream overload for templated qubitvector
 template <class statevector_t>
-inline std::ostream &operator<<(std::ostream &out, const Clifford::Clifford &clif) {
+std::ostream &operator<<(std::ostream &out, const Clifford::Clifford &clif) {
   out << clif.json().dump();
   return out;
 }
 
 //------------------------------------------------------------------------------
 #endif
-

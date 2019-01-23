@@ -22,9 +22,9 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- * 
+ *
  * From QubitVector::State class
- * 
+ *
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "chop_threshold" (double): Threshold for truncating small values to
@@ -37,7 +37,7 @@ namespace Simulator {
  *      measure sampling [Default: 10]
  * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
  *      [Default: False]
- * 
+ *
  * From BaseController Class
  *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]
@@ -54,7 +54,7 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * 
+ *
  **************************************************************************/
 
 class QasmController : public Base::Controller {
@@ -62,7 +62,7 @@ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
-  
+
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
   // Allowed config options:
@@ -104,10 +104,10 @@ private:
   Method simulation_method(const Circuit &circ) const;
 
   // Initialize a State subclass to a given initial state
-  template <class State_t, class initstate_t>
+  template <class State_t, class Initstate_t>
   void initialize_state(const Circuit &circ,
                         State_t &state,
-                        const initstate_t &initial_state) const;
+                        const Initstate_t &initial_state) const;
 
   // Optimize a circuit based on simulator config, and store the optimized
   // circuit in output_circ
@@ -121,20 +121,20 @@ private:
   //----------------------------------------------------------------
 
   // Execute n-shots of a circuit on the input state
-  template <class State_t, class initstate_t>
+  template <class State_t, class Initstate_t>
   OutputData run_circuit_helper(const Circuit &circ,
                                 uint_t shots,
                                 uint_t rng_seed,
                                 int num_threads_state,
-                                const initstate_t &initial_state) const;
+                                const Initstate_t &initial_state) const;
 
   // Execute a single shot a circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
   // simulation output.
-  template <class State_t, class initstate_t>
+  template <class State_t, class Initstate_t>
   void run_single_shot(const Circuit &circ,
                        State_t &state,
-                       const initstate_t &initial_state,
+                       const Initstate_t &initial_state,
                        OutputData &data,
                        RngEngine &rng) const;
 
@@ -142,21 +142,21 @@ private:
   // If possible this is done using measure sampling to only simulate
   // a single shot up to the first measurement, then sampling measure
   // outcomes for each shot.
-  template <class State_t, class initstate_t>
+  template <class State_t, class Initstate_t>
   void run_circuit_without_noise(const Circuit &circ,
                                  uint_t shots,
                                  State_t &state,
-                                 const initstate_t &initial_state,
+                                 const Initstate_t &initial_state,
                                  OutputData &data,
                                  RngEngine &rng) const;
 
   // Execute n-shots of a circuit with noise by sampling a new noisy
   // instance of the circuit for each shot.
-  template <class State_t, class initstate_t>
+  template <class State_t, class Initstate_t>
   void run_circuit_with_noise(const Circuit &circ,
                               uint_t shots,
                               State_t &state,
-                              const initstate_t &initial_state,
+                              const Initstate_t &initial_state,
                               OutputData &data,
                               RngEngine &rng) const;
 
@@ -177,11 +177,11 @@ private:
   // if so return a pair {true, pos} where pos is the position of the
   // first measurement operation in the input circuit
   std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ) const;
-  
+
   //-----------------------------------------------------------------------
   // Config
-  //-----------------------------------------------------------------------        
-  
+  //-----------------------------------------------------------------------
+
   // Simulation method
   Method simulation_method_ = Method::automatic;
 
@@ -200,10 +200,10 @@ private:
 //-------------------------------------------------------------------------
 
 void QasmController::set_config(const json_t &config) {
-  
+
   // Set base controller config
   Base::Controller::set_config(config);
-  
+
   // Override automatic simulation method with a fixed method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
@@ -288,10 +288,10 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
 }
 
 
-template <class State_t, class initstate_t>
+template <class State_t, class Initstate_t>
 void QasmController::initialize_state(const Circuit &circ,
                                       State_t &state,
-                                      const initstate_t &initial_state) const {
+                                      const Initstate_t &initial_state) const {
   if (initial_state.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {
@@ -313,12 +313,12 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
 // Run circuit helpers
 //-------------------------------------------------------------------------
 
-template <class State_t, class initstate_t>
+template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
                                               int num_threads_state,
-                                              const initstate_t &initial_state) const {  
+                                              const Initstate_t &initial_state) const {  
   // Initialize new state object
   State_t state;
 
@@ -349,23 +349,23 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 }
 
 
-template <class State_t, class initstate_t>
+template <class State_t, class Initstate_t>
 void QasmController::run_single_shot(const Circuit &circ,
                                      State_t &state,
-                                     const initstate_t &initial_state,
+                                     const Initstate_t &initial_state,
                                      OutputData &data,
-                                     RngEngine &rng) const {  
+                                     RngEngine &rng) const {
   initialize_state(circ, state, initial_state);
   state.apply_ops(circ.ops, data, rng);
   state.add_creg_to_data(data);
 }
 
 
-template <class State_t, class initstate_t>
+template <class State_t, class Initstate_t>
 void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             uint_t shots,
                                             State_t &state,
-                                            const initstate_t &initial_state,
+                                            const Initstate_t &initial_state,
                                             OutputData &data,
                                             RngEngine &rng) const {
   // Sample a new noise circuit and optimize for each shot
@@ -377,29 +377,29 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
 }
 
 
-template <class State_t, class initstate_t>
+template <class State_t, class Initstate_t>
 void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                uint_t shots,
                                                State_t &state,
-                                               const initstate_t &initial_state,
+                                               const Initstate_t &initial_state,
                                                OutputData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ;
   optimize_circuit<State_t>(circ, opt_circ);
-  
-  // Check if measure sampler is valid optimization is valid
+
+  // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);
   if (check.first == false || shots == 1) {
-    // Perform standard execution if we cannot apply the 
+    // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while(shots-- > 0) {
       run_single_shot(opt_circ, state, initial_state, data, rng);
     }
   } else {
-    // Implement measure sampler  
+    // Implement measure sampler
     auto pos = check.second; // Position of first measurement op
-    
+
     // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(opt_circ.ops.begin(), opt_circ.ops.begin() + pos);
     initialize_state(opt_circ, state, initial_state);
@@ -416,7 +416,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 // Measure sampling optimization
 //-------------------------------------------------------------------------
 
-std::pair<bool, size_t> 
+std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
   // are no reset operations before the measurement
@@ -453,7 +453,7 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
                                      uint_t shots,
                                      State_t &state,
                                      OutputData &data,
-                                     RngEngine &rng) const {                    
+                                     RngEngine &rng) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (meas_ops.empty()) {
     while (shots-- > 0) {

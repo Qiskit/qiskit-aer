@@ -27,13 +27,13 @@ public:
 
   // Construct an empty pauli
   Pauli() : X(0), Z(0) {};
-  
+
   // Construct an n-qubit identity Pauli
   explicit Pauli(uint64_t len) : X(len), Z(len) {};
 
   // Construct an n-qubit Pauli from a string label;
   explicit Pauli(const std::string &label);
-  
+
   // Return the string representation of the Pauli
   std::string str() const;
 

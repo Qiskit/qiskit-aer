@@ -33,10 +33,10 @@ class QasmSimulator(AerBackend):
         * "method" (str): Set the simulation method. Allowed values are:
             * "statevector": Uses a dense statevector simulation.
             * "stabilizer": uses a Clifford stabilizer state simulator that
-              is only valid for Clifford circuits and noise models.
+            is only valid for Clifford circuits and noise models.
             * "automatic": automatically run on stabilizer simulator if
-              the circuit and noise model supports it, otherwise use the
-              statevector method (Default: "automatic").
+            the circuit and noise model supports it, otherwise use the
+            statevector method (Default: "automatic").
 
         * "initial_statevector" (vector_like): Sets a custom initial
             statevector for the simulation instead of the all zero
@@ -124,15 +124,13 @@ class QasmSimulator(AerBackend):
                                  "CX", "cx", "cz", "swap",
                                  "barrier", "reset", "measure"]
         # Check if noise model is Clifford:
+        method = "automatic"
         if backend_options and "method" in backend_options:
             method = backend_options["method"]
-        else:
-            method = "automatic"
-        if method == "statevector":
-            clifford_noise = False
-        else:
-            # This should be moved to the NoiseModel class at some point
-            clifford_noise = True
+
+        clifford_noise = not (method == "statevector")
+
+        if clifford_noise:
             if method != "stabilizer" and noise_model:
                 for error in noise_model.as_dict()['errors']:
                     if error['type'] == 'qerror':
@@ -150,10 +148,7 @@ class QasmSimulator(AerBackend):
                                'result data will not contain counts.', name)
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
-            if method == "statevector":
-                clifford = False
-            else:
-                clifford = clifford_noise
+            clifford = False if method == "statevector" else clifford_noise
             for op in experiment.instructions:
                 if not clifford and not no_measure:
                     break  # we don't need to check any more ops
