@@ -117,6 +117,13 @@ matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat);
 // Return a vector containing the diagonal of a matrix
 template<class T> std::vector<T> matrix_diagonal(const matrix<T>& mat);
 
+// Inplace transformations
+template <class T> matrix<T>& transpose_inplace(matrix<T> &A);
+template <class T>
+matrix<std::complex<T>>& dagger_inplace(matrix<std::complex<T>> &A);
+template <class T>
+matrix<std::complex<T>>& conjugate_inplace(matrix<std::complex<T>> &A);
+
 // Tracing
 template <class T> T trace(const matrix<T> &A);
 template <class T> matrix<T> partial_trace_a(const matrix<T> &rho, size_t dimA);
@@ -158,7 +165,10 @@ bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold);
 template <class T>
 bool is_diagonal(const matrix<T> &mat, double threshold);
 
-template <class T>
+template <class T> 
+std::pair<bool, double> is_identity_phase(const matrix<T> &mat, double threshold);
+
+template <class T> 
 bool is_identity(const matrix<T> &mat, double threshold);
 
 template <class T>
@@ -183,6 +193,10 @@ bool is_cptp_kraus(const std::vector<matrix<T>> &kraus, double threshold);
 // Return true of the vector has norm-1.
 template <typename T>
 double is_unit_vector(const std::vector<T> &vec);
+
+// Conjugate a vector
+template <typename T>
+std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v);
 
 // Compute the Euclidean 2-norm of a vector
 template <typename T>
@@ -559,7 +573,7 @@ matrix<T> make_matrix(const std::vector<std::vector<T>> & mat) {
 template <class T>
 matrix<T> transpose(const matrix<T> &A) {
   // Transposes a Matrix
-  size_t rows = A.GetRows(), cols = A.GetColumns();
+  const size_t rows = A.GetRows(), cols = A.GetColumns();
   matrix<T> temp(cols, rows);
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
@@ -573,11 +587,11 @@ matrix<T> transpose(const matrix<T> &A) {
 template <class T>
 matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A) {
   // Take the Hermitian conjugate of a complex matrix
-  size_t cols = A.GetColumns(), rows = A.GetRows();
+  const size_t cols = A.GetColumns(), rows = A.GetRows();
   matrix<std::complex<T>> temp(cols, rows);
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      temp(j, i) = conj(A(i, j));
+      temp(j, i) = std::conj(A(i, j));
     }
   }
   return temp;
@@ -585,13 +599,13 @@ matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A) {
 
 
 template <class T>
-matrix<std::complex<T>> conj(const matrix<std::complex<T>> &A) {
+matrix<std::complex<T>> conjugate(const matrix<std::complex<T>> &A) {
   // Take the complex conjugate of a complex matrix
-  size_t rows = A.GetRows(), cols = A.GetColumns();
+  const size_t rows = A.GetRows(), cols = A.GetColumns();
   matrix<std::complex<T>> temp(rows, cols);
   for (size_t i = 0; i < rows; i++) {
     for (size_t j = 0; j < cols; j++) {
-      temp(i, j) = conj(A(i, j));
+      temp(i, j) = std::conj(A(i, j));
     }
   }
   return temp;
@@ -635,6 +649,51 @@ std::vector<T> matrix_diagonal(const matrix<T>& mat) {
     vec[i] = mat(i, i);
   return vec;
 }
+
+template <class T> 
+matrix<T>& transpose_inplace(matrix<T> &A) {
+  // Transposes a Matrix
+  const size_t rows = A.GetRows(), cols = A.GetColumns();
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = i + 1; j < cols; j++) {
+      const auto tmp = A(i, j);
+      A(i, j) = A(j, i);
+      A(j, i) = tmp;
+    }
+  }
+  return A;
+}
+
+
+template <class T>
+matrix<std::complex<T>>& dagger_inplace(matrix<std::complex<T>> &A) {
+  // Take the Hermitian conjugate of a complex matrix
+  const size_t cols = A.GetColumns(), rows = A.GetRows();
+  matrix<std::complex<T>> temp(cols, rows);
+  for (size_t i = 0; i < rows; i++) {
+    A(i, i) = conj(A(i, i));
+    for (size_t j = i + 1; j < cols; j++) {
+      const auto tmp = conj(A(i, j));
+      A(i, j) = conj(A(j, i));
+      A(j, i) = tmp;
+    }
+  }
+  return A;
+}
+
+
+template <class T>
+matrix<std::complex<T>>& conj_inplace(matrix<std::complex<T>> &A) {
+  // Take the complex conjugate of a complex matrix
+  const size_t rows = A.GetRows(), cols = A.GetColumns();
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = 0; j < cols; j++) {
+      A(i, j) = conj(A(i, j));
+    }
+  }
+  return A;
+}
+
 
 template <class T>
 T trace(const matrix<T> &A) {
@@ -873,21 +932,56 @@ bool is_diagonal(const matrix<T> &mat, double threshold) {
 }
 
 
-template <class T>
-bool is_identity(const matrix<T> &mat, double threshold) {
-  // Check U matrix is identity
+template <class T> 
+std::pair<bool, double> is_identity_phase(const matrix<T> &mat, double threshold) {
+  
+  // To check if identity we first check we check that:
+  // 1. U(0,0) = exp(i * theta)
+  // 2. U(i, i) = U(0, 0)
+  // 3. U(i, j) = 0 for j != i 
+  auto failed = std::make_pair(false, 0.0);
+
+  // Check condition 1.
+  const auto u00 = mat(0, 0);
+  //if (std::norm(std::abs(u00) - 1.0) > threshold)
+  //  return failed;
+  if (std::norm(std::abs(u00) - 1.0) > threshold) {
+    return failed;
+  }
+  const auto theta = std::arg(u00);
+
+  // Check conditions 2 and 3
   double delta = 0.;
   const auto nrows = mat.GetRows();
   const auto ncols = mat.GetColumns();
   if (nrows != ncols)
-    return false;
+    return failed;
   for (size_t i=0; i < nrows; i++) {
     for (size_t j=0; j < ncols; j++) {
-      T val = (i==j) ? 1 : 0;
-      delta += std::real(std::abs(mat(i, j) - val));
+      auto val = (i==j) ? std::norm(mat(i, j) - u00)
+                        : std::norm(mat(i, j));
+      if (val > threshold) {
+        return failed; // fail fast if single entry differs
+      } else
+        delta += val; // accumulate difference
     }
   }
-  return (delta < threshold);
+  // Check small errors didn't accumulate
+  if (delta > threshold) {
+    return failed;
+  }
+  // Otherwise we pass
+  return std::make_pair(true, theta);
+}
+
+template <class T> 
+bool is_identity(const matrix<T> &mat, double threshold) {
+  // Check mat(0, 0) == 1
+  if (std::norm(mat(0, 0) - T(1)) > threshold)
+    return false;
+  // If this passes now use is_identity_phase (and we know
+  // phase will be zero).
+  return is_identity_phase(mat, threshold).first;
 }
 
 template <class T>
@@ -903,7 +997,7 @@ bool is_diagonal_identity(const matrix<T> &mat, double threshold) {
   return (delta < threshold);
 }
 
-template <class T>
+template <class T> 
 bool is_unitary(const matrix<T> &mat, double threshold) {
   size_t nrows = mat.GetRows();
   size_t ncols = mat.GetColumns();
@@ -954,6 +1048,14 @@ bool is_unit_vector(const std::vector<T> &vec, double threshold) {
 }
 
 template <typename T>
+std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v) {
+  std::vector<std::complex<T>> ret;
+  std::transform(v.cbegin(), v.cend(), std::back_inserter(ret),
+                [] (const std::complex<T> &c) -> std::complex<T> { return std::conj(c); });
+  return ret;
+}
+
+template <typename T>
 double norm(const std::vector<T> &vec) {
   double val = 0.0;
   for (const auto v : vec) {
@@ -977,7 +1079,7 @@ matrix<T> outer_product(const std::vector<T> &ket, const std::vector<T> &bra) {
 template <typename T>
 std::vector<T> tensor_product(const std::vector<T> &vec1,
                               const std::vector<T> &vec2) {
-  std::vector<double> ret;
+  std::vector<T> ret;
   ret.reserve(vec1.size() * vec2.size());
   for (const auto &a : vec1)
     for (const auto &b : vec2) {
