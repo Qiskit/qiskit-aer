@@ -160,6 +160,20 @@ class QiskitAerTestCase(unittest.TestCase):
                    " {} != {}".format(output, target))
             self.assertDictAlmostEqual(output, target, delta=delta, msg=msg)
 
+    def compare_result_metadata(self, result, circuits, key, targets):
+        """Compare result metadata key value."""
+        if isinstance(targets, str):
+            targets = len(circuits) * [targets]
+        for pos, test_case in enumerate(zip(circuits, targets)):
+            circuit, target = test_case
+            value = None
+            metadata = getattr(result.results[0], 'metadata')
+            if metadata:
+                value = metadata.get(key)
+            msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+                   " metadata {} value {} != {}".format(key, value, target))
+            self.assertEqual(value, target, msg=msg)
+
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):
         """

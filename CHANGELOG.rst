@@ -38,6 +38,7 @@ Fixed
 
 Added
 -----
+- Adds a Clifford stabilizer simulation method to the QasmSimulator (#13)
 - Improve Circuit and NoiseModel instructions checking (#31)
 - Add reset_error function to Noise models (#34)
 - Improve error reporting at installation time (#29)

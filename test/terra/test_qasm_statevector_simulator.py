@@ -26,21 +26,23 @@ from test.terra.utils.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMi
 from test.terra.utils.qasm_simulator.qasm_extra import QasmExtraTests
 
 
-class TestQasmSimulator(QasmMethodTests,
-                        QasmMeasureTests,
-                        QasmResetTests,
-                        QasmConditionalTests,
-                        QasmCliffordTests,
-                        QasmCliffordTestsWaltzBasis,
-                        QasmCliffordTestsMinimalBasis,
-                        QasmNonCliffordTests,
-                        QasmNonCliffordTestsWaltzBasis,
-                        QasmNonCliffordTestsMinimalBasis,
-                        QasmAlgorithmTests,
-                        QasmAlgorithmTestsWaltzBasis,
-                        QasmAlgorithmTestsMinimalBasis,
-                        QasmExtraTests):
-    """QasmSimulator automatic method tests."""
+class TestQasmStatevectorSimulator(QasmMethodTests,
+                                   QasmMeasureTests,
+                                   QasmResetTests,
+                                   QasmConditionalTests,
+                                   QasmCliffordTests,
+                                   QasmCliffordTestsWaltzBasis,
+                                   QasmCliffordTestsMinimalBasis,
+                                   QasmNonCliffordTests,
+                                   QasmNonCliffordTestsWaltzBasis,
+                                   QasmNonCliffordTestsMinimalBasis,
+                                   QasmAlgorithmTests,
+                                   QasmAlgorithmTestsWaltzBasis,
+                                   QasmAlgorithmTestsMinimalBasis,
+                                   QasmExtraTests):
+    """QasmSimulator statevector method tests."""
+
+    BACKEND_OPTS = {"method": "statevector"}
 
 
 if __name__ == '__main__':

@@ -43,6 +43,9 @@ public:
   //
   // The implementation of these methods must be defined in all subclasses
   //-----------------------------------------------------------------------
+  
+  // Return a string name for the State type
+  virtual std::string name() const = 0;
 
   // Return the set of qobj instruction types supported by the State
   // by the Operations::OpType enum class.
