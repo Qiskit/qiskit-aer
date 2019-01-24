@@ -28,11 +28,9 @@ include(CTest)
 include(compiler_utils)
 
 # Get version information
-if(NOT SKBUILD)
-	get_version(${VERSION_NUM})
-	configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
-				   "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
-endif()
+get_version(${VERSION_NUM})
+configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
+               "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
