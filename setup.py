@@ -1,5 +1,15 @@
 import os
-from skbuild import setup
+try:
+    from skbuild import setup
+    dummy_install = False
+except:
+    print(""" WARNING
+              =======
+              scikit-build package is needed to build Aer sources.
+              Please, install scikit-build and reinstall Aer:
+              pip install -I qiskit-aer """)
+    from setuptools import setup
+    dummy_install = True
 from setuptools import find_packages
 
 requirements = [
@@ -26,7 +36,7 @@ def find_qiskit_aer_packages():
 setup(
     name='qiskit-aer',
     version=VERSION,
-    packages=find_qiskit_aer_packages(),
+    packages=find_qiskit_aer_packages() if not dummy_install else [],
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     author="AER Development Team",

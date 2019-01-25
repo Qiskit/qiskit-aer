@@ -52,7 +52,10 @@ Pre-requisites
 
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file, eg:
-``pip install -r requirements-dev.txt``.
+
+.. code:: sh
+
+    pip install -U -r requirements-dev.txt
 
 As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
@@ -62,9 +65,9 @@ The only required requisite is that the toolchain needs to support C++14.
 
 **Mac**
 
-On Mac we have various options depending on the compiler we wanted to use.
-If we want to use Apple's clang compiler, we need to install an extra library for
-supporting OpenMP: libomp. CMake build system will warn you otherwise.
+On Mac we have various options depending on the compiler we want to use.
+If we want to use Apple's Clang compiler, we need to install an extra library for
+supporting OpenMP: libomp. The CMake build system will warn you otherwise.
 To install it manually:
 you can type:
 
@@ -80,6 +83,13 @@ We do recommend installing OpenBLAS, which is our default choice:
 
 CMake build system will search for other BLAS implementation alternatives if
 OpenBLAS is not installed in the system.
+
+You further need to have Command Line Tools installed on MacOS:
+
+.. code::
+   
+   $ xcode-select --install
+
 
 **Linux (Ubuntu >= 16.04)**
 
@@ -109,12 +119,14 @@ There are two ways of building Aer simulators, depending on our goal they are:
 1. Build Terra compatible addon.
 2. Build standalone executable
 
-Terra addon
+**Terra addon**
+
 For the former, we just need to call the ``setup.py`` script:
 
 .. code::
 
   qiskit-aer$ python ./setup.py bdist_wheel
+
 
 We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
 This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
@@ -128,21 +140,29 @@ So a real example could be:
 
 .. code::
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DSTATIC_LINKING=True -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
     
 This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
 library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
 build in parallel, using 8 processes.
+
+*N.B. on MacOS:*, you may need to turn off static linking and specify your platform name, e.g.:
+
+.. code::
+
+   qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
+
 
 After this command is executed successfully, we will have a wheel package into the ``dist/`` directory, so next step is installing it:
 
 .. code::
 
   qiskit-aer/$ cd dist
-  qiskit-aer/dist$ pip install qiskit_aer-0.0.0-cp36-cp36m-linux_x86_64.whl
+  qiskit-aer/dist$ pip install qiskit_aer-<...>.whl
 
 
-Standalone executable
+**Standalone executable**
+
 If we want to build an standalone executable, we have to use CMake directly.
 The preferred way CMake is meant to be used, is by setting up an "out of source" build.
 So in order to build our standalone executable, we have to follow these steps:
@@ -237,6 +257,8 @@ and then run `unittest` Python framework.
 .. code::
 
   qiskit-aer$ python ./setup.py install
+  # if you had to use --plat-name macosx-10.9-x86_64 for bdist_wheel then you need to do this for install:
+  #   python ./setup.py install -- -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9 -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64
   qiskit-aer$ python -m unittest discover -s test -v
 
 The integration tests for Terra addon are included in: `test/terra`.

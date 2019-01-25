@@ -76,6 +76,9 @@ public:
     u1_threshold_ = threshold;
   }
 
+  // Return the opset for the noise model
+  inline const Operations::OpSet& opset() const {return opset_;}
+
 private:
 
   // Sample noise for the current operation
@@ -156,6 +159,9 @@ private:
 
   // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
   double u1_threshold_ = 1e-10;
+
+  // Joint OpSet of all errors
+  Operations::OpSet opset_;
 };
 
 
@@ -239,6 +245,8 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng) const {
 
 void NoiseModel::add_readout_error(const ReadoutError &error,
                                          const std::vector<reg_t> &op_qubits) {
+  // Add roerror to noise model ops
+  opset_.optypes.insert(Operations::OpType::roerror);
   // Add error term as unique pointer
   readout_errors_.push_back(error);
   // Get position of error in error vector
@@ -258,7 +266,10 @@ void NoiseModel::add_quantum_error(const QuantumError &error,
                                    const stringset_t &op_labels,
                                    const std::vector<reg_t> &op_qubits,
                                    const std::vector<reg_t> &noise_qubits) {
+  // Add error opset to noise model opset
+  opset_.insert(error.opset());
 
+  // Add error to noise model
   if (op_qubits.empty()) {
     // Add default local error
     add_local_quantum_error(error, op_labels, {reg_t()});
