@@ -18,13 +18,14 @@
 namespace AER {
 namespace Hacks {
 
+    // TODO: We may need to remove this function, because it's not used anymore. I want to keep it here
+    // for a while just in case we'll need it in a future.
     bool _is_openmp_loaded(){
         // Iterate through all images currently in memory
         for (int32_t i = _dyld_image_count(); i >= 0 ; i--) {
             // dlopen() each image
             const char *image_name = _dyld_get_image_name(i);
             if(image_name) {
-                std::cout << "image: " << image_name << " \n";
                 // These are the only libraries we know that implement OpenMP on Mac
                 // and that clash each other 
                 if(strstr(image_name, "libomp.dylib") ||
@@ -41,9 +42,6 @@ namespace Hacks {
      * https://github.com/Qiskit/qiskit-aer/issues/1
      */
     void maybe_load_openmp(){
-        if(_is_openmp_loaded())
-            return;
-
         void * handle = dlopen("libomp.dylib", RTLD_LAZY);
         if(handle == NULL){
             fprintf(stderr, "WARNING: Couldn't load libomp.dylib but we needed to. Error: %s\n", dlerror());
