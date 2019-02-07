@@ -53,6 +53,10 @@ extern "C" {
     int __KAI_KMPC_CONVENTION omp_get_thread_num(void) {
         return _hook_omp_get_thread_num();
     }
+}
+
+namespace AER {
+namespace Hacks {
 
     void populate_hooks(void * handle){
         _hook_GOMP_atomic_end = reinterpret_cast<decltype(&GOMP_atomic_end)>(dlsym(handle, "GOMP_atomic_end"));
@@ -62,7 +66,9 @@ extern "C" {
         _hook_omp_get_num_threads = reinterpret_cast<decltype(&omp_get_num_threads)>(dlsym(handle, "omp_get_num_threads"));
         _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
         _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
+        _hook_omp_get_thread_num = reinterpret_cast<decltype(&omp_get_thread_num)>(dlsym(handle, "omp_get_thread_num"));
     }
+}
 }
 
 #endif

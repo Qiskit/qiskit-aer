@@ -17,6 +17,7 @@
     #include "gcc_omp_symbols.hpp"
 #endif
 
+
 namespace {
 /*
  * Returns the path to the already loaded OpenMP library, if there's no
@@ -39,6 +40,7 @@ auto _apple_get_loaded_openmp_library = [](const std::string& default_path) -> s
     }
     return default_path + "/libomp.dylib";
 };
+
 /*
  * I hope this is a temporary hack, for fixing Issue:
  * https://github.com/Qiskit/qiskit-aer/issues/1
@@ -55,6 +57,7 @@ auto _apple_maybe_load_openmp = [](const std::string& library_path) -> void {
 #endif
 }
 
+
 namespace AER {
 namespace Hacks {
     #ifdef __APPLE__
@@ -64,6 +67,5 @@ namespace Hacks {
     #endif
 }
 }
-
 
 #endif
