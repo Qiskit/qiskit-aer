@@ -25,6 +25,7 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 include(CTest)
 include(compiler_utils)
+include(Linter)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -165,11 +166,8 @@ set(AER_LIBRARIES
 		${OPENMP_EXTERNAL_LIB}
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
-	    Threads::Threads)
-
-# Linter
-# This will add the linter as part of the compiling build target
-include(Linter)
+		Threads::Threads
+		${CMAKE_DL_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
@@ -184,6 +182,9 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	# Linter
+	# This will add the linter as part of the compiling build target
+	add_linter(qasm_simulator)
 endif()
 
 # Tests

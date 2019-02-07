@@ -1,3 +1,5 @@
+include(Linter)
+
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
@@ -8,11 +10,16 @@ find_package(PythonLibs REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+# QASM Controller
+
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
 add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
 set_target_properties(qasm_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
+# We only need to pass the linter once, as the codebase is the same for
+# all controllers
+add_linter(qasm_controller_wrapper)
 target_include_directories(qasm_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
@@ -39,6 +46,7 @@ include_directories(${modules_INCLUDE_DIRS})
 set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
 install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
 
+# StateVector Controller
 
 add_cython_target(statevector_controller_wrapper statevector_controller_wrapper.pyx CXX)
 add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
@@ -72,6 +80,7 @@ include_directories(${modules_INCLUDE_DIRS})
 set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
 install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
 
+# Unitary Controller
 
 add_cython_target(unitary_controller_wrapper unitary_controller_wrapper.pyx CXX)
 add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})

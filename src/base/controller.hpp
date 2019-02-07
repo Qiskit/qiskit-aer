@@ -37,7 +37,7 @@ namespace AER {
 
 // This is used to make wrapping Controller classes in Cython easier
 // by handling the parsing of std::string input into JSON objects.
-template <class controller_t> 
+template <class controller_t>
 std::string controller_execute(const std::string &qobj_str) {
   controller_t controller;
   auto qobj_js = json_t::parse(qobj_str);
@@ -63,7 +63,7 @@ namespace Base {
  * Parallelization
  * ---------------
  * Parallel execution uses the OpenMP library. It may happen at three levels:
- *   
+ *
  *  1. Parallel execution of circuits in a QOBJ
  *  2. Parallel execution of shots in a Circuit
  *  3. Parallelization used by the State class for performing gates.
@@ -76,7 +76,7 @@ namespace Base {
  *
  * -------------------------
  * Config settings:
- * 
+ *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
  *      be used across all levels of parallelization. Set to 0 for maximum
@@ -87,9 +87,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
- * 
+ *
  * Config settings from Data class:
- * 
+ *
  * - "counts" (bool): Return counts objecy in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
@@ -218,7 +218,7 @@ void Controller::set_config(const json_t &config) {
   std::string path;
   JSON::get_value(path, "library_dir", config);
   // Fix for MacOS and OpenMP library double initialization crash.
-- // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
   Hacks::maybe_load_openmp(path);
 }
 
