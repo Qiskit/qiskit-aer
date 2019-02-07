@@ -10,6 +10,7 @@ Qiskit Aer qasm simulator backend.
 """
 
 import logging
+import os
 from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
@@ -106,7 +107,10 @@ class QasmSimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):

@@ -19,7 +19,7 @@ extern "C" {
     void GOMP_atomic_end (void){
         _hook_GOMP_atomic_end();
     }
-    
+
     using GOMP_barrier_t = void(*)();
     GOMP_barrier_t _hook_GOMP_barrier;
     void GOMP_barrier(void){
@@ -63,7 +63,6 @@ extern "C" {
         _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
         _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
     }
-
 }
 
 #endif
