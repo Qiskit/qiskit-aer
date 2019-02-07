@@ -39,6 +39,7 @@ setup(
     packages=find_qiskit_aer_packages() if not dummy_install else [],
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
+    url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
