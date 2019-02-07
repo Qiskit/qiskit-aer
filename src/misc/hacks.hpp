@@ -1,8 +1,10 @@
 #ifndef _aer_misc_hacks_hpp_
 #define _aer_misc_hacks_hpp_
 
-#include <mach-o/dyld.h>
-#include <mach-o/nlist.h>
+#ifdef __APPLE__
+    #include <mach-o/dyld.h>
+    #include <mach-o/nlist.h>
+#endif
 #include <sys/types.h>
 #include <dlfcn.h>
 #include <iostream>
@@ -20,6 +22,7 @@ namespace {
  * Returns the path to the already loaded OpenMP library, if there's no
  *  library loaded, then load our default one.
  */
+#ifdef __APPLE__
 auto _apple_get_loaded_openmp_library = [](const std::string& default_path) -> std::string {
     // Iterate through all images currently in memory
     for (int32_t i = _dyld_image_count(); i >= 0 ; i--) {
@@ -49,6 +52,7 @@ auto _apple_maybe_load_openmp = [](const std::string& library_path) -> void {
     }
     AER::Hacks::populate_hooks(handle);
 };
+#endif
 }
 
 namespace AER {
@@ -56,7 +60,7 @@ namespace Hacks {
     #ifdef __APPLE__
         const auto maybe_load_openmp = ::_apple_maybe_load_openmp;
     #else
-        const auto maybe_load_openmp = [](const std::string dummy) -> void {};
+        const auto maybe_load_openmp = [](const std::string& dummy) -> void {};
     #endif
 }
 }
