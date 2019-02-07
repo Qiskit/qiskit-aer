@@ -1,7 +1,7 @@
 #ifndef _aer_misc_hacks_clang_symbols_
 #define _aer_misc_hacks_clang_symbols_
 
-/* 
+/*
  * This is some sort of "black magic" to solve a problem we have with OpenMP libraries on Mac.
  * The problem is actually in the library itself, but it's out of our control, so we had to
  * fix it this way.
@@ -12,7 +12,7 @@
 
 // Define undefined symbols
 extern "C" {
-    
+
     typedef struct {
         int reserved_1;
         int flags;
@@ -46,7 +46,7 @@ extern "C" {
     void __kmpc_for_static_fini(kmp_Ident *loc, int32_t global_tid){
         _hook__kmpc_for_static_fini(loc, global_tid);
     }
-    
+
     using __kmpc_for_static_init_4_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int32_t *, int32_t *, int32_t *, int32_t, int32_t);
     __kmpc_for_static_init_4_t _hook__kmpc_for_static_init_4;
@@ -58,7 +58,7 @@ extern "C" {
         _hook__kmpc_for_static_init_4(loc, global_tid, sched, plastiter, plower, pupper, pstride,
                                        incr, chunk);
     }
-                                  
+
     using __kmpc_for_static_init_8_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int64_t *, int64_t *, int64_t *, int64_t, int64_t);
     __kmpc_for_static_init_8_t _hook__kmpc_for_static_init_8;
@@ -92,7 +92,7 @@ extern "C" {
         va_list argptr;
         va_start(argptr, microtask);
         _hook__kmpc_fork_call(loc, argc, microtask, variadic);
-        va_end(argptr);     
+        va_end(argptr);
     }
 
     using __kmpc_push_num_threads_t = void(*)(kmp_Ident *, int32_t, int32_t);
@@ -123,7 +123,6 @@ extern "C" {
                                       int32_t chunk){
         _hook__kmpc_for_static_init_4u(loc, global_tid, sched, plastiter, plower, pupper, pstride, incr, chunk);
     }
-    
 
     using __kmpc_end_reduce_nowait_t = void(*)(ident_t *, kmp_int32,   kmp_critical_name *);
     __kmpc_end_reduce_nowait_t _hook__kmpc_end_reduce_nowait;
