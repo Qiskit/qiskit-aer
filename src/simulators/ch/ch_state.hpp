@@ -20,6 +20,9 @@ using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
 using Gates = CHSimulator::Gates;
 
+uint_t zero = 0ULL;
+uint_t toff_branch_max = 7ULL;
+
 enum class Snapshots {
   state, 
   statevector,
@@ -333,9 +336,11 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
     }
     std::vector<Operations::Op> non_stabilizer_circuit(ops.cbegin()+first_non_clifford, ops.cend());
     uint_t chi = compute_chi(non_stabilizer_circuit);
+    // data.add_additional_data("CHI", chi);
     BaseState::qreg_.initialize_decomposition(chi);
     //Check for measurement optimisaitons
     bool measurement_opt = check_measurement_opt(ops);
+    // data.add_additional_data("Parallel ops?", measurement_opt);
     if(measurement_opt)
     {
       apply_ops_parallel(non_stabilizer_circuit, rng);
@@ -505,7 +510,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
     if ((full_string >> qubits[i]) & 1ULL)
     {
       //Additionally, store the output bit for this qubit
-      outcome[qubits[i]] = 1ULL;
+      outcome[i]= 1ULL;
       paulis[i].e = 2;
     }
   }
@@ -607,10 +612,10 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
       BaseState::qreg_.apply_tdag(op.qubits[0], rng.rand(), rank);
       break;
     case Gates::ccx:
-      BaseState::qreg_.apply_ccx(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand(8), rank);
+      BaseState::qreg_.apply_ccx(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
       break;
     case Gates::ccz:
-      BaseState::qreg_.apply_ccz(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand(8), rank);
+      BaseState::qreg_.apply_ccz(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
       break;
     case Gates::u1:
       BaseState::qreg_.apply_u1(op.qubits[0], op.params[0], rng.rand(), rank);
