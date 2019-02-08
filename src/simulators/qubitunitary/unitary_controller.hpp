@@ -70,8 +70,7 @@ private:
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const override;
+                                 uint_t rng_seed) const override;
   
   //-----------------------------------------------------------------------
   // Custom initial state
@@ -110,8 +109,7 @@ void UnitaryController::clear_config() {
 
 OutputData UnitaryController::run_circuit(const Circuit &circ,
                                           uint_t shots,
-                                          uint_t rng_seed,
-                                          int num_threads_state) const {
+                                          uint_t rng_seed) const {
   // Initialize state
   QubitUnitary::State<> state;
   
@@ -137,7 +135,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(num_threads_state);
+  state.set_available_threads(parallel_gates_);
 
   // Rng engine (not actually needed for unitary controller)
   RngEngine rng;
