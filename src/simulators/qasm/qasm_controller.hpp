@@ -90,8 +90,7 @@ private:
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const override;
+                                 uint_t rng_seed) const override;
 
   //----------------------------------------------------------------
   // Utility functions
@@ -125,7 +124,6 @@ private:
   OutputData run_circuit_helper(const Circuit &circ,
                                 uint_t shots,
                                 uint_t rng_seed,
-                                int num_threads_state,
                                 const Initstate_t &initial_state) const;
 
   // Execute a single shot a circuit by initializing the state vector
@@ -244,8 +242,7 @@ void QasmController::clear_config() {
 
 OutputData QasmController::run_circuit(const Circuit &circ,
                                        uint_t shots,
-                                       uint_t rng_seed,
-                                       int num_threads_state) const {
+                                       uint_t rng_seed) const {
   // Execute according to simulation method
   switch (simulation_method(circ)) {
     case Method::statevector:
@@ -253,7 +250,6 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<QubitVector::State<>>(circ,
                                                       shots,
                                                       rng_seed,
-                                                      num_threads_state,
                                                       initial_statevector_); // allow custom initial state
     case Method::stabilizer:
       // Stabilizer simulation
@@ -261,7 +257,6 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<Stabilizer::State>(circ,
                                                    shots,
                                                    rng_seed,
-                                                   num_threads_state,
                                                    Clifford::Clifford()); // no custom initial state
     default:
       // We shouldn't get here, so throw an exception if we do
@@ -317,7 +312,6 @@ template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
-                                              int num_threads_state,
                                               const Initstate_t &initial_state) const {  
   // Initialize new state object
   State_t state;
@@ -327,7 +321,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(num_threads_state);
+  state.set_available_threads(parallel_gates_);
 
   // Rng engine
   RngEngine rng;
