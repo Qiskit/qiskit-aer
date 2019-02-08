@@ -164,11 +164,7 @@ OutputData CHController::run_circuit(const Circuit &circ,
                                       int num_threads_state) const {  
   // Check if circuit can run on a ch simulator
   CH::State state;
-  bool statevec_valid = state.validate_circuit(circ);  
-  // throw exception listing the invalid instructions
-  if (statevec_valid == false) {
-    state.validate_circuit_except(circ);
-  }
+  validate_state(state, circ, noise_model_, true);
 
   // Initialize CHSimulator
   state.set_config(Base::Controller::config_);

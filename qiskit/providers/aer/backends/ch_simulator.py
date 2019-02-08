@@ -10,6 +10,7 @@ Qiskit Aer qasm simulator backend.
 """
 
 import datetime
+import logging
 import json
 
 from qiskit._util import local_hardware_info
@@ -18,9 +19,11 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 
 from .aerbackend import AerBackend
+from ..aererror import AerError
 from ch_controller_wrapper import ch_controller_execute
 from ..version import __version__
 
+logger = logging.getLogger(__name__)
 
 class CHSimulator(AerBackend):
     """Aer quantum circuit simulator using the CH Representation
@@ -82,7 +85,7 @@ class CHSimulator(AerBackend):
         'backend_name': 'ch_simulator',
         'backend_version': __version__,
         'n_qubits': 63,
-        'url': 'TODO',
+        'url': 'https://github.com/padraic-padraic/qiskit-aer',
         'simulator': True,
         'local': True,
         'conditional': True,
@@ -122,6 +125,44 @@ class CHSimulator(AerBackend):
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
-    def _validate(self, qobj):
-        # TODO
-        return
+    def _validate(self, qobj, backend_options, noise_model):
+        clifford_instructions = ["id", "x", "y", "z", "h", "s", "sdg",
+                                 "CX", "cx", "cz", "swap",
+                                 "barrier", "reset", "measure"]
+        # Check if noise model is Clifford:
+        name = self.name()
+        if noise_model:
+            for error in noise_model.as_dict()['errors']:
+                if error['type'] == 'qerror':
+                    for circ in error["instructions"]:
+                        for instr in circ:
+                            if instr not in clifford_instructions:
+                                raise AerError('{} does not support non-Clifford'
+                                               ' noise'.format(name))
+                                break
+        # Check to see if experiments are clifford
+        for experiment in qobj.experiments:
+            name = experiment.header.name
+            # Check if Clifford circuit or if measure opts missing
+            no_measure = True
+            clifford = True
+            for op in experiment.instructions:
+                if not clifford and not no_measure:
+                    break  # we don't need to check any more ops
+                if clifford and op.name not in clifford_instructions:
+                    clifford = False
+                if no_measure and op.name == "measure":
+                    no_measure = False
+            # Print warning if clbits but no measure
+            if no_measure:
+                logger.warning('No measurements in circuit "%s": '
+                               'count data will return all zeros.', name)
+            # Check qubits for statevector simulation
+            if experiment.config.n_qubits > self.configuration().n_qubits:
+                raise AerError('Number of qubits({}) is greater than the'
+                               'maximum of 63 currently supported by the'
+                               'CH backend.')
+            # if not clifford:
+            #     system_memory = int(local_hardware_info()['memory'])
+            # TODO: Expose State required_mb function, wrap with cython and call
+                

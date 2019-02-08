@@ -547,7 +547,7 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
 
 uint_t Runner::StabilizerSampler(AER::RngEngine &rng)
 {
-  uint max = (1ULL << n_qubits) -1;
+  uint_t max = (1ULL << n_qubits) -1;
   return states[0].Sample(rng.rand_int(zero, max));
 }
 

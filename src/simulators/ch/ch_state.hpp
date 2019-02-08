@@ -39,6 +39,8 @@ public:
   State() = default;
   virtual ~State() = default;
 
+  virtual std::string name() const override {return "ch";}
+
   inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override
   {
     return std::unordered_set<Operations::OpType>({
@@ -80,9 +82,7 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual bool validate_circuit(const Circuit &circ) const override;
-
-// protected:
+protected:
 
   //Alongside the sample measure optimisaiton, we can parallelise
   //circuit applicaiton over the states. This reduces the threading overhead
@@ -235,16 +235,6 @@ void State::set_config(const json_t &config)
   JSON::get_value(snapshot_chop_threshold, "chop_threshold", config);
   //Set the number of samples for the probabilities snapshot
   JSON::get_value(probabilities_snapshot_samples, "probabilities_snapshot_samples", config);
-}
-
-bool State::validate_circuit(const Circuit &circ) const {
-  if (circ.num_qubits > 63)//Currently, we only support 63 qubits.
-  {
-    return false;
-  }
-  return circ.check_ops(allowed_ops(),
-                        allowed_gates(),
-                        allowed_snapshots());
 }
 
 std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Operations::Op> &ops)
