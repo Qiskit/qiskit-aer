@@ -71,11 +71,12 @@ class AerBackend(BaseBackend):
         super().__init__(configuration, provider=provider)
         self._controller = controller
 
-    def run(self, qobj, backend_options=None, noise_model=None):
+    def run(self, qobj, backend_options=None, noise_model=None, validate=True):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj, backend_options, noise_model)
+        aer_job = AerJob(self, job_id, self._run_job, qobj,
+                         backend_options, noise_model, validate)
         aer_job.submit()
         return aer_job
 
@@ -91,10 +92,11 @@ class AerBackend(BaseBackend):
                              pending_jobs=0,
                              status_msg='')
 
-    def _run_job(self, job_id, qobj, backend_options, noise_model):
+    def _run_job(self, job_id, qobj, backend_options, noise_model, validate):
         """Run a qobj job"""
         start = time.time()
-        self._validate(qobj)
+        if validate:
+            self._validate(qobj, backend_options, noise_model)
         qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
         output = json.loads(self._controller(qobj_str).decode('UTF-8'))
         self._validate_controller_output(output)
@@ -148,9 +150,9 @@ class AerBackend(BaseBackend):
             # If no error was found check for error message at qobj level
             raise AerError(output.get("status", None))
 
-    def _validate(self, qobj):
-        # TODO
-        return
+    def _validate(self, qobj, backend_options, noise_model):
+        """Validate the qobj, backend_options, noise_model for the backend"""
+        pass
 
     def __repr__(self):
         """Official string representation of an AerBackend."""

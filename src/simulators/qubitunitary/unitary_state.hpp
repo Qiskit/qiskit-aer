@@ -45,8 +45,11 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
+  // Return the string name of the State class
+  virtual std::string name() const override {return "unitary";}
+
   // Return the set of qobj instruction types supported by the State
-  inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
+  virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
     return std::unordered_set<Operations::OpType>({
       Operations::OpType::gate,
       Operations::OpType::barrier,
@@ -56,13 +59,13 @@ public:
   }
 
   // Return the set of qobj gate instruction names supported by the State
-  inline virtual stringset_t allowed_gates() const override {
+  virtual stringset_t allowed_gates() const override {
     return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
   }
 
   // Return the set of qobj snapshot types supported by the State
-  inline virtual stringset_t allowed_snapshots() const override {
+  virtual stringset_t allowed_snapshots() const override {
     return {"unitary"};
   }
 

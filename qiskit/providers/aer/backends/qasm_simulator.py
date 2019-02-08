@@ -9,12 +9,16 @@
 Qiskit Aer qasm simulator backend.
 """
 
+import logging
 from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from qasm_controller_wrapper import qasm_controller_execute
+from ..aererror import AerError
 from ..version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class QasmSimulator(AerBackend):
@@ -25,6 +29,14 @@ class QasmSimulator(AerBackend):
         The following backend options may be used with in the
         `backend_options` kwarg diction for `QasmSimulator.run` or
         `qiskit.execute`
+
+        * "method" (str): Set the simulation method. Allowed values are:
+            * "statevector": Uses a dense statevector simulation.
+            * "stabilizer": uses a Clifford stabilizer state simulator that
+            is only valid for Clifford circuits and noise models.
+            * "automatic": automatically run on stabilizer simulator if
+            the circuit and noise model supports it, otherwise use the
+            statevector method (Default: "automatic").
 
         * "initial_statevector" (vector_like): Sets a custom initial
             statevector for the simulation instead of the all zero
@@ -77,7 +89,7 @@ class QasmSimulator(AerBackend):
         'backend_name': 'qasm_simulator',
         'backend_version': __version__,
         'n_qubits': MAX_QUBIT_MEMORY,
-        'url': 'TODO',
+        'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,
         'conditional': True,
@@ -97,25 +109,64 @@ class QasmSimulator(AerBackend):
         ]
     }
 
-    def run(self, qobj, backend_options=None, noise_model=None):
-        """Run a qobj on the backend.
-
-        Args:
-            qobj (Qobj): a Qobj.
-            backend_options (dict): backend configuration options.
-            noise_model (NoiseModel): noise model for simulations.
-
-        Returns:
-            AerJob: the simulation job.
-        """
-        return super().run(qobj, backend_options=backend_options,
-                           noise_model=noise_model)
-
     def __init__(self, configuration=None, provider=None):
         super().__init__(qasm_controller_execute,
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
-    def _validate(self, qobj):
-        # TODO
-        return
+    def _validate(self, qobj, backend_options, noise_model):
+        """Semantic validations of the qobj which cannot be done via schemas.
+
+        1. Check number of qubits will fit in local memory.
+        2. warn if no classical registers or measurements in circuit.
+        """
+        clifford_instructions = ["id", "x", "y", "z", "h", "s", "sdg",
+                                 "CX", "cx", "cz", "swap",
+                                 "barrier", "reset", "measure"]
+        # Check if noise model is Clifford:
+        method = "automatic"
+        if backend_options and "method" in backend_options:
+            method = backend_options["method"]
+
+        clifford_noise = not (method == "statevector")
+
+        if clifford_noise:
+            if method != "stabilizer" and noise_model:
+                for error in noise_model.as_dict()['errors']:
+                    if error['type'] == 'qerror':
+                        for circ in error["instructions"]:
+                            for instr in circ:
+                                if instr not in clifford_instructions:
+                                    clifford_noise = False
+                                    break
+        # Check to see if experiments are clifford
+        for experiment in qobj.experiments:
+            name = experiment.header.name
+            # Check for classical bits
+            if experiment.config.memory_slots == 0:
+                logger.warning('No classical registers in circuit "%s": '
+                               'result data will not contain counts.', name)
+            # Check if Clifford circuit or if measure opts missing
+            no_measure = True
+            clifford = False if method == "statevector" else clifford_noise
+            for op in experiment.instructions:
+                if not clifford and not no_measure:
+                    break  # we don't need to check any more ops
+                if clifford and op.name not in clifford_instructions:
+                    clifford = False
+                if no_measure and op.name == "measure":
+                    no_measure = False
+            # Print warning if clbits but no measure
+            if no_measure:
+                logger.warning('No measurements in circuit "%s": '
+                               'count data will return all zeros.', name)
+            # Check qubits for statevector simulation
+            if not clifford:
+                n_qubits = experiment.config.n_qubits
+                max_qubits = self.configuration().n_qubits
+                if n_qubits > max_qubits:
+                    system_memory = int(local_hardware_info()['memory'])
+                    raise AerError('Number of qubits ({}) '.format(n_qubits) +
+                                   'is greater than maximum ({}) '.format(max_qubits) +
+                                   'for "{}" (method=statevector) '.format(self.name()) +
+                                   'with {} GB system memory.'.format(system_memory))

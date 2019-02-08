@@ -37,7 +37,6 @@ namespace AER {
 
 // This is used to make wrapping Controller classes in Cython easier
 // by handling the parsing of std::string input into JSON objects.
-
 template <class controller_t> 
 std::string controller_execute(const std::string &qobj_str) {
   controller_t controller;
@@ -137,6 +136,20 @@ protected:
                                  uint_t rng_seed,
                                  int num_threads_state) const = 0;
 
+  //-------------------------------------------------------------------------
+  // State validation
+  //-------------------------------------------------------------------------
+
+  // Return True if a given circuit (and internal noise model) are valid for
+  // execution on the given state. Otherwise return false.
+  // If throw_except is true an exception will be thrown on the return false
+  // case listing the invalid instructions in the circuit or noise model.
+  template <class state_t>
+  static bool validate_state(const state_t &state,
+                             const Circuit &circ,
+                             const Noise::NoiseModel &noise,
+                             bool throw_except = false);
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -209,6 +222,40 @@ void Controller::set_threads_default() {
   max_threads_shot_ = 1;
 }
 
+
+//-------------------------------------------------------------------------
+// State validation
+//-------------------------------------------------------------------------
+
+template <class state_t>
+bool Controller::validate_state(const state_t &state,
+                                const Circuit &circ,
+                                const Noise::NoiseModel &noise,
+                                bool throw_except) {
+  // First check if a noise model is valid a given state
+  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
+  bool circ_valid = state.validate_opset(circ.opset());  
+  if (noise_valid && circ_valid)
+    return true;
+  
+  // If we didn't return true then either noise model or circ has
+  // invalid instructions.
+  if (throw_except == false)
+    return false;
+  
+  // If we are throwing an exception we include information
+  // about the invalid operations
+  std::stringstream msg;
+  if (!noise_valid) {
+    msg << "Noise model contains invalid instructions (";
+    msg << state.invalid_opset_message(noise.opset()) << ")";
+  }
+  if (!circ_valid) {
+    msg << "Circuit contains invalid instructions (";
+    msg << state.invalid_opset_message(circ.opset()) << ")";
+  }
+  throw std::runtime_error(msg.str());
+}
 
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output
@@ -334,7 +381,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
   try {
 
     // Calculate threads for parallel shot execution
-    // We do this rather than in the excute_circuit function so we can add the
+    // We do this rather than in the execute_circuit function so we can add the
     // number of shot threads to the JSON circuit output.
     int num_threads_shot = 1;
     int num_threads_state = 1;
@@ -342,13 +389,13 @@ json_t Controller::execute_circuit(Circuit &circ) {
       int num_shots = circ.shots;
       // Calculate threads for parallel circuit execution
       // TODO: add memory checking for limiting thread number
-      num_threads_shot = (max_threads_shot_ < 1) 
+      num_threads_shot = (max_threads_shot_ < 1)
         ? std::min<int>({num_shots, available_threads_ , max_threads_total_})
         : std::min<int>({num_shots, available_threads_ , max_threads_total_, max_threads_shot_});
       available_threads_ /= num_threads_shot;
 
       // Calculate remaining threads for the State class to use
-      num_threads_state = (max_threads_state_ < 1) 
+      num_threads_state = (max_threads_state_ < 1)
         ? std::min<int>({available_threads_ , max_threads_total_,})
         : std::min<int>({available_threads_ , max_threads_total_, max_threads_state_});
 
@@ -368,7 +415,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
         subshots.push_back(circ.shots / num_threads_shot);
       }
       // If shots is not perfectly divisible by threads, assign the remaineder
-      for (uint_t j=0; j < (circ.shots % num_threads_shot); ++j) {
+      for (int j=0; j < int(circ.shots % num_threads_shot); ++j) {
         subshots[j] += 1;
       }
 
@@ -378,7 +425,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
         for (int j = 0; j < num_threads_shot; j++) {
           data[j] = run_circuit(circ, subshots[j], circ.seed + j, num_threads_state);
         }
-      // Accumulate results across shots 
+      // Accumulate results across shots
       for (size_t j=1; j<data.size(); j++) {
         data[0].combine(data[j]);
       }
@@ -393,11 +440,21 @@ json_t Controller::execute_circuit(Circuit &circ) {
     result["header"] = circ.header;
     result["shots"] = circ.shots;
     result["seed"] = circ.seed;
+    // Move any metadata from the subclass run_circuit data
+    // to the experiment resultmetadata field
+    if (JSON::check_key("metadata", result["data"])) {
+
+      for(auto& metadata: result["data"]["metadata"].items()) {
+        result["metadata"][metadata.key()] = metadata.value();
+      }
+      // Remove the metatdata field from data
+      result["data"].erase("metadata");
+    }
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
     result["time_taken"] = time_taken;
-  } 
+  }
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
     result["success"] = false;

@@ -91,41 +91,38 @@ class UnitarySimulator(AerBackend):
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
-    def run(self, qobj, backend_options=None):
-        """Run a qobj on the backend.
-
-        Args:
-            qobj (Qobj): a Qobj.
-            backend_options (dict): backend configuration options.
-
-        Returns:
-            AerJob: the simulation job.
-        """
-        return super().run(qobj, backend_options=backend_options)
-
-    def _validate(self, qobj):
+    def _validate(self, qobj, backend_options, noise_model):
         """Semantic validations of the qobj which cannot be done via schemas.
         Some of these may later move to backend schemas.
-
-        1. No shots
+        1. Set shots=1
         2. No measurements or reset
+        3. Check number of qubits will fit in local memory.
         """
+        name = self.name()
+        if noise_model is not None:
+            logger.error("{} cannot be run with a noise.".format(name))
+            raise AerError("{} does not support noise.".format(name))
+
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise AerError('Number of qubits ({}) '.format(n_qubits) +
+                           'is greater than maximum ({}) '.format(max_qubits) +
+                           'for "{}" '.format(name) +
+                           'with {} GB system memory.'.format(int(local_hardware_info()['memory'])))
         if qobj.config.shots != 1:
-            logger.info("UnitarySimulator only supports 1 shot. "
-                        "Setting shots=1.")
+            logger.info('"%s" only supports 1 shot. Setting shots=1.',
+                        name)
             qobj.config.shots = 1
         for experiment in qobj.experiments:
-            # Check for measure or reset operations
-            for pos, instr in reversed(list(enumerate(experiment.instructions))):
-                if instr.name == "measure":
-                    raise AerError("UnitarySimulator: circuit contains measure.")
-                if instr.name == "reset":
-                    raise AerError("UnitarySimulator: circuit contains reset.")
-            # Set shots to 1
+            exp_name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info("UnitarySimulator only supports 1 shot. "
-                            "Setting shots=1 for circuit %s.", experiment.header.name)
+                logger.info('"%s" only supports 1 shot. '
+                            'Setting shots=1 for circuit "%s".',
+                            name, exp_name)
                 experiment.config.shots = 1
-            # Set memory slots to 0
-            if getattr(experiment.config, 'memory_slots', 0) != 0:
-                experiment.config.memory_slots = 0
+            for operation in experiment.instructions:
+                if operation.name in ['measure', 'reset']:
+                    raise AerError('Unsupported "%s" instruction "%s" ' +
+                                   'in circuit "%s" ', name,
+                                   operation.name, exp_name)
