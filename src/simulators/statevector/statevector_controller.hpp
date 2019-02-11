@@ -9,7 +9,7 @@
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
-#include "qv_state.hpp"
+#include "statevector_state.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -21,7 +21,7 @@ namespace Simulator {
 /**************************************************************************
  * Config settings:
  * 
- * From QubitVector::State class
+ * From Statevector::State class
  * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
@@ -119,7 +119,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed) const {
   // Initialize  state
-  QubitVector::State<> state;
+  Statevector::State<> state;
 
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise_model_, true);

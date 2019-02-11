@@ -22,15 +22,15 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
-#include "simulators/qubitvector/indexing.hpp" // multipartite qubit indexing
+#include "simulators/statevector/indexing.hpp" // multipartite qubit indexing
 
 namespace QM {
 
 // Indexing Types
-using Indexing::uint_t;
-using Indexing::int_t;
-using Indexing::Qubit::indexes;
-using Indexing::Qubit::indexes_dynamic;
+using QV::uint_t;
+using QV::int_t;
+using QV::indexes_static;
+using QV::indexes_dynamic;
 
 // Data types
 using complex_t = std::complex<double>;
@@ -520,7 +520,7 @@ void QubitMatrix<statematrix_t>::apply_matrix_lambda(const std::array<uint_t, N>
     for (int_t col = 0; col < ncols; col++)
       for (int_t k = 0; k < end; k++) {
         // store entries touched by U
-        const auto inds = indexes(qs, qubits_sorted, k);
+        const auto inds = indexes_static(qs, qubits_sorted, k);
         std::forward<Lambda>(func)(mat, col, inds);
       }
   }
