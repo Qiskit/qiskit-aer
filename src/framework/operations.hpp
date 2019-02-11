@@ -329,8 +329,14 @@ Op json_to_op_bfunc(const json_t &js) {
   JSON::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
   JSON::get_value(op.string_params[1], "val", js);  // value hexadecimal string
   JSON::get_value(relation, "relation", js); // relation string
-  JSON::get_value(op.memory, "memory", js);
-  JSON::get_value(op.registers, "register", js);
+  // Load single register / memory bit for storing result
+  uint_t tmp;
+  if (JSON::get_value(tmp, "register", js)) {
+    op.registers.push_back(tmp);
+  }
+  if (JSON::get_value(tmp, "memory", js)) {
+    op.memory.push_back(tmp);
+  }
   
   // Format hex strings
   Utils::format_hex_inplace(op.string_params[0]);
