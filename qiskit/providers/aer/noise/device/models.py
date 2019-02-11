@@ -152,6 +152,7 @@ def basic_device_gate_errors(properties, thermal_relaxation=True,
     """
     # Generate custom gate time dict
     custom_times = {}
+    relax_params = []
     if thermal_relaxation:
         # If including thermal relaxation errors load
         # T1, T2, and frequency values from properties
