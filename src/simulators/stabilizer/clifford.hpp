@@ -360,8 +360,8 @@ void from_json(const json_t &js, Clifford &clif) {
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
-  const json_t& stab = js["stabilizers"];
-  const json_t& destab = js["destabilizers"];
+  const std::vector<std::string> stab = js["stabilizers"];
+  const std::vector<std::string> destab = js["destabilizers"];
   const auto nq = stab.size();
   if (nq != destab.size()) {
     throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
