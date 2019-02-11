@@ -64,7 +64,7 @@ public:
   bool check_conditional(const Operations::Op &op) const;
 
   // Apply a boolean function Op
-  bool apply_bfunc(const Operations::Op &op);
+  void apply_bfunc(const Operations::Op &op);
 
   // Apply readout error instruction to classical registers
   void apply_roerror(const Operations::Op &op, RngEngine &rng);
@@ -151,7 +151,7 @@ bool ClassicalRegister::check_conditional(const Operations::Op &op) const {
 }
 
 
-bool ClassicalRegister::apply_bfunc(const Operations::Op &op) {
+void ClassicalRegister::apply_bfunc(const Operations::Op &op) {
 
   // Check input is boolean function op
   if (op.type != Operations::OpType::bfunc) {
@@ -171,7 +171,7 @@ bool ClassicalRegister::apply_bfunc(const Operations::Op &op) {
   } else {
     // We need to use big ints so we implement the bit-mask via the binary string
     // representation rather than using a big integer class
-    std::string mask_bin = Utils::hex2bin(mask); // has 0b prefix while creg_registers_ doesn't
+    std::string mask_bin = Utils::hex2bin(mask); // has 0b prefix while creg_register_ doesn't
     size_t length = std::min(mask_bin.size() - 2, creg_register_.size()); // -2 to remove 0b
     std::string masked_val = std::string(length, '0');
     for (size_t rev_pos = 0; rev_pos < length; rev_pos++) {
@@ -183,22 +183,39 @@ bool ClassicalRegister::apply_bfunc(const Operations::Op &op) {
     compared = masked_val.compare(target_val);
   }
   // check value of compared integer for different comparison operations
+  bool outcome;
   switch (op.bfunc) {
     case Operations::RegComparison::Equal:
-      return (compared == 0);
+      outcome = (compared == 0);
+      break;
     case Operations::RegComparison::NotEqual:
-      return (compared != 0);
+      outcome = (compared != 0);
+      break;
     case Operations::RegComparison::Less:
-      return (compared < 0);
+      outcome = (compared < 0);
+      break;
     case Operations::RegComparison::LessEqual:
-      return (compared <= 0);
+      outcome = (compared <= 0);
+      break;
     case Operations::RegComparison::Greater:
-      return (compared > 0);
+      outcome = (compared > 0);
+      break;
     case Operations::RegComparison::GreaterEqual:
-      return (compared >= 0);
+      outcome = (compared >= 0);
+      break;
     default:
       // we shouldn't ever get here
       throw std::invalid_argument("Invalid boolean function relation.");
+  }
+  // Store outcome in register
+  if (op.registers.size() > 0) {
+    const size_t pos = creg_register_.size() - op.registers[0] - 1; 
+    creg_register_[pos] = (outcome) ? '1' : '0';
+  }
+  // Optionally store outcome in memory
+  if (op.memory.size() > 0) {
+    const size_t pos = creg_memory_.size() - op.memory[0] - 1; 
+    creg_memory_[pos] = (outcome) ? '1' : '0';
   }
 }
 
