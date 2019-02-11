@@ -182,7 +182,7 @@ protected:
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
   int parallel_shots_;
-  int parallel_gates_;
+  int parallel_state_update_;
 };
 
 
@@ -226,7 +226,7 @@ void Controller::clear_parallelization() {
 
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
-  parallel_gates_ = 1;
+  parallel_state_update_ = 1;
 }
 
 void Controller::set_parallelization(Qobj& qobj) {
@@ -253,7 +253,7 @@ void Controller::set_parallelization(Qobj& qobj) {
       std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_, max_parallel_shots_});
   parallel_shots_ = std::max<int>({1, parallel_shots_});
 
-  parallel_gates_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
+  parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
 }
 
 
@@ -346,7 +346,7 @@ json_t Controller::execute(const json_t &qobj_js) {
   #endif
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
     result["metadata"]["parallel_shots"] = parallel_shots_;
-    result["metadata"]["parallel_gates"] = parallel_gates_;
+    result["metadata"]["parallel_state_update"] = parallel_state_update_;
 
     const int num_circuits = qobj.circuits.size();
 

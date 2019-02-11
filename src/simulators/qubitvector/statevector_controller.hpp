@@ -137,7 +137,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   // Set config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_gates_);
+  state.set_available_threads(parallel_state_update_);
   
   // Rng engine
   RngEngine rng;
