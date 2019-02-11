@@ -135,7 +135,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_gates_);
+  state.set_available_threads(parallel_state_update_);
 
   // Rng engine (not actually needed for unitary controller)
   RngEngine rng;
