@@ -64,6 +64,11 @@ namespace Simulator {
  **************************************************************************/
 
 class CHController : public Base::Controller {
+
+public:
+  friend bool validate_memory(const std::string &qobj_str,
+                                 unsigned long long max_mb);
+
 private:
 
   //-----------------------------------------------------------------------
@@ -138,6 +143,37 @@ private:
 //=========================================================================
 // Implementations
 //=========================================================================
+
+bool validate_memory(const std::string &qobj_str, unsigned long long max_mb)
+{
+  CHController controller;
+  json_t qobj_js = json_t::parse(qobj_str);
+  Qobj qobj;
+  qobj.load_qobj_from_json(qobj_js);
+  controller.set_config(qobj_js["config"]);
+  CH::State state;
+  state.set_config(controller.config_);
+  if(qobj.circuits.size() == 1)
+  {
+    return (max_mb > state.required_memory_mb(qobj.circuits[0].num_qubits, qobj.circuits[0].ops));
+  }
+  std::vector<uint_t> circuit_mb;
+  circuit_mb.reserve(qobj.circuits.size());
+  for(auto circuit: qobj.circuits)
+  {
+    circuit_mb.push_back(state.required_memory_mb(circuit.num_qubits, circuit.ops));
+  }
+  std::sort(circuit_mb.begin(), circuit_mb.end(), [](const uint_t a, const uint_t b){return b<a;});
+  int parallel_states = std::max(controller.max_threads_total_,
+                                    controller.max_threads_circuit_*controller.max_threads_shot_);
+  //TODO: What about 0?
+  uint_t total_memory = 0;
+  for(int i=0; i<parallel_states; i++)
+  {
+    total_memory += circuit_mb[i];
+  }
+  return (max_mb > total_memory);
+}
 
 //-------------------------------------------------------------------------
 // Config

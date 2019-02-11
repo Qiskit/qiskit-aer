@@ -20,7 +20,7 @@ from qiskit.result import Result
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-from ch_controller_wrapper import ch_controller_execute
+from ch_controller_wrapper import ch_controller_execute, ch_validate_memory
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,8 @@ class CHSimulator(AerBackend):
             experiment execution (Default: 1).
     """
 
+    MAX_MEMORY = local_hardware_info()['memory']
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'ch_simulator',
         'backend_version': __version__,
@@ -92,8 +94,8 @@ class CHSimulator(AerBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 100000,
-        'description': 'A C++ simulator that decomposes circuits into stabilizer'
-                       'states.',
+        'description': 'A C++ simulator that decomposes circuits into '
+                        'stabilizer states.',
         'basis_gates': ['u1', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'ccz', 'swap',
                         'snapshot'],
@@ -105,20 +107,6 @@ class CHSimulator(AerBackend):
             }
         ]
     }
-
-    def run(self, qobj, backend_options=None, noise_model=None):
-        """Run a qobj on the backend.
-
-        Args:
-            qobj (Qobj): a Qobj.
-            backend_options (dict): backend configuration options.
-            noise_model (NoiseModel): noise model for simulations.
-
-        Returns:
-            AerJob: the simulation job.
-        """
-        return super().run(qobj, backend_options=backend_options,
-                           noise_model=noise_model)
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(ch_controller_execute,
@@ -137,20 +125,21 @@ class CHSimulator(AerBackend):
                     for circ in error["instructions"]:
                         for instr in circ:
                             if instr not in clifford_instructions:
-                                raise AerError('{} does not support non-Clifford'
+                                raise AerError('{} does not support '
+                                               'non-Clifford '
                                                ' noise'.format(name))
                                 break
         # Check to see if experiments are clifford
+        all_clifford = True
         for experiment in qobj.experiments:
             name = experiment.header.name
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
-            clifford = True
             for op in experiment.instructions:
-                if not clifford and not no_measure:
+                if not all_clifford and not no_measure:
                     break  # we don't need to check any more ops
-                if clifford and op.name not in clifford_instructions:
-                    clifford = False
+                if all_clifford and op.name not in clifford_instructions:
+                    all_clifford = False
                 if no_measure and op.name == "measure":
                     no_measure = False
             # Print warning if clbits but no measure
@@ -162,7 +151,13 @@ class CHSimulator(AerBackend):
                 raise AerError('Number of qubits({}) is greater than the'
                                'maximum of 63 currently supported by the'
                                'CH backend.')
-            # if not clifford:
-            #     system_memory = int(local_hardware_info()['memory'])
-            # TODO: Expose State required_mb function, wrap with cython and call
-                
+        if not all_clifford:
+            sufficient_memory = ch_validate_memory(str(qobj), self.MAX_MEMORY)
+            if not sufficient_memory:
+                accuracy = self.configuration.get(
+                            'srank_approximation_error',
+                            0.05)
+                raise AerError('The number of terms required to simulate '
+                               ' these circuits with the desired precision'
+                               ' {} would require more memory than is '
+                               'currently available'.format(accuracy))
