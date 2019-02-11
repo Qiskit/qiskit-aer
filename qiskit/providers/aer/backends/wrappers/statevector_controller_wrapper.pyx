@@ -11,7 +11,7 @@ Cython wrapper for Aer StatevectorController.
 
 from libcpp.string cimport string
 
-cdef extern from "simulators/qubitvector/statevector_controller.hpp" namespace "AER::Simulator":
+cdef extern from "simulators/statevector/statevector_controller.hpp" namespace "AER::Simulator":
     cdef cppclass StatevectorController:
         StatevectorController() except +
 
