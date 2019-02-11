@@ -210,12 +210,12 @@ void ClassicalRegister::apply_bfunc(const Operations::Op &op) {
   // Store outcome in register
   if (op.registers.size() > 0) {
     const size_t pos = creg_register_.size() - op.registers[0] - 1; 
-    creg_register_[pos] = outcome;
+    creg_register_[pos] = (outcome) ? '1' : '0';
   }
   // Optionally store outcome in memory
   if (op.memory.size() > 0) {
     const size_t pos = creg_memory_.size() - op.memory[0] - 1; 
-    creg_memory_[pos] = outcome;
+    creg_memory_[pos] = (outcome) ? '1' : '0';
   }
 }
 
