@@ -38,7 +38,7 @@ namespace Simulator {
  *.     algorithm. This is used to normalise the state vector. [Default: 100]
  * - "probabilities_snapshot_samples" (int): Number of output strings we sample to estimate
  *.     output probability.
- * - "disable_measurement_optimisation" (bool): Flag that controls if we use an 'optimised'
+ * - "disable_measurement_opt" (bool): Flag that controls if we use an 'optimised'
  *      measurement method that 'mixes' the monte carlo estimator once, before sampling `shots` times.
  *      This significantly reduces the computational time needed to sample from the output
  *      distribution, but performs poorly on strongly peaked probability distributions as it can

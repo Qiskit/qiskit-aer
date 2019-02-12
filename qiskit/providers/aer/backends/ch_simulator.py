@@ -48,7 +48,7 @@ class CHSimulator(AerBackend):
             Norm Estimation algorithm. This is used to normalise the
             state vector. (Default: 100)
 
-        * "disable_measurement_optimisation" (bool): Flag that controls if we
+        * "disable_measurement_opt" (bool): Flag that controls if we
             use an 'optimised' measurement method that 'mixes' the monte carlo
             estimator once, before sampling `shots` times. This significantly
             reduces the computational time needed to sample from the output
@@ -152,7 +152,9 @@ class CHSimulator(AerBackend):
                                'maximum of 63 currently supported by the'
                                'CH backend.')
         if not all_clifford:
-            sufficient_memory = ch_validate_memory(str(qobj), self.MAX_MEMORY)
+            qobj_str = self._format_qobj_str(qobj, backend_options,
+                                             noise_model)
+            sufficient_memory = ch_validate_memory(qobj_str, self.MAX_MEMORY)
             if not sufficient_memory:
                 accuracy = self.configuration.get(
                             'srank_approximation_error',
