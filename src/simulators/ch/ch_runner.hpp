@@ -63,12 +63,17 @@ private:
   json_t serialise_state(uint_t rank) const;
 
 public:
-  Runner() = default;
+  Runner(): n_qubits(0), chi(0) {};
   Runner(uint_t n_qubits);
   virtual ~Runner() = default;
 
   void initialize(uint_t n_qubits);
   void initialize_omp(uint_t n_threads, uint_t threshold_rank);
+
+  bool empty() const
+  {
+    return (n_qubits == 0 || chi == 0);
+  }
 
   uint_t get_chi() const;
   uint_t get_n_qubits() const;

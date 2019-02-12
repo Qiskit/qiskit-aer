@@ -37,6 +37,56 @@ struct scalar_t {
   // constructor makes number 1
   scalar_t(): eps(1), p(0), e(0) {};
   scalar_t(const scalar_t& rhs): eps(rhs.eps), p(rhs.p), e(rhs.e) {};
+  scalar_t(const std::complex<double> coeff):
+  eps(1),
+  p(0),
+  e(0)
+  {
+    double abs_val = std::abs(coeff);
+    if(std::abs(abs_val-0.)<1e-8)
+    {
+      eps = 0;
+    }
+    else
+    {
+      p = (int) std::log2(std::pow(abs_val, 2));
+      bool is_real_zero = (std::abs(coeff.real()-0)<1e-8);
+      bool is_imag_zero = (std::abs(coeff.imag()-0)<1e-8);
+      bool is_real_posi = (coeff.real() > 0) && !(is_real_zero);
+      bool is_imag_posi = (coeff.imag() > 0) && !(is_imag_zero);
+      char switch_var = (is_real_zero * 1) + (is_imag_zero*2) + (is_real_posi * 4) + (is_imag_posi * 8);
+      switch(switch_var)
+      {
+        case 0:
+          e = 5;
+          break;
+        case 1:
+          e = 6;
+          break;
+        case 2:
+          e = 4;
+          break;
+        case 4:
+          e=7;
+          break;
+        case 6:
+          e=0;
+          break;
+        case 8:
+          e=3;
+          break;
+        case 9:
+          e=2;
+          break;
+        case 12:
+          e=1;
+          break;
+        default:
+          throw std::runtime_error("Unsure what to do here chief.");
+          break;
+      }
+    }
+  }
 
   // complex conjugation
   inline void conjugate()

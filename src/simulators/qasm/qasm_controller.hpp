@@ -9,6 +9,7 @@
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
+#include "simulators/ch/ch_state.hpp"
 #include "simulators/qubitvector/qv_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 
@@ -79,7 +80,7 @@ private:
   //-----------------------------------------------------------------------
 
   // Simulation methods for the Qasm Controller
-  enum class Method {automatic, statevector, stabilizer};
+  enum class Method {automatic, statevector, stabilizer, ch_decomposition};
 
   //-----------------------------------------------------------------------
   // Base class abstract method override
@@ -208,9 +209,12 @@ void QasmController::set_config(const json_t &config) {
   std::string method;
   if (JSON::get_value(method, "method", config)) {
     if (method == "statevector")
+
       simulation_method_ = Method::statevector;
     else if (method == "stabilizer")
       simulation_method_ = Method::stabilizer;
+    else if (method == "ch")
+      simulation_method_ = Method::ch_decomposition;
     else if (method != "automatic")
       throw std::runtime_error(std::string("QasmController: Invalid simulation method.") + method);
   }
@@ -221,6 +225,12 @@ void QasmController::set_config(const json_t &config) {
     if (simulation_method_ == Method::stabilizer) {
       throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
                                std::string(" is not valid with stabilizer simulation method.") +
+                               method);
+    }
+    else if (simulation_method_ == Method::ch_decomposition)
+    {
+      throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
+                               std::string(" is not valid with the CH simulation method.") +
                                method);
     }
     // Override simulator method to statevector
@@ -263,6 +273,12 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                    rng_seed,
                                                    num_threads_state,
                                                    Clifford::Clifford()); // no custom initial state
+    case Method::ch_decomposition:
+      return run_circuit_helper<CH::State>(circ,
+                                           shots,
+                                           rng_seed,
+                                           num_threads_state,
+                                           CHSimulator::Runner());
     default:
       // We shouldn't get here, so throw an exception if we do
       throw std::runtime_error("QasmController:Invalid simulation method");

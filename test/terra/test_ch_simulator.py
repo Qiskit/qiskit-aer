@@ -11,7 +11,6 @@ CHSimulator Integration Tests
 
 import unittest
 import logging
-import sys
 from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
@@ -20,7 +19,6 @@ from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
 from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_algorithms
-from test.terra.utils import ref_unitary_gate
 
 from qiskit import compile as qiskit_compile
 from qiskit.providers.aer import CHSimulator
@@ -422,7 +420,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = CHSimulator().run(qobj,
                                 backend_options={
-                                    'srank_approximation_error': 0.05
+                                    'srank_approximation_error': 0.03
                                 })
         result = job.result()
         self.is_completed(result)
@@ -462,16 +460,16 @@ class TestCHSimulator(common.QiskitAerTestCase):
     # # ---------------------------------------------------------------------
     def test_grovers_default_basis_gates(self):
         """Test grovers circuits compiling to backend default basis_gates."""
-        shots = 500
+        shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
         targets = ref_algorithms.grovers_counts(shots)
         job = CHSimulator().run(qobj,
-                              backend_options={
-                                'disable_measurement_opt': True,
-                                'srank_mixing_time': 50,
-                              })
+                                backend_options={
+                                    'disable_measurement_opt': True,
+                                    'srank_mixing_time': 100,
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
