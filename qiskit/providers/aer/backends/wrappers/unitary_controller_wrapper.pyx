@@ -11,7 +11,7 @@ Cython wrapper for Aer UnitaryController.
 
 from libcpp.string cimport string
 
-cdef extern from "simulators/qubitunitary/unitary_controller.hpp" namespace "AER::Simulator":
+cdef extern from "simulators/unitary/unitary_controller.hpp" namespace "AER::Simulator":
     cdef cppclass UnitaryController:
         UnitaryController() except +
 
