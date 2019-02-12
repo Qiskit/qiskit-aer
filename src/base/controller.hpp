@@ -240,7 +240,7 @@ void Controller::set_parallelization(Qobj& qobj) {
   #endif
 
   // Set max_parallel_experiments_
-  max_parallel_experiments_ = (max_parallel_experiments_ < 1)?
+  parallel_experiments_ = (max_parallel_experiments_ < 1)?
       std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_}):
       std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_, max_parallel_experiments_});
 
