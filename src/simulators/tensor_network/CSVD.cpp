@@ -155,6 +155,8 @@ void csvd (complex_t** a, int m, int n, double* s, complex_t** u, complex_t** v)
 		eps = max( eps, s[k] + t[k] );
 	}
 	eps = eps * eta;
+
+// Initialization of u and v.
 	for( j = 0; j < m; j++)
 	{
 		for( i = 0; i < m; i++){
