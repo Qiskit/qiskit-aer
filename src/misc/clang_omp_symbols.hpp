@@ -83,15 +83,25 @@ extern "C" {
                                        incr, chunk);
     }
 
-    typedef void (*kmp_ParFctPtr)(int32_t *global_tid, int32_t *bound_tid, ...);
-    using __kmpc_fork_call_t = void(*)(kmp_Ident *, int32_t, kmp_ParFctPtr, ...);
+    using kpm_int32 = int;
+    typedef void (*kmp_ParFctPtr)(kpm_int32 *global_tid, kpm_int32 *bound_tid, ...);
+    using __kmpc_fork_call_t = void(*)(kmp_Ident *, kpm_int32, kmp_ParFctPtr, ...);
     __kmpc_fork_call_t _hook__kmpc_fork_call;
     #include <stdarg.h>
-    void __kmpc_fork_call(kmp_Ident *loc, int32_t argc, kmp_ParFctPtr microtask, ...){
-        char variadic[4096];
+    void __kmpc_fork_call(kmp_Ident *loc, kpm_int32 argc, kmp_ParFctPtr microtask, ...){
         va_list argptr;
         va_start(argptr, microtask);
-        _hook__kmpc_fork_call(loc, argc, microtask, variadic);
+        // The types are always pointer to void (from llvm kmp_runtime.cpp)
+        void * arg1 = va_arg(argptr, void *);
+        void * arg2 = va_arg(argptr, void *);
+        void * arg3 = va_arg(argptr, void *);
+        void * arg4 = va_arg(argptr, void *);
+        void * arg5 = va_arg(argptr, void *);
+        void * arg6 = va_arg(argptr, void *);
+        void * arg7 = va_arg(argptr, void *);
+        void * arg8 = va_arg(argptr, void *);
+        void * arg9 = va_arg(argptr, void *);
+        _hook__kmpc_fork_call(loc, argc, microtask, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         va_end(argptr);
     }
 
