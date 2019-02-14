@@ -77,8 +77,7 @@ private:
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const override;
+                                 uint_t rng_seed) const override;
 
   //-----------------------------------------------------------------------
   // Custom initial state
@@ -118,8 +117,7 @@ void StatevectorController::clear_config() {
 
 OutputData StatevectorController::run_circuit(const Circuit &circ,
                                               uint_t shots,
-                                              uint_t rng_seed,
-                                              int num_threads_state) const {  
+                                              uint_t rng_seed) const {
   // Initialize  state
   QubitVector::State<> state;
 
@@ -139,7 +137,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   // Set config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(num_threads_state);
+  state.set_available_threads(parallel_state_update_);
   
   // Rng engine
   RngEngine rng;
