@@ -11,19 +11,22 @@
 #include <vector>
 #include <functional>
 
+// We only need this hack for MacOS builds,
+// on Linux and Windows everything works fine
+#ifdef __APPLE__
+
 #if defined(__clang__)
     #include "clang_omp_symbols.hpp"
 #elif defined(__GNUC__) || defined(__GNUG__)
     #include "gcc_omp_symbols.hpp"
 #endif
 
-
 namespace {
 /*
  * Returns the path to the already loaded OpenMP library, if there's no
  *  library loaded, then load our default one.
  */
-#ifdef __APPLE__
+
 auto _apple_get_loaded_openmp_library = [](const std::string& default_path) -> std::string {
     // Iterate through all images currently in memory
     for (int32_t i = _dyld_image_count(); i >= 0 ; i--) {
@@ -54,9 +57,9 @@ auto _apple_maybe_load_openmp = [](const std::string& library_path) -> void {
     }
     AER::Hacks::populate_hooks(handle);
 };
-#endif
 }
 
+#endif // endif __APPLE__
 
 namespace AER {
 namespace Hacks {
