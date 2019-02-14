@@ -96,7 +96,7 @@ namespace Base {
 class Controller {
 public:
 
-  Controller() {set_threads_default();}
+  Controller() {clear_parallelization();}
 
   //-----------------------------------------------------------------------
   // Execute qobj
@@ -133,8 +133,7 @@ protected:
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const = 0;
+                                 uint_t rng_seed) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -168,18 +167,22 @@ protected:
   //-----------------------------------------------------------------------
 
   // Set OpenMP thread settings to default values
-  void set_threads_default();
+  void clear_parallelization();
 
-  // Internal counter of number of threads still available for subthreads
-  int available_threads_ = 1;
+  // Set OpenMP thread settings for experiments
+  virtual void set_parallelization(Qobj& qobj);
 
   // The maximum number of threads to use for various levels of parallelization
-  // set to 0 for maximum available
-  int max_threads_total_;
-  int max_threads_circuit_;
-  int max_threads_shot_;
-  int max_threads_state_;
+  int max_parallel_threads_;
 
+  // Parameters for parallelization management in configuration
+  int max_parallel_experiments_;
+  int max_parallel_shots_;
+
+  // Parameters for parallelization management for experiments
+  int parallel_experiments_;
+  int parallel_shots_;
+  int parallel_state_update_;
 };
 
 
@@ -200,27 +203,57 @@ void Controller::set_config(const json_t &config) {
     noise_model_ = Noise::NoiseModel(config["noise_model"]);
 
   // Load OpenMP maximum thread settings
-  JSON::get_value(max_threads_total_, "max_parallel_threads", config);
-  JSON::get_value(max_threads_shot_, "max_parallel_shots", config);
-  JSON::get_value(max_threads_circuit_, "max_parallel_experiments", config);
+  JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
+  JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
+  JSON::get_value(max_parallel_experiments_, "max_parallel_experiments", config);
 
   // Prevent using both parallel circuits and parallel shots
   // with preference given to parallel circuit execution
-  if (max_threads_circuit_ > 1)
-    max_threads_shot_ = 1;
+  if (max_parallel_experiments_ > 1)
+    max_parallel_shots_ = 1;
 }
 
 void Controller::clear_config() {
   config_ = json_t();
   noise_model_ = Noise::NoiseModel();
-  set_threads_default();
+  clear_parallelization();
 }
 
-void Controller::set_threads_default() {
-  max_threads_total_ = 0;
-  max_threads_state_ = 0;
-  max_threads_circuit_ = 1;
-  max_threads_shot_ = 1;
+void Controller::clear_parallelization() {
+  max_parallel_threads_ = 0;
+  max_parallel_experiments_ = 1;
+  max_parallel_shots_ = 1;
+
+  parallel_experiments_ = 1;
+  parallel_shots_ = 1;
+  parallel_state_update_ = 1;
+}
+
+void Controller::set_parallelization(Qobj& qobj) {
+
+  // Set max_parallel_threads_
+  if (max_parallel_threads_ < 1)
+  #ifdef _OPENMP
+    max_parallel_threads_ = std::max(1, omp_get_max_threads());
+  #else
+    max_parallel_threads_ = 1;
+  #endif
+
+  // Set max_parallel_experiments_
+  parallel_experiments_ = (max_parallel_experiments_ < 1)?
+      std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_}):
+      std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_, max_parallel_experiments_});
+
+  int max_num_shots = 0;
+  for (Circuit &circ: qobj.circuits)
+    max_num_shots = std::max<int>({ max_num_shots, (int) circ.shots});
+
+  parallel_shots_ = (max_parallel_shots_ < 1)?
+      std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_}):
+      std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_, max_parallel_shots_});
+  parallel_shots_ = std::max<int>({1, parallel_shots_});
+
+  parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
 }
 
 
@@ -302,40 +335,27 @@ json_t Controller::execute(const json_t &qobj_js) {
 
   // Qobj was loaded successfully, now we proceed
   try {
-    int num_circuits = qobj.circuits.size();
-    int num_threads_circuit = 1;
-  // Check for OpenMP and number of available CPUs
-  #ifdef _OPENMP
-    int omp_nthreads = std::max(1, omp_get_max_threads());
-    omp_set_nested(1); // allow nested parallel threads for states
-    available_threads_ = omp_nthreads;
-    if (max_threads_total_ < 1)
-      max_threads_total_ = available_threads_;
 
-    // Calculate threads for parallel circuit execution
-    // TODO: add memory checking for limiting thread number
-    num_threads_circuit = (max_threads_circuit_ < 1) 
-      ? std::min<int>({num_circuits, available_threads_ , max_threads_total_})
-      : std::min<int>({num_circuits, available_threads_ , max_threads_total_, max_threads_circuit_});
-    
-    // Since threads can spawn subthreads, divide available threads by circuit threads to
-    // get the number of sub threads each can spawn
-    available_threads_ /= num_threads_circuit;
-    
-    // Add thread metatdata to output
+    // set parallelization
+    set_parallelization(qobj);
+
+  #ifdef _OPENMP
     result["metadata"]["omp_enabled"] = true;
-    result["metadata"]["omp_available_threads"] = omp_nthreads;
-    result["metadata"]["omp_circuit_threads"] = num_threads_circuit;
   #else
     result["metadata"]["omp_enabled"] = false;
   #endif
+    result["metadata"]["parallel_experiments"] = parallel_experiments_;
+    result["metadata"]["parallel_shots"] = parallel_shots_;
+    result["metadata"]["parallel_state_update"] = parallel_state_update_;
+
+    const int num_circuits = qobj.circuits.size();
 
     // Initialize container to store parallel circuit output
     result["results"] = std::vector<json_t>(num_circuits);
     
-    if (num_threads_circuit > 1) {
+    if (parallel_experiments_ > 1) {
       // Parallel circuit execution
-      #pragma omp parallel for if (num_threads_circuit > 1) num_threads(num_threads_circuit)
+      #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < num_circuits; ++j) {
         result["results"][j] = execute_circuit(qobj.circuits[j]);
       }
@@ -380,51 +400,26 @@ json_t Controller::execute_circuit(Circuit &circ) {
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
-
-    // Calculate threads for parallel shot execution
-    // We do this rather than in the execute_circuit function so we can add the
-    // number of shot threads to the JSON circuit output.
-    int num_threads_shot = 1;
-    int num_threads_state = 1;
-    #ifdef _OPENMP
-      int num_shots = circ.shots;
-      // Calculate threads for parallel circuit execution
-      // TODO: add memory checking for limiting thread number
-      num_threads_shot = (max_threads_shot_ < 1)
-        ? std::min<int>({num_shots, available_threads_ , max_threads_total_})
-        : std::min<int>({num_shots, available_threads_ , max_threads_total_, max_threads_shot_});
-      available_threads_ /= num_threads_shot;
-
-      // Calculate remaining threads for the State class to use
-      num_threads_state = (max_threads_state_ < 1)
-        ? std::min<int>({available_threads_ , max_threads_total_,})
-        : std::min<int>({available_threads_ , max_threads_total_, max_threads_state_});
-
-      // Add thread information to result metadata
-      result["metadata"]["omp_shot_threads"] = num_threads_shot;
-      result["metadata"]["omp_state_threads"] = num_threads_state;
-    #endif
-
     // Single shot thread execution
-    if (num_threads_shot <= 1) {
-      result["data"] = run_circuit(circ, circ.shots, circ.seed, num_threads_state);
+    if (parallel_shots_ <= 1) {
+      result["data"] = run_circuit(circ, circ.shots, circ.seed);
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
       std::vector<unsigned int> subshots;
-      for (int j = 0; j < num_threads_shot; ++j) {
-        subshots.push_back(circ.shots / num_threads_shot);
+      for (int j = 0; j < parallel_shots_; ++j) {
+        subshots.push_back(circ.shots / parallel_shots_);
       }
       // If shots is not perfectly divisible by threads, assign the remaineder
-      for (int j=0; j < int(circ.shots % num_threads_shot); ++j) {
+      for (int j=0; j < int(circ.shots % parallel_shots_); ++j) {
         subshots[j] += 1;
       }
 
       // Vector to store parallel thread output data
-      std::vector<OutputData> data(num_threads_shot);
-      #pragma omp parallel for if (num_threads_shot > 1) num_threads(num_threads_shot)
-        for (int j = 0; j < num_threads_shot; j++) {
-          data[j] = run_circuit(circ, subshots[j], circ.seed + j, num_threads_state);
+      std::vector<OutputData> data(parallel_shots_);
+      #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
+        for (int j = 0; j < parallel_shots_; j++) {
+          data[j] = run_circuit(circ, subshots[j], circ.seed + j);
         }
       // Accumulate results across shots
       for (size_t j=1; j<data.size(); j++) {
