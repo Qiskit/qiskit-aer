@@ -17,10 +17,6 @@
 #include <string>
 #include <vector>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 // Base Controller
 #include "framework/qobj.hpp"
 #include "framework/data.hpp"
@@ -28,6 +24,10 @@
 #include "framework/creg.hpp"
 #include "noise/noise_model.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#include "misc/hacks.hpp"
+#endif
 
 namespace AER {
 
@@ -37,10 +37,15 @@ namespace AER {
 
 // This is used to make wrapping Controller classes in Cython easier
 // by handling the parsing of std::string input into JSON objects.
-template <class controller_t> 
+template <class controller_t>
 std::string controller_execute(const std::string &qobj_str) {
   controller_t controller;
-  return controller.execute(json_t::parse(qobj_str)).dump(-1);
+  auto qobj_js = json_t::parse(qobj_str);
+  // Check for config
+  if (JSON::check_key("config", qobj_js)) {
+    controller.set_config(qobj_js["config"]);
+  }
+  return controller.execute(qobj_js).dump(-1);
 }
 
 namespace Base {
@@ -58,7 +63,7 @@ namespace Base {
  * Parallelization
  * ---------------
  * Parallel execution uses the OpenMP library. It may happen at three levels:
- *   
+ *
  *  1. Parallel execution of circuits in a QOBJ
  *  2. Parallel execution of shots in a Circuit
  *  3. Parallelization used by the State class for performing gates.
@@ -71,7 +76,7 @@ namespace Base {
  *
  * -------------------------
  * Config settings:
- * 
+ *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
  *      be used across all levels of parallelization. Set to 0 for maximum
@@ -82,9 +87,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
- * 
+ *
  * Config settings from Data class:
- * 
+ *
  * - "counts" (bool): Return counts objecy in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
@@ -211,6 +216,12 @@ void Controller::set_config(const json_t &config) {
   // with preference given to parallel circuit execution
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
+ 
+  std::string path;
+  JSON::get_value(path, "library_dir", config);
+  // Fix for MacOS and OpenMP library double initialization crash.
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+  Hacks::maybe_load_openmp(path);
 }
 
 void Controller::clear_config() {
@@ -256,7 +267,6 @@ void Controller::set_parallelization(Qobj& qobj) {
   parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
 }
 
-
 //-------------------------------------------------------------------------
 // State validation
 //-------------------------------------------------------------------------
@@ -268,15 +278,15 @@ bool Controller::validate_state(const state_t &state,
                                 bool throw_except) {
   // First check if a noise model is valid a given state
   bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
-  bool circ_valid = state.validate_opset(circ.opset());  
+  bool circ_valid = state.validate_opset(circ.opset());
   if (noise_valid && circ_valid)
     return true;
-  
+
   // If we didn't return true then either noise model or circ has
   // invalid instructions.
   if (throw_except == false)
     return false;
-  
+
   // If we are throwing an exception we include information
   // about the invalid operations
   std::stringstream msg;
@@ -296,7 +306,7 @@ bool Controller::validate_state(const state_t &state,
 //-------------------------------------------------------------------------
 
 json_t Controller::execute(const json_t &qobj_js) {
-  
+
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
@@ -315,23 +325,18 @@ json_t Controller::execute(const json_t &qobj_js) {
   Qobj qobj;
   try {
     qobj.load_qobj_from_json(qobj_js);
-  } 
+  }
   catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
     result["success"] = false;
     result["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
-    return result; 
+    return result;
   }
 
   // Get QOBJ id and pass through header to result
   result["qobj_id"] = qobj.id;
   if (!qobj.header.empty())
       result["header"] = qobj.header;
-
-  // Check for config
-  if (JSON::check_key("config", qobj_js)) {
-    set_config(qobj_js["config"]);
-  }
 
   // Qobj was loaded successfully, now we proceed
   try {
@@ -352,7 +357,6 @@ json_t Controller::execute(const json_t &qobj_js) {
 
     // Initialize container to store parallel circuit output
     result["results"] = std::vector<json_t>(num_circuits);
-    
     if (parallel_experiments_ > 1) {
       // Parallel circuit execution
       #pragma omp parallel for num_threads(parallel_experiments_)
@@ -379,7 +383,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
     result["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
-  } 
+  }
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
     result["success"] = false;
@@ -393,7 +397,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
-  
+
   // Initialize circuit json return
   json_t result;
 

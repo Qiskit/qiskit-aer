@@ -117,6 +117,9 @@ class AerBackend(BaseBackend):
         # Add noise model
         if noise_model is not None:
             config["noise_model"] = noise_model
+
+        # Add runtime config
+        config['library_dir'] = self.configuration().library_dir
         qobj.config = QobjConfig.from_dict(config)
         # Get the JSON serialized string
         output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
