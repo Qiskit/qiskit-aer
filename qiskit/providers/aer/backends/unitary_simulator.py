@@ -12,13 +12,14 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
+import os
 from math import log2, sqrt
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-from unitary_controller_wrapper import unitary_controller_execute
+from .unitary_controller_wrapper import unitary_controller_execute
 from ..version import __version__
 
 # Logger
@@ -83,7 +84,10 @@ class UnitarySimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):
