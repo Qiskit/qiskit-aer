@@ -115,6 +115,9 @@ private:
   template <class State_t>
   void optimize_circuit(const Circuit& input_circ, Circuit& output_circ) const;
 
+  // Set parallelization for qasm simulator
+  virtual void set_parallelization(Qobj& qobj);
+
   //----------------------------------------------------------------
   // Run circuit helpers
   //----------------------------------------------------------------
@@ -301,6 +304,62 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
                                       Circuit &output_circ) const {
   output_circ = input_circ;
   // Add optimization passes here
+}
+
+void QasmController::set_parallelization(Qobj& qobj) {
+
+  // Set max_parallel_threads_
+  if (max_parallel_threads_ < 1)
+  #ifdef _OPENMP
+    max_parallel_threads_ = std::max(1, omp_get_max_threads());
+  #else
+    max_parallel_threads_ = 1;
+  #endif
+
+  // OpenMP implementation is not optimized for nested parallelization.
+  // QasmController sets one of parallel_* to max_parallel_threads and the others to 1.
+
+  QubitVector::State<> state;
+
+  // Set parallel_experiments_ to max_parallel_threads if necessary
+  parallel_experiments_ = 1;                                     // default is 1
+  if (max_parallel_experiments_ > 1                              // input exists
+      && qobj.circuits.size() >= max_parallel_threads_            // sufficient parallelism
+      && max_parallel_experiments_ >= max_parallel_threads_) {    // sufficient parallelism
+    // if memory allows, execute experiments in parallel
+    int total_memory = 0;
+    for (Circuit &circ: qobj.circuits)
+      total_memory += state.required_memory_mb(circ.num_qubits, circ.ops);
+    if (total_memory <= max_statevector_memory_mb_) {
+      parallel_experiments_ = max_parallel_threads_;
+      parallel_shots_ = 1;
+      parallel_state_update_ = 1;
+      return;
+    }
+  }
+
+  // Set parallel_shots_ to max_parallel_threads if necessary
+  int min_num_shots = max_parallel_threads_;
+  uint_t max_total_circuit_memory_mb = 0L;
+  bool sample = false;
+  for (Circuit &circ: qobj.circuits) {
+    if (noise_model_.ideal() && (sample = check_measure_sampling_opt(circ).first))
+      break;
+    min_num_shots = std::min<int>({ min_num_shots, (int) circ.shots});
+    max_total_circuit_memory_mb = std::max<uint_t>({ max_total_circuit_memory_mb,
+      state.required_memory_mb(circ.num_qubits, circ.ops) * (uint_t) max_parallel_threads_});
+  }
+  parallel_shots_ = 1;                                                  // default is 1
+  if (min_num_shots == max_parallel_threads_                            // sufficient parallelism
+      && max_total_circuit_memory_mb <= max_statevector_memory_mb_      // enough memory
+      && !sample) {                                                     // no sampling
+    parallel_shots_ = max_parallel_threads_;
+    parallel_state_update_ = 1;
+    return;
+  }
+
+  // Set parallel_state_update_
+  parallel_state_update_ = max_parallel_threads_;
 }
 
 
