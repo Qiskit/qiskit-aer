@@ -463,10 +463,6 @@ protected:
   template <size_t N, size_t M>
   void apply_permutation_matrix(const areg_t<N> &qubits,
                                 const std::array<std::pair<uint_t, uint_t>, M> &pairs);
-  
-  template <size_t N>
-  void apply_permutation_matrix(const areg_t<N> &qubits,
-                                const std::vector<std::pair<uint_t, uint_t>> &pairs);
 
   //-----------------------------------------------------------------------
   // Optimized matrix multiplication
@@ -1317,24 +1313,6 @@ template <typename data_t>
 template <size_t N, size_t M>
 void QubitVector<data_t>::apply_permutation_matrix(const areg_t<N> &qubits,
                                                    const std::array<std::pair<uint_t, uint_t>, M> &pairs) {
-  // Lambda function for permutation matrix
-  auto lambda = [&](const areg_t<1ULL << N> &inds)->void {
-    complex_t cache;
-    for (const auto& p : pairs) {
-      cache = data_[inds[p.first]];
-      data_[inds[p.first]] = data_[inds[p.second]];
-      data_[inds[p.second]] = cache;
-    }
-  };
-  // Use the lambda function
-  apply_lambda(lambda, qubits);
-}
-
-// Dynamic number of pairs
-template <typename data_t>
-template <size_t N>
-void QubitVector<data_t>::apply_permutation_matrix(const areg_t<N> &qubits,
-                                                   const std::vector<std::pair<uint_t, uint_t>> &pairs) {
   // Lambda function for permutation matrix
   auto lambda = [&](const areg_t<1ULL << N> &inds)->void {
     complex_t cache;
