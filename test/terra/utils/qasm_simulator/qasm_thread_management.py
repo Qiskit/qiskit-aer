@@ -34,7 +34,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         """test default parallelization"""
         # Test circuit
         shots = 100
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -48,7 +48,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = 100
         experiments = multiprocessing.cpu_count()
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -61,7 +61,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = 100
         experiments = multiprocessing.cpu_count()
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_statevector_memory_mb': 128}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -74,7 +74,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         experiments = multiprocessing.cpu_count()
         circuits = []
         for i in range(experiments):
-            circuits.append(ref_qvolume.quantum_volume(4, final_measure=True))
+            circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True))
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -90,7 +90,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         experiments = multiprocessing.cpu_count()
         circuits = []
         for i in range(experiments):
-            circuits.append(ref_qvolume.quantum_volume(17, final_measure=True)) # 2 MB for each
+            circuits.append(ref_qvolume.quantum_volume(17, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -102,11 +102,11 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
     def test_qasm_auto_disable_parallel_experiments_with_circuits_shortage(self):
         """test auto-disabling max_parallel_experiments because a number of circuits is few"""
         # Test circuit
-        shots = 100
+        shots = 1
         experiments = multiprocessing.cpu_count()
         circuits = []
         for i in range(experiments - 1):
-            circuits.append(ref_qvolume.quantum_volume(4, final_measure=True)) # 2 MB for each
+            circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -119,7 +119,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         """test explicit shot parallelization"""
         # Test circuit
         shots = multiprocessing.cpu_count()
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model()}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -132,7 +132,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         """test auto-disabling max_parallel_shots because sampling is enabled"""
         # Test circuit
         shots = multiprocessing.cpu_count()
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_shots': shots}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -145,7 +145,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         """test auto-disabling max_parallel_shots because a number of shots is few"""
         # Test circuit
         shots = multiprocessing.cpu_count() - 1
-        circuit = ref_qvolume.quantum_volume(4, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model()}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
@@ -157,8 +157,8 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
     def test_qasm_auto_disable_shot_parallelization_with_memory_shortage(self):
         """test auto-disabling max_parallel_shots because memory is short"""
         # Test circuit
-        shots = 100
-        circuit = ref_qvolume.quantum_volume(17, final_measure=True)
+        shots = multiprocessing.cpu_count()
+        circuit = ref_qvolume.quantum_volume(17, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model(), 'max_statevector_memory_mb': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
