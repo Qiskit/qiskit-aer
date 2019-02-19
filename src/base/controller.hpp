@@ -17,6 +17,12 @@
 #include <string>
 #include <vector>
 
+#if defined(__linux__) || defined(__APPLE__)
+   #include <unistd.h>
+#elif _WIN64
+   #include <windows.h>
+#endif
+
 // Base Controller
 #include "framework/qobj.hpp"
 #include "framework/data.hpp"
@@ -87,6 +93,11 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
+ * - "max_statevector_memory_mb" (int): Sets the maximum size of memory
+ *      to store a state vector. If a state vector needs more, an error
+ *      is thrown. In general, a state vector of n-qubits uses 2^n complex
+ *      values (16 Bytes). If set to 0, the maximum will be automatically
+ *      set to the system memory size [Default: 0].
  *
  * Config settings from Data class:
  *
@@ -177,12 +188,16 @@ protected:
   // Set OpenMP thread settings for experiments
   virtual void set_parallelization(Qobj& qobj);
 
+  // Get system memory size
+  uint_t get_system_memory_mb();
+
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
 
   // Parameters for parallelization management in configuration
   int max_parallel_experiments_;
   int max_parallel_shots_;
+  int max_statevector_memory_mb_;
 
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
@@ -217,6 +232,15 @@ void Controller::set_config(const json_t &config) {
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
  
+  if (JSON::check_key("max_statevector_memory_mb", config)) {
+    JSON::get_value(max_statevector_memory_mb_, "max_statevector_memory_mb", config);
+  } else {
+    int system_memory_mb = (int) get_system_memory_mb();
+    max_statevector_memory_mb_ = 1;
+    while((max_statevector_memory_mb_ << 1) < system_memory_mb)
+      max_statevector_memory_mb_ = max_statevector_memory_mb_ << 1;
+  }
+
   std::string path;
   JSON::get_value(path, "library_dir", config);
   // Fix for MacOS and OpenMP library double initialization crash.
@@ -250,7 +274,7 @@ void Controller::set_parallelization(Qobj& qobj) {
     max_parallel_threads_ = 1;
   #endif
 
-  // Set max_parallel_experiments_
+  // Set parallel_experiments_
   parallel_experiments_ = (max_parallel_experiments_ < 1)?
       std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_}):
       std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_, max_parallel_experiments_});
@@ -259,12 +283,29 @@ void Controller::set_parallelization(Qobj& qobj) {
   for (Circuit &circ: qobj.circuits)
     max_num_shots = std::max<int>({ max_num_shots, (int) circ.shots});
 
+  // Set parallel_shots_
   parallel_shots_ = (max_parallel_shots_ < 1)?
       std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_}):
       std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_, max_parallel_shots_});
   parallel_shots_ = std::max<int>({1, parallel_shots_});
 
+  // Set parallel_state_update_
   parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
+}
+
+uint_t Controller::get_system_memory_mb(void){
+  uint_t total_physical_memory = 0;
+#if defined(__linux__) || defined(__APPLE__)
+   auto pages = sysconf(_SC_PHYS_PAGES);
+   auto page_size = sysconf(_SC_PAGE_SIZE);
+   total_physical_memory = pages * page_size;
+#elif _WIN64
+   MEMORYSTATUSEX status;
+   status.dwLength = sizeof(status);
+   GlobalMemoryStatusEx(&status);
+   total_physical_memory = status.ullTotalPhys;
+#endif
+   return total_physical_memory >> 20;
 }
 
 //-------------------------------------------------------------------------
@@ -352,6 +393,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
     result["metadata"]["parallel_shots"] = parallel_shots_;
     result["metadata"]["parallel_state_update"] = parallel_state_update_;
+    result["metadata"]["max_statevector_memory_mb"] = max_statevector_memory_mb_;
 
     const int num_circuits = qobj.circuits.size();
 
