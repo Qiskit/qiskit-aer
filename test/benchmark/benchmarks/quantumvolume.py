@@ -10,7 +10,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.mapper import two_qubit_kak
 
 
-def quantum_volume_circuit(n, depth, measure=True, seed=None):
+def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
     """Create a quantum volume circuit without measurement.
 
     The model circuits consist of layers of Haar random
@@ -18,7 +18,7 @@ def quantum_volume_circuit(n, depth, measure=True, seed=None):
     of qubits in a random bipartition.
 
     Args:
-        n (int): number of qubits
+        num_qubits (int): number of qubits
         depth (int): ideal depth of each model circuit (over SU(4))
         measure (bool): include measurement in circuit.
 
@@ -28,15 +28,15 @@ def quantum_volume_circuit(n, depth, measure=True, seed=None):
     # Create random number generator with possibly fixed seed
     rng = random.RandomState(seed)
     # Create quantum/classical registers of size n
-    qr = QuantumRegister(n)
+    qr = QuantumRegister(num_qubits)
     circuit = QuantumCircuit(qr)
     # For each layer
     for _ in repeat(None, depth):
         # Generate uniformly random permutation Pj of [0...n-1]
-        perm = rng.permutation(n)
+        perm = rng.permutation(num_qubits)
         # For each consecutive pair in Pj, generate Haar random SU(4)
         # Decompose each SU(4) into CNOT + SU(2) and add to Ci
-        for k in range(math.floor(n / 2)):
+        for k in range(math.floor(num_qubits / 2)):
             # Generate random SU(4) matrix
             X = (rng.randn(4, 4) + 1j * rng.randn(4, 4))
             SU4, _ = linalg.qr(X)           # Q is a unitary matrix
@@ -58,7 +58,7 @@ def quantum_volume_circuit(n, depth, measure=True, seed=None):
                 elif gate["name"] == "id":
                     pass
     if measure is True:
-        cr = ClassicalRegister(n)
+        cr = ClassicalRegister(num_qubits)
         meas = QuantumCircuit(qr, cr)
         meas.barrier(qr)
         meas.measure(qr, cr)

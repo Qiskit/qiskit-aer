@@ -16,8 +16,8 @@ from qiskit_aer.noise.errors import thermal_relaxation_error
 
 
 def benchmark_circuits_qasm_simulator(circuits,
-                                      shots=1,
-                                      threads=1,
+                                      num_shots=1,
+                                      max_threads=1,
                                       parallel_mode='state',
                                       noise_model=None,
                                       config=None):
@@ -25,7 +25,7 @@ def benchmark_circuits_qasm_simulator(circuits,
 
     Args:
         circuits (list(QuantumCircuit)): a list of quantum circuits.
-        shots (int): number of shots for each circuit.
+        num_shots (int): number of shots for each circuit.
         max_threads (int): The maximum number of threads to use for
                            OpenMP parallelization.
         parallel_mode (str): The method of parallelization to use.
@@ -38,27 +38,24 @@ def benchmark_circuits_qasm_simulator(circuits,
         number of circuits.
     """
 
-    if threads is None:
-        threads = cpu_count()
-    if threads > cpu_count():
-        print("Warning: threads ({0})".format(threads) +
+    if max_threads > cpu_count():
+        print("Warning: threads ({0})".format(max_threads) +
               " is greater than cpu_count ({1}).".format(cpu_count()))
-        threads = cpu_count()
 
     # Generate backend
-    backend = aer_benchmark_backend(max_threads=threads, parallel_mode=parallel_mode,
+    backend = aer_benchmark_backend(max_threads=max_threads, parallel_mode=parallel_mode,
                                     noise_model=noise_model, config=config)
     # time circuits
-    return benchmark_circuits(backend, circuits, shots=shots)
+    return benchmark_circuits(backend, circuits, num_shots=num_shots)
 
 
-def benchmark_circuits(backend, circuits, shots=1):
+def benchmark_circuits(backend, circuits, num_shots=1):
     """Return average execution time for a list of circuits.
 
     Args:
         backend (Backend): A qiskit backend object.
         circuits list(QuantumCircuit): a list of quantum circuits.
-        shots (int): Number of shots for each circuit.
+        num_shots (int): Number of shots for each circuit.
 
     Returns
         float: The total execution time for all circuits divided by the
@@ -67,7 +64,7 @@ def benchmark_circuits(backend, circuits, shots=1):
     Raises:
         QiskitError: If the simulation execution fails.
     """
-    qobj = qiskit.compile(circuits, backend, shots=shots)
+    qobj = qiskit.compile(circuits, backend, shots=num_shots)
     start_time = time.time()
     result = backend.run(qobj).result()
     end_time = time.time()

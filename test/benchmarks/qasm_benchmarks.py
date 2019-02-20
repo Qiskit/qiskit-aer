@@ -48,21 +48,22 @@ def run_benchmarks(qubits_list, thread_list, depth,
 
     # Quantum Volume benchmark circuits
     test_circuits = []
-    for n in qubits_list:
+    for num_qubits in qubits_list:
         # Generate ciruits
         circuits_n = []
         for _ in repeat(None, num_circ):
-            circuits_n.append(quantum_volume_circuit(n, depth, measure=True))
+            circuits_n.append(quantum_volume_circuit(num_qubits, depth, measure=True))
         test_circuits.append(circuits_n)
 
     # threads
-    threads = []
-    for n in thread_list:
-        if n <= cpu_count():
-            threads.append(n)
-        else:
-            print('Threads {}'.format(n) +
-                  " is greater than cpu_count {}".format(cpu_count()))
+    # threads = []
+    # for num_threads in thread_list:
+    #     if num_threads <= cpu_count():
+    #         threads.append(num_threads)
+    #     else:
+    #         print('Threads {}'.format(n) +
+    #               " is greater than cpu_count {}".format(cpu_count()))
+
 
     # Dicts indexed by core number
 
@@ -89,7 +90,7 @@ def run_benchmarks(qubits_list, thread_list, depth,
     times_kraus_par_circuit = {}
 
     # Loop over thread limits
-    for th in threads:
+    for num_threads in thread_list:
 
         # Ideal circuits
         t_ideal_par_state = []
@@ -115,7 +116,7 @@ def run_benchmarks(qubits_list, thread_list, depth,
 
             # Ideal circuits
             if ideal_tests is True:
-                t = benchmark_circuits_qasm_simulator(circuits, shots=shots, threads=th,
+                t = benchmark_circuits_qasm_simulator(circuits, shots=shots, num_threads=num_threads,
                                                       parallel_mode='state')
                 t_ideal_par_state.append(t)
                 if test_parallel_circuit is True:
