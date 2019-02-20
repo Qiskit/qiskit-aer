@@ -308,6 +308,11 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
 
 void QasmController::set_parallelization(Qobj& qobj) {
 
+  if (simulation_method_ == Method::stabilizer) {
+    Controller::set_parallelization(qobj);
+    return;
+  }
+
   // Set max_parallel_threads_
   if (max_parallel_threads_ < 1)
   #ifdef _OPENMP
