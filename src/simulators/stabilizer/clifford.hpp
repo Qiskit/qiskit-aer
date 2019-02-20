@@ -185,14 +185,14 @@ Clifford::Clifford(uint64_t nq) : num_qubits_(nq) {
   // initial state = all zeros
   // add destabilizers
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < nq; i++) {
+  for (int64_t i = 0; i < nq; i++) {
     Pauli::Pauli P(nq);
     P.X.setValue(1, i);
     table_.push_back(P);
   }
   // add stabilizers
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < nq; i++) {
+  for (int64_t i = 0; i < nq; i++) {
     Pauli::Pauli P(nq);
     P.Z.setValue(1, i);
     table_.push_back(P);
@@ -207,7 +207,7 @@ Clifford::Clifford(uint64_t nq) : num_qubits_(nq) {
 
 void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++) {
+  for (int64_t i = 0; i < 2 * num_qubits_; i++) {
     phases_[i] ^= (table_[i].X[qcon] && table_[i].Z[qtar] &&
                   (table_[i].X[qtar] ^ table_[i].Z[qcon] ^ 1));
     table_[i].X.setValue(table_[i].X[qtar] ^ table_[i].X[qcon], qtar);
@@ -217,7 +217,7 @@ void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
 
 void Clifford::append_h(const uint64_t qubit) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++) {
+  for (int64_t i = 0; i < 2 * num_qubits_; i++) {
     phases_[i] ^= (table_[i].X[qubit] && table_[i].Z[qubit]);
     // exchange X and Z
     bool b = table_[i].X[qubit];
@@ -228,7 +228,7 @@ void Clifford::append_h(const uint64_t qubit) {
 
 void Clifford::append_s(const uint64_t qubit) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++) {
+  for (int64_t i = 0; i < 2 * num_qubits_; i++) {
     phases_[i] ^= (table_[i].X[qubit] && table_[i].Z[qubit]);
     table_[i].Z.setValue(table_[i].Z[qubit] ^ table_[i].X[qubit], qubit);
   }
@@ -236,19 +236,19 @@ void Clifford::append_s(const uint64_t qubit) {
 
 void Clifford::append_x(const uint64_t qubit) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++)
+  for (int64_t i = 0; i < 2 * num_qubits_; i++)
     phases_[i] ^= table_[i].Z[qubit];
 }
 
 void Clifford::append_y(const uint64_t qubit) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++)
+  for (int64_t i = 0; i < 2 * num_qubits_; i++)
     phases_[i] ^= (table_[i].Z[qubit] ^ table_[i].X[qubit]);
 }
 
 void Clifford::append_z(const uint64_t qubit) {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (uint64_t i = 0; i < 2 * num_qubits_; i++)
+  for (int64_t i = 0; i < 2 * num_qubits_; i++)
     phases_[i] ^= table_[i].X[qubit];
 }
 
