@@ -308,9 +308,11 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
 
 void QasmController::set_parallelization(Qobj& qobj) {
 
-  if (simulation_method_ == Method::stabilizer) {
-    Controller::set_parallelization(qobj);
-    return;
+  for (Circuit &circ: qobj.circuits) {
+    if (simulation_method(circ) == Method::stabilizer) {
+      Controller::set_parallelization(qobj);
+      return;
+    }
   }
 
   // Set max_parallel_threads_
@@ -324,11 +326,11 @@ void QasmController::set_parallelization(Qobj& qobj) {
   // OpenMP implementation is not optimized for nested parallelization.
   // QasmController sets one of parallel_* to max_parallel_threads and the others to 1.
 
-  QubitVector::State<> state;
+  AER::QubitVector::State<> state;
 
   // Set parallel_experiments_ to max_parallel_threads if necessary
-  parallel_experiments_ = 1;                                     // default is 1
-  if (max_parallel_experiments_ > 1                              // input exists
+  parallel_experiments_ = 1;                                      // default is 1
+  if (max_parallel_experiments_ > 1                               // input exists
       && qobj.circuits.size() >= max_parallel_threads_            // sufficient parallelism
       && max_parallel_experiments_ >= max_parallel_threads_) {    // sufficient parallelism
     // if memory allows, execute experiments in parallel
