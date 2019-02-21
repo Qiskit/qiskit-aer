@@ -5,8 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-#ifndef _qubitvector_qv_state_hpp
-#define _qubitvector_qv_state_hpp
+#ifndef _statevector_state_hpp
+#define _statevector_state_hpp
 
 #include <algorithm>
 #define _USE_MATH_DEFINES
@@ -19,8 +19,8 @@
 
 
 namespace AER {
-namespace QubitVector {
-
+namespace Statevector {
+  
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
@@ -40,10 +40,10 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
-template <class statevector_t = complex_t*>
-class State : public Base::State<QV::QubitVector<statevector_t>> {
+template <class data_t = complex_t*>
+class State : public Base::State<QV::QubitVector<data_t>> {
 public:
-  using BaseState = Base::State<QV::QubitVector<statevector_t>>;
+  using BaseState = Base::State<QV::QubitVector<data_t>>;
 
   State() = default;
   virtual ~State() = default;
@@ -95,7 +95,7 @@ public:
 
   // Initializes to a specific n-qubit state
   virtual void initialize_qreg(uint_t num_qubits,
-                               const QV::QubitVector<statevector_t> &state) override;
+                               const QV::QubitVector<data_t> &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -315,7 +315,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize(state.data(), 1ULL << num_qubits);
+  BaseState::qreg_.initialize_from_data(state.data(), 1ULL << num_qubits);
 }
 
 template <class statevec_t>
@@ -326,7 +326,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize(state);
+  BaseState::qreg_.initialize_from_vector(state);
 }
 
 template <class statevec_t>
