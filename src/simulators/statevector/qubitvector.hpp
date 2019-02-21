@@ -1315,11 +1315,8 @@ void QubitVector<data_t>::apply_permutation_matrix(const areg_t<N> &qubits,
                                                    const std::array<std::pair<uint_t, uint_t>, M> &pairs) {
   // Lambda function for permutation matrix
   auto lambda = [&](const areg_t<1ULL << N> &inds)->void {
-    complex_t cache;
     for (const auto& p : pairs) {
-      cache = data_[inds[p.first]];
-      data_[inds[p.first]] = data_[inds[p.second]];
-      data_[inds[p.second]] = cache;
+      std::swap(data_[inds[p.first]], data_[inds[p.second]]);
     }
   };
   // Use the lambda function
@@ -1589,9 +1586,7 @@ void QubitVector<data_t>::apply_x(const uint_t qubit) {
   auto lambda = [&](const int_t &k1, const int_t &k2)->void {
     const auto i0 = k1 | k2;
     const auto i1 = i0 | (1LL << qubit);
-    const complex_t cache = data_[i0];
-    data_[i0] = data_[i1]; // mat(0,1)
-    data_[i1] = cache;    // mat(1,0)
+    std::swap(data_[i0], data_[i1]);
   };
   apply_lambda(lambda, qubit);
 }
@@ -1626,9 +1621,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
   // Lambda function for CNOT gate
   auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    const complex_t cache = data_[inds[3]];
-    data_[inds[3]] = data_[inds[1]];
-    data_[inds[1]] = cache;
+    std::swap(data_[inds[1]], data_[inds[3]]);
   };
   // Use the lambda function
   const areg_t<2> qubits = {{qubit_ctrl, qubit_trgt}};
@@ -1639,9 +1632,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
   // Lambda function for SWAP gate
   auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    const complex_t cache = data_[inds[2]];
-      data_[inds[2]] = data_[inds[1]];
-      data_[inds[1]] = cache;
+    std::swap(data_[inds[1]], data_[inds[2]]);
   };
   // Use the lambda function
   const areg_t<2> qubits = {{qubit0, qubit1}};
@@ -1669,9 +1660,7 @@ void QubitVector<data_t>::apply_toffoli(const uint_t qubit_ctrl0,
                                 const uint_t qubit_trgt) {
   // Lambda function for Toffoli gate
   auto lambda = [&](const areg_t<1ULL << 3> &inds)->void {
-    const complex_t cache = data_[inds[7]];
-    data_[inds[7]] = data_[inds[3]];
-    data_[inds[3]] = cache;
+      std::swap(data_[inds[3]], data_[inds[7]]);
   };
   // Use the lambda function
   const areg_t<3> qubits = {{qubit_ctrl0, qubit_ctrl1, qubit_trgt}};
@@ -1703,13 +1692,11 @@ void QubitVector<data_t>::apply_diagonal_matrix(const areg_t<1> &qubits,
                                                 const cvector_t &diag) {
   // TODO: This should be changed so it isn't checking doubles with ==
   const int_t bit = 1LL << qubits[0];
-  if (diag[0] == 1.0) {
-    // [[1, 0], [0, z]] matrix
-    if (diag[1] == 1.0) {
-      // Identity
-      return;
-    } else if (diag[1] == complex_t(0., -1.)) {
-      // [[1, 0], [0, -i]]
+  if (diag[0] == 1.0) {  // [[1, 0], [0, z]] matrix
+    if (diag[1] == 1.0)
+      return; // Identity
+
+    if (diag[1] == complex_t(0., -1.)) { // [[1, 0], [0, -i]]
       auto lambda = [&](const int_t &k1, const int_t &k2,
                         const cvector_t &_mat)->void {
         const auto k = k1 | k2 | bit;
@@ -1803,40 +1790,41 @@ void QubitVector<data_t>::apply_matrix(const areg_t<2> &qubits,
                                        const cvector_t &vmat) {
   if (gate_opt_ == false) {
     apply_matrix<2>(qubits, vmat);
-  } else {
+    return;
+  }
+
   // Optimized implementation
-    auto sorted_qs = qubits;
-    std::sort(sorted_qs.begin(), sorted_qs.end());
-    auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
+  auto sorted_qs = qubits;
+  std::sort(sorted_qs.begin(), sorted_qs.end());
+  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
 
-    int_t END = data_size_;
-    int_t step1 = (1ULL << sorted_qs[0]);
-    int_t step2 = (1ULL << sorted_qs[1]);
-  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-  #ifdef _WIN32
-  #pragma omp for
-  #else
-  #pragma omp for collapse(3)
-  #endif
-      for (int_t k1 = 0; k1 < END; k1 += (step2 * 2UL)) {
-        for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
-          for (int_t k3 = 0; k3 < step1; k3++) {
-            int_t t0 = k1 | k2 | k3;
-            int_t t1 = t0 | step1;
-            int_t t2 = t0 | step2;
-            int_t t3 = t2 | step1;
+  int_t END = data_size_;
+  int_t step1 = (1ULL << sorted_qs[0]);
+  int_t step2 = (1ULL << sorted_qs[1]);
+#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  {
+#ifdef _WIN32
+#pragma omp for
+#else
+#pragma omp for collapse(3)
+#endif
+    for (int_t k1 = 0; k1 < END; k1 += (step2 * 2UL)) {
+      for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
+        for (int_t k3 = 0; k3 < step1; k3++) {
+          int_t t0 = k1 | k2 | k3;
+          int_t t1 = t0 | step1;
+          int_t t2 = t0 | step2;
+          int_t t3 = t2 | step1;
 
-            const complex_t psi0 = data_[t0];
-            const complex_t psi1 = data_[t1];
-            const complex_t psi2 = data_[t2];
-            const complex_t psi3 = data_[t3];
+          const complex_t psi0 = data_[t0];
+          const complex_t psi1 = data_[t1];
+          const complex_t psi2 = data_[t2];
+          const complex_t psi3 = data_[t3];
 
-            data_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
-            data_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
-            data_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
-            data_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
-          }
+          data_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
+          data_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
+          data_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
+          data_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
         }
       }
     }
@@ -2228,10 +2216,7 @@ cvector_t QubitVector<data_t>::sort_matrix(const areg_t<N> &src,
       throw std::runtime_error("QubitVector<data_t>::sort_matrix we should not reach here");
     }
     swap_cols_and_rows(from, to, ret, dim);
-
-    uint_t cache = current[from];
-    current[from] = current[to];
-    current[to] = cache;
+    std::swap(current[from], current[to]);
   }
 
   return ret;
