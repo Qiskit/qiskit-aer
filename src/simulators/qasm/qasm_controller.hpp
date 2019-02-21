@@ -9,7 +9,7 @@
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
-#include "simulators/qubitvector/qv_state.hpp"
+#include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 
 
@@ -22,9 +22,9 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- *
- * From QubitVector::State class
- *
+ * 
+ * From Statevector::State class
+ * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "chop_threshold" (double): Threshold for truncating small values to
@@ -247,7 +247,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statvector simulation
-      return run_circuit_helper<QubitVector::State<>>(circ,
+      return run_circuit_helper<Statevector::State<>>(circ,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_); // allow custom initial state

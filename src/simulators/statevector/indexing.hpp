@@ -5,24 +5,19 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-#ifndef _indexing_hpp_
-#define _indexing_hpp_
+#ifndef _qv_indexing_hpp_
+#define _qv_indexing_hpp_
 
 #include <array>
 #include <vector>
 #include <cstdint>
-#include <vector>  // teset
-#include <complex> // test
-#include <functional> // test
 
-// This should be merged with the QubitVector class
-
-namespace Indexing {
+namespace QV {
 
 using uint_t = uint64_t;
 using int_t = int64_t;
-
-namespace Qubit {
+using reg_t = std::vector<uint_t>;
+template <size_t N> using areg_t = std::array<uint_t, N>;
 
 /*
 # Auto generate these values with following python snippet
@@ -32,11 +27,11 @@ def cpp_init_list(int_lst):
     ret = json.dumps([str(i) + 'ULL' for i in int_lst])
     return ret.replace('"', '').replace('[','{{').replace(']','}};')
 
-print('const std::array<uint_t, 64> BITS = ' + cpp_init_list([(1 << i) for i in range(64)]) + '\n')
-print('const std::array<uint_t, 64> MASKS = ' + cpp_init_list([(1 << i) - 1 for i in range(64)]))
+print('const areg_t<64> BITS = ' + cpp_init_list([(1 << i) for i in range(64)]) + '\n')
+print('const areg_t<64> MASKS = ' + cpp_init_list([(1 << i) - 1 for i in range(64)]))
 */
 
-const std::array<uint_t, 64> BITS {{
+const areg_t<64> BITS {{
   1ULL, 2ULL, 4ULL, 8ULL,
   16ULL, 32ULL, 64ULL, 128ULL,
   256ULL, 512ULL, 1024ULL, 2048ULL,
@@ -56,7 +51,7 @@ const std::array<uint_t, 64> BITS {{
 }};
 
 
-const std::array<uint_t, 64> MASKS {{
+const areg_t<64> MASKS {{
   0ULL, 1ULL, 3ULL, 7ULL,
   15ULL, 31ULL, 63ULL, 127ULL,
   255ULL, 511ULL, 1023ULL, 2047ULL,
@@ -84,7 +79,7 @@ const std::array<uint_t, 64> MASKS {{
 // for N qubits at the locations specified by qubits_sorted.
 // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
 template <size_t N>
-uint_t index0(const std::array<uint_t, N> &qubits_sorted, const uint_t k);
+uint_t index0_static(const areg_t<N> &qubits_sorted, const uint_t k);
 
 
 // Return a vector of of 2^N in ints, where each int corresponds to an N qubit
@@ -92,24 +87,24 @@ uint_t index0(const std::array<uint_t, N> &qubits_sorted, const uint_t k);
 // [0, ..., 2^N - 1] qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
 // qubits specifies the location of the qubits in the retured strings.
 template <size_t N>
-std::array<uint_t, 1ULL << N> indexes(const std::array<uint_t, N> &qubits,
-                                      const std::array<uint_t, N> &qubits_sorted,
-                                      const uint_t k);
+areg_t<1ULL << N> indexes_static(const areg_t<N> &qubits,
+                                 const areg_t<N> &qubits_sorted,
+                                 const uint_t k);
 
 
 // Dynamic (slower) version of index0 that allows the qubit number to be
 // determined at runtime instead of compile time
-uint_t index0_dynamic(const std::vector<uint_t> &qubits_sorted,
+uint_t index0_dynamic(const reg_t &qubits_sorted,
                       const size_t N,
                       const uint_t k);
 
 
 // Dynamic (slower) version of indexes that allows the qubit number to be
 // determined at runtime instead of compile time
-std::vector<uint_t> indexes_dynamic(const std::vector<uint_t> &qubits,
-                                    const std::vector<uint_t> &qubits_sorted,
-                                    const size_t N,
-                                    const uint_t k);
+reg_t indexes_dynamic(const reg_t &qubits,
+                      const reg_t &qubits_sorted,
+                      const size_t N,
+                      const uint_t k);
 
 
 //------------------------------------------------------------------------------
@@ -117,7 +112,7 @@ std::vector<uint_t> indexes_dynamic(const std::vector<uint_t> &qubits,
 //------------------------------------------------------------------------------
 
 template <size_t N>
-uint_t index0(const std::array<uint_t, N> &qubits_sorted, const uint_t k) {
+uint_t index0_static(const areg_t<N> &qubits_sorted, const uint_t k) {
   uint_t lowbits, retval = k;
   for (size_t j = 0; j < N; j++) {
     lowbits = retval & MASKS[qubits_sorted[j]];
@@ -130,11 +125,11 @@ uint_t index0(const std::array<uint_t, N> &qubits_sorted, const uint_t k) {
 
 
 template <size_t N>
-std::array<uint_t, 1ULL << N> indexes(const std::array<uint_t, N> &qs,
-                                      const std::array<uint_t, N> &qubits_sorted,
-                                      const uint_t k) {
-  std::array<uint_t, 1ULL << N> ret;
-  ret[0] = index0<N>(qubits_sorted, k);
+areg_t<1ULL << N> indexes_static(const areg_t<N> &qs,
+                                 const areg_t<N> &qubits_sorted,
+                                 const uint_t k) {
+  areg_t<1ULL << N> ret;
+  ret[0] = index0_static<N>(qubits_sorted, k);
   for (size_t i = 0; i < N; i++) {
     const auto n = 1ULL << i;
     const auto bit = BITS[qs[i]];
@@ -147,11 +142,11 @@ std::array<uint_t, 1ULL << N> indexes(const std::array<uint_t, N> &qs,
 
 // Specialized case of template function for N=1 qubits
 template <>
-std::array<uint_t, 2> indexes(const std::array<uint_t, 1> &qubits,
-                              const std::array<uint_t, 1> &qubits_sorted,
-                              const uint_t k) {
-  std::array<uint_t, 2> ret;
-  ret[0] = index0(qubits_sorted, k);
+areg_t<2> indexes_static(const areg_t<1> &qubits,
+                         const areg_t<1> &qubits_sorted,
+                         const uint_t k) {
+  areg_t<2> ret;
+  ret[0] = index0_static(qubits_sorted, k);
   ret[1] = ret[0] | BITS[qubits[0]];
   return ret;
 }
@@ -159,11 +154,11 @@ std::array<uint_t, 2> indexes(const std::array<uint_t, 1> &qubits,
 
 // Specialized case of template function for N=2 qubits
 template <>
-std::array<uint_t, 4> indexes(const std::array<uint_t, 2> &qubits,
-                              const std::array<uint_t, 2> &qubits_sorted,
-                              const uint_t k) {
-  std::array<uint_t, 4> ret;
-  ret[0] = index0(qubits_sorted, k);
+areg_t<4> indexes_static(const areg_t<2> &qubits,
+                         const areg_t<2> &qubits_sorted,
+                         const uint_t k) {
+  areg_t<4> ret;
+  ret[0] = index0_static(qubits_sorted, k);
   ret[1] = ret[0] | BITS[qubits[0]];
   ret[2] = ret[0] | BITS[qubits[1]];
   ret[3] = ret[1] | BITS[qubits[1]];
@@ -175,7 +170,7 @@ std::array<uint_t, 4> indexes(const std::array<uint_t, 2> &qubits,
 // Dynamic Indexing
 //------------------------------------------------------------------------------
 
-uint_t index0_dynamic(const std::vector<uint_t> &qubits_sorted,
+uint_t index0_dynamic(const reg_t &qubits_sorted,
                       const size_t N,
                       const uint_t k) {
   uint_t lowbits, retval = k;
@@ -189,11 +184,11 @@ uint_t index0_dynamic(const std::vector<uint_t> &qubits_sorted,
 }
 
 
-std::vector<uint_t> indexes_dynamic(const std::vector<uint_t> &qubits,
-                                    const std::vector<uint_t> &qubits_sorted,
-                                    const size_t N,
-                                    const uint_t k) {
-  std::vector<uint_t> ret(1ULL << N);
+reg_t indexes_dynamic(const reg_t &qubits,
+                      const reg_t &qubits_sorted,
+                      const size_t N,
+                      const uint_t k) {
+  reg_t ret(1ULL << N);
   ret[0] = index0_dynamic(qubits_sorted, N, k);
   for (size_t i = 0; i < N; i++) {
     const auto n = 1ULL << i;
@@ -206,8 +201,6 @@ std::vector<uint_t> indexes_dynamic(const std::vector<uint_t> &qubits,
 
 
 //------------------------------------------------------------------------------
-} // end namespace Qubit
-//------------------------------------------------------------------------------
-} // end namespace Indexing
+} // end namespace QV2
 //------------------------------------------------------------------------------
 #endif // end module
