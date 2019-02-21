@@ -10,7 +10,7 @@
 
 #include "base/controller.hpp"
 #include "simulators/ch/ch_state.hpp"
-#include "simulators/qubitvector/qv_state.hpp"
+#include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 
 
@@ -23,9 +23,9 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- *
- * From QubitVector::State class
- *
+ * 
+ * From Statevector::State class
+ * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "chop_threshold" (double): Threshold for truncating small values to
@@ -91,8 +91,7 @@ private:
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const override;
+                                 uint_t rng_seed) const override;
 
   //----------------------------------------------------------------
   // Utility functions
@@ -126,7 +125,6 @@ private:
   OutputData run_circuit_helper(const Circuit &circ,
                                 uint_t shots,
                                 uint_t rng_seed,
-                                int num_threads_state,
                                 const Initstate_t &initial_state) const;
 
   // Execute a single shot a circuit by initializing the state vector
@@ -190,6 +188,10 @@ private:
   cvector_t initial_statevector_;
 
   // TODO: initial stabilizer state
+
+  // Controller-level parameter for CH method
+
+  bool ch_disable_measurement_opt_ = false;
 };
 
 //=========================================================================
@@ -209,14 +211,21 @@ void QasmController::set_config(const json_t &config) {
   std::string method;
   if (JSON::get_value(method, "method", config)) {
     if (method == "statevector")
-
+    {
       simulation_method_ = Method::statevector;
+    }
     else if (method == "stabilizer")
+    {
       simulation_method_ = Method::stabilizer;
+    }
     else if (method == "ch")
+    {
       simulation_method_ = Method::ch_decomposition;
+    }
     else if (method != "automatic")
+    {
       throw std::runtime_error(std::string("QasmController: Invalid simulation method.") + method);
+    }
   }
 
   //Add custom initial state
@@ -240,6 +249,7 @@ void QasmController::set_config(const json_t &config) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
+  JSON::get_value(ch_disable_measurement_opt_, "disable_measurement_opt", config);
 }
 
 void QasmController::clear_config() {
@@ -254,16 +264,14 @@ void QasmController::clear_config() {
 
 OutputData QasmController::run_circuit(const Circuit &circ,
                                        uint_t shots,
-                                       uint_t rng_seed,
-                                       int num_threads_state) const {
+                                       uint_t rng_seed) const {
   // Execute according to simulation method
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statvector simulation
-      return run_circuit_helper<QubitVector::State<>>(circ,
+      return run_circuit_helper<Statevector::State<>>(circ,
                                                       shots,
                                                       rng_seed,
-                                                      num_threads_state,
                                                       initial_statevector_); // allow custom initial state
     case Method::stabilizer:
       // Stabilizer simulation
@@ -271,13 +279,11 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<Stabilizer::State>(circ,
                                                    shots,
                                                    rng_seed,
-                                                   num_threads_state,
                                                    Clifford::Clifford()); // no custom initial state
     case Method::ch_decomposition:
       return run_circuit_helper<CH::State>(circ,
                                            shots,
                                            rng_seed,
-                                           num_threads_state,
                                            CHSimulator::Runner());
     default:
       // We shouldn't get here, so throw an exception if we do
@@ -333,7 +339,6 @@ template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
-                                              int num_threads_state,
                                               const Initstate_t &initial_state) const {  
   // Initialize new state object
   State_t state;
@@ -343,7 +348,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(num_threads_state);
+  state.set_available_threads(parallel_state_update_);
 
   // Rng engine
   RngEngine rng;
@@ -436,6 +441,10 @@ std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
   // are no reset operations before the measurement
+  if(simulation_method(circ) == Method::ch_decomposition && ch_disable_measurement_opt_)
+  {
+    return std::make_pair(false, 0);
+  }
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;

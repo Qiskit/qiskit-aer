@@ -1,3 +1,5 @@
+include(Linter)
+
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
@@ -8,11 +10,16 @@ find_package(PythonLibs REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+# QASM Controller
+
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
 add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
 set_target_properties(qasm_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
+# We only need to pass the linter once, as the codebase is the same for
+# all controllers
+add_linter(qasm_controller_wrapper)
 target_include_directories(qasm_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
@@ -36,9 +43,10 @@ python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
 
-set(SITE_PACKAGES "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
-install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION ${SITE_PACKAGES})
+set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
+install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
 
+# StateVector Controller
 
 add_cython_target(statevector_controller_wrapper statevector_controller_wrapper.pyx CXX)
 add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
@@ -68,9 +76,11 @@ python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
 
-set(SITE_PACKAGES "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
-install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION ${SITE_PACKAGES})
 
+set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
+install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
+
+# Unitary Controller
 
 add_cython_target(unitary_controller_wrapper unitary_controller_wrapper.pyx CXX)
 add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
@@ -100,37 +110,11 @@ python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
 
-set(SITE_PACKAGES "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
-install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION ${SITE_PACKAGES})
+set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
+install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
 
-
-add_cython_target(ch_controller_wrapper ch_controller_wrapper.pyx CXX)
-add_library(ch_controller_wrapper MODULE ${ch_controller_wrapper})
-set_target_properties(ch_controller_wrapper PROPERTIES
-    LINKER_LANGUAGE CXX
-    CXX_STANDARD 14)
-target_include_directories(ch_controller_wrapper
-    PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
-    PRIVATE ${PYTHON_INCLUDE_DIRS})
-
+# Install redistributable dependencies
 if(APPLE)
-    message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
-        solved at runtime by the loader")
-    set_target_properties(ch_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-    unset(PYTHON_LIBRARIES)
+    set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
+    install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION ${AER_DESTINATION})
 endif()
-
-target_link_libraries(ch_controller_wrapper
-    ${AER_LIBRARIES}
-    ${PYTHON_LIBRARIES})
-
-python_extension_module(ch_controller_wrapper
-    FORWARD_DECL_MODULES_VAR fdecl_module_list)
-
-python_modules_header(modules
-    FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
-include_directories(${modules_INCLUDE_DIRS})
-
-set(SITE_PACKAGES "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
-install(TARGETS ch_controller_wrapper LIBRARY DESTINATION ${SITE_PACKAGES})

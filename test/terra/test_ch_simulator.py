@@ -21,7 +21,7 @@ from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_algorithms
 
 from qiskit import compile as qiskit_compile
-from qiskit.providers.aer import CHSimulator
+from qiskit.providers.aer import QasmSimulator
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         # count output circuits
         shots = 100
         circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -50,9 +53,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         # count output circuits
         shots = 2000
         circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -64,9 +70,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test CHSimulator measure with deterministic counts with sampling"""
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(allow_sampling=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -75,9 +84,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test CHSimulator measure with deterministic counts without sampling"""
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(allow_sampling=False)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -86,9 +98,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test CHimulator measure with non-deterministic counts with sampling"""
         shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -97,9 +112,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test CHimulator measure with non-deterministic counts without sampling"""
         shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=False)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -114,7 +132,10 @@ class TestCHSimulator(common.QiskitAerTestCase):
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
         targets = ref_measure.measure_counts_qobj_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -126,7 +147,10 @@ class TestCHSimulator(common.QiskitAerTestCase):
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
         targets = ref_measure.measure_counts_qobj_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -138,7 +162,10 @@ class TestCHSimulator(common.QiskitAerTestCase):
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
         targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -150,7 +177,10 @@ class TestCHSimulator(common.QiskitAerTestCase):
         qobj.config.shots = shots
         circuits = [experiment.header.name for experiment in qobj.experiments]
         targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -162,9 +192,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test conditional operations on 1-bit conditional register."""
         shots = 100
         circuits = ref_conditionals.conditional_circuits_1bit(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_1bit(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -173,9 +206,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test conditional operations on 2-bit conditional register."""
         shots = 100
         circuits = ref_conditionals.conditional_circuits_2bit(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_2bit(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -187,9 +223,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test h-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -198,9 +237,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test h-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -212,9 +254,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test x-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -226,9 +271,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test z-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -240,9 +288,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test y-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -254,9 +305,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test s-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -265,9 +319,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test s-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -279,9 +336,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test sdg-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -290,9 +350,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         shots = 2000
         """Test sdg-gate circuits compiling to backend default basis_gates."""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -304,9 +367,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test cx-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -315,9 +381,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test cx-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -329,9 +398,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test cz-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -340,9 +412,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test cz-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -354,9 +429,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test swap-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -365,9 +443,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test swap-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -379,9 +460,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test t-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_non_clifford.t_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -390,9 +474,14 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test t-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch",
+                                    'disable_measurement_opt': True,
+                                    'srank_mixing_time': 50
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -404,9 +493,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
 
@@ -416,11 +508,13 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj,
+        job = QasmSimulator().run(qobj,
                                 backend_options={
-                                    'srank_approximation_error': 0.03
+                                    'method': 'ch',
+                                    'disable_measurement_opt': True,
+                                    'srank_mixing_time':50
                                 })
         result = job.result()
         self.is_completed(result)
@@ -433,9 +527,13 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch",
+                                    "srank_mixing_time": 100
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05*shots)
@@ -444,12 +542,13 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
         shots = 500
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-        job = CHSimulator().run(qobj,
+        job = QasmSimulator().run(qobj,
                                 backend_options={
+                                    "method": "ch",
                                     "srank_mixing_time": 50,
-                                    "disable_measurement_opt": True,
+                                    "disable_measurement_opt": True
                                 })
         result = job.result()
         self.is_completed(result)
@@ -463,10 +562,11 @@ class TestCHSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.grovers_counts(shots)
-        job = CHSimulator().run(qobj,
+        job = QasmSimulator().run(qobj,
                                 backend_options={
+                                    'method': 'ch',
                                     'disable_measurement_opt': True,
                                     'srank_mixing_time': 100,
                                 })
@@ -478,9 +578,12 @@ class TestCHSimulator(common.QiskitAerTestCase):
         """Test teleport circuits compiling to backend default basis_gates."""
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
-        qobj = qiskit_compile(circuits, CHSimulator(), shots=shots)
+        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.teleport_counts(shots)
-        job = CHSimulator().run(qobj)
+        job = QasmSimulator().run(qobj,
+                                backend_options={
+                                    "method":"ch"
+                                })
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

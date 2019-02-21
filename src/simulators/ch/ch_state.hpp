@@ -218,6 +218,7 @@ void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
     throw std::invalid_argument("StabilizerRank::State::initialize: initial state does not match qubit number.");
   }
   BaseState::qreg_ = state;
+  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank);
 }
 
 void State::set_config(const json_t &config)

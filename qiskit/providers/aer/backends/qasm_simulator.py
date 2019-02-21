@@ -10,11 +10,12 @@ Qiskit Aer qasm simulator backend.
 """
 
 import logging
+import os
 from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
-from qasm_controller_wrapper import qasm_controller_execute
+from .qasm_controller_wrapper import qasm_controller_execute
 from ..aererror import AerError
 from ..version import __version__
 
@@ -106,7 +107,10 @@ class QasmSimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -123,6 +127,7 @@ class QasmSimulator(AerBackend):
         clifford_instructions = ["id", "x", "y", "z", "h", "s", "sdg",
                                  "CX", "cx", "cz", "swap",
                                  "barrier", "reset", "measure"]
+        unsupported_ch_instructions = ["u2", "u3"]
         # Check if noise model is Clifford:
         method = "automatic"
         if backend_options and "method" in backend_options:
@@ -148,6 +153,9 @@ class QasmSimulator(AerBackend):
                                'result data will not contain counts.', name)
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
+            ch_supported = False
+            if method == "ch" or method == "automatic":
+                ch_supported = True
             clifford = False if method == "statevector" else clifford_noise
             for op in experiment.instructions:
                 if not clifford and not no_measure:
@@ -156,17 +164,25 @@ class QasmSimulator(AerBackend):
                     clifford = False
                 if no_measure and op.name == "measure":
                     no_measure = False
+                if ch_supported and op.name in unsupported_ch_instructions:
+                    ch_supported = False
             # Print warning if clbits but no measure
             if no_measure:
                 logger.warning('No measurements in circuit "%s": '
                                'count data will return all zeros.', name)
             # Check qubits for statevector simulation
-            if not clifford:
+            if not clifford and method != "ch":
                 n_qubits = experiment.config.n_qubits
                 max_qubits = self.configuration().n_qubits
                 if n_qubits > max_qubits:
-                    system_memory = int(local_hardware_info()['memory'])
-                    raise AerError('Number of qubits ({}) '.format(n_qubits) +
-                                   'is greater than maximum ({}) '.format(max_qubits) +
-                                   'for "{}" (method=statevector) '.format(self.name()) +
-                                   'with {} GB system memory.'.format(system_memory))
+                    if ch_supported and n_qubits < 63 and method == "automatic":
+                        logger.info('Automatically switching to the CH '
+                                    'simulator based on the memory '
+                                    'requirements.')
+                        backend_options['method'] = "ch"
+                    else:
+                        system_memory = int(local_hardware_info()['memory'])
+                        raise AerError('Number of qubits ({}) '.format(n_qubits) +
+                                       'is greater than maximum ({}) '.format(max_qubits) +
+                                       'for "{}" (method=statevector) '.format(self.name()) +
+                                       'with {} GB system memory.'.format(system_memory))

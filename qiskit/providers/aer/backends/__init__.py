@@ -7,7 +7,6 @@
 
 """Aer Backends."""
 
-from .ch_simulator import CHSimulator
 from .qasm_simulator import QasmSimulator
 from .statevector_simulator import StatevectorSimulator
 from .unitary_simulator import UnitarySimulator
