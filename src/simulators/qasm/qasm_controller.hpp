@@ -326,7 +326,7 @@ void QasmController::set_parallelization(Qobj& qobj) {
   // OpenMP implementation is not optimized for nested parallelization.
   // QasmController sets one of parallel_* to max_parallel_threads and the others to 1.
 
-  AER::QubitVector::State<> state;
+  Statevector::State<> state;
 
   // Set parallel_experiments_ to max_parallel_threads if necessary
   parallel_experiments_ = 1;                                      // default is 1
