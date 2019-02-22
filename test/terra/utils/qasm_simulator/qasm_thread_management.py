@@ -147,7 +147,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         shots = multiprocessing.cpu_count() - 1
         circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model()}
+        backend_opts = {'max_parallel_shots': multiprocessing.cpu_count(), 'noise_model': self.dummy_noise_model()}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")

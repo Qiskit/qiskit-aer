@@ -400,6 +400,8 @@ json_t Controller::execute(const json_t &qobj_js) {
     // Initialize container to store parallel circuit output
     result["results"] = std::vector<json_t>(num_circuits);
     if (parallel_experiments_ > 1) {
+      if (parallel_shots_ > 1 || parallel_state_update_ > 1)
+        omp_set_nested(1);
       // Parallel circuit execution
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < num_circuits; ++j) {
@@ -460,6 +462,9 @@ json_t Controller::execute_circuit(Circuit &circ) {
       for (int j=0; j < int(circ.shots % parallel_shots_); ++j) {
         subshots[j] += 1;
       }
+
+      if (parallel_state_update_ > 1)
+        omp_set_nested(1);
 
       // Vector to store parallel thread output data
       std::vector<OutputData> data(parallel_shots_);

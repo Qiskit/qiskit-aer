@@ -328,6 +328,10 @@ void QasmController::set_parallelization(Qobj& qobj) {
 
   Statevector::State<> state;
 
+  // Set max_parallel_experiments_ properly
+  if (max_parallel_threads_ < max_parallel_experiments_)
+    max_parallel_experiments_ = max_parallel_threads_;
+
   // Set parallel_experiments_ to max_parallel_threads if necessary
   parallel_experiments_ = 1;                                      // default is 1
   if (max_parallel_experiments_ > 1                               // input exists
@@ -345,8 +349,12 @@ void QasmController::set_parallelization(Qobj& qobj) {
     }
   }
 
-  // Set parallel_shots_ to max_parallel_threads if necessary
-  int min_num_shots = max_parallel_threads_;
+  // Set max_parallel_shots_ properly
+  if (max_parallel_shots_ < 1 || max_parallel_threads_ <= max_parallel_shots_)
+    max_parallel_shots_ = max_parallel_threads_;
+
+  // Set parallel_shots_ to max_parallel_shots_ if necessary
+  int min_num_shots = std::min<int>({max_parallel_shots_, max_parallel_threads_});
   uint_t max_total_circuit_memory_mb = 0L;
   bool sample = false;
   for (Circuit &circ: qobj.circuits) {
@@ -354,14 +362,14 @@ void QasmController::set_parallelization(Qobj& qobj) {
       break;
     min_num_shots = std::min<int>({ min_num_shots, (int) circ.shots});
     max_total_circuit_memory_mb = std::max<uint_t>({ max_total_circuit_memory_mb,
-      state.required_memory_mb(circ.num_qubits, circ.ops) * (uint_t) max_parallel_threads_});
+      state.required_memory_mb(circ.num_qubits, circ.ops) * (uint_t) max_parallel_shots_});
   }
   parallel_shots_ = 1;                                                  // default is 1
-  if (min_num_shots == max_parallel_threads_                            // sufficient parallelism
+  if (min_num_shots == max_parallel_shots_                              // sufficient parallelism
       && max_total_circuit_memory_mb <= max_statevector_memory_mb_      // enough memory
       && !sample) {                                                     // no sampling
-    parallel_shots_ = max_parallel_threads_;
-    parallel_state_update_ = 1;
+    parallel_shots_ = max_parallel_shots_;
+    parallel_state_update_ = max_parallel_threads_ / max_parallel_shots_;
     return;
   }
 
