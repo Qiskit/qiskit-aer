@@ -22,12 +22,15 @@
 
 enum class CmdArguments {
   SHOW_VERSION,
+  INPUT_CONFIG,
   INPUT_DATA
 };
 
 CmdArguments parse_cmd_options(const std::string& argv){
   if(argv == "-v" || argv == "--version"){
-       return CmdArguments::SHOW_VERSION;
+    return CmdArguments::SHOW_VERSION;
+  } else if (argv == "-c" || argv == "--config"){
+    return CmdArguments::INPUT_CONFIG;
   }
   return CmdArguments::INPUT_DATA;
 }
@@ -54,9 +57,10 @@ void usage(const std::string& command, std::ostream &out){
   show_version();
   std::cerr << "\n";
   std::cerr << "Usage: \n";
-  std::cerr << command << " [-v] <file>\n";
-  std::cerr << "    -v    Show version\n";
-  std::cerr << "    file : qobj file\n";
+  std::cerr << command << " [-v] [-c <config>] <file>\n";
+  std::cerr << "    -v       Show version\n";
+  std::cerr << "    config : config file\n";
+  std::cerr << "    file :   qobj file\n";
 }
 
 int main(int argc, char **argv) {
@@ -64,6 +68,7 @@ int main(int argc, char **argv) {
   std::ostream &out = std::cout; // output stream
   int indent = 4;
   json_t qobj;
+  json_t config;
 
   if(argc == 1){
     usage(std::string(argv[0]), out);
@@ -76,9 +81,23 @@ int main(int argc, char **argv) {
       case CmdArguments::SHOW_VERSION:
         show_version();
         return 0;
+      case CmdArguments::INPUT_CONFIG:
+        if (++pos == static_cast<unsigned int>(argc)) {
+          std::string msg = "Invalid config (no file is specified.)";
+          failed(msg, out, indent);
+          return 1;
+        }
+        try {
+          config = JSON::load(std::string(argv[pos]));
+        }catch(std::exception &e){
+          std::string msg = "Invalid config (" +  std::string(e.what()) + ")";
+          failed(msg, out, indent);
+          return 1;
+        }
+        break;
       case CmdArguments::INPUT_DATA:
         try {
-          qobj = JSON::load(std::string(argv[1]));
+          qobj = JSON::load(std::string(argv[pos]));
           pos = argc; //Exit from the loop
         }catch(std::exception &e){
           std::string msg = "Invalid input (" +  std::string(e.what()) + ")";
@@ -94,6 +113,7 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+    sim.set_config(config);
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;
