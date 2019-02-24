@@ -16,3 +16,7 @@ out/*
 *.whl
 *.egg*
 build/*
+contrib/standalone/version.hpp
+*.log
+*.env
+*.idea/

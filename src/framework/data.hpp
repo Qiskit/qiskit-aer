@@ -309,7 +309,9 @@ json_t OutputData::json() const {
       tmp["snapshots"][pair.first] = pair.second.json();
     }
   }
-  // return json
+  // Check if data is null (empty) and if so return an empty JSON object
+  if (tmp.is_null())
+    return json_t::object();
   return tmp;
 }
 

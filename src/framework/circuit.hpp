@@ -41,8 +41,8 @@ public:
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
   // parameters by scaning the input list of ops.
-  Circuit() {set_random_seed();};
-  inline Circuit(const std::vector<Op> &_ops) : Circuit() {ops = _ops; set_sizes();};
+  Circuit() {set_random_seed();}
+  Circuit(const std::vector<Op> &_ops);
 
   // Construct a circuit from JSON
   Circuit(const json_t &circ);
@@ -57,15 +57,8 @@ public:
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
 
-  // Check if all circuit ops are in an allowed op set
-  bool check_ops(const std::unordered_set<OpType> &allowed_ops,
-                 const stringset_t &allowed_gates,
-                 const stringset_t &allowed_snapshots) const;
-
-  // Return a set of all invalid circuit op names
-  stringset_t invalid_ops(const std::unordered_set<OpType> &allowed_ops,
-                          const stringset_t &allowed_gates,
-                          const stringset_t &allowed_snapshots) const;
+  // Return the opset for the circuit
+  inline const Operations::OpSet& opset() const {return opset_;}
 
   // Check if any circuit ops are conditional ops
   bool has_conditional() const;
@@ -81,6 +74,9 @@ public:
 
   // return minimum and maximum op.registers arguments as pair (min, max)
   std::pair<uint_t, uint_t> minmax_registers() const;
+
+private:
+  Operations::OpSet opset_;  // Set of operation types contained in circuit
 };
 
 // Json conversion function
@@ -111,6 +107,11 @@ void Circuit::set_sizes() {
   }
 }
 
+Circuit::Circuit(const std::vector<Op> &_ops) : Circuit() {
+  ops = _ops;
+  set_sizes();
+  opset_ = Operations::OpSet(ops);
+}
 
 Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
 
@@ -133,6 +134,10 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   for (auto it = jops.cbegin(); it != jops.cend(); ++it) {
     ops.emplace_back(Operations::json_to_op(*it));
   }
+
+  // Set optype information
+  opset_ = Operations::OpSet(ops);
+
   // Set minimum sizes from operations
   set_sizes();
 
@@ -158,37 +163,6 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
     // override qubit number
     num_qubits = n_qubits;
   }
-}
-
-
-stringset_t Circuit::invalid_ops(const std::unordered_set<OpType> &allowed_ops,
-                                 const stringset_t &allowed_gates,
-                                 const stringset_t &allowed_snapshots) const {
-  stringset_t invalid;
-  for (const auto &op : ops) {
-    if (allowed_ops.find(op.type) == allowed_ops.end() ||
-        (op.type == OpType::gate &&
-         allowed_gates.find(op.name) == allowed_gates.end()) ||
-        (op.type == OpType::snapshot &&
-         allowed_snapshots.find(op.name) == allowed_snapshots.end()))
-      invalid.insert(op.name);
-  }
-  return invalid;
-}
-
-
-bool Circuit::check_ops(const std::unordered_set<OpType> &allowed_ops,
-                        const stringset_t &allowed_gates,
-                        const stringset_t &allowed_snapshots) const {
-  for (const auto &op : ops) {
-    if (allowed_ops.find(op.type) == allowed_ops.end() ||
-        (op.type == OpType::gate &&
-         allowed_gates.find(op.name) == allowed_gates.end()) ||
-        (op.type == OpType::snapshot &&
-         allowed_snapshots.find(op.name) == allowed_snapshots.end()))
-      return false;
-  }
-  return true;
 }
 
 
