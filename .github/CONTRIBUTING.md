@@ -1,36 +1,31 @@
-Contributing
-============
+# Contributing
 
 **We appreciate all kinds of help, so thank you!**
 
-Contributing to the project
----------------------------
+## Contributing to the project
 
 You can contribute in many ways to this project.
 
-Issue reporting
-~~~~~~~~~~~~~~~
+### Issue reporting
 
 This is a good point to start, when you find a problem please add
 it to the `issue tracker <https://github.com/Qiskit/qiskit-aer/issues>`_.
 The ideal report should include the steps to reproduce it.
 
-Doubts solving
-~~~~~~~~~~~~~~
+### Doubts solving
 
 To help less advanced users is another wonderful way to start. You can
 help us close some opened issues. This kind of tickets should be
 labeled as ``question``.
 
-Improvement proposal
-~~~~~~~~~~~~~~~~~~~~
+### Improvement proposal
 
 If you have an idea for a new feature please open a ticket labeled as
 ``enhancement``. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
 
-Contributor License Agreement
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### Contributor License Agreement
+
 
 We'd love to accept your code! Before we can, we have to get a few legal
 requirements sorted out. By signing a contributor license agreement (CLA), we
@@ -47,8 +42,8 @@ then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-cor
 and email it to us at qiskit@us.ibm.com.
 
 
-Pre-requisites
-~~~~~~~~~~~~~~
+### Pre-requisites
+
 
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file, eg:
@@ -112,8 +107,8 @@ library from the Anaconda3 environment.
 
 
 
-Building
-~~~~~~~~
+### Building
+
 
 There are two ways of building Aer simulators, depending on our goal they are:
 1. Build Terra compatible addon.
@@ -187,8 +182,8 @@ directory (depending on the type of building choosen with the ``--config`` optio
 
 
 
-Useful CMake flags
-------------------
+## Useful CMake flags
+
 
 There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
@@ -243,8 +238,7 @@ CMAKE_CXX_COMPILER
     Example: ``cmake -DCMAKE_CXX_COMPILER=g++``
 
 
-Tests
-~~~~~
+### Tests
 
 Almost every code contribution should be accompained by it's corresponding set of tests.
 You won't probably hear complaints if there are too many tests in your PR :), but the other
@@ -276,8 +270,8 @@ Tests are located in `test/src` directory, and in order to run them, you have to
   qiskit-aer/out$ ctest -VV
 
 
-Style guide
-~~~~~~~~~~~
+### Style guide
+
 
 Please submit clean code and please make effort to follow existing conventions
 in order to keep it as readable as possible.
@@ -288,21 +282,18 @@ A linter (clang-tidy) is passed automatically every time a building is
 invoqued. It will stop the current build if detects style erros, or common pitfalls.
 
 
-Good first contributions
-~~~~~~~~~~~~~~~~~~~~~~~~
+### Good first contributions
 
 You are welcome to contribute wherever in the code you want to, of course, but
 we recommend taking a look at the "Good first contribution" label into the
 issues and pick one. We would love to mentor you!
 
-Doc
-~~~
+### Doc
 
 Review the parts of the documentation regarding the new changes and update it
 if it's needed.
 
-Pull requests
-~~~~~~~~~~~~~
+### Pull requests
 
 We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
 to accept the contributions.
@@ -327,8 +318,8 @@ you are ready to start coding (yay!). We have two options here:
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
 
-Pull request checklist
-""""""""""""""""""""""
+#### Pull request checklist
+
 
 When submitting a pull request and you feel it is ready for review, please
 double check that:
@@ -345,8 +336,8 @@ double check that:
   section, with the title of your pull request and its identifier (for example,
   "``Replace OldComponent with FluxCapacitor (#123)``".
 
-Commit messages
-"""""""""""""""
+#### Commit messages
+
 
 Please follow the next rules for the commit messages:
 
@@ -372,8 +363,8 @@ A (really) bad example:
 
     Fixes #190
 
-Development cycle
------------------
+## Development cycle
+
 
 TODO: Review
 
@@ -386,8 +377,8 @@ announce it and detail what has changed since the latest version.
 The channels we'll use to announce new releases are still being discussed, but
 for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
 
-Branch model
-~~~~~~~~~~~~
+## Branch model
+
 
 There are two main branches in the repository:
 
