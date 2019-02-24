@@ -22,6 +22,10 @@ namespace Noise {
 
 class QuantumError : public AbstractError {
 public:
+
+  // Alias for return type
+  using NoiseOps = std::vector<Operations::Op>;
+
   //-----------------------------------------------------------------------
   // Error base required methods
   //-----------------------------------------------------------------------
@@ -50,6 +54,8 @@ public:
   // Set threshold for checking probabilities and matrices
   void set_threshold(double);
 
+  const Operations::OpSet& opset() const {return opset_;}
+
 protected:
   // Probabilities, first entry is no-error (identity)
   rvector_t probabilities_;
@@ -57,6 +63,9 @@ protected:
 
   // List of unitary error matrices
   std::vector<NoiseOps> circuits_;
+
+  // List of OpTypes contained in error circuits
+  Operations::OpSet opset_;
 
   // threshold for validating if matrices are unitary
   double threshold_ = 1e-10;
@@ -98,7 +107,7 @@ void QuantumError::set_threshold(double threshold) {
 }
 
 void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
-                                   const rvector_t &probs) {
+                                const rvector_t &probs) {
   if (probs.size() != circuits.size()) {
     std::stringstream msg;
     msg << "QuantumError: invalid input, number of circuits (";
@@ -118,16 +127,20 @@ void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
     throw std::invalid_argument("QuantumError: invalid probability vector total (" +
                                 std::to_string(total) + "!= 1)");
   }
+  // Reset OpSet
+  opset_ = Operations::OpSet();
   // Add elements with non-zero probability
   for (size_t j=0; j < probs.size(); j++ ) {
     if (probs[j] > threshold_) {
       probabilities_.push_back(probs[j]);
       circuits_.push_back(circuits[j]);
-      // Check max qubit size
       for (const auto &op: circuits[j]) {
+        // Check max qubit size
         for (const auto &qubit : op.qubits) {
           num_qubits = std::max(num_qubits, qubit + 1);
         }
+        // Record op in opset
+        opset_.insert(op);
       }
     }
   }

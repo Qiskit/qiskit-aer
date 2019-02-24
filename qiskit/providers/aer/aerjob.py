@@ -51,12 +51,11 @@ class AerJob(BaseJob):
     else:
         _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, backend, job_id, fn, qobj, backend_options, noise_model):
+    def __init__(self, backend, job_id, fn, qobj, *args):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
-        self._backend_options = backend_options
-        self._noise_model = noise_model
+        self._args = args
         self._future = None
 
     def submit(self):
@@ -73,8 +72,7 @@ class AerJob(BaseJob):
 
         validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
-                                             self._backend_options,
-                                             self._noise_model)
+                                             *self._args)
 
     @requires_submit
     def result(self, timeout=None):

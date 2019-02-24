@@ -77,10 +77,10 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/qiskit/aer) repository.
 
-## Authors
+## Authors and Citation
 
 Qiskit Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute
-to the project at different levels.
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
 
 ## License
 

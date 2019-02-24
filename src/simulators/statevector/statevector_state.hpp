@@ -5,8 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-#ifndef _qubitvector_qv_state_hpp
-#define _qubitvector_qv_state_hpp
+#ifndef _statevector_state_hpp
+#define _statevector_state_hpp
 
 #include <algorithm>
 #define _USE_MATH_DEFINES
@@ -19,7 +19,7 @@
 
 
 namespace AER {
-namespace QubitVector {
+namespace Statevector {
   
 // Allowed gates enum class
 enum class Gates {
@@ -30,7 +30,7 @@ enum class Gates {
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  statevector, cmemory, cregister, 
+  statevector, cmemory, cregister,
   probs, probs_var,
   expval_pauli, expval_pauli_var,
   expval_matrix, expval_matrix_var
@@ -40,10 +40,10 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
-template <class statevector_t = complex_t*>
-class State : public Base::State<QV::QubitVector<statevector_t>> {
+template <class data_t = complex_t*>
+class State : public Base::State<QV::QubitVector<data_t>> {
 public:
-  using BaseState = Base::State<QV::QubitVector<statevector_t>>;
+  using BaseState = Base::State<QV::QubitVector<data_t>>;
 
   State() = default;
   virtual ~State() = default;
@@ -52,8 +52,11 @@ public:
   // Base class overrides
   //-----------------------------------------------------------------------
 
+  // Return the string name of the State class
+  virtual std::string name() const override {return "statevector";}
+
   // Return the set of qobj instruction types supported by the State
-  inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
+  virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
     return std::unordered_set<Operations::OpType>({
       Operations::OpType::gate,
       Operations::OpType::measure,
@@ -68,13 +71,13 @@ public:
   }
 
   // Return the set of qobj gate instruction names supported by the State
-  inline virtual stringset_t allowed_gates() const override {
+  virtual stringset_t allowed_gates() const override {
     return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
   }
 
   // Return the set of qobj snapshot types supported by the State
-  inline virtual stringset_t allowed_snapshots() const override {
+  virtual stringset_t allowed_snapshots() const override {
     return {"statevector", "memory", "register",
             "probabilities", "probabilities_with_variance",
             "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -92,7 +95,7 @@ public:
 
   // Initializes to a specific n-qubit state
   virtual void initialize_qreg(uint_t num_qubits,
-                               const QV::QubitVector<statevector_t> &state) override;
+                               const QV::QubitVector<data_t> &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -131,7 +134,7 @@ protected:
   void apply_gate(const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
-  // If a state subclass supports this function it then "measure" 
+  // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   virtual void apply_measure(const reg_t &qubits,
@@ -164,7 +167,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Return vector of measure probabilities for specified qubits
-  // If a state subclass supports this function it then "measure" 
+  // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   // TODO: move to private (no longer part of base class)
@@ -213,7 +216,7 @@ protected:
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
-  
+
   // Apply a waltz gate specified by parameters u3(theta, phi, lambda)
   void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
                      const double lambda);
@@ -312,7 +315,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize(state.data(), 1ULL << num_qubits);
+  BaseState::qreg_.initialize_from_data(state.data(), 1ULL << num_qubits);
 }
 
 template <class statevec_t>
@@ -323,7 +326,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize(state);
+  BaseState::qreg_.initialize_from_vector(state);
 }
 
 template <class statevec_t>
@@ -357,7 +360,7 @@ void State<statevec_t>::set_config(const json_t &config) {
 
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
-  
+
   // Set the sample measure indexing size
   int index_size;
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
@@ -461,7 +464,7 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
     case Snapshots::expval_matrix_var: {
       snapshot_matrix_expval(op, data, true);
     }  break;
-    default: 
+    default:
       // We shouldn't get here unless there is a bug in the snapshotset
       throw std::invalid_argument("QubitVector::State::invalid snapshot instruction \'" +
                                   op.name + "\'.");
@@ -474,7 +477,7 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
                                                bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
-                              json_chop_threshold_, 16); 
+                              json_chop_threshold_, 16);
   data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(), probs, variance);
 }
@@ -492,7 +495,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   // Cache the current quantum state
   BaseState::qreg_.checkpoint();
   bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-  
+
   // Compute expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
@@ -548,11 +551,11 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
-  
+
   // Cache the current quantum state
   BaseState::qreg_.checkpoint();
   bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-  
+
   // Compute expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_matrix) {
@@ -575,7 +578,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       } else {
         BaseState::qreg_.apply_matrix(qubits, vmat);
       }
-      
+
     }
     expval += coeff*BaseState::qreg_.inner_product();
   }
@@ -718,7 +721,7 @@ template <class statevec_t>
 std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) {
-  // Generate flat register for storing 
+  // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
@@ -767,9 +770,9 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const uint_t final_state,
                                  const uint_t meas_state,
                                  const double meas_prob) {
-  // Update a state vector based on an outcome pair [m, p] from 
+  // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
-  
+
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
@@ -781,7 +784,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     if (final_state != meas_state) {
       BaseState::qreg_.apply_x(qubits[0]);
     }
-  } 
+  }
   // Multi qubit case
   else {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
@@ -793,8 +796,8 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // If it doesn't agree with the reset state update
     // This function could be optimized as a permutation update
     if (final_state != meas_state) {
-      // build vectorized permutation matrix  
-      cvector_t perm(dim * dim, 0.); 
+      // build vectorized permutation matrix
+      cvector_t perm(dim * dim, 0.);
       perm[final_state * dim + meas_state] = 1.;
       perm[meas_state * dim + final_state] = 1.;
       for (size_t j=0; j < dim; j++) {
@@ -815,7 +818,7 @@ template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats,
                                     RngEngine &rng) {
-  
+
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
     return; // end function early
@@ -833,12 +836,12 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
 
   // Loop through N-1 kraus operators
   for (size_t j=0; j < kmats.size() - 1; j++) {
-    
+
     // Calculate probability
     cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
     double p = BaseState::qreg_.norm(qubits, vmat);
     accum += p;
-    
+
     // check if we need to apply this operator
     if (accum > r) {
       // rescale vmat so projection is normalized
