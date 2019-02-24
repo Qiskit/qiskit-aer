@@ -1,6 +1,10 @@
 ---
-name: 🐛 Bug report
-about: Create a report to help us improve 🤔.
+name: "\U0001F41B Bug report"
+about: "Create a report to help us improve \U0001F914."
+title: ''
+labels: bug
+assignees: ''
+
 ---
 
 <!-- ⚠️ If you do not respect this template, your issue will be closed -->
@@ -8,7 +12,8 @@ about: Create a report to help us improve 🤔.
 
 ### Informations
 
-- **Qiskit AER version**:
+- **Qiskit Aer version**:
+- **Python version**:
 - **Operating system**:
 
 ### What is the current behavior?
