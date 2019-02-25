@@ -22,6 +22,9 @@ install:
   - git clone https://github.com/Qiskit/qiskit-terra.git
   - pip install -r qiskit-terra/requirements.txt
   - pip install -r requirements-dev.txt
+  - cd qiskit-terra
+  - python ./setup.py install
+  - cd ..
 
 script:
   - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
