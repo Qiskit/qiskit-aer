@@ -8,8 +8,6 @@ python:
   - "3.6"
 os: linux
 dist: trusty
-env:
-  - PYTHONPATH=qiskit-terra/
 
 before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
