@@ -42,9 +42,7 @@ python_extension_module(qasm_controller_wrapper
 python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
-
-set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
-install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
+install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # StateVector Controller
 
@@ -75,10 +73,7 @@ python_extension_module(statevector_controller_wrapper
 python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
-
-
-set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
-install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
+install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Unitary Controller
 
@@ -109,12 +104,9 @@ python_extension_module(unitary_controller_wrapper
 python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
-
-set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
-install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION ${AER_DESTINATION})
+install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Install redistributable dependencies
 if(APPLE)
-    set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
-    install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION ${AER_DESTINATION})
+    install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()
