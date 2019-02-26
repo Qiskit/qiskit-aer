@@ -29,8 +29,10 @@
     // ],
 
     "install_command": [
-        "python -mpip install -y qiskit-terra",
-        "python -mpip install -y {wheel_file}"
+        "python -mpip install qiskit-terra",
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
+        "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
@@ -38,7 +40,7 @@
     ],
     "build_command": [
         "pip install -U scikit-build",
-        "python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True -- -j8"
+        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True -- -j8"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "master"

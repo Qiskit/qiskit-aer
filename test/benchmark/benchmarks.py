@@ -1,12 +1,13 @@
 # Write the benchmarking functions here.
 # See "Writing benchmarks" in the asv docs for more information.
 
+import qiskit as Terra
+from qiskit import QiskitError
 from qiskit.providers.aer import QasmSimulator
 from .quantumvolume import quantum_volume_circuit
-from .benchmark_tools import tools_create_backend,
-                             tools_mixed_unitary_noise_model,
-                             tools_reset_noise_model,
-                             tools_kraus_noise_model
+from .tools import tools_mixed_unitary_noise_model, \
+                   tools_reset_noise_model, \
+                   tools_kraus_noise_model
 
 
 class TimeSuite:
@@ -18,56 +19,55 @@ class TimeSuite:
     - kraus
 
     For each noise model, we want to test various configurations of
-    qubits/depth/threads:
-    - 5,16,20 qubits
-    - 10,100,1000 depth
-    - 1,2,4,16 threads
+    qubits/depth.
     """
 
-    # We want always the same SEED, as we want always the same circuits
-    # for the same value pairs of qubits,depth
-    SEED = 1
-
-    def setup(self):
+    def __init__(self):
+        # We want always the same SEED, as we want always the same circuits
+        # for the same value pairs of qubits,depth
+        self.timeout = 60 * 20
         self.qv_circuits = []
-        for num_qubits in 5,16,20:
-            for depth in 10,100,1000:
-                self.qv_circuits.add(
-                    quantum_volume_circuit(num_qubits, depth, seed=SEED)
+        self.backend = QasmSimulator()
+        for num_qubits in 16 ,:
+            for depth in 10 ,:
+                circ = quantum_volume_circuit(num_qubits, depth, seed=1)
+                self.qv_circuits.append(
+                    Terra.compile(circ, self.backend, shots=1024)
                 )
-        self.max_thread_list = [1,2,4,16]
-        self.params = (self.max_thread_list, self.qv_circuits)
+        self.param_names = ["Quantum Volume (16qubits 10depth)"]
 
-    def time_ideal_quantum_volume(self, max_threads, qv_circuit):
-        backend = tools_create_backend(QasmSimulator, max_threads)
-        qobj = qiskit.compile(qv_circuit, backend, shots=num_shots)
-        result = backend.run(qobj).result()
+    def setup(self, qv_circuits):
+        pass
+
+
+    def time_ideal_quantum_volume(self, qobj):
+        result = self.backend.run(qobj).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
 
-    def time_mixed_unitary_quantum_volume(self, max_threads, qv_circuit):
-        backend = tools_create_backend(QasmSimulator, max_threads)
-        # Load noise model
-        backend.set_noise_model(tools_mixed_unitary_noise_model())
-        qobj = qiskit.compile(qv_circuit, backend, shots=num_shots)
-        result = backend.run(qobj).result()
+
+    def time_mixed_unitary_quantum_volume(self, qobj):
+        result = self.backend.run(
+            qobj,
+            noise_model=tools_mixed_unitary_noise_model()
+        ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
 
-    def time_reset_quantum_volume(self, max_threads_list, qv_circuit):
-        backend = tools_create_backend(QasmSimulator, max_threads)
-        # Load noise model
-        backend.set_noise_model(tools_reset_noise_model())
-        qobj = qiskit.compile(qv_circuit, backend, shots=num_shots)
-        result = backend.run(qobj).result()
+
+    def time_reset_quantum_volume(self, qobj):
+        result = self.backend.run(
+            qobj,
+            noise_model=tools_reset_noise_model()
+        ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
 
-    def time_kraus_quantum_volume(self, max_threads_list, qv_circuit):
-        backend = tools_create_backend(QasmSimulator, max_threads)
-        # Load noise model
-        backend.set_noise_model(tools_kraus_noise_model())
-        qobj = qiskit.compile(qv_circuit, backend, shots=num_shots)
-        result = backend.run(qobj).result()
+
+    def time_kraus_quantum_volume(self, qobj):
+        result = self.backend.run(
+            qobj,
+            noise_model=tools_kraus_noise_model()
+        ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
