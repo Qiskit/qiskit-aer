@@ -108,6 +108,5 @@ install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/
 
 # Install redistributable dependencies
 if(APPLE)
-    #set(AER_DESTINATION "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/qiskit/providers/aer/backends")
     install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()
