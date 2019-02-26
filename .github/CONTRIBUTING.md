@@ -48,9 +48,9 @@ and email it to us at qiskit@us.ibm.com.
 Most of the required dependencies can be installed via ``pip``, using the
 ``requirements-dev.txt`` file, eg:
 
-.. code:: sh
-
-    pip install -U -r requirements-dev.txt
+```
+pip install -U -r requirements-dev.txt
+```
 
 As we are dealing with languages that build to native binaries, we will
 need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
@@ -66,24 +66,24 @@ supporting OpenMP: libomp. The CMake build system will warn you otherwise.
 To install it manually:
 you can type:
 
-.. code::
-
-    $ brew install libomp
+```
+$ brew install libomp
+```
 
 We do recommend installing OpenBLAS, which is our default choice:
 
-.. code::
-
-    $ brew install openblas
+```
+$ brew install openblas
+```
 
 CMake build system will search for other BLAS implementation alternatives if
 OpenBLAS is not installed in the system.
 
 You further need to have Command Line Tools installed on MacOS:
 
-.. code::
-   
-   $ xcode-select --install
+```
+$ xcode-select --install
+```
 
 
 **Linux (Ubuntu >= 16.04)**
@@ -92,9 +92,9 @@ Most of the major distributions come with a BLAS and LAPACK library implementati
 and this is enough to build all the simulators, but we do recommend using OpenBLAS
 here as well, so in order to install it you have to type:
 
-.. code::
-
-    $ sudo apt install libopenblas-dev
+```
+$ sudo apt install libopenblas-dev
+```
 
 **Windows**
 
@@ -118,24 +118,23 @@ There are two ways of building Aer simulators, depending on our goal they are:
 
 For the former, we just need to call the ``setup.py`` script:
 
-.. code::
-
-  qiskit-aer$ python ./setup.py bdist_wheel
-
+```
+qiskit-aer$ python ./setup.py bdist_wheel
+```
 
 We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
 This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
 the undelying build system (depending on your platform). The way to pass variables is:
 
-.. code::
+```
+qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
+```
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
-    
 So a real example could be:
 
-.. code::
-
-    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
+```
+qiskit-aer$ python ./setup.py bdist_wheel -- -j8
+```
     
 This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
 library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
@@ -143,18 +142,17 @@ build in parallel, using 8 processes.
 
 *N.B. on MacOS:*, you may need to turn off static linking and specify your platform name, e.g.:
 
-.. code::
-
-   qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
-
+```
+qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
+```
 
 After this command is executed successfully, we will have a wheel package into the ``dist/`` directory, so next step is installing it:
 
-.. code::
 
-  qiskit-aer/$ cd dist
-  qiskit-aer/dist$ pip install qiskit_aer-<...>.whl
-
+```
+qiskit-aer/$ cd dist
+qiskit-aer/dist$ pip install qiskit_aer-<...>.whl
+```
 
 **Standalone executable**
 
@@ -164,22 +162,23 @@ So in order to build our standalone executable, we have to follow these steps:
 
 All platforms
 
-.. code::
 
-    qiskit-aer$ mkdir out
-    qiskit-aer$ cd out
-    qiskit-aer/out$ cmake ..
-    qiskit-aer/out$ cmake --build . --config Release -- -j4
+```
+qiskit-aer$ mkdir out
+qiskit-aer$ cd out
+qiskit-aer/out$ cmake ..
+qiskit-aer/out$ cmake --build . --config Release -- -j4
+```
 
 Once built, you will have your standalone executable into the ``Release`` or ``Debug``
 directory (depending on the type of building choosen with the ``--config`` option):
 
-.. code::
 
-  qiskit-aer/out$ cd Release
-  qiskit-aer/out/Release$ ls
-  aer_simulator_cpp
-
+```
+qiskit-aer/out$ cd Release
+qiskit-aer/out/Release$ ls
+aer_simulator_cpp
+```
 
 
 ## Useful CMake flags
@@ -189,17 +188,16 @@ There are some useful flags that can be set during cmake command invocation and
 will help you change some default behavior. To make use of them, you just need to
 pass them right after ``-D`` cmake argument. Example:
 
-.. code::
-
-    qiskit-aer/out$ cmake -DUSEFUL_FLAG=Value ..
+```
+qiskit-aer/out$ cmake -DUSEFUL_FLAG=Value ..
+```
 
 In the case of building the Terra addon, you have to pass these flags after writing
 ``--`` at the end of the python command line, eg:
 
-.. code::
-
-  qiskit-aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
-
+```
+qiskit-aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
+```
 
 These are the flags:
 
@@ -248,12 +246,12 @@ We have two types of tests in the codebase: Qiskit Terra integration tests and S
 For Qiskit Terra integration tests, you first need to build and install the Terra addon,
 and then run `unittest` Python framework.
 
-.. code::
-
-  qiskit-aer$ python ./setup.py install
-  # if you had to use --plat-name macosx-10.9-x86_64 for bdist_wheel then you need to do this for install:
-  #   python ./setup.py install -- -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9 -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64
-  qiskit-aer$ python -m unittest discover -s test -v
+```
+qiskit-aer$ python ./setup.py install
+# if you had to use --plat-name macosx-10.9-x86_64 for bdist_wheel then you need to do this for install:
+#   python ./setup.py install -- -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9 -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64
+qiskit-aer$ python -m unittest discover -s test -v
+```
 
 The integration tests for Terra addon are included in: `test/terra`.
 
@@ -261,14 +259,13 @@ The integration tests for Terra addon are included in: `test/terra`.
 For the Standalone version of the simulator, we have C++ tests that use the Catch library.
 Tests are located in `test/src` directory, and in order to run them, you have to build them first:
 
-.. code::
-
-  qiskit-aer$ mkdir out
-  qiskit-aer$ cd out
-  qiskit-aer/out$ cmake .. -DBUILD_TESTS=True
-  qiskit-aer/out$ cmake --build . --config Release -- -j4
-  qiskit-aer/out$ ctest -VV
-
+```
+qiskit-aer$ mkdir out
+qiskit-aer$ cd out
+qiskit-aer/out$ cmake .. -DBUILD_TESTS=True
+qiskit-aer/out$ cmake --build . --config Release -- -j4
+qiskit-aer/out$ ctest -VV
+```
 
 ### Style guide
 
@@ -351,17 +348,17 @@ Please follow the next rules for the commit messages:
 
 A good example:
 
-.. code::
-
-    Issue #190: Short summary of the issue
-    * One of the important changes
-    * Another important change
+```
+Issue #190: Short summary of the issue
+* One of the important changes
+* Another important change
+```
 
 A (really) bad example:
 
-.. code::
-
-    Fixes #190
+```
+Fixes #190
+```
 
 ## Development cycle
 
