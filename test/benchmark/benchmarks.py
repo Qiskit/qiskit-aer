@@ -35,8 +35,9 @@ class TimeSuite:
                     Terra.compile(circ, self.backend, shots=1024)
                 )
         self.param_names = ["Quantum Volume (16qubits 10depth)"]
+        self.params = (self.qv_circuits)
 
-    def setup(self, qv_circuits):
+    def setup(self, qobj):
         pass
 
 

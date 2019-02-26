@@ -29,7 +29,7 @@
     // ],
 
     "install_command": [
-        "python -mpip install qiskit-terra",
+        "python -mpip install /tmp/qiskit_terra-0.8.0-cp36-cp36m-linux_x86_64.whl",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
         "python -mpip install {wheel_file}"
