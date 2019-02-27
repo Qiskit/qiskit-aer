@@ -4,13 +4,11 @@
 import qiskit as Terra
 from qiskit import QiskitError
 from qiskit.providers.aer import QasmSimulator
-from .quantumvolume import quantum_volume_circuit
-from .tools import tools_mixed_unitary_noise_model, \
-                   tools_reset_noise_model, \
-                   tools_kraus_noise_model
+from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
+                    reset_noise_model, kraus_noise_model
 
 
-class TimeSuite:
+class QuantumVolumeTimeSuite:
     """
     Benchmarking times for Quantum Volume with various noise configurations
     - ideal (no noise)
@@ -23,16 +21,16 @@ class TimeSuite:
     """
 
     def __init__(self):
-        # We want always the same SEED, as we want always the same circuits
-        # for the same value pairs of qubits,depth
         self.timeout = 60 * 20
         self.qv_circuits = []
         self.backend = QasmSimulator()
         for num_qubits in 16 ,:
             for depth in 10 ,:
+                # We want always the same seed, as we want always the same circuits
+                # for the same value pairs of qubits,depth
                 circ = quantum_volume_circuit(num_qubits, depth, seed=1)
                 self.qv_circuits.append(
-                    Terra.compile(circ, self.backend, shots=1024)
+                    Terra.compile(circ, self.backend, shots=1)
                 )
         self.param_names = ["Quantum Volume (16qubits 10depth)"]
         self.params = (self.qv_circuits)
@@ -50,7 +48,7 @@ class TimeSuite:
     def time_mixed_unitary_quantum_volume(self, qobj):
         result = self.backend.run(
             qobj,
-            noise_model=tools_mixed_unitary_noise_model()
+            noise_model=mixed_unitary_noise_model()
         ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
@@ -59,7 +57,7 @@ class TimeSuite:
     def time_reset_quantum_volume(self, qobj):
         result = self.backend.run(
             qobj,
-            noise_model=tools_reset_noise_model()
+            noise_model=reset_noise_model()
         ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
@@ -68,7 +66,7 @@ class TimeSuite:
     def time_kraus_quantum_volume(self, qobj):
         result = self.backend.run(
             qobj,
-            noise_model=tools_kraus_noise_model()
+            noise_model=kraus_noise_model()
         ).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
