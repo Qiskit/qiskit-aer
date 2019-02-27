@@ -26,7 +26,7 @@ class SimpleU3TimeSuite:
         self.timeout = 60 * 20
         self.backend = QasmSimulator()
         self.circuits = []
-        for i in 5,16,20,30:
+        for i in 5, 10, 15:
             circuit = simple_u3_circuit(i)
             self.circuits.append(
                 Terra.compile(circuit, self.backend, shots=1)
@@ -87,7 +87,7 @@ class SimpleCxTimeSuite:
         self.backend = QasmSimulator()
         self.circuits = []
         self.param_names = ["Simple cnot circuits (5/16/20/30 qubits)"]
-        for i in 5,16,20,30:
+        for i in 5, 10, 15:
             circuit = simple_cnot_circuit(i)
             self.circuits.append(
                 Terra.compile(circuit, self.backend, shots=1)
