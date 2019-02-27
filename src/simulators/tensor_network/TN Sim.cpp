@@ -127,20 +127,28 @@ int main()
 			full_result[0] = qreg.Expectation_value_X(first_qubit);
 			break;
 		}
-
+		else if(gate == "expectation Y")
+		{
+			if(DEBUG) cout << gate << first_qubit << endl;
+			full_result[0] = qreg.Expectation_value_Y(first_qubit);
+			break;
+		}
+		else if(gate == "expectation Z")
+		{
+			if(DEBUG) cout << gate << first_qubit << endl;
+			full_result[0] = qreg.Expectation_value_Z(first_qubit);
+			break;
+		}
 		if(DEBUG)
 		{
 			qreg.printTN();
 			cout << json_result << endl;
 		}
 	}
-
-
 	full_result[1]["time_taken"][0] = float( clock () - begin_time ) /  CLOCKS_PER_SEC;
-
+//	qreg.printTN();
 	cout << full_result << endl;
 //	if(!DEBUG) cout << full_result << endl;
-
 
 	return 1;
 }

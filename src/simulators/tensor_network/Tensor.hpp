@@ -9,7 +9,7 @@
 #define TENSOR_HPP_
 
 //#define NN 1024
-#define NN 8192
+#define NN 32768
 #include <cstdio>
 #include <iostream>
 #include <complex>

@@ -46,7 +46,7 @@ void cDagger(complex_t** a, int m, int n)
 
 void csvd (complex_t** a, int m, int n, double* s, complex_t** u, complex_t** v)
 {
-	double b[100] = {0}, c[100] = {0}, t[100] = {0};
+	double b[NN] = {0}, c[NN] = {0}, t[NN] = {0};
 	double cs = 0, eps = 0, f = 0 ,g = 0, h = 0, sn = 0 , w = 0, x = 0, y = 0, z = 0;
 	double eta = 1.1920929e-10, tol = 1.5e-34;
 	int i = 0, j = 0, k = 0, k1 = 0, l = 0, l1 = 0;
@@ -155,8 +155,6 @@ void csvd (complex_t** a, int m, int n, double* s, complex_t** u, complex_t** v)
 		eps = max( eps, s[k] + t[k] );
 	}
 	eps = eps * eta;
-
-// Initialization of u and v.  
 	for( j = 0; j < m; j++)
 	{
 		for( i = 0; i < m; i++){
