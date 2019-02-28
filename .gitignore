@@ -20,3 +20,4 @@ contrib/standalone/version.hpp
 *.log
 *.env
 *.idea/
+test/.asv
