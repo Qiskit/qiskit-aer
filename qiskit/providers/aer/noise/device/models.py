@@ -308,13 +308,13 @@ def _depol_error_value_one_qubit(gate_error, gate_time=0, t1=inf, t2=inf):
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # If T1 or T2 we have only a depolarizing error model
-    # in this case p_depol = dim * gate_error / (dim - 1)
+    # in this case p_depol = (dim-1) * gate_error /  dim
     # with dim = 2 for 1-qubit
     if gate_time is None:
         gate_time = 0
     if gate_time == 0 or (t1 == inf and t2 == inf):
         if gate_error is not None and gate_error > 0:
-            return 2 * gate_error
+            return gate_error / 2
         else:
             return 0
 
@@ -351,14 +351,14 @@ def _depol_error_value_two_qubit(gate_error, gate_time=0,
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # If T1 or T2 we have only a depolarizing error model
-    # in this case p_depol = dim * gate_error / (dim - 1)
+    # in this case p_depol = (dim-1) * gate_error / dim
     # with dim = 4 for 2-qubits
     if gate_time is None:
         gate_time = 0
     if gate_time == 0 or (qubit0_t1 == inf and qubit0_t2 == inf and
                           qubit1_t1 == inf and qubit1_t2 == inf):
         if gate_error is not None and gate_error > 0:
-            return 4 * gate_error / 3
+            return 3 * gate_error / 4
         else:
             return 0
 
