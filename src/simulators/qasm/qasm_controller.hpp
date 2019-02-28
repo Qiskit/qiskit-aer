@@ -230,7 +230,7 @@ void QasmController::set_config(const json_t &config) {
 
   //Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
-    // Raise error if method is set to stabilizer
+    // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
       throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
                                std::string(" is not valid with stabilizer simulation method.") +
@@ -301,10 +301,30 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
   if (method == Method::automatic) {
     // Check if Clifford circuit and noise model
     if (validate_state(Stabilizer::State(), circ, noise_model_, false))
+    {
       method = Method::stabilizer;
-    // Default method is statevector
+    }
+    // Default method is statevector, unless the memory requirements are too large
     else
-      method = Method::statevector;
+    {
+      Statevector::State<> sv_state;
+      if(!(validate_memory_requirements(sv_state, circ, false)))
+      {
+        if(validate_state(CH::State(), circ, noise_model_, false))
+        {
+          method = Method::ch_decomposition;
+        }
+        else
+        {
+          throw std::runtime_error(std::string("QasmController: Circuit cannot be run on any available ") +
+                                   std::string("backend due to memory requirements and chosen gateset."));
+        }
+      }
+      else
+      {
+        method = Method::statevector;
+      }
+    }
   }
   return method;
 }
@@ -343,9 +363,10 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   // Initialize new state object
   State_t state;
 
-  // Valid state again and raise exeption if invalid ops
+  // Validate state again and raise exeption if invalid ops
   validate_state(state, circ, noise_model_, true);
-
+  // Check memory requirements, raise exception if they're exceeded
+  validate_memory_requirements(state, circ, true);
   // Set state config
   state.set_config(Base::Controller::config_);
   state.set_available_threads(parallel_state_update_);

@@ -215,7 +215,7 @@ void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
 {
   if(BaseState::qreg_.get_n_qubits() != num_qubits)
   {
-    throw std::invalid_argument("StabilizerRank::State::initialize: initial state does not match qubit number.");
+    throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
   }
   BaseState::qreg_ = state;
   BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank);
@@ -224,14 +224,14 @@ void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
 void State::set_config(const json_t &config)
 {
   // Set the error upper bound in the stabilizer rank approximation
-  JSON::get_value(approximation_error, "srank_approximation_error", config);
+  JSON::get_value(approximation_error, "ch_approximation_error", config);
   // Set the number of samples used in the norm estimation routine
-  JSON::get_value(norm_estimation_samples, "srank_norm_estimation_samples", config);
+  JSON::get_value(norm_estimation_samples, "ch_norm_estimation_samples", config);
   // Set the number of steps used in the metropolis sampler before we
   // consider the distribution as approximating the output
-  JSON::get_value(metropolis_mixing_steps, "srank_mixing_time", config);
+  JSON::get_value(metropolis_mixing_steps, "ch_mixing_time", config);
   //Set the threshold of the decomposition before we use omp
-  JSON::get_value(omp_threshold_rank, "srank_parallel_threshold", config);
+  JSON::get_value(omp_threshold_rank, "ch_parallel_threshold", config);
   //Set the truncation threshold for the probabilities snapshot.
   JSON::get_value(snapshot_chop_threshold, "chop_threshold", config);
   //Set the number of samples for the probabilities snapshot
@@ -327,11 +327,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
     }
     std::vector<Operations::Op> non_stabilizer_circuit(ops.cbegin()+first_non_clifford, ops.cend());
     uint_t chi = compute_chi(non_stabilizer_circuit);
-    // data.add_additional_data("CHI", chi);
     BaseState::qreg_.initialize_decomposition(chi);
     //Check for measurement optimisaitons
     bool measurement_opt = check_measurement_opt(ops);
-    // data.add_additional_data("Parallel ops?", measurement_opt);
     if(measurement_opt)
     {
       apply_ops_parallel(non_stabilizer_circuit, rng);
@@ -366,7 +364,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
             apply_snapshot(op, data, rng);
             break;
           default:
-            throw std::invalid_argument("StabilizerRank::State::apply_ops does not support operations of the type \'" + 
+            throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
                                          op.name + "\'.");
             break;
         }
@@ -417,7 +415,7 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
   for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
   {
-    if(! BaseState::qreg_.check_eps(i))
+    if(!BaseState::qreg_.check_eps(i))
     {
       continue;
     }
@@ -431,7 +429,7 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
         case Operations::OpType::barrier:
           break;
         default:
-          throw std::invalid_argument("StabilizerRank::State::apply_ops_parallel does not support operations of the type \'" + 
+          throw std::invalid_argument("CH::State::apply_ops_parallel does not support operations of the type \'" + 
                                        op.name + "\'.");
           break;
       }
@@ -470,7 +468,7 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
         apply_snapshot(op, data, rng);
         break;
       default:
-        throw std::invalid_argument("StabilizerRank::State::apply_stabilizer_circuit does not support operations of the type \'" + 
+        throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
                                      op.name + "\'.");
         break;
     }
@@ -564,7 +562,7 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
   {
-    throw std::invalid_argument("StabilizerRank::State: Invalid gate operation \'"
+    throw std::invalid_argument("CH::State: Invalid gate operation \'"
                                 +op.name + "\'.");
   }
   switch(it->second)
@@ -621,7 +619,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data, RngEngine
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
   {
-    throw std::invalid_argument("StabilizerRank::State::invlaid snapshot instruction \'"+
+    throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
                                 op.name + "\'.");
   }
   switch(it->second)
@@ -642,7 +640,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data, RngEngine
       probabilities_snapshot(op, data, rng);
       break;
     default:
-      throw std::invalid_argument("StabilizerRank::State::invlaid snapshot instruction \'"+
+      throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
                               op.name + "\'.");
       break;
   }
@@ -733,7 +731,8 @@ uint_t State::compute_chi(const std::vector<Operations::Op> &ops)
   {
     compute_extent(op, xi);
   }
-  return std::ceil(xi*std::pow(approximation_error, -2));
+  double err_scaling = std::pow(approximation_error, -2);
+  return std::llrint(std::ceil(xi*err_scaling));
 }
 
 void State::compute_extent(const Operations::Op &op, double &xi)
@@ -743,7 +742,7 @@ void State::compute_extent(const Operations::Op &op, double &xi)
     auto it = gateset_.find(op.name);
     if (it == gateset_.end())
     {
-      throw std::invalid_argument("StabilizerRankState: Invalid gate operation \'"
+      throw std::invalid_argument("CH::State: Invalid gate operation \'"
                                   +op.name + "\'.");
     }
     switch (it->second)
@@ -776,7 +775,7 @@ uint_t State::required_memory_mb(uint_t num_qubits,
   // 5 vectors of num_qubits*8byte words
   // Plus 2*CHSimulator::scalar_t which has 3 4 byte words
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;
-  uint_t mb_per_state = 5e-5*num_qubits;//
+  double mb_per_state = 5e-5*num_qubits;//
   uint_t required_mb = std::ceil(mb_per_state*required_chi);
   return required_mb;
   //Todo: Update this function to account for snapshots

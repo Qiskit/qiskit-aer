@@ -94,6 +94,9 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+    if (JSON::check_key("config", qobj)) {
+      sim.set_config(qobj["config"]);
+    }
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;

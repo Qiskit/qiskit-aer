@@ -480,7 +480,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
                                   backend_options={
                                       "method": "ch",
                                       'disable_measurement_opt': True,
-                                      'srank_mixing_time': 50
+                                      'ch_mixing_time': 50
                                   })
         result = job.result()
         self.is_completed(result)
@@ -514,7 +514,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
                                   backend_options={
                                       'method': 'ch',
                                       'disable_measurement_opt': True,
-                                      'srank_mixing_time': 50
+                                      'ch_mixing_time': 50
                                   })
         result = job.result()
         self.is_completed(result)
@@ -532,7 +532,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       "method": "ch",
-                                      "srank_mixing_time": 100
+                                      "ch_mixing_time": 100
                                   })
         result = job.result()
         self.is_completed(result)
@@ -547,7 +547,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       "method": "ch",
-                                      "srank_mixing_time": 50,
+                                      "ch_mixing_time": 50,
                                       "disable_measurement_opt": True
                                   })
         result = job.result()
@@ -568,7 +568,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
                                   backend_options={
                                       'method': 'ch',
                                       'disable_measurement_opt': True,
-                                      'srank_mixing_time': 100,
+                                      'ch_mixing_time': 100,
                                   })
         result = job.result()
         self.is_completed(result)

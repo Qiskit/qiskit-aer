@@ -32,12 +32,10 @@ using chstabilizer_t = StabilizerState;
 double t_angle = M_PI/4.;
 double tdg_angle = -1.*M_PI/4.;
 
-uint_t zero = 0ULL;
-
 const U1Sample t_sample(t_angle);
 const U1Sample tdg_sample(tdg_angle);
 
-static std::unordered_map<double, U1Sample> z_rotations;
+uint_t zero = 0ULL;
 
 class Runner
 {
@@ -55,6 +53,7 @@ private:
   uint_t x_string;
   uint_t last_proposal;
 
+  std::unordered_map<double, U1Sample> z_rotations;
 
   void InitMetropolis(AER::RngEngine &rng);
   void MetropolisStep(AER::RngEngine &rng);
@@ -156,10 +155,21 @@ void Runner::initialize(uint_t num_qubits)
 void Runner::initialize_decomposition(uint_t n_states)
 {
   chi = n_states;
-  chstabilizer_t base_sate = states[0];
-  complex_t coeff = coefficients[0];
-  states = std::vector<chstabilizer_t>(chi, base_sate);
-  coefficients = std::vector<complex_t>(chi, coeff);
+  states.reserve(chi);
+  coefficients.reserve(chi);
+  if(states.size() > 1 || coefficients.size() > 1)
+  {
+    throw std::runtime_error(std::string("CHSimulator::Runner was initialized without") + 
+                             std::string("being properly cleared since the last ") +
+                             std::string("experiment."));
+  }
+  chstabilizer_t base_sate(states[0]);
+  complex_t coeff(coefficients[0]);
+  for(uint_t i=1; i<chi; i++)
+  {
+    states.push_back(base_sate);
+    coefficients.push_back(coeff);
+  }
 }
 
 void Runner::initialize_omp(uint_t n_threads, uint_t threshold_rank)
@@ -249,9 +259,6 @@ void Runner::apply_sdag(uint_t qubit, uint_t rank)
 void Runner::apply_x(uint_t qubit, uint_t rank)
 {
   states[rank].X(qubit);
-  // states[rank].H(qubit);
-  // states[rank].Z(qubit);
-  // states[rank].H(qubit);
 }
 
 void Runner::apply_y(uint_t qubit, uint_t rank)
