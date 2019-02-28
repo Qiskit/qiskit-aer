@@ -539,10 +539,6 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
   }
   else
   {
-    // if(std::abs(p_threshold - 0.) < 1e-8)
-    // {
-    //   p_threshold = 0.25;
-    // }
     double rand = rng.rand();
     if (rand < p_threshold)
     {

@@ -39,6 +39,32 @@ namespace Simulator {
  * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
  *      [Default: False]
  *
+ * From CH::State class
+ * - "ch_approximation_error" (double): Set the error in the 
+ *     approximation for the ch method. A smaller error needs more
+ *     memory and computational time. [Default: 0.05]
+ *
+ * - "ch_disable_measurement_opt" (bool): Force the simulator to
+ *      re-run the monte-carlo step for every measurement. Enabling
+ *      this will improve the sampling accuracy if the output
+ *      distribution is strongly peaked, but requires more
+ *      computational time. [Default: False]
+ *
+ * - "ch_mixing_time" (int): Set how long the monte-carlo method
+ *      runs before performing measurements. If the output
+ *      distribution is strongly peaked, this can be
+ *      decreased alongside setting ch_disable_measurement_opt
+ *      to True. [Default: 7000]
+ *
+ * - "ch_norm_estimation_samples" (int): Number of samples used to
+ *      compute the correct normalisation for a statevector snapshot.
+ *      [Default: 100]
+ *
+ * - "ch_parallel_threshold" (int): Set the minimum size of the ch
+ *      decomposition before we enable OpenMP parallelisation. If
+ *      parallel circuit or shot execution is enabled this will only
+ *      use unallocated CPU cores up to max_parallel_threads. [Default: 100]
+ *
  * From BaseController Class
  *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]
@@ -55,6 +81,9 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
+ * - "available_memory" (int): Memory in MB available to the state class.
+ *      If specified, is divided by the number of parallel shots/experiments.
+ *      [Default: 0]
  *
  **************************************************************************/
 

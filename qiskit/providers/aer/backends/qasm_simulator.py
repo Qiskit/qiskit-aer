@@ -35,9 +35,16 @@ class QasmSimulator(AerBackend):
             * "statevector": Uses a dense statevector simulation.
             * "stabilizer": uses a Clifford stabilizer state simulator that
             is only valid for Clifford circuits and noise models.
+            * "ch": Uses an approximate simulator that decomposes circuits
+            into stabilizer state terms, the number of which grows with the
+            number of non-Clifford gates.
             * "automatic": automatically run on stabilizer simulator if
-            the circuit and noise model supports it, otherwise use the
-            statevector method (Default: "automatic").
+            the circuit and noise model supports it. If there is enough
+            available memory, uses the statevector method. Otherwise, uses
+            the ch method (Default: "automatic").
+
+        * "available_memory" (int): Set the amount of memory (in MB)
+        the simulator has access to (Default: Maximum available)
 
         * "initial_statevector" (vector_like): Sets a custom initial
             statevector for the simulation instead of the all zero
@@ -82,6 +89,31 @@ class QasmSimulator(AerBackend):
             increase performance on systems with a large number of CPU
             cores. For systems with a small number of cores it enabling
             can reduce performance (Default: False).
+
+        * "ch_approximation_error" (double): Set the error in the 
+            approximation for the ch method. A smaller error needs more
+            memory and computational time. (Default: 0.05)
+
+        * "ch_disable_measurement_opt" (bool): Force the simulator to
+            re-run the monte-carlo step for every measurement. Enabling
+            this will improve the sampling accuracy if the output
+            distribution is strongly peaked, but requires more
+            computational time. (Default: False)
+
+        * "ch_mixing_time" (int): Set how long the monte-carlo method
+            runs before performing measurements. If the output
+            distribution is strongly peaked, this can be
+            decreased alongside setting ch_disable_measurement_opt
+            to True. (Default: 7000)
+
+        * "ch_norm_estimation_samples" (int): Number of samples used to
+            compute the correct normalisation for a statevector snapshot.
+            (Default: 100)
+
+        * "ch_parallel_threshold" (int): Set the minimum size of the ch
+            decomposition before we enable OpenMP parallelisation. If
+            parallel circuit or shot execution is enabled this will only
+            use unallocated CPU cores up to max_parallel_threads. (Default: 100)
     """
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))

@@ -87,6 +87,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
+ * - "available_memory" (int): Set the amount of memory available to the
+ *      state in MB. If specified, this is divided by the number of parallel
+ *      shots/experiments. [Default: 0].
  *
  * Config settings from Data class:
  *
