@@ -37,20 +37,20 @@ extern "C" {
 
     using __kmpc_barrier_t = void(*)(id*, int);
     __kmpc_barrier_t _hook__kmpc_barrier;
-    void __kmpc_barrier(id* pId, int gtid){
+    inline void __kmpc_barrier(id* pId, int gtid){
         _hook__kmpc_barrier(pId, gtid);
     }
 
     using __kmpc_for_static_fini_t =  void(*)(kmp_Ident *, int32_t);
     __kmpc_for_static_fini_t _hook__kmpc_for_static_fini;
-    void __kmpc_for_static_fini(kmp_Ident *loc, int32_t global_tid){
+    inline void __kmpc_for_static_fini(kmp_Ident *loc, int32_t global_tid){
         _hook__kmpc_for_static_fini(loc, global_tid);
     }
 
     using __kmpc_for_static_init_4_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int32_t *, int32_t *, int32_t *, int32_t, int32_t);
     __kmpc_for_static_init_4_t _hook__kmpc_for_static_init_4;
-    void __kmpc_for_static_init_4(kmp_Ident *loc, int32_t global_tid,
+    inline void __kmpc_for_static_init_4(kmp_Ident *loc, int32_t global_tid,
                                      int32_t sched, int32_t *plastiter,
                                      int32_t *plower, int32_t *pupper,
                                      int32_t *pstride, int32_t incr,
@@ -62,7 +62,7 @@ extern "C" {
     using __kmpc_for_static_init_8_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int64_t *, int64_t *, int64_t *, int64_t, int64_t);
     __kmpc_for_static_init_8_t _hook__kmpc_for_static_init_8;
-    void __kmpc_for_static_init_8(kmp_Ident *loc, int32_t global_tid,
+    inline void __kmpc_for_static_init_8(kmp_Ident *loc, int32_t global_tid,
                                      int32_t sched, int32_t *plastiter,
                                      int64_t *plower, int64_t *pupper,
                                      int64_t *pstride, int64_t incr,
@@ -74,7 +74,7 @@ extern "C" {
     using __kmpc_for_static_init_8u_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *, uint64_t *, uint64_t *,
                                       int64_t *, int64_t, int64_t);
     __kmpc_for_static_init_8u_t _hook__kmpc_for_static_init_8u;
-    void __kmpc_for_static_init_8u(kmp_Ident *loc, int32_t global_tid,
+    inline void __kmpc_for_static_init_8u(kmp_Ident *loc, int32_t global_tid,
                                       int32_t sched, int32_t *plastiter1,
                                       uint64_t *plower, uint64_t *pupper,
                                       int64_t *pstride, int64_t incr,
@@ -249,7 +249,7 @@ extern "C" {
 namespace AER {
 namespace Hacks {
 
-void populate_hooks(void * handle){
+inline void populate_hooks(void * handle){
     _hook__kmpc_barrier = reinterpret_cast<decltype(&__kmpc_barrier)>(dlsym(handle, "__kmpc_barrier"));
     _hook__kmpc_for_static_fini = reinterpret_cast<decltype(&__kmpc_for_static_fini)>(dlsym(handle, "__kmpc_for_static_fini"));
     _hook__kmpc_end_reduce_nowait = reinterpret_cast<decltype(&__kmpc_end_reduce_nowait)>(dlsym(handle, "__kmpc_end_reduce_nowait"));

@@ -89,7 +89,7 @@ std::string Pauli::str() const {
       label.push_back('Z');
   }
   return label;
-};
+}
 
 int8_t Pauli::phase_exponent(const Pauli& pauli1, const Pauli& pauli2) {
   int8_t exponent = 0;
