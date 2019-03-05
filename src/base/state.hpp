@@ -59,7 +59,7 @@ public:
   // - `OpType::kraus` if general Kraus noise channels are supported
   // For the case of gates the specific allowed gates are checked
   // with the `allowed_gates` function.
-  virtual std::unordered_set<Operations::OpType> allowed_ops() const = 0;
+  virtual Operations::OpSet::optypeset_t allowed_ops() const = 0;
 
   // Return the set of qobj gate instruction names supported by the state class
   // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
