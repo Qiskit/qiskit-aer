@@ -113,7 +113,9 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+    // Check for config
     sim.set_config(config);
+    sim.set_config(qobj["config"]);
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;

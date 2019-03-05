@@ -32,7 +32,8 @@ class NoiseModel:
 
     def __init__(self):
         # Initialize empty quantum errors
-        self._noise_instructions = set()  # Store gates with a noise model defined
+        self._basis_gates = set(['u3', 'cx'])  # Store noise model basis gates
+        self._noise_instructions = set()       # Store gates with a noise model defined
         # TODO: Code would be cleaner if these were replaced with classes
         # Type: dict(str: list(QuantumError)
         self._default_quantum_errors = {}
@@ -72,6 +73,7 @@ class NoiseModel:
                 raise NoiseError("Qobj invalid operations.")
             # Add X-90 based gate to noisy gates
             self._noise_instructions.add(op)
+            self._basis_gates.add(op)
         self._x90_gates = operations
 
     def add_all_qubit_quantum_error(self, error, operations):
@@ -124,6 +126,8 @@ class NoiseModel:
                                "\"{}\" will not apply to qubits: ".format(op) +
                                "{} as specific error already exists.".format(local_qubits))
             self._noise_instructions.add(op)
+            if op not in ['measure', 'reset']:
+                self._basis_gates.add(op)
 
     def add_quantum_error(self, error, operations, qubits):
         """
@@ -193,6 +197,8 @@ class NoiseModel:
                                "all-qubit error for these qubits.")
                 self._default_quantum_errors[op].append(error)
             self._noise_instructions.add(op)
+            if op not in ['measure', 'reset']:
+                self._basis_gates.add(op)
 
     def add_nonlocal_quantum_error(self, error, operations, qubits, noise_qubits):
         """
@@ -252,6 +258,8 @@ class NoiseModel:
             # Add updated dictionary
             self._nonlocal_quantum_errors[op] = qubit_dict
             self._noise_instructions.add(op)
+            if op not in ['measure', 'reset']:
+                self._basis_gates.add(op)
 
     def add_all_qubit_readout_error(self, error):
         """
@@ -389,10 +397,7 @@ class NoiseModel:
     def basis_gates(self):
         """Return basis_gates for compiling to the noise model."""
         # Convert noise instructions to basis_gates string
-        basis_gates = self._noise_instructions
-        basis_gates.discard("measure")  # remove measure since it is not a gate
-        basis_gates = ",".join(basis_gates)
-        return basis_gates
+        return ",".join(self._basis_gates)
 
     def as_dict(self):
         """
