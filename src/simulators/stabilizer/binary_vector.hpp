@@ -79,13 +79,13 @@ private:
  *
  ******************************************************************************/
 
-bool operator==(const BinaryVector &lhs, const BinaryVector &rhs) {
+inline bool operator==(const BinaryVector &lhs, const BinaryVector &rhs) {
   return lhs.isSame(rhs, true);
 }
 
 
-int64_t gauss_eliminate(std::vector<BinaryVector> &M,
-                        const int64_t start_col = 0)
+inline int64_t gauss_eliminate(std::vector<BinaryVector> &M,
+                               const int64_t start_col = 0)
 // returns the rank of M.
 // M[] has length nrows.
 // each M[i] must have the same length ncols.
@@ -114,9 +114,9 @@ int64_t gauss_eliminate(std::vector<BinaryVector> &M,
 }
 
 
-std::vector<uint64_t> string_to_bignum(std::string val,
-                                            uint64_t blockSize,
-                                            uint64_t base) {
+inline std::vector<uint64_t> string_to_bignum(std::string val,
+                                              uint64_t blockSize,
+                                              uint64_t base) {
   std::vector<uint64_t> ret;
   if (blockSize * log2(base) > 64) {
     throw std::runtime_error(
@@ -134,7 +134,7 @@ std::vector<uint64_t> string_to_bignum(std::string val,
 }
 
 
-std::vector<uint64_t> string_to_bignum(std::string val) {
+inline std::vector<uint64_t> string_to_bignum(std::string val) {
   std::string type = val.substr(0, 2);
   if (type == "0b" || type == "0B")
     // Binary string
@@ -241,19 +241,19 @@ bool BinaryVector::isSame(const BinaryVector &rhs, bool pad) const {
   if (!pad)
     return isSame(rhs);
 
-  const auto sz0 = m_data.size();
-  const auto sz1 = rhs.m_data.size();
-  const auto sz = (sz0 > sz1) ? sz1 : sz0;
+  const size_t sz0 = m_data.size();
+  const size_t sz1 = rhs.m_data.size();
+  const size_t sz = (sz0 > sz1) ? sz1 : sz0;
 
   // Check vectors agree on overlap
-  for (auto q = 0; q < sz; q++)
+  for (size_t q = 0; q < sz; q++)
     if (m_data[q] != rhs.m_data[q])
       return false;
   // Check padding of larger vector is trivial
-  for (auto q = sz; q < sz0; q++)
+  for (size_t q = sz; q < sz0; q++)
     if (m_data[q] != 0)
       return false;
-  for (auto q = sz; q < sz1; q++)
+  for (size_t q = sz; q < sz1; q++)
     if (rhs.m_data[q] != 0)
       return false;
 
