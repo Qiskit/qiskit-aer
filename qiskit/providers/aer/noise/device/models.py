@@ -397,5 +397,5 @@ def _depol_error_value_two_qubit(gate_error, gate_time=0,
              4 * q0_par2 * q1_par2 +
              2 * (q0_par2 + q1_par2) +
              2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
-    p_depol = 1 + (5 / 3) * (4 * gate_error - 3) / denom
+    p_depol = 1 + 5 * (4 * gate_error - 3) / denom
     return p_depol
