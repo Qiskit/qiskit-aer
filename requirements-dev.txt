@@ -2,3 +2,4 @@
 cmake
 scikit-build
 cython
+cvxopt
