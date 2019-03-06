@@ -306,6 +306,45 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
   // Add optimization passes here
 }
 
+/**************************************************************************
+ * ---------------------------------
+ * Parallelization in QasmController
+ * ---------------------------------
+ * Parallel execution has three levels:
+ *
+ *  parallel_experiments:  Parallel execution of circuits in a QOBJ
+ *  parallel_shots:        Parallel execution of shots in a Circuit
+ *  parallel_state_update: Parallelization used by the State class for performing gates
+ *
+ * These parallelization are determined with four parameters:
+ * - "max_parallel_threads" (int): Set the maximum threads that may be used
+ *      in the system. Set to 0 for maximum available. [Default : 0]
+ * - "max_parallel_experiments" (int): Set number of circuits that may be
+ *      executed in parallel. Set to 0 to use the number of max parallel
+ *      threads [Default: 1]
+ * - "max_parallel_shots" (int): Set number of shots that maybe be executed
+ *      in parallel for each circuit. Set to 0 to use the number of max
+ *      parallel threads [Default: 1].
+ * - "max_statevector_memory_mb" (int): Sets the maximum size of memory
+ *      to store a state vector. If a state vector needs more, an error
+ *      is thrown. In general, a state vector of n-qubits uses 2^n complex
+ *      values (16 Bytes). If set to 0, the maximum will be automatically
+ *      set to the system memory size [Default: 0].
+ *
+ * Assuming use of OpenMP, this controller avoids using multiple levels
+ * (nested parallelization) if possible. Nested parallelization is not
+ * efficient in some OpenMP implementation.
+ *
+ * This controller determines three levels with the following rules:
+ * - If max_parallel_experiments is not 0, and required memory for all the experiments is
+ *   within max_statevector_memory_mb, parallel_experiments is
+ *   min (max_parallel_experiments, max_parallel_threads), otherwise 1.
+ * - If parallel_experiments is 1, max of required_memory_mb of all the experiments is
+ *   lower than max_statevector_memory_mb/max_parallel_shots, and sampling optimization
+ *   is not enabled in any experiments, parallel_shots is max_parallel_shots, otherwise 1.
+ * - If parallel_experiments is 1, parallel_state_update is set to max_parallel_threads/parallel_shots.
+ *
+ **************************************************************************/
 void QasmController::set_parallelization(Qobj& qobj) {
 
   for (Circuit &circ: qobj.circuits) {
