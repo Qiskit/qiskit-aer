@@ -91,7 +91,7 @@ namespace Base {
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
- *      in parallel for each circuit. Sset to 0 to use the number of max
+ *      in parallel for each circuit. Set to 0 to use the number of max
  *      parallel threads [Default: 1].
  * - "max_statevector_memory_mb" (int): Sets the maximum size of memory
  *      to store a state vector. If a state vector needs more, an error
