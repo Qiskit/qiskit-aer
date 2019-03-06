@@ -1,6 +1,9 @@
 import unittest
+import os
 from qiskit.providers.aer.noise import NoiseTransformer
 import numpy
+
+TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 class TestNoiseTransformer(unittest.TestCase):
     def setUp(self):
@@ -131,7 +134,7 @@ class TestNoiseTransformer(unittest.TestCase):
 
     def test_qobj_conversion(self):
         import json
-        with open("../data/qobj_noise_kraus.json") as f:
+        with open("{}/../data/qobj_noise_kraus.json".format(TEST_DIR)) as f:
             qobj = json.load(f)
         n = NoiseTransformer()
         result_qobj = n.transform_qobj('relaxation', qobj)
@@ -152,7 +155,7 @@ class TestNoiseTransformer(unittest.TestCase):
         self.assertListAlmostEqual(expected_matrices, matrices, places = 3)
 
         #let's also run on something without noise and verify nothing changes
-        with open("../data/qobj_snapshot_expval_pauli.json") as f:
+        with open("{}/../data/qobj_snapshot_expval_pauli.json".format(TEST_DIR)) as f:
             qobj = json.load(f)
         result_qobj = n.transform_qobj('relaxation', qobj)
         self.assertEqual(qobj, result_qobj)
