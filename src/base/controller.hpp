@@ -216,7 +216,8 @@ protected:
 
 void Controller::set_config(const json_t &config) {
   // Save config for passing to State and Data classes
-  config_ = config;
+  for ( auto it = config.begin(); it != config.end(); ++it )
+    config_[it.key()] = it.value();
 
   // Load noise model
   if (JSON::check_key("noise_model", config))
