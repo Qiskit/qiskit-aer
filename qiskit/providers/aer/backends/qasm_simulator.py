@@ -186,8 +186,7 @@ class QasmSimulator(AerBackend):
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
             ch_supported = False
-            if method == "ch" or method == "automatic":
-                ch_supported = True
+            ch_supported = method in ["ch", "automatic"]
             clifford = False if method == "statevector" else clifford_noise
             for op in experiment.instructions:
                 if not clifford and not no_measure:
@@ -209,8 +208,8 @@ class QasmSimulator(AerBackend):
                 if n_qubits > max_qubits:
                     system_memory = int(local_hardware_info()['memory'])
                     err_string = ('Number of qubits ({}) is greater than '
-                                 'maximum ({}) for "{}" (method=statevector) '
-                                 'with {} GB system memory')
+                                  'maximum ({}) for "{}" (method=statevector) '
+                                  'with {} GB system memory')
                     err_string = err_string.format(n_qubits, max_qubits,
                                                    self.name(), system_memory)
                     if method != "automatic":
@@ -220,12 +219,11 @@ class QasmSimulator(AerBackend):
                             raise AerError(err_string + ', and has too many ' +
                                            'qubits to fall back to the ' + 
                                            'CH simulator.')
-                        elif not ch_supported:
-                            raise Aererror(err_string + ', and contains ' +
+                        if not ch_supported:
+                            raise AerError(err_string + ', and contains ' +
                                            'instructions not supported by ' + 
                                            'the CH simulator.')
-                        else:
-                            logger.info('The QasmSimulator will automatically '
-                                        'switch to the CH backend, based on '
-                                        'the memory requirements.')
+                        logger.info('The QasmSimulator will automatically '
+                                    'switch to the CH backend, based on '
+                                    'the memory requirements.')
 

@@ -29,40 +29,39 @@ using uint_t = uint_fast64_t;
 using int_t = int_fast64_t;
 using chstabilizer_t = StabilizerState;
 
-double t_angle = M_PI/4.;
-double tdg_angle = -1.*M_PI/4.;
+const double T_ANGLE = M_PI/4.;
+const double TDG_ANGLE = -1.*M_PI/4.;
 
-const U1Sample t_sample(t_angle);
-const U1Sample tdg_sample(tdg_angle);
+const U1Sample t_sample(T_ANGLE);
+const U1Sample tdg_sample(TDG_ANGLE);
 
-uint_t zero = 0ULL;
+const uint_t ZERO = 0ULL;
 
 class Runner
 {
 private:
-  uint_t n_qubits;
-  uint_t chi;
-  uint_t three_qubit_gate_count; //Needed for normalising states
-  std::vector<chstabilizer_t> states;
-  std::vector<complex_t> coefficients;
-  uint_t n_omp_threads;
-  uint_t omp_threshold;
+  uint_t n_qubits_;
+  uint_t num_states_;
+  std::vector<chstabilizer_t> states_;
+  std::vector<complex_t> coefficients_;
+  uint_t num_threads_;
+  uint_t omp_threshold_;
 
-  bool accept;
-  complex_t old_ampsum;
-  uint_t x_string;
-  uint_t last_proposal;
+  bool accept_;
+  complex_t old_ampsum_;
+  uint_t x_string_;
+  uint_t last_proposal_;
 
-  std::unordered_map<double, U1Sample> z_rotations;
+  std::unordered_map<double, U1Sample> z_rotations_;
 
-  void InitMetropolis(AER::RngEngine &rng);
-  void MetropolisStep(AER::RngEngine &rng);
+  void init_metropolis(AER::RngEngine &rng);
+  void metropolis_step(AER::RngEngine &rng);
   //
 
-  json_t serialise_state(uint_t rank) const;
+  json_t serialize_state(uint_t rank) const;
 
 public:
-  Runner(): n_qubits(0), chi(0) {};
+  Runner(): n_qubits_(0), num_states_(0) {};
   Runner(uint_t n_qubits);
   virtual ~Runner() = default;
 
@@ -71,17 +70,17 @@ public:
 
   bool empty() const
   {
-    return (n_qubits == 0 || chi == 0);
+    return (n_qubits_ == 0 || num_states_ == 0);
   }
 
-  uint_t get_chi() const;
+  uint_t get_num_states() const;
   uint_t get_n_qubits() const;
   bool check_omp_threshold();
 
   //Convert each state to a json object and return it.
-  std::vector<std::string> serialised_decomposition() const;
+  std::vector<std::string> serialize_decomposition() const;
 
-  //Creates chi copies of the 'base state' in the runner
+  //Creates num_states_ copies of the 'base state' in the runner
   //This will be either the |0>^n state, or a stabilizer state
   //produced by applying the first m Clifford gates of the
   //circuit. 
@@ -108,18 +107,18 @@ public:
   //Measure a Pauli projector on each term in the decomposition and update their coefficients
   // omega.
   void apply_pauli_projector(const std::vector<pauli_t> &generators);
-  inline void apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank);
+  void apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank);
   //Routine for Norm Estimation, thin wrapper for the CHSimulator method that uses AER::RngEngine
   //to set up the estimation routine.
-  double NormEstimation(uint_t n_samples, AER::RngEngine &rng);
-  double NormEstimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng);
+  double norm_estimation(uint_t n_samples, AER::RngEngine &rng);
+  double norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng);
 
   //Metropolis Estimation for sampling from the output distribution
-  uint_t MetropolisEstimation(uint_t n_steps, AER::RngEngine &rng);
-  std::vector<uint_t> MetropolisEstimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng);
+  uint_t metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
+  std::vector<uint_t> metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng);
   //Efficient Sampler for the output distribution of a stabilizer state
-  uint_t StabilizerSampler(AER::RngEngine &rng);
-  std::vector<uint_t> StabilizerSampler(uint_t n_shots, AER::RngEngine &rng);
+  uint_t stabilizer_sampler(AER::RngEngine &rng);
+  std::vector<uint_t> stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng);
   //Utilities for the state-vector snapshot.
   complex_t amplitude(uint_t x_measure);
   void state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng);
@@ -137,67 +136,54 @@ Runner::Runner(uint_t num_qubits)
 
 void Runner::initialize(uint_t num_qubits)
 {
-  if (states.size() > 0)
-  {
-    states.clear();
-  }
-  if (coefficients.size() > 0)
-  {
-    coefficients.clear();
-  }
-  n_qubits = num_qubits;
-  chi = 1;
-  n_omp_threads = 1;
-  states = std::vector<chstabilizer_t>(1, chstabilizer_t(num_qubits));
-  coefficients.push_back(complex_t(1.,0.));
+  states_.clear();
+  coefficients_.clear();
+  n_qubits_ = num_qubits;
+  num_states_ = 1;
+  num_threads_ = 1;
+  states_ = std::vector<chstabilizer_t>(1, chstabilizer_t(num_qubits));
+  coefficients_.push_back(complex_t(1.,0.));
 }
 
 void Runner::initialize_decomposition(uint_t n_states)
 {
-  chi = n_states;
-  states.reserve(chi);
-  coefficients.reserve(chi);
-  if(states.size() > 1 || coefficients.size() > 1)
+  num_states_ = n_states;
+  states_.reserve(num_states_);
+  coefficients_.reserve(num_states_);
+  if(states_.size() > 1 || coefficients_.size() > 1)
   {
     throw std::runtime_error(std::string("CHSimulator::Runner was initialized without") + 
                              std::string("being properly cleared since the last ") +
                              std::string("experiment."));
   }
-  chstabilizer_t base_sate(states[0]);
-  complex_t coeff(coefficients[0]);
-  for(uint_t i=1; i<chi; i++)
+  chstabilizer_t base_sate(states_[0]);
+  complex_t coeff(coefficients_[0]);
+  for(uint_t i=1; i<num_states_; i++)
   {
-    states.push_back(base_sate);
-    coefficients.push_back(coeff);
+    states_.push_back(base_sate);
+    coefficients_.push_back(coeff);
   }
 }
 
 void Runner::initialize_omp(uint_t n_threads, uint_t threshold_rank)
 {
-  if(n_threads == 0)
-  {
-    n_omp_threads = 1;
-  }
-  else
-  {
-    n_omp_threads = n_threads;
-  }
-  omp_threshold = threshold_rank;
+  num_threads_ = (n_threads == 0 ? 1: n_threads);
+  omp_threshold_ = threshold_rank;
 }
 
-uint_t Runner::get_chi() const
+uint_t Runner::get_num_states() const
 {
-  return chi;
+  return num_states_;
 }
 
 uint_t Runner::get_n_qubits() const
 {
-  return n_qubits;
+  return n_qubits_;
 }
 
 bool Runner::check_omp_threshold()
 {
-  return chi > omp_threshold;
+  return num_states_ > omp_threshold_;
 }
 
 //-------------------------------------------------------------------------
@@ -206,8 +192,8 @@ bool Runner::check_omp_threshold()
 
 void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators)
 {
-  #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads)
-  for(uint_t i=0; i<chi; i++)
+  #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_)
+  for(uint_t i=0; i<num_states_; i++)
   {
     apply_pauli_projector(generators, i);
   }
@@ -215,107 +201,107 @@ void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators)
 
 void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank)
 {
-  states[rank].MeasurePauliProjector(generators);
+  states_[rank].MeasurePauliProjector(generators);
 }
 
 bool Runner::check_eps(uint_t rank)
 {
-  return (states[rank].Omega().eps == 1);
+  return (states_[rank].Omega().eps == 1);
 }
 
 void Runner::apply_cx(uint_t control, uint_t target, uint_t rank)
 {
-  states[rank].CX(control, target);
+  states_[rank].CX(control, target);
 }
 
 void Runner::apply_cz(uint_t control, uint_t target, uint_t rank)
 {
-  states[rank].CZ(control, target);
+  states_[rank].CZ(control, target);
 }
 
 void Runner::apply_swap(uint_t qubit_1, uint_t qubit_2, uint_t rank)
 {
-  states[rank].CX(qubit_1, qubit_2);
-  states[rank].CX(qubit_2, qubit_1);
-  states[rank].CX(qubit_1, qubit_2);
+  states_[rank].CX(qubit_1, qubit_2);
+  states_[rank].CX(qubit_2, qubit_1);
+  states_[rank].CX(qubit_1, qubit_2);
 }
 
 
 void Runner::apply_h(uint_t qubit, uint_t rank)
 {
-  states[rank].H(qubit);
+  states_[rank].H(qubit);
 }
 
 void Runner::apply_s(uint_t qubit, uint_t rank)
 {
-  states[rank].S(qubit);
+  states_[rank].S(qubit);
 }
 
 void Runner::apply_sdag(uint_t qubit, uint_t rank)
 {
-  states[rank].Sdag(qubit);
+  states_[rank].Sdag(qubit);
 }
 
 void Runner::apply_x(uint_t qubit, uint_t rank)
 {
-  states[rank].X(qubit);
+  states_[rank].X(qubit);
 }
 
 void Runner::apply_y(uint_t qubit, uint_t rank)
 {
-  states[rank].Y(qubit);
+  states_[rank].Y(qubit);
 }
 
 void Runner::apply_z(uint_t qubit, uint_t rank)
 {
-  states[rank].Z(qubit);
+  states_[rank].Z(qubit);
 }
 
 void Runner::apply_t(uint_t qubit, double r, int rank)
 {
   sample_branch_t branch = t_sample.sample(r);
-  coefficients[rank] *= branch.first;
+  coefficients_[rank] *= branch.first;
   if (branch.second == Gates::s)
   {
-    states[rank].S(qubit);
+    states_[rank].S(qubit);
   }
 }
 void Runner::apply_tdag(uint_t qubit, double r, int rank)
 {
   sample_branch_t branch = tdg_sample.sample(r);
-  coefficients[rank] *= branch.first;
+  coefficients_[rank] *= branch.first;
   if (branch.second == Gates::sdg)
   {
-    states[rank].Sdag(qubit);
+    states_[rank].Sdag(qubit);
   }
 }
 
 void Runner::apply_u1(uint_t qubit, complex_t param, double r, int rank)
 {
   double lambda = std::real(param);
-  auto it = z_rotations.find(lambda); //Look for cached z_rotations
+  auto it = z_rotations_.find(lambda); //Look for cached z_rotations
   sample_branch_t branch;
-  if (it == z_rotations.end())
+  if (it == z_rotations_.end())
   {
     U1Sample rotation(lambda);
-    z_rotations.insert({lambda, rotation});
+    z_rotations_.insert({lambda, rotation});
     branch = rotation.sample(r);
   }
   else
   {
     branch = it->second.sample(r);
   }
-  coefficients[rank] *= branch.first;
+  coefficients_[rank] *= branch.first;
   switch(branch.second)
   {
     case Gates::s:
-      states[rank].S(qubit);
+      states_[rank].S(qubit);
       break;
     case Gates::sdg:
-      states[rank].Sdag(qubit);
+      states_[rank].Sdag(qubit);
       break;
     case Gates::z:
-      states[rank].Z(qubit);
+      states_[rank].Z(qubit);
       break;
     default:
       break;
@@ -327,37 +313,37 @@ void Runner::apply_ccx(uint_t control_1, uint_t control_2, uint_t target, uint_t
   switch(branch) //Decomposition of the CCX gate into Cliffords
   {
     case 1:
-      states[rank].CZ(control_1, control_2);
+      states_[rank].CZ(control_1, control_2);
       break;
     case 2:
-      states[rank].CX(control_1, target);
+      states_[rank].CX(control_1, target);
       break;
     case 3:
-      states[rank].CX(control_2, target);
+      states_[rank].CX(control_2, target);
       break;
     case 4:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CX(control_1, target);
-      states[rank].Z(control_1);
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CX(control_1, target);
+      states_[rank].Z(control_1);
       break;
     case 5:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CX(control_2, target);
-      states[rank].Z(control_2);
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CX(control_2, target);
+      states_[rank].Z(control_2);
       break;
     case 6:
-      states[rank].CX(control_1, target);
-      states[rank].CX(control_2, target);
-      states[rank].X(target);
+      states_[rank].CX(control_1, target);
+      states_[rank].CX(control_2, target);
+      states_[rank].X(target);
       break;
     case 7:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CX(control_1, target);
-      states[rank].CX(control_2, target);
-      states[rank].Z(control_1);
-      states[rank].Z(control_2);
-      states[rank].X(target);
-      coefficients[rank] *= -1; //Additional phase
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CX(control_1, target);
+      states_[rank].CX(control_2, target);
+      states_[rank].Z(control_1);
+      states_[rank].Z(control_2);
+      states_[rank].X(target);
+      coefficients_[rank] *= -1; //Additional phase
       break;
     default: //Identity
       break;
@@ -369,37 +355,37 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
   switch(branch) //Decomposition of the CCZ gate into Cliffords
   {
     case 1:
-      states[rank].CZ(control_1, control_2);
+      states_[rank].CZ(control_1, control_2);
       break;
     case 2:
-      states[rank].CZ(control_1, target);
+      states_[rank].CZ(control_1, target);
       break;
     case 3:
-      states[rank].CZ(control_2, target);
+      states_[rank].CZ(control_2, target);
       break;
     case 4:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CZ(control_1, target);
-      states[rank].Z(control_1);
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CZ(control_1, target);
+      states_[rank].Z(control_1);
       break;
     case 5:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CZ(control_2, target);
-      states[rank].Z(control_2);
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CZ(control_2, target);
+      states_[rank].Z(control_2);
       break;
     case 6:
-      states[rank].CZ(control_1, target);
-      states[rank].CZ(control_2, target);
-      states[rank].Z(target);
+      states_[rank].CZ(control_1, target);
+      states_[rank].CZ(control_2, target);
+      states_[rank].Z(target);
       break;
     case 7:
-      states[rank].CZ(control_1, control_2);
-      states[rank].CZ(control_1, target);
-      states[rank].CZ(control_2, target);
-      states[rank].Z(control_1);
-      states[rank].Z(control_2);
-      states[rank].Z(target);
-      coefficients[rank] *= -1; //Additional phase
+      states_[rank].CZ(control_1, control_2);
+      states_[rank].CZ(control_1, target);
+      states_[rank].CZ(control_2, target);
+      states_[rank].Z(control_1);
+      states_[rank].Z(control_2);
+      states_[rank].Z(target);
+      coefficients_[rank] *= -1; //Additional phase
       break;
     default: //Identity
       break;
@@ -410,17 +396,17 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
 //Measurement
 //-------------------------------------------------------------------------
 
-double Runner::NormEstimation(uint_t n_samples, AER::RngEngine &rng)
+double Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng)
 {
   std::vector<uint_t> adiag_1(n_samples, 0ULL);
   std::vector<uint_t> adiag_2(n_samples, 0ULL);
-  std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits, 0ULL));
-  #pragma omp parallel for if(n_omp_threads > 1)
+  std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits_, 0ULL));
+  #pragma omp parallel for if(num_threads_ > 1) collapse(2) num_threads(num_threads_)
   for (size_t l=0; l<n_samples; l++)
   {
-    for (size_t i=0; i<n_qubits; i++)
+    for (size_t i=0; i<n_qubits_; i++)
     {
-      for (size_t j=i; j<n_qubits; j++)
+      for (size_t j=i; j<n_qubits_; j++)
       {
           if(rng.rand() < 0.5)
           {
@@ -435,76 +421,76 @@ double Runner::NormEstimation(uint_t n_samples, AER::RngEngine &rng)
       }
     }
   }
-  return ParallelNormEstimate(states, coefficients, adiag_1, adiag_2, a, n_omp_threads);
+  return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
 }
 
-double Runner::NormEstimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng)
+double Runner::norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng)
 {
   apply_pauli_projector(generators);
-  return NormEstimation(n_samples, rng);
+  return norm_estimation(n_samples, rng);
 }
 
-uint_t Runner::MetropolisEstimation(uint_t n_steps, AER::RngEngine &rng)
+uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng)
 {
-  InitMetropolis(rng);
+  init_metropolis(rng);
   for (uint_t i=0; i<n_steps; i++)
   {
-    MetropolisStep(rng);
+    metropolis_step(rng);
   }
-  return x_string;
+  return x_string_;
 }
 
-std::vector<uint_t> Runner::MetropolisEstimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng)
+std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng)
 {
   std::vector<uint_t> shots(n_shots, zer);
-  shots[0] = MetropolisEstimation(n_steps, rng);
+  shots[0] = metropolis_estimation(n_steps, rng);
   for (uint_t i=1; i<n_shots; i++)
   {
-    MetropolisStep(rng);
-    shots[i] = x_string;
+    metropolis_step(rng);
+    shots[i] = x_string_;
   }
   return shots;
 }
 
-void Runner::InitMetropolis(AER::RngEngine &rng)
+void Runner::init_metropolis(AER::RngEngine &rng)
 {
-  accept = 0;
+  accept_ = 0;
   //Random initial x_string from RngEngine
-  uint_t max = (1ULL<<n_qubits) - 1;
-  x_string = rng.rand_int(zero, max);
-  last_proposal=0;
+  uint_t max = (1ULL<<n_qubits_) - 1;
+  x_string_ = rng.rand_int(ZERO, max);
+  last_proposal_=0;
   double local_real=0., local_imag=0.;
-  #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:local_real) reduction(+:local_imag)
-  for (uint_t i=0; i<chi; i++)
+  #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:local_real) reduction(+:local_imag)
+  for (uint_t i=0; i<num_states_; i++)
   {
-    scalar_t amp = states[i].Amplitude(x_string);
+    scalar_t amp = states_[i].Amplitude(x_string_);
     if(amp.eps == 1)
     {
-      complex_t local = (amp.to_complex() * coefficients[i]);
+      complex_t local = (amp.to_complex() * coefficients_[i]);
       local_real += local.real();
       local_imag += local.imag();
     }
   }
-  old_ampsum = complex_t(local_real, local_imag);
+  old_ampsum_ = complex_t(local_real, local_imag);
 }
 
-void Runner::MetropolisStep(AER::RngEngine &rng)
+void Runner::metropolis_step(AER::RngEngine &rng)
 {
-  uint_t proposal = rng.rand(0ULL, n_qubits);
-  if(accept)
+  uint_t proposal = rng.rand(0ULL, n_qubits_);
+  if(accept_)
   {
-    x_string ^= (one << last_proposal);
+    x_string_ ^= (one << last_proposal_);
   }
   double real_part = 0.,imag_part =0.;
-  if (accept == 0)
+  if (accept_ == 0)
   {
-    #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:real_part) reduction(+:imag_part)
-    for (uint_t i=0; i<chi; i++)
+    #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+    for (uint_t i=0; i<num_states_; i++)
     {
-      scalar_t amp = states[i].ProposeFlip(proposal);
+      scalar_t amp = states_[i].ProposeFlip(proposal);
       if(amp.eps == 1)
       {
-        complex_t local = (amp.to_complex() * coefficients[i]);
+        complex_t local = (amp.to_complex() * coefficients_[i]);
         real_part += local.real();
         imag_part += local.imag();
       }
@@ -512,64 +498,64 @@ void Runner::MetropolisStep(AER::RngEngine &rng)
   }
   else
   {
-    #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:real_part) reduction(+:imag_part)
-    for (uint_t i=0; i<chi; i++)
+    #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+    for (uint_t i=0; i<num_states_; i++)
     {
-      states[i].AcceptFlip();
-      scalar_t amp = states[i].ProposeFlip(proposal);
+      states_[i].AcceptFlip();
+      scalar_t amp = states_[i].ProposeFlip(proposal);
       if(amp.eps == 1)
       {
-        complex_t local = (amp.to_complex() * coefficients[i]);
+        complex_t local = (amp.to_complex() * coefficients_[i]);
         real_part += local.real();
         imag_part += local.imag();
       }
     }
   }
   complex_t ampsum(real_part, imag_part);
-  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum);
+  double p_threshold = std::norm(ampsum)/std::norm(old_ampsum_);
   #ifdef  __FAST_MATH__ //isnan doesn't behave well under fastmath, so use absolute tolerance check instead
-  if(std::isinf(p_threshold) || std::abs(std::norm(old_ampsum)-0.) < 1e-8)
+  if(std::isinf(p_threshold) || std::abs(std::norm(old_ampsum_)-0.) < 1e-8)
   #else
   if(std::isinf(p_threshold) || std::isnan(p_threshold))
   #endif
   {
-    accept = 1;
-    old_ampsum = ampsum;
-    last_proposal = proposal; //We try to move away from node with 0 probability.
+    accept_ = 1;
+    old_ampsum_ = ampsum;
+    last_proposal_ = proposal; //We try to move away from node with 0 probability.
   }
   else
   {
     double rand = rng.rand();
     if (rand < p_threshold)
     {
-      accept = 1;
-      old_ampsum = ampsum;
-      last_proposal = proposal;
+      accept_ = 1;
+      old_ampsum_ = ampsum;
+      last_proposal_ = proposal;
     }
     else
     {
-      accept = 0;
+      accept_ = 0;
     }
   }
 }
 
-uint_t Runner::StabilizerSampler(AER::RngEngine &rng)
+uint_t Runner::stabilizer_sampler(AER::RngEngine &rng)
 {
-  uint_t max = (1ULL << n_qubits) -1;
-  return states[0].Sample(rng.rand_int(zero, max));
+  uint_t max = (1ULL << n_qubits_) -1;
+  return states_[0].Sample(rng.rand_int(ZERO, max));
 }
 
-std::vector<uint_t> Runner::StabilizerSampler(uint_t n_shots, AER::RngEngine &rng)
+std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng)
 {
-  if(chi > 1)
+  if(num_states_ > 1)
   {
-    throw std::invalid_argument("CH::Runner::StabilizerSampler: This method can only be used for a single Stabilizer state.\n");
+    throw std::invalid_argument("CH::Runner::stabilizer_sampler: This method can only be used for a single Stabilizer state.\n");
   }
   std::vector<uint_t> shots;
   shots.reserve(n_shots);
   for(uint_t i=0; i<n_shots; i++)
   {
-    shots.push_back(StabilizerSampler(rng));
+    shots.push_back(stabilizer_sampler(rng));
   }
   return shots;
 }
@@ -578,11 +564,11 @@ complex_t Runner::amplitude(uint_t x_measure)
 {
   double real_part=0., imag_part=0.;
   //Splitting the reduction guarantees support on more OMP versions.
-  #pragma omp parallel for if(chi > omp_threshold && n_omp_threads > 1) num_threads(n_omp_threads) reduction(+:real_part) reduction(+:imag_part)
-  for(uint_t i=0; i<chi; i++)
+  #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+  for(uint_t i=0; i<num_states_; i++)
   {
-    complex_t amplitude = states[i].Amplitude(x_measure).to_complex();
-    amplitude *= coefficients[i];
+    complex_t amplitude = states_[i].Amplitude(x_measure).to_complex();
+    amplitude *= coefficients_[i];
     real_part += amplitude.real();
     imag_part += amplitude.imag();
   }
@@ -591,7 +577,7 @@ complex_t Runner::amplitude(uint_t x_measure)
 
 void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
 {
-  uint_t ceil = 1ULL << n_qubits;
+  uint_t ceil = 1ULL << n_qubits_;
   if (!svector.empty())
   {
     svector.clear();
@@ -599,9 +585,9 @@ void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
   svector.reserve(ceil);
   // double norm = 1;
   double norm = 1;
-  if(chi > 1)
+  if(num_states_ > 1)
   {
-    norm = NormEstimation(40, rng);
+    norm = norm_estimation(40, rng);
   }
   for(uint_t i=0; i<ceil; i++)
   {
@@ -616,35 +602,35 @@ void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
 inline void to_json(json_t &js, const Runner &rn)
 {
   js["num_qubits"] = rn.get_n_qubits();
-  js["chi"] = rn.get_chi();
-  js["decomposition"] = rn.serialised_decomposition();
+  js["num_states"] = rn.get_num_states();
+  js["decomposition"] = rn.serialize_decomposition();
 }
 
-std::vector<std::string> Runner::serialised_decomposition() const
+std::vector<std::string> Runner::serialize_decomposition() const
 {
-  std::vector<std::string> serialised_states(chi);
-  #pragma omp parallel for if(n_omp_threads > 1 && chi > omp_threshold) num_threads(n_omp_threads)
-  for(uint_t i=0; i<chi; i++)
+  std::vector<std::string> serialized_states(num_states_);
+  #pragma omp parallel for if(num_threads_ > 1 && num_states_ > omp_threshold_) num_threads(num_threads_)
+  for(uint_t i=0; i<num_states_; i++)
   {
-    serialised_states[i] = serialise_state(i);
+    serialized_states[i] = serialize_state(i);
   }
-  return serialised_states;
+  return serialized_states;
 }
 
-json_t Runner::serialise_state(uint_t rank) const
+json_t Runner::serialize_state(uint_t rank) const
 {
   json_t js = json_t::object();
   std::vector<unsigned> gamma;
   std::vector<uint_t> M;
   std::vector<uint_t> F;
   std::vector<uint_t> G;
-  gamma.reserve(n_qubits);
-  M = states[rank].MMatrix();
-  F = states[rank].FMatrix();
-  G = states[rank].GMatrix();
-  uint_t gamma1 = states[rank].Gamma1();
-  uint_t gamma2 = states[rank].Gamma2();
-  for(uint_t i=0; i<n_qubits; i++)
+  gamma.reserve(n_qubits_);
+  M = states_[rank].MMatrix();
+  F = states_[rank].FMatrix();
+  G = states_[rank].GMatrix();
+  uint_t gamma1 = states_[rank].Gamma1();
+  uint_t gamma2 = states_[rank].Gamma2();
+  for(uint_t i=0; i<n_qubits_; i++)
   {
     gamma.push_back(((gamma1 >> i) & 1ULL) + 2*((gamma2 >> i) & 1ULL));
   }
@@ -652,8 +638,8 @@ json_t Runner::serialise_state(uint_t rank) const
   js["M"] = M;
   js["F"] = F;
   js["G"] = G;
-  js["internal_cofficient"] = states[rank].Omega().to_complex();
-  js["coefficient"] = coefficients[rank];
+  js["internal_cofficient"] = states_[rank].Omega().to_complex();
+  js["coefficient"] = coefficients_[rank];
   return js;
 }
 

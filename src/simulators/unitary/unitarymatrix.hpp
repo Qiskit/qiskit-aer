@@ -188,7 +188,8 @@ void UnitaryMatrix<data_t>::initialize() {
 template <class data_t>
 void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
   const int_t nrows = rows_;    // end for k loop
-  if (nrows != mat.GetRows() || nrows != mat.GetColumns()) {
+  if (nrows != static_cast<int_t>(mat.GetRows()) ||
+      nrows != static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
       "UnitaryMatrix::initialize input matrix is incorrect shape (" +
       std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +

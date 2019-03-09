@@ -281,14 +281,8 @@ void Controller::set_parallelization(Qobj& qobj) {
 
   if(state_available_memory_mb_ > 0)
   {
-    if (parallel_experiments_ > 1)
-    {
-      state_available_memory_mb_ /= parallel_experiments_;
-    }
-    else if (parallel_shots_ > 1)
-    {
-      state_available_memory_mb_ /= parallel_shots_;
-    }
+    state_available_memory_mb_ /= parallel_shots_;
+    state_available_memory_mb_ /= parallel_experiments_;
   }
 }
 
@@ -333,28 +327,24 @@ bool Controller::validate_memory_requirements(state_t &state,
                                   const Circuit &circ,
                                   bool throw_except) const
 {
-  bool sufficient_memory = (state_available_memory_mb_ == 0); //No memory info in qobj
-  if(state_available_memory_mb_ > 0)
-  {
-    uint_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
-    sufficient_memory = (state_available_memory_mb_ > required_mb);
-  }
-  if(sufficient_memory)
+  if (state_available_memory_mb_ == 0)
   {
     return true;
   }
-  if(throw_except)
+  auto required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  if(state_available_memory_mb_ < required_mb)
   {
-    std::string name = "";
-    if (JSON::check_key("name", circ.header))
+    if(throw_except)
     {
+      std::string name = "";
       JSON::get_value(name, "name", circ.header);
+      throw std::runtime_error("AER::Base::Controller: State " + state.name() +
+                               " has insufficient memory to run the circuit " +
+                               name);
     }
-    throw std::runtime_error(std::string("AER::Base::Controller: State ") + state.name() +
-                             std::string(" has insufficient memory to run the circuit ") +
-                             name + std::string("."));
+    return false;
   }
-  return false;
+  return true;
 }
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output

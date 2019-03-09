@@ -135,34 +135,34 @@ protected:
   //Allowed error in the stabilizer rank decomposition.
   //The required number of states scales as \delta^{-2}
   //for allowed error \delta
-  double approximation_error = 0.05;
+  double approximation_error_ = 0.05;
 
-  uint_t norm_estimation_samples = 100;
+  uint_t norm_estimation_samples_ = 100;
   // How long the metropolis algorithm runs before
   // we consider it to be well mixed and sample form the
   // output distribution
-  uint_t metropolis_mixing_steps = 7000;
+  uint_t metropolis_mixing_steps_ = 7000;
 
   //Minimum number of states before we try to parallelise
-  uint_t omp_threshold_rank = 100;
+  uint_t omp_threshold_rank_ = 100;
 
-  double snapshot_chop_threshold = 1e-10;
+  double snapshot_chop_threshold_ = 1e-10;
 
-  double probabilities_snapshot_samples = 3000.;
+  double probabilities_snapshot_samples_ = 3000.;
 
   // Compute the required stabilizer rank of the circuit
-  uint_t compute_chi(const std::vector<Operations::Op> &ops);
+  uint_t compute_chi(const std::vector<Operations::Op> &ops) const;
   // Add the given operation to the extent
-  inline void compute_extent(const Operations::Op &op, double &xi);
+  void compute_extent(const Operations::Op &op, double &xi) const;
 
   //Compute the required chi, and count the number of three qubit gates
-  virtual std::pair<uint_t, uint_t> decomposition_parameters(const std::vector<Operations::Op> &ops);
+  std::pair<uint_t, uint_t> decomposition_parameters(const std::vector<Operations::Op> &ops);
   
   //Check if this is a stabilizer circuit, for the locaiton of the first non-CLifford gate
-  std::pair<bool, size_t> check_stabilizer_opt(const std::vector<Operations::Op> &ops);
+  std::pair<bool, size_t> check_stabilizer_opt(const std::vector<Operations::Op> &ops) const;
 
   //Check if we can use the sample_measure optimisation
-  bool check_measurement_opt(const std::vector<Operations::Op> &ops);
+  bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
 };
 
 //=========================================================================
@@ -208,7 +208,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
 void State::initialize_qreg(uint_t num_qubits)
 {
   BaseState::qreg_.initialize(num_qubits);
-  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank);
+  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
 void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
@@ -218,30 +218,30 @@ void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
     throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
   }
   BaseState::qreg_ = state;
-  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank);
+  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
 void State::set_config(const json_t &config)
 {
   // Set the error upper bound in the stabilizer rank approximation
-  JSON::get_value(approximation_error, "ch_approximation_error", config);
+  JSON::get_value(approximation_error_, "ch_approximation_error", config);
   // Set the number of samples used in the norm estimation routine
-  JSON::get_value(norm_estimation_samples, "ch_norm_estimation_samples", config);
+  JSON::get_value(norm_estimation_samples_, "ch_norm_estimation_samples", config);
   // Set the number of steps used in the metropolis sampler before we
   // consider the distribution as approximating the output
-  JSON::get_value(metropolis_mixing_steps, "ch_mixing_time", config);
+  JSON::get_value(metropolis_mixing_steps_, "ch_mixing_time", config);
   //Set the threshold of the decomposition before we use omp
-  JSON::get_value(omp_threshold_rank, "ch_parallel_threshold", config);
+  JSON::get_value(omp_threshold_rank_, "ch_parallel_threshold", config);
   //Set the truncation threshold for the probabilities snapshot.
-  JSON::get_value(snapshot_chop_threshold, "chop_threshold", config);
+  JSON::get_value(snapshot_chop_threshold_, "chop_threshold", config);
   //Set the number of samples for the probabilities snapshot
-  JSON::get_value(probabilities_snapshot_samples, "probabilities_snapshot_samples", config);
+  JSON::get_value(probabilities_snapshot_samples_, "probabilities_snapshot_samples", config);
 }
 
 std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Operations::Op> &ops)
 {
   double xi=1.;
-  uint_t three_qubit_gate_count = 0;
+  unsigned three_qubit_gate_count = 0;
   for (const auto op: ops)
   {
     if (op.type == Operations::OpType::gate)
@@ -257,12 +257,13 @@ std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Oper
   uint_t chi=1;
   if (xi >1)
   {
-    chi = std::ceil(xi/std::pow(approximation_error, 2));
+    double err_scaling = std::pow(approximation_error_, -2);
+    chi = std::llrint(std::ceil(xi*err_scaling));
   }
   return std::pair<uint_t, uint_t>({chi, three_qubit_gate_count});
 }
 
-std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations::Op> &ops)
+std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const
 {
   for(auto op = ops.cbegin(); op != ops.cend(); op++)
   {
@@ -284,7 +285,7 @@ std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations
   return std::pair<bool, size_t>({true, 0});
 }
 
-bool State::check_measurement_opt(const std::vector<Operations::Op> &ops)
+bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 {
   for (const auto op: ops)
   {
@@ -379,13 +380,13 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
                                             RngEngine &rng)
 {
   std::vector<uint_t> output_samples;
-  if(BaseState::qreg_.get_chi() == 1)
+  if(BaseState::qreg_.get_num_states() == 1)
   {
-    output_samples = BaseState::qreg_.StabilizerSampler(shots, rng);
+    output_samples = BaseState::qreg_.stabilizer_sampler(shots, rng);
   }
   else
   {
-    output_samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, shots, rng);
+    output_samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, shots, rng);
   }
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
@@ -413,7 +414,7 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine &rng)
 {
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
+  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
   {
     if(!BaseState::qreg_.check_eps(i))
     {
@@ -478,15 +479,15 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
 {
   uint_t full_string;
-  if(BaseState::qreg_.get_chi() == 1)
+  if(BaseState::qreg_.get_num_states() == 1)
   {
     //For a single state, we use the efficient sampler defined in Sec IV.A ofarxiv:1808.00128
-    full_string = BaseState::qreg_.StabilizerSampler(rng);
+    full_string = BaseState::qreg_.stabilizer_sampler(rng);
   }
   else
   {
     //We use the metropolis algorithm to sample an output string non-destructively
-    full_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+    full_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
   }
   //We prepare the Pauli projector corresponding to the measurement result
   std::vector<chpauli_t>paulis(qubits.size(), chpauli_t());
@@ -512,13 +513,13 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 {
   uint_t measure_string;
-  if(BaseState::qreg_.get_chi() == 1)
+  if(BaseState::qreg_.get_num_states() == 1)
   {
-    measure_string = BaseState::qreg_.StabilizerSampler(rng);
+    measure_string = BaseState::qreg_.stabilizer_sampler(rng);
   }
   else
   {
-    measure_string = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, rng);
+    measure_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
   }
   std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
   for(size_t i=0; i<qubits.size(); i++)
@@ -533,7 +534,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
   }
   BaseState::qreg_.apply_pauli_projector(paulis);
   #pragma omp parallel for if(BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
+  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
   {
     for (auto qubit: qubits)
     {
@@ -548,7 +549,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 void State::apply_gate(const Operations::Op &op, RngEngine &rng)
 {
   #pragma omp parallel for if (BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_chi(); i++)
+  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
   {
     if(BaseState::qreg_.check_eps(i))
     {
@@ -663,7 +664,7 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
   rvector_t probs;
   if (op.qubits.size() == 0)
   {
-    probs.push_back(BaseState::qreg_.NormEstimation(norm_estimation_samples, rng));
+    probs.push_back(BaseState::qreg_.norm_estimation(norm_estimation_samples_, rng));
   }
   else
   {
@@ -675,13 +676,13 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
       mask ^= (1ULL << qubit);
     }
     std::vector<uint_t> samples;
-    if(BaseState::qreg_.get_chi() == 1)
+    if(BaseState::qreg_.get_num_states() == 1)
     {
-      samples = BaseState::qreg_.StabilizerSampler(probabilities_snapshot_samples, rng);
+      samples = BaseState::qreg_.stabilizer_sampler(probabilities_snapshot_samples_, rng);
     }
     else
     {
-      samples = BaseState::qreg_.MetropolisEstimation(metropolis_mixing_steps, probabilities_snapshot_samples,
+      samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, probabilities_snapshot_samples_,
                                                       rng);
     }
     #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
@@ -695,19 +696,19 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
           target ^= (1ULL << op.qubits[j]);
         }
       }
-      for(uint_t j=0; j<probabilities_snapshot_samples; j++)
+      for(uint_t j=0; j<probabilities_snapshot_samples_; j++)
       {
         if((samples[j] & mask) == target)
         {
           probs[i] += 1;
         }
       }
-      probs[i] /= probabilities_snapshot_samples;
+      probs[i] /= probabilities_snapshot_samples_;
     }
   }
   data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(),
-                            Utils::vec2ket(probs, snapshot_chop_threshold, 16),
+                            Utils::vec2ket(probs, snapshot_chop_threshold_, 16),
                             false);
 }
 
@@ -724,18 +725,18 @@ inline void to_json(json_t &js, cvector_t vec)
 }
 
 //
-uint_t State::compute_chi(const std::vector<Operations::Op> &ops)
+uint_t State::compute_chi(const std::vector<Operations::Op> &ops) const
 {
   double xi = 1;
   for (const auto op: ops)
   {
     compute_extent(op, xi);
   }
-  double err_scaling = std::pow(approximation_error, -2);
+  double err_scaling = std::pow(approximation_error_, -2);
   return std::llrint(std::ceil(xi*err_scaling));
 }
 
-void State::compute_extent(const Operations::Op &op, double &xi)
+void State::compute_extent(const Operations::Op &op, double &xi) const
 {
   if(op.type == Operations::OpType::gate)
   {
