@@ -17,6 +17,7 @@ out/*
 *.whl
 *.egg*
 build/*
+qiskit/providers/aer/backends/libomp.dylib
 
 # Ignore macOS DS_Store
 .DS_Store
@@ -33,4 +34,3 @@ test/.asv
 docs/_build/
 docs/stubs/
 docs/api/
-
