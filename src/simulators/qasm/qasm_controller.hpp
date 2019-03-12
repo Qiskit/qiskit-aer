@@ -11,6 +11,7 @@
 #include "base/controller.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/qasm/basic_optimization.hpp"
 
 
 namespace AER {
@@ -60,6 +61,11 @@ namespace Simulator {
 class QasmController : public Base::Controller {
 public:
   //-----------------------------------------------------------------------
+  // Constructor
+  //-----------------------------------------------------------------------
+  QasmController();
+
+  //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
 
@@ -72,6 +78,14 @@ public:
 
   // Clear the current config
   void virtual clear_config() override;
+
+  // Add circuit optimization
+  template <typename Type>
+  inline auto add_optimization(Type&& opt)
+  -> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type> > >::value >
+  {
+      optimizations.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+  }
 
 private:
   //-----------------------------------------------------------------------
@@ -186,12 +200,21 @@ private:
   // Initial statevector for Statevector simulation method
   cvector_t initial_statevector_;
 
+  std::vector<std::shared_ptr<CircuitOptimization>> optimizations;
+
   // TODO: initial stabilizer state
 };
 
 //=========================================================================
 // Implementations
 //=========================================================================
+
+//-------------------------------------------------------------------------
+// Constructor
+//-------------------------------------------------------------------------
+QasmController::QasmController() {
+  add_optimization(ReduceNop());
+}
 
 //-------------------------------------------------------------------------
 // Config
@@ -299,8 +322,12 @@ void QasmController::initialize_state(const Circuit &circ,
 template <class State_t>
 void QasmController::optimize_circuit(const Circuit &input_circ,
                                       Circuit &output_circ) const {
-  output_circ = input_circ;
-  // Add optimization passes here
+
+  Circuit working_circ = input_circ;
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations)
+    opt->optimize_circuit(working_circ);
+
+  output_circ = working_circ;
 }
 
 
