@@ -35,9 +35,16 @@ class QasmSimulator(AerBackend):
             * "statevector": Uses a dense statevector simulation.
             * "stabilizer": uses a Clifford stabilizer state simulator that
             is only valid for Clifford circuits and noise models.
+            * "ch": Uses an approximate simulator that decomposes circuits
+            into stabilizer state terms, the number of which grows with the
+            number of non-Clifford gates.
             * "automatic": automatically run on stabilizer simulator if
-            the circuit and noise model supports it, otherwise use the
-            statevector method (Default: "automatic").
+            the circuit and noise model supports it. If there is enough
+            available memory, uses the statevector method. Otherwise, uses
+            the ch method (Default: "automatic").
+
+        * "available_memory" (int): Set the amount of memory (in MB)
+        the simulator has access to (Default: Maximum available)
 
         * "initial_statevector" (vector_like): Sets a custom initial
             statevector for the simulation instead of the all zero
@@ -82,6 +89,31 @@ class QasmSimulator(AerBackend):
             increase performance on systems with a large number of CPU
             cores. For systems with a small number of cores it enabling
             can reduce performance (Default: False).
+
+        * "ch_approximation_error" (double): Set the error in the 
+            approximation for the ch method. A smaller error needs more
+            memory and computational time. (Default: 0.05)
+
+        * "ch_disable_measurement_opt" (bool): Force the simulator to
+            re-run the monte-carlo step for every measurement. Enabling
+            this will improve the sampling accuracy if the output
+            distribution is strongly peaked, but requires more
+            computational time. (Default: False)
+
+        * "ch_mixing_time" (int): Set how long the monte-carlo method
+            runs before performing measurements. If the output
+            distribution is strongly peaked, this can be
+            decreased alongside setting ch_disable_measurement_opt
+            to True. (Default: 7000)
+
+        * "ch_norm_estimation_samples" (int): Number of samples used to
+            compute the correct normalisation for a statevector snapshot.
+            (Default: 100)
+
+        * "ch_parallel_threshold" (int): Set the minimum size of the ch
+            decomposition before we enable OpenMP parallelisation. If
+            parallel circuit or shot execution is enabled this will only
+            use unallocated CPU cores up to max_parallel_threads. (Default: 100)
     """
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
@@ -127,6 +159,7 @@ class QasmSimulator(AerBackend):
         clifford_instructions = ["id", "x", "y", "z", "h", "s", "sdg",
                                  "CX", "cx", "cz", "swap",
                                  "barrier", "reset", "measure"]
+        unsupported_ch_instructions = ["u2", "u3"]
         # Check if noise model is Clifford:
         method = "automatic"
         if backend_options and "method" in backend_options:
@@ -152,6 +185,8 @@ class QasmSimulator(AerBackend):
                                'result data will not contain counts.', name)
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
+            ch_supported = False
+            ch_supported = method in ["ch", "automatic"]
             clifford = False if method == "statevector" else clifford_noise
             for op in experiment.instructions:
                 if not clifford and not no_measure:
@@ -160,17 +195,35 @@ class QasmSimulator(AerBackend):
                     clifford = False
                 if no_measure and op.name == "measure":
                     no_measure = False
+                if ch_supported and op.name in unsupported_ch_instructions:
+                    ch_supported = False
             # Print warning if clbits but no measure
             if no_measure:
                 logger.warning('No measurements in circuit "%s": '
                                'count data will return all zeros.', name)
             # Check qubits for statevector simulation
-            if not clifford:
+            if not clifford and method != "ch":
                 n_qubits = experiment.config.n_qubits
                 max_qubits = self.configuration().n_qubits
                 if n_qubits > max_qubits:
                     system_memory = int(local_hardware_info()['memory'])
-                    raise AerError('Number of qubits ({}) '.format(n_qubits) +
-                                   'is greater than maximum ({}) '.format(max_qubits) +
-                                   'for "{}" (method=statevector) '.format(self.name()) +
-                                   'with {} GB system memory.'.format(system_memory))
+                    err_string = ('Number of qubits ({}) is greater than '
+                                  'maximum ({}) for "{}" (method=statevector) '
+                                  'with {} GB system memory')
+                    err_string = err_string.format(n_qubits, max_qubits,
+                                                   self.name(), system_memory)
+                    if method != "automatic":
+                        raise AerError(err_string + '.')
+                    else:
+                        if n_qubits > 63:
+                            raise AerError(err_string + ', and has too many ' +
+                                           'qubits to fall back to the ' + 
+                                           'CH simulator.')
+                        if not ch_supported:
+                            raise AerError(err_string + ', and contains ' +
+                                           'instructions not supported by ' + 
+                                           'the CH simulator.')
+                        logger.info('The QasmSimulator will automatically '
+                                    'switch to the CH backend, based on '
+                                    'the memory requirements.')
+
