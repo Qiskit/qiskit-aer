@@ -119,7 +119,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed) const {
   // Initialize  state
-  Statevector::State<QV::QubitVector<complex_t*>> state;
+  Statevector::State<> state;
 
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise_model_, true);

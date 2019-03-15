@@ -40,7 +40,7 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
-template <class statevec_t>
+template <class statevec_t = QV::QubitVector<complex_t*>>
 class State : public Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;

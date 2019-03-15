@@ -298,7 +298,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statevector simulation
-      return run_circuit_helper<Statevector::State<QV::QubitVector<complex_t*>>>(
+      return run_circuit_helper<Statevector::State<>>(
                                                       circ,
                                                       shots,
                                                       rng_seed,
@@ -337,7 +337,7 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
     // Default method is statevector, unless the memory requirements are too large
     else
     {
-      Statevector::State<QV::QubitVector<complex_t*>> sv_state;
+      Statevector::State<> sv_state;
       if(!(validate_memory_requirements(sv_state, circ, false)))
       {
         if(validate_state(CH::State(), circ, noise_model_, false))
