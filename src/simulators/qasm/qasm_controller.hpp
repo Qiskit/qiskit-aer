@@ -247,7 +247,8 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statevector simulation
-      return run_circuit_helper<Statevector::State<QV::QubitVector<complex_t*>>>(circ,
+      return run_circuit_helper<Statevector::State<QV::QubitVector<complex_t*>>>(
+                                                      circ,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_); // allow custom initial state
