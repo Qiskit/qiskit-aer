@@ -80,6 +80,8 @@ class StatevectorSimulator(AerBackend):
         'memory': True,
         'max_shots': 1,
         'description': 'A C++ statevector simulator for qobj files',
+        'coupling_map': [[i, j] for i in range(MAX_QUBIT_MEMORY)
+                         for j in range(MAX_QUBIT_MEMORY) if i != j],
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
