@@ -297,7 +297,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   // Execute according to simulation method
   switch (simulation_method(circ)) {
     case Method::statevector:
-      // Statvector simulation
+      // Statevector simulation
       return run_circuit_helper<Statevector::State<>>(circ,
                                                       shots,
                                                       rng_seed,
