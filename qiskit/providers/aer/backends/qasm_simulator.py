@@ -118,6 +118,12 @@ class QasmSimulator(AerBackend):
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
+    CMAP = []
+    for i in range(MAX_QUBIT_MEMORY):
+        for j in range(MAX_QUBIT_MEMORY):
+            if i != j:
+                CMAP.append([i, j])
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': __version__,
@@ -130,8 +136,7 @@ class QasmSimulator(AerBackend):
         'memory': True,
         'max_shots': 100000,
         'description': 'A C++ simulator with realistic for qobj files',
-        'coupling_map': [[i, j] for i in range(MAX_QUBIT_MEMORY)
-                         for j in range(MAX_QUBIT_MEMORY) if i != j],
+        'coupling_map': CMAP,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
