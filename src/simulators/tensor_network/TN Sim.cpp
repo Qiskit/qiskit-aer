@@ -22,8 +22,24 @@
 using json_t = nlohmann::json;
 using namespace std;
 
+template <class T>
+void printMatrix(T **matrix, uint rows, uint columns){
+  for(uint i = 0; i < rows; ++i)
+    {
+      for(uint j = 0; j < columns; ++j)
+	{
+	  if( norm(matrix[i][j]) > 0.000000001)
+	    cout << fixed << matrix[i][j] << ' ';
+	  else
+	    cout << 0 << ' ';
+	}
+      cout << endl;
+    }
+}
+
 int main()
 {
+
 	const clock_t begin_time = clock(); //tic
 
 	ifstream infile("/gpfs/haifa/projects/q/qq/team/eladgold/tests/data.txt");
@@ -35,7 +51,7 @@ int main()
 	Qreg qreg(num_qubits);
 	while (getline(infile, gate))
 	{
-		getline(infile, qubit);
+
 		// if gate == "state vector" we compute and break
 		if(gate == "state vector")
 		{
@@ -44,7 +60,7 @@ int main()
 			full_result[0] = json_result;
 			break;
 		}
-
+		getline(infile, qubit);
 		int first_qubit = num_qubits - stoi(qubit), second_qubit;
 		double lambda, phi, theta;
 		if(gate == "x")
@@ -121,22 +137,18 @@ int main()
 			if(DEBUG) cout << gate << first_qubit << second_qubit << endl;
 			qreg.SWAP(first_qubit, second_qubit);
 		}
-		else if(gate == "expectation X")
+		else if(gate == "expectation pauli") //assume give first and last qubit, and a string of paulis & eyes
 		{
-			if(DEBUG) cout << gate << first_qubit << endl;
-			full_result[0] = qreg.Expectation_value_X(first_qubit);
-			break;
-		}
-		else if(gate == "expectation Y")
-		{
-			if(DEBUG) cout << gate << first_qubit << endl;
-			full_result[0] = qreg.Expectation_value_Y(first_qubit);
-			break;
-		}
-		else if(gate == "expectation Z")
-		{
-			if(DEBUG) cout << gate << first_qubit << endl;
-			full_result[0] = qreg.Expectation_value_Z(first_qubit);
+			getline(infile, qubit);
+			second_qubit = num_qubits - stoi(qubit);
+			string matrices;
+			getline(infile, matrices);
+			if(DEBUG) cout << gate << first_qubit << second_qubit << matrices << endl;
+			vector<int> indexes = vector<int>(2);
+			// might not be ordered
+			indexes[0] = first_qubit;
+			indexes[1] = second_qubit;
+			full_result[0] = qreg.Expectation_value(indexes, matrices);
 			break;
 		}
 		if(DEBUG)

@@ -11,11 +11,8 @@
 #define SQR_HALF sqrt(0.5)
 //#define MAX 100
 #define MPS true
-
 #define DEBUG false
-
 #define SHOW_SVD false
-#define TRY true
 #include "Tensor.hpp"
 #include <nlohmann/json.hpp>
 //#include "json_nlohmann.hpp"
@@ -44,16 +41,14 @@ public:
 	void U3(int index, double lambda, double phi, double theta);
 	void CNOT(int index_A, int index_B);
 	void SWAP(int index_A, int index_B);
-	void Density_Matrix(int index, double** rho);
-	double Expectation_value_X(int index);
-	double Expectation_value_Y(int index);
-	double Expectation_value_Z(int index);
+	void Density_Matrix(int first_index, int last_index, complex_t** rho);
+	double Expectation_value(vector<int> indexes, string matrices);
 	void Initialize();
 	void Initialize(complex_t alpha[], complex_t beta[]);
 	void Update_entangled_qubits(int index_A, int SV_num);
 	void printTN();
 	void state_vec_TRY(json_t& json_result);
-	int Compose_TRY(complex_t** new_data, complex_t** temp, int index_B);
+	int Compose_TRY(complex_t** new_data, complex_t** temp, int index_B, int first_index, int temp_dim);
 	int Compose(complex_t** new_data, int index_A, int index_B); //returns new data width
 	void UnTranspose_U(complex_t** U, double* S, Tensor* pA, int SV_num, int index_A);
 	void UnTranspose_V(complex_t** V, Tensor* pB, int SV_num, int index_B);

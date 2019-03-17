@@ -6,6 +6,7 @@
  */
 
 #include "Qreg.hpp"
+#include "matrix.hpp"
 #include <bitset>
 #include <math.h>
 
@@ -52,10 +53,10 @@ void printMatrix(T **matrix, uint rows, uint columns){
     {
       for(uint j = 0; j < columns; ++j)
 	{
-	  if( norm(matrix[i][j]) > 0.000000001)
-	    cout << fixed << matrix[i][j] << ' ';
-	  else
-	    cout << 0 << ' ';
+//	  if( norm(matrix[i][j]) > 0.000000001)
+	    cout << matrix[i][j] << ' ';
+//	  else
+//	    cout << 0 << ' ';
 	}
       cout << endl;
     }
@@ -94,8 +95,8 @@ Qreg::Qreg(int size)
 	{
 		entangled_dim_between_qubits[i] = 1;
 	}
-	complex_t alpha = 1.0f;
-	complex_t beta = 0.0f;
+	complex_t alpha = 1.0;
+	complex_t beta = 0.0;
 	for(int i = 0; i < size_; i++)
 		q_reg[i] = new Tensor(alpha,beta);
 	for(int i = 0; i < size_-1; i++)
@@ -348,148 +349,183 @@ void Qreg::SWAP(int index_A, int index_B)
 	this->DeCompose(new_data, index_A, index_B);
 }
 
-
-void Qreg::Density_Matrix(int index, double** rho)
+int Max(int *entangled_dim_between_qubits, int first_index, int last_index, int size)
 {
-	Tensor *pA, *p_lambdaA, *p_lambdaB;
-	if(index == 1)
+	int left_dim, right_dim;
+	if (first_index - 1 == 0)
+		left_dim = 1;
+	else
+		left_dim = entangled_dim_between_qubits[first_index-2];
+	if (first_index == size)
+		right_dim = 1;
+	else
 	{
-		pA = q_reg[index - 1];
-		p_lambdaB = lambda_reg[index - 1];
-		int dim_left = 1, dim_right = p_lambdaB->get_dim();
-
-		for(int a_left = 0; a_left < dim_left ; a_left++)
+		right_dim = entangled_dim_between_qubits[first_index-1];
+		for(int i = first_index; i < last_index; i++)
 		{
-			for(int a_right = 0; a_right < dim_right ; a_right++)
+			if(right_dim < entangled_dim_between_qubits[i])
 			{
-				for(int i = 0; i < 2 ; i++)
-				{
-					for(int i_tag = 0; i_tag < 2 ; i_tag++)
-					{
-						rho[i][i_tag] += 1 *
-									 real(pA->get_data(i,a_left*dim_right+a_right) *conj(pA->get_data(i_tag,a_left*dim_right+a_right))) *
-									 norm(p_lambdaB->get_data(0,a_right));
-					}
-				}
+				right_dim = entangled_dim_between_qubits[i];
 			}
 		}
 	}
-	else if(index == this->size_)
-	{
-		pA = q_reg[index - 1];
-		p_lambdaA = lambda_reg[index - 2];
-		int dim_left = p_lambdaA->get_dim(), dim_right = 1;
+	return left_dim * right_dim;
+}
 
-		for(int a_left = 0; a_left < dim_left ; a_left++)
+// returns the density matrix of qubits first to last. a little bit similar to statevector
+void Qreg::Density_Matrix(int first_index, int last_index, complex_t** rho)
+{
+	complex_t** temp;
+	complex_t** state_vector;
+	int size = last_index - first_index + 1;
+	unsigned long int state_length = pow(2,size);
+	//memory allocate
+	temp         = new complex_t*[state_length];
+	state_vector = new complex_t*[state_length];
+	int max_dim = Max(entangled_dim_between_qubits, first_index, last_index, size_);
+
+	for(unsigned long int i = 0; i < state_length; ++i)
+	{
+		temp[i] = new complex_t[max_dim];
+		state_vector[i] = new complex_t[max_dim];
+	}
+
+	//initialize temp with first qubit
+	Tensor* pTensor = q_reg[first_index-1];
+	int temp_dim = pTensor->get_dim();
+	if (first_index-1 == 0)
+	{
+		for(int a1 = 0; a1 < temp_dim; a1++)
 		{
-			for(int a_right = 0; a_right < dim_right ; a_right++)
-			{
-				for(int i = 0; i < 2 ; i++)
-				{
-					for(int i_tag = 0; i_tag < 2 ; i_tag++)
-					{
-						rho[i][i_tag] += norm(p_lambdaA->get_data(0,a_left)) *
-									 real(pA->get_data(i,a_left*dim_right+a_right) *conj(pA->get_data(i_tag,a_left*dim_right+a_right))) *
-									 1;
-					}
-				}
-			}
+			temp[0][a1] = pTensor->get_data(0,a1);
+			temp[1][a1] = pTensor->get_data(1,a1);
+		}
+	}
+	else if (first_index == size_)
+	{
+		Tensor* pLambda = lambda_reg[first_index-2];
+		int dim_a1 = entangled_dim_between_qubits[first_index-2];
+		for(int a1 = 0; a1 < dim_a1; a1++)
+		{
+			state_vector[0][a1] = pTensor->get_data(0,a1) * pLambda->get_data(0,a1);
+			state_vector[1][a1] = pTensor->get_data(1,a1) * pLambda->get_data(0,a1);
 		}
 	}
 	else
 	{
-		pA = q_reg[index - 1];
-		p_lambdaA = lambda_reg[index - 2];
-		p_lambdaB = lambda_reg[index - 1];
-		int dim_left = p_lambdaA->get_dim(), dim_right = p_lambdaB->get_dim();
-
-		for(int a_left = 0; a_left < dim_left ; a_left++)
+		Tensor* pLambda = lambda_reg[first_index-2];
+		int dim_a1 = entangled_dim_between_qubits[first_index-2];
+		int dim_a2 = entangled_dim_between_qubits[first_index-1];
+		for(int a1 = 0; a1 < dim_a1; a1++)
 		{
-			for(int a_right = 0; a_right < dim_right ; a_right++)
+			for(int a2 = 0; a2 < dim_a2; a2++)
 			{
-				for(int i = 0; i < 2 ; i++)
-				{
-					for(int i_tag = 0; i_tag < 2 ; i_tag++)
-					{
-						rho[i][i_tag] += norm(p_lambdaA->get_data(0,a_left)) *
-									 real(pA->get_data(i,a_left*dim_right+a_right) *conj(pA->get_data(i_tag,a_left*dim_right+a_right))) *
-									 norm(p_lambdaB->get_data(0,a_right));
-					}
-				}
+				temp[0][a1 * dim_a2 + a2] = pTensor->get_data(0,a1 * dim_a2 + a2) * pLambda->get_data(0,a1);
+				temp[1][a1 * dim_a2 + a2] = pTensor->get_data(1,a1 * dim_a2 + a2) * pLambda->get_data(0,a1);
 			}
 		}
 	}
 
+
+	//Compose all qubits
+	for(int index_B = first_index+1; index_B <= last_index ; index_B++)
+	{
+		temp_dim = Compose_TRY(state_vector, temp, index_B, first_index, temp_dim);
+//		swap(temp,state_vector);
+		for(int a = 0; a < pow(2,index_B-(first_index-1)); a++)
+		{
+			for(int b = 0; b < temp_dim; b++)
+			{
+				temp[a][b] = state_vector[a][b];
+			}
+		}
+	}
+
+	if (last_index < size_)
+	{
+		Tensor* pLambda = lambda_reg[last_index-1];
+		int dim_a3 = entangled_dim_between_qubits[last_index-1];
+		for(int i = 0; i < pow(2,size); i++)
+		{
+			for(int a_n = 0; a_n < temp_dim; a_n++)
+			{
+				state_vector[i][a_n] = temp[i][a_n]*pLambda->get_data(0,a_n%dim_a3);
+			}
+		}
+	}
+
+
+	//from state vector to density matrix
+	for(int i = 0; i < pow(2,size); i++)
+		for(int i_tag = 0; i_tag < pow(2,size); i_tag++)
+		{
+			rho[i][i_tag] = 0;
+			for(int a_n = 0; a_n < temp_dim; a_n++)
+				rho[i][i_tag] += state_vector[i][a_n] * conj(state_vector[i_tag][a_n]);
+		}
+
+
+
+//	print_state_vector(state_vector, size_, json_result);
+//	for(int k = 0; k < pow(2,size); k++)
+//	{
+//		for(int a_n = 0; a_n < temp_dim; a_n++)
+//		{
+//			cout << state_vector[k][a_n] << endl;
+//		}
+//	}
+	for(unsigned long int i = 0; i < state_length; ++i)
+	{
+		delete [] state_vector[i];
+		delete [] temp[i];
+	}
+	delete [] temp;
+	delete [] state_vector;
 }
 
-double Qreg::Expectation_value_X(int index)
+double Qreg::Expectation_value(vector<int> indexes, string matrices)
 {
-	double **rho;
+	complex_t **rho;
+//	int size = last_index - first_index + 1;
+	sort(indexes.begin(), indexes.end());
+	int size = indexes.back() - indexes.front() + 1;
+	int rho_size = pow(2,size);
 	//memory allocate
-	rho = new double*[2];
-	for(int i = 0; i < 2; ++i)
+	rho = new complex_t*[rho_size];
+	for(int i = 0; i < pow(2,size); ++i)
 	{
-		rho[i] = new double[2];
-		for(int j = 0; j < 2; ++j)
+		rho[i] = new complex_t[rho_size];
+		for(int j = 0; j < rho_size; ++j)
 		{
 			rho[i][j] = 0.0;
 		}
 	}
 
-	Density_Matrix(index, rho);
-//	printMatrix(rho, 2, 2);
-	double res[2][2] = {{0}};
-	// Trace(rho*X)
-	res[0][0] = rho[0][0] * 0 +  rho[0][1] * 1;
-	res[1][1] = rho[1][0] * 1 +  rho[1][1] * 0;
-	return res[0][0]+res[1][1];
-}
+	Density_Matrix(indexes.front(), indexes.back(), rho);
 
-//probably have bugs
-double Qreg::Expectation_value_Y(int index)
-{
-	double **rho;
-	//memory allocate
-	rho = new double*[2];
-	for(int i = 0; i < 2; ++i)
+//	printMatrix(rho, 2, 2);
+	matrix<complex_t> M(1) ,I(4), X(4), Y(4), Z(4), temp;
+	MOs::Identity(I);
+	MOs::Identity(M);
+	MOs::Pauli(X,Y,Z);
+	for(char& gate : matrices)
 	{
-		rho[i] = new double[2];
-		for(int j = 0; j < 2; ++j)
-		{
-			rho[i][j] = 0.0;
-		}
+	    if (gate == 'X')
+	    	temp = X;
+	    else if (gate == 'Y')
+	    	temp = Y;
+	    else if (gate == 'Z')
+	    	temp = Z;
+	    else if (gate == 'I')
+	    	temp = I;
+	    M = MOs::TensorProduct(M,temp);
 	}
-
-	Density_Matrix(index, rho);
-//	printMatrix(rho, 2, 2);
-	complex_t res[2][2] = {{0}};
-	// Trace(rho*X)
-	res[0][0] = (rho[0][0] * 0) +  (rho[0][1] * complex_t(0,1));
-	res[1][1] = (rho[1][0] * complex_t(0,-1)) +  (rho[1][1] * 0);
-	return imag(res[0][0]+res[1][1]);
-}
-
-double Qreg::Expectation_value_Z(int index)
-{
-	double **rho;
-	//memory allocate
-	rho = new double*[2];
-	for(int i = 0; i < 2; ++i)
-	{
-		rho[i] = new double[2];
-		for(int j = 0; j < 2; ++j)
-		{
-			rho[i][j] = 0.0;
-		}
-	}
-
-	Density_Matrix(index, rho);
-//	printMatrix(rho, 2, 2);
-	double res[2][2] = {{0}};
-	// Trace(rho*X)
-	res[0][0] = rho[0][0] * 1 +  rho[0][1] * 0;
-	res[1][1] = rho[1][0] * 0 +  rho[1][1] * (-1);
-	return res[0][0]+res[1][1];
+	// Trace(rho*M)
+	complex_t res = 0;
+	for (uint i = 0; i < M.GetRows(); i++)
+		for (uint j = 0; j < M.GetRows(); j++)
+				res += M(i,j)*rho[j][i];
+	return real(res);
 }
 
 void Qreg::printTN()
@@ -506,7 +542,6 @@ void Qreg::printTN()
 	}
 	cout << endl;
 }
-
 
 void print_state_vector(complex_t **state_vector, int size,json_t& json_result)
 {
@@ -566,7 +601,7 @@ void Qreg::state_vec_TRY(json_t& json_result)
 	for(int index_B = 2; index_B <= size_ ; index_B++)
 	{
 
-		temp_dim = Compose_TRY(state_vector, temp, index_B);
+		temp_dim = Compose_TRY(state_vector, temp, index_B, 1, temp_dim);
 //		swap(temp,state_vector);
 		for(int a = 0; a < pow(2,index_B); a++)
 		{
@@ -587,15 +622,16 @@ void Qreg::state_vec_TRY(json_t& json_result)
 	delete [] state_vector;
 }
 
-int Qreg::Compose_TRY(complex_t** new_data, complex_t** temp, int index_B)
+int Qreg::Compose_TRY(complex_t** new_data, complex_t** temp, int index_B, int first_index, int temp_dim)
 {
 	Tensor* p_lambda = lambda_reg[index_B-2];
 	Tensor* pB = q_reg[index_B-1];
-	int B_dim = pB->get_dim(), A_dim = 1;
+	int B_dim = pB->get_dim(), A_dim = temp_dim;
 	int entangled_dim = entangled_dim_between_qubits[index_B-2];
 	B_dim /= entangled_dim;
-	int newdata_dim = B_dim;
-	for(int i = 0; i < pow(2,index_B); ++i)
+	A_dim /= entangled_dim;
+	int newdata_dim = B_dim*A_dim;
+	for(int i = 0; i < pow(2,index_B-(first_index-1)); ++i)
 	{
 		for(int a1 = 0; a1 < A_dim; ++a1)
 		{
@@ -611,6 +647,7 @@ int Qreg::Compose_TRY(complex_t** new_data, complex_t** temp, int index_B)
 	}
 	return newdata_dim;
 }
+
 int Qreg::Compose(complex_t** new_data, int index_A, int index_B)
 {
 	Tensor* p_lambda_left;
@@ -665,7 +702,6 @@ int Qreg::Compose(complex_t** new_data, int index_A, int index_B)
 			}
 		}
 	}
-
 	return newdata_dim;
 }
 
@@ -807,12 +843,39 @@ void Qreg::DeCompose(complex_t** new_data, int index_A, int index_B)
 
 	if(SHOW_SVD)
 	{
-	  cout.precision(16);
+//	  cout.precision(32);
 	  cout << "printing a before SVD" <<endl;
 	  cout << "C:" << endl;
 	  printMatrix(a, m, n);
 	  cout << "m = " << m << ", n = " << n << endl;
 	}
+
+
+	// solving SVD bug: multiply matrix "a" by changing scalar factor
+//	double mul_factor = 1;
+//	try
+//	{
+//		csvd (a, m, n, S, U, V, mul_factor, false);
+//	}
+//	catch(...)
+//	{
+//		cout << "1st try fail" << endl;
+//		while(true)
+//		{
+//			mul_factor *= 1e5;
+//			copyMatrix(a,coppied_a,m,n);
+//			try
+//			{
+//				cout << mul_factor << endl;
+//				csvd (a, m, n, S, U, V, mul_factor, true);
+//				break;
+//			}
+//			catch(...)
+//			{
+//				cout << "another try fail" << endl;
+//			}
+//		}
+//	}
 
 	csvd (a, m, n, S, U, V);
 
