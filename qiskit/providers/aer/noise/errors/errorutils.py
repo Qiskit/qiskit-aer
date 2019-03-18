@@ -4,12 +4,18 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-
 """
 Helper functions for noise model creation.
 """
 
 import numpy as np
+
+from qiskit.quantum_info.operators.channel.kraus import Kraus
+from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
+
 from ..noiseerror import NoiseError
 
 
@@ -45,58 +51,79 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     qubits = instruction["qubits"]
     mat_dagger = np.conj(instruction["params"])
 
-    def compare_mat(target):
-        precision = 7
-        try:
-            tr = np.trace(np.dot(mat_dagger, target)) / len(target)
-        except:
-            return False
-        if ignore_phase:
-            delta = round(np.conj(tr) * tr - 1, precision)
-        else:
-            delta = round(tr - 1, precision)
-        return delta == 0
-
     # Check single qubit gates
     if len(qubits) == 1:
         # Check clifford gates
         for j in range(24):
-            if compare_mat(single_qubit_clifford_matrix(j)):
+            if matrix_equal(
+                    mat_dagger,
+                    single_qubit_clifford_matrix(j),
+                    ignore_phase=ignore_phase):
                 return single_qubit_clifford_instructions(j, qubit=qubits[0])
         # Check t gates
         for name in ["t", "tdg"]:
-            if compare_mat(standard_gate_unitary(name)):
+            if matrix_equal(
+                    mat_dagger,
+                    standard_gate_unitary(name),
+                    ignore_phase=ignore_phase):
                 return [{"name": name, "qubits": qubits}]
         # TODO: u1,u2,u3 decomposition
     # Check two qubit gates
     if len(qubits) == 2:
         for name in ["cx", "cz", "swap"]:
-            if compare_mat(standard_gate_unitary(name)):
+            if matrix_equal(
+                    mat_dagger,
+                    standard_gate_unitary(name),
+                    ignore_phase=ignore_phase):
                 return [{"name": name, "qubits": qubits}]
         # Check reversed CX
-        if compare_mat(standard_gate_unitary("cx_10")):
-                return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
+        if matrix_equal(
+                mat_dagger,
+                standard_gate_unitary("cx_10"),
+                ignore_phase=ignore_phase):
+            return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
         # Check 2-qubit Pauli's
         paulis = ["id", "x", "y", "z"]
-        for q0 in paulis:
-            for q1 in paulis:
-                pmat = np.kron(standard_gate_unitary(q1), standard_gate_unitary(q0))
-                if compare_mat(pmat):
-                    if q0 is "id":
-                        return [{"name": q1, "qubits": [qubits[1]]}]
-                    elif q1 is "id":
-                        return [{"name": q0, "qubits": [qubits[0]]}]
+        for pauli0 in paulis:
+            for pauli1 in paulis:
+                pmat = np.kron(
+                    standard_gate_unitary(pauli1), standard_gate_unitary(pauli0))
+                if matrix_equal(mat_dagger, pmat, ignore_phase=ignore_phase):
+                    if pauli0 is "id":
+                        return [{"name": pauli1, "qubits": [qubits[1]]}]
+                    elif pauli1 is "id":
+                        return [{"name": pauli0, "qubits": [qubits[0]]}]
                     else:
-                        return [{"name": q0, "qubits": [qubits[0]]},
-                                {"name": q1, "qubits": [qubits[1]]}]
+                        return [{
+                            "name": pauli0,
+                            "qubits": [qubits[0]]
+                        }, {
+                            "name": pauli1,
+                            "qubits": [qubits[1]]
+                        }]
     # Check three qubit toffoli
     if len(qubits) == 3:
-        if compare_mat(standard_gate_unitary("ccx_012")):
+        if matrix_equal(
+                mat_dagger,
+                standard_gate_unitary("ccx_012"),
+                ignore_phase=ignore_phase):
             return [{"name": "ccx", "qubits": qubits}]
-        if compare_mat(standard_gate_unitary("ccx_021")):
-            return [{"name": "ccx", "qubits": [qubits[0], qubits[2], qubits[1]]}]
-        if compare_mat(standard_gate_unitary("ccx_120")):
-            return [{"name": "ccx", "qubits": [qubits[1], qubits[2], qubits[0]]}]
+        if matrix_equal(
+                mat_dagger,
+                standard_gate_unitary("ccx_021"),
+                ignore_phase=ignore_phase):
+            return [{
+                "name": "ccx",
+                "qubits": [qubits[0], qubits[2], qubits[1]]
+            }]
+        if matrix_equal(
+                mat_dagger,
+                standard_gate_unitary("ccx_120"),
+                ignore_phase=ignore_phase):
+            return [{
+                "name": "ccx",
+                "qubits": [qubits[1], qubits[2], qubits[0]]
+            }]
 
     # Else return input in
     return [instruction]
@@ -114,20 +141,45 @@ def single_qubit_clifford_gates(j):
         j (int): Clifford index 0, ..., 23.
 
     Returns:
-        tuple(str): The tuple of basis gates."""
+        tuple(str): The tuple of basis gates.
+
+    Raises:
+        NoiseError: If index is out of range [0, 23].
+    """
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(j))
 
     labels = [
-        ('id',), ('s',), ('sdg',), ('z',),
+        ('id', ),
+        ('s', ),
+        ('sdg', ),
+        ('z', ),
         # u2 gates
-        ('h',), ('h', 'z'), ('z', 'h'), ('h', 's'), ('s', 'h'), ('h', 'sdg'), ('sdg', 'h'),
-        ('s', 'h', 's'), ('sdg', 'h', 's'), ('z', 'h', 's'),
-        ('s', 'h', 'sdg'), ('sdg', 'h', 'sdg'), ('z', 'h', 'sdg'),
-        ('s', 'h', 'z'), ('sdg', 'h', 'z'), ('z', 'h', 'z'),
+        (
+            'h', ),
+        ('h', 'z'),
+        ('z', 'h'),
+        ('h', 's'),
+        ('s', 'h'),
+        ('h', 'sdg'),
+        ('sdg', 'h'),
+        ('s', 'h', 's'),
+        ('sdg', 'h', 's'),
+        ('z', 'h', 's'),
+        ('s', 'h', 'sdg'),
+        ('sdg', 'h', 'sdg'),
+        ('z', 'h', 'sdg'),
+        ('s', 'h', 'z'),
+        ('sdg', 'h', 'z'),
+        ('z', 'h', 'z'),
         # u3 gates
-        ('x',), ('y',), ('s', 'x'), ('sdg', 'x')
+        (
+            'x', ),
+        ('y', ),
+        ('s', 'x'),
+        ('sdg', 'x')
     ]
     return labels[j]
 
@@ -139,19 +191,24 @@ def single_qubit_clifford_matrix(j):
         j (int): Clifford index 0, ..., 23.
 
     Returns:
-        np.array: The matrix for the indexed clifford."""
+        np.array: The matrix for the indexed clifford.
+
+    Raises:
+        NoiseError: If index is out of range [0, 23].
+    """
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(j))
 
     basis_dict = {
         'id': np.eye(2),
-        'x': np.array([[0, 1], [1, 0]]),
-        'y': np.array([[0, -1j], [1j, 0]]),
-        'z': np.array([[1, 0], [0, -1]]),
-        'h': np.array([[1, 1], [1, -1]]) / np.sqrt(2),
-        's': np.array([[1, 0], [0, 1j]]),
-        'sdg': np.array([[1, 0], [0, -1j]])
+        'x': np.array([[0, 1], [1, 0]], dtype=complex),
+        'y': np.array([[0, -1j], [1j, 0]], dtype=complex),
+        'z': np.array([[1, 0], [0, -1]], dtype=complex),
+        'h': np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
+        's': np.array([[1, 0], [0, 1j]], dtype=complex),
+        'sdg': np.array([[1, 0], [0, -1j]], dtype=complex)
     }
     mat = np.eye(2)
     for gate in single_qubit_clifford_gates(j):
@@ -169,12 +226,18 @@ def single_qubit_clifford_instructions(j, qubit=0):
 
     Args:
         j (int): Clifford index 0, ..., 23.
+        qubit (int): the qubit to apply the Clifford to.
 
     Returns:
-        list(dict): The list of instructions."""
+        list(dict): The list of instructions.
+
+    Raises:
+        NoiseError: If index is out of range [0, 23] or qubit invalid.
+    """
 
     if not isinstance(j, int) or j < 0 or j > 23:
-        raise NoiseError("Index {} must be in the range [0, ..., 23]".format(j))
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(j))
     if not isinstance(qubit, int) or qubit < 0:
         raise NoiseError("qubit position must be positive integer.")
 
@@ -189,76 +252,55 @@ def standard_gate_unitary(name):
     if name in ["id", "I"]:
         return np.eye(2, dtype=complex)
     if name in ["x", "X"]:
-        return np.array([[0, 1],
-                         [1, 0]], dtype=complex)
+        return np.array([[0, 1], [1, 0]], dtype=complex)
     if name in ["y", "Y"]:
-        return np.array([[0, -1j],
-                         [1j, 0]], dtype=complex)
+        return np.array([[0, -1j], [1j, 0]], dtype=complex)
     if name in ["z", "Z"]:
-        return np.array([[1, 0],
-                         [0, -1]], dtype=complex)
+        return np.array([[1, 0], [0, -1]], dtype=complex)
     if name in ["h", "H"]:
-        return np.array([[1, 1],
-                         [1, -1]], dtype=complex) / np.sqrt(2)
+        return np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
     if name in ["s", "S"]:
-        return np.array([[1, 0],
-                         [0, 1j]], dtype=complex)
+        return np.array([[1, 0], [0, 1j]], dtype=complex)
     if name in ["sdg", "Sdg"]:
-        return np.array([[1, 0],
-                         [0, -1j]], dtype=complex)
+        return np.array([[1, 0], [0, -1j]], dtype=complex)
     if name in ["t", "T"]:
-        return np.array([[1, 0],
-                         [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+        return np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
     if name in ["tdg", "Tdg"]:
-        return np.array([[1, 0],
-                         [0, np.exp(-1j * np.pi / 4)]], dtype=complex)
+        return np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex)
     if name in ["cx", "CX", "cx_01"]:
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 0, 1, 0],
-                         [0, 1, 0, 0]], dtype=complex)
+        return np.array(
+            [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]],
+            dtype=complex)
     if name is "cx_10":
-        return np.array([[1, 0, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 0, 1, 0]], dtype=complex)
+        return np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
+            dtype=complex)
     if name in ["cz", "CZ"]:
-        return np.array([[1, 0, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 1, 0],
-                         [0, 0, 0, -1]], dtype=complex)
+        return np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]],
+            dtype=complex)
     if name in ["swap", "SWAP"]:
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 1, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 0, 1]], dtype=complex)
+        return np.array(
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+            dtype=complex)
     if name in ["ccx", "CCX", "ccx_012", "ccx_102"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 1, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 1, 0],
-                         [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]],
+                        dtype=complex)
     if name in ["ccx_021", "ccx_201"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 1, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 0, 0, 1, 0],
-                         [0, 0, 0, 0, 0, 1, 0, 0]], dtype=complex)
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 0]],
+                        dtype=complex)
     if name in ["ccx_120", "ccx_210"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 1, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 0, 0, 1, 0]], dtype=complex)
+        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
+                        dtype=complex)
     return None
 
 
@@ -281,9 +323,7 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
         raise NoiseError("Input matrix is not unitary.")
     elif isinstance(qubits, int):
         qubits = [qubits]
-    instruction = {"name": "unitary",
-                   "qubits": qubits,
-                   "params": mat}
+    instruction = {"name": "unitary", "qubits": qubits, "params": mat}
     if standard_gates:
         return standard_gate_instruction(instruction)
     else:
@@ -302,11 +342,12 @@ def make_kraus_instruction(mats, qubits):
     Raises:
         NoiseError: if the input is not a CPTP Kraus channel.
     """
-    if not is_cptp_kraus(mats):
+    kraus = Kraus(mats)
+    if not kraus.is_cptp() or kraus._input_dim != kraus._output_dim:
         raise NoiseError("Input Kraus matrices are not a CPTP channel.")
-    elif isinstance(qubits, int):
+    if isinstance(qubits, int):
         qubits = [qubits]
-    return [{"name": "kraus", "qubits": qubits, "params": mats}]
+    return [{"name": "kraus", "qubits": qubits, "params": kraus.data}]
 
 
 def qubits_from_mat(mat):
@@ -314,106 +355,19 @@ def qubits_from_mat(mat):
     arr = np.array(mat)
     shape = arr.shape
     num_qubits = int(np.log2(shape[1]))
-    if shape[1] != 2 ** num_qubits:
+    if shape[1] != 2**num_qubits:
         raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
     return num_qubits
 
 
-def is_square_matrix(op):
-    """Test if an array is a square matrix."""
-    mat = np.array(op)
-    shape = mat.shape
-    return len(shape) == 2 and shape[0] == shape[1]
-
-
-def is_matrix_diagonal(op):
+def is_matrix_diagonal(mat):
     """Test if row-vector representation of diagonal matrix."""
-    mat = np.array(op)
+    mat = np.array(mat)
     shape = mat.shape
     return len(shape) == 2 and shape[0] == 1
 
 
-def is_cptp_kraus(kraus_ops, precision=7):
-    """Test if a list of Kraus matrices is a CPTP map."""
-    accum = 0j
-    for op in kraus_ops:
-        if is_matrix_diagonal(op):
-            op = np.diag(op[0])
-        accum += np.dot(np.transpose(np.conj(op)), op)
-    return is_identity_matrix(accum, ignore_phase=False,
-                              precision=precision)
-
-
-def is_identity_matrix(op, ignore_phase=False, precision=7):
-    """Test if an array is an identity matrix."""
-    mat = np.array(op)
-    if is_matrix_diagonal(mat):
-        mat = np.diag(mat[0])  # convert to square
-    if not is_square_matrix(mat):
-        return False
-    if ignore_phase:
-        mat = np.conj(mat[0, 0]) * mat  # entrywise multiplication with conjugate
-    # Check if square identity
-    iden = np.eye(len(mat))
-    delta = round(np.linalg.norm(mat - iden), precision)
-    return delta == 0
-
-
-def is_unitary_matrix(op, precision=7):
-    """Test if an array is a unitary matrix."""
-    mat = np.array(op)
-    # Compute A^dagger.A and see if it is identity matrix
-    if is_matrix_diagonal(mat):
-        mat = np.conj(mat) * mat
-    else:
-        mat = np.conj(mat.T).dot(mat)
-    return is_identity_matrix(mat, ignore_phase=False, precision=precision)
-
-
-def kraus2choi(kraus_ops):
-    """Convert Kraus matrices to a Choi matrix"""
-    # Compute eigensystem of Choi matrix
-    choi = 0j
-    for op in kraus_ops:
-        vec = np.ravel(op, order='F')
-        choi += np.outer(vec, np.conj(vec))
-    return choi
-
-
-def choi2kraus(choi, threshold=1e-10):
-    """Convert a Choi matrix to canonical Kraus matrices"""
-    # Check threshold
-    if threshold < 0:
-        raise NoiseError("Threshold value cannot be negative")
-    if threshold > 1e-3:
-        raise NoiseError("Threshold value is too large. It should be close to zero.")
-    # Compute eigensystem of Choi matrix
-    w, v = np.linalg.eig(choi)
-    kraus = []
-    for val, vec in zip(w, v.T):
-        if val > threshold:
-            kraus.append(np.sqrt(val) * vec.reshape((2, 2), order='F'))
-        if val < -threshold:
-            raise NoiseError("Input Choi-matrix is not CP " +
-                                " (eigenvalue {} < 0)".format(val))
-    return kraus
-
-
-def canonical_kraus_matrices(kraus_ops, threshold=1e-10):
-    """Convert a list of Kraus ops into the canonical representation.
-
-    In the canonical representation the vecorized Kraus operators are
-    the eigenvectors of the Choi-matrix for the input channel.
-
-    Args:
-        kraus_ops (list[matrix]): A list of Kraus matrices for a CPTP map.
-        threshold (double): Threshold for checking if eigenvalues are zero
-                            (Default: 1e-10)
-    """
-    return choi2kraus(kraus2choi(kraus_ops), threshold=threshold)
-
-
-def kraus2instructions(kraus_ops, standard_gates, threshold):
+def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     """
     Convert a list of Kraus matrices into qobj circuits.
 
@@ -425,11 +379,11 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
         kraus_ops (list[matrix]): A list of Kraus matrices for a CPTP map.
         standard_gates (bool): Check if the matrix instruction is a
                                standard instruction (default: True).
-        threshold (double): Threshold for testing if probabilities are zero.
+        atol (double): Threshold for testing if probabilities are zero.
 
 
     Returns:
-        A list of pairs (p, circuit) where `circuit` is a list of qobj
+        list: A list of pairs (p, circuit) where `circuit` is a list of qobj
         instructions, and `p` is the probability of that circuit for the
         given error.
 
@@ -437,18 +391,19 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
         NoiseError: If the input Kraus channel is not CPTP.
     """
     # Check threshold
-    if threshold < 0:
-        raise NoiseError("Threshold cannot be negative")
-    if threshold > 1e-3:
-        raise NoiseError("Threhsold value is too large. It should be close to zero.")
+    if atol < 0:
+        raise NoiseError("atol cannot be negative")
+    if atol > 1e-3:
+        raise NoiseError(
+            "atol value is too large. It should be close to zero.")
 
     # Check CPTP
-    if not is_cptp_kraus(kraus_ops):
+    if not Kraus(kraus_ops).is_cptp():
         raise NoiseError("Input Kraus channel is not CPTP.")
 
     # Get number of qubits
     num_qubits = int(np.log2(len(kraus_ops[0])))
-    if len(kraus_ops[0]) != 2 ** num_qubits:
+    if len(kraus_ops[0]) != 2**num_qubits:
         raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
 
     # Check if each matrix is a:
@@ -458,57 +413,57 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
 
     # Probabilities
     prob_identity = 0
-    prob_unitary = 0    # total probability of all unitary ops (including id)
-    prob_kraus = 0      # total probability of non-unitary ops
+    prob_unitary = 0  # total probability of all unitary ops (including id)
+    prob_kraus = 0  # total probability of non-unitary ops
     probabilities = []  # initialize with probability of Identity
 
     # Matrices
     unitaries = []  # non-identity unitaries
     non_unitaries = []  # non-unitary Kraus matrices
 
-    for op in kraus_ops:
+    for mat in kraus_ops:
         # Get the value of the maximum diagonal element
         # of op.H * op for rescaling
-        prob = abs(max(np.diag(np.conj(np.transpose(op)).dot(op))))
-        if prob > threshold:
-            if abs(prob - 1) > threshold:
+        prob = abs(max(np.diag(np.conj(np.transpose(mat)).dot(mat))))
+        if prob > atol:
+            if abs(prob - 1) > atol:
                 # Rescale the operator by square root of prob
-                rescaled_op = np.array(op) / np.sqrt(prob)
+                rescaled_mat = np.array(mat) / np.sqrt(prob)
             else:
-                rescaled_op = op
+                rescaled_mat = mat
             # Check if identity operator
-            if is_identity_matrix(rescaled_op, ignore_phase=True):
+            if is_identity_matrix(rescaled_mat, ignore_phase=True):
                 prob_identity += prob
                 prob_unitary += prob
             # Check if unitary
-            elif is_unitary_matrix(rescaled_op):
+            elif is_unitary_matrix(rescaled_mat):
                 probabilities.append(prob)
                 prob_unitary += prob
-                unitaries.append(rescaled_op)
+                unitaries.append(rescaled_mat)
             # Non-unitary op
             else:
-                non_unitaries.append(op)
+                non_unitaries.append(mat)
 
     # Check probabilities
     prob_kraus = 1 - prob_unitary
-    if prob_unitary - 1 > threshold:
-        raise NoiseError("Invalid kraus matrices: unitary probability" +
-                            " {} > 1".format(prob_unitary))
-    if prob_unitary < -threshold:
-        raise NoiseError("Invalid kraus matrices: unitary probability" +
-                            " {} < 1".format(prob_unitary))
-    if prob_identity - 1 > threshold:
-        raise NoiseError("Invalid kraus matrices: identity probability" +
-                            " {} > 1".format(prob_identity))
-    if prob_identity < -threshold:
-        raise NoiseError("Invalid kraus matrices: identity probability" +
-                            " {} < 1".format(prob_identity))
-    if prob_kraus - 1 > threshold:
-        raise NoiseError("Invalid kraus matrices: non-unitary probability" +
-                            " {} > 1".format(prob_kraus))
-    if prob_kraus < -threshold:
-        raise NoiseError("Invalid kraus matrices: non-unitary probability" +
-                            " {} < 1".format(prob_kraus))
+    if prob_unitary - 1 > atol:
+        raise NoiseError("Invalid kraus matrices: unitary probability "
+                         "{} > 1".format(prob_unitary))
+    if prob_unitary < -atol:
+        raise NoiseError("Invalid kraus matrices: unitary probability "
+                         "{} < 1".format(prob_unitary))
+    if prob_identity - 1 > atol:
+        raise NoiseError("Invalid kraus matrices: identity probability "
+                         "{} > 1".format(prob_identity))
+    if prob_identity < -atol:
+        raise NoiseError("Invalid kraus matrices: identity probability "
+                         "{} < 1".format(prob_identity))
+    if prob_kraus - 1 > atol:
+        raise NoiseError("Invalid kraus matrices: non-unitary probability "
+                         "{} > 1".format(prob_kraus))
+    if prob_kraus < -atol:
+        raise NoiseError("Invalid kraus matrices: non-unitary probability "
+                         "{} < 1".format(prob_kraus))
 
     # Build qobj instructions
     instructions = []
@@ -516,24 +471,27 @@ def kraus2instructions(kraus_ops, standard_gates, threshold):
 
     # Add unitary instructions
     for unitary in unitaries:
-        instructions.append(make_unitary_instruction(unitary, qubits,
-                                                     standard_gates=standard_gates))
+        instructions.append(
+            make_unitary_instruction(
+                unitary, qubits, standard_gates=standard_gates))
 
     # Add identity instruction
-    if prob_identity > threshold:
-        if abs(prob_identity - 1) < threshold:
+    if prob_identity > atol:
+        if abs(prob_identity - 1) < atol:
             probabilities.append(1)
         else:
             probabilities.append(prob_identity)
         instructions.append([{"name": "id", "qubits": [0]}])
 
     # Add Kraus
-    if prob_kraus < threshold:
+    if prob_kraus < atol:
         # No Kraus operators
         return zip(instructions, probabilities)
     if prob_kraus < 1:
         # Rescale kraus operators by probabilities
-        non_unitaries = [np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries]
+        non_unitaries = [
+            np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries
+        ]
     instructions.append(make_kraus_instruction(non_unitaries, qubits))
     probabilities.append(prob_kraus)
     return zip(instructions, probabilities)
