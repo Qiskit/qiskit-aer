@@ -68,12 +68,6 @@ class StatevectorSimulator(AerBackend):
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
-    CMAP = []
-    for i in range(MAX_QUBIT_MEMORY):
-        for j in range(MAX_QUBIT_MEMORY):
-            if i != j:
-                CMAP.append([i, j])
-
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
         'backend_version': __version__,
@@ -86,7 +80,7 @@ class StatevectorSimulator(AerBackend):
         'memory': True,
         'max_shots': 1,
         'description': 'A C++ statevector simulator for qobj files',
-        'coupling_map': CMAP,
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
