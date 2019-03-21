@@ -98,7 +98,7 @@ std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
 
 // ostream overload for maps
 template <typename T1, typename T2, typename T3>
-std::ostream &operator<<(std::ostream &out, const std::map<T1, T2, T3> &m) {
+std::ostream &operator<<(std::oscmatrixeam &out, const std::map<T1, T2, T3> &m) {
   out << "{";
   size_t pos = 0, last = m.size() - 1;
   for (auto const &p : m) {
