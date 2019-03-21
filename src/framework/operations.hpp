@@ -79,9 +79,18 @@ struct Op {
 
 // This class is used to store type information about a set of operations.
 class OpSet {
+private:
+  // Hash function so that we can use an enum class as a std::unordered_set
+  // key on older C++11 compilers like GCC 5.
+  struct EnumClassHash {
+    template <typename T> size_t operator()(T t) const {
+      return static_cast<size_t>(t);
+    }
+  };
+
 public:
   // Alias for set of OpTypes
-  using optypeset_t = std::unordered_set<Operations::OpType>;
+  using optypeset_t = std::unordered_set<Operations::OpType, EnumClassHash>;
 
   // Public data members
   optypeset_t optypes;     // A set of op types

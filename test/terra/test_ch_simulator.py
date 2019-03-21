@@ -536,7 +536,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
                                   })
         result = job.result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0.05*shots)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
@@ -547,7 +547,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       "method": "ch",
-                                      "ch_mixing_time": 50,
+                                      "ch_mixing_time": 100,
                                       "disable_measurement_opt": True
                                   })
         result = job.result()
