@@ -12,13 +12,14 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
+import os
 from math import log2, sqrt
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-from unitary_controller_wrapper import unitary_controller_execute
+from .unitary_controller_wrapper import unitary_controller_execute
 from ..version import __version__
 
 # Logger
@@ -59,12 +60,12 @@ class UnitarySimulator(AerBackend):
             (Default: 6).
     """
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
+    MAX_QUBIT_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_MEMORY,
+        'n_qubits': MAX_QUBIT_MEMORY,
         'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,
@@ -73,7 +74,8 @@ class UnitarySimulator(AerBackend):
         'memory': False,
         'max_shots': 1,
         'description': 'A Python simulator for computing the unitary' +
-                        'matrix for experiments in qobj files',
+                       'matrix for experiments in qobj files',
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
@@ -83,7 +85,10 @@ class UnitarySimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):

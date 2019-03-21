@@ -25,21 +25,21 @@ enum class CmdArguments {
   INPUT_DATA
 };
 
-CmdArguments parse_cmd_options(const std::string& argv){
+inline CmdArguments parse_cmd_options(const std::string& argv){
   if(argv == "-v" || argv == "--version"){
        return CmdArguments::SHOW_VERSION;
   }
   return CmdArguments::INPUT_DATA;
 }
 
-void show_version(){
+inline void show_version(){
   std::cout << "Qiskit Aer: "
   << MAJOR_VERSION << "."
   << MINOR_VERSION << "."
   << PATCH_VERSION << "\n";
 }
 
-void failed(const std::string &msg, std::ostream &o = std::cout,
+inline void failed(const std::string &msg, std::ostream &o = std::cout,
             int indent = -1){
   json_t ret;
   ret["success"] = false;
@@ -47,7 +47,7 @@ void failed(const std::string &msg, std::ostream &o = std::cout,
   o << ret.dump(indent) << std::endl;
 }
 
-void usage(const std::string& command, std::ostream &out){
+inline void usage(const std::string& command, std::ostream &out){
   failed("Invalid command line", out);
   // Print usage message
   std::cerr << "\n\n";
@@ -94,6 +94,8 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+    // Check for config
+    sim.set_config(qobj["config"]);
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;

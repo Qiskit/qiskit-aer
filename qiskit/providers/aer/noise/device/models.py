@@ -152,6 +152,7 @@ def basic_device_gate_errors(properties, thermal_relaxation=True,
     """
     # Generate custom gate time dict
     custom_times = {}
+    relax_params = []
     if thermal_relaxation:
         # If including thermal relaxation errors load
         # T1, T2, and frequency values from properties
@@ -307,13 +308,19 @@ def _depol_error_value_one_qubit(gate_error, gate_time=0, t1=inf, t2=inf):
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # If T1 or T2 we have only a depolarizing error model
-    # in this case p_depol = dim * gate_error / (dim - 1)
-    # with dim = 2 for 1-qubit
+    #The gate error is the average gate infidelity e = 1 - F.
+    #For the depolarizing channel we have:
+    #F(E_dep) = (1 - p) * F(I) + p * F(D) = (1 - p) * 1 + p * (1 / d)    # F(I) = 1, F(D) = 1/d = 1 - p * (d - 1) / d
+    # => p = (1 - F(E_dep)) / ((d - 1) / d) 
+    # = d * (1 - F(E_dep)) / (d - 1)
+    # = d * e / (d - 1)
+    # therefore p_depol = (dim) * gate_error / (dim-1)
+    # with dim = 4 for 2-qubit
     if gate_time is None:
         gate_time = 0
     if gate_time == 0 or (t1 == inf and t2 == inf):
         if gate_error is not None and gate_error > 0:
-            return 2 * gate_error
+            return 2 * gate_error 
         else:
             return 0
 
@@ -350,7 +357,14 @@ def _depol_error_value_two_qubit(gate_error, gate_time=0,
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # If T1 or T2 we have only a depolarizing error model
-    # in this case p_depol = dim * gate_error / (dim - 1)
+    #The gate error is the average gate infidelity e = 1 - F.
+    #For the depolarizing channel we have:
+    #F(E_dep) = (1 - p) * F(I) + p * F(D) = (1 - p) * 1 + p * (1 / d)    # F(I) = 1, F(D) = 1/d = 1 - p * (d - 1) / d
+    # => p = (1 - F(E_dep)) / ((d - 1) / d) 
+    # = d * (1 - F(E_dep)) / (d - 1)
+    # = d * e / (d - 1)
+    # Hence for d=2 if all gate error is due to the depolarizing channel we have p_depol = 2 * gate_error
+    # in this case p_depol = (dim) * gate_error / (dim-1)
     # with dim = 4 for 2-qubits
     if gate_time is None:
         gate_time = 0
@@ -383,5 +397,5 @@ def _depol_error_value_two_qubit(gate_error, gate_time=0,
              4 * q0_par2 * q1_par2 +
              2 * (q0_par2 + q1_par2) +
              2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
-    p_depol = 1 + (5 / 3) * (4 * gate_error - 3) / denom
+    p_depol = 1 + 5 * (4 * gate_error - 3) / denom
     return p_depol

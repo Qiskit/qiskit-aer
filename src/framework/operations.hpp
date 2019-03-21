@@ -28,7 +28,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, kraus, roerror, noise_switch
+  matrix, kraus, roerror, noise_switch, initialize
 };
 
 //------------------------------------------------------------------------------
@@ -232,14 +232,28 @@ stringset_t OpSet::invalid_snapshots(const stringset_t &allowed_snapshots) const
 // Raise an exception if name string is empty
 inline void check_empty_name(const Op &op) {
   if (op.name.empty())
-    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty.");
+    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty).");
 }
 
 // Raise an exception if qubits list is empty
 inline void check_empty_qubits(const Op &op) {
   if (op.qubits.empty())
     throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"qubits\" are empty");
+                                "\" instruction (\"qubits\" is empty).");
+}
+
+// Raise an exception if params is empty
+inline void check_empty_params(const Op &op) {
+  if (op.params.empty())
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"params\" is empty).");
+}
+
+// Raise an exception if params is empty
+inline void check_length_params(const Op &op, const size_t size) {
+  if (op.params.size() != size)
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"params\" is incorrect length)");
 }
 
 // Raise an exception if qubits list contains duplications
@@ -336,6 +350,7 @@ Op json_to_op_barrier(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
+Op json_to_op_initialize(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -370,6 +385,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_measure(js);
   if (name == "reset")
     return json_to_op_reset(js);
+  if (name == "initialize")
+    return json_to_op_initialize(js);
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
@@ -420,7 +437,12 @@ Op json_to_op_gate(const json_t &js) {
   check_empty_name(op);
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-
+  if (op.name == "u1")
+    check_length_params(op, 1);
+  else if (op.name == "u2")
+    check_length_params(op, 2);
+  else if (op.name == "u3")
+    check_length_params(op, 3);
   return op;
 }
 
@@ -467,6 +489,21 @@ Op json_to_op_reset(const json_t &js) {
   return op;
 }
 
+
+Op json_to_op_initialize(const json_t &js) {
+  Op op;
+  op.type = OpType::initialize;
+  op.name = "initialize";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.params, "params", js);
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  check_length_params(op, 1ULL << op.qubits.size());
+  return op;
+}
+
+
 //------------------------------------------------------------------------------
 // Implementation: Boolean Functions
 //------------------------------------------------------------------------------
@@ -480,8 +517,14 @@ Op json_to_op_bfunc(const json_t &js) {
   JSON::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
   JSON::get_value(op.string_params[1], "val", js);  // value hexadecimal string
   JSON::get_value(relation, "relation", js); // relation string
-  JSON::get_value(op.memory, "memory", js);
-  JSON::get_value(op.registers, "register", js);
+  // Load single register / memory bit for storing result
+  uint_t tmp;
+  if (JSON::get_value(tmp, "register", js)) {
+    op.registers.push_back(tmp);
+  }
+  if (JSON::get_value(tmp, "memory", js)) {
+    op.memory.push_back(tmp);
+  }
   
   // Format hex strings
   Utils::format_hex_inplace(op.string_params[0]);

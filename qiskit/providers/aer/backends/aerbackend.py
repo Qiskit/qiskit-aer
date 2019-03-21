@@ -20,6 +20,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.qobj import QobjConfig
 from qiskit.result import Result
+from qiskit._util import local_hardware_info
 
 from ..aerjob import AerJob
 from ..aererror import AerError
@@ -114,9 +115,15 @@ class AerBackend(BaseBackend):
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val
+        if not "available_memory" in config:
+            available_mb = int(local_hardware_info()['memory'] * 1024)
+            config['available_memory'] = available_mb
         # Add noise model
         if noise_model is not None:
             config["noise_model"] = noise_model
+
+        # Add runtime config
+        config['library_dir'] = self.configuration().library_dir
         qobj.config = QobjConfig.from_dict(config)
         # Get the JSON serialized string
         output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')

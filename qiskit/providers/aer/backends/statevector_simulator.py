@@ -12,11 +12,12 @@ Qiskit Aer statevector simulator backend.
 """
 
 import logging
+import os
 from math import log2
 from qiskit._util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
-from statevector_controller_wrapper import statevector_controller_execute
+from .statevector_controller_wrapper import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
 
@@ -79,6 +80,7 @@ class StatevectorSimulator(AerBackend):
         'memory': True,
         'max_shots': 1,
         'description': 'A C++ statevector simulator for qobj files',
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
@@ -88,7 +90,10 @@ class StatevectorSimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):

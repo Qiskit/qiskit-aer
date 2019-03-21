@@ -9,7 +9,8 @@
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
-#include "simulators/qubitvector/qv_state.hpp"
+#include "simulators/ch/ch_state.hpp"
+#include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 
 
@@ -22,9 +23,9 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- *
- * From QubitVector::State class
- *
+ * 
+ * From Statevector::State class
+ * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "chop_threshold" (double): Threshold for truncating small values to
@@ -37,6 +38,32 @@ namespace Simulator {
  *      measure sampling [Default: 10]
  * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
  *      [Default: False]
+ *
+ * From CH::State class
+ * - "ch_approximation_error" (double): Set the error in the 
+ *     approximation for the ch method. A smaller error needs more
+ *     memory and computational time. [Default: 0.05]
+ *
+ * - "ch_disable_measurement_opt" (bool): Force the simulator to
+ *      re-run the monte-carlo step for every measurement. Enabling
+ *      this will improve the sampling accuracy if the output
+ *      distribution is strongly peaked, but requires more
+ *      computational time. [Default: False]
+ *
+ * - "ch_mixing_time" (int): Set how long the monte-carlo method
+ *      runs before performing measurements. If the output
+ *      distribution is strongly peaked, this can be
+ *      decreased alongside setting ch_disable_measurement_opt
+ *      to True. [Default: 7000]
+ *
+ * - "ch_norm_estimation_samples" (int): Number of samples used to
+ *      compute the correct normalisation for a statevector snapshot.
+ *      [Default: 100]
+ *
+ * - "ch_parallel_threshold" (int): Set the minimum size of the ch
+ *      decomposition before we enable OpenMP parallelisation. If
+ *      parallel circuit or shot execution is enabled this will only
+ *      use unallocated CPU cores up to max_parallel_threads. [Default: 100]
  *
  * From BaseController Class
  *
@@ -54,6 +81,9 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
+ * - "available_memory" (int): Memory in MB available to the state class.
+ *      If specified, is divided by the number of parallel shots/experiments.
+ *      [Default: 0]
  *
  **************************************************************************/
 
@@ -73,13 +103,13 @@ public:
   // Clear the current config
   void virtual clear_config() override;
 
-private:
+protected:
   //-----------------------------------------------------------------------
   // Simulation types
   //-----------------------------------------------------------------------
 
   // Simulation methods for the Qasm Controller
-  enum class Method {automatic, statevector, stabilizer};
+  enum class Method {automatic, statevector, stabilizer, ch_decomposition};
 
   //-----------------------------------------------------------------------
   // Base class abstract method override
@@ -90,8 +120,7 @@ private:
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  uint_t shots,
-                                 uint_t rng_seed,
-                                 int num_threads_state) const override;
+                                 uint_t rng_seed) const override;
 
   //----------------------------------------------------------------
   // Utility functions
@@ -125,7 +154,6 @@ private:
   OutputData run_circuit_helper(const Circuit &circ,
                                 uint_t shots,
                                 uint_t rng_seed,
-                                int num_threads_state,
                                 const Initstate_t &initial_state) const;
 
   // Execute a single shot a circuit by initializing the state vector
@@ -189,6 +217,10 @@ private:
   cvector_t initial_statevector_;
 
   // TODO: initial stabilizer state
+
+  // Controller-level parameter for CH method
+
+  bool ch_disable_measurement_opt_ = false;
 };
 
 //=========================================================================
@@ -208,19 +240,35 @@ void QasmController::set_config(const json_t &config) {
   std::string method;
   if (JSON::get_value(method, "method", config)) {
     if (method == "statevector")
+    {
       simulation_method_ = Method::statevector;
+    }
     else if (method == "stabilizer")
+    {
       simulation_method_ = Method::stabilizer;
+    }
+    else if (method == "ch")
+    {
+      simulation_method_ = Method::ch_decomposition;
+    }
     else if (method != "automatic")
+    {
       throw std::runtime_error(std::string("QasmController: Invalid simulation method.") + method);
+    }
   }
 
   //Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
-    // Raise error if method is set to stabilizer
+    // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
       throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
                                std::string(" is not valid with stabilizer simulation method.") +
+                               method);
+    }
+    else if (simulation_method_ == Method::ch_decomposition)
+    {
+      throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
+                               std::string(" is not valid with the CH simulation method.") +
                                method);
     }
     // Override simulator method to statevector
@@ -230,6 +278,7 @@ void QasmController::set_config(const json_t &config) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
+  JSON::get_value(ch_disable_measurement_opt_, "disable_measurement_opt", config);
 }
 
 void QasmController::clear_config() {
@@ -244,16 +293,15 @@ void QasmController::clear_config() {
 
 OutputData QasmController::run_circuit(const Circuit &circ,
                                        uint_t shots,
-                                       uint_t rng_seed,
-                                       int num_threads_state) const {
+                                       uint_t rng_seed) const {
   // Execute according to simulation method
   switch (simulation_method(circ)) {
     case Method::statevector:
-      // Statvector simulation
-      return run_circuit_helper<QubitVector::State<>>(circ,
+      // Statevector simulation
+      return run_circuit_helper<Statevector::State<>>(
+                                                      circ,
                                                       shots,
                                                       rng_seed,
-                                                      num_threads_state,
                                                       initial_statevector_); // allow custom initial state
     case Method::stabilizer:
       // Stabilizer simulation
@@ -261,8 +309,12 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<Stabilizer::State>(circ,
                                                    shots,
                                                    rng_seed,
-                                                   num_threads_state,
                                                    Clifford::Clifford()); // no custom initial state
+    case Method::ch_decomposition:
+      return run_circuit_helper<CH::State>(circ,
+                                           shots,
+                                           rng_seed,
+                                           CHSimulator::Runner());
     default:
       // We shouldn't get here, so throw an exception if we do
       throw std::runtime_error("QasmController:Invalid simulation method");
@@ -279,10 +331,30 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
   if (method == Method::automatic) {
     // Check if Clifford circuit and noise model
     if (validate_state(Stabilizer::State(), circ, noise_model_, false))
+    {
       method = Method::stabilizer;
-    // Default method is statevector
+    }
+    // Default method is statevector, unless the memory requirements are too large
     else
-      method = Method::statevector;
+    {
+      Statevector::State<> sv_state;
+      if(!(validate_memory_requirements(sv_state, circ, false)))
+      {
+        if(validate_state(CH::State(), circ, noise_model_, false))
+        {
+          method = Method::ch_decomposition;
+        }
+        else
+        {
+          throw std::runtime_error(std::string("QasmController: Circuit cannot be run on any available ") +
+                                   std::string("backend due to memory requirements and chosen gateset."));
+        }
+      }
+      else
+      {
+        method = Method::statevector;
+      }
+    }
   }
   return method;
 }
@@ -317,17 +389,17 @@ template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
-                                              int num_threads_state,
                                               const Initstate_t &initial_state) const {  
   // Initialize new state object
   State_t state;
 
-  // Valid state again and raise exeption if invalid ops
+  // Validate state again and raise exeption if invalid ops
   validate_state(state, circ, noise_model_, true);
-
+  // Check memory requirements, raise exception if they're exceeded
+  validate_memory_requirements(state, circ, true);
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(num_threads_state);
+  state.set_available_threads(parallel_state_update_);
 
   // Rng engine
   RngEngine rng;
@@ -420,6 +492,10 @@ std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
   // are no reset operations before the measurement
+  if(simulation_method(circ) == Method::ch_decomposition && ch_disable_measurement_opt_)
+  {
+    return std::make_pair(false, 0);
+  }
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;
