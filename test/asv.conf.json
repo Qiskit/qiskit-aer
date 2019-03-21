@@ -29,7 +29,6 @@
     // ],
 
     "install_command": [
-        "python -mpip install /tmp/qiskit_terra-0.8.0-cp36-cp36m-linux_x86_64.whl",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
         "python -mpip install {wheel_file}"
@@ -39,8 +38,9 @@
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
-        "pip install -U scikit-build",
-        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True -- -j8"
+        "pip install -U scikit-build cython",
+        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True -- -j8",
+        "pip install https://github.com/QISKit/qiskit-terra/archive/master.zip"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "master"
