@@ -41,7 +41,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_reset.reset_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -57,7 +58,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_reset.reset_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -74,7 +76,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -88,7 +91,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -102,7 +106,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -116,7 +121,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -134,7 +140,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_qobj_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -149,7 +156,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_qobj_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -164,7 +172,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -179,7 +188,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -196,7 +206,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_counts_1bit(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -210,7 +221,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_counts_2bit(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -227,7 +239,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -241,7 +254,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -258,7 +272,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -275,7 +290,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -292,7 +308,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -309,7 +326,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -323,7 +341,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -340,7 +359,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -354,7 +374,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -371,7 +392,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -385,7 +407,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -402,7 +425,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -416,7 +440,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -433,7 +458,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -447,7 +473,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -464,7 +491,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -479,7 +507,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       "method": "ch",
-                                      'disable_measurement_opt': True,
                                       'ch_mixing_time': 50
                                   })
         result = job.result()
@@ -497,7 +524,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
@@ -513,7 +541,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       'method': 'ch',
-                                      'disable_measurement_opt': True,
                                       'ch_mixing_time': 50
                                   })
         result = job.result()
@@ -567,7 +594,6 @@ class TestCHSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj,
                                   backend_options={
                                       'method': 'ch',
-                                      'disable_measurement_opt': True,
                                       'ch_mixing_time': 100,
                                   })
         result = job.result()
@@ -582,7 +608,8 @@ class TestCHSimulator(common.QiskitAerTestCase):
         targets = ref_algorithms.teleport_counts(shots)
         job = QasmSimulator().run(qobj,
                                   backend_options={
-                                      "method": "ch"
+                                      "method": "ch",
+                                      "disable_measurement_opt":False
                                   })
         result = job.result()
         self.is_completed(result)
