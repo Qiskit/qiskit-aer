@@ -90,7 +90,7 @@ class QasmSimulator(AerBackend):
             cores. For systems with a small number of cores it enabling
             can reduce performance (Default: False).
 
-        * "ch_approximation_error" (double): Set the error in the 
+        * "ch_approximation_error" (double): Set the error in the
             approximation for the ch method. A smaller error needs more
             memory and computational time. (Default: 0.05)
 
@@ -129,7 +129,8 @@ class QasmSimulator(AerBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 100000,
-        'description': 'A C++ simulator with realistic for qobj files',
+        'description': 'A C++ simulator with realistic noise for qobj files',
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
@@ -217,11 +218,11 @@ class QasmSimulator(AerBackend):
                     else:
                         if n_qubits > 63:
                             raise AerError(err_string + ', and has too many ' +
-                                           'qubits to fall back to the ' + 
+                                           'qubits to fall back to the ' +
                                            'CH simulator.')
                         if not ch_supported:
                             raise AerError(err_string + ', and contains ' +
-                                           'instructions not supported by ' + 
+                                           'instructions not supported by ' +
                                            'the CH simulator.')
                         logger.info('The QasmSimulator will automatically '
                                     'switch to the CH backend, based on '

@@ -612,7 +612,7 @@ std::vector<std::string> Runner::serialize_decomposition() const
   #pragma omp parallel for if(num_threads_ > 1 && num_states_ > omp_threshold_) num_threads(num_threads_)
   for(uint_t i=0; i<num_states_; i++)
   {
-    serialized_states[i] = serialize_state(i);
+    serialized_states[i] = serialize_state(i).dump();
   }
   return serialized_states;
 }

@@ -41,9 +41,8 @@ public:
 
   virtual std::string name() const override {return "ch";}
 
-  inline virtual std::unordered_set<Operations::OpType> allowed_ops() const override
-  {
-    return std::unordered_set<Operations::OpType>({
+  inline virtual Operations::OpSet::optypeset_t allowed_ops() const override {
+    return Operations::OpSet::optypeset_t({
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,

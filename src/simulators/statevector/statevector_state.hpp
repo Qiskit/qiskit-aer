@@ -40,10 +40,10 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
-template <class data_t = complex_t*>
-class State : public Base::State<QV::QubitVector<data_t>> {
+template <class statevec_t = QV::QubitVector<complex_t*>>
+class State : public Base::State<statevec_t> {
 public:
-  using BaseState = Base::State<QV::QubitVector<data_t>>;
+  using BaseState = Base::State<statevec_t>;
 
   State() = default;
   virtual ~State() = default;
@@ -95,7 +95,7 @@ public:
 
   // Initializes to a specific n-qubit state
   virtual void initialize_qreg(uint_t num_qubits,
-                               const QV::QubitVector<data_t> &state) override;
+                               const statevec_t &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -308,7 +308,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits,
-                                   const QV::QubitVector<statevec_t> &state) {
+                                   const statevec_t &state) {
   // Check dimension of state
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
