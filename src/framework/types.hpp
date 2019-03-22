@@ -35,7 +35,7 @@ namespace AER {
   using cvector_t = std::vector<complex_t>;
   using cmatrix_t = matrix<complex_t>;
   using rvector_t = std::vector<double>;
-  using rmatrix_t = matrix<double>; 
+  using rmatrix_t = matrix<double>;
   using reg_t = std::vector<uint_t>;
   using stringset_t = std::unordered_set<std::string>;
   template <typename T>
@@ -98,7 +98,7 @@ std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
 
 // ostream overload for maps
 template <typename T1, typename T2, typename T3>
-std::ostream &operator<<(std::oscmatrixeam &out, const std::map<T1, T2, T3> &m) {
+std::ostream &operator<<(std::ostream &out, const std::map<T1, T2, T3> &m) {
   out << "{";
   size_t pos = 0, last = m.size() - 1;
   for (auto const &p : m) {
