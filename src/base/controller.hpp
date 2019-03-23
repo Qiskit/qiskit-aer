@@ -93,9 +93,15 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Set to 0 to use the number of max
  *      parallel threads [Default: 1].
+<<<<<<< HEAD
  * - "max_memory_mb" (int): Sets the maximum size of memory for a store.
  *      If a state needs more, an error is thrown. If set to 0, the maximum
  *      will be automatically set to the system memory size [Default: 0].
+=======
+ * - "available_memory" (int): Set the amount of memory available to the
+ *      state in MB. If specified, this is divided by the number of parallel
+ *      shots/experiments. [Default: 0].
+>>>>>>> upstream/master
  *
  * Config settings from Data class:
  *
@@ -163,6 +169,13 @@ protected:
                              const Noise::NoiseModel &noise,
                              bool throw_except = false);
 
+  //Return True if a given circuit are valid for execution on the given state.
+  // Otherwise return false. 
+  // If throw_except is true an exception will be thrown directly.
+  template <class state_t>
+  bool validate_memory_requirements(state_t &state,
+                                    const Circuit &circ,
+                                    bool throw_except = false) const;
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -236,8 +249,8 @@ void Controller::set_config(const json_t &config) {
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
  
-  if (JSON::check_key("max_memory_mb", config)) {
-    JSON::get_value(max_memory_mb_, "max_memory_mb", config);
+  if (JSON::check_key("available_memory", config)) {
+    JSON::get_value(max_memory_mb_, "available_memory", config);
   } else {
     auto system_memory_mb = (int) get_system_memory_mb();
     max_memory_mb_ = system_memory_mb / 2;
@@ -315,9 +328,6 @@ void Controller::set_parallelization(const Circuit& circ) {
   else
     parallel_shots_ = std::min<int> (max_memory_mb_ / circ_memory_mb, max_parallel_threads_);
 
-  if (parallel_shots_ > max_parallel_threads_)
-    parallel_shots_ = max_parallel_threads_;
-
   if (max_parallel_shots_ < 1) {
     // if max_parallel_shots is not configured, nested parallelization is avoided
     if (parallel_shots_ == max_parallel_threads_) {
@@ -361,7 +371,9 @@ bool Controller::validate_state(const state_t &state,
   bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
   bool circ_valid = state.validate_opset(circ.opset());
   if (noise_valid && circ_valid)
+  {
     return true;
+  }
 
   // If we didn't return true then either noise model or circ has
   // invalid instructions.
@@ -382,6 +394,26 @@ bool Controller::validate_state(const state_t &state,
   throw std::runtime_error(msg.str());
 }
 
+template <class state_t>
+bool Controller::validate_memory_requirements(state_t &state,
+                                  const Circuit &circ,
+                                  bool throw_except) const {
+  if (max_memory_mb_ == 0)
+    return true;
+
+  auto required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  if(max_memory_mb_ < required_mb) {
+    if(throw_except) {
+      std::string name = "";
+      JSON::get_value(name, "name", circ.header);
+      throw std::runtime_error("AER::Base::Controller: State " + state.name() +
+                               " has insufficient memory to run the circuit " +
+                               name);
+    }
+    return false;
+  }
+  return true;
+}
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output
 //-------------------------------------------------------------------------
