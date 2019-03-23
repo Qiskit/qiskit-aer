@@ -58,9 +58,9 @@ void usage(const std::string& command, std::ostream &out){
   std::cerr << "\n";
   std::cerr << "Usage: \n";
   std::cerr << command << " [-v] [-c <config>] <file>\n";
-  std::cerr << "    -v       Show version\n";
-  std::cerr << "    config : config file\n";
-  std::cerr << "    file :   qobj file\n";
+  std::cerr << "    -v          : Show version\n";
+  std::cerr << "    -c <config> : Configuration file\n";;
+  std::cerr << "    file        : qobj file\n";
 }
 
 int main(int argc, char **argv) {
@@ -83,8 +83,7 @@ int main(int argc, char **argv) {
         return 0;
       case CmdArguments::INPUT_CONFIG:
         if (++pos == static_cast<unsigned int>(argc)) {
-          std::string msg = "Invalid config (no file is specified.)";
-          failed(msg, out, indent);
+          failed("Invalid config (no file is specified.)", out, indent);
           return 1;
         }
         try {
@@ -113,9 +112,14 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+
     // Check for config
-    sim.set_config(config);
-    sim.set_config(qobj["config"]);
+    json_t config_all = qobj["config"];
+    if (!config.empty())
+      config_all.update(config.begin(), config.end());
+
+    sim.set_config(config_all);
+
     out << sim.execute(qobj).dump(4) << std::endl;
 
     return 0;

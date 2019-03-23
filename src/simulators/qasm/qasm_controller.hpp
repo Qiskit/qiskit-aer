@@ -116,7 +116,7 @@ private:
   void optimize_circuit(const Circuit& input_circ, Circuit& output_circ) const;
 
   // Set parallelization for qasm simulator
-  virtual void set_parallelization(Qobj& qobj);
+  virtual void set_parallelization(const Circuit& circ) override;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -182,8 +182,9 @@ private:
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
+  size_t required_memory_mb(const Circuit& circ) const override;
 
-  // Simulation method
+    // Simulation method
   Method simulation_method_ = Method::automatic;
 
   // Initial statevector for Statevector simulation method
@@ -306,114 +307,39 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
   // Add optimization passes here
 }
 
-/**************************************************************************
- * ---------------------------------
- * Parallelization in QasmController
- * ---------------------------------
- * Parallel execution has three levels:
- *
- *  parallel_experiments:  Parallel execution of circuits in a QOBJ
- *  parallel_shots:        Parallel execution of shots in a Circuit
- *  parallel_state_update: Parallelization used by the State class for performing gates
- *
- * These parallelization are determined with four parameters:
- * - "max_parallel_threads" (int): Set the maximum threads that may be used
- *      in the system. Set to 0 for maximum available. [Default : 0]
- * - "max_parallel_experiments" (int): Set number of circuits that may be
- *      executed in parallel. Set to 0 to use the number of max parallel
- *      threads [Default: 1]
- * - "max_parallel_shots" (int): Set number of shots that maybe be executed
- *      in parallel for each circuit. Set to 0 to use the number of max
- *      parallel threads [Default: 1].
- * - "max_statevector_memory_mb" (int): Sets the maximum size of memory
- *      to store a state vector. If a state vector needs more, an error
- *      is thrown. In general, a state vector of n-qubits uses 2^n complex
- *      values (16 Bytes). If set to 0, the maximum will be automatically
- *      set to the system memory size [Default: 0].
- *
- * Assuming use of OpenMP, this controller avoids using multiple levels
- * (nested parallelization) if possible. Nested parallelization is not
- * efficient in some OpenMP implementation.
- *
- * This controller determines three levels with the following rules:
- * - If max_parallel_experiments is not 0, and required memory for all the experiments is
- *   within max_statevector_memory_mb, parallel_experiments is
- *   min (max_parallel_experiments, max_parallel_threads), otherwise 1.
- * - If parallel_experiments is 1, max of required_memory_mb of all the experiments is
- *   lower than max_statevector_memory_mb/max_parallel_shots, and sampling optimization
- *   is not enabled in any experiments, parallel_shots is max_parallel_shots, otherwise 1.
- * - If parallel_experiments is 1, parallel_state_update is set to max_parallel_threads/parallel_shots.
- *
- **************************************************************************/
-void QasmController::set_parallelization(Qobj& qobj) {
-
-  for (Circuit &circ: qobj.circuits) {
-    if (simulation_method(circ) == Method::stabilizer) {
-      Controller::set_parallelization(qobj);
-      return;
+size_t QasmController::required_memory_mb(const Circuit& circ) const {
+  switch (simulation_method(circ)) {
+    case Method::statevector: {
+      Statevector::State<> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-  }
-
-  // Set max_parallel_threads_
-  if (max_parallel_threads_ < 1)
-  #ifdef _OPENMP
-    max_parallel_threads_ = std::max(1, omp_get_max_threads());
-  #else
-    max_parallel_threads_ = 1;
-  #endif
-
-  // OpenMP implementation is not optimized for nested parallelization.
-  // QasmController sets one of parallel_* to max_parallel_threads and the others to 1.
-
-  Statevector::State<> state;
-
-  // Set max_parallel_experiments_ properly
-  if (max_parallel_threads_ < max_parallel_experiments_)
-    max_parallel_experiments_ = max_parallel_threads_;
-
-  // Set parallel_experiments_ to max_parallel_threads if necessary
-  parallel_experiments_ = 1;                                      // default is 1
-  if (max_parallel_experiments_ > 1                               // input exists
-      && qobj.circuits.size() >= max_parallel_threads_            // sufficient parallelism
-      && max_parallel_experiments_ >= max_parallel_threads_) {    // sufficient parallelism
-    // if memory allows, execute experiments in parallel
-    int total_memory = 0;
-    for (Circuit &circ: qobj.circuits)
-      total_memory += state.required_memory_mb(circ.num_qubits, circ.ops);
-    if (total_memory <= max_statevector_memory_mb_) {
-      parallel_experiments_ = max_parallel_threads_;
-      parallel_shots_ = 1;
-      parallel_state_update_ = 1;
-      return;
+    case Method::stabilizer: {
+      Stabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
+    default:
+      // We shouldn't get here, so throw an exception if we do
+      throw std::runtime_error("QasmController:Invalid simulation method");
   }
+}
 
-  // Set max_parallel_shots_ properly
-  if (max_parallel_shots_ < 1 || max_parallel_threads_ <= max_parallel_shots_)
+void QasmController::set_parallelization(const Circuit& circ) {
+
+  if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
 
-  // Set parallel_shots_ to max_parallel_shots_ if necessary
-  int min_num_shots = std::min<int>({max_parallel_shots_, max_parallel_threads_});
-  uint_t max_total_circuit_memory_mb = 0L;
-  bool sample = false;
-  for (Circuit &circ: qobj.circuits) {
-    if (noise_model_.ideal() && (sample = check_measure_sampling_opt(circ).first))
-      break;
-    min_num_shots = std::min<int>({ min_num_shots, (int) circ.shots});
-    max_total_circuit_memory_mb = std::max<uint_t>({ max_total_circuit_memory_mb,
-      state.required_memory_mb(circ.num_qubits, circ.ops) * (uint_t) max_parallel_shots_});
+  switch (simulation_method(circ)) {
+    case Method::statevector: {
+      if (noise_model_.ideal() && check_measure_sampling_opt(circ).first) {
+        parallel_shots_ = 1;
+        parallel_state_update_ = max_parallel_threads_;
+        return;
+      }
+    }
+    default: {
+      Base::Controller::set_parallelization(circ);
+    }
   }
-  parallel_shots_ = 1;                                                  // default is 1
-  if (min_num_shots == max_parallel_shots_                              // sufficient parallelism
-      && max_total_circuit_memory_mb <= max_statevector_memory_mb_      // enough memory
-      && !sample) {                                                     // no sampling
-    parallel_shots_ = max_parallel_shots_;
-    parallel_state_update_ = max_parallel_threads_ / max_parallel_shots_;
-    return;
-  }
-
-  // Set parallel_state_update_
-  parallel_state_update_ = max_parallel_threads_;
 }
 
 
@@ -434,7 +360,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_state_update_);
+  state.set_parallalization(parallel_state_update_);
 
   // Rng engine
   RngEngine rng;

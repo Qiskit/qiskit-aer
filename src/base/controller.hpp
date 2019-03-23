@@ -93,11 +93,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Set to 0 to use the number of max
  *      parallel threads [Default: 1].
- * - "max_statevector_memory_mb" (int): Sets the maximum size of memory
- *      to store a state vector. If a state vector needs more, an error
- *      is thrown. In general, a state vector of n-qubits uses 2^n complex
- *      values (16 Bytes). If set to 0, the maximum will be automatically
- *      set to the system memory size [Default: 0].
+ * - "max_memory_mb" (int): Sets the maximum size of memory for a store.
+ *      If a state needs more, an error is thrown. If set to 0, the maximum
+ *      will be automatically set to the system memory size [Default: 0].
  *
  * Config settings from Data class:
  *
@@ -185,11 +183,17 @@ protected:
   // Set OpenMP thread settings to default values
   void clear_parallelization();
 
-  // Set OpenMP thread settings for experiments
-  virtual void set_parallelization(Qobj& qobj);
+  // Set parallelization for experiments
+  virtual void set_parallelization(const std::vector<Circuit>& circuits);
+
+  // Set parallelization for a circuit
+  virtual void set_parallelization(const Circuit& circuit);
+
+  // Return an estimate of the required memory for a circuit.
+  virtual size_t required_memory_mb(const Circuit& circuit) const = 0;
 
   // Get system memory size
-  uint_t get_system_memory_mb();
+  size_t get_system_memory_mb();
 
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
@@ -197,7 +201,7 @@ protected:
   // Parameters for parallelization management in configuration
   int max_parallel_experiments_;
   int max_parallel_shots_;
-  int max_statevector_memory_mb_;
+  int max_memory_mb_;
 
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
@@ -216,8 +220,7 @@ protected:
 
 void Controller::set_config(const json_t &config) {
   // Save config for passing to State and Data classes
-  for ( auto it = config.begin(); it != config.end(); ++it )
-    config_[it.key()] = it.value();
+  config_ = config;
 
   // Load noise model
   if (JSON::check_key("noise_model", config))
@@ -233,13 +236,11 @@ void Controller::set_config(const json_t &config) {
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
  
-  if (JSON::check_key("max_statevector_memory_mb", config)) {
-    JSON::get_value(max_statevector_memory_mb_, "max_statevector_memory_mb", config);
+  if (JSON::check_key("max_memory_mb", config)) {
+    JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   } else {
-    int system_memory_mb = (int) get_system_memory_mb();
-    max_statevector_memory_mb_ = 1;
-    while((max_statevector_memory_mb_ << 1) < system_memory_mb)
-      max_statevector_memory_mb_ = max_statevector_memory_mb_ << 1;
+    auto system_memory_mb = (int) get_system_memory_mb();
+    max_memory_mb_ = system_memory_mb / 2;
   }
 
   std::string path;
@@ -265,37 +266,75 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
 }
 
-void Controller::set_parallelization(Qobj& qobj) {
+void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
 
-  // Set max_parallel_threads_
-  if (max_parallel_threads_ < 1)
-  #ifdef _OPENMP
-    max_parallel_threads_ = std::max(1, omp_get_max_threads());
-  #else
-    max_parallel_threads_ = 1;
-  #endif
+    // Set max_parallel_* properly
+  if (max_parallel_threads_ < max_parallel_experiments_)
+    max_parallel_experiments_ = max_parallel_threads_;
 
   // Set parallel_experiments_
-  parallel_experiments_ = (max_parallel_experiments_ < 1)?
-      std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_}):
-      std::min<int>({ (int) qobj.circuits.size(), max_parallel_threads_, max_parallel_experiments_});
+  parallel_experiments_ = 1;
+  if (max_parallel_experiments_ > 1) {
+    // if memory allows, execute experiments in parallel
+    std::vector<size_t> required_memory_mb_list;
+    for (const Circuit &circ: circuits)
+      required_memory_mb_list.push_back(required_memory_mb(circ));
+    std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
 
-  int max_num_shots = 0;
-  for (Circuit &circ: qobj.circuits)
-    max_num_shots = std::max<int>({ max_num_shots, (int) circ.shots});
+    int total_memory = 0;
+    parallel_experiments_ = 0;
+    for (int required_memory_mb: required_memory_mb_list) {
+      total_memory += required_memory_mb;
+      if (total_memory > max_memory_mb_)
+        break;
+      ++parallel_experiments_;
+    }
 
-  // Set parallel_shots_
-  parallel_shots_ = (max_parallel_shots_ < 1)?
-      std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_}):
-      std::min<int>({max_num_shots, max_parallel_threads_/parallel_experiments_, max_parallel_shots_});
-  parallel_shots_ = std::max<int>({1, parallel_shots_});
-
-  // Set parallel_state_update_
-  parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
+    if (parallel_experiments_ == 0) {
+      throw std::runtime_error("a circuit requires more memory than max_state_mb.");
+    } else if (parallel_experiments_ != 1) {
+      if (parallel_experiments_ > max_parallel_experiments_)
+        parallel_experiments_ = max_parallel_experiments_;
+      return;
+    }
+  }
 }
 
-uint_t Controller::get_system_memory_mb(void){
-  uint_t total_physical_memory = 0;
+void Controller::set_parallelization(const Circuit& circ) {
+
+  if (max_parallel_threads_ < max_parallel_shots_)
+    max_parallel_shots_ = max_parallel_threads_;
+
+  auto circ_memory_mb = required_memory_mb(circ);
+
+  if (max_memory_mb_ < circ_memory_mb)
+    throw std::runtime_error("a circuit requires more memory than max_state_mb.");
+
+  if (circ_memory_mb == 0)
+    parallel_shots_ = max_parallel_threads_;
+  else
+    parallel_shots_ = std::min<int> (max_memory_mb_ / circ_memory_mb, max_parallel_threads_);
+
+  if (parallel_shots_ > max_parallel_threads_)
+    parallel_shots_ = max_parallel_threads_;
+
+  if (max_parallel_shots_ < 1) {
+    // if max_parallel_shots is not configured, nested parallelization is avoided
+    if (parallel_shots_ == max_parallel_threads_) {
+      parallel_state_update_ = 1;
+    } else {
+      parallel_shots_ = 1;
+      parallel_state_update_ = max_parallel_threads_;
+    }
+  } else {
+    // otherwise,
+    parallel_state_update_ = max_parallel_threads_ / parallel_shots_;
+  }
+}
+
+
+size_t Controller::get_system_memory_mb(void){
+  size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
    auto pages = sysconf(_SC_PHYS_PAGES);
    auto page_size = sysconf(_SC_PAGE_SIZE);
@@ -383,8 +422,16 @@ json_t Controller::execute(const json_t &qobj_js) {
   // Qobj was loaded successfully, now we proceed
   try {
 
-    // set parallelization
-    set_parallelization(qobj);
+    // Set max_parallel_threads_
+    if (max_parallel_threads_ < 1)
+    #ifdef _OPENMP
+      max_parallel_threads_ = std::max(1, omp_get_max_threads());
+    #else
+      max_parallel_threads_ = 1;
+    #endif
+
+    // set parallelization for experiments
+    set_parallelization(qobj.circuits);
 
   #ifdef _OPENMP
     result["metadata"]["omp_enabled"] = true;
@@ -392,17 +439,18 @@ json_t Controller::execute(const json_t &qobj_js) {
     result["metadata"]["omp_enabled"] = false;
   #endif
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
-    result["metadata"]["parallel_shots"] = parallel_shots_;
-    result["metadata"]["parallel_state_update"] = parallel_state_update_;
-    result["metadata"]["max_statevector_memory_mb"] = max_statevector_memory_mb_;
+    result["metadata"]["max_memory_mb"] = max_memory_mb_;
 
     const int num_circuits = qobj.circuits.size();
+
+  #ifdef _OPENMP
+    if (parallel_shots_ > 1 || parallel_state_update_ > 1)
+      omp_set_nested(1);
+  #endif
 
     // Initialize container to store parallel circuit output
     result["results"] = std::vector<json_t>(num_circuits);
     if (parallel_experiments_ > 1) {
-      if (parallel_shots_ > 1 || parallel_state_update_ > 1)
-        omp_set_nested(1);
       // Parallel circuit execution
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < num_circuits; ++j) {
@@ -449,6 +497,8 @@ json_t Controller::execute_circuit(Circuit &circ) {
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
+    // set parallelization for this circuit
+    set_parallelization(circ);
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       result["data"] = run_circuit(circ, circ.shots, circ.seed);
@@ -464,9 +514,6 @@ json_t Controller::execute_circuit(Circuit &circ) {
         subshots[j] += 1;
       }
 
-      if (parallel_state_update_ > 1)
-        omp_set_nested(1);
-
       // Vector to store parallel thread output data
       std::vector<OutputData> data(parallel_shots_);
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
@@ -474,7 +521,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
           data[j] = run_circuit(circ, subshots[j], circ.seed + j);
         }
       // Accumulate results across shots
-      for (size_t j=1; j<data.size(); j++) {
+      for (uint_t j=1; j<data.size(); j++) {
         data[0].combine(data[j]);
       }
       // Update output
@@ -498,6 +545,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       // Remove the metatdata field from data
       result["data"].erase("metadata");
     }
+    result["metadata"]["parallel_shots"] = parallel_shots_;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
