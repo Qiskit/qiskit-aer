@@ -49,8 +49,8 @@ public:
   virtual std::string name() const override {return "unitary";}
 
   // Return the set of qobj instruction types supported by the State
-  virtual std::unordered_set<Operations::OpType> allowed_ops() const override {
-    return std::unordered_set<Operations::OpType>({
+  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
+    return Operations::OpSet::optypeset_t({
       Operations::OpType::gate,
       Operations::OpType::barrier,
       Operations::OpType::matrix,

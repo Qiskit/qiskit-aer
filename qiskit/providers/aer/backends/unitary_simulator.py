@@ -60,12 +60,12 @@ class UnitarySimulator(AerBackend):
             (Default: 6).
     """
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
+    MAX_QUBIT_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_MEMORY,
+        'n_qubits': MAX_QUBIT_MEMORY,
         'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,
@@ -74,7 +74,8 @@ class UnitarySimulator(AerBackend):
         'memory': False,
         'max_shots': 1,
         'description': 'A Python simulator for computing the unitary' +
-                        'matrix for experiments in qobj files',
+                       'matrix for experiments in qobj files',
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'snapshot', 'unitary'],
