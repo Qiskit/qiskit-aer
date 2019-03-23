@@ -100,7 +100,7 @@ public:
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
-  virtual uint_t required_memory_mb(uint_t num_qubits,
+  virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) override;
 
   // Load the threshold for applying OpenMP parallelization
@@ -341,13 +341,13 @@ void State<statevec_t>::initialize_omp() {
 //-------------------------------------------------------------------------
 
 template <class statevec_t>
-uint_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
+size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
                                              const std::vector<Operations::Op> &ops) {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
-  uint_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
-  uint_t mem_mb = 1ULL << shift_mb;
+  size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
+  size_t mem_mb = 1ULL << shift_mb;
   return mem_mb;
 }
 

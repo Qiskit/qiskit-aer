@@ -86,7 +86,7 @@ public:
 
   // TODO: currently returns 0
   // Returns the required memory for storing an n-qubit state in megabytes.
-  virtual uint_t required_memory_mb(uint_t num_qubits,
+  virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) override;
 
   // Load any settings for the State class from a config JSON
@@ -228,14 +228,14 @@ void State::initialize_qreg(uint_t num_qubits,
 // Utility
 //-------------------------------------------------------------------------
 
-uint_t State::required_memory_mb(uint_t num_qubits,
+size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) {
   (void)ops; // avoid unused variable compiler warning
   // The Clifford object requires very little memory.
   // A Pauli vector consists of 2 binary vectors each with
   // Binary vector = (4 + n // 64) 64-bit ints
   // Pauli = 2 * binary vector
-  uint_t mem = 16 * (4 + num_qubits); // Pauli bytes
+  size_t mem = 16 * (4 + num_qubits); // Pauli bytes
   // Clifford = 2n * Pauli + 2n phase ints
   mem = 2 * num_qubits * (mem + 16); // Clifford bytes
   mem = mem >> 20; // Clifford mb
