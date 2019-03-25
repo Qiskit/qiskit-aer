@@ -93,15 +93,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Set to 0 to use the number of max
  *      parallel threads [Default: 1].
-<<<<<<< HEAD
  * - "max_memory_mb" (int): Sets the maximum size of memory for a store.
  *      If a state needs more, an error is thrown. If set to 0, the maximum
  *      will be automatically set to the system memory size [Default: 0].
-=======
- * - "available_memory" (int): Set the amount of memory available to the
- *      state in MB. If specified, this is divided by the number of parallel
- *      shots/experiments. [Default: 0].
->>>>>>> upstream/master
  *
  * Config settings from Data class:
  *
@@ -281,35 +275,31 @@ void Controller::clear_parallelization() {
 
 void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
 
-    // Set max_parallel_* properly
-  if (max_parallel_threads_ < max_parallel_experiments_)
-    max_parallel_experiments_ = max_parallel_threads_;
+  if (max_parallel_experiments_ <= 0)
+    return;
 
-  // Set parallel_experiments_
-  parallel_experiments_ = 1;
-  if (max_parallel_experiments_ > 1) {
-    // if memory allows, execute experiments in parallel
-    std::vector<size_t> required_memory_mb_list;
-    for (const Circuit &circ: circuits)
-      required_memory_mb_list.push_back(required_memory_mb(circ));
-    std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
+  // if memory allows, execute experiments in parallel
+  std::vector<size_t> required_memory_mb_list;
+  for (const Circuit &circ : circuits)
+    required_memory_mb_list.push_back(required_memory_mb(circ));
+  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
 
-    int total_memory = 0;
-    parallel_experiments_ = 0;
-    for (int required_memory_mb: required_memory_mb_list) {
-      total_memory += required_memory_mb;
-      if (total_memory > max_memory_mb_)
-        break;
-      ++parallel_experiments_;
-    }
+  int total_memory = 0;
+  parallel_experiments_ = 0;
+  for (int required_memory_mb : required_memory_mb_list) {
+    total_memory += required_memory_mb;
+    if (total_memory > max_memory_mb_)
+      break;
+    ++parallel_experiments_;
+  }
 
-    if (parallel_experiments_ == 0) {
-      throw std::runtime_error("a circuit requires more memory than max_state_mb.");
-    } else if (parallel_experiments_ != 1) {
-      if (parallel_experiments_ > max_parallel_experiments_)
-        parallel_experiments_ = max_parallel_experiments_;
-      return;
-    }
+  if (parallel_experiments_ == 0) {
+    throw std::runtime_error("a circuit requires more memory than available_memory.");
+  } else if (parallel_experiments_ != 1) {
+    parallel_experiments_ = std::min<int> ({ parallel_experiments_,
+                                             max_parallel_experiments_,
+                                             max_parallel_threads_,
+                                             static_cast<int>(circuits.size()) });
   }
 }
 
@@ -321,12 +311,14 @@ void Controller::set_parallelization(const Circuit& circ) {
   auto circ_memory_mb = required_memory_mb(circ);
 
   if (max_memory_mb_ < circ_memory_mb)
-    throw std::runtime_error("a circuit requires more memory than max_state_mb.");
+    throw std::runtime_error("a circuit requires more memory than available_memory.");
 
   if (circ_memory_mb == 0)
     parallel_shots_ = max_parallel_threads_;
   else
-    parallel_shots_ = std::min<int> (max_memory_mb_ / circ_memory_mb, max_parallel_threads_);
+    parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
+                                       max_parallel_threads_,
+                                       static_cast<int>(circ.shots) });
 
   if (max_parallel_shots_ < 1) {
     // if max_parallel_shots is not configured, nested parallelization is avoided
@@ -471,7 +463,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     result["metadata"]["omp_enabled"] = false;
   #endif
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
-    result["metadata"]["max_memory_mb"] = max_memory_mb_;
+    result["metadata"]["available_memory"] = max_memory_mb_;
 
     const int num_circuits = qobj.circuits.size();
 
@@ -530,7 +522,8 @@ json_t Controller::execute_circuit(Circuit &circ) {
   // for individual circuit failures.
   try {
     // set parallelization for this circuit
-    set_parallelization(circ);
+    if (parallel_experiments_ == 1)
+      set_parallelization(circ);
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       result["data"] = run_circuit(circ, circ.shots, circ.seed);
@@ -548,10 +541,21 @@ json_t Controller::execute_circuit(Circuit &circ) {
 
       // Vector to store parallel thread output data
       std::vector<OutputData> data(parallel_shots_);
+      std::vector<std::string> error_msgs(parallel_shots_);
+      for (int i = 0; i < parallel_shots_; ++i)
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
-        for (int j = 0; j < parallel_shots_; j++) {
+      for (int j = 0; j < parallel_shots_; j++) {
+        try {
           data[j] = run_circuit(circ, subshots[j], circ.seed + j);
+        } catch (std::runtime_error error) {
+          error_msgs[j] = error.what();
         }
+      }
+
+      for (std::string error_msg: error_msgs)
+        if (error_msg != "")
+          throw std::runtime_error(error_msg);
+
       // Accumulate results across shots
       for (uint_t j=1; j<data.size(); j++) {
         data[0].combine(data[j]);
@@ -578,6 +582,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       result["data"].erase("metadata");
     }
     result["metadata"]["parallel_shots"] = parallel_shots_;
+    result["metadata"]["parallel_state_update"] = parallel_state_update_;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();

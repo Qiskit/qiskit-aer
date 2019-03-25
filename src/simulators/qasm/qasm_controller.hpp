@@ -340,11 +340,14 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
     // Default method is statevector, unless the memory requirements are too large
       Statevector::State<> sv_state;
       if(!(validate_memory_requirements(sv_state, circ, false))) {
-        if(validate_state(CH::State(), circ, noise_model_, false))
+        if(validate_state(CH::State(), circ, noise_model_, false)) {
           method = Method::ch_decomposition;
-        else
-          throw std::runtime_error(std::string("QasmController: Circuit cannot be run on any available ") +
-                                   std::string("backend due to memory requirements and chosen gateset."));
+        } else {
+          std::stringstream msg;
+          msg << "QasmController: Circuit cannot be run on any available backend. available_memory="
+              << max_memory_mb_ << "mb";
+          throw std::runtime_error(msg.str());
+        }
       } else {
         method = Method::statevector;
       }
@@ -382,6 +385,10 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
     }
     case Method::stabilizer: {
       Stabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::ch_decomposition: {
+      CH::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     default:
