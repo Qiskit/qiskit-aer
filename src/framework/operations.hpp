@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 #include <sstream>
 #include <tuple>
 
@@ -30,6 +31,48 @@ enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
   matrix, kraus, roerror, noise_switch, initialize
 };
+
+std::ostream& operator<<(std::ostream& stream, const OpType& type) {
+  switch (type) {
+  case OpType::gate:
+    stream << "gate";
+    break;
+  case OpType::measure:
+    stream << "measure";
+    break;
+  case OpType::reset:
+    stream << "reset";
+    break;
+  case OpType::bfunc:
+    stream << "bfunc";
+    break;
+  case OpType::barrier:
+    stream << "barrier";
+    break;
+  case OpType::snapshot:
+    stream << "snapshot";
+    break;
+  case OpType::matrix:
+    stream << "matrix";
+    break;
+  case OpType::kraus:
+    stream << "kraus";
+    break;
+  case OpType::roerror:
+    stream << "roerror";
+    break;
+  case OpType::noise_switch:
+    stream << "noise_switch";
+    break;
+  case OpType::initialize:
+    stream << "initialize";
+    break;
+  default:
+    stream << "unknown";
+  }
+  return stream;
+}
+
 
 //------------------------------------------------------------------------------
 // Op Class
@@ -72,6 +115,11 @@ struct Op {
                                                         // Projector vectors are stored as
                                                         // M x 1 column-matrices
 };
+
+std::ostream& operator<<(std::ostream& s, const Op& op) {
+  s << op.name;
+  return s;
+}
 
 //=========================================================================
 // OpSet Class
@@ -145,6 +193,38 @@ public:
   // Return a set of all invalid circuit op names
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
+
+std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
+  s << "optypes={";
+  bool first = true;
+  for (OpType optype: opset.optypes) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << optype;
+  }
+  s << "}, gates={";
+  first = true;
+  for (const std::string& gate: opset.gates) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << gate;
+  }
+  s << "}, snapshots={";
+  first = true;
+  for (const std::string& snapshot: opset.snapshots) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << snapshot;
+  }
+  s << "}";
+  return s;
+}
 
 //------------------------------------------------------------------------------
 // OpSet class methods

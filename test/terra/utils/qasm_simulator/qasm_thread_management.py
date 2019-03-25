@@ -39,9 +39,9 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
-            self.assertEqual(result.metadata['parallel_experiments'], 1, msg="default parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="default parallel_shots should be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="default parallel_state_update should be same with multiprocessing.cpu_count()")
+            self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be " + str(multiprocessing.cpu_count()))
 
     def test_qasm_max_memory_default(self):
         """test default max memory"""
@@ -53,8 +53,8 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         system_memory = psutil.virtual_memory().total / 1024 / 1024
-        self.assertGreaterEqual(result.metadata['max_statevector_memory_mb'], system_memory / 2, msg="statevector_memory is too small.")
-        self.assertLessEqual(result.metadata['max_statevector_memory_mb'], system_memory, msg="statevector_memory is too big.")
+        self.assertGreaterEqual(result.metadata['available_memory'], system_memory / 2, msg="statevector_memory is too small.")
+        self.assertLessEqual(result.metadata['available_memory'], system_memory, msg="statevector_memory is too big.")
 
     def test_qasm_max_memory_specified(self):
         """test default max memory configuration"""
@@ -63,9 +63,9 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         experiments = multiprocessing.cpu_count()
         circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_statevector_memory_mb': 128}
+        backend_opts = {'available_memory': 128}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
-        self.assertEqual(result.metadata['max_statevector_memory_mb'], 128, msg="statevector_memory is not configured correctly.")
+        self.assertEqual(result.metadata['available_memory'], 128, msg="available_memory is not configured correctly.")
 
     def test_qasm_auto_enable_parallel_experiments(self):
         """test default max memory configuration"""
@@ -76,12 +76,12 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         for i in range(experiments):
             circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True))
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1024}
+        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], multiprocessing.cpu_count(), msg="parallel_experiments should be multiprocessing.cpu_count()")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], 1, msg="parallel_state_update should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], 1, msg="parallel_state_update should be 1")
 
     def test_qasm_auto_disable_parallel_experiments_with_memory_shortage(self):
         """test auto-disabling max_parallel_experiments because memory is short"""
@@ -90,30 +90,32 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         experiments = multiprocessing.cpu_count()
         circuits = []
         for i in range(experiments):
-            circuits.append(ref_qvolume.quantum_volume(17, depth=1, final_measure=True)) # 2 MB for each
+            circuits.append(ref_qvolume.quantum_volume(16, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1}
+        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be " + str(multiprocessing.cpu_count()))
 
-    def test_qasm_auto_disable_parallel_experiments_with_circuits_shortage(self):
+    def test_qasm_auto_short_parallel_experiments(self):
         """test auto-disabling max_parallel_experiments because a number of circuits is few"""
         # Test circuit
         shots = 1
         experiments = multiprocessing.cpu_count()
+        if (experiments == 1):
+            return
         circuits = []
         for i in range(experiments - 1):
             circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'max_statevector_memory_mb': 1024}
+        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
-            self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be 1")
+            self.assertEqual(result.metadata['parallel_experiments'], multiprocessing.cpu_count() - 1, msg="parallel_experiments should be " + str(multiprocessing.cpu_count() - 1))
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], 1, msg="parallel_state_update should be 1")
 
     def test_qasm_auto_enable_shot_parallelization(self):
         """test explicit shot parallelization"""
@@ -124,9 +126,9 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model()}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
-            self.assertEqual(result.metadata['parallel_experiments'], 1, msg="default parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], multiprocessing.cpu_count(), msg="parallel_shots must be multiprocessing.cpu_count()")
-            self.assertEqual(result.metadata['parallel_state_update'], 1, msg="parallel_state_update should be 1")
+            self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], multiprocessing.cpu_count(), msg="parallel_shots must be " + str(multiprocessing.cpu_count()))
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], 1, msg="parallel_state_update should be 1")
 
     def test_qasm_auto_disable_shot_parallelization_with_sampling(self):
         """test auto-disabling max_parallel_shots because sampling is enabled"""
@@ -138,32 +140,34 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be " + str(multiprocessing.cpu_count()))
 
-    def test_qasm_auto_disable_shot_parallelization_with_shots_shortage(self):
+    def test_qasm_auto_short_shot_parallelization(self):
         """test auto-disabling max_parallel_shots because a number of shots is few"""
         # Test circuit
         shots = multiprocessing.cpu_count() - 1
+        if (shots == 0):
+            return;
         circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {'max_parallel_shots': multiprocessing.cpu_count(), 'noise_model': self.dummy_noise_model()}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], shots, msg="parallel_shots must be " + str(shots))
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], int(multiprocessing.cpu_count() / shots), msg="parallel_state_update should be " + str(int(multiprocessing.cpu_count() / shots)))
             
     def test_qasm_auto_disable_shot_parallelization_with_memory_shortage(self):
         """test auto-disabling max_parallel_shots because memory is short"""
         # Test circuit
         shots = multiprocessing.cpu_count()
-        circuit = ref_qvolume.quantum_volume(17, depth=1, final_measure=True)
+        circuit = ref_qvolume.quantum_volume(16, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model(), 'max_statevector_memory_mb': 1}
+        backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model(), 'available_memory': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
-            self.assertEqual(result.metadata['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.metadata['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
+            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], multiprocessing.cpu_count(), msg="parallel_state_update should be " + str(multiprocessing.cpu_count()))
             
