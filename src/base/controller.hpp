@@ -22,6 +22,7 @@
 #include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
+#include "framework/circuitopt.hpp"
 #include "noise/noise_model.hpp"
 
 #ifdef _OPENMP
@@ -87,6 +88,9 @@ namespace Base {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
+ * - "available_memory" (int): Set the amount of memory available to the
+ *      state in MB. If specified, this is divided by the number of parallel
+ *      shots/experiments. [Default: 0].
  *
  * Config settings from Data class:
  *
@@ -122,6 +126,13 @@ public:
   // Clear the current config
   void virtual clear_config();
 
+  // Add circuit optimization
+  template <typename Type>
+  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
+  {
+      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+  }
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -154,6 +165,21 @@ protected:
                              const Noise::NoiseModel &noise,
                              bool throw_except = false);
 
+  // Return True if a given circuit are valid for execution on the given state.
+  // Otherwise return false. 
+  // If throw_except is true an exception will be thrown directly.
+  template <class state_t>
+  bool validate_memory_requirements(state_t &state,
+                                    const Circuit &circ,
+                                    bool throw_except = false) const;
+
+  //-------------------------------------------------------------------------
+  // Circuit optimization
+  //-------------------------------------------------------------------------
+
+  // Generate an equivalent circuit with input_circ as output_circ.
+  Circuit optimize_circuit(const Circuit &input_circ) const;
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -166,6 +192,9 @@ protected:
 
   // Noise model
   Noise::NoiseModel noise_model_;
+
+  // Circuit optimization
+  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -188,6 +217,8 @@ protected:
   int parallel_experiments_;
   int parallel_shots_;
   int parallel_state_update_;
+
+  uint_t state_available_memory_mb_ = 0;
 };
 
 
@@ -217,6 +248,7 @@ void Controller::set_config(const json_t &config) {
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
  
+  JSON::get_value(state_available_memory_mb_, "available_memory", config);
   std::string path;
   JSON::get_value(path, "library_dir", config);
   // Fix for MacOS and OpenMP library double initialization crash.
@@ -265,6 +297,12 @@ void Controller::set_parallelization(Qobj& qobj) {
   parallel_shots_ = std::max<int>({1, parallel_shots_});
 
   parallel_state_update_ = std::max<int>({1, max_parallel_threads_/(parallel_experiments_*parallel_shots_)});
+
+  if(state_available_memory_mb_ > 0)
+  {
+    state_available_memory_mb_ /= parallel_shots_;
+    state_available_memory_mb_ /= parallel_experiments_;
+  }
 }
 
 //-------------------------------------------------------------------------
@@ -280,7 +318,9 @@ bool Controller::validate_state(const state_t &state,
   bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
   bool circ_valid = state.validate_opset(circ.opset());
   if (noise_valid && circ_valid)
+  {
     return true;
+  }
 
   // If we didn't return true then either noise model or circ has
   // invalid instructions.
@@ -299,6 +339,44 @@ bool Controller::validate_state(const state_t &state,
     msg << state.invalid_opset_message(circ.opset()) << ")";
   }
   throw std::runtime_error(msg.str());
+}
+
+template <class state_t>
+bool Controller::validate_memory_requirements(state_t &state,
+                                  const Circuit &circ,
+                                  bool throw_except) const
+{
+  if (state_available_memory_mb_ == 0)
+  {
+    return true;
+  }
+  auto required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  if(state_available_memory_mb_ < required_mb)
+  {
+    if(throw_except)
+    {
+      std::string name = "";
+      JSON::get_value(name, "name", circ.header);
+      throw std::runtime_error("AER::Base::Controller: State " + state.name() +
+                               " has insufficient memory to run the circuit " +
+                               name);
+    }
+    return false;
+  }
+  return true;
+}
+
+//-------------------------------------------------------------------------
+// Circuit optimization
+//-------------------------------------------------------------------------
+
+Circuit Controller::optimize_circuit(const Circuit &input_circ) const {
+
+  Circuit working_circ = input_circ;
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+    opt->optimize_circuit(working_circ);
+
+  return working_circ;
 }
 
 //-------------------------------------------------------------------------

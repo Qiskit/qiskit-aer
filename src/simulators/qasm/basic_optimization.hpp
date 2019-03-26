@@ -37,7 +37,7 @@ void Debug::optimize_circuit(Circuit& circ) const {
 
   std::vector<Operations::Op>::iterator it = circ.ops.begin();
   while (it != circ.ops.end()) {
-    std::cerr << it->name << std::endl;
+    std::clog << it->name << std::endl;
     ++it;
   }
 }

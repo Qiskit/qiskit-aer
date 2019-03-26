@@ -32,8 +32,7 @@ protected:
 };
 
 void CircuitOptimization::set_config(const json_t& config) {
-  for ( auto it = config.begin(); it != config.end(); ++it )
-    config_[it.key()] = it.value();
+  config_ = config;
 }
 
 //-------------------------------------------------------------------------

@@ -1,19 +1,16 @@
 #ifndef _aer_misc_hacks_hpp_
 #define _aer_misc_hacks_hpp_
 
+// We only need this hack for MacOS builds,
+// on Linux and Windows everything works fine
 #ifdef __APPLE__
-    #include <mach-o/dyld.h>
-    #include <mach-o/nlist.h>
-#endif
+#include <mach-o/dyld.h>
+#include <mach-o/nlist.h>
 #include <sys/types.h>
 #include <dlfcn.h>
 #include <iostream>
 #include <vector>
 #include <functional>
-
-// We only need this hack for MacOS builds,
-// on Linux and Windows everything works fine
-#ifdef __APPLE__
 
 #if defined(__clang__)
     #include "clang_omp_symbols.hpp"
