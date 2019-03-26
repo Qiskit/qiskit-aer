@@ -65,6 +65,9 @@ namespace CHSimulator
   //Base class for sampling over non-Clifford gates in the Sum Over Cliffords routine. 
   struct Sample {
   public:
+    Sample() = default;
+    virtual ~Sample() = default;
+    Sample(const Sample& other) : branches(other.branches) {};
     std::vector<sample_branch_t> branches;
 
     virtual sample_branch_t sample(double r) const = 0;
@@ -72,15 +75,21 @@ namespace CHSimulator
 
   //Functor class that defines how to sample branches over a U1 operation
   //Used for caching each U1 gate angle we encounter in the circuit
-  struct U1Sample : public Sample
+struct U1Sample : public Sample
+{
+  double p_threshold;
+
+  U1Sample() = default;
+  U1Sample(double lambda);
+
+  U1Sample(const U1Sample &other) : Sample(other)
   {
-    double p_threshold;
+    p_threshold = other.p_threshold;
+  }
 
-    U1Sample() = default;
-    U1Sample(double lambda);
-    ~U1Sample() = default;
+  ~U1Sample() = default;
 
-    virtual sample_branch_t sample(double r) const override;
+  sample_branch_t sample(double r) const override;
 };
 
 U1Sample::U1Sample(double lambda)

@@ -140,7 +140,7 @@ protected:
   // How long the metropolis algorithm runs before
   // we consider it to be well mixed and sample form the
   // output distribution
-  uint_t metropolis_mixing_steps_ = 7000;
+  uint_t metropolis_mixing_steps_ = 5000;
 
   //Minimum number of states before we try to parallelise
   uint_t omp_threshold_rank_ = 100;

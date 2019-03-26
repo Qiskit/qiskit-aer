@@ -12,7 +12,7 @@ Qiskit Aer qasm simulator backend.
 import logging
 import os
 from math import log2
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from .qasm_controller_wrapper import qasm_controller_execute
@@ -98,13 +98,13 @@ class QasmSimulator(AerBackend):
             re-run the monte-carlo step for every measurement. Enabling
             this will improve the sampling accuracy if the output
             distribution is strongly peaked, but requires more
-            computational time. (Default: False)
+            computational time. (Default: True)
 
         * "ch_mixing_time" (int): Set how long the monte-carlo method
             runs before performing measurements. If the output
             distribution is strongly peaked, this can be
             decreased alongside setting ch_disable_measurement_opt
-            to True. (Default: 7000)
+            to True. (Default: 5000)
 
         * "ch_norm_estimation_samples" (int): Number of samples used to
             compute the correct normalisation for a statevector snapshot.
@@ -227,3 +227,4 @@ class QasmSimulator(AerBackend):
                         logger.info('The QasmSimulator will automatically '
                                     'switch to the CH backend, based on '
                                     'the memory requirements.')
+
