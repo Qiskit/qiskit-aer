@@ -14,7 +14,7 @@ Qiskit Aer statevector simulator backend.
 import logging
 import os
 from math import log2
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from .statevector_controller_wrapper import statevector_controller_execute

@@ -20,7 +20,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.qobj import QobjConfig
 from qiskit.result import Result
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
 from ..aererror import AerError
