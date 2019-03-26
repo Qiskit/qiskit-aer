@@ -12,6 +12,7 @@
 #include "simulators/ch/ch_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/qasm/basic_optimization.hpp"
 
 
 namespace AER {
@@ -90,6 +91,11 @@ namespace Simulator {
 class QasmController : public Base::Controller {
 public:
   //-----------------------------------------------------------------------
+  // Constructor
+  //-----------------------------------------------------------------------
+  QasmController();
+
+  //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
 
@@ -137,13 +143,6 @@ protected:
   void initialize_state(const Circuit &circ,
                         State_t &state,
                         const Initstate_t &initial_state) const;
-
-  // Optimize a circuit based on simulator config, and store the optimized
-  // circuit in output_circ
-  // To optimize in place use output_circ = input_circ
-  // NOTE: That is a place-holder and no optimization passes are implemented
-  template <class State_t>
-  void optimize_circuit(const Circuit& input_circ, Circuit& output_circ) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -226,6 +225,13 @@ protected:
 //=========================================================================
 // Implementations
 //=========================================================================
+
+//-------------------------------------------------------------------------
+// Constructor
+//-------------------------------------------------------------------------
+QasmController::QasmController() {
+  add_circuit_optimization(ReduceNop());
+}
 
 //-------------------------------------------------------------------------
 // Config
@@ -372,15 +378,6 @@ void QasmController::initialize_state(const Circuit &circ,
   state.initialize_creg(circ.num_memory, circ.num_registers);
 }
 
-
-template <class State_t>
-void QasmController::optimize_circuit(const Circuit &input_circ,
-                                      Circuit &output_circ) const {
-  output_circ = input_circ;
-  // Add optimization passes here
-}
-
-
 //-------------------------------------------------------------------------
 // Run circuit helpers
 //-------------------------------------------------------------------------
@@ -443,7 +440,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    optimize_circuit<State_t>(noise_circ, noise_circ);
+    noise_circ = optimize_circuit(noise_circ);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
 }
@@ -458,7 +455,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ;
-  optimize_circuit<State_t>(circ, opt_circ);
+  opt_circ = optimize_circuit(circ);
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);

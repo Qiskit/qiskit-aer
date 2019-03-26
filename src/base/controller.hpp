@@ -22,6 +22,7 @@
 #include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
+#include "framework/circuitopt.hpp"
 #include "noise/noise_model.hpp"
 
 #ifdef _OPENMP
@@ -125,6 +126,13 @@ public:
   // Clear the current config
   void virtual clear_config();
 
+  // Add circuit optimization
+  template <typename Type>
+  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
+  {
+      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+  }
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -157,13 +165,21 @@ protected:
                              const Noise::NoiseModel &noise,
                              bool throw_except = false);
 
-  //Return True if a given circuit are valid for execution on the given state.
+  // Return True if a given circuit are valid for execution on the given state.
   // Otherwise return false. 
   // If throw_except is true an exception will be thrown directly.
   template <class state_t>
   bool validate_memory_requirements(state_t &state,
                                     const Circuit &circ,
                                     bool throw_except = false) const;
+
+  //-------------------------------------------------------------------------
+  // Circuit optimization
+  //-------------------------------------------------------------------------
+
+  // Generate an equivalent circuit with input_circ as output_circ.
+  Circuit optimize_circuit(const Circuit &input_circ) const;
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -176,6 +192,9 @@ protected:
 
   // Noise model
   Noise::NoiseModel noise_model_;
+
+  // Circuit optimization
+  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -346,6 +365,20 @@ bool Controller::validate_memory_requirements(state_t &state,
   }
   return true;
 }
+
+//-------------------------------------------------------------------------
+// Circuit optimization
+//-------------------------------------------------------------------------
+
+Circuit Controller::optimize_circuit(const Circuit &input_circ) const {
+
+  Circuit working_circ = input_circ;
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+    opt->optimize_circuit(working_circ);
+
+  return working_circ;
+}
+
 //-------------------------------------------------------------------------
 // Qobj and Circuit Execution to JSON output
 //-------------------------------------------------------------------------
