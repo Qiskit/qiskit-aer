@@ -579,7 +579,7 @@ class TestCHSimulator(common.QiskitAerTestCase):
                                   })
         result = job.result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=0.10 * shots)
 
     # # ---------------------------------------------------------------------
     # # Test algorithms
