@@ -67,3 +67,4 @@ canonical types of quantum errors:
 from .noise_model import NoiseModel
 from . import errors
 from . import device
+from .noise_transformation import NoiseTransformer
