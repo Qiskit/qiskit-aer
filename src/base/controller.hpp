@@ -243,8 +243,8 @@ void Controller::set_config(const json_t &config) {
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
  
-  if (JSON::check_key("available_memory", config)) {
-    JSON::get_value(max_memory_mb_, "available_memory", config);
+  if (JSON::check_key("max_memory_mb", config)) {
+    JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   } else {
     auto system_memory_mb = (int) get_system_memory_mb();
     max_memory_mb_ = system_memory_mb / 2;
@@ -294,7 +294,7 @@ void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
   }
 
   if (parallel_experiments_ == 0) {
-    throw std::runtime_error("a circuit requires more memory than available_memory.");
+    throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
   } else if (parallel_experiments_ != 1) {
     parallel_experiments_ = std::min<int> ({ parallel_experiments_,
                                              max_parallel_experiments_,
@@ -311,7 +311,7 @@ void Controller::set_parallelization(const Circuit& circ) {
   auto circ_memory_mb = required_memory_mb(circ);
 
   if (max_memory_mb_ < circ_memory_mb)
-    throw std::runtime_error("a circuit requires more memory than available_memory.");
+    throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
 
   if (circ_memory_mb == 0)
     parallel_shots_ = max_parallel_threads_;
@@ -463,7 +463,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     result["metadata"]["omp_enabled"] = false;
   #endif
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
-    result["metadata"]["available_memory"] = max_memory_mb_;
+    result["metadata"]["max_memory_mb"] = max_memory_mb_;
 
     const int num_circuits = qobj.circuits.size();
 

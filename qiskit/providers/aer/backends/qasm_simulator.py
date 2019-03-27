@@ -43,7 +43,7 @@ class QasmSimulator(AerBackend):
             available memory, uses the statevector method. Otherwise, uses
             the ch method (Default: "automatic").
 
-        * "available_memory" (int): Set the amount of memory (in MB)
+        * "max_memory_mb" (int): Set the amount of memory (in MB)
         the simulator has access to (Default: Maximum available)
 
         * "initial_statevector" (vector_like): Sets a custom initial
