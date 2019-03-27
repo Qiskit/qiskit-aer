@@ -81,7 +81,7 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * - "available_memory" (int): Memory in MB available to the state class.
+ * - "max_memory_mb" (int): Memory in MB available to the state class.
  *      If specified, is divided by the number of parallel shots/experiments.
  *      [Default: 0]
  *
@@ -344,7 +344,7 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
           method = Method::ch_decomposition;
         } else {
           std::stringstream msg;
-          msg << "QasmController: Circuit cannot be run on any available backend. available_memory="
+          msg << "QasmController: Circuit cannot be run on any available backend. max_memory_mb="
               << max_memory_mb_ << "mb";
           throw std::runtime_error(msg.str());
         }

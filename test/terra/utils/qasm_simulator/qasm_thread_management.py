@@ -53,8 +53,8 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         system_memory = psutil.virtual_memory().total / 1024 / 1024
-        self.assertGreaterEqual(result.metadata['available_memory'], system_memory / 2, msg="statevector_memory is too small.")
-        self.assertLessEqual(result.metadata['available_memory'], system_memory, msg="statevector_memory is too big.")
+        self.assertGreaterEqual(result.metadata['max_memory_mb'], system_memory / 2, msg="statevector_memory is too small.")
+        self.assertLessEqual(result.metadata['max_memory_mb'], system_memory, msg="statevector_memory is too big.")
 
     def test_qasm_max_memory_specified(self):
         """test default max memory configuration"""
@@ -63,9 +63,9 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         experiments = multiprocessing.cpu_count()
         circuit = ref_qvolume.quantum_volume(4, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'available_memory': 128}
+        backend_opts = {'max_memory_mb': 128}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
-        self.assertEqual(result.metadata['available_memory'], 128, msg="available_memory is not configured correctly.")
+        self.assertEqual(result.metadata['max_memory_mb'], 128, msg="max_memory_mb is not configured correctly.")
 
     def test_qasm_auto_enable_parallel_experiments(self):
         """test default max memory configuration"""
@@ -76,7 +76,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         for i in range(experiments):
             circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True))
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1024}
+        backend_opts = {'max_parallel_experiments': experiments, 'max_memory_mb': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], multiprocessing.cpu_count(), msg="parallel_experiments should be multiprocessing.cpu_count()")
@@ -92,7 +92,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         for i in range(experiments):
             circuits.append(ref_qvolume.quantum_volume(16, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1}
+        backend_opts = {'max_parallel_experiments': experiments, 'max_memory_mb': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
@@ -110,7 +110,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         for i in range(experiments - 1):
             circuits.append(ref_qvolume.quantum_volume(4, depth=1, final_measure=True)) # 2 MB for each
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_experiments': experiments, 'available_memory': 1024}
+        backend_opts = {'max_parallel_experiments': experiments, 'max_memory_mb': 1024}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], multiprocessing.cpu_count() - 1, msg="parallel_experiments should be " + str(multiprocessing.cpu_count() - 1))
@@ -164,7 +164,7 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         shots = multiprocessing.cpu_count()
         circuit = ref_qvolume.quantum_volume(16, depth=1, final_measure=True)
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model(), 'available_memory': 1}
+        backend_opts = {'max_parallel_shots': shots, 'noise_model': self.dummy_noise_model(), 'max_memory_mb': 1}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], 1, msg="parallel_experiments should be 1")
