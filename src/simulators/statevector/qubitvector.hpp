@@ -200,7 +200,7 @@ public:
 
   // Apply a 1-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  void apply_matrix(const uint_t &qubit, const cvector_t &mat);
+  void apply_matrix(const uint_t qubit, const cvector_t &mat);
 
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
@@ -208,7 +208,7 @@ public:
 
   // Apply a 1-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
-  void apply_diagonal_matrix(const uint_t &qubit, const cvector_t &mat);
+  void apply_diagonal_matrix(const uint_t qubit, const cvector_t &mat);
 
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
@@ -258,7 +258,7 @@ public:
 
   // Return the Z-basis measurement outcome probabilities [P(0), P(1)]
   // for measurement of specified qubit
-  rvector_t probabilities(const uint_t &qubit) const;
+  rvector_t probabilities(const uint_t qubit) const;
 
   // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
   // for measurement of N-qubits.
@@ -284,7 +284,7 @@ public:
   // Return the norm for of the vector obtained after apply the 1-qubit
   // matrix mat to the vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  double norm(const uint_t &qubit, const cvector_t &mat) const;
+  double norm(const uint_t qubit, const cvector_t &mat) const;
 
   // Return the norm for of the vector obtained after apply the N-qubit
   // matrix mat to the vector.
@@ -294,7 +294,7 @@ public:
   // Return the norm for of the vector obtained after apply the 1-qubit
   // diagonal matrix mat to the vector.
   // The matrix is input as vector of the matrix diagonal.
-  double norm_diagonal(const uint_t &qubit, const cvector_t &mat) const;
+  double norm_diagonal(const uint_t qubit, const cvector_t &mat) const;
 
   // Return the norm for of the vector obtained after apply the N-qubit
   // diagonal matrix mat to the vector.
@@ -576,7 +576,7 @@ void QubitVector<data_t>::check_qubit(const uint_t qubit) const {
 
 template <typename data_t>
 void QubitVector<data_t>::check_matrix(const cvector_t &vec, uint_t nqubits) const {
-  const size_t DIM = 1ULL << nqubits;
+  const size_t DIM = BITS[nqubits];
   const auto SIZE = vec.size();
   if (SIZE != DIM * DIM) {
     std::string error = "QubitVector: vector size is " + std::to_string(SIZE) +
@@ -587,7 +587,7 @@ void QubitVector<data_t>::check_matrix(const cvector_t &vec, uint_t nqubits) con
 
 template <typename data_t>
 void QubitVector<data_t>::check_vector(const cvector_t &vec, uint_t nqubits) const {
-  const size_t DIM = 1ULL << nqubits;
+  const size_t DIM = BITS[nqubits];
   const auto SIZE = vec.size();
   if (SIZE != DIM) {
     std::string error = "QubitVector: vector size is " + std::to_string(SIZE) +
@@ -696,11 +696,11 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
                                        const reg_t& qubits_sorted,
                                        const uint_t k) const {
   const auto N = qubits_sorted.size();
-  indexes_t ret(new uint_t[1ULL << N]);
+  indexes_t ret(new uint_t[BITS[N]]);
   // Get index0
   ret[0] = index0(qubits_sorted, k);
   for (size_t i = 0; i < N; i++) {
-    const auto n = 1ULL << i;
+    const auto n = BITS[i];
     const auto bit = BITS[qubits[i]];
     for (size_t j = 0; j < n; j++)
       ret[n + j] = ret[j] | bit;
@@ -725,7 +725,7 @@ void QubitVector<data_t>::zero() {
 template <typename data_t>
 void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
   num_qubits_ = num_qubits;
-  data_size_ = 1ULL << num_qubits;
+  data_size_ = BITS[num_qubits];
 
   // Free any currently assigned memory
   if (data_)
@@ -885,9 +885,9 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
   check_qubit(qubit);
   #endif
 
-  const int_t END1 = data_size_;    // end for k1 loop
-  const int_t END2 = 1LL << qubit; // end for k2 loop
-  const int_t STEP1 = END2 << 1;    // step for k1 loop
+  const int_t END1 = data_size_;       // end for k1 loop
+  const int_t END2 = BITS[qubit];      // end for k2 loop
+  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
 #ifdef _WIN32
@@ -943,9 +943,9 @@ void QubitVector<data_t>::apply_matrix_lambda(Lambda&& func,
   check_qubit(qubit);
   #endif
 
-  const int_t END1 = data_size_;    // end for k1 loop
-  const int_t END2 = 1LL << qubit; // end for k2 loop
-  const int_t STEP1 = END2 << 1;    // step for k1 loop
+  const int_t END1 = data_size_;       // end for k1 loop
+  const int_t END2 = BITS[qubit];      // end for k2 loop
+  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
 #ifdef _WIN32
@@ -1019,9 +1019,9 @@ complex_t QubitVector<data_t>::apply_reduction_lambda(Lambda &&func,
   check_qubit(qubit);
   #endif
 
-  const int_t END1 = data_size_;    // end for k1 loop
-  const int_t END2 = 1LL << qubit; // end for k2 loop
-  const int_t STEP1 = END2 << 1;    // step for k1 loop
+  const int_t END1 = data_size_;       // end for k1 loop
+  const int_t END2 = BITS[qubit];      // end for k2 loop
+  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
 
   // Reduction variables
   double val_re = 0.;
@@ -1089,9 +1089,9 @@ complex_t QubitVector<data_t>::apply_matrix_reduction_lambda(Lambda &&func,
   check_qubit(qubit);
   #endif
 
-  const int_t END1 = data_size_;    // end for k1 loop
-  const int_t END2 = 1LL << qubit; // end for k2 loop
-  const int_t STEP1 = END2 << 1;    // step for k1 loop
+  const int_t END1 = data_size_;       // end for k1 loop
+  const int_t END2 = BITS[qubit];      // end for k2 loop
+  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
 
   // Reduction variables
   double val_re = 0.;
@@ -1187,7 +1187,7 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
     } // end switch
   }
   
-  const uint_t DIM = 1ULL << N;
+  const uint_t DIM = BITS[N];
   // Lambda function for N-qubit matrix multiplication
   auto lambda = [&](indexes_t inds, const cvector_t &_mat)->void {
     auto cache = std::make_unique<complex_t[]>(DIM);
@@ -1211,7 +1211,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
 
   const size_t N = qubits.size();
-  const uint_t DIM = 1ULL << N;
+  const uint_t DIM = BITS[N];
   // Error checking
   #ifdef DEBUG
   check_vector(diag, N);
@@ -1263,7 +1263,7 @@ void QubitVector<data_t>::apply_x(const uint_t qubit) {
   // Lambda function for optimized Pauli-X gate
   auto lambda = [&](const int_t &k1, const int_t &k2)->void {
     const auto i0 = k1 | k2;
-    const auto i1 = i0 | (1LL << qubit);
+    const auto i1 = i0 | BITS[qubit];
     std::swap(data_[i0], data_[i1]);
   };
   apply_lambda(lambda, qubit);
@@ -1275,7 +1275,7 @@ void QubitVector<data_t>::apply_y(const uint_t qubit) {
   const complex_t I(0., 1.);
   auto lambda = [&](const int_t &k1, const int_t &k2)->void {
     const auto i0 = k1 | k2;
-    const auto i1 = i0 | (1LL << qubit);
+    const auto i1 = i0 | BITS[qubit];
     const complex_t cache = data_[i0];
     data_[i0] = -I * data_[i1]; // mat(0,1)
     data_[i1] = I * cache;     // mat(1,0)
@@ -1287,7 +1287,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_z(const uint_t qubit) {
   // Lambda function for optimized Pauli-Z gate
   auto lambda = [&](const int_t &k1, const int_t &k2)->void {
-    data_[k1 | k2 | (1LL << qubit)] *= complex_t(-1.0, 0.0);
+    data_[k1 | k2 | BITS[qubit]] *= complex_t(-1.0, 0.0);
   };
   apply_lambda(lambda, qubit);
 }
@@ -1351,9 +1351,9 @@ void QubitVector<data_t>::apply_toffoli(const uint_t qubit_ctrl0,
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void QubitVector<data_t>::apply_matrix(const uint_t& qubit,
+void QubitVector<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t& mat) {
-  const int_t BIT = 1LL << qubit;
+  const int_t BIT = BITS[qubit];
   // Lambda function for single-qubit matrix multiplication
   auto lambda = [&](const int_t &k1, const int_t &k2,
                     const cvector_t &_mat)->void {
@@ -1367,10 +1367,10 @@ void QubitVector<data_t>::apply_matrix(const uint_t& qubit,
 }
 
 template <typename data_t>
-void QubitVector<data_t>::apply_diagonal_matrix(const uint_t& qubit,
+void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t& diag) {
   // TODO: This should be changed so it isn't checking doubles with ==
-  const int_t BIT = 1LL << qubit;
+  const int_t BIT = BITS[qubit];
   if (diag[0] == 1.0) {  // [[1, 0], [0, z]] matrix
     if (diag[1] == 1.0)
       return; // Identity
@@ -1472,8 +1472,8 @@ void QubitVector<data_t>::apply_matrix2(const reg_t& qubits, const cvector_t &vm
   auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
 
   int_t END = data_size_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
+  int_t step1 = BITS[sorted_qs[0]];
+  int_t step2 = BITS[sorted_qs[1]];
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
 #ifdef _WIN32
@@ -1510,12 +1510,12 @@ void QubitVector<data_t>::apply_matrix3(const reg_t& qubits, const cvector_t &vm
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
   auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 3;
+  const uint_t dim = BITS[3];
 
   int_t END = data_size_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
+  int_t step1 = BITS[sorted_qs[0]];
+  int_t step2 = BITS[sorted_qs[1]];
+  int_t step3 = BITS[sorted_qs[2]];
 
   int_t masks[] = {//
       0, //
@@ -1561,13 +1561,13 @@ void QubitVector<data_t>::apply_matrix4(const reg_t& qubits, const cvector_t &vm
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
   auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 4;
+  const uint_t dim = BITS[4];
 
   int_t END = data_size_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
-  int_t step4 = (1ULL << sorted_qs[3]);
+  int_t step1 = BITS[sorted_qs[0]];
+  int_t step2 = BITS[sorted_qs[1]];
+  int_t step3 = BITS[sorted_qs[2]];
+  int_t step4 = BITS[sorted_qs[3]];
 
   int_t masks[] = {//
       0, //
@@ -1623,14 +1623,14 @@ void QubitVector<data_t>::apply_matrix5(const reg_t &qubits, const cvector_t &vm
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
   auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 5;
+  const uint_t dim = BITS[5];
 
   int_t END = data_size_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
-  int_t step4 = (1ULL << sorted_qs[3]);
-  int_t step5 = (1ULL << sorted_qs[4]);
+  int_t step1 = BITS[sorted_qs[0]];
+  int_t step2 = BITS[sorted_qs[1]];
+  int_t step3 = BITS[sorted_qs[2]];
+  int_t step4 = BITS[sorted_qs[3]];
+  int_t step5 = BITS[sorted_qs[4]];
 
   int_t masks[] = {//
       0, //
@@ -1704,15 +1704,15 @@ void QubitVector<data_t>::apply_matrix6(const reg_t &qubits, const cvector_t &vm
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
   auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = 1ULL << 6;
+  const uint_t dim = BITS[6];
 
   int_t END = data_size_;
-  int_t step1 = (1ULL << sorted_qs[0]);
-  int_t step2 = (1ULL << sorted_qs[1]);
-  int_t step3 = (1ULL << sorted_qs[2]);
-  int_t step4 = (1ULL << sorted_qs[3]);
-  int_t step5 = (1ULL << sorted_qs[4]);
-  int_t step6 = (1ULL << sorted_qs[5]);
+  int_t step1 = BITS[sorted_qs[0]];
+  int_t step2 = BITS[sorted_qs[1]];
+  int_t step3 = BITS[sorted_qs[2]];
+  int_t step4 = BITS[sorted_qs[3]];
+  int_t step5 = BITS[sorted_qs[4]];
+  int_t step6 = BITS[sorted_qs[5]];
 
   int_t masks[] = {//
       0, //
@@ -1823,8 +1823,8 @@ void QubitVector<data_t>::swap_cols_and_rows(const uint_t idx1,
                                              cvector_t &mat,
                                              uint_t dim) const {
 
-  uint_t mask1 = (1UL << idx1);
-  uint_t mask2 = (1UL << idx2);
+  uint_t mask1 = BITS[idx1];
+  uint_t mask2 = BITS[idx2];
 
   for (uint_t first = 0; first < dim; ++first) {
     if ((first & mask1) && !(first & mask2)) {
@@ -1850,7 +1850,7 @@ cvector_t QubitVector<data_t>::sort_matrix(const reg_t& src,
                                            const cvector_t &mat) const {
 
   const uint_t N = src.size();
-  const uint_t DIM = 1ULL << N;
+  const uint_t DIM = BITS[N];
   auto ret = mat;
   auto current = src;
 
@@ -1898,7 +1898,7 @@ template <typename data_t>
 double QubitVector<data_t>::norm(const reg_t &qs, const cvector_t &mat) const {
 
   const uint_t N = qs.size();
-  const uint_t DIM = 1ULL << N;
+  const uint_t DIM = BITS[N];
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
@@ -1923,7 +1923,7 @@ template <typename data_t>
 double QubitVector<data_t>::norm_diagonal(const reg_t &qs, const cvector_t &mat) const {
 
   const uint_t N = qs.size();
-  const uint_t DIM = 1ULL << N;
+  const uint_t DIM = BITS[N];
 
   // Error checking
   #ifdef DEBUG
@@ -1947,7 +1947,7 @@ double QubitVector<data_t>::norm_diagonal(const reg_t &qs, const cvector_t &mat)
 // Single-qubit specialization
 //------------------------------------------------------------------------------
 template <typename data_t>
-double QubitVector<data_t>::norm(const uint_t &qubit, const cvector_t &mat) const {
+double QubitVector<data_t>::norm(const uint_t qubit, const cvector_t &mat) const {
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 2);
@@ -1958,7 +1958,7 @@ double QubitVector<data_t>::norm(const uint_t &qubit, const cvector_t &mat) cons
     (void)val_im; // unused;
     const auto k = k1 | k2;
     const auto cache0 = data_[k];
-    const auto cache1 = data_[k | (1LL << qubit)];
+    const auto cache1 = data_[k | BITS[qubit]];
     const auto v0 = _mat[0] * cache0 + _mat[2] * cache1;
     const auto v1 = _mat[1] * cache0 + _mat[3] * cache1;
     val_re += std::real(v0 * std::conj(v0)) + std::real(v1 * std::conj(v1));
@@ -1967,7 +1967,7 @@ double QubitVector<data_t>::norm(const uint_t &qubit, const cvector_t &mat) cons
 }
 
 template <typename data_t>
-double QubitVector<data_t>::norm_diagonal(const uint_t &qubit, const cvector_t &mat) const {
+double QubitVector<data_t>::norm_diagonal(const uint_t qubit, const cvector_t &mat) const {
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 1);
@@ -1978,7 +1978,7 @@ double QubitVector<data_t>::norm_diagonal(const uint_t &qubit, const cvector_t &
     (void)val_im; // unused;
     const auto k = k1 | k2;
     const auto v0 = _mat[0] * data_[k];
-    const auto v1 = _mat[1] * data_[k | (1LL << qubit)];
+    const auto v1 = _mat[1] * data_[k | BITS[qubit]];
     val_re += std::real(v0 * std::conj(v0)) + std::real(v1 * std::conj(v1));
   };
   return std::real(apply_matrix_reduction_lambda(lambda, qubit, mat));
@@ -2017,8 +2017,8 @@ template <typename data_t>
 rvector_t QubitVector<data_t>::probabilities(const reg_t &qs) const {
 
   const size_t N = qs.size();
-  const uint_t DIM = 1ULL << N;
-  const uint_t END = (1ULL << num_qubits_) >> N;
+  const uint_t DIM = BITS[N];
+  const uint_t END = BITS[num_qubits_ - N];
 
   // Error checking
   #ifdef DEBUG
@@ -2049,7 +2049,7 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qs) const {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-rvector_t QubitVector<data_t>::probabilities(const uint_t &qubit) const {
+rvector_t QubitVector<data_t>::probabilities(const uint_t qubit) const {
 
   // Error handling
   #ifdef DEBUG
@@ -2062,7 +2062,7 @@ rvector_t QubitVector<data_t>::probabilities(const uint_t &qubit) const {
                     double &val_p0, double &val_p1)->void {
     const auto k = k1 | k2;
     val_p0 += probability(k);
-    val_p1 += probability(k | (1LL << qubit));
+    val_p1 += probability(k | BITS[qubit]);
   };
   auto p0p1 = apply_reduction_lambda(lambda, qubit);
   return rvector_t({std::real(p0p1), std::imag(p0p1)});
@@ -2081,7 +2081,7 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
   samples.assign(SHOTS, 0);
 
   const int INDEX_SIZE = sample_measure_index_size_;
-  const int_t INDEX_END = 1LL << INDEX_SIZE;
+  const int_t INDEX_END = BITS[INDEX_SIZE];
   // Qubit number is below index size, loop over shots
   if (END < INDEX_END) {
     #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
@@ -2104,13 +2104,12 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
   else {
     // Initialize indexes
     std::vector<double> idxs;
-    idxs.assign((1 << INDEX_SIZE), .0);
+    idxs.assign(INDEX_END, 0.0);
     uint_t loop = (END >> INDEX_SIZE);
-
     #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     {
       #pragma omp for
-      for (int_t i = 0; i < (1 << INDEX_SIZE); ++i) {
+      for (int_t i = 0; i < INDEX_END; ++i) {
         uint_t base = loop * i;
         double total = .0;
         double p = .0;
