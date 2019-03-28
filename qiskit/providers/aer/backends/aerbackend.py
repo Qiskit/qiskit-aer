@@ -18,7 +18,7 @@ from numpy import ndarray
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
-from qiskit.qobj import QobjConfig
+from qiskit.qobj import QasmQobjConfig
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
@@ -124,7 +124,7 @@ class AerBackend(BaseBackend):
 
         # Add runtime config
         config['library_dir'] = self.configuration().library_dir
-        qobj.config = QobjConfig.from_dict(config)
+        qobj.config = QasmQobjConfig.from_dict(config)
         # Get the JSON serialized string
         output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
         # Revert original qobj
