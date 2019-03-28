@@ -243,6 +243,15 @@ public:
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
 
+  // Apply multi-controlled X-gate
+  void apply_mcx(const reg_t &qubits);
+
+  // Apply multi-controlled Y-gate
+  void apply_mcy(const reg_t &qubits);
+
+  // Apply multi-controlled Z-gate
+  void apply_mcz(const reg_t &qubits);
+  
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -1295,6 +1304,48 @@ void QubitVector<data_t>::apply_z(const uint_t qubit) {
     data_[k1 | k2 | BITS[qubit]] *= complex_t(-1.0, 0.0);
   };
   apply_lambda(lambda, qubit);
+}
+
+//------------------------------------------------------------------------------
+// Multi-controlled gates
+//------------------------------------------------------------------------------
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  // Lambda function for CNOT gate
+  auto lambda = [&](indexes_t inds)->void {
+    std::swap(data_[inds[pos0]], data_[inds[pos1]]);
+  };
+  apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  const complex_t I(0., 1.);
+  // Lambda function for CNOT gate
+  auto lambda = [&](indexes_t inds)->void {
+    const complex_t cache = data_[inds[pos0]];
+    data_[inds[pos0]] = -I * data_[inds[pos1]];
+    data_[inds[pos1]] = I * cache;
+  };
+  apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
+  // Multiply last block index by -1
+  auto lambda = [&](indexes_t inds)->void {
+     data_[inds[MASKS[qubits.size()]]] *= -1.;
+  };
+  apply_lambda(lambda, qubits);
 }
 
 //------------------------------------------------------------------------------
