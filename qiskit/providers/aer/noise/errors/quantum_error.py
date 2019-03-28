@@ -111,7 +111,7 @@ class QuantumError:
         """Print error information."""
         output = "QuantumError on {} qubits. Noise circuits:".format(self._number_of_qubits)
         for j, pair in enumerate(zip(self.probabilities, self.circuits)):
-            output += "\n  P({0}) = {1}, QobjInstructions = [{2}".format(j, pair[0], pair[1])
+            output += "\n  P({0}) = {1}, QasmQobjInstructions = [{2}".format(j, pair[0], pair[1])
         return output
 
     @property
