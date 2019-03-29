@@ -222,15 +222,6 @@ public:
   // Apply Specialized Gates
   //-----------------------------------------------------------------------
 
-  // Apply a 2-qubit Controlled-NOT gate to the state vector
-  void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
-
-  // Apply a 2-qubit Controlled-Z gate to the state vector
-  void apply_cz(const uint_t q0, const uint_t q1);
-
-  // Apply a 2-qubit SWAP gate to the state vector
-  void apply_swap(const uint_t q0, const uint_t q1);
-
   // Apply a single-qubit Pauli-X gate to the state vector
   void apply_x(const uint_t qubit);
 
@@ -240,8 +231,8 @@ public:
   // Apply a single-qubit Pauli-Z gate to the state vector
   void apply_z(const uint_t qubit);
 
-  // Apply a 3-qubit toffoli gate
-  void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
+  // Apply a 2-qubit SWAP gate to the state vector
+  void apply_swap(const uint_t q0, const uint_t q1);
 
   // Apply multi-controlled X-gate
   void apply_mcx(const reg_t &qubits);
@@ -1349,19 +1340,8 @@ void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
 }
 
 //------------------------------------------------------------------------------
-// Two-qubit gates
+// Swap gates
 //------------------------------------------------------------------------------
-
-template <typename data_t>
-void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-  // Lambda function for CNOT gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    std::swap(data_[inds[1]], data_[inds[3]]);
-  };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
-  apply_lambda(lambda, qubits);
-}
 
 template <typename data_t>
 void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
@@ -1371,34 +1351,6 @@ void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
   };
   // Use the lambda function
   const reg_t qubits = {qubit0, qubit1};
-  apply_lambda(lambda, qubits);
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-
-  // Lambda function for CZ gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    data_[inds[3]] *= -1.;
-  };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
-  apply_lambda(lambda, qubits);
-}
-
-//------------------------------------------------------------------------------
-// Three-qubit gates
-//------------------------------------------------------------------------------
-template <typename data_t>
-void QubitVector<data_t>::apply_toffoli(const uint_t qubit_ctrl0,
-                                const uint_t qubit_ctrl1,
-                                const uint_t qubit_trgt) {
-  // Lambda function for Toffoli gate
-  auto lambda = [&](const indexes_t &inds)->void {
-      std::swap(data_[inds[3]], data_[inds[7]]);
-  };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl0, qubit_ctrl1, qubit_trgt};
   apply_lambda(lambda, qubits);
 }
 
