@@ -24,8 +24,8 @@ namespace Statevector {
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  cx, cz, swap, // two qubit
-  ccx // three qubit
+  cx, cy, cz, swap, // two qubit
+  ccx, mcx, mcy, mcz // multi-qubit controlled
 };
 
 // Allowed snapshots enum class
@@ -72,8 +72,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
+            "mcx", "mcz", "mcy"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -266,14 +267,17 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
   {"u2", Gates::u2},     // single-X90 pulse waltz gate
   {"u3", Gates::u3},     // two X90 pulse waltz gate
-  {"U", Gates::u3},      // two X90 pulse waltz gate
   // Two-qubit gates
-  {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
+  {"cy", Gates::cy},     // Controlled-Y gate
   {"cz", Gates::cz},     // Controlled-Z gate
   {"swap", Gates::swap}, // SWAP gate
-  // Three-qubit gates
-  {"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
+  // Multi-qubit controlled gates
+  {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
+  {"mcx", Gates::mcx},   // Multi-controlled-X gate
+  {"mcy", Gates::mcy},   // Multi-controlled-Y gate
+  {"mcz", Gates::mcz}    // Multi-controlled-Z gate
+
 });
 
 
@@ -619,10 +623,17 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
-      BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+    case Gates::ccx:
+    case Gates::mcx:
+      BaseState::qreg_.apply_mcx(op.qubits);
+      break;
+    case Gates::cy:
+    case Gates::mcy:
+      BaseState::qreg_.apply_mcy(op.qubits);
       break;
     case Gates::cz:
-      BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+    case Gates::mcz:
+      BaseState::qreg_.apply_mcz(op.qubits);
       break;
     case Gates::id:
       break;
@@ -655,9 +666,6 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     case Gates::swap: {
       BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
     } break;
-    case Gates::ccx:
-      BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +
