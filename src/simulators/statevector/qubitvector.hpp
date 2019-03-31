@@ -31,6 +31,7 @@ using indexes_t = std::unique_ptr<uint_t[]>;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
+template <size_t N> using areg_t = std::array<uint_t, N>;
 
 //============================================================================
 // BIT MASKS and indexing
@@ -163,7 +164,11 @@ public:
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
   // qubits specifies the location of the qubits in the retured strings.
   // NOTE: since the return is a unique_ptr it cannot be copied.
-  indexes_t indexes(const reg_t & qubits, const reg_t &qubits_sorted, const uint_t k) const;
+  indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k) const;
+
+  // State initialization of a component
+  template <size_t N>
+  void initialize_component(const areg_t<N> &qs, const cvector_t &state);
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -706,6 +711,25 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
       ret[n + j] = ret[j] | bit;
   }
   return ret;
+}
+
+//------------------------------------------------------------------------------
+// State initialize component
+//------------------------------------------------------------------------------
+template <typename data_t>
+template <size_t N>
+void QubitVector<data_t>::initialize_component(const areg_t<N> &qs, const cvector_t &state) {
+
+  // Lambda function for initializing component
+  auto lambda = [&](const areg_t<1ULL << N> &inds, const cvector_t &_state)->void {
+    const uint_t DIM = 1ULL << N;
+    complex_t cache = inds[0];  // the k-th component of non-initialized vector
+    for (size_t i = 0; i < DIM; i++) {
+      data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
+    }
+  };
+  // Use the lambda function
+  apply_matrix_lambda(lambda, qs, state);
 }
 
 //------------------------------------------------------------------------------
