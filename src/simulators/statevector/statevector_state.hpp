@@ -749,6 +749,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_reset(const reg_t &qubits,
                                     RngEngine &rng) {
+   // DEBUG
    std::cout << "In apply_reset function - qubits:\n";
    std::cout << qubits;
    std::cout << "\n";
@@ -779,6 +780,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
+  // DEBUG
   std::cout << "in measure_reset_update - qubits\n";
   std::cout << qubits << "\n";
   std::cout << final_state << " " << meas_state << " " << meas_prob << "\n";
@@ -801,6 +803,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
+    // DEBUG
     std::cout << mdiag << "\n";
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
     std::cout << mdiag << "\n";
