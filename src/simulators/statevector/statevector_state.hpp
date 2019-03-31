@@ -148,6 +148,12 @@ protected:
   // then discarding the outcome.
   void apply_reset(const reg_t &qubits, RngEngine &rng);
 
+  // Initialize the specified qubits to a given state |psi>
+  // by applying a reset to the these qubits and then
+  // computing the tensor product with the new state |psi>
+  // /psi> is given in params
+  void apply_initialize(const reg_t &qubits, const cvector_t &params, RngEngine &rng);
+
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
@@ -391,6 +397,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
+        break;
+      case Operations::OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
         break;
       case Operations::OpType::measure:
         apply_measure(op.qubits, op.memory, op.registers, rng);
@@ -697,7 +706,7 @@ void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
 
 
 //=========================================================================
-// Implementation: Reset and Measurement Sampling
+// Implementation: Reset, Initialize and Measurement Sampling
 //=========================================================================
 
 template <class statevec_t>
@@ -759,7 +768,7 @@ void State<statevec_t>::apply_reset(const reg_t &qubits,
    std::cout << "meas:\n";
    std::cout << meas.first << " " << meas.second;
    std::cout << "\n";
-  // Apply update tp reset state
+  // Apply update to reset state
   measure_reset_update(qubits, 0, meas.first, meas.second);
 }
 
@@ -827,6 +836,17 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   }
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_initialize(const reg_t &qubits,
+                                         const cvector_t &,
+                                         RngEngine &rng) {
+   // DEBUG
+   std::cout << "In apply_initialize function - qubits:\n";
+   std::cout << qubits;
+   std::cout << "\n";
+   // Apply reset to qubits
+   apply_reset(qubits, rng);
+}
 
 //=========================================================================
 // Implementation: Kraus Noise
