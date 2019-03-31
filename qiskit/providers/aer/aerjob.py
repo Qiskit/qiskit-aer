@@ -70,7 +70,7 @@ class AerJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        #validate_qobj_against_schema(self._qobj)
+        validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
                                              *self._args)
 
