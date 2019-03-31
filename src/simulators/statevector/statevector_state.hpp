@@ -61,6 +61,7 @@ public:
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,
+      Operations::OpType::initialize,
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
@@ -748,9 +749,14 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_reset(const reg_t &qubits,
                                     RngEngine &rng) {
-
+   std::cout << "In apply_reset function - qubits:\n";
+   std::cout << qubits;
+   std::cout << "\n";
   // Simulate unobserved measurement
   const auto meas = sample_measure_with_prob(qubits, rng);
+   std::cout << "meas:\n";
+   std::cout << meas.first << " " << meas.second;
+   std::cout << "\n";
   // Apply update tp reset state
   measure_reset_update(qubits, 0, meas.first, meas.second);
 }
@@ -773,12 +779,17 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
+  std::cout << "in measure_reset_update - qubits\n";
+  std::cout << qubits << "\n";
+  std::cout << final_state << " " << meas_state << " " << meas_prob << "\n";
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
+    std::cout << mdiag << "\n" ;
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
     apply_matrix(qubits, mdiag);
+    std::cout << mdiag << "\n";
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
@@ -790,7 +801,9 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
+    std::cout << mdiag << "\n";
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    std::cout << mdiag << "\n";
     apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
