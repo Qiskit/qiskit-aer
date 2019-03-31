@@ -754,6 +754,7 @@ void State<statevec_t>::apply_reset(const reg_t &qubits,
    std::cout << qubits;
    std::cout << "\n";
   // Simulate unobserved measurement
+  // DEBUG
   const auto meas = sample_measure_with_prob(qubits, rng);
    std::cout << "meas:\n";
    std::cout << meas.first << " " << meas.second;
