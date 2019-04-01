@@ -31,7 +31,6 @@ using indexes_t = std::unique_ptr<uint_t[]>;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
-template <size_t N> using areg_t = std::array<uint_t, N>;
 
 //============================================================================
 // BIT MASKS and indexing
@@ -168,7 +167,7 @@ public:
 
   // State initialization of a component
   template <size_t N>
-  void initialize_component(const areg_t<N> &qs, const cvector_t &state);
+  void initialize_component(const reg_t &qubits, const cvector_t &state);
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -721,10 +720,10 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
 //------------------------------------------------------------------------------
 template <typename data_t>
 template <size_t N>
-void QubitVector<data_t>::initialize_component(const areg_t<N> &qs, const cvector_t &state) {
+void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t &state) {
 
   // Lambda function for initializing component
-  auto lambda = [&](const areg_t<1ULL << N> &inds, const cvector_t &_state)->void {
+  auto lambda = [&](const reg_t &inds, const cvector_t &_state)->void {
     const uint_t DIM = 1ULL << N;
     complex_t cache = inds[0];  // the k-th component of non-initialized vector
     for (size_t i = 0; i < DIM; i++) {
@@ -732,7 +731,7 @@ void QubitVector<data_t>::initialize_component(const areg_t<N> &qs, const cvecto
     }
   };
   // Use the lambda function
-  apply_matrix_lambda(lambda, qs, state);
+  apply_matrix_lambda(lambda, qubits, state);
 }
 
 //------------------------------------------------------------------------------
