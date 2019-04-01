@@ -243,6 +243,9 @@ public:
   // Apply multi-controlled Z-gate
   void apply_mcz(const reg_t &qubits);
   
+  // Apply multi-controlled single-qubit unitary gate
+  void apply_mcu(const reg_t &qubits, const cvector_t &mat);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -1339,6 +1342,23 @@ void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
   apply_lambda(lambda, qubits);
 }
 
+template <typename data_t>
+void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
+                                    const cvector_t &mat) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  // Lambda function for CNOT gate
+  auto lambda = [&](const indexes_t &inds,
+                    const cvector_t &_mat)->void {
+    const auto cache = data_[pos0];
+    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
+    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+  };
+  apply_matrix_lambda(lambda, qubits, mat);
+}
+
 //------------------------------------------------------------------------------
 // Swap gates
 //------------------------------------------------------------------------------
@@ -1374,11 +1394,11 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
   const int_t BIT = BITS[qubit];
   auto lambda = [&](const int_t k1, const int_t k2,
                     const cvector_t &_mat)->void {
-    const auto k = k1 | k2;
-    const auto cache0 = data_[k];
-    const auto cache1 = data_[k | BIT];
-    data_[k] = _mat[0] * cache0 + _mat[2] * cache1;
-    data_[k | BIT] = _mat[1] * cache0 + _mat[3] * cache1;
+    const auto pos0 = k1 | k2;
+    const auto pos1 = pos0 | BIT;
+    const auto cache = data_[pos0];
+    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
+    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
   };
   apply_matrix_lambda(lambda, qubit, mat);
 }
