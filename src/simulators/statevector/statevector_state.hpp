@@ -25,7 +25,7 @@ namespace Statevector {
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
   cx, cy, cz, swap, // two qubit
-  ccx, mcx, mcy, mcz // multi-qubit controlled
+  ccx, mcx, mcy, mcz, mcu1, mcu2, mcu3 // multi-qubit controlled
 };
 
 // Allowed snapshots enum class
@@ -74,7 +74,7 @@ public:
   virtual stringset_t allowed_gates() const override {
     return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy"};
+            "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -219,11 +219,22 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply a waltz gate specified by parameters u3(theta, phi, lambda)
-  void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
+  void apply_gate_u3(const uint_t qubit,
+                     const double theta,
+                     const double phi,
                      const double lambda);
 
   // Optimize phase gate with diagonal [1, phase]
   void apply_gate_phase(const uint_t qubit, const complex_t phase);
+
+  //-----------------------------------------------------------------------
+  // Multi-controlled u3
+  //-----------------------------------------------------------------------
+  
+  void apply_gate_mcu3(const reg_t& qubits,
+                       const double theta,
+                       const double phi,
+                       const double lambda);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -276,7 +287,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
   {"mcx", Gates::mcx},   // Multi-controlled-X gate
   {"mcy", Gates::mcy},   // Multi-controlled-Y gate
-  {"mcz", Gates::mcz}    // Multi-controlled-Z gate
+  {"mcz", Gates::mcz},   // Multi-controlled-Z gate
+  {"mcu1", Gates::mcu1}, // Multi-controlled-u1
+  {"mcu2", Gates::mcu2}, // Multi-controlled-u2
+  {"mcu3", Gates::mcu3}  // Multi-controlled-u3
 
 });
 
@@ -666,6 +680,22 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     case Gates::swap: {
       BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
     } break;
+    case Gates::mcu3:
+      apply_gate_mcu3(op.qubits,
+                      std::real(op.params[0]),
+                      std::real(op.params[1]),
+                      std::real(op.params[2]));
+      break;
+    case Gates::mcu2:
+      apply_gate_mcu3(op.qubits,
+                      M_PI / 2.,
+                      std::real(op.params[0]),
+                      std::real(op.params[1]));
+      break;
+    case Gates::mcu1:
+      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      break;
+
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +
@@ -692,8 +722,20 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
+void State<statevec_t>::apply_gate_u3(uint_t qubit,
+                                      double theta,
+                                      double phi,
+                                      double lambda) {
   apply_matrix(reg_t({qubit}), Utils::Matrix::U3(theta, phi, lambda));
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
+                                        double theta,
+                                        double phi,
+                                        double lambda) {
+  const auto u3 = Utils::Matrix::U3(theta, phi, lambda);
+  BaseState::qreg_.apply_mcu(qubits, Utils::vectorize_matrix(u3));
 }
 
 template <class statevec_t>
