@@ -1498,11 +1498,11 @@ void QubitVector<data_t>::apply_matrix2(const reg_t& qubits, const cvector_t &vm
           const complex_t psi1 = data_[t1];
           const complex_t psi2 = data_[t2];
           const complex_t psi3 = data_[t3];
-
-          data_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[1] + psi2 * sorted_vmat[2] + psi3 * sorted_vmat[3];
-          data_[t1] = psi0 * sorted_vmat[4] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[6] + psi3 * sorted_vmat[7];
-          data_[t2] = psi0 * sorted_vmat[8] + psi1 * sorted_vmat[9] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[11];
-          data_[t3] = psi0 * sorted_vmat[12] + psi1 * sorted_vmat[13] + psi2 * sorted_vmat[14] + psi3 * sorted_vmat[15];
+          // data_[t_i] = sum_j mat[i + 4 * j] * psi[j]
+          data_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[4] + psi2 * sorted_vmat[8] + psi3 * sorted_vmat[12];
+          data_[t1] = psi0 * sorted_vmat[1] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[9] + psi3 * sorted_vmat[13];
+          data_[t2] = psi0 * sorted_vmat[2] + psi1 * sorted_vmat[6] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[14];
+          data_[t3] = psi0 * sorted_vmat[3] + psi1 * sorted_vmat[7] + psi2 * sorted_vmat[11] + psi3 * sorted_vmat[15];
         }
       }
     }
