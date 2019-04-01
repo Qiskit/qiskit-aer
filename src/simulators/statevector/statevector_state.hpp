@@ -61,6 +61,7 @@ public:
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,
+      Operations::OpType::initialize,
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
@@ -147,6 +148,12 @@ protected:
   // a measurement, applying a conditional x-gate if the outcome is 1, and
   // then discarding the outcome.
   void apply_reset(const reg_t &qubits, RngEngine &rng);
+
+  // Initialize the specified qubits to a given state |psi>
+  // by applying a reset to the these qubits and then
+  // computing the tensor product with the new state |psi>
+  // /psi> is given in params
+  void apply_initialize(const reg_t &qubits, const cvector_t &params, RngEngine &rng);
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
@@ -408,6 +415,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
+        break;
+      case Operations::OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
         break;
       case Operations::OpType::measure:
         apply_measure(op.qubits, op.memory, op.registers, rng);
@@ -746,7 +756,7 @@ void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
 
 
 //=========================================================================
-// Implementation: Reset and Measurement Sampling
+// Implementation: Reset, Initialize and Measurement Sampling
 //=========================================================================
 
 template <class statevec_t>
@@ -798,10 +808,17 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_reset(const reg_t &qubits,
                                     RngEngine &rng) {
-
+   // DEBUG
+   std::cout << "In apply_reset function - qubits:\n";
+   std::cout << qubits;
+   std::cout << "\n";
   // Simulate unobserved measurement
+  // DEBUG
   const auto meas = sample_measure_with_prob(qubits, rng);
-  // Apply update tp reset state
+   std::cout << "meas:\n";
+   std::cout << meas.first << " " << meas.second;
+   std::cout << "\n";
+  // Apply update to reset state
   measure_reset_update(qubits, 0, meas.first, meas.second);
 }
 
@@ -823,12 +840,18 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
+  // DEBUG
+  std::cout << "in measure_reset_update - qubits\n";
+  std::cout << qubits << "\n";
+  std::cout << final_state << " " << meas_state << " " << meas_prob << "\n";
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
+    std::cout << mdiag << "\n" ;
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
     apply_matrix(qubits, mdiag);
+    std::cout << mdiag << "\n";
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
@@ -840,7 +863,10 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
+    // DEBUG
+    std::cout << mdiag << "\n";
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    std::cout << mdiag << "\n";
     apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
@@ -860,6 +886,19 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   }
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_initialize(const reg_t &qubits,
+                                         const cvector_t &params,
+                                         RngEngine &rng) {
+   // DEBUG
+   std::cout << "In apply_initialize function - qubits:\n";
+   std::cout << qubits;
+   std::cout << "\n";
+   // Apply reset to qubits
+   apply_reset(qubits, rng);
+   // DEBUG
+   // BaseState::qreg_.initialize_component(qubits, params);
+}
 
 //=========================================================================
 // Implementation: Kraus Noise
