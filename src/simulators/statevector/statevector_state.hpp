@@ -838,7 +838,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
-                                         const cvector_t &,
+                                         const cvector_t &params,
                                          RngEngine &rng) {
    // DEBUG
    std::cout << "In apply_initialize function - qubits:\n";
@@ -846,6 +846,8 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
    std::cout << "\n";
    // Apply reset to qubits
    apply_reset(qubits, rng);
+   // DEBUG
+   // BaseState::qreg_.initialize_component(qubits, params);
 }
 
 //=========================================================================
