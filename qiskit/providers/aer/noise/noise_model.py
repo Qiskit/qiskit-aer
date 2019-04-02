@@ -397,7 +397,7 @@ class NoiseModel:
     def basis_gates(self):
         """Return basis_gates for compiling to the noise model."""
         # Convert noise instructions to basis_gates string
-        return ",".join(self._basis_gates)
+        return list(self._basis_gates)
 
     def as_dict(self):
         """
