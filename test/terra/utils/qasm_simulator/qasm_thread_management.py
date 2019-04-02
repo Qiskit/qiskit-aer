@@ -52,8 +52,8 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         qobj = compile(circuit, self.SIMULATOR, shots=shots)
         backend_opts = {}
         result = self.SIMULATOR.run(qobj, backend_options=backend_opts).result()
-        system_memory = psutil.virtual_memory().total / 1024 / 1024
-        self.assertGreaterEqual(result.metadata['max_memory_mb'], system_memory / 2, msg="statevector_memory is too small.")
+        system_memory = int(psutil.virtual_memory().total / 1024 / 1024)
+        self.assertGreaterEqual(result.metadata['max_memory_mb'], int(system_memory / 2), msg="statevector_memory is too small.")
         self.assertLessEqual(result.metadata['max_memory_mb'], system_memory, msg="statevector_memory is too big.")
 
     def test_qasm_max_memory_specified(self):
@@ -115,7 +115,6 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         if result.metadata['omp_enabled']:
             self.assertEqual(result.metadata['parallel_experiments'], multiprocessing.cpu_count() - 1, msg="parallel_experiments should be " + str(multiprocessing.cpu_count() - 1))
             self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_shots'], 1, msg="parallel_shots must be 1")
-            self.assertEqual(result.to_dict()['results'][0]['metadata']['parallel_state_update'], 1, msg="parallel_state_update should be 1")
 
     def test_qasm_auto_enable_shot_parallelization(self):
         """test explicit shot parallelization"""
