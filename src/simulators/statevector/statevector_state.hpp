@@ -20,7 +20,10 @@
 
 namespace AER {
 namespace Statevector {
-  
+
+// Type aliases - DEBUG
+using indexes_t = std::unique_ptr<uint_t[]>;
+
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
@@ -897,6 +900,26 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
    // Apply reset to qubits
    apply_reset(qubits, rng);
    // DEBUG
+   // uint_t k;
+   //std::cout << "Please enter an integer value k: ";
+   //std::cin >> k;
+   for (uint_t k=0; k<100; k++) {
+     uint_t out = BaseState::qreg_.index0(qubits, k);
+     std::cout << "Apply index0: ";
+     std::cout << "k=" << k << " out=" << out;
+     std::cout << "\n";
+   }
+   std::cout << "---------------------------------\n";
+
+   // uint_t[]* outinds;
+   for (uint_t k=0; k<100; k++) {
+     indexes_t outinds;
+     BaseState::qreg_.indexes(qubits, qubits, k).swap(outinds);
+     std::cout << "Apply indexes: ";
+     std::cout << "k=" << k << " out=" << (outinds.get())[0] << " " << (outinds.get())[1] << " " << (outinds.get())[2] << " " << (outinds.get())[3];
+     std::cout << "\n";
+   }
+   // Apply initialize_component
    // BaseState::qreg_.initialize_component(qubits, params);
 }
 
