@@ -1,30 +1,26 @@
 # Contributing
 
-**We appreciate all kinds of help, so thank you!**
+We appreciate all kinds of help, so thank you!
 
-## Contributing to the project
-
-You can contribute in many ways to this project.
-
-### Issue reporting
+## Issue Reporting
 
 This is a good point to start, when you find a problem please add
-it to the `issue tracker <https://github.com/Qiskit/qiskit-aer/issues>`_.
+it to the [issue tracker](<https://github.com/Qiskit/qiskit-aer/issues).
 The ideal report should include the steps to reproduce it.
 
-### Doubts solving
+## Doubts Solving
 
 To help less advanced users is another wonderful way to start. You can
 help us close some opened issues. This kind of tickets should be
-labeled as ``question``.
+labeled as `question`.
 
-### Improvement proposal
+## Improvement Proposal
 
 If you have an idea for a new feature please open a ticket labeled as
-``enhancement``. If you could also add a piece of code with the idea
+`enhancement`. If you could also add a piece of code with the idea
 or a partial implementation it would be awesome.
 
-### Contributor License Agreement
+## Contributor License Agreement
 
 
 We'd love to accept your code! Before we can, we have to get a few legal
@@ -34,151 +30,191 @@ ensure that the community is free to use your contributions.
 When you contribute to the Qiskit project with a new pull request, a bot will
 evaluate whether you have signed the CLA. If required, the bot will comment on
 the pull request,  including a link to accept the agreement. The
-`individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`_ document is
+[individual CLA](https://qiskit.org/license/qiskit-cla.pdf) document is
 available for review as a PDF.
 
-NOTE: If you work for a company that wants to allow you to contribute your work,
-then you'll need to sign a `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`_
-and email it to us at qiskit@us.ibm.com.
-
-
-### Pre-requisites
-
-
-Most of the required dependencies can be installed via ``pip``, using the
-``requirements-dev.txt`` file, eg:
-
-```
-pip install -U -r requirements-dev.txt
-```
-
-As we are dealing with languages that build to native binaries, we will
-need to have installed any of the `supported CMake build tools <https://cmake.org/cmake/help/v3.5/manual/cmake-generators.7.html>`_.
-
-We do support most of the common available toolchains like: gcc, clang, Visual Studio.
-The only required requisite is that the toolchain needs to support C++14.
-
-**Mac**
-
-On Mac we have various options depending on the compiler we want to use.
-If we want to use Apple's Clang compiler, we need to install an extra library for
-supporting OpenMP: libomp. The CMake build system will warn you otherwise.
-To install it manually:
-you can type:
-
-```
-$ brew install libomp
-```
-
-We do recommend installing OpenBLAS, which is our default choice:
-
-```
-$ brew install openblas
-```
-
-CMake build system will search for other BLAS implementation alternatives if
-OpenBLAS is not installed in the system.
-
-You further need to have Command Line Tools installed on MacOS:
-
-```
-$ xcode-select --install
-```
-
-
-**Linux (Ubuntu >= 16.04)**
-
-Most of the major distributions come with a BLAS and LAPACK library implementation,
-and this is enough to build all the simulators, but we do recommend using OpenBLAS
-here as well, so in order to install it you have to type:
-
-```
-$ sudo apt install libopenblas-dev
-```
-
-**Windows**
-
-On Windows you must have Anaconda3 installed in the system, and We recommend installing
-Visual Studio 2017 (Communit Edition).
-The same rules applies when searching for an OpenBLAS implementation, if CMake can't
-find one suitable implementation installed in the system, it will take the BLAS
-library from the Anaconda3 environment.
+> Note: If you work for a company that wants to allow you to contribute your
+> work, then you'll need to sign a [corporate
+> CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) and email it to us
+> at qiskit@us.ibm.com.  
 
 
 
+## Install from Source
 
-### Building
+>  Note: The following are prerequisites for all operating systems
+
+We recommend using Python virtual environments to cleanly separate Qiskit from
+other applications and improve your experience.
+
+The simplest way to use environments is by using **Anaconda** in a terminal
+window
+
+    conda create -y -n QiskitDevEnv python=3
+    source activate QiskitDevEnv
+
+Clone the Qiskit Aer repo via **git**.
+
+    git clone https://github.com/Qiskit/qiskit-aer
+
+Most of the required dependencies can be installed via **pip**, using the
+`requirements-dev.txt` file, e.g.:
+
+    cd qiskit-aer
+    pip install -r requirements-dev.txt
 
 
-There are two ways of building Aer simulators, depending on our goal they are:
-1. Build Terra compatible addon.
-2. Build standalone executable
+### Linux
 
-**Terra addon**
+Qiskit is supported on Ubuntu >= 16.04. To get most of the necessary compilers
+and libraries, install the `build-essential` package by running
 
-For the former, we just need to call the ``setup.py`` script:
+    sudo apt install build-essential
 
-```
-qiskit-aer$ python ./setup.py bdist_wheel
-```
+Although the **BLAS** and **LAPACK** library implementations included in the
+`build-essential` package are sufficient to build all of the Aer simulators, we
+recommend using **OpenBLAS**, which you can install by running
 
-We are using `scikit-build <https://scikit-build.readthedocs.io/en/latest/>`_ as a substitute of `setuptools`.
-This is basically the glue between ``setuptools`` and ``CMake``, so there are various options to pass variables to ``CMake``, and 
-the undelying build system (depending on your platform). The way to pass variables is:
+    sudo apt install libopenblas-dev
 
-```
-qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -Makefile_or_VisuaStudio_Flag
-```
+There are two ways of building Aer simulators, depending on your goal:
+
+1. Build a Terra compatible add-on;
+2. Build a standalone executable.
+
+**Terra Add-on**
+
+For the former, we just need to call the `setup.py` script:
+
+    qiskit-aer$ python ./setup.py bdist_wheel
+
+We are using **scikit-build** as a substitute for **setuptools**. This is
+basically the glue between **setuptools** and **CMake**, so there are various
+options to pass variables to **CMake**, and the underlying build system
+(depending on your platform). The way to pass variables is:
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -
+    Makefile_Flag
 
 So a real example could be:
 
-```
-qiskit-aer$ python ./setup.py bdist_wheel -- -j8
-```
-    
-This is setting the CMake variable ``STATIC_LINKING`` to value ``True`` so CMake will try to create an statically linked cython
-library, and is passing ``-j8`` flag to the underlaying build system, which in this case is Makefile, telling it that we want to
-build in parallel, using 8 processes.
+    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
 
-*N.B. on MacOS:*, you may need to turn off static linking and specify your platform name, e.g.:
+This is setting the **CMake** variable `STATIC_LINKING` to value `True` so
+**CMake** will try to create an statically linked **cython** library, and is
+passing `-j8` flag to the underlaying build system, which in this case is
+Makefile, telling it that we want to build in parallel, using 8 processes.
 
-```
-qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- -DSTATIC_LINKING=False -- -j8
-```
+**Standalone Executable**
 
-After this command is executed successfully, we will have a wheel package into the ``dist/`` directory, so next step is installing it:
+If we want to build a standalone executable, we have to use **CMake** directly.
+The preferred way **CMake** is meant to be used, is by setting up an "out of
+source" build. So in order to build our standalone executable, we have to follow
+these steps:
 
+    qiskit-aer$ mkdir out
+    qiskit-aer$ cd out
+    qiskit-aer/out$ cmake ..
+    qiskit-aer/out$ cmake --build . --config Release -- -j4
 
-```
-qiskit-aer/$ cd dist
-qiskit-aer/dist$ pip install qiskit_aer-<...>.whl
-```
+Once built, you will have your standalone executable into the `Release/` or
+`Debug/` directory (depending on the type of building chosen with the `--config`
+option):
 
-**Standalone executable**
-
-If we want to build an standalone executable, we have to use CMake directly.
-The preferred way CMake is meant to be used, is by setting up an "out of source" build.
-So in order to build our standalone executable, we have to follow these steps:
-
-All platforms
+    qiskit-aer/out$ cd Release
+    qiskit-aer/outRelease/$ ls
+    aer_simulator_cpp
 
 
-```
-qiskit-aer$ mkdir out
-qiskit-aer$ cd out
-qiskit-aer/out$ cmake ..
-qiskit-aer/out$ cmake --build . --config Release -- -j4
-```
 
-Once built, you will have your standalone executable into the ``Release`` or ``Debug``
-directory (depending on the type of building choosen with the ``--config`` option):
+### macOS
+
+There are various methods depending on the compiler we want to use. If we want
+to use the **Clang** compiler, we need to install an extra library for
+supporting **OpenMP**: **libomp**. The **CMake** build system will warn you
+otherwise. To install it manually, in a terminal window, run:
+
+    brew install libomp
+
+We recommend installing **OpenBLAS**, which is our default choice:
+
+    brew install openblas
+
+The **CMake** build system will search for other **BLAS** implementation
+alternatives if **OpenBLAS** is not installed in the system.
+
+You further need to have **Xcode Command Line Tools** installed on macOS:
+
+    xcode-select --install
+
+There are two ways of building Aer simulators, depending on your goal:
+
+1. Build a Terra compatible add-on;
+2. Build a standalone executable.
+
+**Terra Add-on**
+
+For the former, we just need to call the ``setup.py`` script:
+
+    qiskit-aer$ python ./setup.py bdist_wheel
+
+We are using **scikit-build** as a substitute for **setuptools**. This is
+basically the glue between **setuptools** and **CMake**, so there are various
+options to pass variables to **CMake**, and the underlying build system
+(depending on your platform). The way to pass variables is:
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -
+    Makefile_Flag
+
+So a real example could be:
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
+
+This is setting the **CMake** variable `STATIC_LINKING` to value `True` so
+**CMake** will try to create an statically linked **cython** library, and is
+passing `-j8` flag to the underlaying build system, which in this case is
+Makefile, telling it that we want to build in parallel, using 8 processes.
+
+> You may need to turn off static linking and specify your platform name, e.g.:
+
+>   qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- >   -DSTATIC_LINKING=False -- -j8
+
+After this command is executed successfully, we will have a wheel package into
+the `dist/` directory, so next step is installing it:
+
+    qiskit-aer/$ cd dist
+    qiskit-aer/dist$ pip install qiskit_aer-<...>.whl
+
+**Standalone Executable**
+
+If we want to build a standalone executable, we have to use **CMake** directly.
+The preferred way **CMake** is meant to be used, is by setting up an "out of
+source" build. So in order to build our standalone executable, we have to follow
+these steps:
+
+    qiskit-aer$ mkdir out
+    qiskit-aer$ cd out
+    qiskit-aer/out$ cmake ..
+    qiskit-aer/out$ cmake --build . --config Release -- -j4
+
+Once built, you will have your standalone executable into the `Release/` or
+`Debug/` directory (depending on the type of building chosen with the `--config`
+option):
+
+    qiskit-aer/out$ cd Release
+    qiskit-aer/outRelease/$ ls
+    aer_simulator_cpp
 
 
-```
-qiskit-aer/out$ cd Release
-qiskit-aer/out/Release$ ls
-aer_simulator_cpp
-```
+
+### Windows
+
+On Windows, you must have **Anaconda3** installed. We recommend also installing
+**Visual Studio 2017** (Community Edition). **Anaconda3** is required when
+searching for an **OpenBLAS** implementation. If **CMake** can't find a suitable
+implementation installed, it will take the **BLAS** library from the
+**Anaconda3** environment.
+
 
 
 ## Useful CMake flags
@@ -236,7 +272,7 @@ CMAKE_CXX_COMPILER
     Example: ``cmake -DCMAKE_CXX_COMPILER=g++``
 
 
-### Tests
+## Tests
 
 Almost every code contribution should be accompained by it's corresponding set of tests.
 You won't probably hear complaints if there are too many tests in your PR :), but the other
@@ -267,7 +303,7 @@ qiskit-aer/out$ cmake --build . --config Release -- -j4
 qiskit-aer/out$ ctest -VV
 ```
 
-### Style guide
+## Style guide
 
 
 Please submit clean code and please make effort to follow existing conventions
@@ -279,26 +315,27 @@ A linter (clang-tidy) is passed automatically every time a building is
 invoqued. It will stop the current build if detects style erros, or common pitfalls.
 
 
-### Good first contributions
+## Good First Contributions
 
 You are welcome to contribute wherever in the code you want to, of course, but
 we recommend taking a look at the "Good first contribution" label into the
 issues and pick one. We would love to mentor you!
 
-### Doc
+## Doc
 
 Review the parts of the documentation regarding the new changes and update it
 if it's needed.
 
-### Pull requests
+## Pull Requests
 
-We use `GitHub pull requests <https://help.github.com/articles/about-pull-requests>`_
-to accept the contributions.
+We use [GitHub pull
+requests](https://help.github.com/articles/about-pull-requests) to accept the
+contributions.
 
-A friendly reminder! We'd love to have a previous discussion about the best way to
-implement the feature/bug you are contributing with. This is a good way to
-improve code quality in our beloved simulators!, so remember to file a new Issue before
-starting to code for a solution.
+A friendly reminder! We'd love to have a previous discussion about the best way
+to implement the feature/bug you are contributing with. This is a good way to
+improve code quality in our beloved simulators!, so remember to file a new Issue
+before starting to code for a solution.
 
 So after having discussed the best way to land your changes into the codebase,
 you are ready to start coding (yay!). We have two options here:
@@ -315,7 +352,7 @@ you are ready to start coding (yay!). We have two options here:
    will remove the **[WIP]** prefix from the description once the PR is ready
    to merge.
 
-#### Pull request checklist
+### Pull Request Checklist
 
 
 When submitting a pull request and you feel it is ready for review, please
@@ -333,7 +370,7 @@ double check that:
   section, with the title of your pull request and its identifier (for example,
   "``Replace OldComponent with FluxCapacitor (#123)``".
 
-#### Commit messages
+### Commit Messages
 
 
 Please follow the next rules for the commit messages:
@@ -360,7 +397,7 @@ A (really) bad example:
 Fixes #190
 ```
 
-## Development cycle
+## Development Cycle
 
 
 TODO: Review
@@ -370,11 +407,11 @@ for releases, and features that we want to include in these releases. The
 roadmap is not public at the moment, but it's a committed project in our
 community and we are working to make parts of it public in a way that can be
 beneficial for everyone. Whenever a new release is close to be launched, we'll
-announce it and detail what has changed since the latest version.
-The channels we'll use to announce new releases are still being discussed, but
-for now you can `follow us <https://twitter.com/qiskit>`_ on Twitter!
+announce it and detail what has changed since the latest version. The channels
+we'll use to announce new releases are still being discussed, but for now you
+can [follow us](https://twitter.com/qiskit) on Twitter!
 
-## Branch model
+## Branch Model
 
 
 There are two main branches in the repository:
@@ -403,4 +440,3 @@ There are two main branches in the repository:
   - This is a stable branch (as the name suggest), meaning that you can expect
     stable software ready for production environments.
   - All the tags from the release versions are created from this branch.
-
