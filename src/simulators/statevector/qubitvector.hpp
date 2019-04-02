@@ -155,14 +155,22 @@ public:
   // Return as an int an N qubit bitstring for M-N qubit bit k with 0s inserted
   // for N qubits at the locations specified by qubits_sorted.
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
+  // Example: k = 77  = 1001101 , qubits_sorted = [1,4]
+  // ==> output = 297 = 100101001 (with 0's put into places 1 and 4).
   uint_t index0(const reg_t &qubits_sorted, const uint_t k) const;
 
   // Return a std::unique_ptr to an array of of 2^N in ints
   // each int corresponds to an N qubit bitstring for M-N qubit bits in state k,
   // and the specified N qubits in states [0, ..., 2^N - 1]
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
-  // qubits specifies the location of the qubits in the retured strings.
+  // qubits specifies the location of the qubits in the returned strings.
   // NOTE: since the return is a unique_ptr it cannot be copied.
+  // Example: k=77, qubits=qubits_sorted=[1,4] ==> output=[297,299,313,315]
+  // input: k = 77  = 1001101
+  // output[0]: 297 = 100101001 (with 0's put into places 1 and 4).
+  // output[1]: 299 = 100101011 (with 0 put into place 1, and 1 put into place 4).
+  // output[2]: 313 = 100111001 (with 1 put into place 1, and 0 put into place 4).
+  // output[3]: 313 = 100111011 (with 1's put into places 1 and 4).
   indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k) const;
 
   // State initialization of a component
