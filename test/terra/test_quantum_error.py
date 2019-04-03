@@ -97,14 +97,14 @@ class TestQuantumError(common.QiskitAerTestCase):
 
     def test_raise_probabilities_normalized_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
-        A0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
-        A1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]])
+        A0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]], dtype=complex)
         self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
 
     def test_raise_non_cptp_kraus(self):
         """Test exception is raised for non-CPTP input."""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
-        A1 = np.array([[0, 0], [np.sqrt(0.3), 0]])
+        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.array([[0, 0], [np.sqrt(0.3), 0]], dtype=complex)
         self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
         self.assertRaises(NoiseError, lambda: QuantumError([A0]))
 
@@ -145,13 +145,13 @@ class TestQuantumError(common.QiskitAerTestCase):
             self.assertIn(instr[0]['name'], ['unitary', 'id'])
             self.assertEqual(instr[0]['qubits'], [0])
 
-    def test_kron_both_kraus(self):
-        """Test kronecker product of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]])
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]])
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]])
-        error = QuantumError([B0, B1]).kron(QuantumError([A0, A1]))
+    def test_tensor_both_kraus(self):
+        """Test tensor of two kraus errors"""
+        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
+        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
+        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
+        error = QuantumError([B0, B1]).tensor(QuantumError([A0, A1]))
         kraus, p = error.error_term(0)
         targets = [np.kron(B0, A0), np.kron(B0, A1),
                    np.kron(B1, A0), np.kron(B1, A1)]
@@ -160,10 +160,10 @@ class TestQuantumError(common.QiskitAerTestCase):
         self.assertEqual(kraus[0]['qubits'], [0, 1])
         for op in kraus[0]['params']:
             self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kron kraus")
+        self.assertEqual(targets, [], msg="Incorrect tensor kraus")
 
-    def test_kron_both_unitary(self):
-        """Test kronecker product of two unitary qobj errors."""
+    def test_tensor_both_unitary_instruction(self):
+        """Test tensor of two unitary instruction errors."""
         unitaries0 = [standard_gate_unitary('z'),
                       standard_gate_unitary('s')]
         probs0 = [0.9, 0.1]
@@ -176,7 +176,7 @@ class TestQuantumError(common.QiskitAerTestCase):
         error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
                                np.sqrt(probs1[1]) * unitaries1[1]],
                               standard_gates=False)
-        error = error1.kron(error0)
+        error = error1.tensor(error0)
         # Kronecker product unitaries
         target_unitaries = [np.kron(unitaries1[0], unitaries0[0]),
                             np.kron(unitaries1[0], unitaries0[1]),
@@ -200,11 +200,11 @@ class TestQuantumError(common.QiskitAerTestCase):
         # by seeing if these lists are empty
         # Note that this doesn't actually check that the correct
         # prob was assigned to the correct unitary.
-        self.assertEqual(target_probs, [], msg="Incorrect kron probabilities")
-        self.assertEqual(target_unitaries, [], msg="Incorrect kron unitaries")
+        self.assertEqual(target_probs, [], msg="Incorrect tensor probabilities")
+        self.assertEqual(target_unitaries, [], msg="Incorrect tensor unitaries")
 
-    def test_kron_both_qobj(self):
-        """Test kronecker product of two unitary gate errors"""
+    def test_tensor_both_unitary_standard_gates(self):
+        """Test tensor of two unitary standard gate errors"""
         unitaries0 = [standard_gate_unitary('id'),
                       standard_gate_unitary('z')]
         probs0 = [0.9, 0.1]
@@ -217,7 +217,7 @@ class TestQuantumError(common.QiskitAerTestCase):
         error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
                                np.sqrt(probs1[1]) * unitaries1[1]],
                               standard_gates=True)
-        error = error1.kron(error0)
+        error = error1.tensor(error0)
         # Kronecker product probabilities
         target_probs = [probs1[0] * probs0[0],
                         probs1[0] * probs0[1],
@@ -239,8 +239,105 @@ class TestQuantumError(common.QiskitAerTestCase):
         # by seeing if these lists are empty
         # Note that this doesn't actually check that the correct
         # prob was assigned to the correct unitary.
-        self.assertEqual(target_probs, [], msg="Incorrect kron probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect kron circuits")
+        self.assertEqual(target_probs, [], msg="Incorrect tensor probabilities")
+        self.assertEqual(target_circs, [], msg="Incorrect tensor circuits")
+
+    def test_expand_both_kraus(self):
+        """Test expand of two kraus errors"""
+        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
+        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
+        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
+        error = QuantumError([A0, A1]).expand(QuantumError([B0, B1]))
+        kraus, p = error.error_term(0)
+        targets = [np.kron(B0, A0), np.kron(B1, A0),
+                   np.kron(B0, A1), np.kron(B1, A1)]
+        self.assertEqual(p, 1)
+        self.assertEqual(kraus[0]['name'], 'kraus')
+        self.assertEqual(kraus[0]['qubits'], [0, 1])
+        for op in kraus[0]['params']:
+            self.remove_if_found(op, targets)
+        self.assertEqual(targets, [], msg="Incorrect expand kraus")
+
+    def test_expand_both_unitary_instruction(self):
+        """Test expand of two unitary instruction errors."""
+        unitaries0 = [standard_gate_unitary('z'),
+                      standard_gate_unitary('s')]
+        probs0 = [0.9, 0.1]
+        unitaries1 = [standard_gate_unitary('x'),
+                      standard_gate_unitary('y')]
+        probs1 = [0.6, 0.4]
+        error0 = QuantumError([np.sqrt(probs0[0]) * unitaries0[0],
+                               np.sqrt(probs0[1]) * unitaries0[1]],
+                              standard_gates=False)
+        error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
+                               np.sqrt(probs1[1]) * unitaries1[1]],
+                              standard_gates=False)
+        error = error0.expand(error1)
+        # Kronecker product unitaries
+        target_unitaries = [np.kron(unitaries1[0], unitaries0[0]),
+                            np.kron(unitaries1[0], unitaries0[1]),
+                            np.kron(unitaries1[1], unitaries0[0]),
+                            np.kron(unitaries1[1], unitaries0[1])]
+        # Kronecker product probabilities
+        target_probs = [probs1[0] * probs0[0], probs1[0] * probs0[1],
+                        probs1[1] * probs0[0], probs1[1] * probs0[1]]
+
+        for j in range(4):
+            circ, p = error.error_term(j)
+            unitary = circ[0]['params']
+            self.assertEqual(circ[0]['name'], 'unitary')
+            self.assertEqual(circ[0]['qubits'], [0, 1])
+            # Remove prob from target if it is found
+            # later we will check that target_probs is empty so all
+            # the required ones have been removed
+            self.remove_if_found(p, target_probs)
+            self.remove_if_found(unitary, target_unitaries)
+        # Check we had all the correct target probs and unitaries
+        # by seeing if these lists are empty
+        # Note that this doesn't actually check that the correct
+        # prob was assigned to the correct unitary.
+        self.assertEqual(target_probs, [], msg="Incorrect expand probabilities")
+        self.assertEqual(target_unitaries, [], msg="Incorrect expand unitaries")
+
+    def test_expand_both_unitary_standard_gates(self):
+        """Test expand of two unitary standard gate errors"""
+        unitaries0 = [standard_gate_unitary('id'),
+                      standard_gate_unitary('z')]
+        probs0 = [0.9, 0.1]
+        unitaries1 = [standard_gate_unitary('x'),
+                      standard_gate_unitary('y')]
+        probs1 = [0.6, 0.4]
+        error0 = QuantumError([np.sqrt(probs0[0]) * unitaries0[0],
+                               np.sqrt(probs0[1]) * unitaries0[1]],
+                              standard_gates=True)
+        error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
+                               np.sqrt(probs1[1]) * unitaries1[1]],
+                              standard_gates=True)
+        error = error0.expand(error1)
+        # Kronecker product probabilities
+        target_probs = [probs1[0] * probs0[0],
+                        probs1[0] * probs0[1],
+                        probs1[1] * probs0[0],
+                        probs1[1] * probs0[1]]
+        # Target circuits
+        target_circs = [[{'name': 'id', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+                        [{'name': 'id', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+                        [{'name': 'z', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+                        [{'name': 'z', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}]]
+        for j in range(4):
+            circ, p = error.error_term(j)
+            # Remove prob from target if it is found
+            # later we will check that target_probs is empty so all
+            # the required ones have been removed
+            self.remove_if_found(p, target_probs)
+            self.remove_if_found(circ, target_circs)
+        # Check we had all the correct target probs and unitaries
+        # by seeing if these lists are empty
+        # Note that this doesn't actually check that the correct
+        # prob was assigned to the correct unitary.
+        self.assertEqual(target_probs, [], msg="Incorrect expand probabilities")
+        self.assertEqual(target_circs, [], msg="Incorrect expand circuits")
 
     def test_raise_compose_different_dim(self):
         """Test composing incompatible errors raises exception"""
@@ -251,10 +348,10 @@ class TestQuantumError(common.QiskitAerTestCase):
 
     def test_compose_both_kraus(self):
         """Test composition of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]])
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]])
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]])
+        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
+        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
+        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
         error = QuantumError([A0, A1]).compose(QuantumError([B0, B1]))
         kraus, p = error.error_term(0)
         targets = [np.dot(B0, A0), np.dot(B0, A1),
@@ -348,6 +445,104 @@ class TestQuantumError(common.QiskitAerTestCase):
         self.assertEqual(target_probs, [], msg="Incorrect compose probabilities")
         self.assertEqual(target_circs, [], msg="Incorrect compose circuits")
 
+    def test_compose_front_both_kraus(self):
+        """Test front composition of two kraus errors"""
+        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
+        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
+        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
+        error = QuantumError([B0, B1]).compose(QuantumError([A0, A1]), front=True)
+        kraus, p = error.error_term(0)
+        targets = [np.dot(B0, A0), np.dot(B0, A1),
+                   np.dot(B1, A0), np.dot(B1, A1)]
+        self.assertEqual(p, 1)
+        self.assertEqual(kraus[0]['name'], 'kraus')
+        self.assertEqual(kraus[0]['qubits'], [0])
+        for op in kraus[0]['params']:
+            self.remove_if_found(op, targets)
+        self.assertEqual(targets, [], msg="Incorrect compose kraus")
+
+    def test_compose_front_both_unitary(self):
+        """Test front composition of two unitary errors."""
+        unitaries0 = [standard_gate_unitary('z'),
+                      standard_gate_unitary('s')]
+        probs0 = [0.9, 0.1]
+        unitaries1 = [standard_gate_unitary('x'),
+                      standard_gate_unitary('y')]
+        probs1 = [0.6, 0.4]
+        error0 = QuantumError([np.sqrt(probs0[0]) * unitaries0[0],
+                               np.sqrt(probs0[1]) * unitaries0[1]],
+                              standard_gates=False)
+        error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
+                               np.sqrt(probs1[1]) * unitaries1[1]],
+                              standard_gates=False)
+        error = error1.compose(error0, front=True)
+        # Kronecker product unitaries
+        target_unitaries = [np.dot(unitaries1[0], unitaries0[0]),
+                            np.dot(unitaries1[0], unitaries0[1]),
+                            np.dot(unitaries1[1], unitaries0[0]),
+                            np.dot(unitaries1[1], unitaries0[1])]
+        # Kronecker product probabilities
+        target_probs = [probs1[0] * probs0[0],
+                        probs1[0] * probs0[1],
+                        probs1[1] * probs0[0],
+                        probs1[1] * probs0[1]]
+
+        for j in range(4):
+            circ, p = error.error_term(j)
+            unitary = circ[0]['params']
+            self.assertEqual(circ[0]['name'], 'unitary')
+            self.assertEqual(circ[0]['qubits'], [0])
+            # Remove prob from target if it is found
+            # later we will check that target_probs is empty so all
+            # the required ones have been removed
+            self.remove_if_found(p, target_probs)
+            self.remove_if_found(unitary, target_unitaries)
+        # Check we had all the correct target probs and unitaries
+        # by seeing if these lists are empty
+        # Note that this doesn't actually check that the correct
+        # prob was assigned to the correct unitary.
+        self.assertEqual(target_probs, [], msg="Incorrect compose probabilities")
+        self.assertEqual(target_unitaries, [], msg="Incorrect compose unitaries")
+
+    def test_compose_front_both_qobj(self):
+        """Test front composition of two circuit errors"""
+        unitaries0 = [standard_gate_unitary('id'),
+                      standard_gate_unitary('z')]
+        probs0 = [0.9, 0.1]
+        unitaries1 = [standard_gate_unitary('x'),
+                      standard_gate_unitary('y')]
+        probs1 = [0.6, 0.4]
+        error0 = QuantumError([np.sqrt(probs0[0]) * unitaries0[0],
+                               np.sqrt(probs0[1]) * unitaries0[1]],
+                              standard_gates=True)
+        error1 = QuantumError([np.sqrt(probs1[0]) * unitaries1[0],
+                               np.sqrt(probs1[1]) * unitaries1[1]],
+                              standard_gates=True)
+        error = error1.compose(error0, front=True)
+        # Kronecker product probabilities
+        target_probs = [probs1[0] * probs0[0],
+                        probs1[0] * probs0[1],
+                        probs1[1] * probs0[0],
+                        probs1[1] * probs0[1]]
+        # Target circuits
+        target_circs = [[{'name': 'id', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}],
+                        [{'name': 'id', 'qubits': [0]}, {'name': 'y', 'qubits': [0]}],
+                        [{'name': 'z', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}],
+                        [{'name': 'z', 'qubits': [0]}, {'name': 'y', 'qubits': [0]}]]
+        for j in range(4):
+            circ, p = error.error_term(j)
+            # Remove prob from target if it is found
+            # later we will check that target_probs is empty so all
+            # the required ones have been removed
+            self.remove_if_found(p, target_probs)
+            self.remove_if_found(circ, target_circs)
+        # Check we had all the correct target probs and unitaries
+        # by seeing if these lists are empty
+        # Note that this doesn't actually check that the correct
+        # prob was assigned to the correct unitary.
+        self.assertEqual(target_probs, [], msg="Incorrect compose probabilities")
+        self.assertEqual(target_circs, [], msg="Incorrect compose circuits")
 
 if __name__ == '__main__':
     unittest.main()
