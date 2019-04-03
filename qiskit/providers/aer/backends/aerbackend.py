@@ -116,8 +116,8 @@ class AerBackend(BaseBackend):
             for key, val in backend_options.items():
                 config[key] = val
         if "max_memory_mb" not in config:
-            available_mb = int(local_hardware_info()['memory'] * 1024 / 2)
-            config['max_memory_mb'] = available_mb
+            max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
+            config['max_memory_mb'] = max_memory_mb
         # Add noise model
         if noise_model is not None:
             config["noise_model"] = noise_model
