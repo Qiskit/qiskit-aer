@@ -21,9 +21,6 @@
 namespace AER {
 namespace Statevector {
 
-// Type aliases - DEBUG
-using indexes_t = std::unique_ptr<uint_t[]>;
-
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
@@ -811,16 +808,8 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_reset(const reg_t &qubits,
                                     RngEngine &rng) {
-   // DEBUG
-   std::cout << "In apply_reset function - qubits:\n";
-   std::cout << qubits;
-   std::cout << "\n";
   // Simulate unobserved measurement
-  // DEBUG
   const auto meas = sample_measure_with_prob(qubits, rng);
-   std::cout << "meas:\n";
-   std::cout << meas.first << " " << meas.second;
-   std::cout << "\n";
   // Apply update to reset state
   measure_reset_update(qubits, 0, meas.first, meas.second);
 }
@@ -843,18 +832,12 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
-  // DEBUG
-  std::cout << "in measure_reset_update - qubits\n";
-  std::cout << qubits << "\n";
-  std::cout << final_state << " " << meas_state << " " << meas_prob << "\n";
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
-    std::cout << mdiag << "\n" ;
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
     apply_matrix(qubits, mdiag);
-    std::cout << mdiag << "\n";
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
@@ -866,10 +849,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
     cvector_t mdiag(dim, 0.);
-    // DEBUG
-    std::cout << mdiag << "\n";
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    std::cout << mdiag << "\n";
     apply_matrix(qubits, mdiag);
 
     // If it doesn't agree with the reset state update
@@ -893,34 +873,10 @@ template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
                                          const cvector_t &params,
                                          RngEngine &rng) {
-   // DEBUG
-   std::cout << "In apply_initialize function - qubits:\n";
-   std::cout << qubits;
-   std::cout << "\n";
    // Apply reset to qubits
    apply_reset(qubits, rng);
-   // DEBUG
-   // uint_t k;
-   //std::cout << "Please enter an integer value k: ";
-   //std::cin >> k;
-   for (uint_t k=0; k<100; k++) {
-     uint_t out = BaseState::qreg_.index0(qubits, k);
-     std::cout << "Apply index0: ";
-     std::cout << "k=" << k << " out=" << out;
-     std::cout << "\n";
-   }
-   std::cout << "---------------------------------\n";
-
-   // uint_t[]* outinds;
-   for (uint_t k=0; k<100; k++) {
-     indexes_t outinds;
-     BaseState::qreg_.indexes(qubits, qubits, k).swap(outinds);
-     std::cout << "Apply indexes: ";
-     std::cout << "k=" << k << " out=" << (outinds.get())[0] << " " << (outinds.get())[1] << " " << (outinds.get())[2] << " " << (outinds.get())[3];
-     std::cout << "\n";
-   }
    // Apply initialize_component
-   // BaseState::qreg_.initialize_component(qubits, params);
+   BaseState::qreg_.initialize_component(qubits, params);
 }
 
 //=========================================================================
