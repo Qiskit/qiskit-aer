@@ -5,6 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
+
+
 #ifndef _qv_qubit_vector_hpp_
 #define _qv_qubit_vector_hpp_
 
@@ -174,7 +176,6 @@ public:
   indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k) const;
 
   // State initialization of a component
-  template <size_t N>
   void initialize_component(const reg_t &qubits, const cvector_t &state);
 
   //-----------------------------------------------------------------------
@@ -725,19 +726,20 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
 
 //------------------------------------------------------------------------------
 // State initialize component
+// Update the amplitudes according to the new state of qubits
 //------------------------------------------------------------------------------
 template <typename data_t>
-template <size_t N>
 void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t &state) {
 
   // Lambda function for initializing component
-  auto lambda = [&](const reg_t &inds, const cvector_t &_state)->void {
+  const size_t N = qubits.size();
+  auto lambda = [&](indexes_t inds, const cvector_t &_state)->void {
     const uint_t DIM = 1ULL << N;
     complex_t cache = inds[0];  // the k-th component of non-initialized vector
     for (size_t i = 0; i < DIM; i++) {
       data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
     }
-  };
+   };
   // Use the lambda function
   apply_matrix_lambda(lambda, qubits, state);
 }
