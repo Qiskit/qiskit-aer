@@ -265,7 +265,7 @@ void Controller::set_config(const json_t &config) {
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   } else {
-    auto system_memory_mb = (int) get_system_memory_mb();
+    auto system_memory_mb = get_system_memory_mb();
     max_memory_mb_ = system_memory_mb / 2;
   }
 
@@ -339,8 +339,7 @@ void Controller::set_parallelization(const Circuit& circ) {
                                        max_parallel_threads_,
                                        static_cast<int>(circ.shots) });
 
-  if (max_parallel_shots_ < 1) {
-    // if max_parallel_shots is not configured, nested parallelization is avoided
+  if (max_parallel_shots_ < 1) { // no nested parallelization if max_parallel_shots is not configured
     if (parallel_shots_ == max_parallel_threads_) {
       parallel_state_update_ = 1;
     } else {
@@ -348,7 +347,6 @@ void Controller::set_parallelization(const Circuit& circ) {
       parallel_state_update_ = max_parallel_threads_;
     }
   } else {
-    // otherwise,
     parallel_state_update_ = max_parallel_threads_ / parallel_shots_;
   }
 }
