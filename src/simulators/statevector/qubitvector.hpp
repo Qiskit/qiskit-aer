@@ -188,6 +188,10 @@ public:
   indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k) const;
 
   // State initialization of a component
+  // Initialize the specified qubits to a desired statevector
+  // (leaving the other qubits in their current state)
+  // assuming the qubits being initialized have already been reset to the zero state
+  // (using apply_reset)
   void initialize_component(const reg_t &qubits, const cvector_t &state);
 
   //-----------------------------------------------------------------------
@@ -737,11 +741,7 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
 }
 
 //------------------------------------------------------------------------------
-// State initialize component:
-// Initialize the specified qubits to a desired statevector
-// (leaving the other qubits in their current state)
-// assuming the qubits being initialized have already been reset to the zero state
-// (using apply_reset)
+// State initialize component
 //------------------------------------------------------------------------------
 template <typename data_t>
 void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t &state) {
