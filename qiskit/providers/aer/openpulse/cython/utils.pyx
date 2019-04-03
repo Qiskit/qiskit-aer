@@ -27,7 +27,7 @@ def oplist_to_array(list A, complex[::1] B,
         This is ~5x faster than doing it in Python.
     """
     cdef size_t kk
-    cdef int lenA = len(A)
+    cdef unsigned int lenA = len(A)
     cdef list temp
     
     if (start_idx+lenA) > B.shape[0]:
