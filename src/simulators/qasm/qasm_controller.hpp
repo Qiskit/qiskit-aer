@@ -348,7 +348,7 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
       Statevector::State<> sv_state;
       if(!(validate_memory_requirements(sv_state, circ, false))) {
         if(validate_state(ExtendedStabilizer::State(), circ, noise_model_, false)) {
-          method = Method::ch_decomposition;
+          method = Method::extended_stabilizer;
         } else {
           std::stringstream msg;
           msg << "QasmController: Circuit cannot be run on any available backend. max_memory_mb="
@@ -385,8 +385,8 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
       Stabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-    case Method::ch_decomposition: {
-      CH::State state;
+    case Method::extended_stabilizer: {
+      ExtendedStabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     default:
