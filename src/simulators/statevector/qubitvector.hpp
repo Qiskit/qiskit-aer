@@ -157,6 +157,11 @@ public:
   // Return as an int an N qubit bitstring for M-N qubit bit k with 0s inserted
   // for N qubits at the locations specified by qubits_sorted.
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
+  // index0 returns only the integer representation of a number of bits set
+  // to zero inserted into an arbitrary bit string.
+  // Eg: for qubits 0,2 in a state k = ba ( ba = 00 => k=0, etc).
+  // indexes0([1], k) -> int(b0a)
+  // indexes0([1,3], k) -> int(0b0a)
   // Example: k = 77  = 1001101 , qubits_sorted = [1,4]
   // ==> output = 297 = 100101001 (with 0's put into places 1 and 4).
   uint_t index0(const reg_t &qubits_sorted, const uint_t k) const;
@@ -167,6 +172,13 @@ public:
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
   // qubits specifies the location of the qubits in the returned strings.
   // NOTE: since the return is a unique_ptr it cannot be copied.
+  // indexes returns the array of all bit values for the specified qubits
+  // (Eg: for qubits 0,2 in a state k = ba:
+  // indexes([1], [1], k) = [int(b0a), int(b1a)],
+  // if it were two qubits inserted say at 1,3 it would be:
+  // indexes([1,3], [1,3], k) -> [int(0b0a), int(0b1a), int(1b0a), (1b1a)]
+  // If the qubits were passed in reverse order it would swap qubit position in the list:
+  // indexes([3,1], [1,3], k) -> [int(0b0a), int(1b0a), int(0b1a), (1b1a)]
   // Example: k=77, qubits=qubits_sorted=[1,4] ==> output=[297,299,313,315]
   // input: k = 77  = 1001101
   // output[0]: 297 = 100101001 (with 0's put into places 1 and 4).
@@ -725,8 +737,11 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
 }
 
 //------------------------------------------------------------------------------
-// State initialize component
-// Update the amplitudes according to the new state of qubits
+// State initialize component:
+// Initialize the specified qubits to a desired statevector
+// (leaving the other qubits in their current state)
+// assuming the qubits being initialized have already been reset to the zero state
+// (using apply_reset)
 //------------------------------------------------------------------------------
 template <typename data_t>
 void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t &state) {
@@ -738,7 +753,7 @@ void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvecto
     complex_t cache = inds[0];  // the k-th component of non-initialized vector
     for (size_t i = 0; i < DIM; i++) {
       data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
-    }
+    }    // (where psi is is the post-reset state of the non-initialized qubits)
    };
   // Use the lambda function
   apply_matrix_lambda(lambda, qubits, state);
