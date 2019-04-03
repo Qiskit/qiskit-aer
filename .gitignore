@@ -20,3 +20,8 @@ contrib/standalone/version.hpp
 *.log
 *.env
 *.idea/
+.DS_Store
+qiskit/providers/aer/openpulse/cython/channel_value.cpp
+qiskit/providers/aer/openpulse/cython/measure.cpp
+qiskit/providers/aer/openpulse/cython/memory.cpp
+qiskit/providers/aer/openpulse/cython/utils.cpp
