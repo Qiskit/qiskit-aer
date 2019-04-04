@@ -875,6 +875,18 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
                                          RngEngine &rng) {
    // Apply reset to qubits
    apply_reset(qubits, rng);
+
+   if (qubits.size() == BaseState::qreg_.num_qubits()) {
+   // If qubits is all ordered qubits in the statevector
+   // we can just initialize the whole state directly
+   auto sorted_qubits = qubits;
+   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+      if (qubits == sorted_qubits) {
+        BaseState::qreg_.initialize_from_vector(params);
+      return;
+      }
+   }
+
    // Apply initialize_component
    BaseState::qreg_.initialize_component(qubits, params);
 }
