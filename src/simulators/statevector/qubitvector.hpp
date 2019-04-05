@@ -1364,6 +1364,7 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const cvector_t diag = {{mat[0], mat[3]}};
     apply_diagonal_matrix(qubit, diag);
+    return;
   }
 
   // Lambda function for single-qubit matrix multiplication
