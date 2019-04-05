@@ -29,8 +29,6 @@
     // ],
 
     "install_command": [
-        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
-        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
         "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
@@ -39,7 +37,7 @@
     ],
     "build_command": [
         "pip install -U scikit-build cython",
-        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++-7 -DSTATIC_LINKING=True -- -j8",
+        "VERBOSE=1 python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DSTATIC_LINKING=True -- -j8",
         "pip install https://github.com/QISKit/qiskit-terra/archive/master.zip"
     ],
 
