@@ -1311,7 +1311,7 @@ void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
   const size_t pos0 = MASKS[N - 1];
   const size_t pos1 = MASKS[N];
   // Lambda function for multi-controlled X gate
-  auto lambda = [&](indexes_t inds)->void {
+  auto lambda = [&](const indexes_t &inds)->void {
     std::swap(data_[inds[pos0]], data_[inds[pos1]]);
   };
   apply_lambda(lambda, qubits);
@@ -1325,7 +1325,7 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
   const size_t pos1 = MASKS[N];
   const complex_t I(0., 1.);
   // Lambda function for multi-controlled Y gate
-  auto lambda = [&](indexes_t inds)->void {
+  auto lambda = [&](const indexes_t &inds)->void {
     const complex_t cache = data_[inds[pos0]];
     data_[inds[pos0]] = -I * data_[inds[pos1]];
     data_[inds[pos1]] = I * cache;
@@ -1336,7 +1336,7 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
 template <typename data_t>
 void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
   // Lambda function for multi-controlled Z gate
-  auto lambda = [&](indexes_t inds)->void {
+  auto lambda = [&](const indexes_t &inds)->void {
     // Multiply last block index by -1
     data_[inds[MASKS[qubits.size()]]] *= -1.;
   };
