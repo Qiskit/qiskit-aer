@@ -1210,6 +1210,11 @@ template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
 
+  if (qubits.size() == 1) {
+    apply_diagonal_matrix(qubits[0], diag);
+    return;
+  }
+
   const size_t N = qubits.size();
   const uint_t DIM = BITS[N];
   // Error checking
