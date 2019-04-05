@@ -1151,7 +1151,6 @@ complex_t QubitVector<data_t>::apply_matrix_reduction_lambda(Lambda&& func,
  * MATRIX MULTIPLICATION
  *
  ******************************************************************************/
-
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t &mat) {
@@ -1162,11 +1161,15 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
   check_vector(mat, 2 * N);
   #endif
 
+  // Optimized 1-qubit apply matrix.
+  if (N==1) {
+    apply_matrix(qubits[0], mat);
+    return;
+  }
+
+  // Matrix-swap based optimized 2-6 qubit implementation
   if (gate_opt_ && N <= 6) {
     switch (N) {
-      case 1:
-        apply_matrix(qubits[0], mat);
-        return;
       case 2:
         apply_matrix2(qubits, mat);
         return;
@@ -1187,9 +1190,10 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
     } // end switch
   }
   
+  // General implementation
   const uint_t DIM = BITS[N];
   // Lambda function for N-qubit matrix multiplication
-  auto lambda = [&](indexes_t inds, const cvector_t &_mat)->void {
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat)->void {
     auto cache = std::make_unique<complex_t[]>(DIM);
     for (size_t i = 0; i < DIM; i++) {
       const auto ii = inds[i];
@@ -1210,6 +1214,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
 
+  // Optimized 1-qubit apply matrix.                                                
   if (qubits.size() == 1) {
     apply_diagonal_matrix(qubits[0], diag);
     return;
@@ -1223,7 +1228,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
   #endif
 
   // Lambda function for N-qubit matrix multiplication
-  auto lambda = [&](indexes_t inds,
+  auto lambda = [&](const indexes_t &inds,
                     const cvector_t &_mat)->void {
     for (size_t i = 0; i < DIM; i++) {
       data_[inds[i]] *= _mat[i];
@@ -1234,7 +1239,6 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
   apply_matrix_lambda(lambda, qubits, diag);
 }
 
-// Static number of pairs
 template <typename data_t>
 void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
                                                    const std::vector<std::pair<uint_t, uint_t>> &pairs) {
@@ -1247,12 +1251,6 @@ void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
   // Use the lambda function
   apply_lambda(lambda, qubits);
 }
-
-/*******************************************************************************
- *
- * OPTIMIZED MATRIX MULTIPLICATION
- *
- ******************************************************************************/
 
 /*******************************************************************************
  *
@@ -1358,8 +1356,16 @@ void QubitVector<data_t>::apply_toffoli(const uint_t qubit_ctrl0,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t& mat) {
-  const int_t BIT = BITS[qubit];
+  // Check if matrix is actually diagonal and if so use 
+  // apply_diagonal_matrix
+  // TODO: this should be changed to not check doubles with ==
+  if (mat[1] == 0.0 && mat[2] == 0.0) {
+    const cvector_t diag = {{mat[0], mat[3]}};
+    apply_diagonal_matrix(qubit, diag);
+  }
+
   // Lambda function for single-qubit matrix multiplication
+  const int_t BIT = BITS[qubit];
   auto lambda = [&](const int_t &k1, const int_t &k2,
                     const cvector_t &_mat)->void {
     const auto k = k1 | k2;
