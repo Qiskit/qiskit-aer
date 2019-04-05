@@ -1474,11 +1474,15 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
 }
 
 //------------------------------------------------------------------------------
-// 2-6 qubit matrices
+// 2-6 qubit optimized matrices
 //------------------------------------------------------------------------------
 
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix2(const reg_t& qubits, const cvector_t &vmat) {
+  // Check qubits is size.
+  if (qubits.size() != 2) {
+    throw std::runtime_error("QubitVector::apply_matrix2 called for wrong number of qubits");
+  }
   // Optimized implementation
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
@@ -1519,6 +1523,10 @@ void QubitVector<data_t>::apply_matrix2(const reg_t& qubits, const cvector_t &vm
 
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix3(const reg_t& qubits, const cvector_t &vmat) {
+  // Check qubits is size.
+  if (qubits.size() != 3) {
+    throw std::runtime_error("QubitVector::apply_matrix3 called for wrong number of qubits");
+  }
   // Optimized implementation
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
@@ -1570,6 +1578,10 @@ void QubitVector<data_t>::apply_matrix3(const reg_t& qubits, const cvector_t &vm
 
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix4(const reg_t& qubits, const cvector_t &vmat) {
+  // Check qubits is size.
+  if (qubits.size() != 4) {
+    throw std::runtime_error("QubitVector::apply_matrix4 called for wrong number of qubits");
+  }
   // Optimized implementation
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
@@ -1632,6 +1644,10 @@ void QubitVector<data_t>::apply_matrix4(const reg_t& qubits, const cvector_t &vm
 
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix5(const reg_t &qubits, const cvector_t &vmat) {
+  // Check qubits is size.
+  if (qubits.size() != 5) {
+    throw std::runtime_error("QubitVector::apply_matrix5 called for wrong number of qubits");
+  }
   // Optimized implementation
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
@@ -1713,6 +1729,10 @@ void QubitVector<data_t>::apply_matrix5(const reg_t &qubits, const cvector_t &vm
 
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix6(const reg_t &qubits, const cvector_t &vmat) {
+  // Check qubits is size.
+  if (qubits.size() != 6) {
+    throw std::runtime_error("QubitVector::apply_matrix6 called for wrong number of qubits");
+  }
   // Optimized implementation
   auto sorted_qs = qubits;
   std::sort(sorted_qs.begin(), sorted_qs.end());
@@ -1903,10 +1923,6 @@ double QubitVector<data_t>::norm() const {
   return std::real(apply_reduction_lambda(lambda));
 }
 
-
-//------------------------------------------------------------------------------
-// Static N
-//------------------------------------------------------------------------------
 template <typename data_t>
 double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t &mat) const {
 
@@ -2023,9 +2039,6 @@ rvector_t QubitVector<data_t>::probabilities() const {
   return probs;
 }
 
-//------------------------------------------------------------------------------
-// Static N-qubit
-//------------------------------------------------------------------------------
 template <typename data_t>
 rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
 
