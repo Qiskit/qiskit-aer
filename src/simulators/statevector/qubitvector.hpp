@@ -266,9 +266,6 @@ public:
   // Apply a single-qubit Pauli-Z gate to the state vector
   void apply_z(const uint_t qubit);
 
-  // Apply a 2-qubit SWAP gate to the state vector
-  void apply_swap(const uint_t q0, const uint_t q1);
-
   // Apply multi-controlled X-gate
   void apply_mcx(const reg_t &qubits);
 
@@ -280,6 +277,10 @@ public:
   
   // Apply multi-controlled single-qubit unitary gate
   void apply_mcu(const reg_t &qubits, const cvector_t &mat);
+
+  // Apply a multi-controlled SWAP gate
+  // If qubits is length 2 this is a regular (non-controlled) swap gate.
+  void apply_mcswap(const reg_t &qubits);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1405,18 +1406,17 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
   apply_matrix_lambda(lambda, qubits, mat);
 }
 
-//------------------------------------------------------------------------------
-// Swap gates
-//------------------------------------------------------------------------------
-
 template <typename data_t>
-void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
-  // Lambda function for SWAP gate
+void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
+  // Calculate the swap positions for the last two qubits.
+  // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP gate.
+  const size_t N = qubits.size();
+  const size_t pos0 = BITS[N - 1];
+  const size_t pos1 = pos0 + BITS[N - 2];
+  // Lambda function for multi-controlled single-qubit gate
   auto lambda = [&](const indexes_t &inds)->void {
-    std::swap(data_[inds[1]], data_[inds[2]]);
+     std::swap(data_[pos0], data_[pos1]);
   };
-  // Use the lambda function
-  const reg_t qubits = {qubit0, qubit1};
   apply_lambda(lambda, qubits);
 }
 
