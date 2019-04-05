@@ -16,7 +16,22 @@
 
 /*******************************************************************************
  *
- * Main
+ * EXIT CODES:
+ * 
+ * 0: The Qobj was succesfully executed.
+ *    Returns full result JSON.
+ * 
+ * 1: Command line invalid or Qobj JSON cannot be loaded.
+ *    Returns JSON:
+ *    {"success": false, "status": "ERROR: Invalid input (error msg)"}
+ * 
+ * 2: Qobj failed to load or execute.
+ *    Returns JSON:
+ *    {"success": false, "status": "ERROR: Failed to execute qobj (error msg)"}
+ * 
+ * 3: At least one experiment in Qobj failed to execute successfully.
+ *    Returns parial result JSON with failed experiments returning:
+ *    "{"success": false, "status": "ERROR: error msg"}
  *
  ******************************************************************************/
 
@@ -74,7 +89,8 @@ int main(int argc, char **argv) {
     usage(std::string(argv[0]), out);
     return 1;
   }
-
+  
+  // Parse command line options
   for(auto pos = 1ul; pos < static_cast<unsigned int>(argc); ++pos){
     auto option = parse_cmd_options(std::string(argv[pos]));
     switch(option){
@@ -119,15 +135,25 @@ int main(int argc, char **argv) {
       config_all.update(config.begin(), config.end());
 
     sim.set_config(config_all);
+    auto result = sim.execute(qobj);
+    out << result.dump(4) << std::endl;
 
-    out << sim.execute(qobj).dump(4) << std::endl;
-
-    return 0;
+    // Check if execution was succesful.
+    bool success = false;
+    std::string status = "";
+    JSON::get_value(success, "success", result);
+    JSON::get_value(status, "status", result);
+    if (!success) {
+      if(status == "COMPLETED")
+        return 3; // The simulation was was completed unsuccesfully.
+      return 2; // Failed to execute the Qobj
+    }
   } catch (std::exception &e) {
     std::stringstream msg;
     msg << "Failed to execute qobj (" << e.what() << ")";
     failed(msg.str(), out, indent);
-    return 1;
+    return 2;
   }
 
+  return 0;
 } // end main
