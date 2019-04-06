@@ -1357,7 +1357,8 @@ void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit
 
   const int_t GAP_ctrl = BITS[qubit_ctrl];
   const int_t GAP_trgt = BITS[qubit_trgt];
-  // Lambda function for optimized Pauli-Z gate
+
+  // Lambda function for CX gate
   auto lambda = [&](const int_t i00)->void {
     auto i10 = i00 | GAP_ctrl;
     std::swap(data_[i10], data_[i10 | GAP_trgt]);
@@ -1367,25 +1368,26 @@ void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit
 
 template <typename data_t>
 void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
+  const int_t GAP0 = BITS[qubit0];
+  const int_t GAP1 = BITS[qubit1];
+
   // Lambda function for SWAP gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    std::swap(data_[inds[1]], data_[inds[2]]);
+  auto lambda = [&](const int_t i00)->void {
+    std::swap(data_[i00 | GAP0], data_[i00 | GAP1]);
   };
-  // Use the lambda function
-  const reg_t qubits = {qubit0, qubit1};
-  apply_lambda(lambda, qubits);
+  apply_lambda(lambda, qubit0, qubit1);
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
+  const int_t GAP_ctrl = BITS[qubit_ctrl];
+  const int_t GAP_trgt = BITS[qubit_trgt];
 
   // Lambda function for CZ gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    data_[inds[3]] *= -1.;
+  auto lambda = [&](const int_t i00)->void {
+    data_[i00 | GAP_ctrl | GAP_trgt] *= -1.;
   };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
-  apply_lambda(lambda, qubits);
+  apply_lambda(lambda, qubit_ctrl, qubit_trgt);
 }
 
 //------------------------------------------------------------------------------
