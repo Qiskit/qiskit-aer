@@ -389,10 +389,15 @@ protected:
 
   // Apply a single-qubit lambda function to all blocks of the statevector
   // for the given qubit. The function signature should be:
-  // [&](const int_t k1, const int_t k2)->void
-  // where (k1, k2) are the 0 and 1 indexes for each qubit block
+  // [&](const int_t k)->void where k is 0 for the qubit
   template <typename Lambda>
   void apply_lambda(Lambda&& func, const uint_t qubit);
+
+  // Apply a double-qubit lambda function to all blocks of the statevector
+  // for the given qubits. The function signature should be:
+  // [&](const int_t k)->void where k is 0 for each qubit
+  template <typename Lambda>
+  void apply_lambda(Lambda&& func, const uint_t qubit0, const uint_t qubit1);
 
   // Apply a N-qubit lambda function to all blocks of the statevector
   // for the given qubits. The function signature should be:
@@ -897,8 +902,56 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
 #endif
     for (int_t k1 = 0; k1 < END1; k1 += STEP1)
       for (int_t k2 = 0; k2 < END2; k2++) {
-        std::forward<Lambda>(func)(k1, k2);
+        std::forward<Lambda>(func)(k1 | k2);
       }
+  }
+}
+
+// Two qubit
+template <typename data_t>
+template<typename Lambda>
+void QubitVector<data_t>::apply_lambda(Lambda&& func,
+                                       const uint_t qubit0,
+                                       const uint_t qubit1) {
+  // Error checking
+  #ifdef DEBUG
+  check_qubit(qubit0);
+  check_qubit(qubit1);
+  #endif
+
+  const int_t END = data_size_;
+
+  const int_t END0 = BITS[qubit0];
+  const int_t STEP0 = BITS[qubit0 + 1];
+  const int_t END1 = BITS[qubit1];
+  const int_t STEP1 = BITS[qubit1 + 1];
+
+  if (qubit0 < qubit1) {
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+#ifdef _WIN32
+      #pragma omp for
+#else
+      #pragma omp for collapse(3)
+#endif
+      for (int_t k1 = 0; k1 < END; k1 += STEP1)
+        for (int_t k2 = 0; k2 < END1; k2 += STEP0)
+          for (int_t k3 = 0; k3 < END0; k3++)
+            std::forward<Lambda>(func)(k3 | k2 | k1);
+    }
+  } else {
+    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+#ifdef _WIN32
+      #pragma omp for
+#else
+      #pragma omp for collapse(3)
+#endif
+      for (int_t k1 = 0; k1 < END; k1 += STEP0)
+        for (int_t k2 = 0; k2 < END0; k2 += STEP1)
+          for (int_t k3 = 0; k3 < END1; k3++)
+            std::forward<Lambda>(func)(k3 | k2 | k1);
+    }
   }
 }
 
@@ -1266,8 +1319,7 @@ void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_x(const uint_t qubit) {
   // Lambda function for optimized Pauli-X gate
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    const auto i0 = k1 | k2;
+  auto lambda = [&](const int_t i0)->void {
     const auto i1 = i0 | BITS[qubit];
     std::swap(data_[i0], data_[i1]);
   };
@@ -1278,8 +1330,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_y(const uint_t qubit) {
   // Lambda function for optimized Pauli-Y gate
   const complex_t I(0., 1.);
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    const auto i0 = k1 | k2;
+  auto lambda = [&](const int_t i0)->void {
     const auto i1 = i0 | BITS[qubit];
     const complex_t cache = data_[i0];
     data_[i0] = -I * data_[i1]; // mat(0,1)
@@ -1291,8 +1342,8 @@ void QubitVector<data_t>::apply_y(const uint_t qubit) {
 template <typename data_t>
 void QubitVector<data_t>::apply_z(const uint_t qubit) {
   // Lambda function for optimized Pauli-Z gate
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    data_[k1 | k2 | BITS[qubit]] *= complex_t(-1.0, 0.0);
+  auto lambda = [&](const int_t i0)->void {
+    data_[i0 | BITS[qubit]] *= complex_t(-1.0, 0.0);
   };
   apply_lambda(lambda, qubit);
 }
@@ -1303,13 +1354,15 @@ void QubitVector<data_t>::apply_z(const uint_t qubit) {
 
 template <typename data_t>
 void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-  // Lambda function for CNOT gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    std::swap(data_[inds[1]], data_[inds[3]]);
+
+  const int_t GAP_ctrl = BITS[qubit_ctrl];
+  const int_t GAP_trgt = BITS[qubit_trgt];
+  // Lambda function for optimized Pauli-Z gate
+  auto lambda = [&](const int_t i00)->void {
+    auto i10 = i00 | GAP_ctrl;
+    std::swap(data_[i10], data_[i10 | GAP_trgt]);
   };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
-  apply_lambda(lambda, qubits);
+  apply_lambda(lambda, qubit_ctrl, qubit_trgt);
 }
 
 template <typename data_t>
