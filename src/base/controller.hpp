@@ -20,6 +20,8 @@
 #if defined(__linux__) || defined(__APPLE__)
    #include <unistd.h>
 #elif _WIN64
+   // This is needed because windows.h redefine min()/max() so interferes with std::min/max
+   #define NOMINMAX
    #include <windows.h>
 #endif
 

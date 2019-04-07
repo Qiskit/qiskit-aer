@@ -13,6 +13,11 @@ static const int IM_PHASE[8] = {0, 1, 1, 1, 0, -1, -1, -1};
 
 namespace CHSimulator 
 {
+    
+using complex_t = std::complex<double>;
+using uint_t = uint_fast64_t;
+using int_t = int_fast64_t;
+
 // Definitions for implementing arbitrary binary vectors and matrices as arrays of 64bit integers
 typedef uint_fast64_t word;
 // typedef unsigned long word;
