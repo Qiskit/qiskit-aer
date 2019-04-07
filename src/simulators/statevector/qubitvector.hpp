@@ -748,9 +748,9 @@ void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvecto
 
   // Lambda function for initializing component
   const size_t N = qubits.size();
-  auto lambda = [&](indexes_t inds, const cvector_t &_state)->void {
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_state)->void {
     const uint_t DIM = 1ULL << N;
-    complex_t cache = inds[0];  // the k-th component of non-initialized vector
+    complex_t cache = data_[inds[0]];  // the k-th component of non-initialized vector
     for (size_t i = 0; i < DIM; i++) {
       data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
     }    // (where psi is is the post-reset state of the non-initialized qubits)

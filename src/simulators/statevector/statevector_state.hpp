@@ -873,8 +873,6 @@ template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
                                          const cvector_t &params,
                                          RngEngine &rng) {
-   // Apply reset to qubits
-   apply_reset(qubits, rng);
 
    if (qubits.size() == BaseState::qreg_.num_qubits()) {
    // If qubits is all ordered qubits in the statevector
@@ -882,11 +880,12 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
    auto sorted_qubits = qubits;
    std::sort(sorted_qubits.begin(), sorted_qubits.end());
       if (qubits == sorted_qubits) {
-        BaseState::qreg_.initialize_from_vector(params);
+        initialize_qreg(qubits.size(), params);
       return;
       }
    }
-
+   // Apply reset to qubits
+   apply_reset(qubits, rng);
    // Apply initialize_component
    BaseState::qreg_.initialize_component(qubits, params);
 }
