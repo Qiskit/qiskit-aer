@@ -37,12 +37,15 @@
 
 enum class CmdArguments {
   SHOW_VERSION,
+  INPUT_CONFIG,
   INPUT_DATA
 };
 
 inline CmdArguments parse_cmd_options(const std::string& argv){
   if(argv == "-v" || argv == "--version"){
-       return CmdArguments::SHOW_VERSION;
+    return CmdArguments::SHOW_VERSION;
+  } else if (argv == "-c" || argv == "--config"){
+    return CmdArguments::INPUT_CONFIG;
   }
   return CmdArguments::INPUT_DATA;
 }
@@ -69,9 +72,10 @@ inline void usage(const std::string& command, std::ostream &out){
   show_version();
   std::cerr << "\n";
   std::cerr << "Usage: \n";
-  std::cerr << command << " [-v] <file>\n";
-  std::cerr << "    -v    Show version\n";
-  std::cerr << "    file : qobj file\n";
+  std::cerr << command << " [-v] [-c <config>] <file>\n";
+  std::cerr << "    -v          : Show version\n";
+  std::cerr << "    -c <config> : Configuration file\n";;
+  std::cerr << "    file        : qobj file\n";
 }
 
 int main(int argc, char **argv) {
@@ -79,6 +83,7 @@ int main(int argc, char **argv) {
   std::ostream &out = std::cout; // output stream
   int indent = 4;
   json_t qobj;
+  json_t config;
 
   if(argc == 1){
     usage(std::string(argv[0]), out);
@@ -92,9 +97,22 @@ int main(int argc, char **argv) {
       case CmdArguments::SHOW_VERSION:
         show_version();
         return 0;
+      case CmdArguments::INPUT_CONFIG:
+        if (++pos == static_cast<unsigned int>(argc)) {
+          failed("Invalid config (no file is specified.)", out, indent);
+          return 1;
+        }
+        try {
+          config = JSON::load(std::string(argv[pos]));
+        }catch(std::exception &e){
+          std::string msg = "Invalid config (" +  std::string(e.what()) + ")";
+          failed(msg, out, indent);
+          return 1;
+        }
+        break;
       case CmdArguments::INPUT_DATA:
         try {
-          qobj = JSON::load(std::string(argv[1]));
+          qobj = JSON::load(std::string(argv[pos]));
           pos = argc; //Exit from the loop
         }catch(std::exception &e){
           std::string msg = "Invalid input (" +  std::string(e.what()) + ")";
@@ -110,8 +128,13 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
+
     // Check for config
-    sim.set_config(qobj["config"]);
+    json_t config_all = qobj["config"];
+    if (!config.empty())
+      config_all.update(config.begin(), config.end());
+
+    sim.set_config(config_all);
     auto result = sim.execute(qobj);
     out << result.dump(4) << std::endl;
 
@@ -120,17 +143,11 @@ int main(int argc, char **argv) {
     std::string status = "";
     JSON::get_value(success, "success", result);
     JSON::get_value(status, "status", result);
-    if (success) {
-      // The simulation was successfully executed
-      return 0;
+    if (!success) {
+      if(status == "COMPLETED")
+        return 3; // The simulation was was completed unsuccesfully.
+      return 2; // Failed to execute the Qobj
     }
-    if (status == "COMPLETED") {
-      // The simulation was was completed unsuccesfully.
-      // This means at least one of the experiments in the qobj failed.
-      return 3;
-    }
-    // If we got here we failed to execute the Qobj
-    return 2;
   } catch (std::exception &e) {
     std::stringstream msg;
     msg << "Failed to execute qobj (" << e.what() << ")";
@@ -138,4 +155,5 @@ int main(int argc, char **argv) {
     return 2;
   }
 
+  return 0;
 } // end main

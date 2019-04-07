@@ -82,7 +82,7 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * - "available_memory" (int): Memory in MB available to the state class.
+ * - "max_memory_mb" (int): Memory in MB available to the state class.
  *      If specified, is divided by the number of parallel shots/experiments.
  *      [Default: 0]
  *
@@ -143,6 +143,9 @@ protected:
   void initialize_state(const Circuit &circ,
                         State_t &state,
                         const Initstate_t &initial_state) const;
+
+  // Set parallelization for qasm simulator
+  virtual void set_parallelization(const Circuit& circ) override;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -208,8 +211,9 @@ protected:
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
+  size_t required_memory_mb(const Circuit& circ) const override;
 
-  // Simulation method
+    // Simulation method
   Method simulation_method_ = Method::automatic;
 
   // Initial statevector for Statevector simulation method
@@ -337,35 +341,27 @@ QasmController::Method QasmController::simulation_method(const Circuit &circ) co
   auto method = simulation_method_;
   if (method == Method::automatic) {
     // Check if Clifford circuit and noise model
-    if (validate_state(Stabilizer::State(), circ, noise_model_, false))
-    {
+    if (validate_state(Stabilizer::State(), circ, noise_model_, false)) {
       method = Method::stabilizer;
-    }
+    } else {
     // Default method is statevector, unless the memory requirements are too large
-    else
-    {
       Statevector::State<> sv_state;
-      if(!(validate_memory_requirements(sv_state, circ, false)))
-      {
-        if(validate_state(ExtendedStabilizer::State(), circ, noise_model_, false))
-        {
+      if(!(validate_memory_requirements(sv_state, circ, false))) {
+        if(validate_state(ExtendedStabilizer::State(), circ, noise_model_, false)) {
           method = Method::extended_stabilizer;
+        } else {
+          std::stringstream msg;
+          msg << "QasmController: Circuit cannot be run on any available backend. max_memory_mb="
+              << max_memory_mb_ << "mb";
+          throw std::runtime_error(msg.str());
         }
-        else
-        {
-          throw std::runtime_error(std::string("QasmController: Circuit cannot be run on any available ") +
-                                   std::string("backend due to memory requirements and chosen gateset."));
-        }
-      }
-      else
-      {
+      } else {
         method = Method::statevector;
       }
     }
   }
   return method;
 }
-
 
 template <class State_t, class Initstate_t>
 void QasmController::initialize_state(const Circuit &circ,
@@ -377,6 +373,45 @@ void QasmController::initialize_state(const Circuit &circ,
     state.initialize_qreg(circ.num_qubits, initial_state);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
+}
+
+size_t QasmController::required_memory_mb(const Circuit& circ) const {
+  switch (simulation_method(circ)) {
+    case Method::statevector: {
+      Statevector::State<> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::stabilizer: {
+      Stabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::extended_stabilizer: {
+      ExtendedStabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    default:
+      // We shouldn't get here, so throw an exception if we do
+      throw std::runtime_error("QasmController:Invalid simulation method");
+  }
+}
+
+void QasmController::set_parallelization(const Circuit& circ) {
+
+  if (max_parallel_threads_ < max_parallel_shots_)
+    max_parallel_shots_ = max_parallel_threads_;
+
+  switch (simulation_method(circ)) {
+    case Method::statevector: {
+      if (noise_model_.ideal() && check_measure_sampling_opt(circ).first) {
+        parallel_shots_ = 1;
+        parallel_state_update_ = max_parallel_threads_;
+        return;
+      }
+    }
+    default: {
+      Base::Controller::set_parallelization(circ);
+    }
+  }
 }
 
 //-------------------------------------------------------------------------
@@ -397,7 +432,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   validate_memory_requirements(state, circ, true);
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_state_update_);
+  state.set_parallalization(parallel_state_update_);
 
   // Rng engine
   RngEngine rng;

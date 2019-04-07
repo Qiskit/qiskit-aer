@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core.hpp"
+
 namespace CHSimulator
 {
 // Clifford simulator based on the CH-form 
@@ -993,7 +994,7 @@ double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std
     {
       double re_eta =0., im_eta = 0.;
       #pragma omp parallel for reduction(+:re_eta) reduction(+:im_eta)
-      for (uint_fast64_t j=0; j<states.size(); j++)
+      for (int_t j=0; j<states.size(); j++)
       {
           if(states[j].ScalarPart().eps != 0)
           {
@@ -1028,7 +1029,7 @@ double ParallelNormEstimate(std::vector<StabilizerState>& states, const std::vec
     {
         double re_eta =0., im_eta = 0.;
         #pragma omp parallel for reduction(+:re_eta) reduction(+:im_eta) num_threads(n_threads)
-        for (uint_fast64_t j=0; j<chi; j++)
+        for (int_t j=0; j<chi; j++)
         {
             if(states[j].ScalarPart().eps != 0)
             {
