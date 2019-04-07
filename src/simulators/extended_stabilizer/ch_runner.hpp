@@ -23,10 +23,7 @@
 #endif
 
 namespace CHSimulator {
-  
-using complex_t = std::complex<double>;
-using uint_t = uint_fast64_t;
-using int_t = int_fast64_t;
+
 using chstabilizer_t = StabilizerState;
 
 const double T_ANGLE = M_PI/4.;

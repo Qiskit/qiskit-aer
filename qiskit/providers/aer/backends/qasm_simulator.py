@@ -42,7 +42,7 @@ class QasmSimulator(AerBackend):
             available memory, uses the statevector method. Otherwise, uses
             the extended_stabilizer method (Default: "automatic").
 
-        * "available_memory" (int): Set the amount of memory (in MB)
+        * "max_memory_mb" (int): Set the amount of memory (in MB)
         the simulator has access to (Default: Maximum available)
 
         * "initial_statevector" (vector_like): Sets a custom initial
@@ -69,6 +69,12 @@ class QasmSimulator(AerBackend):
             maximum will be automatically set to max_parallel_threads.
             Note that this cannot be enabled at the same time as parallel
             experiment execution (Default: 1).
+
+        * "max_statevector_memory_mb" (int): Sets the maximum size of memory
+            to store a state vector. If a state vector needs more, an error
+            is thrown. In general, a state vector of n-qubits uses 2^n complex
+            values (16 Bytes). If set to 0, the maximum will be automatically
+            set to the system memory size (Default: 0).
 
         * "statevector_parallel_threshold" (int): Sets the threshold that
             "n_qubits" must be greater than to enable OpenMP
