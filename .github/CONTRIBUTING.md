@@ -47,35 +47,35 @@ available for review as a PDF.
 We recommend using Python virtual environments to cleanly separate Qiskit from
 other applications and improve your experience.
 
-The simplest way to use environments is by using **Anaconda** in a terminal
+The simplest way to use environments is by using *Anaconda* in a terminal
 window
 
-    conda create -y -n QiskitDevEnv python=3
-    source activate QiskitDevEnv
+    $ conda create -y -n QiskitDevEnv python=3
+    $ source activate QiskitDevEnv
 
-Clone the Qiskit Aer repo via **git**.
+Clone the Qiskit Aer repo via *git*.
 
-    git clone https://github.com/Qiskit/qiskit-aer
+    $ git clone https://github.com/Qiskit/qiskit-aer
 
-Most of the required dependencies can be installed via **pip**, using the
+Most of the required dependencies can be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
 
-    cd qiskit-aer
-    pip install -r requirements-dev.txt
+    $ cd qiskit-aer
+    $ pip install -r requirements-dev.txt
 
 
 ### Linux
 
 Qiskit is supported on Ubuntu >= 16.04. To get most of the necessary compilers
-and libraries, install the `build-essential` package by running
+and libraries, install the *build-essential* package by running
 
-    sudo apt install build-essential
+    $ sudo apt install build-essential
 
-Although the **BLAS** and **LAPACK** library implementations included in the
-`build-essential` package are sufficient to build all of the Aer simulators, we
-recommend using **OpenBLAS**, which you can install by running
+Although the *BLAS* and *LAPACK* library implementations included in the
+*build-essential* package are sufficient to build all of the Aer simulators, we
+recommend using *OpenBLAS*, which you can install by running
 
-    sudo apt install libopenblas-dev
+    $ sudo apt install libopenblas-dev
 
 There are two ways of building Aer simulators, depending on your goal:
 
@@ -88,27 +88,30 @@ For the former, we just need to call the `setup.py` script:
 
     qiskit-aer$ python ./setup.py bdist_wheel
 
-We are using **scikit-build** as a substitute for **setuptools**. This is
-basically the glue between **setuptools** and **CMake**, so there are various
-options to pass variables to **CMake**, and the underlying build system
+We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
+basically the glue between *setuptools* and *CMake*, so there are various
+options to pass variables to *CMake*, and the underlying build system
 (depending on your platform). The way to pass variables is:
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -
-    Makefile_Flag
+    qiskit-aer$ python ./setup.py bdist_wheel [skbuild_opts] \
+    [-- [cmake_opts] [-- build_tool_opts]]
 
-So a real example could be:
+where the elements within square brackets `[]` are optional, and
+*`skbuild_opts`*, *`cmake_opts`*, *`build_tool_opts`* are to be replaced by
+flags of your choice. A list of *CMake* options is available
+[here](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options). For
+example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel -- -- -j8
 
-This is setting the **CMake** variable `STATIC_LINKING` to value `True` so
-**CMake** will try to create an statically linked **cython** library, and is
-passing `-j8` flag to the underlaying build system, which in this case is
-Makefile, telling it that we want to build in parallel, using 8 processes.
+This is passing the flag `-j8` to the underlying build system, which in this
+case is *Makefile*, telling it that we want to build in parallel using 8
+processes.
 
 **Standalone Executable**
 
-If we want to build a standalone executable, we have to use **CMake** directly.
-The preferred way **CMake** is meant to be used, is by setting up an "out of
+If we want to build a standalone executable, we have to use *CMake* directly.
+The preferred way *CMake* is meant to be used, is by setting up an "out of
 source" build. So in order to build our standalone executable, we have to follow
 these steps:
 
@@ -122,7 +125,7 @@ Once built, you will have your standalone executable into the `Release/` or
 option):
 
     qiskit-aer/out$ cd Release
-    qiskit-aer/outRelease/$ ls
+    qiskit-aer/out/Release/$ ls
     aer_simulator_cpp
 
 
@@ -130,22 +133,22 @@ option):
 ### macOS
 
 There are various methods depending on the compiler we want to use. If we want
-to use the **Clang** compiler, we need to install an extra library for
-supporting **OpenMP**: **libomp**. The **CMake** build system will warn you
+to use the *Clang* compiler, we need to install an extra library for
+supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
 otherwise. To install it manually, in a terminal window, run:
 
-    brew install libomp
+    $ brew install libomp
 
-We recommend installing **OpenBLAS**, which is our default choice:
+We recommend installing *OpenBLAS*, which is our default choice:
 
-    brew install openblas
+    $ brew install openblas
 
-The **CMake** build system will search for other **BLAS** implementation
-alternatives if **OpenBLAS** is not installed in the system.
+The *CMake* build system will search for other *BLAS* implementation
+alternatives if *OpenBLAS* is not installed in the system.
 
-You further need to have **Xcode Command Line Tools** installed on macOS:
+You further need to have *Xcode Command Line Tools* installed on macOS:
 
-    xcode-select --install
+    $ xcode-select --install
 
 There are two ways of building Aer simulators, depending on your goal:
 
@@ -154,30 +157,38 @@ There are two ways of building Aer simulators, depending on your goal:
 
 **Terra Add-on**
 
-For the former, we just need to call the ``setup.py`` script:
+For the former, we just need to call the `setup.py` script:
 
     qiskit-aer$ python ./setup.py bdist_wheel
 
-We are using **scikit-build** as a substitute for **setuptools**. This is
-basically the glue between **setuptools** and **CMake**, so there are various
-options to pass variables to **CMake**, and the underlying build system
+We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
+basically the glue between *setuptools* and *CMake*, so there are various
+options to pass variables to *CMake*, and the underlying build system
 (depending on your platform). The way to pass variables is:
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DCMAKE_VARIABLE=Values -- -
-    Makefile_Flag
+    qiskit-aer$ python ./setup.py bdist_wheel [skbuild_opts] \
+    [-- [cmake_opts] [-- build_tool_opts]]
 
-So a real example could be:
+where the elements within square brackets `[]` are optional, and
+*`skbuild_opts`*, *`cmake_opts`*, *`build_tool_opts`* are to be replaced by
+flags of your choice. A list of *CMake* options is available
+[here](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options). For
+example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel -- -- -j8
 
-This is setting the **CMake** variable `STATIC_LINKING` to value `True` so
-**CMake** will try to create an statically linked **cython** library, and is
-passing `-j8` flag to the underlaying build system, which in this case is
-Makefile, telling it that we want to build in parallel, using 8 processes.
+This is passing the flag `-j8` to the underlying build system, which in this
+case is *Makefile*, telling it that we want to build in parallel using 8
+processes.
 
-> You may need to turn off static linking and specify your platform name, e.g.:
+> You may need to specify your platform name and turn off static linking, for
+> example:
 
->   qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 -- >   -DSTATIC_LINKING=False -- -j8
+    qiskit-aer$ python ./setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
+    -- -DSTATIC_LINKING=False -- -j8
+
+Here `--plat-name` is a flag to *setuptools*, `-DSTATIC_LINKING` is a flag to
+*CMake*, and `-j8` is a flag to the underlying build system.
 
 After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
@@ -202,18 +213,18 @@ Once built, you will have your standalone executable into the `Release/` or
 option):
 
     qiskit-aer/out$ cd Release
-    qiskit-aer/outRelease/$ ls
+    qiskit-aer/out/Release/$ ls
     aer_simulator_cpp
 
 
 
 ### Windows
 
-On Windows, you must have **Anaconda3** installed. We recommend also installing
-**Visual Studio 2017** (Community Edition). **Anaconda3** is required when
-searching for an **OpenBLAS** implementation. If **CMake** can't find a suitable
-implementation installed, it will take the **BLAS** library from the
-**Anaconda3** environment.
+On Windows, you must have *Anaconda3* installed. We recommend also installing
+*Visual Studio 2017* (Community Edition). *Anaconda3* is required when
+searching for an *OpenBLAS* implementation. If *CMake* can't find a suitable
+implementation installed, it will take the *BLAS* library from the
+*Anaconda3* environment.
 
 
 
