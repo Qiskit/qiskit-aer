@@ -61,7 +61,7 @@ class QasmAlgorithmTestsWaltzBasis(common.QiskitAerTestCase):
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates='u1,u2,u3,cx')
+        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = self.SIMULATOR.run(qobj).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -71,7 +71,7 @@ class QasmAlgorithmTestsWaltzBasis(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates='u1,u2,u3,cx')
+        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = self.SIMULATOR.run(qobj).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -87,22 +87,22 @@ class QasmAlgorithmTestsMinimalBasis(common.QiskitAerTestCase):
     # Test algorithms
     # ---------------------------------------------------------------------
     def test_grovers_minimal_basis_gates(self):
-        """Test grovers circuits compiling to U,CX"""
+        """Test grovers circuits compiling to u3,cx"""
         shots = 2000
         circuits = ref_algorithms.grovers_circuit(final_measure=True,
                                                   allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates='U,CX')
+        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = self.SIMULATOR.run(qobj).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_minimal_basis_gates(self):
-        """Test teleport gate circuits compiling to U,CX"""
+        """Test teleport gate circuits compiling to u3,cx"""
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates='U,CX')
+        qobj = compile(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = self.SIMULATOR.run(qobj).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

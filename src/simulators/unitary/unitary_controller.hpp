@@ -60,6 +60,10 @@ public:
   // Clear the current config
   void virtual clear_config() override;
 
+protected:
+
+  size_t required_memory_mb(const Circuit& circ) const;
+
 private:
 
   //-----------------------------------------------------------------------
@@ -103,6 +107,11 @@ void UnitaryController::clear_config() {
   initial_unitary_ = cmatrix_t();
 }
 
+size_t UnitaryController::required_memory_mb(const Circuit& circ) const {
+  QubitUnitary::State<> state;
+  return state.required_memory_mb(circ.num_qubits, circ.ops);
+}
+
 //-------------------------------------------------------------------------
 // Run circuit
 //-------------------------------------------------------------------------
@@ -135,7 +144,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
 
   // Set state config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_state_update_);
+  state.set_parallalization(parallel_state_update_);
 
   // Rng engine (not actually needed for unitary controller)
   RngEngine rng;

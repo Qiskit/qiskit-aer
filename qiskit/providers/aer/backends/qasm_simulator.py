@@ -4,7 +4,6 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -35,15 +34,15 @@ class QasmSimulator(AerBackend):
             * "statevector": Uses a dense statevector simulation.
             * "stabilizer": uses a Clifford stabilizer state simulator that
             is only valid for Clifford circuits and noise models.
-            * "ch": Uses an approximate simulator that decomposes circuits
-            into stabilizer state terms, the number of which grows with the
-            number of non-Clifford gates.
+            * "extended_stabilizer": Uses an approximate simulator that
+            decomposes circuits into stabilizer state terms, the number of
+            which grows with the number of non-Clifford gates.
             * "automatic": automatically run on stabilizer simulator if
             the circuit and noise model supports it. If there is enough
             available memory, uses the statevector method. Otherwise, uses
-            the ch method (Default: "automatic").
+            the extended_stabilizer method (Default: "automatic").
 
-        * "available_memory" (int): Set the amount of memory (in MB)
+        * "max_memory_mb" (int): Set the amount of memory (in MB)
         the simulator has access to (Default: Maximum available)
 
         * "initial_statevector" (vector_like): Sets a custom initial
@@ -71,6 +70,12 @@ class QasmSimulator(AerBackend):
             Note that this cannot be enabled at the same time as parallel
             experiment execution (Default: 1).
 
+        * "max_statevector_memory_mb" (int): Sets the maximum size of memory
+            to store a state vector. If a state vector needs more, an error
+            is thrown. In general, a state vector of n-qubits uses 2^n complex
+            values (16 Bytes). If set to 0, the maximum will be automatically
+            set to the system memory size (Default: 0).
+
         * "statevector_parallel_threshold" (int): Sets the threshold that
             "n_qubits" must be greater than to enable OpenMP
             parallelization for matrix multiplication during execution of
@@ -90,33 +95,36 @@ class QasmSimulator(AerBackend):
             cores. For systems with a small number of cores it enabling
             can reduce performance (Default: False).
 
-        * "ch_approximation_error" (double): Set the error in the
-            approximation for the ch method. A smaller error needs more
-            memory and computational time. (Default: 0.05)
+        * "extended_stabilizer_approximation_error" (double): Set the error
+            in the approximation for the extended_stabilizer method. A
+            smaller error needs more memory and computational time.
+            (Default: 0.05)
 
-        * "ch_disable_measurement_opt" (bool): Force the simulator to
-            re-run the monte-carlo step for every measurement. Enabling
-            this will improve the sampling accuracy if the output
+        * "extended_stabilizer_disable_measurement_opt" (bool): Force the
+            simulator to re-run the monte-carlo step for every measurement.
+            Enabling this will improve the sampling accuracy if the output
             distribution is strongly peaked, but requires more
             computational time. (Default: True)
 
-        * "ch_mixing_time" (int): Set how long the monte-carlo method
-            runs before performing measurements. If the output
-            distribution is strongly peaked, this can be
-            decreased alongside setting ch_disable_measurement_opt
+        * "extended_stabilizer_mixing_time" (int): Set how long the
+            monte-carlo method runs before performing measurements. If the
+            output distribution is strongly peaked, this can be decreased
+            alongside setting extended_stabilizer_disable_measurement_opt
             to True. (Default: 5000)
 
-        * "ch_norm_estimation_samples" (int): Number of samples used to
-            compute the correct normalisation for a statevector snapshot.
-            (Default: 100)
+        * "extended_stabilizer_norm_estimation_samples" (int): Number of
+            samples used to compute the correct normalisation for a
+            statevector snapshot. (Default: 100)
 
-        * "ch_parallel_threshold" (int): Set the minimum size of the ch
-            decomposition before we enable OpenMP parallelisation. If
-            parallel circuit or shot execution is enabled this will only
-            use unallocated CPU cores up to max_parallel_threads. (Default: 100)
+        * "extended_stabilizer_parallel_threshold" (int): Set the minimum
+            size of the extended stabilizer decomposition before we enable
+            OpenMP parallelisation. If parallel circuit or shot execution
+            is enabled this will only use unallocated CPU cores up to
+            max_parallel_threads. (Default: 100)
     """
 
-    MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
+    MAX_QUBIT_MEMORY = int(
+        log2(local_hardware_info()['memory'] * (1024**3) / 16))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
@@ -131,25 +139,25 @@ class QasmSimulator(AerBackend):
         'max_shots': 100000,
         'description': 'A C++ simulator with realistic noise for qobj files',
         'coupling_map': None,
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                        'snapshot', 'unitary'],
-        'gates': [
-            {
-                'name': 'TODO',
-                'parameters': [],
-                'qasm_def': 'TODO'
-            }
+        'basis_gates': [
+            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            't', 'tdg', 'ccx', 'swap', 'snapshot', 'unitary'
         ],
+        'gates': [{
+            'name': 'TODO',
+            'parameters': [],
+            'qasm_def': 'TODO'
+        }],
         # Location where we put external libraries that will be loaded at runtime
         # by the simulator extension
         'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(qasm_controller_execute,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
-                         provider=provider)
+        super().__init__(
+            qasm_controller_execute,
+            BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -157,16 +165,17 @@ class QasmSimulator(AerBackend):
         1. Check number of qubits will fit in local memory.
         2. warn if no classical registers or measurements in circuit.
         """
-        clifford_instructions = ["id", "x", "y", "z", "h", "s", "sdg",
-                                 "CX", "cx", "cz", "swap",
-                                 "barrier", "reset", "measure"]
+        clifford_instructions = [
+            "id", "x", "y", "z", "h", "s", "sdg", "CX", "cx", "cz", "swap",
+            "barrier", "reset", "measure"
+        ]
         unsupported_ch_instructions = ["u2", "u3"]
         # Check if noise model is Clifford:
         method = "automatic"
         if backend_options and "method" in backend_options:
             method = backend_options["method"]
 
-        clifford_noise = not (method == "statevector")
+        clifford_noise = (method != "statevector")
 
         if clifford_noise:
             if method != "stabilizer" and noise_model:
@@ -182,12 +191,13 @@ class QasmSimulator(AerBackend):
             name = experiment.header.name
             # Check for classical bits
             if experiment.config.memory_slots == 0:
-                logger.warning('No classical registers in circuit "%s": '
-                               'result data will not contain counts.', name)
+                logger.warning(
+                    'No classical registers in circuit "%s": '
+                    'result data will not contain counts.', name)
             # Check if Clifford circuit or if measure opts missing
             no_measure = True
             ch_supported = False
-            ch_supported = method in ["ch", "automatic"]
+            ch_supported = method in ["extended_stabilizer", "automatic"]
             clifford = False if method == "statevector" else clifford_noise
             for op in experiment.instructions:
                 if not clifford and not no_measure:
@@ -200,10 +210,11 @@ class QasmSimulator(AerBackend):
                     ch_supported = False
             # Print warning if clbits but no measure
             if no_measure:
-                logger.warning('No measurements in circuit "%s": '
-                               'count data will return all zeros.', name)
+                logger.warning(
+                    'No measurements in circuit "%s": '
+                    'count data will return all zeros.', name)
             # Check qubits for statevector simulation
-            if not clifford and method != "ch":
+            if not clifford and method != "extended_stabilizer":
                 n_qubits = experiment.config.n_qubits
                 max_qubits = self.configuration().n_qubits
                 if n_qubits > max_qubits:
@@ -217,14 +228,14 @@ class QasmSimulator(AerBackend):
                         raise AerError(err_string + '.')
                     else:
                         if n_qubits > 63:
-                            raise AerError(err_string + ', and has too many ' +
-                                           'qubits to fall back to the ' +
-                                           'CH simulator.')
+                            raise AerError('{}, and has too many qubits to fall '
+                                           'back to the extended_stabilizer '
+                                           'method.'.format(err_string))
                         if not ch_supported:
-                            raise AerError(err_string + ', and contains ' +
-                                           'instructions not supported by ' +
-                                           'the CH simulator.')
-                        logger.info('The QasmSimulator will automatically '
-                                    'switch to the CH backend, based on '
-                                    'the memory requirements.')
-
+                            raise AerError('{}, and contains instructions '
+                                           'not supported by the extended_etabilizer '
+                                           'method.'.format(err_string))
+                        logger.info(
+                            'The QasmSimulator will automatically '
+                            'switch to the Extended Stabilizer backend, based on '
+                            'the memory requirements.')
