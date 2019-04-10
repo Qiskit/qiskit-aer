@@ -23,10 +23,7 @@
 #endif
 
 namespace CHSimulator {
-  
-using complex_t = std::complex<double>;
-using uint_t = uint_fast64_t;
-using int_t = int_fast64_t;
+
 using chstabilizer_t = StabilizerState;
 
 const double T_ANGLE = M_PI/4.;
@@ -192,8 +189,9 @@ bool Runner::check_omp_threshold()
 
 void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators)
 {
+  const int_t END = num_states_;
   #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_)
-  for(uint_t i=0; i<num_states_; i++)
+  for(int_t i=0; i<END; i++)
   {
     apply_pauli_projector(generators, i);
   }
@@ -401,12 +399,20 @@ double Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng)
   std::vector<uint_t> adiag_1(n_samples, 0ULL);
   std::vector<uint_t> adiag_2(n_samples, 0ULL);
   std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits_, 0ULL));
-  #pragma omp parallel for if(num_threads_ > 1) collapse(2) num_threads(num_threads_)
-  for (size_t l=0; l<n_samples; l++)
+  const int_t NSAMPLES = n_samples;
+  const int_t NQUBITS = n_qubits_;
+  #pragma omp parallel if (num_threads_ > 1) num_threads(num_threads_)
   {
-    for (size_t i=0; i<n_qubits_; i++)
+  #ifdef _WIN32
+    #pragma omp for
+  #else
+    #pragma omp for collapse(2)
+  #endif
+  for (int_t l=0; l<NSAMPLES; l++)
+  {
+    for (int_t i=0; i<NQUBITS; i++)
     {
-      for (size_t j=i; j<n_qubits_; j++)
+      for (int_t j=i; j<NQUBITS; j++)
       {
           if(rng.rand() < 0.5)
           {
@@ -421,6 +427,7 @@ double Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng)
       }
     }
   }
+  } // end omp parallel
   return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
 }
 
@@ -460,8 +467,9 @@ void Runner::init_metropolis(AER::RngEngine &rng)
   x_string_ = rng.rand_int(ZERO, max);
   last_proposal_=0;
   double local_real=0., local_imag=0.;
+  const int_t END = num_states_;
   #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:local_real) reduction(+:local_imag)
-  for (uint_t i=0; i<num_states_; i++)
+  for (int_t i=0; i<END; i++)
   {
     scalar_t amp = states_[i].Amplitude(x_string_);
     if(amp.eps == 1)
@@ -484,8 +492,9 @@ void Runner::metropolis_step(AER::RngEngine &rng)
   double real_part = 0.,imag_part =0.;
   if (accept_ == 0)
   {
+    const int_t END = num_states_;
     #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
-    for (uint_t i=0; i<num_states_; i++)
+    for (int_t i=0; i<END; i++)
     {
       scalar_t amp = states_[i].ProposeFlip(proposal);
       if(amp.eps == 1)
@@ -498,8 +507,9 @@ void Runner::metropolis_step(AER::RngEngine &rng)
   }
   else
   {
+    const int_t END = num_states_;
     #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
-    for (uint_t i=0; i<num_states_; i++)
+    for (int_t i=0; i<END; i++)
     {
       states_[i].AcceptFlip();
       scalar_t amp = states_[i].ProposeFlip(proposal);
@@ -564,8 +574,9 @@ complex_t Runner::amplitude(uint_t x_measure)
 {
   double real_part=0., imag_part=0.;
   //Splitting the reduction guarantees support on more OMP versions.
+  const int_t END = num_states_;
   #pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
-  for(uint_t i=0; i<num_states_; i++)
+  for(int_t i=0; i<END; i++)
   {
     complex_t amplitude = states_[i].Amplitude(x_measure).to_complex();
     amplitude *= coefficients_[i];
@@ -609,8 +620,9 @@ inline void to_json(json_t &js, const Runner &rn)
 std::vector<std::string> Runner::serialize_decomposition() const
 {
   std::vector<std::string> serialized_states(num_states_);
+  const int_t END = num_states_;
   #pragma omp parallel for if(num_threads_ > 1 && num_states_ > omp_threshold_) num_threads(num_threads_)
-  for(uint_t i=0; i<num_states_; i++)
+  for(int_t i=0; i<END; i++)
   {
     serialized_states[i] = serialize_state(i).dump();
   }

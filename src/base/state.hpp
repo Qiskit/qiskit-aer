@@ -87,7 +87,7 @@ public:
 
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized State.
-  virtual uint_t required_memory_mb(uint_t num_qubits,
+  virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) = 0;
 
   //-----------------------------------------------------------------------
@@ -177,8 +177,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_available_threads(int n) {threads_ = n;}
-  inline int get_available_threads() const {return threads_;}
+  inline void set_parallalization(int n) {threads_ = n;}
 
   //-----------------------------------------------------------------------
   // Data accessors
@@ -222,6 +221,7 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
 }
 
 
+
 template <class state_t>
 bool State<state_t>::validate_opset(const Operations::OpSet &opset) const {
   return opset.validate(allowed_ops(),
@@ -248,7 +248,7 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   // We can't print OpTypes so we add a note if there are invalid
   // instructions other than gates or snapshots
   if (bad_instr && (!bad_gates && !bad_snaps))
-    ss << " invalid non gate or snapshot instructions";
+    ss << " invalid non gate or snapshot instructions: opset={" << opset << "}";
   return ss.str();
 }
 

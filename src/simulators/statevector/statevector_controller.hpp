@@ -67,6 +67,10 @@ public:
   // Clear the current config
   void virtual clear_config() override;
 
+protected:
+
+  virtual size_t required_memory_mb(const Circuit& circuit) const override;
+
 private:
 
   //-----------------------------------------------------------------------
@@ -111,6 +115,11 @@ void StatevectorController::clear_config() {
   initial_state_ = cvector_t();
 }
 
+size_t StatevectorController::required_memory_mb(const Circuit& circ) const {
+  Statevector::State<> state;
+  return state.required_memory_mb(circ.num_qubits, circ.ops);
+}
+
 //-------------------------------------------------------------------------
 // Run circuit
 //-------------------------------------------------------------------------
@@ -137,7 +146,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   // Set config
   state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_state_update_);
+  state.set_parallalization(parallel_state_update_);
   
   // Rng engine
   RngEngine rng;
