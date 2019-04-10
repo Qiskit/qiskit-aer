@@ -14,6 +14,8 @@ from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
 from test.terra.utils import ref_initialize
+from test.terra.utils import ref_initialize_temp_1
+from test.terra.utils import ref_initialize_temp_2
 from test.terra.utils import ref_conditionals
 from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
@@ -38,11 +40,11 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_initialize.initialize_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        print (result)
-        #statevector = result.get_statevector(circuits)
-        #print (statevector)
+        #print (result)
         # self.is_completed(result)
         # self.compare_statevector(result, circuits, targets)
+        ref_initialize_temp_1.initialize_qobj_direct()
+        ref_initialize_temp_2.initialize_QuantumCircuit()
 
     # ---------------------------------------------------------------------
     # Test reset
