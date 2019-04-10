@@ -13,6 +13,7 @@ import unittest
 from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
+from test.terra.utils import ref_initialize
 from test.terra.utils import ref_conditionals
 from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
@@ -25,6 +26,23 @@ from qiskit.providers.aer import StatevectorSimulator
 
 class TestStatevectorSimulator(common.QiskitAerTestCase):
     """StatevectorSimulator tests."""
+
+    # ---------------------------------------------------------------------
+    # Test initialize
+    # ---------------------------------------------------------------------
+    def test_initialize_deterministic(self):
+        """Test StatevectorSimulator initialize with for circuits with deterministic counts"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        circuits = ref_initialize.initialize_circuits_deterministic(final_measure=False)
+        targets = ref_initialize.initialize_statevector_deterministic()
+        job = execute(circuits, StatevectorSimulator(), shots=1)
+        result = job.result()
+        print (result)
+        #statevector = result.get_statevector(circuits)
+        #print (statevector)
+        # self.is_completed(result)
+        # self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
     # Test reset
