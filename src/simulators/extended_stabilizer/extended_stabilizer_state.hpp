@@ -72,7 +72,7 @@ public:
 
   virtual void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
 
-  virtual uint_t required_memory_mb(uint_t num_qubits,
+  virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) override;
 
   virtual void set_config(const json_t &config) override;
@@ -416,8 +416,9 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 //Method with slighty optimized parallelisation for the case of a sample_measure circuit
 void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine &rng)
 {
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
+  for(int_t i=0; i < NUM_STATES; i++)
   {
     if(!BaseState::qreg_.check_eps(i))
     {
@@ -516,6 +517,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 {
   uint_t measure_string;
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   if(BaseState::qreg_.get_num_states() == 1)
   {
     measure_string = BaseState::qreg_.stabilizer_sampler(rng);
@@ -524,6 +526,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
   {
     measure_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
   }
+
   std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
   for(size_t i=0; i<qubits.size(); i++)
   {
@@ -537,7 +540,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
   }
   BaseState::qreg_.apply_pauli_projector(paulis);
   #pragma omp parallel for if(BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
+  for(int_t i=0; i< NUM_STATES; i++)
   {
     for (auto qubit: qubits)
     {
@@ -551,8 +554,9 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 
 void State::apply_gate(const Operations::Op &op, RngEngine &rng)
 {
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   #pragma omp parallel for if (BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
-  for(uint_t i=0; i<BaseState::qreg_.get_num_states(); i++)
+  for(int_t i=0; i < NUM_STATES; i++)
   {
     if(BaseState::qreg_.check_eps(i))
     {
@@ -672,7 +676,7 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
   else
   {
     probs = rvector_t(1ULL<<op.qubits.size(), 0.);
-    uint_t dim = probs.size();
+    int_t dim = probs.size();
     uint_t mask = 0ULL;
     for(auto qubit: op.qubits)
     {
@@ -689,7 +693,7 @@ void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, R
                                                       rng);
     }
     #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
-    for(uint_t i=0; i<dim; i++)
+    for(int_t i=0; i < dim; i++)
     {
       uint_t target = 0ULL;
       for(uint_t j=0; j<op.qubits.size(); j++)
@@ -772,15 +776,15 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
   }
 }
 
-uint_t State::required_memory_mb(uint_t num_qubits,
+size_t State::required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
 {
-  uint_t required_chi = compute_chi(ops);
+  size_t required_chi = compute_chi(ops);
   // 5 vectors of num_qubits*8byte words
   // Plus 2*CHSimulator::scalar_t which has 3 4 byte words
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;
   double mb_per_state = 5e-5*num_qubits;//
-  uint_t required_mb = std::ceil(mb_per_state*required_chi);
+  size_t required_mb = std::ceil(mb_per_state*required_chi);
   return required_mb;
   //Todo: Update this function to account for snapshots
 }

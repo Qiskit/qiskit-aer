@@ -20,7 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- Improve efficiency of parallelization with max_memory_mb a new parameter of backend_opts (#61)
 
 Changed
 -------
