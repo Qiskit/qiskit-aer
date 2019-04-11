@@ -25,11 +25,11 @@ namespace Operations {
 // these are used to compare two hexadecimal strings and return a bool
 // for now we only have one comparison Equal, but others will be added
 enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual};
-
+// JAG
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, matrix_sequence, kraus, roerror, noise_switch, initialize
+  matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
 };
 
 std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -57,6 +57,8 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix_sequence:
     stream << "matrix_sequence";
+  case OpType::multiplexer: // JAG
+    stream << "multiplexer";
     break;
   case OpType::kraus:
     stream << "kraus";
@@ -421,6 +423,15 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   op.qubits = qubits;
   return op;
 }
+// JAG
+inline Op make_multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+  Op op;
+  op.type = OpType::multiplexer;
+  op.name = "multiplexer";
+  op.qubits = qubits;
+  op.mats = mats;
+  return op;
+}
 
 inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
   Op op;
@@ -466,6 +477,7 @@ Op json_to_op_snapshot_pauli(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
+Op json_to_op_multiplexer(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
@@ -721,6 +733,19 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
+// JAG
+Op json_to_op_multiplexer(const json_t &js) {
+  Op op;
+  op.type = OpType::multiplexer;
+  op.name = "multiplexer";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.mats, "params", js);
+
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  return op;
+}
 
 Op json_to_op_kraus(const json_t &js) {
   Op op;
