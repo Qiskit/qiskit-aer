@@ -36,8 +36,15 @@ set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
     "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
-    "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
+
+# TODO: We may want to change the prefix path for all the environments
+if(WIN32)
+	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
+endif()
 
 # Adding support for CCache
 find_program(CCACHE_FOUND ccache)
