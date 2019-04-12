@@ -24,8 +24,8 @@ namespace QubitUnitary {
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  cx, cz, swap, // two qubit
-  ccx // three qubit
+  cx, cy, cz, swap, // two qubit
+  ccx, mcx, mcy, mcz, mcu1, mcu2, mcu3 // multi-qubit controlled
 };
 
 
@@ -60,8 +60,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
+            "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -128,11 +129,22 @@ protected:
   // 1-Qubit Gates
   //-----------------------------------------------------------------------
 
-  void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
+  void apply_gate_u3(const uint_t qubit,
+                     const double theta,
+                     const double phi,
                      const double lambda);
 
   // Optimize phase gate with diagonal [1, phase]
   void apply_gate_phase(const uint_t qubit, const complex_t phase);
+
+  //-----------------------------------------------------------------------
+  // Multi-controlled u3
+  //-----------------------------------------------------------------------
+  
+  void apply_gate_mcu3(const reg_t& qubits,
+                       const double theta,
+                       const double phi,
+                       const double lambda);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -169,14 +181,19 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"u1", Gates::u1},  // zero-X90 pulse waltz gate
   {"u2", Gates::u2},  // single-X90 pulse waltz gate
   {"u3", Gates::u3},  // two X90 pulse waltz gate
-  {"U", Gates::u3},   // two X90 pulse waltz gate
   // Two-qubit gates
-  {"CX", Gates::cx},  // Controlled-X gate (CNOT)
   {"cx", Gates::cx},  // Controlled-X gate (CNOT)
+  {"cy", Gates::cy},  // Controlled-Z gate
   {"cz", Gates::cz},  // Controlled-Z gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-  {"ccx", Gates::ccx}  // Controlled-CX gate (Toffoli)
+  {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
+  {"mcx", Gates::mcx},   // Multi-controlled-X gate
+  {"mcy", Gates::mcy},   // Multi-controlled-Y gate
+  {"mcz", Gates::mcz},    // Multi-controlled-Z gate
+  {"mcu1", Gates::mcu1}, // Multi-controlled-u1
+  {"mcu2", Gates::mcu2}, // Multi-controlled-u2
+  {"mcu3", Gates::mcu3}  // Multi-controlled-u3
 });
 
 //============================================================================
@@ -305,10 +322,17 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
-      BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+    case Gates::ccx:
+    case Gates::mcx:
+      BaseState::qreg_.apply_mcx(op.qubits);
+      break;
+    case Gates::cy:
+    case Gates::mcy:
+      BaseState::qreg_.apply_mcy(op.qubits);
       break;
     case Gates::cz:
-      BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+    case Gates::mcz:
+      BaseState::qreg_.apply_mcz(op.qubits);
       break;
     case Gates::id:
       break;
@@ -341,9 +365,21 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
     case Gates::swap: {
       BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
     } break;
-    case Gates::ccx: {
-      BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-    } break;
+    case Gates::mcu3:
+      apply_gate_mcu3(op.qubits,
+                      std::real(op.params[0]),
+                      std::real(op.params[1]),
+                      std::real(op.params[2]));
+      break;
+    case Gates::mcu2:
+      apply_gate_mcu3(op.qubits,
+                      M_PI / 2.,
+                      std::real(op.params[0]),
+                      std::real(op.params[1]));
+      break;
+    case Gates::mcu1:
+      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("Unitary::State::invalid gate instruction \'" +
@@ -381,6 +417,16 @@ void State<data_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
   diag(0, 0) = 1.0;
   diag(0, 1) = phase;
   apply_matrix(reg_t({qubit}), diag);
+}
+
+
+template <class statevec_t>
+void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
+                                        double theta,
+                                        double phi,
+                                        double lambda) {
+  const auto u3 = Utils::Matrix::U3(theta, phi, lambda);
+  BaseState::qreg_.apply_mcu(qubits, Utils::vectorize_matrix(u3));
 }
 
 
