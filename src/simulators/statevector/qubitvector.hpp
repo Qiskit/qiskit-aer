@@ -32,6 +32,7 @@ using reg_t = std::vector<uint_t>;
 using indexes_t = std::unique_ptr<uint_t[]>;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
+using cmatrix_t = matrix<complex_t>; 
 using rvector_t = std::vector<double>;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 
@@ -242,6 +243,10 @@ public:
   // The sets of qubits and matrices are passed as vectors, where each individual matrix
   // is input as a column-major vectorized matrix.
   void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cvector_t> &mats);
+
+  // Apply a stacked set of 2^control_count target_count--qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
+  void apply_multiplexer(const reg_t &qubits, const cvector_t &mat, const size_t control_count, const size_t target_count);
 
   // Apply a 1-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
@@ -1216,6 +1221,37 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
   }
 
   apply_matrix(sorted_qubits, U);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_multiplexer(const reg_t &qubits,
+                                       const cvector_t &mat, 
+				       const size_t control_count,
+				       const size_t target_count) {
+  
+  // General implementation
+  const uint_t DIM = BITS[(target_count+control_count)];
+  const uint_t columns = BITS[target_count];
+  const uint_t blocks = BITS[control_count];
+  // Lambda function for stacked matrix multiplication
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat)->void {
+    auto cache = std::make_unique<complex_t[]>(DIM);
+    for (size_t i = 0; i < DIM; i++) {
+      const auto ii = inds[i];
+      cache[i] = data_[ii];
+      data_[ii] = 0.;
+    }
+    // update state vector
+    for (size_t b = 0; b < blocks; b++) 
+      for (size_t i = 0; i < columns; i++)
+        for (size_t j = 0; j < columns; j++) 
+	{ 
+	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
+	}
+  };
+
+  // Use the lambda function
+  apply_lambda(lambda, qubits, mat); 
 }
 
 template <typename data_t>

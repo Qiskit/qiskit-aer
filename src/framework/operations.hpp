@@ -733,7 +733,7 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
-// JAG
+// JAG -- well, JAG taken from CJW's #Slack 
 Op json_to_op_multiplexer(const json_t &js) {
   Op op;
   op.type = OpType::multiplexer;
@@ -741,9 +741,38 @@ Op json_to_op_multiplexer(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.mats, "params", js);
 
+  // Check for a label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  op.string_params.push_back(label);
+
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
+  // Check matrices are N-qubit
+  size_t dim = op.mats[0].GetRows();
+  size_t num_targets = size_t(std::log2(dim));
+  if (1ULL << num_targets != dim) {
+    throw std::invalid_argument("invalid multiplexer matrix dimension.");
+  }
+  // Check number of matrix compents is power of 2.
+  size_t num_mats = op.mats.size();
+  size_t num_controls = size_t(std::log2(num_mats));
+  if (1ULL << num_controls != num_mats) {
+    throw std::invalid_argument("invalid number of multiplexer matrices.");
+  }
+  // Check number of targets and controls matches qubits
+  if (num_controls + num_targets != op.qubits.size()) {
+    throw std::invalid_argument("multiplexer qubits don't match parameters.");
+  }
+  // Check each matrix component is unitary and same size
+  for (const auto &mat : op.mats) {
+    if (!Utils::is_unitary(mat, 1e-10))
+      throw std::invalid_argument("multiplexer matrix is not unitary.");
+    if (mat.GetRows() != dim) {
+      throw std::invalid_argument("multiplexer matrices are different size.");
+    }
+  }
   return op;
 }
 

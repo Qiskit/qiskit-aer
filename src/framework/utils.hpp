@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "framework/types.hpp"
+#include "simulators/statevector/qubitvector.hpp"
 
 namespace AER {
 namespace Utils {
@@ -92,6 +93,8 @@ template <class T>
 matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A);
 template <class T>
 matrix<std::complex<T>> conjugate(const matrix<std::complex<T>> &A);
+template<class T>
+matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat);
 
 // Tracing
 template <class T> T trace(const matrix<T> &A);
@@ -418,6 +421,45 @@ matrix<std::complex<T>> conj(const matrix<std::complex<T>> &A) {
     }
   }
   return temp;
+}
+
+// Given a list of matrices for a multiplexer, stacks and packs them 0/1/2/... into a single 2^control x (2^target x 2^target) cmatrix_t) 
+// Equivalent to a 2^qubits x 2^target "flat" matrix
+template <class T>
+matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat){
+	size_t exp_target_count, exp_control_count, target_count, control_count;
+	double n, base = 2;
+        exp_target_count = mmat[0].GetRows(); // or GetColumns, as these matrices are (should be) square
+	n = std::log(exp_target_count)/std::log(base);
+	target_count = std::trunc(n);
+
+	exp_control_count = mmat.size();
+	n = std::log(exp_control_count)/std::log(base);
+	control_count = std::trunc(n);
+
+	// Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
+	size_t big_dimension = QV::BITS[(control_count+target_count)];
+	size_t small_dimension = QV::BITS[target_count]; // Should equal exp_target_count
+	size_t offset_row = 0;
+
+	cmatrix_t stacked_matrix(big_dimension, small_dimension);
+	for(size_t row = 0; row < big_dimension; row++)
+		for(size_t col = 0; col < small_dimension; col++)
+			stacked_matrix(row, col) = {0.0, 0.0};
+
+	for(size_t mmat_number = 0; mmat_number < mmat.size(); mmat_number++)
+	{
+		for(size_t row = 0; row < exp_target_count; row++)
+		{
+			for(size_t col = 0; col < exp_target_count; col++)
+			{
+				stacked_matrix(offset_row + row, col) = mmat[mmat_number](row, col);
+			}
+
+		}
+		offset_row+=exp_target_count; // offset_row == mmat_number * exp_target_count
+	}
+	return stacked_matrix;
 }
 
 
