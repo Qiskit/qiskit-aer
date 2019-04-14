@@ -21,9 +21,11 @@ def initialize_QuantumCircuit():
     circ1.initialize([0, 0, 0, 1], qr[:])
     print(circ1)
 
-    # Execute and get counts
-    result = execute(circ1, simulator).result()
-    qobj = assemble_circuits(circ1)
+    qobj = assemble_circuits(circ1, run_config=RunConfig(shots=1000))
+    sim_job = simulator.run(qobj)
+    # Getting the result
+    result = sim_job.result()
+
     print(qobj)
     statevector = result.get_statevector(circ1)
     print ("statevector of circ1:", statevector)
@@ -33,8 +35,11 @@ def initialize_QuantumCircuit():
     circ2.initialize([0, 0, 0, 1], [qr[0], qr[1]])
     print(circ2)
 
-    # Execute and get counts
-    result = execute(circ2, simulator).result()
+    qobj = assemble_circuits(circ2, run_config=RunConfig(shots=1000))
+    sim_job = simulator.run(qobj)
+    # Getting the result
+    result = sim_job.result()
+
     statevector = result.get_statevector(circ2)
     print ("statevector of circ2:", statevector)
 
@@ -44,9 +49,11 @@ def initialize_QuantumCircuit():
     circ3.initialize([0, 1], [qr[1]])
     print(circ3)
 
-    # Execute and get counts
-    result = execute(circ3, simulator).result()
-    qobj = assemble_circuits(circ3)
+    qobj = assemble_circuits(circ3, run_config=RunConfig(shots=1000))
+    sim_job = simulator.run(qobj)
+    # Getting the result
+    result = sim_job.result()
+
     print(qobj)
     statevector = result.get_statevector(circ3)
     print ("statevector of circ3:", statevector)
@@ -60,7 +67,10 @@ def initialize_QuantumCircuit():
     print(circ0)
 
     # Execute and get counts
-    result = execute(circ0, simulator).result()
+    qobj = assemble_circuits(circ0, run_config=RunConfig(shots=1000))
+    sim_job = simulator.run(qobj)
+    # Getting the result
+    result = sim_job.result()
     statevector = result.get_statevector(circ0)
     print ("statevector of circ0:", statevector)
 
@@ -78,19 +88,22 @@ def initialize_QuantumCircuit():
     circ4.h(qr[2])
     print(circ4)
 
-    # Execute and get counts
-    result = execute(circ4, simulator).result()
+    qobj = assemble_circuits(circ4, run_config=RunConfig(shots=1000))
+    sim_job = simulator.run(qobj)
+    # Getting the result
+    result = sim_job.result()
+
     statevector = result.get_statevector(circ4)
     print ("statevector of circ4:", statevector)
 
     qobj = assemble_circuits(circ4, run_config=RunConfig(shots=1000))
     print(qobj)
-    qobj.experiments[0].instructions.append(QasmQobjInstruction(name='initialize', qubits=[0], params=[[0,0],[1,0]]))
-    print(qobj)
+    #qobj.experiments[0].instructions.append(QasmQobjInstruction(name='initialize', qubits=[0], params=[[0,0],[1,0]]))
+    #print(qobj)
 
-    result = simulator.run(qobj).result()
-    statevector = result.get_statevector(circ4)
-    print ("statevector of updated circ4 (after initialize):", statevector)
+    #result = sim_job.result()
+    #statevector = result.get_statevector(circ4)
+    #print ("statevector of updated circ4 (after initialize):", statevector)
 
     circ5 = QuantumCircuit(qr)
     circ5.h(qr[0])
@@ -99,10 +112,10 @@ def initialize_QuantumCircuit():
     circ5.reset (qr[0])
     print(circ5)
 
-    # Execute and get counts
-    result = execute(circ5, simulator).result()
-    qobj = assemble_circuits(circ5)
+    qobj = assemble_circuits(circ5, run_config=RunConfig(shots=1000))
     print(qobj)
+    sim_job = simulator.run(qobj)
+    result = sim_job.result()
     statevector = result.get_statevector(circ5)
     print ("statevector of circ5:", statevector)
 
@@ -111,13 +124,31 @@ def initialize_QuantumCircuit():
     circ6.h(qr[0])
     circ6.h(qr[1])
     circ6.h(qr[2])
-    #circ6.initialize(np.array([0,1], dtype=complex), [qr[0]])
     circ6.initialize(np.array([0.+0.j, 1.+0.j]), [qr[0]])
     print(circ6)
 
-    # Execute and get counts
-    result = execute(circ6, simulator).result()
-    qobj = assemble_circuits(circ6)
+    qobj = assemble_circuits(circ6, run_config=RunConfig(shots=1000))
+    print(qobj)
+    sim_job = simulator.run(qobj)
+    result = sim_job.result()
     print(qobj)
     statevector = result.get_statevector(circ6)
     print ("statevector of circ6:", statevector)
+
+
+    circ7 = QuantumCircuit(qr)
+    circ7.h(qr[0])
+    circ7.h(qr[1])
+    circ7.h(qr[2])
+    circ7.initialize(np.array([0,1], dtype=complex), [qr[0]])
+    print(circ7)
+
+    qobj = assemble_circuits(circ7, run_config=RunConfig(shots=1000))
+    print(qobj)
+    sim_job = simulator.run(qobj)
+    result = sim_job.result()
+    print(qobj)
+    statevector = result.get_statevector(circ7)
+    print ("statevector of circ7:", statevector)
+
+# initialize_QuantumCircuit()

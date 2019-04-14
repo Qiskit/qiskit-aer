@@ -241,3 +241,5 @@ def initialize_qobj_direct():
 
         print("statevector:", statevector)
         #print("counts:", counts)
+
+initialize_qobj_direct()
