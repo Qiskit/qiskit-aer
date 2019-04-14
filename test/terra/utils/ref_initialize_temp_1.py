@@ -198,17 +198,18 @@ def initialize_qobj_direct():
 
     print("--------------------------------------------------------")
     print("--------------------------------------------------------")
-    print("reset: qubit", 0)
-    qobj = qiskit.compile(circ, backend=simulator)
-    qobj.experiments[0].instructions.append(QasmQobjInstruction(name='reset', qubits=[0]))
-    # print (qobj)
+    for times in range(20):
+        print("reset: qubit", 0)
+        qobj = qiskit.compile(circ, backend=simulator)
+        qobj.experiments[0].instructions.append(QasmQobjInstruction(name='reset', qubits=[0]))
+        # print (qobj)
 
-    result = simulator.run(qobj).result()
-    statevector = result.get_statevector(circ)
-    counts = result.get_counts(circ)
+        result = simulator.run(qobj).result()
+        statevector = result.get_statevector(circ)
+        counts = result.get_counts(circ)
 
-    print("statevector:", statevector)
-    print("counts:", counts)
+        print("statevector:", statevector)
+        print("counts:", counts)
 
     print("--------------------------------------------------------")
     print("--------------------------------------------------------")
