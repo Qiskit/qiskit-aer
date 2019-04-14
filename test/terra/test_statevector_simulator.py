@@ -14,8 +14,6 @@ from test.terra.utils import common
 from test.terra.utils import ref_measure
 from test.terra.utils import ref_reset
 from test.terra.utils import ref_initialize
-from test.terra.utils import ref_initialize_temp_1
-from test.terra.utils import ref_initialize_temp_2
 from test.terra.utils import ref_conditionals
 from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
@@ -47,9 +45,19 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-        #### For DEBUG:
-        # ref_initialize_temp_1.initialize_qobj_direct()
-        # ref_initialize_temp_2.initialize_QuantumCircuit()
+    def test_initialize_nondeterministic(self):
+        """Test StatevectorSimulator initialize with for circuits with non-deterministic counts"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        circuits = ref_initialize.initialize_circuits_nondeterministic(final_measure=False)
+        targets = ref_initialize.initialize_statevector_nondeterministic()
+        qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
+        # Running qobj on the simulator
+        sim_job = StatevectorSimulator().run(qobj)
+        # Getting the result
+        result = sim_job.result()
+        self.is_completed(result)
+        self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
     # Test reset
