@@ -23,6 +23,7 @@ from test.terra.utils import ref_non_clifford
 from test.terra.utils import ref_unitary_gate
 
 from qiskit import execute
+from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit.providers.aer import StatevectorSimulator
 
 
@@ -38,13 +39,17 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         # count output circuits
         circuits = ref_initialize.initialize_circuits_deterministic(final_measure=False)
         targets = ref_initialize.initialize_statevector_deterministic()
-        job = execute(circuits, StatevectorSimulator(), shots=1)
-        result = job.result()
-        #print (result)
-        # self.is_completed(result)
-        # self.compare_statevector(result, circuits, targets)
-        ref_initialize_temp_1.initialize_qobj_direct()
-        ref_initialize_temp_2.initialize_QuantumCircuit()
+        qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
+        # Running qobj on the simulator
+        sim_job = StatevectorSimulator().run(qobj)
+        # Getting the result
+        result = sim_job.result()
+        self.is_completed(result)
+        self.compare_statevector(result, circuits, targets)
+
+        #### For DEBUG:
+        # ref_initialize_temp_1.initialize_qobj_direct()
+        # ref_initialize_temp_2.initialize_QuantumCircuit()
 
     # ---------------------------------------------------------------------
     # Test reset

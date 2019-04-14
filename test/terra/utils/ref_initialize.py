@@ -29,17 +29,54 @@ def initialize_circuits_deterministic(final_measure=True):
         regs = (qr, )
 
     # Start with |+++> state
-    # Initialize qr[0] to |1>
-    circuit = QuantumCircuit(*regs)
-    circuit.h(qr[0])
-    circuit.h(qr[1])
-    circuit.h(qr[2])
-    circuit.initialize([0, 1], [qr[0]])
+    # Initialize qr[i] to |1> for i=0,1,2
+    for qubit in range(3):
+        circuit = QuantumCircuit(*regs)
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.h(qr[2])
+        circuit.initialize([0, 1], [qr[qubit]])
 
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
+        if final_measure:
+            circuit.barrier(qr)
+            circuit.measure(qr, cr)
+        circuits.append(circuit)
+
+    # Start with |+++> state
+    # Initialize qr[i] to |1> and qr[j] to |0>
+    # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
+    for qubit_i in range(3):
+        for qubit_j in range(3):
+            if (qubit_i != qubit_j):
+                circuit = QuantumCircuit(*regs)
+                circuit.h(qr[0])
+                circuit.h(qr[1])
+                circuit.h(qr[2])
+                circuit.initialize([0, 1, 0, 0], [qr[qubit_i], qr[qubit_j]])
+
+                if final_measure:
+                    circuit.barrier(qr)
+                    circuit.measure(qr, cr)
+                circuits.append(circuit)
+
+    # Start with |+++> state
+    # Initialize qr[i] to |1>, qr[j] to |0> and qr[k] to |->
+    # For [i,j,k] = [0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]
+    for qubit_i in range(3):
+        for qubit_j in range(3):
+            for qubit_k in range(3):
+                if ((qubit_i != qubit_j) & (qubit_i != qubit_k) & (qubit_k != qubit_j)):
+                    circuit = QuantumCircuit(*regs)
+                    circuit.h(qr[0])
+                    circuit.h(qr[1])
+                    circuit.h(qr[2])
+                    circuit.initialize([0, 1, 0, 0, 0, -1, 0, 0] / sqrt(2), \
+                                       [qr[qubit_i], qr[qubit_j], qr[qubit_k]])
+
+                    if final_measure:
+                        circuit.barrier(qr)
+                        circuit.measure(qr, cr)
+                    circuits.append(circuit)
 
     return circuits
 
@@ -47,7 +84,39 @@ def initialize_statevector_deterministic():
     """Initialize test circuits reference counts."""
     targets = []
     # Start with |+++> state
-    # Initialize qr[0] to |1>
+    # Initialize qr[i] to |1> for i=0,1,2
     targets.append(array([0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j]))
+    targets.append(array([0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j]))
+    targets.append(array([0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]))
+    # Start with |+++> state
+    # Initialize qr[i] to |1> and qr[j] to |0>
+    # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
+    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j, \
+                          0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 1.0 + 0.j, \
+                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j, \
+                          0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 1.0 + 0.j, \
+                          0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j, \
+                          1.0 + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j, \
+                          1.0 + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    # Start with |+++> state
+    # Initialize qr[i] to |1>, qr[j] to |0> and qr[k] to |->
+    # For [i,j,k] = [0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]
+    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j, \
+                          0. + 0.j, -1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, -1.0 + 0.j,
+                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j, \
+                          0. + 0.j, 0. + 0.j, -1.0 + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, -1.0 + 0.j, \
+                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, \
+                          1.0 + 0.j, 0. + 0.j, -1.0 + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(array([0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, \
+                          1.0 + 0.j, -1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
 
     return targets
