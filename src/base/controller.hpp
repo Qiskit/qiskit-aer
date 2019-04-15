@@ -263,7 +263,7 @@ void Controller::set_config(const json_t &config) {
   // with preference given to parallel circuit execution
   if (max_parallel_experiments_ > 1)
     max_parallel_shots_ = 1;
- 
+
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   } else {
