@@ -22,7 +22,10 @@ def quantum_error_to_kraus_operators(error):
             noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
         error_ops += [np.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
 
-def approximate_quantum_error(error, operator_dict = None):
+def approximate_quantum_error(error,
+                              operator_string = None,
+                              operator_dict = None,
+                              operator_list = None):
     """Return an approximate QuantumError.
 
     Args:
@@ -39,17 +42,22 @@ def approximate_quantum_error(error, operator_dict = None):
     error_kraus_operators = quantum_error_to_kraus_operators(error) #TODO: ad-hoc; QuantumError should support general conversion
     #error_kraus_operators = error.kraus_operators()
     transformer = NoiseTransformer()
+    if operator_string is not None:
+        operator_dict = transformer.named_operators[operator_string]
     if operator_dict is not None:
-        transformed_error_operators = transformer.transform_by_operator_dictionary(operator_dict, error_kraus_operators)
+        names, operators_list = zip(*operator_dict.items())
+    if operator_list is not None:
+        probabilities = transformer.transform_by_operator_list(operator_list, error_kraus_operators)
         quantum_error_spec = []
-        for (op_name, op_matrices) in operator_dict:
-            probability = transformed_error_operators[op_name]
+        for (op_matrices, probability) in zip(operator_list, probabilities):
             quantum_error_spec.append([{'name': 'kraus',
                                         'qubits': [0],
                                         'params': op_matrices}
                                        ], probability)
         return QuantumError(quantum_error_spec)
+
     return None
+
 
 def approximate_noise_model(model, **kwargs):
     """Return an approximate noise model.
@@ -88,9 +96,7 @@ class NoiseTransformer:
     """
 
     def __init__(self):
-        # the premade operators can be accessed by calling transform() with the given name string
-        #TODO: replace with errorutils
-        self.named_operators = {
+        named_operators = {
             'pauli': {'X': standard_gate_unitary('x'),
                       'Y': standard_gate_unitary('y'),
                       'Z': standard_gate_unitary('z')
@@ -151,13 +157,6 @@ class NoiseTransformer:
         names, operators = zip(*transform_channel_operators_dictionary.items())
         probabilities = self.transform_by_operator_list(operators, noise_kraus_operators)
         return dict(zip(names, probabilities))
-
-    # convenience wrapper method
-    def transform_by_operator_string(self, transform_channel_operators_string, noise_kraus_operators):
-        if transform_channel_operators_string in self.named_operators:
-            return self.transform_by_operator_dictionary(
-                self.named_operators[transform_channel_operators_string], noise_kraus_operators)
-        raise RuntimeError("No information about noise type {}".format(transform_channel_operators_string))
 
     # convert to sympy matrices and verify that each singleton is in a tuple; also add identity matrix
     @staticmethod
