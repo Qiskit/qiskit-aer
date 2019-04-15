@@ -13,7 +13,7 @@ import copy
 
 import numpy as np
 
-from qiskit.quantum_info.operators.channel.basechannel import QuantumChannel
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
