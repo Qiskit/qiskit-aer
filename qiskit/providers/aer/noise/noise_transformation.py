@@ -19,8 +19,13 @@ def quantum_error_to_kraus_operators(error):
                 kraus_matrices = std_op
             if noise_circuit_element['name'] == 'kraus':
                 kraus_matrices = noise_circuit_element['params']
+            if noise_circuit_element['name'] == 'unitary':
+                #TODO: I expect only one matrix here. Is this assumption correct?
+                kraus_matrices = noise_circuit_element['params']
+            if kraus_matrices is None:
+                raise "Could not understand the error {}".format(error)
             noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
-        error_ops += [np.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
+        error_ops += [numpy.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
 
 def approximate_quantum_error(error,
                               operator_string = None,
