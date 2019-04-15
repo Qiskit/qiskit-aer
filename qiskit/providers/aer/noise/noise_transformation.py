@@ -16,16 +16,18 @@ def quantum_error_to_kraus_operators(error):
         for noise_circuit_element in noise_circuit:
             std_op = standard_gate_unitary(noise_circuit_element['name'])
             if std_op is not None:
-                kraus_matrices = std_op
+                kraus_matrices = [std_op]
             if noise_circuit_element['name'] == 'kraus':
                 kraus_matrices = noise_circuit_element['params']
             if noise_circuit_element['name'] == 'unitary':
                 #TODO: I expect only one matrix here. Is this assumption correct?
-                kraus_matrices = noise_circuit_element['params']
+                kraus_matrices = [noise_circuit_element['params']]
             if kraus_matrices is None:
                 raise "Could not understand the error {}".format(error)
+            kraus_matrices = [numpy.array(matrix) for matrix in kraus_matrices]
             noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
         error_ops += [numpy.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
+    return error_ops
 
 def approximate_quantum_error(error,
                               operator_string = None,
@@ -50,7 +52,7 @@ def approximate_quantum_error(error,
     if operator_string is not None:
         operator_dict = transformer.named_operators[operator_string]
     if operator_dict is not None:
-        names, operators_list = zip(*operator_dict.items())
+        names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
         probabilities = transformer.transform_by_operator_list(operator_list, error_kraus_operators)
         quantum_error_spec = []
@@ -61,7 +63,7 @@ def approximate_quantum_error(error,
                                        ], probability)
         return QuantumError(quantum_error_spec)
 
-    return None
+    raise Exception("Quantum error approximation failed - no approximating operators detected")
 
 
 def approximate_noise_model(model, **kwargs):
