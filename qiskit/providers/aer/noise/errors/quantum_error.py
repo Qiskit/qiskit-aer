@@ -15,10 +15,11 @@ import numpy as np
 
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
+from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
-from .errorutils import kraus2instructions
+from .errorutils import kraus2instructions, circuit2superop
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,8 @@ class QuantumError:
         output = "QuantumError on {} qubits. Noise circuits:".format(
             self._number_of_qubits)
         for j, pair in enumerate(zip(self.probabilities, self.circuits)):
-            output += "\n  P({0}) = {1}, QasmQobjInstructions = [{2}".format(j, pair[0], pair[1])
+            output += "\n  P({0}) = {1}, QasmQobjInstructions = [{2}".format(
+                j, pair[0], pair[1])
         return output
 
     def copy(self):
@@ -214,6 +216,17 @@ class QuantumError:
             logger.debug("Error object is ideal")
             return True
         return False
+
+    def to_channel(self):
+        """Convet the QuantumError to a SuperOp quantum channel."""
+        # Initialize as an empty superoperator of the correct size
+        dim = 2**self.number_of_qubits
+        channel = SuperOp(np.zeros([dim * dim, dim * dim]))
+        for circuit, prob in zip(self._noise_circuits,
+                                 self._noise_probabilities):
+            component = prob * circuit2superop(circuit, self.number_of_qubits)
+            channel = channel + component
+        return channel
 
     def error_term(self, position):
         """
@@ -438,13 +451,13 @@ class QuantumError:
         combined_noise_probabilities = []
         # Combine subcircuits and probabilities
         if reverse:
-            shift_qubits = other.number_of_qubits
+            shift_qubits = self.number_of_qubits
             noise_ops0 = list(
                 zip(self._noise_circuits, self._noise_probabilities))
             noise_ops1 = list(
                 zip(other._noise_circuits, other._noise_probabilities))
         else:
-            shift_qubits = self.number_of_qubits
+            shift_qubits = other.number_of_qubits
             noise_ops0 = list(
                 zip(other._noise_circuits, other._noise_probabilities))
             noise_ops1 = list(
