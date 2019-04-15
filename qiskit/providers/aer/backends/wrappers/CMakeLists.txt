@@ -28,7 +28,7 @@ target_include_directories(qasm_controller_wrapper
 if(APPLE)
     message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
         solved at runtime by the loader")
-    set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
     unset(PYTHON_LIBRARIES)
 endif()
 
@@ -59,7 +59,11 @@ target_include_directories(statevector_controller_wrapper
 if(APPLE)
     message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
         solved at runtime by the loader")
-    set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    # -flat_namespace linker flag is needed otherwise dynamic symbol resolution doesn't work as expected.
+    # Symbols with the same name exist in different .so, so the loader just takes the first one it finds,
+    # which is usually the one from the first .so loaded.
+    # See: Two-Leve namespace symbol resolution
+    set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
     unset(PYTHON_LIBRARIES)
 endif()
 
@@ -90,7 +94,7 @@ target_include_directories(unitary_controller_wrapper
 if(APPLE)
     message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
         solved at runtime by the loader")
-    set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
     unset(PYTHON_LIBRARIES)
 endif()
 
