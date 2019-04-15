@@ -45,7 +45,8 @@ def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
         raise NoiseError("Kraus error noise_ops must not be empty.")
     kraus = Kraus(noise_ops)
     if canonical_kraus:
-        kraus = kraus.canonical()
+        # Convert to Choi and back to get canonical Kraus
+        kraus = Kraus(Choi(kraus))  
     return QuantumError(kraus, standard_gates=standard_gates)
 
 
@@ -402,8 +403,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         chan = Choi(
             np.array([[1 - p1 * p_reset, 0, 0, exp_t2],
                       [0, p1 * p_reset, 0, 0], [0, 0, p0 * p_reset, 0],
-                      [exp_t2, 0, 0, 1 - p0 * p_reset]]),
-            input_dim=2)
+                      [exp_t2, 0, 0, 1 - p0 * p_reset]]))
         return QuantumError(Kraus(chan))
     else:
         # If T_2 < T_1 we can express this channel as a probabilistic
