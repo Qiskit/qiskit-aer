@@ -165,6 +165,13 @@ public:
   template<typename list_t>
   uint_t index0(const list_t &qubits_sorted, const uint_t k) const;
 
+  // Return a vector of of 2^N in ints, where each int corresponds to an N qubit
+  // bitstring for M-N qubit bits in state k, and the specified N qubits in states
+  // [0, ..., 2^N - 1] qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
+  // qubits specifies the location of the qubits in the retured strings.
+  template<size_t N>
+  areg_t<1ULL << N> indexes(const areg_t<N> &qs, const areg_t<N> &qubits_sorted, const uint_t k) const;
+
   // Return a std::unique_ptr to an array of of 2^N in ints
   // each int corresponds to an N qubit bitstring for M-N qubit bits in state k,
   // and the specified N qubits in states [0, ..., 2^N - 1]
