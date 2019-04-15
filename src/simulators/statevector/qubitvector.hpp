@@ -1461,7 +1461,7 @@ void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
   // Calculate the swap positions for the last two qubits.
   // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP gate.
   const size_t N = qubits.size();
-  const size_t pos0 = BITS[N - 1];
+  const size_t pos0 = MASKS[N - 1];
   const size_t pos1 = pos0 + BITS[N - 2];
 
   switch (N) {
