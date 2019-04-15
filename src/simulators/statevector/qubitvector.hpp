@@ -222,15 +222,6 @@ public:
   // Apply Specialized Gates
   //-----------------------------------------------------------------------
 
-  // Apply a 2-qubit Controlled-NOT gate to the state vector
-  void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
-
-  // Apply a 2-qubit Controlled-Z gate to the state vector
-  void apply_cz(const uint_t q0, const uint_t q1);
-
-  // Apply a 2-qubit SWAP gate to the state vector
-  void apply_swap(const uint_t q0, const uint_t q1);
-
   // Apply a single-qubit Pauli-X gate to the state vector
   void apply_x(const uint_t qubit);
 
@@ -240,8 +231,20 @@ public:
   // Apply a single-qubit Pauli-Z gate to the state vector
   void apply_z(const uint_t qubit);
 
-  // Apply a 3-qubit toffoli gate
-  void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
+  // Apply a 2-qubit SWAP gate to the state vector
+  void apply_swap(const uint_t q0, const uint_t q1);
+
+  // Apply multi-controlled X-gate
+  void apply_mcx(const reg_t &qubits);
+
+  // Apply multi-controlled Y-gate
+  void apply_mcy(const reg_t &qubits);
+
+  // Apply multi-controlled Z-gate
+  void apply_mcz(const reg_t &qubits);
+  
+  // Apply multi-controlled single-qubit unitary gate
+  void apply_mcu(const reg_t &qubits, const cvector_t &mat);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1298,19 +1301,68 @@ void QubitVector<data_t>::apply_z(const uint_t qubit) {
 }
 
 //------------------------------------------------------------------------------
-// Two-qubit gates
+// Multi-controlled gates
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void QubitVector<data_t>::apply_cnot(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-  // Lambda function for CNOT gate
+void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  // Lambda function for multi-controlled X gate
   auto lambda = [&](const indexes_t &inds)->void {
-    std::swap(data_[inds[1]], data_[inds[3]]);
+    std::swap(data_[inds[pos0]], data_[inds[pos1]]);
   };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
   apply_lambda(lambda, qubits);
 }
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  const complex_t I(0., 1.);
+  // Lambda function for multi-controlled Y gate
+  auto lambda = [&](const indexes_t &inds)->void {
+    const complex_t cache = data_[inds[pos0]];
+    data_[inds[pos0]] = -I * data_[inds[pos1]];
+    data_[inds[pos1]] = I * cache;
+  };
+  apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
+  // Lambda function for multi-controlled Z gate
+  auto lambda = [&](const indexes_t &inds)->void {
+    // Multiply last block index by -1
+    data_[inds[MASKS[qubits.size()]]] *= -1.;
+  };
+  apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
+                                    const cvector_t &mat) {
+  // Calculate the permutation positions for the last qubit.
+  const size_t N = qubits.size();
+  const size_t pos0 = MASKS[N - 1];
+  const size_t pos1 = MASKS[N];
+  // Lambda function for multi-controlled single-qubit gate
+  auto lambda = [&](const indexes_t &inds,
+                    const cvector_t &_mat)->void {
+    const auto cache = data_[pos0];
+    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
+    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+  };
+  apply_matrix_lambda(lambda, qubits, mat);
+}
+
+//------------------------------------------------------------------------------
+// Swap gates
+//------------------------------------------------------------------------------
 
 template <typename data_t>
 void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
@@ -1320,34 +1372,6 @@ void QubitVector<data_t>::apply_swap(const uint_t qubit0, const uint_t qubit1) {
   };
   // Use the lambda function
   const reg_t qubits = {qubit0, qubit1};
-  apply_lambda(lambda, qubits);
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_cz(const uint_t qubit_ctrl, const uint_t qubit_trgt) {
-
-  // Lambda function for CZ gate
-  auto lambda = [&](const indexes_t &inds)->void {
-    data_[inds[3]] *= -1.;
-  };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl, qubit_trgt};
-  apply_lambda(lambda, qubits);
-}
-
-//------------------------------------------------------------------------------
-// Three-qubit gates
-//------------------------------------------------------------------------------
-template <typename data_t>
-void QubitVector<data_t>::apply_toffoli(const uint_t qubit_ctrl0,
-                                const uint_t qubit_ctrl1,
-                                const uint_t qubit_trgt) {
-  // Lambda function for Toffoli gate
-  auto lambda = [&](const indexes_t &inds)->void {
-      std::swap(data_[inds[3]], data_[inds[7]]);
-  };
-  // Use the lambda function
-  const reg_t qubits = {qubit_ctrl0, qubit_ctrl1, qubit_trgt};
   apply_lambda(lambda, qubits);
 }
 
@@ -1371,11 +1395,11 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
   const int_t BIT = BITS[qubit];
   auto lambda = [&](const int_t k1, const int_t k2,
                     const cvector_t &_mat)->void {
-    const auto k = k1 | k2;
-    const auto cache0 = data_[k];
-    const auto cache1 = data_[k | BIT];
-    data_[k] = _mat[0] * cache0 + _mat[2] * cache1;
-    data_[k | BIT] = _mat[1] * cache0 + _mat[3] * cache1;
+    const auto pos0 = k1 | k2;
+    const auto pos1 = pos0 | BIT;
+    const auto cache = data_[pos0];
+    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
+    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
   };
   apply_matrix_lambda(lambda, qubit, mat);
 }
