@@ -425,13 +425,6 @@ protected:
   template <typename Lambda>
   void apply_lambda(Lambda&& func);
 
-  // Apply a single-qubit lambda function to all blocks of the statevector
-  // for the given qubit. The function signature should be:
-  // [&](const int_t k1, const int_t k2)->void
-  // where (k1, k2) are the 0 and 1 indexes for each qubit block
-  template <typename Lambda>
-  void apply_lambda(Lambda&& func, const uint_t qubit);
-
   // Apply a N-qubit lambda function to all blocks of the statevector
   // for the given qubits. The function signature should be:
   // [&](const indexes_t &inds)->void
@@ -445,16 +438,6 @@ protected:
   //-----------------------------------------------------------------------
   // These functions loop through the indexes of the qubitvector data and
   // apply a lambda function taking a vector matrix argument to each entry.
-
-  // Apply a single-qubit matrix lambda function to all blocks of the
-  // statevector for the given qubit. The function signature should be:
-  // [&](const int_t k1, const int_t k2, const cvector_t &m)->void
-  // where (k1, k2) are the 0 and 1 indexes for each qubit block and
-  // m is a vectorized complex matrix.
-  template <typename Lambda>
-  void apply_matrix_lambda(Lambda&& func,
-                           const uint_t qubit,
-                           const cvector_t &mat);
 
   // Apply a N-qubit matrix lambda function to all blocks of the statevector
   // for the given qubits. The function signature should be:
@@ -949,33 +932,6 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func) {
   }
 }
 
-// Single qubit
-template <typename data_t>
-template<typename Lambda>
-void QubitVector<data_t>::apply_lambda(Lambda&& func,
-                                       const uint_t qubit) {
-  // Error checking
-  #ifdef DEBUG
-  check_qubit(qubit);
-  #endif
-
-  const int_t END1 = data_size_;       // end for k1 loop
-  const int_t END2 = BITS[qubit];      // end for k2 loop
-  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-  #pragma omp for
-#else
-  #pragma omp for collapse(2)
-#endif
-    for (int_t k1 = 0; k1 < END1; k1 += STEP1)
-      for (int_t k2 = 0; k2 < END2; k2++) {
-        std::forward<Lambda>(func)(k1, k2);
-      }
-  }
-}
-
 // Dynamic N-qubit
 template <typename data_t>
 template<typename Lambda, typename list_t>
@@ -1006,35 +962,6 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
 //------------------------------------------------------------------------------
 // Matrix Lambda
 //------------------------------------------------------------------------------
-
-// Single qubit
-template <typename data_t>
-template<typename Lambda>
-void QubitVector<data_t>::apply_matrix_lambda(Lambda&& func,
-                                              const uint_t qubit,
-                                              const cvector_t &mat) {
-  // Error checking
-  #ifdef DEBUG
-  check_qubit(qubit);
-  #endif
-
-  const int_t END1 = data_size_;       // end for k1 loop
-  const int_t END2 = BITS[qubit];      // end for k2 loop
-  const int_t STEP1 = BITS[qubit + 1]; // step for k1 loop
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-  #pragma omp for
-#else
-  #pragma omp for collapse(2)
-#endif
-    for (int_t k1 = 0; k1 < END1; k1 += STEP1)
-      for (int_t k2 = 0; k2 < END2; k2++) {
-        std::forward<Lambda>(func)(k1, k2, mat);
-      }
-  }
-}
-
 // Dynamic N-qubit
 template <typename data_t>
 template<typename Lambda, typename list_t>
@@ -1340,35 +1267,35 @@ void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_x(const uint_t qubit) {
   // Lambda function for optimized Pauli-X gate
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    const auto i0 = k1 | k2;
-    const auto i1 = i0 | BITS[qubit];
+  auto lambda = [&](const areg_t<2> &inds)->void {
+    const auto i0 = inds[0];
+    const auto i1 = inds[1];
     std::swap(data_[i0], data_[i1]);
   };
-  apply_lambda(lambda, qubit);
+  apply_lambda(lambda, (areg_t<1>){qubit});
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_y(const uint_t qubit) {
   // Lambda function for optimized Pauli-Y gate
   const complex_t I(0., 1.);
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    const auto i0 = k1 | k2;
-    const auto i1 = i0 | BITS[qubit];
+  auto lambda = [&](const areg_t<2> &inds)->void {
+    const auto i0 = inds[0];
+    const auto i1 = inds[1];
     const complex_t cache = data_[i0];
     data_[i0] = -I * data_[i1]; // mat(0,1)
     data_[i1] = I * cache;     // mat(1,0)
   };
-  apply_lambda(lambda, qubit);
+  apply_lambda(lambda, (areg_t<1>){qubit});
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_z(const uint_t qubit) {
   // Lambda function for optimized Pauli-Z gate
-  auto lambda = [&](const int_t k1, const int_t k2)->void {
-    data_[k1 | k2 | BITS[qubit]] *= complex_t(-1.0, 0.0);
+  auto lambda = [&](const areg_t<2> &inds)->void {
+    data_[inds[1]] *= complex_t(-1.0, 0.0);
   };
-  apply_lambda(lambda, qubit);
+  apply_lambda(lambda, (areg_t<1>){qubit});
 }
 
 //------------------------------------------------------------------------------
@@ -1510,109 +1437,108 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
   }
 
   // Lambda function for single-qubit matrix multiplication
-  const int_t BIT = BITS[qubit];
-  auto lambda = [&](const int_t k1, const int_t k2,
+  auto lambda = [&](const areg_t<2> &inds,
                     const cvector_t &_mat)->void {
-    const auto pos0 = k1 | k2;
-    const auto pos1 = pos0 | BIT;
+    const auto pos0 = inds[0];
+    const auto pos1 = inds[1];
     const auto cache = data_[pos0];
     data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
     data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
   };
-  apply_matrix_lambda(lambda, qubit, mat);
+  apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, mat);
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t& diag) {
   // TODO: This should be changed so it isn't checking doubles with ==
-  const int_t BIT = BITS[qubit];
   if (diag[0] == 1.0) {  // [[1, 0], [0, z]] matrix
     if (diag[1] == 1.0)
       return; // Identity
 
     if (diag[1] == complex_t(0., -1.)) { // [[1, 0], [0, -i]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2 | BIT;
+        const auto k = inds[1];
         double cache = data_[k].imag();
         data_[k].imag(data_[k].real() * -1.);
         data_[k].real(cache);
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else if (diag[1] == complex_t(0., 1.)) {
       // [[1, 0], [0, i]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2 | BIT;
+        const auto k = inds[1];
         double cache = data_[k].imag();
         data_[k].imag(data_[k].real());
         data_[k].real(cache * -1.);
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else if (diag[0] == 0.0) {
       // [[1, 0], [0, 0]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        data_[k1 | k2 | BIT] = 0.0;
+        data_[inds[1]] = 0.0;
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else {
       // general [[1, 0], [0, z]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2 | BIT;
+        const auto k = inds[1];
         data_[k] *= _mat[1];
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     }
   } else if (diag[1] == 1.0) {
     // [[z, 0], [0, 1]] matrix
     if (diag[0] == complex_t(0., -1.)) {
       // [[-i, 0], [0, 1]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2;
+        const auto k = inds[1];
         double cache = data_[k].imag();
         data_[k].imag(data_[k].real() * -1.);
         data_[k].real(cache);
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else if (diag[0] == complex_t(0., 1.)) {
       // [[i, 0], [0, 1]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2;
+        const auto k = inds[1];
         double cache = data_[k].imag();
         data_[k].imag(data_[k].real());
         data_[k].real(cache * -1.);
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else if (diag[0] == 0.0) {
       // [[0, 0], [0, 1]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        data_[k1 | k2] = 0.0;
+        data_[inds[0]] = 0.0;
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     } else {
       // general [[z, 0], [0, 1]]
-      auto lambda = [&](const int_t k1, const int_t k2,
+      auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t &_mat)->void {
-        const auto k = k1 | k2;
+        const auto k = inds[0];
         data_[k] *= _mat[0];
       };
-      apply_matrix_lambda(lambda, qubit, diag);
+      apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
     }
   } else {
     // Lambda function for diagonal matrix multiplication
-    auto lambda = [&](const int_t k1, const int_t k2,
+    auto lambda = [&](const areg_t<2> &inds,
                       const cvector_t &_mat)->void {
-      const auto k = k1 | k2;
-      data_[k] *= _mat[0];
-      data_[k | BIT] *= _mat[1];
+      const auto k0 = inds[0];
+      const auto k1 = inds[1];
+      data_[k0] *= _mat[0];
+      data_[k1] *= _mat[1];
     };
-    apply_matrix_lambda(lambda, qubit, diag);
+    apply_matrix_lambda(lambda, (areg_t<1>) {qubit}, diag);
   }
 }
 
