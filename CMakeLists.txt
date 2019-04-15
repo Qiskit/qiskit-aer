@@ -159,6 +159,12 @@ else()
     set(BLA_VENDOR "OpenBLAS")
 endif()
 
+if(WIN32)
+	message("Uncompressing OpenBLAS static library...")
+	execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z"
+		WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
+endif()
+
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
 	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
