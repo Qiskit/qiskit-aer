@@ -5,6 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
+
+
 #ifndef _qv_qubit_vector_hpp_
 #define _qv_qubit_vector_hpp_
 
@@ -153,26 +155,43 @@ public:
   // Set all entries in the vector to 0.
   void zero();
 
-  // Return as an int an N qubit bitstring for M-N qubit bit k with 0s inserted
-  // for N qubits at the locations specified by qubits_sorted.
-  // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
+  // index0 returns only the integer representation of a number of bits set
+  // to zero inserted into an arbitrary bit string.
+  // Eg: for qubits 0,2 in a state k = ba ( ba = 00 => k=0, etc).
+  // indexes0([1], k) -> int(b0a)
+  // indexes0([1,3], k) -> int(0b0a)
+  // Example: k = 77  = 1001101 , qubits_sorted = [1,4]
+  // ==> output = 297 = 100101001 (with 0's put into places 1 and 4).
   template<typename list_t>
   uint_t index0(const list_t &qubits_sorted, const uint_t k) const;
-
-  // Return a vector of of 2^N in ints, where each int corresponds to an N qubit
-  // bitstring for M-N qubit bits in state k, and the specified N qubits in states
-  // [0, ..., 2^N - 1] qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
-  // qubits specifies the location of the qubits in the retured strings.
-  template<size_t N>
-  areg_t<1ULL << N> indexes(const areg_t<N> &qs, const areg_t<N> &qubits_sorted, const uint_t k) const;
 
   // Return a std::unique_ptr to an array of of 2^N in ints
   // each int corresponds to an N qubit bitstring for M-N qubit bits in state k,
   // and the specified N qubits in states [0, ..., 2^N - 1]
   // qubits_sorted must be sorted lowest to highest. Eg. {0, 1}.
-  // qubits specifies the location of the qubits in the retured strings.
+  // qubits specifies the location of the qubits in the returned strings.
   // NOTE: since the return is a unique_ptr it cannot be copied.
-  indexes_t indexes(const reg_t & qubits, const reg_t &qubits_sorted, const uint_t k) const;
+  // indexes returns the array of all bit values for the specified qubits
+  // (Eg: for qubits 0,2 in a state k = ba:
+  // indexes([1], [1], k) = [int(b0a), int(b1a)],
+  // if it were two qubits inserted say at 1,3 it would be:
+  // indexes([1,3], [1,3], k) -> [int(0b0a), int(0b1a), int(1b0a), (1b1a)]
+  // If the qubits were passed in reverse order it would swap qubit position in the list:
+  // indexes([3,1], [1,3], k) -> [int(0b0a), int(1b0a), int(0b1a), (1b1a)]
+  // Example: k=77, qubits=qubits_sorted=[1,4] ==> output=[297,299,313,315]
+  // input: k = 77  = 1001101
+  // output[0]: 297 = 100101001 (with 0's put into places 1 and 4).
+  // output[1]: 299 = 100101011 (with 0 put into place 1, and 1 put into place 4).
+  // output[2]: 313 = 100111001 (with 1 put into place 1, and 0 put into place 4).
+  // output[3]: 313 = 100111011 (with 1's put into places 1 and 4).
+  indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k) const;
+
+  // State initialization of a component
+  // Initialize the specified qubits to a desired statevector
+  // (leaving the other qubits in their current state)
+  // assuming the qubits being initialized have already been reset to the zero state
+  // (using apply_reset)
+  void initialize_component(const reg_t &qubits, const cvector_t &state);
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -735,6 +754,25 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
       ret[n + j] = ret[j] | bit;
   }
   return ret;
+}
+
+//------------------------------------------------------------------------------
+// State initialize component
+//------------------------------------------------------------------------------
+template <typename data_t>
+void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t &state) {
+
+  // Lambda function for initializing component
+  const size_t N = qubits.size();
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_state)->void {
+    const uint_t DIM = 1ULL << N;
+    complex_t cache = data_[inds[0]];  // the k-th component of non-initialized vector
+    for (size_t i = 0; i < DIM; i++) {
+      data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
+    }    // (where psi is is the post-reset state of the non-initialized qubits)
+   };
+  // Use the lambda function
+  apply_matrix_lambda(lambda, qubits, state);
 }
 
 //------------------------------------------------------------------------------
@@ -1360,7 +1398,6 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
   const size_t pos0 = MASKS[N - 1];
   const size_t pos1 = MASKS[N];
   const complex_t I(0., 1.);
-
 
   if (N == 2) {
     // Lambda function for multi-controlled Y gate
