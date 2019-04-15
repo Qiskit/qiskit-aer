@@ -3,10 +3,72 @@
 import numpy
 import sympy
 import itertools
-import copy
 
-from functools import singledispatch
+from qiskit.providers.aer.noise.errors import QuantumError
+from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 
+#only for 1-qubit errors for now
+def quantum_error_to_kraus_operators(error):
+    qubits_num = 1
+    error_ops = []
+    for noise_circuit, noise_prob in zip(error._noise_circuits, error._noise_probabilities):
+        noise_circuit_ops = [numpy.eye(2 ** qubits_num)]
+        for noise_circuit_element in noise_circuit:
+            std_op = standard_gate_unitary(noise_circuit_element['name'])
+            if std_op is not None:
+                kraus_matrices = std_op
+            if noise_circuit_element['name'] == 'kraus':
+                kraus_matrices = noise_circuit_element['params']
+            noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
+        error_ops += [np.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
+
+def approximate_quantum_error(error, operator_dict = None):
+    """Return an approximate QuantumError.
+
+    Args:
+        error (QuantumError): the error to be approximated.
+
+    Returns:
+        QuantumError: the approximate quantum error.
+    """
+    # This would accept as input anything that the QuantumError class can take as input
+    # Eg: list of circuits, list of kraus matrices, a QuantumChannel sublcass object, or a
+    # QuantumError object. This could be done as:
+    if not isinstance(error, QuantumError):
+        error = QuantumError(error)
+    error_kraus_operators = quantum_error_to_kraus_operators(error) #TODO: ad-hoc; QuantumError should support general conversion
+    #error_kraus_operators = error.kraus_operators()
+    transformer = NoiseTransformer()
+    if operator_dict is not None:
+        transformed_error_operators = transformer.transform_by_operator_dictionary(operator_dict, error_kraus_operators)
+        quantum_error_spec = []
+        for (op_name, op_matrices) in operator_dict:
+            probability = transformed_error_operators[op_name]
+            quantum_error_spec.append([{'name': 'kraus',
+                                        'qubits': [0],
+                                        'params': op_matrices}
+                                       ], probability)
+        return QuantumError(quantum_error_spec)
+    return None
+
+def approximate_noise_model(model, **kwargs):
+    """Return an approximate noise model.
+
+    Args:
+        model (NoiseModel): the noise model to be approximated.
+
+    Returns:
+        NoiseModel: the approximate noise model.
+
+    Raises:
+        NoiseError: if the QuantumError cannot be approximated.
+    """
+    # This function would iterate over all QuantumErrors in the noise model
+    # and call the `approximate_quantum_errror` function on them to generate
+    # an approximate noise model
+    # TODO: Raise error about 2-qubit errors
+    approx_noise_model = None
+    return approx_noise_model
 
 class NoiseTransformer:
     """Transforms one quantum noise channel to another based on a specified criteria.
@@ -27,22 +89,19 @@ class NoiseTransformer:
 
     def __init__(self):
         # the premade operators can be accessed by calling transform() with the given name string
-        self.premade_operators = {
-            'pauli': {'X': numpy.array([[0, 1], [1, 0]]),
-                      'Y': numpy.array([[0, -1j], [1j, 0]]),
-                      'Z': numpy.array([[1, 0], [0, -1]])
+        #TODO: replace with errorutils
+        self.named_operators = {
+            'pauli': {'X': standard_gate_unitary('x'),
+                      'Y': standard_gate_unitary('y'),
+                      'Z': standard_gate_unitary('z')
                       },
-            'relaxation': {
+            'reset': {
                 'p': (numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])),
                 'q': (numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])),
             },
-            'clifford': self.single_qubit_full_clifford_group()
+            # 'clifford': self.single_qubit_full_clifford_group()
         }
-        self.transform = singledispatch(self.transform)
-        self.transform.register(list, self.transform_by_operator_list)
-        self.transform.register(tuple, self.transform_by_operator_list)
-        self.transform.register(str, self.transform_by_operator_string)
-        self.transform.register(dict, self.transform_by_operator_dictionary)
+
         self.fidelity_data = None
         self.use_honesty_constraint = True
         self.noise_kraus_operators = None
@@ -50,14 +109,8 @@ class NoiseTransformer:
 
     # transformation interface methods
 
-    def transform(self, transform_channel_operators, noise_kraus_operators):
-        """Transforms the general noise given as a list of noise_kraus_operators using the operators
-        given via transform_channel_operators which can be list, dict or string"""
-        raise RuntimeError("{} is not an appropriate input to transform".format(transform_channel_operators))
-
     def transform_by_operator_list(self, transform_channel_operators, noise_kraus_operators):
-        """Main transformation function; the other transformation functions use this one
-
+        """
         Args:
                 noise_kraus_operators: a list of matrices (Kraus operators) for the input channel
                 transform_channel_operators: a list of matrices or tuples of matrices
@@ -93,6 +146,19 @@ class NoiseTransformer:
         probabilities = self.transform_by_given_channel(channel_matrices, const_channel_matrix)
         return probabilities
 
+    # convenience wrapper method
+    def transform_by_operator_dictionary(self, transform_channel_operators_dictionary, noise_kraus_operators):
+        names, operators = zip(*transform_channel_operators_dictionary.items())
+        probabilities = self.transform_by_operator_list(operators, noise_kraus_operators)
+        return dict(zip(names, probabilities))
+
+    # convenience wrapper method
+    def transform_by_operator_string(self, transform_channel_operators_string, noise_kraus_operators):
+        if transform_channel_operators_string in self.named_operators:
+            return self.transform_by_operator_dictionary(
+                self.named_operators[transform_channel_operators_string], noise_kraus_operators)
+        raise RuntimeError("No information about noise type {}".format(transform_channel_operators_string))
+
     # convert to sympy matrices and verify that each singleton is in a tuple; also add identity matrix
     @staticmethod
     def prepare_channel_operator_list(ops_list):
@@ -113,83 +179,10 @@ class NoiseTransformer:
             'coefficients': coefficients[1:]  # coefficients[0] corresponds to I
         }
 
-    def transform_by_operator_string(self, transform_channel_operators_string, noise_kraus_operators):
-        if transform_channel_operators_string in self.premade_operators:
-            return self.transform_by_operator_dictionary(
-                self.premade_operators[transform_channel_operators_string], noise_kraus_operators)
-        raise RuntimeError("No information about noise type {}".format(transform_channel_operators_string))
-
-    def transform_by_operator_dictionary(self, transform_channel_operators_dictionary, noise_kraus_operators):
-        names, operators = zip(*transform_channel_operators_dictionary.items())
-        probabilities = self.transform_by_operator_list(operators, noise_kraus_operators)
-        return dict(zip(names, probabilities))
-
-    def qobj_noise_to_kraus_operators(self, noise):
-        # Noises are given as a list of probabilities [p1, p2, ..., pn] and circuits [C1, C2, ..., Cn]
-        # Each circuit consists of a list of noise operators that are applied sqeuentially
-        # If (E_0, E_1, ..., E_n) and (F_0, F_1, ...., F_m) are applied sequentially, we can "merge"
-        # them into one noise with operators (E_iF_j) for 0 <= i <= n and 0 <= j <= m
-        # This is then multiplied by sqrt(pk) for the circuit k
-        probabilities = noise['probabilities']
-        circuits = noise['instructions']
-        operators_for_circuits = [self.noise_circuit_to_kraus_operators(c) for c in circuits]
-        final_operators_list = []
-        for k, ops in enumerate(operators_for_circuits):
-            p = numpy.sqrt(probabilities[k])
-            final_operators_list += [p * op for op in ops]
-        return final_operators_list
-
-    def noise_circuit_to_kraus_operators(self, circuit):
-        # first, convert the list of dict-based noises to actual lists of matrices
-        operators_list = [self.qobj_instruction_to_matrices(instruction) for instruction in circuit]
-        Id = numpy.array([[1,0], [0,1]])
-        final_operators = [Id]
-        for operators in operators_list:
-            final_operators = [op[0].dot(op[1]) for op in itertools.product(final_operators, operators)]
-        return final_operators
-
-    def qobj_instruction_to_matrices(self, instruction):
-        if instruction['name'] == 'kraus':
-            kraus_operators = [self.qobj_matrix_to_numpy_matrix(m) for m in instruction['params']]
-            return kraus_operators
-        raise RuntimeError("Does not know how to handle noises of type {}".format(instruction['name']))
-
-    def transform_qobj(self, transform_channel, qobj):
-        result_qobj = copy.deepcopy(qobj)
-        try:
-            noise_list = result_qobj["config"]["noise_model"]["errors"]
-        except KeyError:
-            return result_qobj  # if we can't find noises, we don't change anything
-        for noise in noise_list:
-            noise_in_kraus_form = self.qobj_noise_to_kraus_operators(noise)
-            probabilities = self.transform(transform_channel, noise_in_kraus_form)
-            transformed_channel_kraus_operators = self.probability_list_to_matrices(probabilities, transform_channel)
-            qobj_kraus_operators = [self.numpy_matrix_to_qobj_matrix(m) for m in transformed_channel_kraus_operators]
-            noise['probabilities'] = [1.0]
-            noise['instructions'] = [[{"name": "kraus", "qubits": [0], "params": qobj_kraus_operators}]]
-        return result_qobj
-
-    @staticmethod
-    def qobj_matrix_to_numpy_matrix(m):
-        return numpy.array([[entry[0] + entry[1] * 1j for entry in row] for row in m])
-
-    @staticmethod
-    def numpy_matrix_to_qobj_matrix(m):
-        return [[[numpy.real(a), numpy.imag(a)] for a in row] for row in (numpy.array(m))]
-
-    def probability_list_to_matrices(self, probs, transform_channel):
-        # probs are either a list or a dict of pairs of the form (probability, matrix_list)
-        if isinstance(probs, dict):
-            probs = probs.values()
-        transformation_data = zip(probs, self.transform_channel_operators)
-        # now assume probs is a list of pairs of the form (probability, matrix_list)
-        id_matrix = numpy.eye(2) * numpy.sqrt(1 - sum(probs))
-        return [id_matrix] + [numpy.sqrt(prob) * matrix for (prob, matrix_list) in transformation_data for matrix in matrix_list]
-
     # methods relevant to the transformation to quadratic programming instance
 
     @staticmethod
-    def fidelity(channel):
+    def fidelity(channel): #TODO replace with qiskit fidelity
         return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
 
     def generate_channel_matrices(self, transform_channel_operators_list):
@@ -324,6 +317,8 @@ class NoiseTransformer:
         q = self.compute_q(channel_matrices, const_matrix)
         return self.solve_quadratic_program(P, q)
 
+    #TODO: replace with Kraus object from Terra ("evolve" method)
+    # qiskit-terra\qiskit\quantum_info\operators\channel
     @staticmethod
     def numeric_compute_channel_operation(rho, operators):
         return numpy.sum([E.dot(rho).dot(E.conj().T) for E in operators], 0)
@@ -359,6 +354,7 @@ class NoiseTransformer:
     # should we consider another library, only this method needs to change
     def solve_quadratic_program(self, P, q):
         try:
+            #TODO: consider using QP with CVXPY
             import cvxopt
         except ImportError:
             raise ImportError("The CVXOPT library is required to use this module")
@@ -378,28 +374,3 @@ class NoiseTransformer:
         h = cvxopt.matrix(numpy.array(h_data).astype(float))
         cvxopt.solvers.options['show_progress'] = False
         return cvxopt.solvers.qp(P, q, G, h)['x']
-
-    def single_qubit_full_clifford_group(self):
-        # easy representation of all 23 non-identity 1-qubit Clifford group representation by using only S,H,X,Y,Z
-        clifford_ops_names = [
-            "X", "Y", "Z",
-            "S", "SX", "SY", "SZ",
-            "SH", "SHX", "SHY", "SHZ",
-            "SHS", "SHSX", "SHSY", "SHSZ",
-            "SHSH", "SHSHX", "SHSHY", "SHSHZ",
-            "SHSHS", "SHSHSX", "SHSHSY", "SHSHSZ",
-        ]
-        base_ops = {
-            'X': numpy.array([[0, 1], [1, 0]]),
-            'Y': numpy.array([[0, -1j], [1j, 0]]),
-            'Z': numpy.array([[1, 0], [0, -1]]),
-            'S': numpy.array([[1, 0], [0, 1j]]),
-            'H': numpy.sqrt(2) * numpy.array([[1, 1], [1, -1]])
-        }
-        return dict([(name, self.op_name_to_matrix(name, base_ops)) for name in clifford_ops_names])
-
-    def op_name_to_matrix(self, name, base_ops):
-        m = numpy.array([[1, 0], [0, 1]])
-        for op_name in name:
-            m = m * base_ops[op_name]
-        return m
