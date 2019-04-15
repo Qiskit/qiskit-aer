@@ -5,8 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-#ifndef _aer_qasm_controller_hpp_
-#define _aer_qasm_controller_hpp_
+#ifndef _aer_statevector_controller_hpp_
+#define _aer_statevector_controller_hpp_
 
 #include "base/controller.hpp"
 #include "statevector_state.hpp"
