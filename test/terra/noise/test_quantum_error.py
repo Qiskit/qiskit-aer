@@ -194,6 +194,12 @@ class TestQuantumError(common.QiskitAerTestCase):
         target = SuperOp(Kraus([A0, A1]).tensor(Kraus([B0, B1])))
         error = QuantumError([A0, A1]).tensor(QuantumError([B0, B1]))
         kraus, p = error.error_term(0)
+        targets = [
+            np.kron(B0, A0),
+            np.kron(B0, A1),
+            np.kron(B1, A0),
+            np.kron(B1, A1)
+        ]
         self.assertEqual(p, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0, 1])
@@ -273,9 +279,15 @@ class TestQuantumError(common.QiskitAerTestCase):
         ]
         # Target circuits
         target_circs = [[{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'x',
             'qubits': [1]
         }], [{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'y',
             'qubits': [1]
         }], [{
@@ -316,6 +328,12 @@ class TestQuantumError(common.QiskitAerTestCase):
         target = SuperOp(Kraus([A0, A1]).expand(Kraus([B0, B1])))
         error = QuantumError([A0, A1]).expand(QuantumError([B0, B1]))
         kraus, p = error.error_term(0)
+        targets = [
+            np.kron(B0, A0),
+            np.kron(B1, A0),
+            np.kron(B0, A1),
+            np.kron(B1, A1)
+        ]
         self.assertEqual(p, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0, 1])
@@ -395,9 +413,15 @@ class TestQuantumError(common.QiskitAerTestCase):
         ]
         # Target circuits
         target_circs = [[{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'x',
             'qubits': [1]
         }], [{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'y',
             'qubits': [1]
         }], [{
@@ -446,6 +470,12 @@ class TestQuantumError(common.QiskitAerTestCase):
         target = SuperOp(Kraus([A0, A1]).compose(Kraus([B0, B1])))
         error = QuantumError([A0, A1]).compose(QuantumError([B0, B1]))
         kraus, p = error.error_term(0)
+        targets = [
+            np.dot(B0, A0),
+            np.dot(B0, A1),
+            np.dot(B1, A0),
+            np.dot(B1, A1)
+        ]
         self.assertEqual(p, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0])
@@ -525,9 +555,15 @@ class TestQuantumError(common.QiskitAerTestCase):
         ]
         # Target circuits
         target_circs = [[{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'x',
             'qubits': [0]
         }], [{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'y',
             'qubits': [0]
         }], [{
@@ -564,10 +600,15 @@ class TestQuantumError(common.QiskitAerTestCase):
         A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
         B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
         B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        # Use quantum channels for reference
-        target = SuperOp(Kraus([A0, A1]).compose(Kraus([B0, B1]), front=True))
-        error = QuantumError([A0, A1]).compose(QuantumError([B0, B1]), front=True)
+        error = QuantumError([B0, B1]).compose(
+            QuantumError([A0, A1]), front=True)
         kraus, p = error.error_term(0)
+        targets = [
+            np.dot(B0, A0),
+            np.dot(B0, A1),
+            np.dot(B1, A0),
+            np.dot(B1, A1)
+        ]
         self.assertEqual(p, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0])
@@ -647,9 +688,15 @@ class TestQuantumError(common.QiskitAerTestCase):
         ]
         # Target circuits
         target_circs = [[{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'x',
             'qubits': [0]
-        }], [ {
+        }], [{
+            'name': 'id',
+            'qubits': [0]
+        }, {
             'name': 'y',
             'qubits': [0]
         }], [{

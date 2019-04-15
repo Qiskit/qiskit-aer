@@ -13,15 +13,13 @@ import copy
 
 import numpy as np
 
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators import Kraus, SuperOp
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.kraus import Kraus
+from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
-from .errorutils import kraus2instructions
-from .errorutils import circuit2superop
-from .errorutils import standard_instruction_channel
-from .errorutils import standard_instruction_operator
+from .errorutils import kraus2instructions, circuit2superop
 
 logger = logging.getLogger(__name__)
 

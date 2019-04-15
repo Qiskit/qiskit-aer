@@ -324,6 +324,39 @@ def standard_gate_unitary(name):
     return None
 
 
+def standard_instruction_operator(name, params=None):
+    """Return the Operator for a standard gate."""
+    mat = standard_gate_unitary(name)
+    if isinstance(mat, np.ndarray):
+        return Operator(mat)
+    # Check if standard parameterized waltz gates
+    if name is 'u1':
+        lam = params[0]
+        mat = np.diag([1, np.exp(1j * lam)])
+        return Operator(mat)
+    if name is 'u2':
+        phi = params[0]
+        lam = params[1]
+        mat = np.array([[1, -np.exp(1j * lam)],
+                        [np.exp(1j * phi),
+                         np.exp(1j * (phi + lam))]]) / np.sqrt(2)
+        return Operator(mat)
+    if name is 'u3':
+        theta = params[0]
+        phi = params[1]
+        lam = params[2]
+        mat = np.array(
+            [[np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
+             [
+                 np.exp(1j * phi) * np.sin(theta / 2),
+                 np.exp(1j * (phi + lam)) * np.cos(theta / 2)
+             ]])
+        return Operator(mat)
+    if name is 'unitary':
+        return Operator(params)
+    raise NoiseError('Cannot convert instruction to Operator')
+
+
 def reset_superop(num_qubits):
     """Return a N-qubit reset SuperOp."""
     reset = SuperOp(
@@ -334,73 +367,6 @@ def reset_superop(num_qubits):
     for _ in range(num_qubits - 1):
         reset_n.tensor(reset)
     return reset_n
-
-
-def standard_instruction_operator(instr):
-    """Return the Operator for a standard gate instruction."""
-    # Convert to dict (for QobjInstruction types)
-    if hasattr(instr, 'as_dict'):
-        instr = instr.as_dict()
-    # Get name and parameters
-    name = instr.get('name', "")
-    params = instr.get('params', [])
-    # Check if standard unitary gate name
-    mat = standard_gate_unitary(name)
-    if isinstance(mat, np.ndarray):
-        return Operator(mat)
-
-    # Check if standard parameterized waltz gates
-    if name == 'u1':
-        lam = params[0]
-        mat = np.diag([1, np.exp(1j * lam)])
-        return Operator(mat)
-    if name == 'u2':
-        phi = params[0]
-        lam = params[1]
-        mat = np.array([[1, -np.exp(1j * lam)],
-                        [np.exp(1j * phi),
-                         np.exp(1j * (phi + lam))]]) / np.sqrt(2)
-        return Operator(mat)
-    if name == 'u3':
-        theta = params[0]
-        phi = params[1]
-        lam = params[2]
-        mat = np.array(
-            [[np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
-             [np.exp(1j * phi) * np.sin(theta / 2), np.exp(1j * (phi + lam)) * np.cos(theta / 2)]])
-        return Operator(mat)
-
-    # Check if unitary instruction
-    if name == 'unitary':
-        return Operator(params[0])
-
-    # Otherwise return None if we cannot convert instruction
-    return None
-
-
-def standard_instruction_channel(instr):
-    """Return the SuperOp channel for a standard instruction."""
-    # Check if standard operator
-    oper = standard_instruction_operator(instr)
-    if oper is not None:
-        return SuperOp(oper)
-
-    # Convert to dict (for QobjInstruction types)
-    if hasattr(instr, 'as_dict'):
-        instr = instr.as_dict()
-    # Get name and parameters
-    name = instr.get('name', "")
-
-    # Check if reset instruction
-    if name == 'reset':
-        # params should be the number of qubits being reset
-        num_qubits = len(instr['qubits'])
-        return reset_superop(num_qubits)
-    # Check if Kraus instruction
-    if name == 'kraus':
-        params = instr['params']
-        return SuperOp(Kraus(params))
-    return None
 
 
 def circuit2superop(circuit, min_qubits=1):
@@ -421,13 +387,28 @@ def circuit2superop(circuit, min_qubits=1):
     superop = SuperOp(np.eye(4**num_qubits))
     # compose each circuit element with the superoperator
     for instr in circuit:
-        instr_op = standard_instruction_channel(instr)
-        if instr_op is None:
-            raise NoiseError('Cannot convert instruction {} to SuperOp'.format(instr))
-        if hasattr(instr, 'qubits'):
-            qubits = instr.qubits
+        name = None
+        qubits = None
+        params = None
+        if isinstance(instr, dict):
+            # Parse from plain dictionary qobj instruction
+            name = instr['name']
+            qubits = instr.get('qubits')
+            params = instr.get('params')
         else:
-            qubits = instr['qubits']
+            # Parse from QasmQobjInstruction
+            if hasattr(instr, 'name'):
+                name = instr.name
+            if hasattr(instr, 'qubits'):
+                qubits = instr.qubits
+            if hasattr(instr, 'params'):
+                params = instr.params
+        if name is 'reset':
+            instr_op = reset_superop(len(qubits))
+        elif name is 'kraus':
+            instr_op = Kraus(params)
+        else:
+            instr_op = SuperOp(standard_instruction_operator(name, params))
         superop = superop.compose(instr_op, qubits=qubits)
     return superop
 
