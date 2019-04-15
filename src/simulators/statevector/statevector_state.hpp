@@ -23,8 +23,9 @@ namespace Statevector {
 
 // Allowed gates enum class
 enum class Gates {
-  u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  mcx, mcy, mcz, mcu1, mcu2, mcu3, mcswap // multi-qubit controlled
+  id, h, s, sdg, t, tdg, // single qubit
+  // multi-qubit controlled (including single-qubit non-controlled)
+  mcx, mcy, mcz, mcu1, mcu2, mcu3, mcswap
 };
 
 // Allowed snapshots enum class
@@ -224,12 +225,6 @@ protected:
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
 
-  // Apply a waltz gate specified by parameters u3(theta, phi, lambda)
-  void apply_gate_u3(const uint_t qubit,
-                     const double theta,
-                     const double phi,
-                     const double lambda);
-
   // Optimize phase gate with diagonal [1, phase]
   void apply_gate_phase(const uint_t qubit, const complex_t phase);
 
@@ -237,6 +232,9 @@ protected:
   // Multi-controlled u3
   //-----------------------------------------------------------------------
   
+  // Apply N-qubit multi-controlled single qubit waltz gate specified by
+  // parameters u3(theta, phi, lambda)
+  // NOTE: if N=1 this is just a regular u3 gate.
   void apply_gate_mcu3(const reg_t& qubits,
                        const double theta,
                        const double phi,
@@ -272,18 +270,18 @@ template <class statevec_t>
 const stringmap_t<Gates> State<statevec_t>::gateset_({
   // Single qubit gates
   {"id", Gates::id},     // Pauli-Identity gate
-  {"x", Gates::x},       // Pauli-X gate
-  {"y", Gates::y},       // Pauli-Y gate
-  {"z", Gates::z},       // Pauli-Z gate
+  {"x", Gates::mcx},       // Pauli-X gate
+  {"y", Gates::mcy},       // Pauli-Y gate
+  {"z", Gates::mcz},       // Pauli-Z gate
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u1", Gates::u1},     // zero-X90 pulse waltz gate
-  {"u2", Gates::u2},     // single-X90 pulse waltz gate
-  {"u3", Gates::u3},     // two X90 pulse waltz gate
+  {"u1", Gates::mcu1},     // zero-X90 pulse waltz gate
+  {"u2", Gates::mcu2},     // single-X90 pulse waltz gate
+  {"u3", Gates::mcu3},     // two X90 pulse waltz gate
   // Two-qubit gates
   {"cx", Gates::mcx},     // Controlled-X gate (CNOT)
   {"cy", Gates::mcy},     // Controlled-Y gate
@@ -544,13 +542,13 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
         case 'I':
           break;
         case 'X':
-          BaseState::qreg_.apply_x(op.qubits[pos]);
+          BaseState::qreg_.apply_mcx({op.qubits[pos]});
           break;
         case 'Y':
-          BaseState::qreg_.apply_y(op.qubits[pos]);
+          BaseState::qreg_.apply_mcy({op.qubits[pos]});
           break;
         case 'Z':
-          BaseState::qreg_.apply_z(op.qubits[pos]);
+          BaseState::qreg_.apply_mcz({op.qubits[pos]});
           break;
         default: {
           std::stringstream msg;
@@ -631,43 +629,22 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     throw std::invalid_argument("QubitVectorState::invalid gate instruction \'" + 
                                 op.name + "\'.");
   switch (it -> second) {
-    case Gates::u3:
-      apply_gate_u3(op.qubits[0],
-                    std::real(op.params[0]),
-                    std::real(op.params[1]),
-                    std::real(op.params[2]));
-      break;
-    case Gates::u2:
-      apply_gate_u3(op.qubits[0],
-                    M_PI / 2.,
-                    std::real(op.params[0]),
-                    std::real(op.params[1]));
-      break;
-    case Gates::u1:
-      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
-      break;
     case Gates::mcx:
+      // Includes X, CX, CCX, etc
       BaseState::qreg_.apply_mcx(op.qubits);
       break;
     case Gates::mcy:
+      // Includes Y, CY, CCY, etc
       BaseState::qreg_.apply_mcy(op.qubits);
       break;
     case Gates::mcz:
+      // Includes Z, CZ, CCZ, etc
       BaseState::qreg_.apply_mcz(op.qubits);
       break;
     case Gates::id:
       break;
-    case Gates::x:
-      BaseState::qreg_.apply_x(op.qubits[0]);
-      break;
-    case Gates::y:
-      BaseState::qreg_.apply_y(op.qubits[0]);
-      break;
-    case Gates::z:
-      BaseState::qreg_.apply_z(op.qubits[0]);
-      break;
     case Gates::h:
-      apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
+      apply_gate_mcu3(op.qubits, M_PI / 2., 0., M_PI);
       break;
     case Gates::s:
       apply_gate_phase(op.qubits[0], complex_t(0., 1.));
@@ -684,21 +661,25 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
     } break;
     case Gates::mcswap:
+      // Includes SWAP, CSWAP, etc
       BaseState::qreg_.apply_mcswap(op.qubits);
       break;
     case Gates::mcu3:
+      // Includes u3, cu3, etc
       apply_gate_mcu3(op.qubits,
                       std::real(op.params[0]),
                       std::real(op.params[1]),
                       std::real(op.params[2]));
       break;
     case Gates::mcu2:
+      // Includes u2, cu2, etc
       apply_gate_mcu3(op.qubits,
                       M_PI / 2.,
                       std::real(op.params[0]),
                       std::real(op.params[1]));
       break;
     case Gates::mcu1:
+      // Includes u1, cu1, etc
       apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
       break;
 
@@ -725,14 +706,6 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
   } else {
     BaseState::qreg_.apply_matrix(qubits, vmat);
   }
-}
-
-template <class statevec_t>
-void State<statevec_t>::apply_gate_u3(uint_t qubit,
-                                      double theta,
-                                      double phi,
-                                      double lambda) {
-  apply_matrix(reg_t({qubit}), Utils::Matrix::U3(theta, phi, lambda));
 }
 
 template <class statevec_t>
@@ -837,7 +810,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
-      BaseState::qreg_.apply_x(qubits[0]);
+      BaseState::qreg_.apply_mcx(qubits);
     }
   }
   // Multi qubit case
