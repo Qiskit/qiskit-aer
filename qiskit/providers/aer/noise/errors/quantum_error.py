@@ -336,7 +336,7 @@ class QuantumError:
                     combined_circuit.append({'name': 'id', 'qubits': [0]})
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
-        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
+        noise_ops = zip(combined_noise_circuits, combined_noise_probabilities)
         return QuantumError(noise_ops)
 
     def power(self, n):
@@ -407,7 +407,7 @@ class QuantumError:
         """Return the tensor product error channel.
 
         Args:
-            other (QuantumError): a quantum channel subclass
+            other (QuantumChannel): a quantum channel subclass
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -466,8 +466,7 @@ class QuantumError:
                     combined_circuit.append({'name': 'id', 'qubits': [0]})
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
-        # Now we combine any error circuits containing only Kraus operations
-        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
+        noise_ops = zip(combined_noise_circuits, combined_noise_probabilities)
         return QuantumError(noise_ops)
 
     @staticmethod
