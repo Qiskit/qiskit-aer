@@ -7,6 +7,8 @@ import itertools
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.quantum_info.operators.channel import Kraus
+from qiskit.quantum_info.operators.channel import SuperOp
+
 
 # #only for 1-qubit errors for now
 # def quantum_error_to_kraus_operators(error):
@@ -192,7 +194,7 @@ class NoiseTransformer:
     # methods relevant to the transformation to quadratic programming instance
 
     @staticmethod
-    def fidelity(channel): #TODO replace with qiskit fidelity
+    def fidelity(channel):
         return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
 
     def generate_channel_matrices(self, transform_channel_operators_list):
@@ -321,27 +323,13 @@ class NoiseTransformer:
         norm of the matrix (A-B) obtained as the difference of the input noise channel and the
         output channel we wish to determine.
         """
-        target_channel_matrix = self.numeric_channel_matrix_representation(self.noise_kraus_operators)
+        target_channel = SuperOp(Kraus(self.noise_kraus_operators))
+        target_channel_matrix = target_channel._data.T
+
         const_matrix = const_channel_matrix - target_channel_matrix
         P = self.compute_P(channel_matrices)
         q = self.compute_q(channel_matrices, const_matrix)
         return self.solve_quadratic_program(P, q)
-
-    #TODO: replace with Kraus object from Terra ("evolve" method)
-    # qiskit-terra\qiskit\quantum_info\operators\channel
-    @staticmethod
-    def numeric_compute_channel_operation(rho, operators):
-        return numpy.sum([E.dot(rho).dot(E.conj().T) for E in operators], 0)
-
-    def numeric_channel_matrix_representation(self, operators):
-        standard_base = [
-            numpy.array([[1, 0], [0, 0]]),
-            numpy.array([[0, 1], [0, 0]]),
-            numpy.array([[0, 0], [1, 0]]),
-            numpy.array([[0, 0], [0, 1]])
-        ]
-        return (numpy.array([self.numeric_compute_channel_operation(rho, operators).flatten()
-                              for rho in standard_base]))
 
     def compute_P(self, As):
         vs = [numpy.array(A).flatten() for A in As]
