@@ -60,9 +60,10 @@ def approximate_quantum_error(error,
             raise RuntimeError("Approximated channel operators probabilities sum to {}".format(1-identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits':[0]}],identity_prob)]
         for (op_matrices, probability) in zip(operator_list, probabilities):
+            # convert op_matrices to list since tuples of Kraus matrices are treated as generalized Kraus representation
             quantum_error_spec.append(([{'name': 'kraus',
                                         'qubits': [0],
-                                        'params': op_matrices}
+                                        'params': list(op_matrices)}
                                        ], probability))
         return QuantumError(quantum_error_spec)
 
@@ -106,7 +107,7 @@ class NoiseTransformer:
     """
 
     def __init__(self):
-        named_operators = {
+        self.named_operators = {
             'pauli': {'X': standard_gate_unitary('x'),
                       'Y': standard_gate_unitary('y'),
                       'Z': standard_gate_unitary('z')
