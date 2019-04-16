@@ -1,8 +1,10 @@
 import unittest
 import numpy
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise import NoiseTransformer
 from qiskit.providers.aer.noise import approximate_quantum_error
+from qiskit.providers.aer.noise import approximate_noise_model
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
@@ -19,9 +21,28 @@ class TestNoiseTransformer(unittest.TestCase):
                     }
         self.n = NoiseTransformer()
 
+
+    def assertNoiseModelsAlmostEqual(self, lhs, rhs, places = 3):
+        self.assertNoiseDictsAlmostEqual(lhs._nonlocal_quantum_errors, rhs._nonlocal_quantum_errors, places=places)
+        self.assertNoiseDictsAlmostEqual(lhs._local_quantum_errors, rhs._local_quantum_errors, places=places)
+        self.assertNoiseDictsAlmostEqual(lhs._default_quantum_errors, rhs._default_quantum_errors, places=places)
+        self.assertNoiseDictsAlmostEqual(lhs._local_readout_errors, rhs._local_readout_errors, places=places)
+        if lhs._default_readout_error is not None:
+            self.assertTrue(rhs._default_readout_error is not None)
+            self.assertErrorsAlmostEqual(lhs._default_readout_error, rhs._default_readout_error, places=places)
+        else:
+            self.assertTrue(rhs._default_readout_error is None)
+
+    def assertNoiseDictsAlmostEqual(self, lhs, rhs, places=3):
+        keys = set(lhs.keys()).union(set(rhs.keys()))
+        for key in keys:
+            self.assertTrue(key in lhs.keys(), msg="Key {} is missing from lhs".format(key))
+            self.assertTrue(key in rhs.keys(), msg="Key {} is missing from rhs".format(key))
+            for (lhs_error, rhs_error) in zip (lhs[key], rhs[key]):
+                self.assertErrorsAlmostEqual(lhs_error, rhs_error, places=places)
+
     def assertErrorsAlmostEqual(self, lhs, rhs, places = 3):
         self.assertMatricesAlmostEqual(lhs.to_channel()._data, rhs.to_channel()._data, places)
-
 
     def assertDictAlmostEqual(self, lhs, rhs, places = None):
         keys = set(lhs.keys()).union(set(rhs.keys()))
@@ -100,6 +121,28 @@ class TestNoiseTransformer(unittest.TestCase):
         expected_fidelity = {'X': 0, 'Y': 0, 'Z': 0, 'H': 0, 'S': 2}
         for key in expected_fidelity:
             self.assertAlmostEqual(expected_fidelity[key], n.fidelity([self.ops[key]]), msg = "Wrong fidelity for {}".format(key))
+
+    def test_approx_noise_model(self):
+        noise_model = NoiseModel()
+        gamma = 0.23
+        p = 0.4
+        q = 0.33
+        ad_error = amplitude_damping_error(gamma)
+        r_error = reset_error(p,q) #should be approximated as-is
+        noise_model.add_all_qubit_quantum_error(ad_error, 'iden x y s')
+        noise_model.add_all_qubit_quantum_error(r_error, 'iden z h')
+
+        result = approximate_noise_model(noise_model, operator_string="reset")
+
+        expected_result = NoiseModel()
+        gamma_p = (gamma - numpy.sqrt(1 - gamma) + 1) / 2
+        gamma_q = 0
+        ad_error_approx = reset_error(gamma_p, gamma_q)
+        expected_result.add_all_qubit_quantum_error(ad_error_approx, 'iden x y s')
+        expected_result.add_all_qubit_quantum_error(r_error, 'iden z h')
+
+        self.assertNoiseModelsAlmostEqual(expected_result, result)
+
 
     def test_errors(self):
         gamma = 0.23
