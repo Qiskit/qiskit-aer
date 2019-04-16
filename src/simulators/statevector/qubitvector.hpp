@@ -2136,12 +2136,17 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   rvector_t probs(DIM, 0.);
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
+    rvector_t probs_private(DIM, 0.);
 #pragma omp for
     for (size_t k = 0; k < END; k++) {
       auto idx = indexes(qubits, qubits_sorted, k);
       for (size_t m = 0; m < DIM; ++m) {
-        probs[m] += probability(idx[m]);
+        probs_private[m] += probability(idx[m]);
       }
+    }
+#pragma omp critical
+    for (size_t m = 0; m < DIM; ++m) {
+      probs[m] += probs_private[m];
     }
   }
   return probs;
