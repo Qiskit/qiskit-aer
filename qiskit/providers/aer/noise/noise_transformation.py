@@ -6,28 +6,29 @@ import itertools
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.quantum_info.operators.channel import Kraus
 
-#only for 1-qubit errors for now
-def quantum_error_to_kraus_operators(error):
-    qubits_num = 1
-    error_ops = []
-    for noise_circuit, noise_prob in zip(error._noise_circuits, error._noise_probabilities):
-        noise_circuit_ops = [numpy.eye(2 ** qubits_num)]
-        for noise_circuit_element in noise_circuit:
-            std_op = standard_gate_unitary(noise_circuit_element['name'])
-            if std_op is not None:
-                kraus_matrices = [std_op]
-            if noise_circuit_element['name'] == 'kraus':
-                kraus_matrices = noise_circuit_element['params']
-            if noise_circuit_element['name'] == 'unitary':
-                #TODO: I expect only one matrix here. Is this assumption correct?
-                kraus_matrices = [noise_circuit_element['params']]
-            if kraus_matrices is None:
-                raise "Could not understand the error {}".format(error)
-            kraus_matrices = [numpy.array(matrix) for matrix in kraus_matrices]
-            noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
-        error_ops += [numpy.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
-    return error_ops
+# #only for 1-qubit errors for now
+# def quantum_error_to_kraus_operators(error):
+#     qubits_num = 1
+#     error_ops = []
+#     for noise_circuit, noise_prob in zip(error._noise_circuits, error._noise_probabilities):
+#         noise_circuit_ops = [numpy.eye(2 ** qubits_num)]
+#         for noise_circuit_element in noise_circuit:
+#             std_op = standard_gate_unitary(noise_circuit_element['name'])
+#             if std_op is not None:
+#                 kraus_matrices = [std_op]
+#             if noise_circuit_element['name'] == 'kraus':
+#                 kraus_matrices = noise_circuit_element['params']
+#             if noise_circuit_element['name'] == 'unitary':
+#                 #TODO: I expect only one matrix here. Is this assumption correct?
+#                 kraus_matrices = [noise_circuit_element['params']]
+#             if kraus_matrices is None:
+#                 raise "Could not understand the error {}".format(error)
+#             kraus_matrices = [numpy.array(matrix) for matrix in kraus_matrices]
+#             noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
+#         error_ops += [numpy.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
+#     return error_ops
 
 def approximate_quantum_error(error,
                               operator_string = None,
@@ -46,8 +47,7 @@ def approximate_quantum_error(error,
     # QuantumError object. This could be done as:
     if not isinstance(error, QuantumError):
         error = QuantumError(error)
-    error_kraus_operators = quantum_error_to_kraus_operators(error) #TODO: ad-hoc; QuantumError should support general conversion
-    #error_kraus_operators = error.kraus_operators()
+    error_kraus_operators = Kraus(error.to_channel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
         operator_dict = transformer.named_operators[operator_string]
@@ -55,12 +55,15 @@ def approximate_quantum_error(error,
         names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
         probabilities = transformer.transform_by_operator_list(operator_list, error_kraus_operators)
-        quantum_error_spec = []
+        identity_prob = 1 - sum(probabilities)
+        if identity_prob < 0 or identity_prob > 1:
+            raise RuntimeError("Approximated channel operators probabilities sum to {}".format(1-identity_prob))
+        quantum_error_spec = [([{'name': 'id', 'qubits':[0]}],identity_prob)]
         for (op_matrices, probability) in zip(operator_list, probabilities):
-            quantum_error_spec.append([{'name': 'kraus',
+            quantum_error_spec.append(([{'name': 'kraus',
                                         'qubits': [0],
                                         'params': op_matrices}
-                                       ], probability)
+                                       ], probability))
         return QuantumError(quantum_error_spec)
 
     raise Exception("Quantum error approximation failed - no approximating operators detected")
