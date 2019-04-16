@@ -41,17 +41,17 @@ install_osx: &stage_osx
     - brew install libomp
     - brew install openblas
     - |
-    if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
-        git clone git://github.com/pyenv/pyenv.git
-        cd pyenv/plugins/python-build
-        ./install.sh
-        cd ../../..
-        python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
+      if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+        if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
+          git clone git://github.com/pyenv/pyenv.git
+          cd pyenv/plugins/python-build
+          ./install.sh
+          cd ../../..
+          python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
+        fi
+        virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
+        source venv/bin/activate
       fi
-      virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
-      source venv/bin/activate
-    fi
 
   install:
     # Installing qiskit-terra master branch...
