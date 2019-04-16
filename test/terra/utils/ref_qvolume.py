@@ -20,7 +20,8 @@ def quantum_volume(qubit, final_measure=True, depth=10, seed=0):
     width = qubit
     
     np.random.seed(seed)
-    circuit = QuantumCircuit(qreg, name=f"Qvolume: {width} by {depth}, seed: {seed}")
+    name = "Qvolume: %s by %s, seed: %s" %(width, depth, seed)
+    circuit = QuantumCircuit(qreg, name=name)
     
     for _ in range(depth):
         # Generate uniformly random permutation Pj of [0...n-1]
@@ -45,7 +46,7 @@ def quantum_volume(qubit, final_measure=True, depth=10, seed=0):
                 elif name == "id":
                     pass  # do nothing
                 else:
-                    raise Exception(f"Unexpected gate name: {name}")
+                    raise Exception("Unexpected gate name: %s" % name)
     
     circuit.barrier(qreg)
     
