@@ -136,13 +136,11 @@ class ReadoutError:
         }
         return error
 
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition readout error self∘other.
 
         Args:
-            other (ReadoutError): a readout error
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (ReadoutError): a readout error.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -162,18 +160,13 @@ class ReadoutError:
             probs = np.dot(self._probabilities, other._probabilities)
         else:
             probs = np.dot(other._probabilities, self._probabilities)
-        if inplace:
-            self._probabilities = probs
-            return self
         return ReadoutError(probs)
 
-    def power(self, n, inplace=False):
+    def power(self, n):
         """Return the compose of the readout error with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             ReadoutError: the n-times composition channel.
@@ -183,28 +176,16 @@ class ReadoutError:
         """
         if not isinstance(n, int) or n < 1:
             raise NoiseError("Can only power with positive integer powers.")
-        # Update inplace
-        if inplace:
-            if n == 1:
-                return self
-            # cache current state to apply n-times
-            cache = self.copy()
-            for _ in range(1, n):
-                self.compose(cache, inplace=True)
-            return self
-        # Return new object
         ret = self.copy()
         for _ in range(1, n):
             ret = ret.compose(self)
         return ret
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product readout error self ⊗ other.
 
         Args:
             other (ReadoutError): a readout error.
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             ReadoutError: the tensor product readout error self ⊗ other.
@@ -212,15 +193,13 @@ class ReadoutError:
         Raises:
             NoiseError: if other is not a ReadoutError.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product readout error self ⊗ other.
 
         Args:
             other (ReadoutError): a readout error.
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             ReadoutError: the tensor product readout error other ⊗ self.
@@ -228,7 +207,7 @@ class ReadoutError:
         Raises:
             NoiseError: if other is not a ReadoutError.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
     @staticmethod
     def _check_probabilities(probabilities, threshold):
@@ -255,13 +234,11 @@ class ReadoutError:
                     "Invalid probabilities: {} "
                     "contains a negative probability.".format(vec))
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product readout error.
 
         Args:
             other (ReadoutError): a readout error.
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -273,8 +250,4 @@ class ReadoutError:
             probs = np.kron(other._probabilities, self._probabilities)
         else:
             probs = np.kron(self._probabilities, other._probabilities)
-        if inplace:
-            self._probabilities = probs
-            self._number_of_qubits = self.number_of_qubits * other.number_of_qubits
-            return self
         return ReadoutError(probs)
