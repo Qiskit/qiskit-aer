@@ -433,12 +433,12 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
   // Convert qubits to string for table lookup
   std::string op_qubits = reg2string(op.qubits);
 
-  // Get the qubit error map for  gate name
+  // Get the qubit error map for gate name
   auto iter = local_quantum_error_table_.find(name);
   if (iter != local_quantum_error_table_.end()) {
     // Check if the qubits are listed in the inner model
     const auto qubit_map = iter->second;
-    // Get the default qubit model incase a specific qubit model is not found
+    // Get the default qubit model in case a specific qubit model is not found
     // The default model is stored under the empty key string ""
     auto iter_default = qubit_map.find(std::string());
     // Format qubit sets

@@ -31,30 +31,22 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test initialize
     # ---------------------------------------------------------------------
-    def test_initialize_deterministic(self):
-        """Test StatevectorSimulator initialize with for circuits with deterministic counts"""
-        # For statevector output we can combine deterministic and non-deterministic
-        # count output circuits
-        circuits = ref_initialize.initialize_circuits_deterministic(final_measure=False)
-        targets = ref_initialize.initialize_statevector_deterministic()
+    def test_initialize_1(self):
+        """Test StatevectorSimulator initialize"""
+        circuits = ref_initialize.initialize_circuits_1(final_measure=False)
+        targets = ref_initialize.initialize_statevector_1()
         qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
-        # Running qobj on the simulator
         sim_job = StatevectorSimulator().run(qobj)
-        # Getting the result
         result = sim_job.result()
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-    def test_initialize_nondeterministic(self):
-        """Test StatevectorSimulator initialize with for circuits with non-deterministic counts"""
-        # For statevector output we can combine deterministic and non-deterministic
-        # count output circuits
-        circuits = ref_initialize.initialize_circuits_nondeterministic(final_measure=False)
-        targets = ref_initialize.initialize_statevector_nondeterministic()
+    def test_initialize_2(self):
+        """Test StatevectorSimulator initialize"""
+        circuits = ref_initialize.initialize_circuits_2(final_measure=False)
+        targets = ref_initialize.initialize_statevector_2()
         qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
-        # Running qobj on the simulator
         sim_job = StatevectorSimulator().run(qobj)
-        # Getting the result
         result = sim_job.result()
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
