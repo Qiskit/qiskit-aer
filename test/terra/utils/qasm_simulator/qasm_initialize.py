@@ -47,3 +47,13 @@ class QasmInitializeTests(common.QiskitAerTestCase):
         result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_initialize_sampling_opt(self):
+        """Test sampling optimization"""
+        shots = 2000
+        circuits = ref_initialize.initialize_sampling_optimization()
+        targets = ref_initialize.initialize_counts_sampling_optimization(shots)
+        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
