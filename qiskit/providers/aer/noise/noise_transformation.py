@@ -9,30 +9,7 @@ from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 
-
-# #only for 1-qubit errors for now
-# def quantum_error_to_kraus_operators(error):
-#     qubits_num = 1
-#     error_ops = []
-#     for noise_circuit, noise_prob in zip(error._noise_circuits, error._noise_probabilities):
-#         noise_circuit_ops = [numpy.eye(2 ** qubits_num)]
-#         for noise_circuit_element in noise_circuit:
-#             std_op = standard_gate_unitary(noise_circuit_element['name'])
-#             if std_op is not None:
-#                 kraus_matrices = [std_op]
-#             if noise_circuit_element['name'] == 'kraus':
-#                 kraus_matrices = noise_circuit_element['params']
-#             if noise_circuit_element['name'] == 'unitary':
-#                 #TODO: I expect only one matrix here. Is this assumption correct?
-#                 kraus_matrices = [noise_circuit_element['params']]
-#             if kraus_matrices is None:
-#                 raise "Could not understand the error {}".format(error)
-#             kraus_matrices = [numpy.array(matrix) for matrix in kraus_matrices]
-#             noise_circuit_ops = [b @ a for (a, b) in itertools.product(noise_circuit_ops, kraus_matrices)]
-#         error_ops += [numpy.sqrt(noise_prob) * noise_op for noise_op in noise_circuit_ops]
-#     return error_ops
-
-def approximate_quantum_error(error,
+def approximate_quantum_error(error, *,
                               operator_string = None,
                               operator_dict = None,
                               operator_list = None):
@@ -52,6 +29,8 @@ def approximate_quantum_error(error,
     error_kraus_operators = Kraus(error.to_channel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
+        if operator_string not in transformer.named_operators.keys():
+            raise RuntimeError("No information about noise type {}".format(operator_string))
         operator_dict = transformer.named_operators[operator_string]
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())

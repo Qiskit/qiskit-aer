@@ -69,12 +69,12 @@ class TestNoiseTransformer(unittest.TestCase):
 
     def test_reset(self):
         # approximating amplitude damping using relaxation operators
-        gamma = 0.5
+        gamma = 0.23
         error = amplitude_damping_error(gamma)
         p = (gamma - numpy.sqrt(1 - gamma) + 1) / 2
         q = 0
         expected_results = reset_error(p,q)
-        results = approximate_quantum_error(error, "reset")
+        results = approximate_quantum_error(error, operator_string="reset")
         self.assertErrorsAlmostEqual(results, expected_results)
 
     def test_transform(self):
@@ -95,71 +95,27 @@ class TestNoiseTransformer(unittest.TestCase):
         self.assertErrorsAlmostEqual(results_string, results_list)
         self.assertErrorsAlmostEqual(results_list, results_tuple)
 
-    # def test_fidelity(self):
-    #     n = NoiseTransformer()
-    #     expected_fidelity = {'X': 0, 'Y': 0, 'Z': 0, 'H': 0, 'S': 2}
-    #     for key in expected_fidelity:
-    #         self.assertAlmostEqual(expected_fidelity[key], n.fidelity([self.ops[key]]), msg = "Wrong fidelity for {}".format(key))
-    #
-    # def test_numeric_channel_matrix_representation(self):
-    #     n = NoiseTransformer()
-    #     gamma = 0.5
-    #     E0 = numpy.array([[1, 0], [0, numpy.sqrt(1 - gamma)]])
-    #     E1 = numpy.array([[0, numpy.sqrt(gamma)], [0, 0]])
-    #     numeric_matrix = n.numeric_channel_matrix_representation((E0, E1))
-    #     expected_numeric_matrix = numpy.array([[1, 0, 0, 0], [0, 0.707106781186548, 0, 0],[0,0,0.707106781186548,0],[0.500000000000000, 0, 0, 0.500000000000000]])
-    #     self.assertMatricesAlmostEqual(expected_numeric_matrix, numeric_matrix)
-    #
-    # def test_op_name_to_matrix(self):
-    #     X = self.ops['X']
-    #     Y = self.ops['Y']
-    #     Z = self.ops['Z']
-    #     H = self.ops['H']
-    #     S = self.ops['S']
-    #     self.assertTrue((X*Y*Z == self.n.op_name_to_matrix('XYZ', self.ops)).all())
-    #     self.assertTrue((S*X*S*Y*H*Z*H*S*X*Z == self.n.op_name_to_matrix('SXSYHZHSXZ', self.ops)).all())
-    #
-    # def test_qobj_noise_to_kraus_operators(self):
-    #     amplitude_damping_kraus_noise = {
-    #         "type": "qerror",
-    #         "operations": ["h"],
-    #         "probabilities": [1.0],
-    #         "instructions": [
-    #             [{"name": "kraus", "qubits": [0], "params": [
-    #                 [[[1, 0], [0, 0]], [[0, 0], [0.5, 0]]],
-    #                 [[[0, 0], [0.86602540378, 0]], [[0, 0], [0, 0]]]]}]
-    #         ]
-    #     }
-    #     n = NoiseTransformer()
-    #     kraus_operators = n.qobj_noise_to_kraus_operators(amplitude_damping_kraus_noise)
-    #     matrices = amplitude_damping_kraus_noise['instructions'][0][0]['params']
-    #     expected_kraus_operators = [n.qobj_matrix_to_numpy_matrix(m) for m in matrices]
-    #     self.assertListAlmostEqual(expected_kraus_operators, kraus_operators, places=4)
-    #
-    #     #now for malformed data
-    #     amplitude_damping_kraus_noise['instructions'][0][0] = {"name": "TTG", "qubits": [0]}
-    #     with self.assertRaises(RuntimeError):
-    #         kraus_operators = n.qobj_noise_to_kraus_operators(amplitude_damping_kraus_noise)
-    #
-    # def test_errors(self):
-    #     n = NoiseTransformer()
-    #     gamma = 0.5
-    #     E0 = numpy.array([[1, 0], [0, numpy.sqrt(1 - gamma)]])
-    #     E1 = numpy.array([[0, numpy.sqrt(gamma)], [0, 0]])
-    #     # kraus error is legit, transform_channel_operators are not
-    #     with self.assertRaisesRegex(RuntimeError, "7 is not an appropriate input to transform"):
-    #         n.transform(7, (E0, E1))
-    #     with self.assertRaisesRegex(RuntimeError, "No information about noise type seven"):
-    #         n.transform("seven", (E0, E1))
-    #
-    #     #let's pretend cvxopt does not exist; the script should raise ImportError with proper message
-    #     import unittest.mock
-    #     import sys
-    #     with unittest.mock.patch.dict(sys.modules, {'cvxopt': None}):
-    #         with self.assertRaisesRegex(ImportError, "The CVXOPT library is required to use this module"):
-    #             n.transform("relaxation", (E0, E1))
+    def test_fidelity(self):
+        n = NoiseTransformer()
+        expected_fidelity = {'X': 0, 'Y': 0, 'Z': 0, 'H': 0, 'S': 2}
+        for key in expected_fidelity:
+            self.assertAlmostEqual(expected_fidelity[key], n.fidelity([self.ops[key]]), msg = "Wrong fidelity for {}".format(key))
 
+    def test_errors(self):
+        gamma = 0.23
+        error = amplitude_damping_error(gamma)
+        # kraus error is legit, transform_channel_operators are not
+        with self.assertRaisesRegex(TypeError, "takes 1 positional argument but 2 were given"):
+            approximate_quantum_error(error, 7)
+        with self.assertRaisesRegex(RuntimeError, "No information about noise type seven"):
+            approximate_quantum_error(error, operator_string="seven")
 
+        #let's pretend cvxopt does not exist; the script should raise ImportError with proper message
+        import unittest.mock
+        import sys
+        with unittest.mock.patch.dict(sys.modules, {'cvxopt': None}):
+            with self.assertRaisesRegex(ImportError, "The CVXOPT library is required to use this module"):
+                approximate_quantum_error(error, operator_string="reset")
 
 if __name__ == '__main__':
     unittest.main()
