@@ -398,7 +398,7 @@ protected:
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 13;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  bool gate_opt_ = false;      // enable large-qubit optimized gates
+  bool gate_opt_ = true;      // enable large-qubit optimized gates
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
 
