@@ -9,8 +9,13 @@ from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 
-#TODO: skip tests if CVXOPT is not present
+try:
+    import cvxopt
+    has_cvxopt = True
+except ImportError:
+    has_cvxopt = False
 
+@unittest.skipUnless(has_cvxopt, "Needs cvxopt to test")
 class TestNoiseTransformer(unittest.TestCase):
     def setUp(self):
         self.ops = {'X': standard_gate_unitary('x'),
