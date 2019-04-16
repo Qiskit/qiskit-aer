@@ -186,7 +186,10 @@ protected:
   //-------------------------------------------------------------------------
 
   // Generate an equivalent circuit with input_circ as output_circ.
-  Circuit optimize_circuit(const Circuit &input_circ) const;
+  template <class state_t>
+  Circuit optimize_circuit(const Circuit &input_circ,
+                           state_t& state,
+                           OutputData &data) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -429,12 +432,21 @@ bool Controller::validate_memory_requirements(state_t &state,
 //-------------------------------------------------------------------------
 // Circuit optimization
 //-------------------------------------------------------------------------
+template <class state_t>
+Circuit Controller::optimize_circuit(const Circuit &input_circ,
+                                     state_t& state,
+                                     OutputData &data) const {
 
-Circuit Controller::optimize_circuit(const Circuit &input_circ) const {
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+    opt->set_config(config_);
 
   Circuit working_circ = input_circ;
   for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
-    opt->optimize_circuit(working_circ);
+    opt->optimize_circuit(working_circ,
+                          state.allowed_ops(),
+                          state.allowed_gates(),
+                          state.allowed_snapshots(),
+                          data);
 
   return working_circ;
 }

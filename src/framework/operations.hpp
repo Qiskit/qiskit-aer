@@ -431,7 +431,9 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
 
 // Main JSON deserialization functions
 Op json_to_op(const json_t &js); // Patial TODO
+json_t op_to_json(const Op &op); // Patial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
+inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
 // Standard operations
 Op json_to_op_gate(const json_t &js);
@@ -494,6 +496,22 @@ Op json_to_op(const json_t &js) {
     return json_to_op_roerror(js);
   // Default assume gate
   return json_to_op_gate(js);
+}
+
+json_t op_to_json(const Op &op) {
+  json_t ret;
+  ret["name"] = op.name;
+  if (!op.qubits.empty())
+    ret["qubits"] = op.qubits;
+  if (!op.params.empty())
+    ret["params"] = op.params;
+  if (op.conditional)
+    ret["conditional"] = op.conditional_reg;
+  if (!op.memory.empty())
+    ret["memory"] = op.memory;
+  if (!op.registers.empty())
+    ret["register"] = op.registers;
+  return ret;
 }
 
 

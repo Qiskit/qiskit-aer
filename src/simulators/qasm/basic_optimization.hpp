@@ -20,10 +20,18 @@ using reg_t = std::vector<uint_t>;
 
 class ReduceNop : public CircuitOptimization {
 public:
-  void optimize_circuit(Circuit& circ) const;
+  void optimize_circuit(Circuit& circ,
+                        const Operations::OpSet::optypeset_t& allowed_ops,
+                        const stringset_t& allowed_gates,
+                        const stringset_t& allowed_snapshots,
+                        OutputData &data) const;
 };
 
-void ReduceNop::optimize_circuit(Circuit& circ) const {
+void ReduceNop::optimize_circuit(Circuit& circ,
+                                 const Operations::OpSet::optypeset_t& allowed_ops,
+                                 const stringset_t& allowed_gates,
+                                 const stringset_t& allowed_snapshots,
+                                 OutputData &data) const {
 
   oplist_t::iterator it = circ.ops.begin();
   while (it != circ.ops.end()) {
@@ -36,10 +44,18 @@ void ReduceNop::optimize_circuit(Circuit& circ) const {
 
 class Debug : public CircuitOptimization {
 public:
-  void optimize_circuit(Circuit& circ) const;
+  void optimize_circuit(Circuit& circ,
+                        const Operations::OpSet::optypeset_t& allowed_ops,
+                        const stringset_t& allowed_gates,
+                        const stringset_t& allowed_snapshots,
+                        OutputData &data) const;
 };
 
-void Debug::optimize_circuit(Circuit& circ) const {
+void Debug::optimize_circuit(Circuit& circ,
+                             const Operations::OpSet::optypeset_t& allowed_ops,
+                             const stringset_t& allowed_gates,
+                             const stringset_t& allowed_snapshots,
+                             OutputData &data) const {
 
   oplist_t::iterator it = circ.ops.begin();
   while (it != circ.ops.end()) {
@@ -52,7 +68,13 @@ class Fusion : public CircuitOptimization {
 public:
   Fusion(uint_t max_qubit = 5, uint_t threshold = 10, double cost_factor = 2.5);
 
-  void optimize_circuit(Circuit& circ) const;
+  void set_config(const json_t &config) override;
+
+  void optimize_circuit(Circuit& circ,
+                        const Operations::OpSet::optypeset_t& allowed_ops,
+                        const stringset_t& allowed_gates,
+                        const stringset_t& allowed_snapshots,
+                        OutputData &data) const;
 
   bool can_ignore(const op_t& op) const;
 
@@ -89,6 +111,8 @@ private:
   const uint_t max_qubit_;
   const uint_t threshold_;
   const double cost_factor_;
+  bool verbose_;
+  bool active_;
 };
 
 const std::vector<std::string> Fusion::supported_gates({
@@ -117,8 +141,21 @@ const std::vector<std::string> Fusion::supported_gates({
 });
 
 Fusion::Fusion(uint_t max_qubit, uint_t threshold, double cost_factor):
-    max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor) {
+    max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor),
+    verbose_(false), active_(true) {
 }
+
+void Fusion::set_config(const json_t &config) {
+
+  CircuitOptimization::set_config(config);
+
+  if (JSON::check_key("verbose_fusion", config_))
+    JSON::get_value(verbose_, "verbose_fusion", config_);
+
+  if (JSON::check_key("enable_fusion", config_))
+    JSON::get_value(active_, "enable_fusion", config_);
+}
+
 
 #ifdef DEBUG
 void Fusion::dump(const Circuit& circuit) const {
@@ -141,9 +178,15 @@ void Fusion::dump(const Circuit& circuit) const {
 }
 #endif
 
-void Fusion::optimize_circuit(Circuit& circ) const {
+void Fusion::optimize_circuit(Circuit& circ,
+                              const Operations::OpSet::optypeset_t& allowed_ops,
+                              const stringset_t& allowed_gates,
+                              const stringset_t& allowed_snapshots,
+                              OutputData &data) const {
 
-  if (circ.num_qubits < threshold_)
+  if (circ.num_qubits < threshold_
+      || !active_
+      || allowed_ops.find(Operations::OpType::matrix) == allowed_ops.end())
     return;
 
   bool ret = false;
@@ -178,6 +221,11 @@ void Fusion::optimize_circuit(Circuit& circ) const {
   }
 
   circ.ops = optimized_ops;
+
+  if (verbose_) {
+    data.add_additional_data("metadata",
+                             json_t::object({{"verbose_fusion", optimized_ops}}));
+  }
 
 #ifdef DEBUG
   dump(optimized_ops);
