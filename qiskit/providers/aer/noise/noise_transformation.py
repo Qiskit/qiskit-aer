@@ -5,6 +5,8 @@ import sympy
 import itertools
 
 from qiskit.providers.aer.noise.errors import QuantumError
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
@@ -21,11 +23,13 @@ def approximate_quantum_error(error, *,
     Returns:
         QuantumError: the approximate quantum error.
     """
-    # This would accept as input anything that the QuantumError class can take as input
-    # Eg: list of circuits, list of kraus matrices, a QuantumChannel sublcass object, or a
-    # QuantumError object. This could be done as:
+
     if not isinstance(error, QuantumError):
         error = QuantumError(error)
+    if error.number_of_qubits > 1:
+        raise NoiseError("Only 1-qubit noises can be converted, {}-qubit noise found in model".format(
+            error.number_of_qubits))
+
     error_kraus_operators = Kraus(error.to_channel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
@@ -51,7 +55,10 @@ def approximate_quantum_error(error, *,
     raise Exception("Quantum error approximation failed - no approximating operators detected")
 
 
-def approximate_noise_model(model, **kwargs):
+def approximate_noise_model(model, *,
+                              operator_string = None,
+                              operator_dict = None,
+                              operator_list = None):
     """Return an approximate noise model.
 
     Args:
@@ -63,11 +70,59 @@ def approximate_noise_model(model, **kwargs):
     Raises:
         NoiseError: if the QuantumError cannot be approximated.
     """
-    # This function would iterate over all QuantumErrors in the noise model
-    # and call the `approximate_quantum_errror` function on them to generate
-    # an approximate noise model
+
+    #We need to iterate over all the errors in the noise model.
+    #No nice interface for this now, easiest way is to mimic as_dict
     # TODO: Raise error about 2-qubit errors
-    approx_noise_model = None
+
+    error_list = []
+    # Add default quantum errors
+    for operation, errors in model._default_quantum_errors.items():
+        for error in errors:
+            error = approximate_quantum_error(error, operator_string=operator_string, operator_dict=operator_dict, operator_list=operator_list)
+            error_dict = error.as_dict()
+            error_dict["operations"] = [operation]
+            error_list.append(error_dict)
+
+    # Add specific qubit errors
+    for operation, qubit_dict in model._local_quantum_errors.items():
+        for qubits_str, errors in qubit_dict.items():
+            for error in errors:
+                error = approximate_quantum_error(error, operator_string=operator_string, operator_dict=operator_dict,
+                                                  operator_list=operator_list)
+                error_dict = error.as_dict()
+                error_dict["operations"] = [operation]
+                error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
+                error_list.append(error_dict)
+
+    # Add non-local errors
+    for operation, qubit_dict in model._nonlocal_quantum_errors.items():
+        for qubits_str, errors in qubit_dict.items():
+            for error, noise_qubits in errors:
+                error = approximate_quantum_error(error, operator_string=operator_string, operator_dict=operator_dict,
+                                                  operator_list=operator_list)
+                error_dict = error.as_dict()
+                error_dict["operations"] = [operation]
+                error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
+                error_dict["noise_qubits"] = [list(noise_qubits)]
+                error_list.append(error_dict)
+
+    # Add default readout error
+    if model._default_readout_error is not None:
+        error = approximate_quantum_error(model._default_readout_error, operator_string=operator_string, operator_dict=operator_dict,
+                                          operator_list=operator_list)
+        error_dict = error.as_dict()
+        error_list.append(error_dict)
+
+    # Add local readout error
+    for qubits_str, error in model._local_readout_errors.items():
+        error = approximate_quantum_error(error, operator_string=operator_string, operator_dict=operator_dict,
+                                          operator_list=operator_list)
+        error_dict = error.as_dict()
+        error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
+        error_list.append(error_dict)
+
+    approx_noise_model = NoiseModel.from_dict({"errors": error_list, "x90_gates": model._x90_gates})
     return approx_noise_model
 
 class NoiseTransformer:
