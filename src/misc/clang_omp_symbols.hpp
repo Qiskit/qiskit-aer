@@ -5,6 +5,7 @@
  * This is some sort of "black magic" to solve a problem we have with OpenMP libraries on Mac.
  * The problem is actually in the library itself, but it's out of our control, so we had to
  * fix it this way.
+ * Symbol signatures are taken from: https://github.com/llvm/llvm-project/blob/master/openmp/runtime/src/kmp.h
  */
 
 #include <dlfcn.h>
@@ -158,6 +159,18 @@ extern "C" {
         return _hook__kmpc_global_thread_num(pId);
     }
 
+    using __kmpc_critical_t = void(*)(ident_t *, kmp_int32, kmp_critical_name *);
+    __kmpc_critical_t _hook__kmpc_critical;
+    void __kmpc_critical(ident_t *id, kmp_int32 global_tid, kmp_critical_name *lck){
+        return _hook__kmpc_critical(id, global_tid, lck);
+    }
+
+    using __kmpc_end_critical_t = void(*)(ident_t *, kmp_int32, kmp_critical_name *);
+    __kmpc_end_critical_t _hook__kmpc_end_critical;
+    void __kmpc_end_critical(ident_t *id, kmp_int32 global_tid, kmp_critical_name *lck){
+        return _hook__kmpc_end_critical(id, global_tid, lck);
+    }
+
     #define __KAI_KMPC_CONVENTION
     using omp_get_max_threads_t = int(*)(void);
     omp_get_max_threads_t _hook_omp_get_max_threads;
@@ -169,6 +182,7 @@ extern "C" {
     void __KAI_KMPC_CONVENTION omp_set_nested(int foo){
         _hook_omp_set_nested(foo);
     }
+
 
     // Symbols above this line would be needed in a future, if clang changes
     // the OpenMP implementation. So I'll keep them here just in case I need
@@ -262,6 +276,8 @@ void populate_hooks(void * handle){
     _hook__kmpc_serialized_parallel = reinterpret_cast<decltype(&__kmpc_serialized_parallel)>(dlsym(handle, "__kmpc_serialized_parallel"));
     _hook__kmpc_end_serialized_parallel = reinterpret_cast<decltype(&__kmpc_end_serialized_parallel)>(dlsym(handle, "__kmpc_end_serialized_parallel"));
     _hook__kmpc_global_thread_num = reinterpret_cast<decltype(&__kmpc_global_thread_num)>(dlsym(handle, "__kmpc_global_thread_num"));
+    _hook__kmpc_critical = reinterpret_cast<decltype(&__kmpc_critical)>(dlsym(handle, "__kmpc_critical"));
+    _hook__kmpc_end_critical = reinterpret_cast<decltype(&__kmpc_end_critical)>(dlsym(handle, "__kmpc_end_critical"));
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
 }
