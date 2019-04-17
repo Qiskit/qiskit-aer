@@ -31,6 +31,8 @@
     // ],
 
     "install_command": [
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
         "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
