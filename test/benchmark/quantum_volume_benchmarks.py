@@ -5,11 +5,8 @@
 import qiskit as Terra
 from qiskit import QiskitError
 from qiskit.providers.aer import QasmSimulator
-from .tools import quantum_volume_circuit
-from .tools import mixed_unitary_noise_model
-from .tools import reset_noise_model
-from .tools import kraus_noise_model
-
+from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
+                   reset_noise_model, kraus_noise_model, no_noise
 
 class QuantumVolumeTimeSuite:
     """
@@ -48,12 +45,12 @@ class QuantumVolumeTimeSuite:
                 self.qv_circuits.append(
                     Terra.compile(
                         circ, self.backend, shots=1, basis_gates=['u3', 'cx']))
-        self.param_names = ["Quantum Volume (16qubits 10depth)", "Noise Model"]
+        self.param_names = ["Quantum Volume", "Noise Model"]
         # This will run every benchmark for one of the combinations we have here:
         # bench(qv_circuits, None) => bench(qv_circuits, mixed()) =>
         # bench(qv_circuits, reset) => bench(qv_circuits, kraus())
         self.params = (self.qv_circuits, [
-            None,
+            no_noise(),
             mixed_unitary_noise_model(),
             reset_noise_model(),
             kraus_noise_model()
@@ -62,7 +59,7 @@ class QuantumVolumeTimeSuite:
     def setup(self, qobj):
         pass
 
-    def time_quantum_volume(self, qobj, noise_model):
-        result = self.backend.run(qobj, noise_model=noise_model).result()
+    def time_quantum_volume(self, qobj, noise_model_wrapper):
+        result = self.backend.run(qobj, noise_model=noise_model_wrapper()).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
