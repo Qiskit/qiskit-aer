@@ -61,7 +61,7 @@ class QasmFusionTests(common.QiskitAerTestCase):
         shots = 100
         qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=1)
         
-        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_verbose': True}).result()
+        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
         self.is_completed(result_verbose)
         self.assertTrue('results' in result_verbose.as_dict(), 
                         msg="results must exist in result")
@@ -70,7 +70,7 @@ class QasmFusionTests(common.QiskitAerTestCase):
         self.assertTrue('fusion_verbose' in result_verbose.as_dict()['results'][0]['metadata'], 
                         msg="fusion must work for satevector")
 
-        result_nonverbose = self.SIMULATOR.run(qobj, backend_options={'fusion_verbose': False}).result()
+        result_nonverbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': False}).result()
         self.is_completed(result_nonverbose)
         self.assertTrue('results' in result_nonverbose.as_dict(), 
                         msg="results must exist in result")
@@ -79,7 +79,7 @@ class QasmFusionTests(common.QiskitAerTestCase):
         self.assertTrue('fusion_verbose' not in result_nonverbose.as_dict()['results'][0]['metadata'], 
                         msg="verbose must not work if fusion_verbose is False")
 
-        result_default = self.SIMULATOR.run(qobj, backend_options={}).result()
+        result_default = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True}).result()
         self.is_completed(result_default)
         self.assertTrue('results' in result_default.as_dict(), 
                         msg="results must exist in result")
@@ -118,8 +118,8 @@ class QasmFusionTests(common.QiskitAerTestCase):
                         msg="results must exist in result")
         self.assertTrue('metadata' in result_default.as_dict()['results'][0], 
                         msg="metadata must exist in results[0]")
-        self.assertTrue('fusion_verbose' in result_default.as_dict()['results'][0]['metadata'], 
-                        msg="fusion must work by default for satevector")
+        self.assertTrue('fusion_verbose' not in result_default.as_dict()['results'][0]['metadata'], 
+                        msg="fusion must not work by default for satevector")
 
 
     def test_fusion_operations(self):

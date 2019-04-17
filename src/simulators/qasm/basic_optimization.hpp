@@ -142,7 +142,7 @@ const std::vector<std::string> Fusion::supported_gates({
 
 Fusion::Fusion(uint_t max_qubit, uint_t threshold, double cost_factor):
     max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor),
-    verbose_(false), active_(true) {
+    verbose_(false), active_(false) {
 }
 
 void Fusion::set_config(const json_t &config) {
