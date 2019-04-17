@@ -525,7 +525,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
-  // are no reset operations before the measurement
+  // are no reset or initialize operations before the measurement
   if(simulation_method(circ) == Method::extended_stabilizer && extended_stabilizer_disable_measurement_opt_)
   {
     return std::make_pair(false, 0);
@@ -534,6 +534,7 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   while (start != circ.ops.end()) {
     const auto type = start->type;
     if (type == Operations::OpType::reset ||
+	type == Operations::OpType::initialize ||
         type == Operations::OpType::kraus ||
         type == Operations::OpType::roerror) {
       return std::make_pair(false, 0);

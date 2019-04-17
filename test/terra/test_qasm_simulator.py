@@ -13,6 +13,7 @@ import unittest
 from test.terra.utils.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.utils.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.utils.qasm_simulator.qasm_reset import QasmResetTests
+from test.terra.utils.qasm_simulator.qasm_initialize import QasmInitializeTests
 from test.terra.utils.qasm_simulator.qasm_conditional import QasmConditionalTests
 from test.terra.utils.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.utils.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
@@ -30,6 +31,7 @@ from test.terra.utils.qasm_simulator.qasm_thread_management import QasmThreadMan
 class TestQasmSimulator(QasmMethodTests,
                         QasmMeasureTests,
                         QasmResetTests,
+                        QasmInitializeTests,
                         QasmConditionalTests,
                         QasmCliffordTests,
                         QasmCliffordTestsWaltzBasis,

@@ -47,3 +47,13 @@ class QasmResetTests(common.QiskitAerTestCase):
         result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_reset_sampling_opt(self):
+        """Test sampling optimization"""
+        shots = 2000
+        circuits = ref_reset.reset_sampling_optimization()
+        targets = ref_reset.reset_counts_sampling_optimization(shots)
+        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
