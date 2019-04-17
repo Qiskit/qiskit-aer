@@ -1,3 +1,5 @@
+// To use this configuration for running the benchmarks, we have to run asv like this:
+// $ asv --connfig asv.macos.conf.json run
 {
     // The version of the config file format.  Do not change, unless
     // you know what you are doing.
@@ -37,8 +39,8 @@
     ],
     "build_command": [
         "pip install -U scikit-build cython",
-        "VERBOSE=1 python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DSTATIC_LINKING=True -- -j8",
-        "pip install https://github.com/QISKit/qiskit-terra/archive/master.zip"
+        "pip install https://github.com/QISKit/qiskit-terra/archive/master.zip",
+        "VERBOSE=1 python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 --dist-dir={build_cache_dir} -- -DSTATIC_LINKING=True -- -j8"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "master"
