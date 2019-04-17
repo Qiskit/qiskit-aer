@@ -66,7 +66,7 @@ void Debug::optimize_circuit(Circuit& circ,
 
 class Fusion : public CircuitOptimization {
 public:
-  Fusion(uint_t max_qubit = 5, uint_t threshold = 10, double cost_factor = 2.5);
+  Fusion(uint_t max_qubit = 5, uint_t threshold = 8, double cost_factor = 2.5);
 
   void set_config(const json_t &config) override;
 
@@ -108,8 +108,8 @@ public:
   const static std::vector<std::string> supported_gates;
 
 private:
-  const uint_t max_qubit_;
-  const uint_t threshold_;
+  uint_t max_qubit_;
+  uint_t threshold_;
   const double cost_factor_;
   bool verbose_;
   bool active_;
@@ -149,11 +149,18 @@ void Fusion::set_config(const json_t &config) {
 
   CircuitOptimization::set_config(config);
 
-  if (JSON::check_key("verbose_fusion", config_))
-    JSON::get_value(verbose_, "verbose_fusion", config_);
+  if (JSON::check_key("fusion_verbose", config_))
+    JSON::get_value(verbose_, "fusion_verbose", config_);
 
-  if (JSON::check_key("enable_fusion", config_))
-    JSON::get_value(active_, "enable_fusion", config_);
+  if (JSON::check_key("fusion_enable", config_))
+    JSON::get_value(active_, "fusion_enable", config_);
+
+  if (JSON::check_key("fusion_max_qubit", config_))
+    JSON::get_value(max_qubit_, "fusion_max_qubit", config_);
+
+  if (JSON::check_key("fusion_threshold", config_))
+    JSON::get_value(threshold_, "fusion_threshold", config_);
+
 }
 
 
@@ -196,6 +203,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   optimized_ops.clear();
   oplist_t buffer;
 
+  int idx = 0;
   for (const op_t op: circ.ops) {
     if (can_ignore(op))
       continue;
@@ -205,9 +213,8 @@ void Fusion::optimize_circuit(Circuit& circ,
         oplist_t optimized_buffer = aggregate(buffer);
         optimized_ops.insert(optimized_ops.end(), optimized_buffer.begin(), optimized_buffer.end());
         buffer.clear();
-      } else {
-        optimized_ops.push_back(op);
       }
+      optimized_ops.push_back(op);
     } else {
       buffer.push_back(op);
     }
@@ -216,7 +223,6 @@ void Fusion::optimize_circuit(Circuit& circ,
   if (!buffer.empty()) {
     oplist_t optimized_buffer = aggregate(buffer);
     optimized_ops.insert(optimized_ops.end(), optimized_buffer.begin(), optimized_buffer.end());
-    buffer.clear();
     ret = true;
   }
 
@@ -224,7 +230,7 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   if (verbose_) {
     data.add_additional_data("metadata",
-                             json_t::object({{"verbose_fusion", optimized_ops}}));
+                             json_t::object({{"fusion_verbose", optimized_ops}}));
   }
 
 #ifdef DEBUG
@@ -273,9 +279,11 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
   // fusion_to[i]: best path to i-th in original.ops
   std::vector<int> fusion_to;
 
-  bool applied = false;
+  int applied_total = 0;
   // calculate the minimal path to each operation in the circuit
-  for (int i = 0; i < (int) original.size(); ++i) {
+  for (int i = 0; i < original.size(); ++i) {
+    bool applied = false;
+
     // first, fusion from i-th to i-th
     fusion_to.push_back(i);
 
@@ -293,7 +301,7 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
       reg_t fusion_qubits;
       add_fusion_qubits(fusion_qubits, original[i]);
 
-      for (int j = (int) i - 1; j >= 0; --j) {
+      for (int j = i - 1; j >= 0; --j) {
         add_fusion_qubits(fusion_qubits, original[j]);
 
         if (fusion_qubits.size() > num_fusion) // exceed the limit of fusion
@@ -311,9 +319,13 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
         }
       }
     }
+    if (applied)
+      ++applied_total;
   }
 
-  if (!applied)
+  std::cout << applied_total / static_cast<double> (original.size()) << std::endl;
+
+  if (applied_total / static_cast<double> (original.size()) < 0.25)
     return original;
 
   // generate a new circuit with the minimal path to the last operation in the circuit

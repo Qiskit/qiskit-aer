@@ -274,6 +274,9 @@ void Controller::set_config(const json_t &config) {
     max_memory_mb_ = system_memory_mb / 2;
   }
 
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+    opt->set_config(config_);
+
   std::string path;
   JSON::get_value(path, "library_dir", config);
   // Fix for MacOS and OpenMP library double initialization crash.
@@ -436,9 +439,6 @@ template <class state_t>
 Circuit Controller::optimize_circuit(const Circuit &input_circ,
                                      state_t& state,
                                      OutputData &data) const {
-
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
-    opt->set_config(config_);
 
   Circuit working_circ = input_circ;
   for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
