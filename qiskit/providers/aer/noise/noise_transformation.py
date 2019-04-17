@@ -1,4 +1,23 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
+
+# Copyright 2019, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""
+Noise transformation module
+
+The goal of this module is to transform one 1-qubit noise channel (given by the QuantumError class)
+into another, built from specified "building blocks" (given as Kraus matrices) such that
+the new channel is as close as possible to the original one in the Hilber-Schmidt metric.
+
+For a typical use case, consider a simulator for circuits built from the Clifford group.
+Computations on such circuits can be simulated at polynomial time and space, but not all
+noise channels can be used in such a simulation. To enable noisy Clifford simulation one can
+transform the given noise channel into the closest one, Hilbert-Schmidt wise, that
+can be used in a Clifford simulator.
+"""
 
 import numpy
 import sympy
@@ -16,10 +35,18 @@ def approximate_quantum_error(error, *,
                               operator_string = None,
                               operator_dict = None,
                               operator_list = None):
-    """Return an approximate QuantumError.
+    """Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
 
     Args:
         error (QuantumError): the error to be approximated.
+        operator_string (string): a name for a premade set of building blocks for the output channel
+        operator_dict (dict): a dictionary whose values are the building blocks for the output channel
+        operator_list (dict): list of building blocks for the output channel
+
+    Additional Information:
+        The operator input precedence is as follows: list < dict < string
+        if a string is given, dict is overwritten; if a dict is given, list is overwritten
+        possible values for string are 'pauli', 'reset', 'clifford'; see NoiseTransformer.named_operators
 
     Returns:
         QuantumError: the approximate quantum error.
@@ -64,6 +91,14 @@ def approximate_noise_model(model, *,
 
     Args:
         model (NoiseModel): the noise model to be approximated.
+        operator_string (string): a name for a premade set of building blocks for the output channel
+        operator_dict (dict): a dictionary whose values are the building blocks for the output channel
+        operator_list (dict): list of building blocks for the output channel
+
+    Additional Information:
+        The operator input precedence is as follows: list < dict < string
+        if a string is given, dict is overwritten; if a dict is given, list is overwritten
+        possible values for string are 'pauli', 'reset', 'clifford'; see NoiseTransformer.named_operators
 
     Returns:
         NoiseModel: the approximate noise model.
@@ -127,16 +162,6 @@ def approximate_noise_model(model, *,
 
 class NoiseTransformer:
     """Transforms one quantum noise channel to another based on a specified criteria.
-
-    A quantum 1-qubit noise channel is represented by Kraus operators: a sequence (E0, E1,...,En) of
-    2x2 matrices that satisfy \sum_{i=0}^n E_i^\daggerE_i = I
-
-    Given a quantum state's density function rho, the effect of the channel on this state is
-    rho -> \sum_{i=1}^n E_i * rho * E_i^\dagger
-
-    The goal of this module is to transform one noise channel into another, where the goal channel
-    is constructed from a given set of matrices, using coefficients computed by the module in order
-    to satisfy some criteria (for now, we wish the output channel to be "close" to the input channel)
     """
 
     def __init__(self):
