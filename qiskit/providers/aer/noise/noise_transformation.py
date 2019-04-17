@@ -8,6 +8,7 @@ from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise.errors.errorutils import single_qubit_clifford_matrix
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 
@@ -73,7 +74,6 @@ def approximate_noise_model(model, *,
 
     #We need to iterate over all the errors in the noise model.
     #No nice interface for this now, easiest way is to mimic as_dict
-    # TODO: Raise error about 2-qubit errors
 
     error_list = []
     # Add default quantum errors
@@ -137,9 +137,6 @@ class NoiseTransformer:
     The goal of this module is to transform one noise channel into another, where the goal channel
     is constructed from a given set of matrices, using coefficients computed by the module in order
     to satisfy some criteria (for now, we wish the output channel to be "close" to the input channel)
-
-    The main public function of the module is transform(), and a conversion of qobj inputs is given
-    via the transform_qobj() function.
     """
 
     def __init__(self):
@@ -152,7 +149,7 @@ class NoiseTransformer:
                 'p': (numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])),
                 'q': (numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])),
             },
-            # 'clifford': self.single_qubit_full_clifford_group()
+            'clifford': dict([(j, single_qubit_clifford_matrix(j)) for j in range(24)])
         }
 
         self.fidelity_data = None
@@ -386,7 +383,6 @@ class NoiseTransformer:
     # should we consider another library, only this method needs to change
     def solve_quadratic_program(self, P, q):
         try:
-            #TODO: consider using QP with CVXPY
             import cvxopt
         except ImportError:
             raise ImportError("The CVXOPT library is required to use this module")
