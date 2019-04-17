@@ -1,7 +1,8 @@
 from qiskit.qobj import Qobj
+from qiskit.providers.aer.noise import NoiseModel
 
-def repr_hook(self):
-    """ This is needed for beauty printing reports from ASV """
+def qobj_repr_hook(self):
+    """ This is needed for ASV to beauty-printing reports """
     return "Qobj<{0} qubits, {1} {2}, {3} shots>".format(
         self.config.n_qubits,
         len(self.experiments),
@@ -9,4 +10,9 @@ def repr_hook(self):
         self.config.shots
     )
 
-Qobj.__repr__ = repr_hook
+Qobj.__repr__ = qobj_repr_hook
+
+
+def noise_model_repr_hook(self):
+    """ This is needed for ASV to beauty-printing reports """
+    
