@@ -10,7 +10,9 @@ Helper functions for noise model creation.
 
 import numpy as np
 
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.kraus import Kraus
+from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -87,7 +89,8 @@ def standard_gate_instruction(instruction, ignore_phase=True):
         for pauli0 in paulis:
             for pauli1 in paulis:
                 pmat = np.kron(
-                    standard_gate_unitary(pauli1), standard_gate_unitary(pauli0))
+                    standard_gate_unitary(pauli1),
+                    standard_gate_unitary(pauli0))
                 if matrix_equal(mat_dagger, pmat, ignore_phase=ignore_phase):
                     if pauli0 is "id":
                         return [{"name": pauli1, "qubits": [qubits[1]]}]
@@ -302,6 +305,95 @@ def standard_gate_unitary(name):
                          [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
                         dtype=complex)
     return None
+
+
+def standard_instruction_operator(name, params=None):
+    """Return the Operator for a standard gate."""
+    mat = standard_gate_unitary(name)
+    if isinstance(mat, np.ndarray):
+        return Operator(mat)
+    # Check if standard parameterized waltz gates
+    if name is 'u1':
+        lam = params[0]
+        mat = np.diag([1, np.exp(1j * lam)])
+        return Operator(mat)
+    if name is 'u2':
+        phi = params[0]
+        lam = params[1]
+        mat = np.array([[1, -np.exp(1j * lam)],
+                        [np.exp(1j * phi),
+                         np.exp(1j * (phi + lam))]]) / np.sqrt(2)
+        return Operator(mat)
+    if name is 'u3':
+        theta = params[0]
+        phi = params[1]
+        lam = params[2]
+        mat = np.array(
+            [[np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
+             [
+                 np.exp(1j * phi) * np.sin(theta / 2),
+                 np.exp(1j * (phi + lam)) * np.cos(theta / 2)
+             ]])
+        return Operator(mat)
+    if name is 'unitary':
+        return Operator(params)
+    raise NoiseError('Cannot convert instruction to Operator')
+
+
+def reset_superop(num_qubits):
+    """Return a N-qubit reset SuperOp."""
+    reset = SuperOp(
+        np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]))
+    if num_qubits == 1:
+        return reset
+    reset_n = reset
+    for _ in range(num_qubits - 1):
+        reset_n.tensor(reset)
+    return reset_n
+
+
+def circuit2superop(circuit, min_qubits=1):
+    """Return the SuperOp for a standard instruction."""
+    # Get number of qubits
+    max_qubits = 1
+    for instr in circuit:
+        qubits = []
+        if hasattr(instr, 'qubits'):
+            qubits = instr.qubits
+        elif isinstance(instr, dict):
+            qubits = instr.get('qubits', [])
+        max_qubits = max(max_qubits, 1 + max(qubits))
+
+    num_qubits = max(max_qubits, min_qubits)
+
+    # Initialize N-qubit identity superoperator
+    superop = SuperOp(np.eye(4**num_qubits))
+    # compose each circuit element with the superoperator
+    for instr in circuit:
+        name = None
+        qubits = None
+        params = None
+        if isinstance(instr, dict):
+            # Parse from plain dictionary qobj instruction
+            name = instr['name']
+            qubits = instr.get('qubits')
+            params = instr.get('params')
+        else:
+            # Parse from QasmQobjInstruction
+            if hasattr(instr, 'name'):
+                name = instr.name
+            if hasattr(instr, 'qubits'):
+                qubits = instr.qubits
+            if hasattr(instr, 'params'):
+                params = instr.params
+        if name is 'reset':
+            instr_op = reset_superop(len(qubits))
+        elif name is 'kraus':
+            instr_op = Kraus(params)
+        else:
+            instr_op = SuperOp(standard_instruction_operator(name, params))
+        superop = superop.compose(instr_op, qubits=qubits)
+    return superop
 
 
 def make_unitary_instruction(mat, qubits, standard_gates=True):

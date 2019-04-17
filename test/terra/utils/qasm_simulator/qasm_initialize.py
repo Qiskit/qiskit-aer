@@ -10,49 +10,49 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.utils import common
-from test.terra.utils import ref_reset
+from test.terra.utils import ref_initialize
 from qiskit import compile
 from qiskit.providers.aer import QasmSimulator
 
 
-class QasmResetTests(common.QiskitAerTestCase):
-    """QasmSimulator reset tests."""
+class QasmInitializeTests(common.QiskitAerTestCase):
+    """QasmSimulator initialize tests."""
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
 
     # ---------------------------------------------------------------------
-    # Test reset
+    # Test initialize
     # ---------------------------------------------------------------------
-    def test_reset_deterministic(self):
-        """Test QasmSimulator reset with for circuits with deterministic counts"""
-        # For statevector output we can combine deterministic and non-deterministic
-        # count output circuits
-        shots = 100
-        circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
-        targets = ref_reset.reset_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0)
-
-    def test_reset_nondeterministic(self):
-        """Test QasmSimulator reset with for circuits with non-deterministic counts"""
+    def test_initialize_1(self):
+        """Test QasmSimulator initialize"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 2000
-        circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
-        targets = ref_reset.reset_counts_nondeterministic(shots)
+        circuits = ref_initialize.initialize_circuits_1(final_measure=True)
+        targets = ref_initialize.initialize_counts_1(shots)
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    def test_reset_sampling_opt(self):
+    def test_initialize_2(self):
+        """Test QasmSimulator initializes"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        shots = 2000
+        circuits = ref_initialize.initialize_circuits_2(final_measure=True)
+        targets = ref_initialize.initialize_counts_2(shots)
+        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_initialize_sampling_opt(self):
         """Test sampling optimization"""
         shots = 2000
-        circuits = ref_reset.reset_sampling_optimization()
-        targets = ref_reset.reset_counts_sampling_optimization(shots)
+        circuits = ref_initialize.initialize_sampling_optimization()
+        targets = ref_initialize.initialize_counts_sampling_optimization(shots)
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)

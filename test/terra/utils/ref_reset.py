@@ -165,3 +165,30 @@ def reset_statevector_nondeterministic():
     # Reset 1 from |++>
     targets.append(array([1, 1, 0, 0]) / sqrt(2))
     return targets
+
+
+# ==========================================================================
+# Sampling optimization
+# ==========================================================================
+
+def reset_sampling_optimization():
+    """Test sampling optimization"""
+    qr = QuantumRegister(2)
+    cr = ClassicalRegister(2)
+    qc = QuantumCircuit(qr, cr)
+
+    # The optimization should not be triggerred
+    # because the reset operation performs randomizations
+    qc.h(qr[0])
+    qc.cx(qr[0], qr[1])
+    qc.reset([qr[0]])
+    qc.measure(qr, cr)
+
+    return [qc]
+
+def reset_counts_sampling_optimization(shots, hex_counts=True):
+    """Sampling optimization counts"""
+    if hex_counts:
+        return [{'0x0': shots/2, '0x2': shots/2}]
+    else:
+        return [{'0x00': shots/2, '0x10': shots/2}]

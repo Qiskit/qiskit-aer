@@ -90,7 +90,7 @@ class QasmMeasureTests(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
-        """Test QasmSimulator reset with non-deterministic counts"""
+        """Test QasmSimulator measure with non-deterministic counts"""
         shots = 2000
         qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=True)
         qobj.config.shots = shots
@@ -101,7 +101,7 @@ class QasmMeasureTests(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
-        """Test QasmSimulator reset with non-deterministic counts"""
+        """Test QasmSimulator measure with non-deterministic counts"""
         shots = 2000
         qobj = ref_measure.measure_circuits_qobj_nondeterministic(allow_sampling=False)
         qobj.config.shots = shots
