@@ -389,12 +389,6 @@ void State<statevec_t>::set_config(const json_t &config) {
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
-
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  JSON::get_value(gate_opt, "statevector_gate_opt", config);
-  if (gate_opt)
-    BaseState::qreg_.enable_gate_opt();
 }
 
 

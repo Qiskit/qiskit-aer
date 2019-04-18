@@ -372,12 +372,6 @@ public:
   // Optimization configuration settings
   //-----------------------------------------------------------------------
 
-  // Enable sorted qubit matrix gate optimization (Default disabled)
-  void enable_gate_opt() {gate_opt_ = true;}
-
-  // Disable sorted qubit matrix gate optimization
-  void disable_gate_opt() {gate_opt_ = false;}
-
   // Set the sample_measure index size
   void set_sample_measure_index_size(int n) {sample_measure_index_size_ = n;}
 
@@ -400,7 +394,6 @@ protected:
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 13;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  bool gate_opt_ = true;      // enable large-qubit optimized gates
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
 
@@ -1086,32 +1079,6 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
   check_vector(mat, 2 * N);
   #endif
 
-  // Matrix-swap based optimized 2-6 qubit implementation
-  if (gate_opt_ && N <= 6) {
-    switch (N) {
-      case 1:
-        apply_matrix(qubits[0], mat);
-        return;
-      case 2:
-        apply_matrix2(qubits, mat);
-        return;
-      case 3:
-        apply_matrix3(qubits, mat);
-        return;
-      case 4:
-        apply_matrix4(qubits, mat);
-        return;
-      case 5:
-        apply_matrix5(qubits, mat);
-        return;
-      case 6:
-        apply_matrix6(qubits, mat);
-        return;
-    default:
-      break;
-    } // end switch
-  }
-  
   // Static array optimized lambda functions
   switch (N) {
     case 1:
