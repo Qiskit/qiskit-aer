@@ -101,6 +101,16 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 
+// Matrix concatenate and split.
+template <class T> matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint axis);
+template <class T> void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint axis);
+
+//Elementwise matrix multiplication
+template <class T> matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B);
+
+//Matrix sum of elements
+template <class T> T sum(const matrix<T> &A);
+
 // Matrix comparison
 
 template <class T>
@@ -522,6 +532,105 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
 }
 
 template <class T>
+matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint axis) {
+  // Works out a concatenate of two matrices A, B
+  // To add B as new rows axis == 0 (vertical)
+  // To add A as new cols axis == 1 (horizontal)
+  if (axis != 0 && axis!= 1) {
+    std::cerr << "MU::concatenate: axis must be 0 or 1" << std::endl;
+	exit(1);
+  }
+  size_t rows1 = A.GetRows(), rows2 = B.GetRows(), cols1 = A.GetColumns(), cols2 = B.GetColumns();
+  matrix<T> temp = A;
+  if(axis == 0) {
+	if(cols1 != cols2) {
+	  std::cerr << "MU::concatenate: axis = 0 but cols_A =! cols_B" << std::endl;
+	  exit(1);
+	}
+  temp.resize(rows1 + rows2, cols1);
+  for (size_t i = 0; i < rows2; i++)
+	for (size_t j = 0; j < cols1; j++)
+      temp(rows1 + i,j) = B(i,j);
+  }
+  else if(axis == 1) {
+    if(rows1 != rows2) {
+	  std::cerr << "MU::concatenate: axis = 1 but rows_A =! rows_B" << std::endl;
+	  exit(1);
+	}
+	temp.resize(rows1, cols1 + cols2);
+	for (size_t i = 0; i < rows1; i++)
+	  for (size_t j = 0; j < cols2; j++)
+		temp(i,cols1 + j) = B(i,j);
+  }
+  return temp;
+}
+
+template <class T>
+void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint axis) {
+  // Works out a split of matrix A to two matrices B, C, with the same dimensions
+  // To split by rows, axis == 0 (Only when A rows divide by 2)
+  // To split by cols, axis == 1 (Only when A cols divide by 2)
+  if (axis != 0 && axis != 1) {
+    std::cerr << "MU::split: axis must be 0 or 1" << std::endl;
+    exit(1);
+  }
+  size_t rows = A.GetRows(), cols = A.GetColumns();
+  matrix<T> temp = A;
+  if(axis == 0) {
+	if (rows % 2 != 0) {
+	  std::cerr << "MU::split: can't matrix A split by rows"  << std::endl;
+	  exit(1);
+	}
+  B.resize(rows/2 , cols);
+  C.resize(rows/2 , cols);
+  for (size_t i = 0; i < rows/2; i++)
+	for (size_t j = 0; j < cols; j++) {
+	  B(i,j) = A(i,j);
+	  C(i,j) = A(i+rows/2,j);
+   	}
+  }
+  else if(axis == 1) {
+    if (cols % 2 != 0) {
+	  std::cerr << "MU::split: can't split matrix A by cols"  << std::endl;
+	  exit(1);
+	}
+	B.resize(rows, cols/2);
+	C.resize(rows, cols/2);
+	for (size_t i = 0; i < rows; i++)
+	  for (size_t j = 0; j < cols/2; j++) {
+		B(i,j) = A(i,j);
+		C(i,j) = A(i,j+cols/2);
+	  }
+  }
+}
+
+template <class T>
+matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B) {
+  // Works out an elementwise multiplication of two matrices A, B
+  // If A or B is empty it will return the other matrix
+  size_t rows1 = A.GetRows(), rows2 = B.GetRows(), cols1 = A.GetColumns(),
+         cols2 = B.GetColumns();
+  if(rows1 != rows2 || cols1 != cols2) {
+	  std::cerr << "MU::elementwise_multiplication: matrices have different sizes"  << std::endl;
+	  exit(1);
+  }
+  matrix<T> temp(rows1, cols1);
+  for (size_t i = 0; i < rows1; i++)
+    for (size_t j = 0; j < cols1; j++)
+      temp(i, j) = A(i, j) * B(i, j);
+  return temp;
+}
+
+template <class T>
+T sum(const matrix<T> &A){
+  T temp = 0;
+  for(uint i = 0; i < A.size(); i++)
+	  temp += A[i];
+  return temp;
+}
+
+
+template <class T>
 bool is_square(const matrix<T> &mat) {
   if (mat.GetRows() != mat.GetColumns())
     return false;
@@ -542,7 +651,7 @@ bool is_equal(const matrix<T> &mat1, const matrix<T> &mat2, double threshold) {
   // Check matrices are same shape
   const auto nrows = mat1.GetRows();
   const auto ncols = mat1.GetColumns();
-  if (nrows != mat2.GetRows() || ncols != mat2.GetColumns)
+  if (nrows != mat2.GetRows() || ncols != mat2.GetColumns())
     return false;
 
   // Check matrices are equal on an entry by entry basis
