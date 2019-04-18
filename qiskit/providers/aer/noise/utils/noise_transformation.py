@@ -61,6 +61,7 @@ def approximate_quantum_error(error, *,
     error_kraus_operators = Kraus(error.to_channel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
+        operator_string = operator_string.lower()
         if operator_string not in transformer.named_operators.keys():
             raise RuntimeError("No information about noise type {}".format(operator_string))
         operator_dict = transformer.named_operators[operator_string]
