@@ -47,13 +47,30 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     Returns:
         list: a list of qobj instructions equivalent to in input instruction.
     """
-    if instruction.get("name", None) not in ["mat", "unitary"]:
+
+    name = instruction.get("name", None)
+    if name not in ["mat", "unitary", "kraus"]:
+        return [instruction]
+    qubits = instruction["qubits"]
+    params = instruction["params"]
+
+    # Check for single-qubit reset Kraus
+    if name == "kraus":
+        if len(qubits) == 1:
+            superop = SuperOp(Kraus(params))
+            # Check if reset to |0>
+            reset0 = reset_superop(1)
+            if superop == reset0:
+                return [{"name": "reset", "qubits": qubits}]
+            # Check if reset to |1>
+            reset1 = reset0.compose(Operator(standard_gate_unitary('x')))
+            if superop == reset1:
+                return [{"name": "reset", "qubits": qubits}, {"name": "x", "qubits": qubits}]
+        # otherwise just return the kraus instruction
         return [instruction]
 
-    qubits = instruction["qubits"]
-    mat_dagger = np.conj(instruction["params"])
-
     # Check single qubit gates
+    mat_dagger = np.conj(params)
     if len(qubits) == 1:
         # Check clifford gates
         for j in range(24):
