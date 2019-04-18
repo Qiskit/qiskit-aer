@@ -73,10 +73,16 @@ def approximate_quantum_error(error, *,
             raise RuntimeError("Approximated channel operators probabilities sum to {}".format(1-identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits':[0]}],identity_prob)]
         for (op_matrices, probability) in zip(operator_list, probabilities):
+            if len(op_matrices) == 1: #can be added as unitary
+                quantum_error_spec.append(([{'name': 'unitary',
+                                             'qubits': [0],
+                                             'params': op_matrices[0]}
+                                            ], probability))
+            else:
             # convert op_matrices to list since tuples of Kraus matrices are treated as generalized Kraus representation
-            quantum_error_spec.append(([{'name': 'kraus',
+                quantum_error_spec.append(([{'name': 'kraus',
                                         'qubits': [0],
-                                        'params': list(op_matrices)}
+                                        'params': op_matrices}
                                        ], probability))
         return QuantumError(quantum_error_spec)
 
@@ -166,15 +172,15 @@ class NoiseTransformer:
 
     def __init__(self):
         self.named_operators = {
-            'pauli': {'X': standard_gate_unitary('x'),
-                      'Y': standard_gate_unitary('y'),
-                      'Z': standard_gate_unitary('z')
+            'pauli': {'X': [standard_gate_unitary('x')],
+                      'Y': [standard_gate_unitary('y')],
+                      'Z': [standard_gate_unitary('z')]
                       },
             'reset': {
-                'p': (numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])),
-                'q': (numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])),
+                'p': [numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])],
+                'q': [numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])],
             },
-            'clifford': dict([(j, single_qubit_clifford_matrix(j)) for j in range(24)])
+            'clifford': dict([(j, [single_qubit_clifford_matrix(j)]) for j in range(24)])
         }
 
         self.fidelity_data = None
