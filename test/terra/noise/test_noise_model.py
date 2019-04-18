@@ -10,7 +10,7 @@ NoiseModel class integration tests
 """
 
 import unittest
-from test.terra.utils import common
+from test.terra import common
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile
 from qiskit.providers.aer.backends import QasmSimulator
