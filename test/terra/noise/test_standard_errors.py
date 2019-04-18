@@ -10,7 +10,7 @@ Standard error function tests
 """
 
 import unittest
-from test.terra.utils import common
+from test.terra import common
 import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
