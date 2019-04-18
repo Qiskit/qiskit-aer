@@ -10,6 +10,23 @@ find_package(PythonLibs REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+# Set some general flags
+if(APPLE)
+    message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
+                    solved at runtime by the loader")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(AER_LINKER_FLAGS "-undefined dynamic_lookup")
+    else()
+        # -flat_namespace linker flag is needed otherwise dynamic symbol resolution doesn't work as expected with GCC.
+        # Symbols with the same name exist in different .so, so the loader just takes the first one it finds,
+        # which is usually the one from the first .so loaded.
+        # See: Two-Leve namespace symbol resolution
+        set(AER_LINKER_FLAGS "-undefined dynamic_lookup -flat_namespace")
+    endif()
+    unset(PYTHON_LIBRARIES)
+endif()
+
+
 # QASM Controller
 
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
@@ -25,12 +42,7 @@ target_include_directories(qasm_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
 
-if(APPLE)
-    message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
-        solved at runtime by the loader")
-    set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
-    unset(PYTHON_LIBRARIES)
-endif()
+set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
 
 target_link_libraries(qasm_controller_wrapper
     ${AER_LIBRARIES}
@@ -56,16 +68,7 @@ target_include_directories(statevector_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
 
-if(APPLE)
-    message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
-        solved at runtime by the loader")
-    # -flat_namespace linker flag is needed otherwise dynamic symbol resolution doesn't work as expected.
-    # Symbols with the same name exist in different .so, so the loader just takes the first one it finds,
-    # which is usually the one from the first .so loaded.
-    # See: Two-Leve namespace symbol resolution
-    set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
-    unset(PYTHON_LIBRARIES)
-endif()
+set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
 
 target_link_libraries(statevector_controller_wrapper
     ${AER_LIBRARIES}
@@ -91,12 +94,7 @@ target_include_directories(unitary_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
 
-if(APPLE)
-    message(STATUS "On Mac, we force linking with undefined symbols for Python library, they will be
-        solved at runtime by the loader")
-    set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -flat_namespace")
-    unset(PYTHON_LIBRARIES)
-endif()
+set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
 
 target_link_libraries(unitary_controller_wrapper
     ${AER_LIBRARIES}
