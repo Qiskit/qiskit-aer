@@ -11,14 +11,14 @@ ExtendedStabilizer Integration Tests
 
 import unittest
 import logging
-from test.terra.utils import common
-from test.terra.utils import ref_measure
-from test.terra.utils import ref_reset
-from test.terra.utils import ref_conditionals
-from test.terra.utils import ref_1q_clifford
-from test.terra.utils import ref_2q_clifford
-from test.terra.utils import ref_non_clifford
-from test.terra.utils import ref_algorithms
+from test.terra import common
+from test.terra.reference import ref_measure
+from test.terra.reference import ref_reset
+from test.terra.reference import ref_conditionals
+from test.terra.reference import ref_1q_clifford
+from test.terra.reference import ref_2q_clifford
+from test.terra.reference import ref_non_clifford
+from test.terra.reference import ref_algorithms
 
 from qiskit import compile as qiskit_compile
 from qiskit.providers.aer import QasmSimulator
