@@ -22,6 +22,7 @@ Added
 -----
 - Improve efficiency of parallelization with max_memory_mb a new parameter of backend_opts (#61)
 - Add optimized mcx, mcy, mcz, mcu1, mcu2, mcu3, gates to QubitVector (#124)
+- Add optimized controlled-swap gate to QubitVector
 
 Changed
 -------
