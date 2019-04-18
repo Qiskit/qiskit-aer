@@ -546,7 +546,7 @@ class QuantumError:
             params = Kraus(SuperOp(op0).expand(op1)).data
         else:
             name = 'unitary'
-            params = op0.expand(op1).data
+            params = [op0.expand(op1).data]
         return {'name': name, 'qubits': qubits, 'params': params}
 
     @staticmethod
@@ -574,5 +574,5 @@ class QuantumError:
             params = Kraus(SuperOp(op0).compose(op1)).data
         else:
             name = 'unitary'
-            params = op0.compose(op1).data
+            params = [op0.compose(op1).data]
         return {'name': name, 'qubits': qubits0, 'params': params}

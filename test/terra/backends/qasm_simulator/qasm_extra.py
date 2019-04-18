@@ -21,7 +21,7 @@ class QasmExtraTests:
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
     # ---------------------------------------------------------------------
-    def DISABLED_test_unitary_gate_real(self):
+    def test_unitary_gate_real(self):
         """Test unitary qobj instruction with real matrices."""
         shots = 100
         qobj = ref_unitary_gate.unitary_gate_circuits_real_deterministic(
@@ -34,7 +34,7 @@ class QasmExtraTests:
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def DISABLED_test_unitary_gate_complex(self):
+    def test_unitary_gate_complex(self):
         """Test unitary qobj instruction with complex matrices."""
         shots = 100
         qobj = ref_unitary_gate.unitary_gate_circuits_complex_deterministic(

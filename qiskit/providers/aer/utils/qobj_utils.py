@@ -94,10 +94,11 @@ def unitary_instr(mat, qubits, label=None):
     if array.shape not in [(dim, dim), (1, dim)]:
         raise ValueError("Invalid")
     instruction = {"name": "unitary", "qubits": list(qubits),
-                   "params": np.array(mat, dtype=complex)}
+                   "params": [np.array(mat, dtype=complex)]}
     if label is not None:
         instruction["label"] = str(label)
     return QasmQobjInstruction(**instruction)
+
 
 def measure_instr(qubits, memory, registers=None):
 
