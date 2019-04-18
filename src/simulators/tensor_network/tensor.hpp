@@ -32,8 +32,16 @@ using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
 using cmatrix_t = matrix<complex_t>;
 
-// Input: vector S that contains the real singular values from the SVD decomposition
-// Output: number of elements in S that are greater than 0 (actually greater than threshold)
+//**************************************************************
+// function name: num_of_SV
+// Description: Computes the number of none-zero singular values
+//				in S
+// Parameters: rvector_t S - vector of singular values from the
+//			   SVD decomposition
+//			   false to print as vector of matrices.
+// Returns: number of elements in S that are greater than 0
+//			(actually greater than threshold)
+//**************************************************************
 uint num_of_SV(rvector_t S, double threshold)
 {
 	uint sum = 0;
@@ -50,6 +58,7 @@ uint num_of_SV(rvector_t S, double threshold)
 class Tensor
 {
 public:
+	// Constructors of Tensor class
 	Tensor(){}
 	explicit Tensor(complex_t& alpha, complex_t& beta){
 		matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
@@ -58,13 +67,13 @@ public:
 		data_.push_back(A);
 		data_.push_back(B);
 	}
-
 	Tensor(const Tensor& rhs){
 		data_ = rhs.data_;
 	}
-
+	// Destructor
 	virtual ~Tensor(){}
 
+	// Assignment operator
 	Tensor& operator=(const Tensor& rhs){
 		if (this != &rhs){
 			data_ = rhs.data_;
@@ -72,6 +81,13 @@ public:
 		return *this;
 	}
 
+	//**************************************************************
+	// function name: print
+	// Description: Add a new command to the history
+	// Parameters: bool statevector: true to print as a state vector
+	//			   false to print as vector of matrices.
+	// Returns: none.
+	//**************************************************************
 	void print(bool statevector = false) {
 	  if(statevector == false)
 		  for(uint i = 0; i < data_.size(); i++)
@@ -91,30 +107,56 @@ public:
 	  }
 	}
 
-	cvector_t get_data_new(uint a1, uint a2) const
+	//**************************************************************
+	// function name: get_data
+	// Description: Get the data in some axis of the Tensor
+	// 1.	Parameters: uint a1, uint a2 - indexes of data in matrix
+	// 		Returns: cvector_t of data in (a1,a2) in all matrices
+	// 2.	Parameters: uint i - index of a matrix in the Tensor
+	// 		Returns: cmatrix_t of the data
+	//**************************************************************
+	cvector_t get_data(uint a1, uint a2) const
 	{
 		cvector_t Res;
 		for(uint i = 0; i < data_.size(); i++)
 			Res.push_back(data_[i](a1,a2));
 		return Res;
 	}
-	matrix<complex_t> get_data(uint i) const
+	cmatrix_t get_data(uint i) const
 	{
 		return data_[i];
 	}
 
-
-	void insert_data(uint a1, uint a2, vector<complex_t> data)
+	//**************************************************************
+	// function name: insert_data
+	// Description: Insert data to some axis of the Tensor
+	// Parameters: uint a1, uint a2 - indexes of data in matrix
+	// Parameters: cvector_t data - data to insert.
+	// Returns: void.
+	//**************************************************************
+	void insert_data(uint a1, uint a2, cvector_t data)
 	{
 		for(uint i = 0; i < data_.size(); i++)
 			data_[i](a1,a2) = data[i];
 	}
 
-
+	//**************************************************************
+	// function name: get_dim
+	// Description: Get the dimension of the physical index of the tensor
+	// Parameters: none.
+	// Returns: uint of the dimension of the physical index of the tensor.
+	//**************************************************************
 	uint get_dim() const {
 		return data_.size();
 	}
 
+	//**************************************************************
+	// function name: apply_x,y,z,...
+	// Description: Apply some gate on the tensor. tensor must represent
+	//				the number of qubits the gate expect
+	// Parameters: none.
+	// Returns: none.
+	//**************************************************************
 	void apply_x()
 	{
 		if (data_.size() != 2)
@@ -155,7 +197,7 @@ public:
 		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
-				temp = get_data_new(a1,a2);
+				temp = get_data(a1,a2);
 				temp = AER::Utils::Matrix::H*temp;
 				insert_data(a1,a2,temp);
 			}
@@ -207,7 +249,7 @@ public:
 		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
-				temp = get_data_new(a1,a2);
+				temp = get_data(a1,a2);
 				temp = AER::Utils::Matrix::U1(lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
@@ -223,7 +265,7 @@ public:
 		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
-				temp = get_data_new(a1,a2);
+				temp = get_data(a1,a2);
 				temp = AER::Utils::Matrix::U2(phi,lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
@@ -239,7 +281,7 @@ public:
 		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
-				temp = get_data_new(a1,a2);
+				temp = get_data(a1,a2);
 				temp = AER::Utils::Matrix::U3(theta, phi,lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
@@ -256,7 +298,7 @@ public:
 		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
-				temp = get_data_new(a1,a2);
+				temp = get_data(a1,a2);
 				temp = mat * temp;
 				insert_data(a1,a2,temp);
 			}
@@ -294,12 +336,22 @@ public:
   
 protected:
 	/*
-	The data structure of a Gamma tensor in MPS- a vector of matrices of the same dimensions.
-	Size of the vector is for the real index, dimensions of the matrices are for the bond indices. (3-dimensions tensors)
+	The data structure of a Gamma tensor in MPS- a vector of matrices of
+	the same dimensions. Size of the vector is for the physical index,
+	dimensions of the matrices are for the bond indices. (3-dimensions tensors).
+	Notation: i will represent the physical index, a1,a2 will represent the
+	matrix indexes
 	*/	
 	vector<cmatrix_t> data_;
 
-/* Functions mul/div Gamma by Lambda are used to keep the MPS in the canonical form
+/* TL;DR - Functions mul/div Gamma by Lambda are used to keep the MPS in the
+ * canonical form.
+ *
+ * Before applying a 2-qubits gate, we must contract the to relevant Gamma tensors.
+ * In order to maintain the canonical form, we must consider the Lambda tensors from
+ * the sides of the Gamma tensors. This is what the multiply functions do. After the
+ * decomposition of the result of the gate, we need to divide back by what we
+ * multiplied before. This is what the division functions do.
  * */
 friend void mul_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
 {
@@ -310,7 +362,6 @@ friend void mul_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
 			for(uint a2 = 0; a2 < cols; a2++)
 				Gamma.data_[i](a1,a2) *= Lambda[a1];
 }
-
 friend void mul_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 {
 	if (Lambda == rvector_t {1.0}) return;
@@ -320,7 +371,6 @@ friend void mul_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 			for(uint a2 = 0; a2 < cols; a2++)
 				Gamma.data_[i](a1,a2) *= Lambda[a2];
 }
-
 friend void div_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
 {
 	if (Lambda == rvector_t {1.0}) return;
@@ -330,7 +380,6 @@ friend void div_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
 			for(uint a2 = 0; a2 < cols; a2++)
 				Gamma.data_[i](a1,a2) /= Lambda[a1];
 }
-
 friend void div_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 {
 	if (Lambda == rvector_t {1.0}) return;
@@ -341,18 +390,34 @@ friend void div_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 				Gamma.data_[i](a1,a2) /= Lambda[a2];
 }
 
-// Contract to gammas and one lambda of the MPS. Usually being used before 2-qubits gate.
-friend Tensor contract(Tensor &A, rvector_t &lambda, Tensor &B)
+//************************************************************************
+// function name: contract
+// Description: Contract two Gamma tensors and the Lambda between
+// 				them. Usually being used before 2-qubits gate.
+// Parameters: Tensor &left_gamma, &right_gamma , rvector_t &lambda -
+// 			   tensors to contract.
+// Returns: The result tensor of the contract
+//*************************************************************************
+friend Tensor contract(Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
 {
 	Tensor Res;
-	mul_Gamma_by_right_Lambda(A,lambda);
-	for(uint i = 0; i < A.data_.size(); i++)
-		for(uint j = 0; j < B.data_.size(); j++)
-			Res.data_.push_back(A.data_[i] * B.data_[j]);
+	mul_Gamma_by_right_Lambda(left_gamma,lambda);
+	for(uint i = 0; i < left_gamma.data_.size(); i++)
+		for(uint j = 0; j < right_gamma.data_.size(); j++)
+			Res.data_.push_back(left_gamma.data_[i] * right_gamma.data_[j]);
 	return Res;
 }
 
 // Decompose a tensor into 2 gammas and lambda of the MPS. Usually being used after 2-qubits gate.
+//************************************************************************
+// function name: Decompose
+// Description: Decompose a tensor into two Gamma tensors and the Lambda between
+// 				them. Usually being used after 2-qubits gate.
+// Parameters: Tensor &temp - the tensor to decompose.
+//			   Tensor &left_gamma, &right_gamma , rvector_t &lambda -
+// 			   tensors for the result.
+// Returns: none.
+//*************************************************************************
 friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
 {
 	matrix<complex_t> C = reshape_before_SVD(temp.data_);
@@ -360,11 +425,16 @@ friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tenso
 	rvector_t S(min(C.GetRows(), C.GetColumns()));
 
 
-	C.SetOutputStyle(Matrix);
-	U.SetOutputStyle(Matrix);
-	V.SetOutputStyle(Matrix);
-	if(SHOW_SVD) cout << "C =" << endl << C ;
+	if(SHOW_SVD)
+	{
+		C.SetOutputStyle(Matrix);
+		U.SetOutputStyle(Matrix);
+		V.SetOutputStyle(Matrix);
+		cout << "C =" << endl << C ;
+	}
+
 	csvd(C,U,S,V);
+
 	if(SHOW_SVD) {
 		cout << "U = " << endl << U ;
 		cout << "S = " << endl;
@@ -373,6 +443,7 @@ friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tenso
 		cout << endl;
 		cout << "V = " << endl << V ;
 	}
+
 	uint SV_num = num_of_SV(S, 1e-16);
 	U.resize(U.GetRows(),SV_num);
 	S.resize(SV_num);

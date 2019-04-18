@@ -18,10 +18,35 @@ namespace TensorState {
 
 class TensorState{
 public:
+
+	// Constructor of TensorState class
 	TensorState(size_t size = 0);
+
+	// Destructor
 	~TensorState();
+
+	//**************************************************************
+	// function name: num_qubits
+	// Description: Get the number of qubits in the tensor network
+	// Parameters: none.
+	// Returns: none.
+	//**************************************************************
     uint num_qubits() const{return size_;}
+
+    //**************************************************************
+	// function name: set_num_qubits
+	// Description: Set the number of qubits in the tensor network
+	// Parameters: size_t size - number of qubits to set.
+	// Returns: none.
+	//**************************************************************
     void set_num_qubits(size_t size);
+
+    //**************************************************************
+	// function name: apply_x,y,z,...
+	// Description: Apply a gate on some qubits by their indexes.
+    // Parameters: uint index of the qubit/qubits.
+	// Returns: none.
+	//**************************************************************
 	void apply_h(uint index){q_reg_[index].apply_h();}
 	void apply_x(uint index){q_reg_[index].apply_x();}
 	void apply_y(uint index){q_reg_[index].apply_y();}
@@ -42,12 +67,43 @@ public:
                       {cout << "apply_matrix not supported yet" <<endl;}
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
                       {cout << "apply_diagonalmatrix not supported yet" <<endl;}
+
+
   double Expectation_value(vector<uint> indexes, string matrices);
+
+  //**************************************************************
+  // function name: initialize
+  // Description: Initialize the tensor network with some state.
+  // 1.	Parameters: none. Initializes all qubits to |0>.
+  // 2.	Parameters: const TensorState &other - Copy another tensor network
+  // TODO:
+  // 3.	Parameters: uint num_qubits, const cvector_t &vecState -
+  //  				Initializes qubits with a statevector.
+  // Returns: none.
+  //**************************************************************
   void initialize();
   void initialize(const TensorState &other);
   void initialize(uint num_qubits, const cvector_t &vecState);
-  //void initialize(complex_t alpha[], complex_t beta[]);
+
+  //**************************************************************
+  // function name: printTN
+  // Description: Prints the tensor network
+  // Parameters: none.
+  // Returns: none.
+  //**************************************************************
   void printTN();
+
+  //*********************************************************************
+  // function name: state_vec
+  // Description: Computes the state vector of a subset of qubits.
+  // 	The regular use is with for all qubits. in this case the output is
+  //  	Tensor with a 2^n vector of 1X1 matrices.
+  //  	If not used for all qubits,	the result tensor will contain a
+  //   	2^(distance between edges) vector of matrices of some size. This
+  //	method is being used for computing expectation value of subset of qubits.
+  // Parameters: none.
+  // Returns: none.
+  //**********************************************************************
   Tensor state_vec(uint first_index, uint last_index);
 
   //methods from qasm_controller that are not supported yet
