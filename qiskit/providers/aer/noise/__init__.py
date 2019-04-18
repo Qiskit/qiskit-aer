@@ -62,11 +62,17 @@ canonical types of quantum errors:
    Amplitude damping error
    Phase damping error
    Combined phase and amplitude damping error
+
+Noise Utilities
+--------------
+The `noise.utils` module contains utilities for noise models and errors including:
+    'approximate_quantum_error' for approximating a general quantum error via
+    a provided set of errors (e.g. approximating amplitude damping via reset errors)
+    'approximate_noise_model' for approximating all the errors in a nose model using
+    the same provided set of errors
 """
 
 from .noise_model import NoiseModel
-from .noise_transformation import NoiseTransformer
-from .noise_transformation import approximate_quantum_error
-from .noise_transformation import approximate_noise_model
 from . import errors
 from . import device
+from . import utils
