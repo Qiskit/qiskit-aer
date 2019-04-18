@@ -323,8 +323,6 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
       ++applied_total;
   }
 
-  std::cout << applied_total / static_cast<double> (original.size()) << std::endl;
-
   if (applied_total / static_cast<double> (original.size()) < 0.25)
     return original;
 

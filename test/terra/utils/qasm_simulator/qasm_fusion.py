@@ -12,9 +12,13 @@ QasmSimulator Integration Tests
 from test.terra.utils import common
 from qiskit import compile, QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.noise import NoiseModel
 from test.terra.utils import ref_1q_clifford
 from test.terra.utils import ref_2q_clifford
 import json
+from qiskit.providers.aer import noise as aer_noise
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 
 
 class QasmFusionTests(common.QiskitAerTestCase):
@@ -40,6 +44,21 @@ class QasmFusionTests(common.QiskitAerTestCase):
         circuit.measure(qr, cr)
         return circuit
     
+    def noise_model(self):
+        readout_error = [0.01, 0.1]
+        depolarizing = {'u3': (1, 0.001), 'cx': (2, 0.02)}
+        noise = NoiseModel()
+        readout = [[1.0 - readout_error[0], readout_error[0]], [readout_error[1], 1.0 - readout_error[1]]]
+        noise.add_all_qubit_readout_error(ReadoutError(readout))
+        for gate, (num_qubits, gate_error) in depolarizing.items():
+            noise.add_all_qubit_quantum_error(depolarizing_error(gate_error, num_qubits), gate)
+            return noise    
+    
+    def check_mat_exist(self, result):
+        fusion_gates = result.as_dict()['results'][0]['metadata']['fusion_verbose']
+        for gate in fusion_gates:
+            print (gate)
+    
     def test_clifford_no_fusion(self):
         """Test Fusion with clifford simulator"""
         shots = 100
@@ -47,12 +66,31 @@ class QasmFusionTests(common.QiskitAerTestCase):
         qobj = compile(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(qobj, backend_options={'fusion_verbose': True}).result()
         self.is_completed(result)
+        
         self.assertTrue('results' in result.as_dict(), 
                         msg="results must exist in result")
         self.assertTrue('metadata' in result.as_dict()['results'][0], 
                         msg="metadata must exist in results[0]")
         self.assertTrue('fusion_verbose' not in result.as_dict()['results'][0]['metadata'], 
                         msg="fusion must not work for clifford")
+
+    def test_noise_fusion(self):
+        """Test Fusion with noise model option"""
+        circuit = self.create_statevector_circuit()
+        
+        shots = 100
+        noise_model = self.noise_model()
+        qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=1, basis_gates=noise_model.basis_gates)
+
+        result = self.SIMULATOR.run(qobj, noise_model=noise_model, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
+        self.is_completed(result)
+        
+        self.assertTrue('results' in result.as_dict(), 
+                        msg="results must exist in result")
+        self.assertTrue('metadata' in result.as_dict()['results'][0], 
+                        msg="metadata must exist in results[0]")
+        self.assertTrue('fusion_verbose' in result.as_dict()['results'][0]['metadata'], 
+                        msg="verbose must work with noise")
 
     def test_fusion_verbose(self):
         """Test Fusion with verbose option"""
