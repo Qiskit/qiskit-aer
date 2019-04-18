@@ -164,6 +164,13 @@ class TestNoiseTransformer(unittest.TestCase):
         results = approximate_quantum_error(error, operator_string="clifford")
         self.assertErrorsAlmostEqual(error, results)
 
+    def test_approx_names(self):
+        gamma = 0.23
+        error = amplitude_damping_error(gamma)
+        results_1 = approximate_quantum_error(error, operator_string="pauli")
+        results_2 = approximate_quantum_error(error, operator_string="Pauli")
+        self.assertErrorsAlmostEqual(results_1, results_2)
+
     def test_errors(self):
         gamma = 0.23
         error = amplitude_damping_error(gamma)
