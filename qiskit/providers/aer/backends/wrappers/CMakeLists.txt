@@ -32,8 +32,12 @@ endif()
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
 add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
 set_target_properties(qasm_controller_wrapper PROPERTIES
-	LINKER_LANGUAGE CXX
+    LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
+if(APPLE)
+    set_target_properties(qasm_controller_wrapper PROPERTIES
+        LINK_FLAGS ${AER_LINKER_FLAGS})
+endif()
 # We only need to pass the linter once, as the codebase is the same for
 # all controllers
 add_linter(qasm_controller_wrapper)
@@ -41,9 +45,6 @@ target_include_directories(qasm_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
-
-set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-
 target_link_libraries(qasm_controller_wrapper
     ${AER_LIBRARIES}
     ${PYTHON_LIBRARIES})
@@ -63,13 +64,14 @@ add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapp
 set_target_properties(statevector_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
+if(APPLE)
+    set_target_properties(statevector_controller_wrapper PROPERTIES
+        LINK_FLAGS ${AER_LINKER_FLAGS})
+endif()
 target_include_directories(statevector_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
-
-set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-
 target_link_libraries(statevector_controller_wrapper
     ${AER_LIBRARIES}
     ${PYTHON_LIBRARIES})
@@ -89,13 +91,14 @@ add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
 set_target_properties(unitary_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
+if(APPLE)
+    set_target_properties(unitary_controller_wrapper PROPERTIES
+        LINK_FLAGS ${AER_LINKER_FLAGS})
+endif()
 target_include_directories(unitary_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
-
-set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-
 target_link_libraries(unitary_controller_wrapper
     ${AER_LIBRARIES}
     ${PYTHON_LIBRARIES})
