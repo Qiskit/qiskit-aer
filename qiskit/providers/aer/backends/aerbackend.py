@@ -144,12 +144,17 @@ class AerBackend(BaseBackend):
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
+        if not isinstance(output, dict):
+            logger.error("%s: simulation failed.", self.name())
+            if output:
+                logger.error('Output: %s', output)
+            raise AerError("simulation terminated without returning valid output.")
         # Check results
         # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
         #       is merged this should be updated to deal with errors using
         #       the Result object methods
         if not output.get("success", False):
-            logger.error("AerBackend: simulation failed")
+            logger.error("%s: simulation failed", self.name())
             # Check for error message in the failed circuit
             for res in output.get('results'):
                 if not res.get('success', False):
