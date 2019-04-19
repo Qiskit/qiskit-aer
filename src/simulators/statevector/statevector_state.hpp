@@ -67,7 +67,7 @@ public:
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
       Operations::OpType::matrix,
-      Operations::OpType::matrixes,
+      Operations::OpType::matrix_sequence,
       Operations::OpType::kraus
     });
   }
@@ -167,7 +167,7 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply multiple gate operations
-  void apply_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t>& mats);
+  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats);
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits,
@@ -434,8 +434,8 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
         break;
-      case Operations::OpType::matrixes:
-        apply_matrixes(op.qubitss, op.mats);
+      case Operations::OpType::matrix_sequence:
+        apply_matrix_sequence(op.regs, op.mats);
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -710,16 +710,16 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t>& mats) {
+void State<statevec_t>::apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats) {
 
-  if (qubitss.empty())
+  if (regs.empty())
     return;
 
   std::vector<cvector_t> vmats;
   for (const cmatrix_t& mat: mats)
     vmats.push_back(Utils::vectorize_matrix(mat));
 
-  BaseState::qreg_.apply_matrixes(qubitss, vmats);
+  BaseState::qreg_.apply_matrix_sequence(regs, vmats);
 }
 
 

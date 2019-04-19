@@ -441,12 +441,13 @@ Circuit Controller::optimize_circuit(const Circuit &input_circ,
                                      OutputData &data) const {
 
   Circuit working_circ = input_circ;
+  Operations::OpSet allowed_opset;
+  allowed_opset.optypes = state.allowed_ops();
+  allowed_opset.gates = state.allowed_gates();
+  allowed_opset.snapshots = state.allowed_snapshots();
+
   for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
-    opt->optimize_circuit(working_circ,
-                          state.allowed_ops(),
-                          state.allowed_gates(),
-                          state.allowed_snapshots(),
-                          data);
+    opt->optimize_circuit(working_circ, allowed_opset, data);
 
   return working_circ;
 }

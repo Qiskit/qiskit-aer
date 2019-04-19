@@ -29,7 +29,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, matrixes, kraus, roerror, noise_switch, initialize
+  matrix, matrix_sequence, kraus, roerror, noise_switch, initialize
 };
 
 std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -55,8 +55,8 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::matrix:
     stream << "matrix";
     break;
-  case OpType::matrixes:
-    stream << "matrixes";
+  case OpType::matrix_sequence:
+    stream << "matrix_sequence";
     break;
   case OpType::kraus:
     stream << "kraus";
@@ -86,7 +86,7 @@ struct Op {
   OpType type;                    // operation type identifier
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
-  std::vector<reg_t> qubitss;     //  list of qubits for matrixes
+  std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
@@ -373,11 +373,11 @@ inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label 
   return op;
 }
 
-inline Op make_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t> &mats, std::string label = "") {
+inline Op make_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t> &mats, std::string label = "") {
   Op op;
-  op.type = OpType::matrixes;
-  op.name = "mats";
-  op.qubitss = qubitss;
+  op.type = OpType::matrix_sequence;
+  op.name = "matrix_sequence";
+  op.regs = regs;
   op.mats = mats;
   if (label != "")
     op.string_params = {label};
@@ -518,8 +518,8 @@ json_t op_to_json(const Op &op) {
   ret["name"] = op.name;
   if (!op.qubits.empty())
     ret["qubits"] = op.qubits;
-  if (!op.qubitss.empty())
-    ret["qubitss"] = op.qubitss;
+  if (!op.regs.empty())
+    ret["regs"] = op.regs;
   if (!op.params.empty())
     ret["params"] = op.params;
   if (op.conditional)

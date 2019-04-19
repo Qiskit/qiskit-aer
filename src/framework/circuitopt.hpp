@@ -25,10 +25,9 @@ namespace AER {
 class CircuitOptimization {
 public:
   virtual void optimize_circuit(Circuit& circ,
-                                const Operations::OpSet::optypeset_t& allowed_ops,
-                                const stringset_t& allowed_gates,
-                                const stringset_t& allowed_snapshots,
+                                const Operations::OpSet &opset,
                                 OutputData &data) const = 0;
+
   virtual void set_config(const json_t &config);
 
 protected:

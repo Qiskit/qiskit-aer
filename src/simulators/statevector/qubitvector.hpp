@@ -238,9 +238,10 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t &mat);
 
-  // Apply N-qubit matrixes to the state vector.
-  // The matrixes are inputs as vectors of the column-major vectorized N-qubit matrixes.
-  void apply_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cvector_t> &mats);
+  // Apply a N-qubit matrix constructed from composition of 1 and 2 qubit matrices.
+  // The sets of qubits and matrices are passed as vectors, where each individual matrix
+  // is input as a column-major vectorized matrix.
+  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cvector_t> &mats);
 
   // Apply a 1-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
@@ -526,6 +527,8 @@ protected:
   void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
                           cvector_t &mat, uint_t dim) const;
 
+  // Extend a matrix for qubits (src_qubits) to a matrix for more qubits (dst_sorted_qubits)
+  // qubits in dst_sorted_qubits must contains all the qubits in src_qubits
   cvector_t expand_matrix(const reg_t& src_qubits,
                           const reg_t& dst_sorted_qubits,
                           const cvector_t& vmat) const;
@@ -1153,14 +1156,36 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
 }
 
 template <typename data_t>
-void QubitVector<data_t>::apply_matrixes(const std::vector<reg_t> &qubitss,
+void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
                                          const std::vector<cvector_t> &mats) {
   if (mats.size() == 0)
     return;
 
+
+#ifdef DEBUG
+  if (regs.size() != mats.size());
+    throw std::runtime_error("QubitVector<data_t>::apply_matrix_sequence allows same size of qubitss and mats.");
+#endif
+
+  bool at_most_two = true;
+  // check 1 or 2 qubits
+  for (const reg_t& reg: regs) {
+    if (reg.size() > 2) {
+      at_most_two = false;
+      break;
+    }
+  }
+
+  if (!at_most_two) {
+    for (size_t i = 0; i < regs.size(); ++i)
+      apply_matrix(regs[i], mats[i]);
+    return;
+  }
+
+
   reg_t sorted_qubits;
-  for (const reg_t& qubits: qubitss)
-    for (const uint_t qubit: qubits)
+  for (const reg_t& reg: regs)
+    for (const uint_t qubit: reg)
       if (std::find(sorted_qubits.begin(), sorted_qubits.end(), qubit) == sorted_qubits.end())
         sorted_qubits.push_back(qubit);
 
@@ -1168,10 +1193,10 @@ void QubitVector<data_t>::apply_matrixes(const std::vector<reg_t> &qubitss,
 
   std::vector<cvector_t> sorted_mats;
 
-  for (size_t i = 0; i < qubitss.size(); ++i) {
-    const reg_t& qubits = qubitss[i];
+  for (size_t i = 0; i < regs.size(); ++i) {
+    const reg_t& reg = regs[i];
     const cvector_t& mat = mats[i];
-    sorted_mats.push_back(expand_matrix(qubits, sorted_qubits, mat));
+    sorted_mats.push_back(expand_matrix(reg, sorted_qubits, mat));
   }
 
   auto U = sorted_mats[0];

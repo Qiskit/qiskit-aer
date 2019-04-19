@@ -21,16 +21,12 @@ using reg_t = std::vector<uint_t>;
 class ReduceNop : public CircuitOptimization {
 public:
   void optimize_circuit(Circuit& circ,
-                        const Operations::OpSet::optypeset_t& allowed_ops,
-                        const stringset_t& allowed_gates,
-                        const stringset_t& allowed_snapshots,
-                        OutputData &data) const;
+                        const Operations::OpSet &opset,
+                        OutputData &data) const override;
 };
 
 void ReduceNop::optimize_circuit(Circuit& circ,
-                                 const Operations::OpSet::optypeset_t& allowed_ops,
-                                 const stringset_t& allowed_gates,
-                                 const stringset_t& allowed_snapshots,
+                                 const Operations::OpSet &allowed_opset,
                                  OutputData &data) const {
 
   oplist_t::iterator it = circ.ops.begin();
@@ -45,16 +41,12 @@ void ReduceNop::optimize_circuit(Circuit& circ,
 class Debug : public CircuitOptimization {
 public:
   void optimize_circuit(Circuit& circ,
-                        const Operations::OpSet::optypeset_t& allowed_ops,
-                        const stringset_t& allowed_gates,
-                        const stringset_t& allowed_snapshots,
-                        OutputData &data) const;
+                        const Operations::OpSet &opset,
+                        OutputData &data) const override;
 };
 
 void Debug::optimize_circuit(Circuit& circ,
-                             const Operations::OpSet::optypeset_t& allowed_ops,
-                             const stringset_t& allowed_gates,
-                             const stringset_t& allowed_snapshots,
+                             const Operations::OpSet &allowed_opset,
                              OutputData &data) const {
 
   oplist_t::iterator it = circ.ops.begin();
@@ -71,10 +63,8 @@ public:
   void set_config(const json_t &config) override;
 
   void optimize_circuit(Circuit& circ,
-                        const Operations::OpSet::optypeset_t& allowed_ops,
-                        const stringset_t& allowed_gates,
-                        const stringset_t& allowed_snapshots,
-                        OutputData &data) const;
+                        const Operations::OpSet &opset,
+                        OutputData &data) const override;
 
   bool can_ignore(const op_t& op) const;
 
@@ -184,14 +174,12 @@ void Fusion::dump(const Circuit& circuit) const {
 #endif
 
 void Fusion::optimize_circuit(Circuit& circ,
-                              const Operations::OpSet::optypeset_t& allowed_ops,
-                              const stringset_t& allowed_gates,
-                              const stringset_t& allowed_snapshots,
+                              const Operations::OpSet &allowed_opset,
                               OutputData &data) const {
 
   if (circ.num_qubits < threshold_
       || !active_
-      || allowed_ops.find(Operations::OpType::matrixes) == allowed_ops.end())
+      || allowed_opset.optypes.find(Operations::OpType::matrix_sequence) == allowed_opset.optypes.end())
     return;
 
   bool ret = false;
@@ -331,13 +319,13 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
     if (to == i) {
       optimized.push_back(original[i]);
     } else {
-      std::vector<reg_t> qubitss;
+      std::vector<reg_t> regs;
       std::vector<cmatrix_t> mats;
       for (int j = to; j <= i; ++j) {
-        qubitss.push_back(original[j].qubits);
+        regs.push_back(original[j].qubits);
         mats.push_back(matrix(original[j]));
       }
-      optimized.push_back(Operations::make_matrixes(qubitss, mats));
+      optimized.push_back(Operations::make_matrix_sequence(regs, mats));
     }
     i = to - 1;
   }
