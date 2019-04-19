@@ -167,7 +167,7 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply multiple gate operations
-  void apply_matrixes(const reg_t &qubits, const std::vector<cmatrix_t>& mats);
+  void apply_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t>& mats);
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits,
@@ -435,7 +435,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         apply_matrix(op.qubits, op.mats[0]);
         break;
       case Operations::OpType::matrixes:
-        apply_matrixes(op.qubits, op.mats);
+        apply_matrixes(op.qubitss, op.mats);
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -710,16 +710,16 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrixes(const reg_t &qubits, const std::vector<cmatrix_t>& mats) {
+void State<statevec_t>::apply_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t>& mats) {
 
-  if (qubits.empty())
+  if (qubitss.empty())
     return;
 
   std::vector<cvector_t> vmats;
   for (const cmatrix_t& mat: mats)
     vmats.push_back(Utils::vectorize_matrix(mat));
 
-  BaseState::qreg_.apply_matrixes(qubits, vmats);
+  BaseState::qreg_.apply_matrixes(qubitss, vmats);
 }
 
 

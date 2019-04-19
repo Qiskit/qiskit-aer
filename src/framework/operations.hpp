@@ -86,6 +86,7 @@ struct Op {
   OpType type;                    // operation type identifier
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
+  std::vector<reg_t> qubitss;     //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
@@ -372,11 +373,11 @@ inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label 
   return op;
 }
 
-inline Op make_matrixes(const reg_t &qubits, const std::vector<cmatrix_t> &mats, std::string label = "") {
+inline Op make_matrixes(const std::vector<reg_t> &qubitss, const std::vector<cmatrix_t> &mats, std::string label = "") {
   Op op;
   op.type = OpType::matrixes;
   op.name = "mats";
-  op.qubits = qubits;
+  op.qubitss = qubitss;
   op.mats = mats;
   if (label != "")
     op.string_params = {label};
@@ -517,6 +518,8 @@ json_t op_to_json(const Op &op) {
   ret["name"] = op.name;
   if (!op.qubits.empty())
     ret["qubits"] = op.qubits;
+  if (!op.qubitss.empty())
+    ret["qubitss"] = op.qubitss;
   if (!op.params.empty())
     ret["params"] = op.params;
   if (op.conditional)
