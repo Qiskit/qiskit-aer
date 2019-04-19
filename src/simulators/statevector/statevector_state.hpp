@@ -168,10 +168,10 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
 
   // Apply a vector of control matrices to given qubits (identity on all other qubits)
-  void apply_multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mmat); 
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat); 
 
   // Apply stacked (flat) version of multiplexer matrix to target qubits (using control qubits to select matrix instance)
-  void apply_multiplexer(const reg_t &qubits, const cmatrix_t &mat);
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat);
 
 
   // Apply multiple gate operations
@@ -445,7 +445,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::matrix_sequence:
         apply_matrix_sequence(op.regs, op.mats);
       case Operations::OpType::multiplexer:
-        apply_multiplexer(op.qubits, op.mats); 
+        apply_multiplexer(op.regs[0], op.regs[1], op.mats); 
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -710,17 +710,10 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) 
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_multiplexer(const reg_t &qubits, const cmatrix_t &mat) {
-  if (qubits.empty() == false && mat.size() > 0) {
-    size_t exp_target_count, target_count, control_count;
-    double n, base = 2;
-    exp_target_count = mat.GetColumns();
-    n = std::log(exp_target_count)/std::log(base);
-    target_count = std::trunc(n);
-    control_count = qubits.size() - target_count;
-
+void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
+  if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
-    BaseState::qreg_.apply_multiplexer(qubits, vmat, control_count, target_count);
+    BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
   }
 }
 
@@ -906,31 +899,12 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mmat) {
-	// Proof-of-concept approach: 
-	// (1) Rearrange qubit indices Identity(target) | Identity(control) ... was control | target
-	// (2) Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
-	// (3) Treat as single, large(r), chained/batched matrix operator
-	
-	
-	// (1) Rearrange qubit indices Identity(target) | Identity(control) ... was control | target
-	size_t exp_target_count, target_count, control_count;
-	double n, base = 2;
-	auto perm_qubits = qubits;
-        exp_target_count = mmat[0].GetRows();
-	n = std::log(exp_target_count)/std::log(base);
-	target_count = std::trunc(n);
-	control_count = qubits.size() - target_count;
-	for(size_t j = 0; j < target_count; j++)
-		perm_qubits[j] = qubits[control_count+j]; // Target at "front"
-	for(size_t j = 0; j < control_count; j++)
-		perm_qubits[j+target_count] = qubits[j]; // Control qubits moved to "end" 
-
-	// (2) Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
+void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat) {
+	// (1) Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
 	cmatrix_t multiplexer_matrix = Utils::stacked_matrix(mmat);
 
-	// (3) Treat as single, large(r), chained/batched matrix operator
-	apply_multiplexer(perm_qubits, multiplexer_matrix);
+	// (2) Treat as single, large(r), chained/batched matrix operator
+	apply_multiplexer(control_qubits, target_qubits, multiplexer_matrix);
 }
 
 

@@ -21,11 +21,14 @@
 namespace AER {
 namespace Operations {
 
+// Absolute tolerance for checking small numerical values
+const double ATOL = 1e-8;
+
 // Comparisons enum class used for Boolean function operation.
 // these are used to compare two hexadecimal strings and return a bool
 // for now we only have one comparison Equal, but others will be added
 enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual};
-// JAG
+
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
@@ -57,7 +60,7 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix_sequence:
     stream << "matrix_sequence";
-  case OpType::multiplexer: // JAG
+  case OpType::multiplexer: 
     stream << "multiplexer";
     break;
   case OpType::kraus:
@@ -105,6 +108,9 @@ struct Op {
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
   reg_t registers;          // (opt) register locations it acts on (measure, conditional)
+
+  // List of registers
+  std::vector<reg_t> regs;
 
   // Mat and Kraus
   std::vector<cmatrix_t> mats;
@@ -423,13 +429,54 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   op.qubits = qubits;
   return op;
 }
-// JAG
-inline Op make_multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+
+inline Op make_multiplexer(const reg_t &qubits,
+                           const std::vector<cmatrix_t> &mats,
+                           std::string label = "") {
+
+  // Check matrices are N-qubit
+  auto dim = mats[0].GetRows();
+  uint_t num_targets = uint_t(std::log2(dim));
+  if (1ULL << num_targets != dim) {
+    throw std::invalid_argument("invalid multiplexer matrix dimension.");
+  }
+  // Check number of matrix compents is power of 2.
+  size_t num_mats = mats.size();
+  uint_t num_controls = uint_t(std::log2(num_mats));
+  if (1ULL << num_controls != num_mats) {
+    throw std::invalid_argument("invalid number of multiplexer matrices.");
+  }
+  // Check number of targets and controls matches qubits
+  if (num_controls + num_targets != qubits.size()) {
+    throw std::invalid_argument("multiplexer qubits don't match parameters.");
+  }
+  // Check each matrix component is unitary and same size
+  for (const auto &mat : mats) {
+    if (!Utils::is_unitary(mat, ATOL))
+      throw std::invalid_argument("multiplexer matrix is not unitary.");
+    if (mat.GetRows() != dim) {
+      throw std::invalid_argument("multiplexer matrices are different size.");
+    }
+  }
+  // Get lists of controls and targets
+  reg_t controls(num_controls), targets(num_targets);
+  std::copy_n(qubits.begin(), num_controls, controls.begin());
+  std::copy_n(qubits.begin() + num_controls, num_targets, targets.begin());
+
+  // Construct the Op
   Op op;
   op.type = OpType::multiplexer;
   op.name = "multiplexer";
   op.qubits = qubits;
   op.mats = mats;
+  op.regs = std::vector<reg_t>({controls, targets});
+  if (label != "")
+    op.string_params = {label};
+
+  // Validate qubits are unique.
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
   return op;
 }
 
@@ -517,6 +564,8 @@ Op json_to_op(const json_t &js) {
   // Noise functions
   if (name == "noise_switch")
     return json_to_op_noise_switch(js);
+  if (name == "multiplexer")
+    return json_to_op_multiplexer(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   if (name == "roerror")
@@ -718,13 +767,8 @@ Op json_to_op_unitary(const json_t &js) {
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (op.mats.size() != 1) {
-    throw std::invalid_argument("\"unitary\" params must be a single matrix.");
-  }
-  for (const auto mat : op.mats) {
-    if (!Utils::is_unitary(mat, 1e-7)) {
-      throw std::invalid_argument("\"unitary\" matrix is not unitary.");
-    }
+  if (!Utils::is_unitary(mat, ATOL)) {
+    throw std::invalid_argument("\"mat\" matrix is not unitary.");
   }
   // Check for a label
   std::string label;
@@ -733,47 +777,17 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
-// JAG -- well, JAG taken from CJW's #Slack 
 Op json_to_op_multiplexer(const json_t &js) {
-  Op op;
-  op.type = OpType::multiplexer;
-  op.name = "multiplexer";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.mats, "params", js);
 
-  // Check for a label
+  // Parse parameters
+  reg_t qubits;
+  std::vector<cmatrix_t> mats;
   std::string label;
+  JSON::get_value(qubits, "qubits", js);
+  JSON::get_value(mats, "params", js);
   JSON::get_value(label, "label", js);
-  op.string_params.push_back(label);
-
-  // Validation
-  check_empty_qubits(op);
-  check_duplicate_qubits(op);
-  // Check matrices are N-qubit
-  size_t dim = op.mats[0].GetRows();
-  size_t num_targets = size_t(std::log2(dim));
-  if (1ULL << num_targets != dim) {
-    throw std::invalid_argument("invalid multiplexer matrix dimension.");
-  }
-  // Check number of matrix compents is power of 2.
-  size_t num_mats = op.mats.size();
-  size_t num_controls = size_t(std::log2(num_mats));
-  if (1ULL << num_controls != num_mats) {
-    throw std::invalid_argument("invalid number of multiplexer matrices.");
-  }
-  // Check number of targets and controls matches qubits
-  if (num_controls + num_targets != op.qubits.size()) {
-    throw std::invalid_argument("multiplexer qubits don't match parameters.");
-  }
-  // Check each matrix component is unitary and same size
-  for (const auto &mat : op.mats) {
-    if (!Utils::is_unitary(mat, 1e-10))
-      throw std::invalid_argument("multiplexer matrix is not unitary.");
-    if (mat.GetRows() != dim) {
-      throw std::invalid_argument("multiplexer matrices are different size.");
-    }
-  }
-  return op;
+  // Construct op
+  return make_multiplexer(qubits, mats, label);
 }
 
 Op json_to_op_kraus(const json_t &js) {
@@ -842,7 +856,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   check_duplicate_qubits(op);
 
   // Parse Pauli operator components
-  const auto threshold = 1e-10; // drop small components
+  const auto threshold = ATOL; // drop small components
   // Get components
   if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
@@ -879,7 +893,7 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
   // Load default snapshot parameters
   Op op = json_to_op_snapshot_default(js);
 
-  const auto threshold = 1e-10; // drop small components
+  const auto threshold = ATOL; // drop small components
   // Get matrix operator components
   // TODO: fix repeated throw string
   if (JSON::check_key("params", js) && js["params"].is_array()) {
