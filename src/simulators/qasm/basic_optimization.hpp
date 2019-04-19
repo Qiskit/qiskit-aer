@@ -58,7 +58,7 @@ void Debug::optimize_circuit(Circuit& circ,
 
 class Fusion : public CircuitOptimization {
 public:
-  Fusion(uint_t max_qubit = 5, uint_t threshold = 8, double cost_factor = 2.5);
+  Fusion(uint_t max_qubit = 5, uint_t threshold = 16, double cost_factor = 2.5);
 
   void set_config(const json_t &config) override;
 
