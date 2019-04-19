@@ -496,7 +496,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);
-  if (check.first == false || shots == 1) {
+  if (check.first == false) {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while(shots-- > 0) {

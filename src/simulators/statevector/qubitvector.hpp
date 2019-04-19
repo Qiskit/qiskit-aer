@@ -2276,30 +2276,22 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
     return probabilities();
 
   rvector_t probs(DIM, 0.);
-  /* TEMP DISABLING DUE TO ERROR ON MACOS: Symbol not found: ___kmpc_critical
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
     rvector_t probs_private(DIM, 0.);
-#pragma omp for
-    for (size_t k = 0; k < END; k++) {
-      auto idx = indexes(qubits, qubits_sorted, k);
-      for (size_t m = 0; m < DIM; ++m) {
-        probs_private[m] += probability(idx[m]);
+    #pragma omp for
+      for (size_t k = 0; k < END; k++) {
+        auto idx = indexes(qubits, qubits_sorted, k);
+        for (size_t m = 0; m < DIM; ++m) {
+          probs_private[m] += probability(idx[m]);
+        }
       }
-    }
-#pragma omp critical
+    #pragma omp critical
     for (size_t m = 0; m < DIM; ++m) {
       probs[m] += probs_private[m];
     }
   }
-  */
-  // NON-OMP VERSION
-  for (size_t k = 0; k < END; k++) {
-    auto idx = indexes(qubits, qubits_sorted, k);
-    for (size_t m = 0; m < DIM; ++m) {
-      probs[m] += probability(idx[m]);
-    }
-  }
+  
   return probs;
 }
 
