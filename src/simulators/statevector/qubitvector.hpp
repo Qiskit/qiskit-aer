@@ -238,6 +238,10 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t &mat);
 
+  // Apply N-qubit matrixes to the state vector.
+  // The matrixes are inputs as vectors of the column-major vectorized N-qubit matrixes.
+  void apply_matrixes(const reg_t &qubits, const std::vector<cvector_t> &mats);
+
   // Apply a 1-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const uint_t qubit, const cvector_t &mat);
@@ -512,26 +516,6 @@ protected:
   complex_t apply_reduction_lambda(Lambda&& func,
                                    const list_t &qubits,
                                    const param_t &params) const;
-
-  //-----------------------------------------------------------------------
-  // Optimized matrix multiplication
-  //-----------------------------------------------------------------------
-  
-  // Optimized implementations
-  void apply_matrix2(const reg_t &qubits, const cvector_t &mat);
-  void apply_matrix3(const reg_t &qubits, const cvector_t &mat);
-  void apply_matrix4(const reg_t &qubits, const cvector_t &mat);
-  void apply_matrix5(const reg_t &qubits, const cvector_t &mat);
-  void apply_matrix6(const reg_t &qubits, const cvector_t &mat);
-
-  // Permute an N-qubit vectorized matrix to match a reordering of qubits
-  cvector_t sort_matrix(const reg_t &src,
-                        const reg_t &sorted,
-                        const cvector_t &mat) const;
-
-  // Swap cols and rows of vectorized matrix
-  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
-                          cvector_t &mat, uint_t dim) const;
 };
 
 /*******************************************************************************
@@ -1156,6 +1140,31 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
 }
 
 template <typename data_t>
+void QubitVector<data_t>::apply_matrixes(const reg_t &qubits,
+                                         const std::vector<cvector_t> &mats) {
+  if (mats.size() == 0)
+    return;
+
+  cvector_t U = mats[0];
+  const size_t DIM = BITS[qubits.size()];
+
+  for (size_t m = 1; m < mats.size(); m++) {
+
+    cvector_t u_tmp(mats[0].size(), (0., 0.));
+    const cvector_t& u = mats[m];
+
+    for (size_t i = 0; i < DIM; ++i)
+      for (size_t j = 0; j < DIM; ++j)
+        for (size_t k = 0; k < DIM; ++k)
+          u_tmp[i + j * DIM] += u[i + k * DIM] * U[k + j * DIM];
+
+    U = u_tmp;
+  }
+
+  apply_matrix(qubits, U);
+}
+
+template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
   const size_t N = qubits.size();
@@ -1684,441 +1693,6 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
     };
     apply_lambda(lambda, areg_t<1>({{qubit}}), diag);
   }
-}
-
-//------------------------------------------------------------------------------
-// 2-6 qubit optimized matrices
-//------------------------------------------------------------------------------
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix2(const reg_t& qubits, const cvector_t &vmat) {
-  // Check qubits is size.
-  if (qubits.size() != 2) {
-    throw std::runtime_error("QubitVector::apply_matrix2 called for wrong number of qubits");
-  }
-  // Optimized implementation
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-
-  int_t END = data_size_;
-  int_t step1 = BITS[sorted_qs[0]];
-  int_t step2 = BITS[sorted_qs[1]];
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(3)
-#endif
-    for (int_t k1 = 0; k1 < END; k1 += (step2 * 2UL)) {
-      for (int_t k2 = 0; k2 < step2; k2 += (step1 * 2UL)) {
-        for (int_t k3 = 0; k3 < step1; k3++) {
-          int_t t0 = k1 | k2 | k3;
-          int_t t1 = t0 | step1;
-          int_t t2 = t0 | step2;
-          int_t t3 = t2 | step1;
-
-          const complex_t psi0 = data_[t0];
-          const complex_t psi1 = data_[t1];
-          const complex_t psi2 = data_[t2];
-          const complex_t psi3 = data_[t3];
-          // data_[t_i] = sum_j mat[i + 4 * j] * psi[j]
-          data_[t0] = psi0 * sorted_vmat[0] + psi1 * sorted_vmat[4] + psi2 * sorted_vmat[8] + psi3 * sorted_vmat[12];
-          data_[t1] = psi0 * sorted_vmat[1] + psi1 * sorted_vmat[5] + psi2 * sorted_vmat[9] + psi3 * sorted_vmat[13];
-          data_[t2] = psi0 * sorted_vmat[2] + psi1 * sorted_vmat[6] + psi2 * sorted_vmat[10] + psi3 * sorted_vmat[14];
-          data_[t3] = psi0 * sorted_vmat[3] + psi1 * sorted_vmat[7] + psi2 * sorted_vmat[11] + psi3 * sorted_vmat[15];
-        }
-      }
-    }
-  }
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix3(const reg_t& qubits, const cvector_t &vmat) {
-  // Check qubits is size.
-  if (qubits.size() != 3) {
-    throw std::runtime_error("QubitVector::apply_matrix3 called for wrong number of qubits");
-  }
-  // Optimized implementation
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = BITS[3];
-
-  int_t END = data_size_;
-  int_t step1 = BITS[sorted_qs[0]];
-  int_t step2 = BITS[sorted_qs[1]];
-  int_t step3 = BITS[sorted_qs[2]];
-
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1 //
-  };
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(4)
-#endif
-    for (int_t k1 = 0; k1 < END; k1 += (step3 * 2UL)) {
-      for (int_t k2 = 0; k2 < step3; k2 += (step2 * 2UL)) {
-        for (int_t k3 = 0; k3 < step2; k3 += (step1 * 2UL)) {
-          for (int_t k4 = 0; k4 < step1; k4++) {
-            int_t base = k1 | k2 | k3 | k4;
-            complex_t psi[8];
-            for (int_t i = 0; i < 8; ++i) {
-              psi[i] = data_[base | masks[i]];
-              data_[base | masks[i]] = 0.;
-            }
-            for (size_t i = 0; i < 8; ++i)
-              for (size_t j = 0; j < 8; ++j)
-                data_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-          }
-        }
-      }
-    }
-  }
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix4(const reg_t& qubits, const cvector_t &vmat) {
-  // Check qubits is size.
-  if (qubits.size() != 4) {
-    throw std::runtime_error("QubitVector::apply_matrix4 called for wrong number of qubits");
-  }
-  // Optimized implementation
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = BITS[4];
-
-  int_t END = data_size_;
-  int_t step1 = BITS[sorted_qs[0]];
-  int_t step2 = BITS[sorted_qs[1]];
-  int_t step3 = BITS[sorted_qs[2]];
-  int_t step4 = BITS[sorted_qs[3]];
-
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1, //
-      step4, //
-      step4 | step1, //
-      step4 | step2, //
-      step4 | step2 | step1, //
-      step4 | step3, //
-      step4 | step3 | step1, //
-      step4 | step3 | step2, //
-      step4 | step3 | step2 | step1 //
-  };
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(5)
-#endif
-    for (int_t k1 = 0; k1 < END; k1 += (step4 * 2UL)) {
-      for (int_t k2 = 0; k2 < step4; k2 += (step3 * 2UL)) {
-        for (int_t k3 = 0; k3 < step3; k3 += (step2 * 2UL)) {
-          for (int_t k4 = 0; k4 < step2; k4 += (step1 * 2UL)) {
-            for (int_t k5 = 0; k5 < step1; k5++) {
-              int_t base = k1 | k2 | k3 | k4 | k5;
-              complex_t psi[16];
-              for (int_t i = 0; i < 16; ++i) {
-                psi[i] = data_[base | masks[i]];
-                data_[base | masks[i]] = 0.;
-              }
-              for (size_t i = 0; i < 16; ++i)
-                for (size_t j = 0; j < 16; ++j)
-                  data_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix5(const reg_t &qubits, const cvector_t &vmat) {
-  // Check qubits is size.
-  if (qubits.size() != 5) {
-    throw std::runtime_error("QubitVector::apply_matrix5 called for wrong number of qubits");
-  }
-  // Optimized implementation
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = BITS[5];
-
-  int_t END = data_size_;
-  int_t step1 = BITS[sorted_qs[0]];
-  int_t step2 = BITS[sorted_qs[1]];
-  int_t step3 = BITS[sorted_qs[2]];
-  int_t step4 = BITS[sorted_qs[3]];
-  int_t step5 = BITS[sorted_qs[4]];
-
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1, //
-      step4, //
-      step4 | step1, //
-      step4 | step2, //
-      step4 | step2 | step1, //
-      step4 | step3, //
-      step4 | step3 | step1, //
-      step4 | step3 | step2, //
-      step4 | step3 | step2 | step1, //
-      step5, //
-      step5 | step1, //
-      step5 | step2, //
-      step5 | step2 | step1, //
-      step5 | step3, //
-      step5 | step3 | step1, //
-      step5 | step3 | step2, //
-      step5 | step3 | step2 | step1, //
-      step5 | step4, //
-      step5 | step4 | step1, //
-      step5 | step4 | step2, //
-      step5 | step4 | step2 | step1, //
-      step5 | step4 | step3, //
-      step5 | step4 | step3 | step1, //
-      step5 | step4 | step3 | step2, //
-      step5 | step4 | step3 | step2 | step1 //
-  };
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(6)
-#endif
-    for (int_t k1 = 0; k1 < END; k1 += (step5 * 2UL)) {
-      for (int_t k2 = 0; k2 < step5; k2 += (step4 * 2UL)) {
-        for (int_t k3 = 0; k3 < step4; k3 += (step3 * 2UL)) {
-          for (int_t k4 = 0; k4 < step3; k4 += (step2 * 2UL)) {
-            for (int_t k5 = 0; k5 < step2; k5 += (step1 * 2UL)) {
-              for (int_t k6 = 0; k6 < step1; k6++) {
-                int_t base = k1 | k2 | k3 | k4 | k5 | k6;
-                complex_t psi[32];
-                for (int_t i = 0; i < 32; ++i) {
-                  psi[i] = data_[base | masks[i]];
-                  data_[base | masks[i]] = 0.;
-                }
-                for (size_t i = 0; i < 32; ++i)
-                  for (size_t j = 0; j < 32; ++j)
-                    data_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix6(const reg_t &qubits, const cvector_t &vmat) {
-  // Check qubits is size.
-  if (qubits.size() != 6) {
-    throw std::runtime_error("QubitVector::apply_matrix6 called for wrong number of qubits");
-  }
-  // Optimized implementation
-  auto sorted_qs = qubits;
-  std::sort(sorted_qs.begin(), sorted_qs.end());
-  auto sorted_vmat = sort_matrix(qubits, sorted_qs, vmat);
-  const uint_t dim = BITS[6];
-
-  int_t END = data_size_;
-  int_t step1 = BITS[sorted_qs[0]];
-  int_t step2 = BITS[sorted_qs[1]];
-  int_t step3 = BITS[sorted_qs[2]];
-  int_t step4 = BITS[sorted_qs[3]];
-  int_t step5 = BITS[sorted_qs[4]];
-  int_t step6 = BITS[sorted_qs[5]];
-
-  int_t masks[] = {//
-      0, //
-      step1, //
-      step2, //
-      step2 | step1, //
-      step3, //
-      step3 | step1, //
-      step3 | step2, //
-      step3 | step2 | step1, //
-      step4, //
-      step4 | step1, //
-      step4 | step2, //
-      step4 | step2 | step1, //
-      step4 | step3, //
-      step4 | step3 | step1, //
-      step4 | step3 | step2, //
-      step4 | step3 | step2 | step1, //
-      step5, //
-      step5 | step1, //
-      step5 | step2, //
-      step5 | step2 | step1, //
-      step5 | step3, //
-      step5 | step3 | step1, //
-      step5 | step3 | step2, //
-      step5 | step3 | step2 | step1, //
-      step5 | step4, //
-      step5 | step4 | step1, //
-      step5 | step4 | step2, //
-      step5 | step4 | step2 | step1, //
-      step5 | step4 | step3, //
-      step5 | step4 | step3 | step1, //
-      step5 | step4 | step3 | step2, //
-      step5 | step4 | step3 | step2 | step1, //
-      step6, //
-      step6 | step1, //
-      step6 | step2, //
-      step6 | step2 | step1, //
-      step6 | step3, //
-      step6 | step3 | step1, //
-      step6 | step3 | step2, //
-      step6 | step3 | step2 | step1, //
-      step6 | step4, //
-      step6 | step4 | step1, //
-      step6 | step4 | step2, //
-      step6 | step4 | step2 | step1, //
-      step6 | step4 | step3, //
-      step6 | step4 | step3 | step1, //
-      step6 | step4 | step3 | step2, //
-      step6 | step4 | step3 | step2 | step1, //
-      step6 | step5, //
-      step6 | step5 | step1, //
-      step6 | step5 | step2, //
-      step6 | step5 | step2 | step1, //
-      step6 | step5 | step3, //
-      step6 | step5 | step3 | step1, //
-      step6 | step5 | step3 | step2, //
-      step6 | step5 | step3 | step2 | step1, //
-      step6 | step5 | step4, //
-      step6 | step5 | step4 | step1, //
-      step6 | step5 | step4 | step2, //
-      step6 | step5 | step4 | step2 | step1, //
-      step6 | step5 | step4 | step3, //
-      step6 | step5 | step4 | step3 | step1, //
-      step6 | step5 | step4 | step3 | step2, //
-      step6 | step5 | step4 | step3 | step2 | step1 //
-  };
-
-#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  {
-#ifdef _WIN32
-#pragma omp for
-#else
-#pragma omp for collapse(7)
-#endif
-    for (int_t k1 = 0; k1 < END; k1 += (step6 * 2UL)) {
-      for (int_t k2 = 0; k2 < step6; k2 += (step5 * 2UL)) {
-        for (int_t k3 = 0; k3 < step5; k3 += (step4 * 2UL)) {
-          for (int_t k4 = 0; k4 < step4; k4 += (step3 * 2UL)) {
-            for (int_t k5 = 0; k5 < step3; k5 += (step2 * 2UL)) {
-              for (int_t k6 = 0; k6 < step2; k6 += (step1 * 2UL)) {
-                for (int_t k7 = 0; k7 < step1; k7++) {
-                  int_t base = k1 | k2 | k3 | k4 | k5 | k6 | k7;
-                  complex_t psi[64];
-                  for (int_t i = 0; i < 64; ++i) {
-                    psi[i] = data_[base | masks[i]];
-                    data_[base | masks[i]] = 0.;
-                  }
-                  for (size_t i = 0; i < 64; ++i)
-                    for (size_t j = 0; j < 64; ++j)
-                      data_[base | masks[i]] += psi[j] * sorted_vmat[j * dim + i];
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-//------------------------------------------------------------------------------
-// Gate-swap optimized helper functions
-//------------------------------------------------------------------------------
-template <typename data_t>
-void QubitVector<data_t>::swap_cols_and_rows(const uint_t idx1,
-                                             const uint_t idx2,
-                                             cvector_t &mat,
-                                             uint_t dim) const {
-
-  uint_t mask1 = BITS[idx1];
-  uint_t mask2 = BITS[idx2];
-
-  for (uint_t first = 0; first < dim; ++first) {
-    if ((first & mask1) && !(first & mask2)) {
-      uint_t second = (first ^ mask1) | mask2;
-
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[first * dim + i];
-        mat[first * dim + i] = mat[second * dim +  i];
-        mat[second * dim +  i] = cache;
-      }
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[i * dim + first];
-        mat[i * dim + first] = mat[i * dim + second];
-        mat[i * dim + second] = cache;
-      }
-    }
-  }
-}
-
-template <typename data_t>
-cvector_t QubitVector<data_t>::sort_matrix(const reg_t& src,
-                                           const reg_t& sorted,
-                                           const cvector_t &mat) const {
-
-  const uint_t N = src.size();
-  const uint_t DIM = BITS[N];
-  auto ret = mat;
-  auto current = src;
-
-  while (current != sorted) {
-    uint_t from;
-    uint_t to;
-    for (from = 0; from < current.size(); ++from)
-      if (current[from] != sorted[from])
-        break;
-    if (from == current.size())
-      break;
-    for (to = from + 1; to < current.size(); ++to)
-      if (current[from] == sorted[to])
-        break;
-    if (to == current.size()) {
-      throw std::runtime_error("QubitVector<data_t>::sort_matrix we should not reach here");
-    }
-    swap_cols_and_rows(from, to, ret, DIM);
-    std::swap(current[from], current[to]);
-  }
-
-  return ret;
 }
 
 /*******************************************************************************

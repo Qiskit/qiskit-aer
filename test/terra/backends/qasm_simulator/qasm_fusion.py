@@ -9,19 +9,17 @@
 QasmSimulator Integration Tests
 """
 
-from test.terra.utils import common
+from test.benchmark.tools import quantum_volume_circuit
 from qiskit import compile, QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
-from test.terra.utils import ref_1q_clifford
-from test.terra.utils import ref_2q_clifford
-import json
-from qiskit.providers.aer import noise as aer_noise
-from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 
+from test.terra.reference import ref_1q_clifford
+from test.terra.reference import ref_2q_clifford
 
-class QasmFusionTests(common.QiskitAerTestCase):
+
+class QasmFusionTests:
     """QasmSimulator fusion tests."""
 
     SIMULATOR = QasmSimulator()
@@ -91,7 +89,7 @@ class QasmFusionTests(common.QiskitAerTestCase):
                         msg="metadata must exist in results[0]")
         self.assertTrue('fusion_verbose' in result.as_dict()['results'][0]['metadata'], 
                         msg="verbose must work with noise")
-
+        
     def test_fusion_verbose(self):
         """Test Fusion with verbose option"""
         circuit = self.create_statevector_circuit()

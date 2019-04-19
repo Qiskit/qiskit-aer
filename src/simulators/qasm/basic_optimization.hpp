@@ -82,8 +82,6 @@ public:
 
   oplist_t aggregate(const oplist_t& buffer) const;
 
-  op_t generate_fusion_gate(const oplist_t &ops) const;
-
   void swap_cols_and_rows(const uint_t idx1,
                           const uint_t idx2,
                           cmatrix_t &mat,
@@ -100,6 +98,8 @@ public:
   void add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const;
 
   cmatrix_t matrix(const op_t& op) const;
+
+  cmatrix_t matrix(const reg_t& qubits, const op_t& op) const;
 
 #ifdef DEBUG
   void dump(const Circuit& circuit) const;
@@ -193,7 +193,7 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   if (circ.num_qubits < threshold_
       || !active_
-      || allowed_ops.find(Operations::OpType::matrix) == allowed_ops.end())
+      || allowed_ops.find(Operations::OpType::matrixes) == allowed_ops.end())
     return;
 
   bool ret = false;
@@ -272,8 +272,6 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
 
 oplist_t Fusion::aggregate(const oplist_t& original) const {
 
-  oplist_t optimized_ops;
-
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
   std::vector<double> costs;
   // fusion_to[i]: best path to i-th in original.ops
@@ -333,195 +331,24 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
     int to = fusion_to[i];
 
     if (to == i) {
-      optimized.insert(optimized.begin(), original[i]);
+      optimized.push_back(original[i]);
     } else {
-      oplist_t fusion_ops;
+      reg_t fusion_qubits;
       for (int j = to; j <= i; ++j)
-        fusion_ops.push_back(original[j]);
-      optimized.insert(optimized.begin(), generate_fusion_gate(fusion_ops));
+        add_fusion_qubits(fusion_qubits, original[j]);
+      std::sort(fusion_qubits.begin(), fusion_qubits.end());
+
+      std::vector<cmatrix_t> mats;
+      for (int j = to; j <= i; ++j)
+        mats.push_back(matrix(fusion_qubits, original[j]));
+      optimized.push_back(Operations::make_matrixes(fusion_qubits, mats));
     }
     i = to - 1;
   }
 
-  optimized_ops.insert(optimized_ops.end(), optimized.begin(), optimized.end());
+  std::reverse(optimized.begin(), optimized.end());
 
-  return optimized_ops;
-}
-
-op_t Fusion::generate_fusion_gate(const oplist_t &ops) const {
-
-  reg_t fusion_qubits;
-  std::vector<reg_t> op_qubitss;
-  std::vector<cmatrix_t> op_mats;
-  op_mats.reserve(ops.size());
-  for (const op_t &op : ops) {
-    add_fusion_qubits(fusion_qubits, op);
-    if (op.qubits.size() == 1) {
-      op_qubitss.push_back(op.qubits);
-      op_mats.push_back(matrix(op));
-    } else {
-      reg_t sorted_qubits = op.qubits;
-      std::sort(sorted_qubits.begin(), sorted_qubits.end());
-      op_qubitss.push_back(sorted_qubits);
-      if (sorted_qubits != op.qubits)
-        op_mats.push_back(sort_matrix(op.qubits, sorted_qubits, matrix(op)));
-      else
-        op_mats.push_back(matrix(op));
-    }
-  }
-
-  const complex_t ZERO(0., 0.);
-  const complex_t ONE(1., 0.);
-
-  const uint_t matrix_size = (1UL << fusion_qubits.size());
-
-  cmatrix_t U(matrix_size, matrix_size);
-
-  for (uint_t i = 0; i < matrix_size; ++i)
-    for (uint_t j = 0; j < matrix_size; ++j)
-      U(i, j) = ZERO;
-
-  bool first = true;
-  for (uint_t idx = 0; idx < ops.size(); ++idx) {
-    cmatrix_t &op_mat = op_mats[idx];
-    reg_t &op_qubits = op_qubitss[idx];
-
-    // generate a matrix for op
-    cmatrix_t u(matrix_size, matrix_size);
-    std::vector<std::vector<bool>> filled;
-
-    // 0. initialize u
-    for (uint_t i = 0; i < matrix_size; ++i) {
-      filled.push_back({});
-      for (uint_t j = 0; j < matrix_size; ++j) {
-        u(i, j) = ZERO;
-        filled[i].push_back(false);
-      }
-    }
-
-    if (op_qubits.size() == 1) { //1-qubit operation
-      // 1. identify delta
-      uint_t index = 0;
-      for (uint_t qubit : fusion_qubits)
-        if (qubit != op_qubits.front())
-          ++index;
-        else
-          break;
-      uint_t delta = (1UL << index);
-
-      // 2. find op_mat(0, 0) position in U
-      for (uint_t i = 0; i < matrix_size; ++i) {
-        bool exist = false;
-        for (uint_t j = 0; j < matrix_size; ++j)
-          if (filled[i][j])
-            exist = true; // row-i has a value. need to go the next line
-        if (exist)
-          continue; // go the next line
-
-        //  3. allocate op.u to u based on u(i, i) and delta
-        u(i, i) = op_mat(0, 0);
-        u(i, (i + delta)) = op_mat(0, 1);
-        u((i + delta), i) = op_mat(1, 0);
-        u((i + delta), (i + delta)) = op_mat(1, 1);
-        filled[i][i] = true;
-        filled[i][i + delta] = true;
-        filled[i + delta][i] = true;
-        filled[i + delta][i + delta] = true;
-      }
-    } else if (op_qubits.size() == 2) { //2-qubit operation
-      // 1. identify low and high delta
-      uint_t low = 0;
-      uint_t high = 0;
-      for (uint_t qubit : fusion_qubits)
-        if (qubit == op_qubits.front())
-          break;
-        else
-          ++low;
-      for (uint_t qubit : fusion_qubits)
-        if (qubit == op_qubits.back())
-          break;
-        else
-          ++high;
-
-      uint_t low_delta = (1UL << low);
-      uint_t high_delta = (1UL << high);
-
-      // 2. find op.u(0, 0) position in U
-      for (uint_t i = 0; i < matrix_size; ++i) {
-        bool exist = false;
-        for (uint_t j = 0; j < matrix_size; ++j)
-          if (filled[i][j])
-            exist = true; // row-i has a value. need to go the next line
-        if (exist)
-          continue; // go the next line
-
-        //  3. allocate op_mat to u based on u(i, i) and delta
-        u(i, i) = op_mat(0, 0);
-        u(i, (i + low_delta)) = op_mat(0, 1);
-        u(i, (i + high_delta)) = op_mat(0, 2);
-        u(i, (i + low_delta + high_delta)) = op_mat(0, 3);
-        u((i + low_delta), i) = op_mat(1, 0);
-        u((i + low_delta), (i + low_delta)) = op_mat(1, 1);
-        u((i + low_delta), (i + high_delta)) = op_mat(1, 2);
-        u((i + low_delta), (i + low_delta + high_delta)) = op_mat(1, 3);
-        u((i + high_delta), i) = op_mat(2, 0);
-        u((i + high_delta), (i + low_delta)) = op_mat(2, 1);
-        u((i + high_delta), (i + high_delta)) = op_mat(2, 2);
-        u((i + high_delta), (i + low_delta + high_delta)) = op_mat(2, 3);
-        u((i + low_delta + high_delta), i) = op_mat(3, 0);
-        u((i + low_delta + high_delta), (i + low_delta)) = op_mat(3, 1);
-        u((i + low_delta + high_delta), (i + high_delta)) = op_mat(3, 2);
-        u((i + low_delta + high_delta), (i + low_delta + high_delta)) = op_mat(3, 3);
-
-        filled[i][i] = true;
-        filled[i][i + low_delta] = true;
-        filled[i][i + high_delta] = true;
-        filled[i][i + low_delta + high_delta] = true;
-        filled[i + low_delta][i] = true;
-        filled[i + low_delta][i + low_delta] = true;
-        filled[i + low_delta][i + high_delta] = true;
-        filled[i + low_delta][i + low_delta + high_delta] = true;
-        filled[i + high_delta][i] = true;
-        filled[i + high_delta][i + low_delta] = true;
-        filled[i + high_delta][i + high_delta] = true;
-        filled[i + high_delta][i + low_delta + high_delta] = true;
-        filled[i + low_delta + high_delta][i] = true;
-        filled[i + low_delta + high_delta][i + low_delta] = true;
-        filled[i + low_delta + high_delta][i + high_delta] = true;
-        filled[i + low_delta + high_delta][i + low_delta + high_delta] = true;
-      }
-    //TODO: } else if (op_qubits.size() == 3) {
-    } else {
-      std::stringstream ss;
-      ss << "Fusion::illegal qubit number:" << op_qubits.size();
-      throw std::runtime_error(ss.str());
-    }
-
-    // 4. for the first time, copy u to U
-    if (first) {
-      for (unsigned int i = 0; i < matrix_size; ++i)
-        for (unsigned int j = 0; j < matrix_size; ++j)
-          U(i, j) = u(i, j);
-      first = false;
-    } else {
-      // 5. otherwise, multiply u and U
-      cmatrix_t u_tmp(matrix_size, matrix_size);
-      for (uint_t i = 0; i < matrix_size; ++i)
-        for (uint_t j = 0; j < matrix_size; ++j)
-          u_tmp(i, j) = ZERO;
-
-      for (unsigned int i = 0; i < matrix_size; ++i)
-        for (unsigned int j = 0; j < matrix_size; ++j)
-          for (unsigned int k = 0; k < matrix_size; ++k)
-            u_tmp(i, j) += u(i, k) * U(k, j);
-
-      for (unsigned int i = 0; i < matrix_size; ++i)
-        for (unsigned int j = 0; j < matrix_size; ++j)
-          U(i, j) = u_tmp(i, j);
-    }
-  }
-
-  return Operations::make_mat(fusion_qubits, U, "fusion");
+  return optimized;
 }
 
 //------------------------------------------------------------------------------
@@ -653,6 +480,135 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
   }
 }
 
+cmatrix_t Fusion::matrix(const reg_t& fusion_qubits, const op_t& op) const {
+  const complex_t ZERO(0., 0.);
+  const complex_t ONE(1., 0.);
+
+  const uint_t matrix_size = (1UL << fusion_qubits.size());
+
+  cmatrix_t U(matrix_size, matrix_size);
+
+  for (uint_t i = 0; i < matrix_size; ++i)
+    for (uint_t j = 0; j < matrix_size; ++j)
+      U(i, j) = ZERO;
+
+  bool first = true;
+  const cmatrix_t op_mat = matrix(op);
+  const reg_t &op_qubits = op.qubits;
+
+  // generate a matrix for op
+  cmatrix_t u(matrix_size, matrix_size);
+  std::vector<std::vector<bool>> filled;
+
+  // 0. initialize u
+  for (uint_t i = 0; i < matrix_size; ++i) {
+    filled.push_back( { });
+    for (uint_t j = 0; j < matrix_size; ++j) {
+      u(i, j) = ZERO;
+      filled[i].push_back(false);
+    }
+  }
+
+  if (op_qubits.size() == 1) { //1-qubit operation
+    // 1. identify delta
+    uint_t index = 0;
+    for (uint_t qubit : fusion_qubits)
+      if (qubit != op_qubits.front())
+        ++index;
+      else
+        break;
+    uint_t delta = (1UL << index);
+
+    // 2. find op_mat(0, 0) position in U
+    for (uint_t i = 0; i < matrix_size; ++i) {
+      bool exist = false;
+      for (uint_t j = 0; j < matrix_size; ++j)
+        if (filled[i][j])
+          exist = true; // row-i has a value. need to go the next line
+      if (exist)
+        continue; // go the next line
+
+      //  3. allocate op.u to u based on u(i, i) and delta
+      u(i, i) = op_mat(0, 0);
+      u(i, (i + delta)) = op_mat(0, 1);
+      u((i + delta), i) = op_mat(1, 0);
+      u((i + delta), (i + delta)) = op_mat(1, 1);
+      filled[i][i] = true;
+      filled[i][i + delta] = true;
+      filled[i + delta][i] = true;
+      filled[i + delta][i + delta] = true;
+    }
+  } else if (op_qubits.size() == 2) { //2-qubit operation
+    // 1. identify low and high delta
+    uint_t low = 0;
+    uint_t high = 0;
+    for (uint_t qubit : fusion_qubits)
+      if (qubit == op_qubits.front())
+        break;
+      else
+        ++low;
+    for (uint_t qubit : fusion_qubits)
+      if (qubit == op_qubits.back())
+        break;
+      else
+        ++high;
+
+    uint_t low_delta = (1UL << low);
+    uint_t high_delta = (1UL << high);
+
+    // 2. find op.u(0, 0) position in U
+    for (uint_t i = 0; i < matrix_size; ++i) {
+      bool exist = false;
+      for (uint_t j = 0; j < matrix_size; ++j)
+        if (filled[i][j])
+          exist = true; // row-i has a value. need to go the next line
+      if (exist)
+        continue; // go the next line
+
+      //  3. allocate op_mat to u based on u(i, i) and delta
+      u(i, i) = op_mat(0, 0);
+      u(i, (i + low_delta)) = op_mat(0, 1);
+      u(i, (i + high_delta)) = op_mat(0, 2);
+      u(i, (i + low_delta + high_delta)) = op_mat(0, 3);
+      u((i + low_delta), i) = op_mat(1, 0);
+      u((i + low_delta), (i + low_delta)) = op_mat(1, 1);
+      u((i + low_delta), (i + high_delta)) = op_mat(1, 2);
+      u((i + low_delta), (i + low_delta + high_delta)) = op_mat(1, 3);
+      u((i + high_delta), i) = op_mat(2, 0);
+      u((i + high_delta), (i + low_delta)) = op_mat(2, 1);
+      u((i + high_delta), (i + high_delta)) = op_mat(2, 2);
+      u((i + high_delta), (i + low_delta + high_delta)) = op_mat(2, 3);
+      u((i + low_delta + high_delta), i) = op_mat(3, 0);
+      u((i + low_delta + high_delta), (i + low_delta)) = op_mat(3, 1);
+      u((i + low_delta + high_delta), (i + high_delta)) = op_mat(3, 2);
+      u((i + low_delta + high_delta), (i + low_delta + high_delta)) = op_mat(3, 3);
+
+      filled[i][i] = true;
+      filled[i][i + low_delta] = true;
+      filled[i][i + high_delta] = true;
+      filled[i][i + low_delta + high_delta] = true;
+      filled[i + low_delta][i] = true;
+      filled[i + low_delta][i + low_delta] = true;
+      filled[i + low_delta][i + high_delta] = true;
+      filled[i + low_delta][i + low_delta + high_delta] = true;
+      filled[i + high_delta][i] = true;
+      filled[i + high_delta][i + low_delta] = true;
+      filled[i + high_delta][i + high_delta] = true;
+      filled[i + high_delta][i + low_delta + high_delta] = true;
+      filled[i + low_delta + high_delta][i] = true;
+      filled[i + low_delta + high_delta][i + low_delta] = true;
+      filled[i + low_delta + high_delta][i + high_delta] = true;
+      filled[i + low_delta + high_delta][i + low_delta + high_delta] = true;
+    }
+    //TODO: } else if (op_qubits.size() == 3) {
+  } else {
+    std::stringstream ss;
+    ss << "Fusion::illegal qubit number:" << op_qubits.size();
+    throw std::runtime_error(ss.str());
+  }
+
+  return u;
+}
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

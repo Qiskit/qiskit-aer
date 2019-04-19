@@ -29,7 +29,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, kraus, roerror, noise_switch, initialize
+  matrix, matrixes, kraus, roerror, noise_switch, initialize
 };
 
 std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -54,6 +54,9 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix:
     stream << "matrix";
+    break;
+  case OpType::matrixes:
+    stream << "matrixes";
     break;
   case OpType::kraus:
     stream << "kraus";
@@ -369,6 +372,17 @@ inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label 
   return op;
 }
 
+inline Op make_matrixes(const reg_t &qubits, const std::vector<cmatrix_t> &mats, std::string label = "") {
+  Op op;
+  op.type = OpType::matrixes;
+  op.name = "mats";
+  op.qubits = qubits;
+  op.mats = mats;
+  if (label != "")
+    op.string_params = {label};
+  return op;
+}
+
 template <typename T> // real or complex numeric type
 inline Op make_u1(uint_t qubit, T lam) {
   Op op;
@@ -511,6 +525,8 @@ json_t op_to_json(const Op &op) {
     ret["memory"] = op.memory;
   if (!op.registers.empty())
     ret["register"] = op.registers;
+  if (!op.mats.empty())
+    ret["mats"] = op.mats;
   return ret;
 }
 
