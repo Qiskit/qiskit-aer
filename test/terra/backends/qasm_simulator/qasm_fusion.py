@@ -80,7 +80,7 @@ class QasmFusionTests:
         noise_model = self.noise_model()
         qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=1, basis_gates=noise_model.basis_gates)
 
-        result = self.SIMULATOR.run(qobj, noise_model=noise_model, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
+        result = self.SIMULATOR.run(qobj, noise_model=noise_model, backend_options={'fusion_enable': True, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result)
         
         self.assertTrue('results' in result.as_dict(), 
@@ -97,7 +97,7 @@ class QasmFusionTests:
         shots = 100
         qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=1)
         
-        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
+        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result_verbose)
         self.assertTrue('results' in result_verbose.as_dict(), 
                         msg="results must exist in result")
@@ -106,7 +106,7 @@ class QasmFusionTests:
         self.assertTrue('fusion_verbose' in result_verbose.as_dict()['results'][0]['metadata'], 
                         msg="fusion must work for satevector")
 
-        result_nonverbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': False}).result()
+        result_nonverbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': False, 'fusion_threshold': 1}).result()
         self.is_completed(result_nonverbose)
         self.assertTrue('results' in result_nonverbose.as_dict(), 
                         msg="results must exist in result")
@@ -130,7 +130,7 @@ class QasmFusionTests:
         circuit = self.create_statevector_circuit()
         qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=0)
         
-        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
+        result_verbose = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result_verbose)
         self.assertTrue('results' in result_verbose.as_dict(), 
                         msg="results must exist in result")
@@ -139,7 +139,7 @@ class QasmFusionTests:
         self.assertTrue('fusion_verbose' in result_verbose.as_dict()['results'][0]['metadata'], 
                         msg="fusion must work for satevector")
 
-        result_disabled = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': False, 'fusion_verbose': True}).result()
+        result_disabled = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': False, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result_disabled)
         self.assertTrue('results' in result_disabled.as_dict(), 
                         msg="results must exist in result")
@@ -219,10 +219,10 @@ class QasmFusionTests:
 
         qobj = compile([circuit], self.SIMULATOR, shots=shots, seed=1)
  
-        result_fusion = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True}).result()
+        result_fusion = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': True, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result_fusion)
         
-        result_nonfusion = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': False, 'fusion_verbose': True}).result()
+        result_nonfusion = self.SIMULATOR.run(qobj, backend_options={'fusion_enable': False, 'fusion_verbose': True, 'fusion_threshold': 1}).result()
         self.is_completed(result_nonfusion)
 
         self.assertDictAlmostEqual(result_fusion.get_counts(circuit), result_nonfusion.get_counts(circuit), delta=0.0, msg="fusion x-x-x was failed")
