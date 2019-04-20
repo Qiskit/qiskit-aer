@@ -186,7 +186,10 @@ protected:
   //-------------------------------------------------------------------------
 
   // Generate an equivalent circuit with input_circ as output_circ.
-  Circuit optimize_circuit(const Circuit &input_circ) const;
+  template <class state_t>
+  Circuit optimize_circuit(const Circuit &input_circ,
+                           state_t& state,
+                           OutputData &data) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -270,6 +273,9 @@ void Controller::set_config(const json_t &config) {
     auto system_memory_mb = get_system_memory_mb();
     max_memory_mb_ = system_memory_mb / 2;
   }
+
+  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+    opt->set_config(config_);
 
   std::string path;
   JSON::get_value(path, "library_dir", config);
@@ -429,12 +435,19 @@ bool Controller::validate_memory_requirements(state_t &state,
 //-------------------------------------------------------------------------
 // Circuit optimization
 //-------------------------------------------------------------------------
-
-Circuit Controller::optimize_circuit(const Circuit &input_circ) const {
+template <class state_t>
+Circuit Controller::optimize_circuit(const Circuit &input_circ,
+                                     state_t& state,
+                                     OutputData &data) const {
 
   Circuit working_circ = input_circ;
+  Operations::OpSet allowed_opset;
+  allowed_opset.optypes = state.allowed_ops();
+  allowed_opset.gates = state.allowed_gates();
+  allowed_opset.snapshots = state.allowed_snapshots();
+
   for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
-    opt->optimize_circuit(working_circ);
+    opt->optimize_circuit(working_circ, allowed_opset, data);
 
   return working_circ;
 }
