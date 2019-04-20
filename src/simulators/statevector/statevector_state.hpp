@@ -67,6 +67,7 @@ public:
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
       Operations::OpType::matrix,
+      Operations::OpType::matrix_sequence,
       Operations::OpType::kraus
     });
   }
@@ -164,6 +165,9 @@ protected:
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
+
+  // Apply multiple gate operations
+  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats);
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits,
@@ -389,12 +393,6 @@ void State<statevec_t>::set_config(const json_t &config) {
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
-
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  JSON::get_value(gate_opt, "statevector_gate_opt", config);
-  if (gate_opt)
-    BaseState::qreg_.enable_gate_opt();
 }
 
 
@@ -435,6 +433,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::matrix_sequence:
+        apply_matrix_sequence(op.regs, op.mats);
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -707,6 +708,20 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
     BaseState::qreg_.apply_matrix(qubits, vmat);
   }
 }
+
+template <class statevec_t>
+void State<statevec_t>::apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats) {
+
+  if (regs.empty())
+    return;
+
+  std::vector<cvector_t> vmats;
+  for (const cmatrix_t& mat: mats)
+    vmats.push_back(Utils::vectorize_matrix(mat));
+
+  BaseState::qreg_.apply_matrix_sequence(regs, vmats);
+}
+
 
 template <class statevec_t>
 void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
