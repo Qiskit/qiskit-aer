@@ -24,8 +24,11 @@ namespace AER {
 
 class CircuitOptimization {
 public:
-  virtual void optimize_circuit(Circuit& circ) const = 0;
-  void set_config(const json_t &config);
+  virtual void optimize_circuit(Circuit& circ,
+                                const Operations::OpSet &opset,
+                                OutputData &data) const = 0;
+
+  virtual void set_config(const json_t &config);
 
 protected:
   json_t config_;
