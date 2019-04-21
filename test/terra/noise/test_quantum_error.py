@@ -232,7 +232,7 @@ class TestQuantumError(common.QiskitAerTestCase):
 
         for j in range(4):
             circ, p = error.error_term(j)
-            unitary = circ[0]['params']
+            unitary = circ[0]['params'][0]
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
             # Remove prob from target if it is found
@@ -354,7 +354,7 @@ class TestQuantumError(common.QiskitAerTestCase):
 
         for j in range(4):
             circ, p = error.error_term(j)
-            unitary = circ[0]['params']
+            unitary = circ[0]['params'][0]
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
             # Remove prob from target if it is found
@@ -484,7 +484,7 @@ class TestQuantumError(common.QiskitAerTestCase):
 
         for j in range(4):
             circ, p = error.error_term(j)
-            unitary = circ[0]['params']
+            unitary = circ[0]['params'][0]
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0])
             # Remove prob from target if it is found
@@ -606,7 +606,7 @@ class TestQuantumError(common.QiskitAerTestCase):
 
         for j in range(4):
             circ, p = error.error_term(j)
-            unitary = circ[0]['params']
+            unitary = circ[0]['params'][0]
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0])
             # Remove prob from target if it is found
