@@ -70,7 +70,7 @@ def standard_gate_instruction(instruction, ignore_phase=True):
         return [instruction]
 
     # Check single qubit gates
-    mat_dagger = np.conj(params)
+    mat_dagger = np.conj(params[0])
     if len(qubits) == 1:
         # Check clifford gates
         for j in range(24):
@@ -372,7 +372,7 @@ def standard_instruction_operator(instr):
 
     # Check if unitary instruction
     if name == 'unitary':
-        return Operator(params)
+        return Operator(params[0])
 
     # Otherwise return None if we cannot convert instruction
     return None
@@ -451,7 +451,7 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
         raise NoiseError("Input matrix is not unitary.")
     elif isinstance(qubits, int):
         qubits = [qubits]
-    instruction = {"name": "unitary", "qubits": qubits, "params": mat}
+    instruction = {"name": "unitary", "qubits": qubits, "params": [mat]}
     if standard_gates:
         return standard_gate_instruction(instruction)
     else:

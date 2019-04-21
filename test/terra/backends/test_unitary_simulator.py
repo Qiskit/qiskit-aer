@@ -153,7 +153,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.compare_unitary(result, circuits, targets)
 
     def test_y_gate_deterministic_waltz_basis_gates(self):
-        """Test y-gate gate circuits compiling to u1,u2,u3,cx"""
+        """Test y-gate gate circuits compiling to u1,u2,u3,cx."""
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.y_gate_unitary_deterministic()
         job = execute(circuits, UnitarySimulator(), shots=1, basis_gates=['u1', 'u2', 'u3', 'cx'])
@@ -162,9 +162,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.compare_unitary(result, circuits, targets)
 
     def test_y_gate_deterministic_minimal_basis_gates(self):
-        """Test y-gate gate circuits compiling to U,CX
-        DISABLED until transpiler bug is fixed.
-        """
+        """Test y-gate gate circuits compiling to u3, cx."""
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(final_measure=False)
         targets = ref_1q_clifford.y_gate_unitary_deterministic()
         job = execute(circuits, UnitarySimulator(), shots=1, basis_gates=['u3', 'cx'])
@@ -631,7 +629,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
     # ---------------------------------------------------------------------
-    def DISABLED_test_unitary_gate_real(self):
+    def test_unitary_gate_real(self):
         """Test unitary qobj instruction with real matrices."""
         qobj = ref_unitary_gate.unitary_gate_circuits_real_deterministic(final_measure=False)
         circuits = [experiment.header.name for experiment in qobj.experiments]
@@ -641,7 +639,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
-    def DISABLED_test_unitary_gate_complex(self):
+    def test_unitary_gate_complex(self):
         """Test unitary qobj instruction with complex matrices."""
         qobj = ref_unitary_gate.unitary_gate_circuits_complex_deterministic(final_measure=False)
         circuits = [experiment.header.name for experiment in qobj.experiments]
