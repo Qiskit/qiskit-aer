@@ -36,7 +36,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
 
@@ -63,7 +64,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
 
@@ -84,7 +86,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_memory_mb'] = 128
@@ -104,7 +107,8 @@ class QasmThreadManagementTests:
         circuits = []
         for _ in range(experiments):
             circuits.append(quantum_volume_circuit(4, 1, measure=True, seed=0))
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_experiments'] = experiments
@@ -138,7 +142,8 @@ class QasmThreadManagementTests:
             circuits.append(
                 quantum_volume_circuit(16, 1, measure=True,
                                        seed=0))  # 2 MB for each
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_experiments'] = experiments
@@ -174,7 +179,8 @@ class QasmThreadManagementTests:
             circuits.append(
                 quantum_volume_circuit(4, 1, measure=True,
                                        seed=0))  # 2 MB for each
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_experiments'] = experiments
@@ -198,7 +204,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_shots'] = shots
@@ -227,7 +234,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_shots'] = shots
@@ -257,7 +265,8 @@ class QasmThreadManagementTests:
         if shots == 0:
             return
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_shots'] = multiprocessing.cpu_count()
@@ -286,7 +295,8 @@ class QasmThreadManagementTests:
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(16, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
 
         backend_opts = self.BACKEND_OPTS.copy()
         backend_opts['max_parallel_shots'] = shots

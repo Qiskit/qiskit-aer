@@ -547,7 +547,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
                                                        complex_t lambda,
                                                        RngEngine &rng) const {
   NoiseOps ret;
-  const auto x90 = Operations::make_mat({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
   if (std::abs(lambda) > u1_threshold_
       && std::abs(lambda - 2 * M_PI) > u1_threshold_
       && std::abs(lambda + 2 * M_PI) > u1_threshold_)
@@ -571,7 +571,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
                                                        complex_t lambda,
                                                        RngEngine &rng) const {
   NoiseOps ret;
-  const auto x90 = Operations::make_mat({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
   if (std::abs(lambda - 0.5 * M_PI) > u1_threshold_)
     ret.push_back(Operations::make_u1(qubit, lambda - 0.5 * M_PI)); // add 1st U1
   auto sample = sample_noise_helper(x90, rng); // sample noise for 1st X90

@@ -362,10 +362,10 @@ inline void check_duplicate_qubits(const Op &op) {
 // Generator functions
 //------------------------------------------------------------------------------
 
-inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   op.qubits = qubits;
   op.mats = {mat};
   if (label != "")
@@ -700,17 +700,20 @@ Op json_to_op_roerror(const json_t &js) {
 Op json_to_op_unitary(const json_t &js) {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   JSON::get_value(op.qubits, "qubits", js);
-  cmatrix_t mat;
-  JSON::get_value(mat, "params", js);
+  JSON::get_value(op.mats, "params", js);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (!Utils::is_unitary(mat, 1e-10)) {
-    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  if (op.mats.size() != 1) {
+    throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  op.mats.push_back(mat);
+  for (const auto mat : op.mats) {
+    if (!Utils::is_unitary(mat, 1e-7)) {
+      throw std::invalid_argument("\"unitary\" matrix is not unitary.");
+    }
+  }
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);
@@ -747,7 +750,8 @@ Op json_to_op_noise_switch(const json_t &js) {
 
 Op json_to_op_snapshot(const json_t &js) {
   std::string type;
-  JSON::get_value(type, "type", js);
+  JSON::get_value(type, "type", js); // LEGACY: TO REMOVE
+  JSON::get_value(type, "snapshot_type", js);
   if (type == "expectation_value_pauli" ||
       type == "expectation_value_pauli_with_variance")
     return json_to_op_snapshot_pauli(js);

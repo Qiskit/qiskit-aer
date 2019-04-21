@@ -94,10 +94,11 @@ def unitary_instr(mat, qubits, label=None):
     if array.shape not in [(dim, dim), (1, dim)]:
         raise ValueError("Invalid")
     instruction = {"name": "unitary", "qubits": list(qubits),
-                   "params": np.array(mat, dtype=complex)}
+                   "params": [np.array(mat, dtype=complex)]}
     if label is not None:
         instruction["label"] = str(label)
     return QasmQobjInstruction(**instruction)
+
 
 def measure_instr(qubits, memory, registers=None):
 
@@ -167,7 +168,7 @@ def snapshot_instr(snapshot_type, label, qubits=None, params=None):
         Matrix expectation value params:
             TODO
     """
-    snap = {"name": "snapshot", "type": snapshot_type, "label": str(label)}
+    snap = {"name": "snapshot", "snapshot_type": snapshot_type, "label": str(label)}
     if qubits is not None:
         snap["qubits"] = list(qubits)
     if params is not None:
