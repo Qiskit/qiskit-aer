@@ -203,11 +203,11 @@ class NoiseTransformer:
                    The operator, converted to noise circuit representation
                """
         if isinstance(operator, numpy.ndarray):
-            return [{'name': 'unitary', 'qubits': [0], 'params': operator}]
+            return [{'name': 'unitary', 'qubits': [0], 'params': [operator]}]
 
         if isinstance(operator, list) and isinstance(operator[0], numpy.ndarray):
             if len(operator) == 1:
-                return [{'name': 'unitary', 'qubits': [0], 'params': operator[0]}]
+                return [{'name': 'unitary', 'qubits': [0], 'params': operator}]
             else:
                 return [{'name': 'kraus', 'qubits': [0], 'params': operator}]
 
