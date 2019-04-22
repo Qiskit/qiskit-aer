@@ -749,14 +749,14 @@ Op json_to_op_noise_switch(const json_t &js) {
 //------------------------------------------------------------------------------
 
 Op json_to_op_snapshot(const json_t &js) {
-  std::string type;
-  JSON::get_value(type, "type", js); // LEGACY: TO REMOVE
-  JSON::get_value(type, "snapshot_type", js);
-  if (type == "expectation_value_pauli" ||
-      type == "expectation_value_pauli_with_variance")
+  std::string snapshot_type;
+  JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(snapshot_type, "type", js);
+  if (snapshot_type == "expectation_value_pauli" ||
+      snapshot_type == "expectation_value_pauli_with_variance")
     return json_to_op_snapshot_pauli(js);
-  if (type == "expectation_value_matrix" ||
-      type == "expectation_value_matrix_with_variance")
+  if (snapshot_type == "expectation_value_matrix" ||
+      snapshot_type == "expectation_value_matrix_with_variance")
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   return json_to_op_snapshot_default(js);
@@ -766,7 +766,8 @@ Op json_to_op_snapshot(const json_t &js) {
 Op json_to_op_snapshot_default(const json_t &js) {
   Op op;
   op.type = OpType::snapshot;
-  JSON::get_value(op.name, "type", js);
+  JSON::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(op.name, "snapshot_type", js);
   // If missing use "default" for label
   op.string_params.push_back("default");
   JSON::get_value(op.string_params[0], "label", js);
