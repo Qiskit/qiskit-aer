@@ -3,3 +3,4 @@ cmake
 scikit-build
 cython
 asv
+cvxopt
