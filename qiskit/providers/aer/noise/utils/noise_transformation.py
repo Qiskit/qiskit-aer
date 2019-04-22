@@ -26,7 +26,6 @@ import itertools
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise.errors.errorutils import single_qubit_clifford_instructions
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
@@ -165,13 +164,13 @@ class NoiseTransformer:
 
     def __init__(self):
         self.named_operators = {
-            'pauli': {'X': [standard_gate_unitary('x')],
-                      'Y': [standard_gate_unitary('y')],
-                      'Z': [standard_gate_unitary('z')]
+            'pauli': {'X': [{'name': 'x', 'qubits': [0]}],
+                      'Y': [{'name': 'y', 'qubits': [0]}],
+                      'Z': [{'name': 'z', 'qubits': [0]}]
                       },
             'reset': {
-                'p': [numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])],
-                'q': [numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])],
+                'p': [{'name': 'reset','qubits': [0]}], #reset to |0>
+                'q': [{'name': 'reset', 'qubits': [0]}, {'name': 'x','qubits': [0]}] #reset to |1>
             },
             'clifford': dict([(j, single_qubit_clifford_instructions(j)) for j in range(1,24)])
         }
