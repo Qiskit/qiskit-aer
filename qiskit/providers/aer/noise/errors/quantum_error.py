@@ -274,7 +274,7 @@ class QuantumError:
         return error
 
     def compose(self, other, front=False):
-        """Return the composition error channel self?other.
+        """Return the composition error channel self∘other.
 
         Args:
             other (QuantumError): a quantum error channel.
@@ -361,13 +361,13 @@ class QuantumError:
         return ret
 
     def tensor(self, other):
-        """Return the tensor product quantum error channel self ? other.
+        """Return the tensor product quantum error channel self ⊗ other.
 
         Args:
             other (QuantumError): a quantum error channel.
 
         Returns:
-            QuantumError: the tensor product error channel self ? other.
+            QuantumError: the tensor product error channel self ⊗ other.
 
         Raises:
             NoiseError: if other cannot be converted to a QuantumError.
@@ -375,13 +375,13 @@ class QuantumError:
         return self._tensor_product(other, reverse=False)
 
     def expand(self, other):
-        """Return the tensor product quantum error channel self ? other.
+        """Return the tensor product quantum error channel self ⊗ other.
 
         Args:
             other (QuantumError): a quantum error channel.
 
         Returns:
-            QuantumError: the tensor product error channel other ? self.
+            QuantumError: the tensor product error channel other ⊗ self.
 
         Raises:
             NoiseError: if other cannot be converted to a QuantumError.
@@ -389,7 +389,7 @@ class QuantumError:
         return self._tensor_product(other, reverse=True)
 
     def kron(self, other):
-        """Return the tensor product quantum error channel self ? other.
+        """Return the tensor product quantum error channel self ⊗ other.
 
         DEPRECIATED: use QuantumError.tensor instead.
 
@@ -397,7 +397,7 @@ class QuantumError:
             other (QuantumError): a quantum error or channel.
 
         Returns:
-            QuantumError: the tensor product channel self ? other.
+            QuantumError: the tensor product channel self ⊗ other.
         """
         warnings.warn(
             'The kron() method is deprecated and will be removed '
@@ -410,8 +410,8 @@ class QuantumError:
 
         Args:
             other (QuantumError): a quantum channel subclass
-            reverse (bool): If False return self ? other, if True return
-                            if True return (other ? self) [Default: False
+            reverse (bool): If False return self ⊗ other, if True return
+                            if True return (other ⊗ self) [Default: False
         Returns:
             QuantumError: the tensor product error channel.
 
