@@ -27,7 +27,7 @@ from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
-from qiskit.providers.aer.noise.errors.errorutils import single_qubit_clifford_matrix
+from qiskit.providers.aer.noise.errors.errorutils import single_qubit_clifford_instructions
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 
@@ -68,23 +68,15 @@ def approximate_quantum_error(error, *,
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
-        probabilities = transformer.transform_by_operator_list(operator_list, error_kraus_operators)
+        op_matrix_list = [transformer.operator_matrix(operator) for operator in operator_list]
+        probabilities = transformer.transform_by_operator_list(op_matrix_list, error_kraus_operators)
         identity_prob = 1 - sum(probabilities)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError("Approximated channel operators probabilities sum to {}".format(1-identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits':[0]}],identity_prob)]
-        for (op_matrices, probability) in zip(operator_list, probabilities):
-            if len(op_matrices) == 1: #can be added as unitary
-                quantum_error_spec.append(([{'name': 'unitary',
-                                             'qubits': [0],
-                                             'params': op_matrices[0]}
-                                            ], probability))
-            else:
-            # convert op_matrices to list since tuples of Kraus matrices are treated as generalized Kraus representation
-                quantum_error_spec.append(([{'name': 'kraus',
-                                        'qubits': [0],
-                                        'params': op_matrices}
-                                       ], probability))
+        op_circuit_list = [transformer.operator_circuit(operator) for operator in operator_list]
+        for (operator, probability) in zip(op_circuit_list, probabilities):
+            quantum_error_spec.append((operator, probability))
         return QuantumError(quantum_error_spec)
 
     raise Exception("Quantum error approximation failed - no approximating operators detected")
@@ -181,7 +173,7 @@ class NoiseTransformer:
                 'p': [numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])],
                 'q': [numpy.array([[0, 0], [0, 1]]), numpy.array([[0, 0], [1, 0]])],
             },
-            'clifford': dict([(j, [single_qubit_clifford_matrix(j)]) for j in range(24)])
+            'clifford': dict([(j, single_qubit_clifford_instructions(j)) for j in range(1,24)])
         }
 
         self.fidelity_data = None
@@ -189,8 +181,42 @@ class NoiseTransformer:
         self.noise_kraus_operators = None
         self.transform_channel_operators = None
 
-    # transformation interface methods
+    def operator_matrix(self, operator):
+        """
+            Converts an operator representation to Kraus matrix representation
+        Args:
+            operator: operator representation. Can be a noise circuit or a matrix or a list of matrices
+        Output:
+            The operator, converted to Kraus representation
+        """
+        if isinstance(operator, list) and isinstance(operator[0], dict):
+            operator_error = QuantumError([(operator, 1)])
+            kraus_rep = Kraus(operator_error.to_channel()).data
+            return kraus_rep
+        return operator
 
+    def operator_circuit(self, operator):
+        """
+            Converts an operator representation to noise circuit
+               Args:
+                   operator: operator representation. Can be a noise circuit or a matrix or a list of matrices
+               Output:
+                   The operator, converted to noise circuit representation
+               """
+        if isinstance(operator, numpy.ndarray):
+            return [{'name': 'unitary', 'qubits': [0], 'params': operator}]
+
+        if isinstance(operator, list) and isinstance(operator[0], numpy.ndarray):
+            if len(operator) == 1:
+                return [{'name': 'unitary', 'qubits': [0], 'params': operator[0]}]
+            else:
+                return [{'name': 'kraus', 'qubits': [0], 'params': operator}]
+
+        return operator
+
+
+
+    # transformation interface methods
     def transform_by_operator_list(self, transform_channel_operators, noise_kraus_operators):
         """
         Args:
@@ -227,12 +253,6 @@ class NoiseTransformer:
         self.prepare_honesty_constraint(full_transform_channel_operators)
         probabilities = self.transform_by_given_channel(channel_matrices, const_channel_matrix)
         return probabilities
-
-    # convenience wrapper method
-    def transform_by_operator_dictionary(self, transform_channel_operators_dictionary, noise_kraus_operators):
-        names, operators = zip(*transform_channel_operators_dictionary.items())
-        probabilities = self.transform_by_operator_list(operators, noise_kraus_operators)
-        return dict(zip(names, probabilities))
 
     # convert to sympy matrices and verify that each singleton is in a tuple; also add identity matrix
     @staticmethod
