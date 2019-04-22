@@ -13,13 +13,15 @@ import copy
 
 import numpy as np
 
-from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
-from qiskit.quantum_info.operators.channel.kraus import Kraus
-from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators import Kraus, SuperOp
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
-from .errorutils import kraus2instructions, circuit2superop
+from .errorutils import kraus2instructions
+from .errorutils import circuit2superop
+from .errorutils import standard_instruction_channel
+from .errorutils import standard_instruction_operator
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +274,7 @@ class QuantumError:
         return error
 
     def compose(self, other, front=False):
-        """Return the composition error channel self∘other.
+        """Return the composition error channel self?other.
 
         Args:
             other (QuantumError): a quantum error channel.
@@ -336,7 +338,7 @@ class QuantumError:
                     combined_circuit.append({'name': 'id', 'qubits': [0]})
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
-        noise_ops = zip(combined_noise_circuits, combined_noise_probabilities)
+        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
         return QuantumError(noise_ops)
 
     def power(self, n):
@@ -359,13 +361,13 @@ class QuantumError:
         return ret
 
     def tensor(self, other):
-        """Return the tensor product quantum error channel self ⊗ other.
+        """Return the tensor product quantum error channel self ? other.
 
         Args:
             other (QuantumError): a quantum error channel.
 
         Returns:
-            QuantumError: the tensor product error channel self ⊗ other.
+            QuantumError: the tensor product error channel self ? other.
 
         Raises:
             NoiseError: if other cannot be converted to a QuantumError.
@@ -373,13 +375,13 @@ class QuantumError:
         return self._tensor_product(other, reverse=False)
 
     def expand(self, other):
-        """Return the tensor product quantum error channel self ⊗ other.
+        """Return the tensor product quantum error channel self ? other.
 
         Args:
             other (QuantumError): a quantum error channel.
 
         Returns:
-            QuantumError: the tensor product error channel other ⊗ self.
+            QuantumError: the tensor product error channel other ? self.
 
         Raises:
             NoiseError: if other cannot be converted to a QuantumError.
@@ -387,7 +389,7 @@ class QuantumError:
         return self._tensor_product(other, reverse=True)
 
     def kron(self, other):
-        """Return the tensor product quantum error channel self ⊗ other.
+        """Return the tensor product quantum error channel self ? other.
 
         DEPRECIATED: use QuantumError.tensor instead.
 
@@ -395,7 +397,7 @@ class QuantumError:
             other (QuantumError): a quantum error or channel.
 
         Returns:
-            QuantumError: the tensor product channel self ⊗ other.
+            QuantumError: the tensor product channel self ? other.
         """
         warnings.warn(
             'The kron() method is deprecated and will be removed '
@@ -407,9 +409,9 @@ class QuantumError:
         """Return the tensor product error channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
+            other (QuantumError): a quantum channel subclass
+            reverse (bool): If False return self ? other, if True return
+                            if True return (other ? self) [Default: False
         Returns:
             QuantumError: the tensor product error channel.
 
@@ -466,7 +468,8 @@ class QuantumError:
                     combined_circuit.append({'name': 'id', 'qubits': [0]})
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
-        noise_ops = zip(combined_noise_circuits, combined_noise_probabilities)
+        # Now we combine any error circuits containing only Kraus operations
+        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
         return QuantumError(noise_ops)
 
     @staticmethod
