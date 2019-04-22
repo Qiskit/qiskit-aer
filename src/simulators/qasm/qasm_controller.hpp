@@ -235,6 +235,7 @@ protected:
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
   add_circuit_optimization(ReduceNop());
+  add_circuit_optimization(Fusion());
 }
 
 //-------------------------------------------------------------------------
@@ -476,7 +477,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    noise_circ = optimize_circuit(noise_circ);
+    noise_circ = optimize_circuit(noise_circ, state, data);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
 }
@@ -491,11 +492,11 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ;
-  opt_circ = optimize_circuit(circ);
+  opt_circ = optimize_circuit(circ, state, data);
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);
-  if (check.first == false || shots == 1) {
+  if (check.first == false) {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while(shots-- > 0) {

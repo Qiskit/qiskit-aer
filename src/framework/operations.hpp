@@ -29,7 +29,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, kraus, roerror, noise_switch, initialize
+  matrix, matrix_sequence, kraus, roerror, noise_switch, initialize
 };
 
 std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -54,6 +54,9 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix:
     stream << "matrix";
+    break;
+  case OpType::matrix_sequence:
+    stream << "matrix_sequence";
     break;
   case OpType::kraus:
     stream << "kraus";
@@ -83,6 +86,7 @@ struct Op {
   OpType type;                    // operation type identifier
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
+  std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
@@ -358,12 +362,23 @@ inline void check_duplicate_qubits(const Op &op) {
 // Generator functions
 //------------------------------------------------------------------------------
 
-inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   op.qubits = qubits;
   op.mats = {mat};
+  if (label != "")
+    op.string_params = {label};
+  return op;
+}
+
+inline Op make_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t> &mats, std::string label = "") {
+  Op op;
+  op.type = OpType::matrix_sequence;
+  op.name = "matrix_sequence";
+  op.regs = regs;
+  op.mats = mats;
   if (label != "")
     op.string_params = {label};
   return op;
@@ -431,7 +446,9 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
 
 // Main JSON deserialization functions
 Op json_to_op(const json_t &js); // Patial TODO
+json_t op_to_json(const Op &op); // Patial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
+inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
 // Standard operations
 Op json_to_op_gate(const json_t &js);
@@ -494,6 +511,26 @@ Op json_to_op(const json_t &js) {
     return json_to_op_roerror(js);
   // Default assume gate
   return json_to_op_gate(js);
+}
+
+json_t op_to_json(const Op &op) {
+  json_t ret;
+  ret["name"] = op.name;
+  if (!op.qubits.empty())
+    ret["qubits"] = op.qubits;
+  if (!op.regs.empty())
+    ret["regs"] = op.regs;
+  if (!op.params.empty())
+    ret["params"] = op.params;
+  if (op.conditional)
+    ret["conditional"] = op.conditional_reg;
+  if (!op.memory.empty())
+    ret["memory"] = op.memory;
+  if (!op.registers.empty())
+    ret["register"] = op.registers;
+  if (!op.mats.empty())
+    ret["mats"] = op.mats;
+  return ret;
 }
 
 
@@ -663,17 +700,20 @@ Op json_to_op_roerror(const json_t &js) {
 Op json_to_op_unitary(const json_t &js) {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   JSON::get_value(op.qubits, "qubits", js);
-  cmatrix_t mat;
-  JSON::get_value(mat, "params", js);
+  JSON::get_value(op.mats, "params", js);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (!Utils::is_unitary(mat, 1e-10)) {
-    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  if (op.mats.size() != 1) {
+    throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  op.mats.push_back(mat);
+  for (const auto mat : op.mats) {
+    if (!Utils::is_unitary(mat, 1e-7)) {
+      throw std::invalid_argument("\"unitary\" matrix is not unitary.");
+    }
+  }
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);
@@ -709,13 +749,14 @@ Op json_to_op_noise_switch(const json_t &js) {
 //------------------------------------------------------------------------------
 
 Op json_to_op_snapshot(const json_t &js) {
-  std::string type;
-  JSON::get_value(type, "type", js);
-  if (type == "expectation_value_pauli" ||
-      type == "expectation_value_pauli_with_variance")
+  std::string snapshot_type;
+  JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(snapshot_type, "type", js);
+  if (snapshot_type == "expectation_value_pauli" ||
+      snapshot_type == "expectation_value_pauli_with_variance")
     return json_to_op_snapshot_pauli(js);
-  if (type == "expectation_value_matrix" ||
-      type == "expectation_value_matrix_with_variance")
+  if (snapshot_type == "expectation_value_matrix" ||
+      snapshot_type == "expectation_value_matrix_with_variance")
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   return json_to_op_snapshot_default(js);
@@ -725,7 +766,8 @@ Op json_to_op_snapshot(const json_t &js) {
 Op json_to_op_snapshot_default(const json_t &js) {
   Op op;
   op.type = OpType::snapshot;
-  JSON::get_value(op.name, "type", js);
+  JSON::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(op.name, "snapshot_type", js);
   // If missing use "default" for label
   op.string_params.push_back("default");
   JSON::get_value(op.string_params[0], "label", js);

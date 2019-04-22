@@ -5,6 +5,8 @@
 #include <dlfcn.h>
 #include <sys/types.h>
 
+// These symboles were taken from: https://github.com/gcc-mirror/gcc/blob/gcc-8_2_0-release/libgomp/libgomp_g.h
+
 // Define undefined symbols
 extern "C" {
 
@@ -30,6 +32,18 @@ extern "C" {
     GOMP_parallel_t _hook_GOMP_parallel;
     void GOMP_parallel(void (*fn) (void *), void *data, unsigned num_threads, unsigned flags){
         _hook_GOMP_parallel(fn, data, num_threads, flags);
+    }
+
+    using GOMP_critical_start_t = void(*)();
+    GOMP_critical_start_t _hook_GOMP_critical_start;
+    void GOMP_critical_start(void){
+        _hook_GOMP_critical_start();
+    }
+
+    using GOMP_critical_end_t = void(*)();
+    GOMP_critical_end_t _hook_GOMP_critical_end;
+    void GOMP_critical_end(void){
+        _hook_GOMP_critical_end();
     }
 
     #define __KAI_KMPC_CONVENTION
@@ -63,6 +77,8 @@ namespace Hacks {
         _hook_GOMP_atomic_start = reinterpret_cast<decltype(&GOMP_atomic_start)>(dlsym(handle, "GOMP_atomic_start"));
         _hook_GOMP_barrier = reinterpret_cast<decltype(&GOMP_barrier)>(dlsym(handle, "GOMP_barrier"));
         _hook_GOMP_parallel = reinterpret_cast<decltype(&GOMP_parallel)>(dlsym(handle, "GOMP_parallel"));
+        _hook_GOMP_critical_end = reinterpret_cast<decltype(&GOMP_critical_end)>(dlsym(handle, "GOMP_critical_end"));
+        _hook_GOMP_critical_start = reinterpret_cast<decltype(&GOMP_critical_start)>(dlsym(handle, "GOMP_critical_start"));
         _hook_omp_get_num_threads = reinterpret_cast<decltype(&omp_get_num_threads)>(dlsym(handle, "omp_get_num_threads"));
         _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
         _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));

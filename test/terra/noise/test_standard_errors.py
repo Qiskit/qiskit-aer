@@ -10,7 +10,7 @@ Standard error function tests
 """
 
 import unittest
-from test.terra.utils import common
+from test.terra import common
 import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
@@ -66,7 +66,8 @@ class TestNoise(common.QiskitAerTestCase):
         unitaries = [np.eye(2), np.diag([1, -1])]
         probs = [0.7, 0.3]
         error = mixed_unitary_error([(unitaries[0], probs[0]),
-                                     (unitaries[1], probs[1])])
+                                     (unitaries[1], probs[1])],
+                                    standard_gates=True)
         (op0, p0) = error.error_term(0)
         (op1, p1) = error.error_term(1)
         self.assertEqual(op0[0], {"name": "z", "qubits": [0]})
@@ -103,7 +104,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertEqual(circ[0]['qubits'], [0])
             self.remove_if_found(p, target_probs)
             if name == "unitary":
-                self.remove_if_found(circ[0]['params'], target_unitaries)
+                self.remove_if_found(circ[0]['params'][0], target_unitaries)
             else:
                 target_identity_count += 1
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
@@ -147,7 +148,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertEqual(circ[0]['qubits'], [0])
             self.remove_if_found(p, target_probs)
             if name == "unitary":
-                self.remove_if_found(circ[0]['params'], target_unitaries)
+                self.remove_if_found(circ[0]['params'][0], target_unitaries)
             else:
                 target_identity_count += 1
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
@@ -190,7 +191,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertIn(name, 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
             self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ[0]['params'], target_unitaries)
+            self.remove_if_found(circ[0]['params'][0], target_unitaries)
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
 
@@ -210,7 +211,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertIn(name, 'unitary')
             self.assertEqual(circ[0]['qubits'], [1])
             self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ[0]['params'], target_unitaries)
+            self.remove_if_found(circ[0]['params'][0], target_unitaries)
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
 
@@ -267,7 +268,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertIn(name, 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
             self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ[0]['params'], target_unitaries)
+            self.remove_if_found(circ[0]['params'][0], target_unitaries)
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
 
@@ -329,7 +330,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertEqual(circ[0]['qubits'], [0])
             if name == "unitary":
                 self.assertAlmostEqual(p, p_depol / 4, msg="Incorrect Pauli probability")
-                self.remove_if_found(circ[0]['params'], target_unitaries)
+                self.remove_if_found(circ[0]['params'][0], target_unitaries)
             else:
                 self.assertAlmostEqual(p, 1 - p_depol + p_depol / 4,
                                        msg="Incorrect identity probability")
@@ -372,7 +373,7 @@ class TestNoise(common.QiskitAerTestCase):
             self.assertIn(name, ('unitary', "id"))
             if name == "unitary":
                 self.assertAlmostEqual(p, p_depol / 16)
-                op = circ[0]['params']
+                op = circ[0]['params'][0]
                 qubits = circ[0]['qubits']
                 if len(op) == 2:
                     self.assertIn(qubits, [[0], [1]])

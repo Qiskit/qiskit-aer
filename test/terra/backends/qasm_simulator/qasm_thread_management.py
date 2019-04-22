@@ -11,7 +11,6 @@ QasmSimulator Integration Tests
 import multiprocessing
 import psutil
 
-from test.terra.utils import common
 from test.benchmark.tools import quantum_volume_circuit
 from qiskit import compile
 from qiskit.providers.aer import QasmSimulator
@@ -19,10 +18,11 @@ from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 
 
-class QasmThreadManagementTests(common.QiskitAerTestCase):
+class QasmThreadManagementTests:
     """QasmSimulator thread tests."""
 
     SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
 
     def dummy_noise_model(self):
         """Return test reset noise model"""
@@ -36,8 +36,11 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {}
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -61,8 +64,11 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {}
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         system_memory = int(psutil.virtual_memory().total / 1024 / 1024)
@@ -80,8 +86,12 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_memory_mb': 128}
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_memory_mb'] = 128
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         self.assertEqual(
@@ -97,11 +107,13 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         circuits = []
         for _ in range(experiments):
             circuits.append(quantum_volume_circuit(4, 1, measure=True, seed=0))
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_experiments': experiments,
-            'max_memory_mb': 1024
-        }
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_experiments'] = experiments
+        backend_opts['max_memory_mb'] = 1024
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -130,11 +142,13 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
             circuits.append(
                 quantum_volume_circuit(16, 1, measure=True,
                                        seed=0))  # 2 MB for each
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_experiments': experiments,
-            'max_memory_mb': 1
-        }
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_experiments'] = experiments
+        backend_opts['max_memory_mb'] = 1
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -165,11 +179,13 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
             circuits.append(
                 quantum_volume_circuit(4, 1, measure=True,
                                        seed=0))  # 2 MB for each
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_experiments': experiments,
-            'max_memory_mb': 1024
-        }
+        qobj = compile(
+            circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_experiments'] = experiments
+        backend_opts['max_memory_mb'] = 1024
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -188,11 +204,13 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_shots': shots,
-            'noise_model': self.dummy_noise_model()
-        }
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_shots'] = shots
+        backend_opts['noise_model'] = self.dummy_noise_model()
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -216,8 +234,12 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {'max_parallel_shots': shots}
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_shots'] = shots
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -243,11 +265,13 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         if shots == 0:
             return
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_shots': multiprocessing.cpu_count(),
-            'noise_model': self.dummy_noise_model()
-        }
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_shots'] = multiprocessing.cpu_count()
+        backend_opts['noise_model'] = self.dummy_noise_model()
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:
@@ -271,12 +295,14 @@ class QasmThreadManagementTests(common.QiskitAerTestCase):
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = quantum_volume_circuit(16, 1, measure=True, seed=0)
-        qobj = compile(circuit, self.SIMULATOR, shots=shots)
-        backend_opts = {
-            'max_parallel_shots': shots,
-            'noise_model': self.dummy_noise_model(),
-            'max_memory_mb': 1
-        }
+        qobj = compile(
+            circuit, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_shots'] = shots
+        backend_opts['noise_model'] = self.dummy_noise_model()
+        backend_opts['max_memory_mb'] = 1
+
         result = self.SIMULATOR.run(
             qobj, backend_options=backend_opts).result()
         if result.metadata['omp_enabled']:

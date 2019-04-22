@@ -226,7 +226,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   reg_t error_qubits(num_qubits);
   std::iota(error_qubits.begin(), error_qubits.end(), 0);
   for (size_t j=1; j < probs.size(); j++) {
-    auto op = Operations::make_mat(error_qubits, unitaries[j - 1]);
+    auto op = Operations::make_unitary(error_qubits, unitaries[j - 1]);
     circuits.push_back({op});
   }
 
