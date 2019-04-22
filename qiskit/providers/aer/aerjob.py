@@ -70,7 +70,7 @@ class AerJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        validate_qobj_against_schema(self._qobj)
+        #validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
                                              *self._args)
 
@@ -92,6 +92,7 @@ class AerJob(BaseJob):
             concurrent.futures.TimeoutError: if timeout occurred.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
+        print("future is ", self._future)
         return self._future.result(timeout=timeout)
 
     @requires_submit

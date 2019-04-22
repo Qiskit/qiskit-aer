@@ -21,6 +21,8 @@
 
 using namespace std;
 
+cmatrix_t diag(rvector_t S, uint m, uint n);
+
 //template <class T>
 //void cswap(T &a, T &b)
 //{

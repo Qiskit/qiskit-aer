@@ -11,65 +11,83 @@
 #include "framework/json.hpp"
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
+#include "framework/operations.hpp"
 #include "tensor.hpp"
 
-//namespace AER {
+namespace AER {
 namespace TensorState {
 
 class TensorState{
 public:
+  TensorState(uint size = 0):
+    size_(size) {}
+  ~TensorState() {}
 
-	// Constructor of TensorState class
-	TensorState(size_t size = 0);
+  //void initialize();
 
-	// Destructor
-	~TensorState();
+  // Initializes the State to the default state.
+  // Typically this is the n-qubit all |0> state
+  virtual void initialize(uint num_qubits);
 
-	//**************************************************************
-	// function name: num_qubits
-	// Description: Get the number of qubits in the tensor network
-	// Parameters: none.
-	// Returns: none.
-	//**************************************************************
-    uint num_qubits() const{return size_;}
+  // Initializes the State to a specific state.
+  //  virtual void initialize(uint num_qubits, const cvector_t &vecState) {
+  //    cout << "initialize currently not implemented yet" <<endl;
+  //  }
 
-    //**************************************************************
-	// function name: set_num_qubits
-	// Description: Set the number of qubits in the tensor network
-	// Parameters: size_t size - number of qubits to set.
-	// Returns: none.
-	//**************************************************************
-    void set_num_qubits(size_t size);
+  //void initialize(const TensorState &other);
+  //void initialize(uint num_qubits, const cvector_t &vecState);
 
-    //**************************************************************
-	// function name: apply_x,y,z,...
-	// Description: Apply a gate on some qubits by their indexes.
+  //**************************************************************
+    // function name: num_qubits
+    // Description: Get the number of qubits in the tensor network
+    // Parameters: none.
+    // Returns: none.
+  //**************************************************************
+  uint num_qubits() const{return size_;}
+  
+  //**************************************************************
+    // function name: set_num_qubits
+    // Description: Set the number of qubits in the tensor network
+    // Parameters: size_t size - number of qubits to set.
+    // Returns: none.
+  //**************************************************************
+  void set_num_qubits(uint size) {
+    size_ = size;
+  }
+  bool empty() const {
+    return(size_ == 0);
+  }
+  
+
+  //**************************************************************
+    // function name: apply_x,y,z,...
+    // Description: Apply a gate on some qubits by their indexes.
     // Parameters: uint index of the qubit/qubits.
-	// Returns: none.
-	//**************************************************************
-	void apply_h(uint index){q_reg_[index].apply_h();}
-	void apply_x(uint index){q_reg_[index].apply_x();}
-	void apply_y(uint index){q_reg_[index].apply_y();}
-	void apply_z(uint index){q_reg_[index].apply_z();}
-    void apply_s(uint index){q_reg_[index].apply_s();}
-	void apply_sdg(uint index){q_reg_[index].apply_sdg();}
-	void apply_t(uint index){q_reg_[index].apply_t();}
-	void apply_tdg(uint index){q_reg_[index].apply_tdg();}
-	void U1(uint index, double lambda){q_reg_[index].apply_u1(lambda);}
-	void U2(uint index, double phi, double lambda){q_reg_[index].apply_u2(phi,lambda);}
-	void U3(uint index, double theta, double phi, double lambda){q_reg_[index].apply_u3(theta,phi,lambda);}
-	void apply_cnot(uint index_A, uint index_B);
-	void apply_swap(uint index_A, uint index_B);
-	void apply_cz(uint index_A, uint index_B);
+    // Returns: none.
+  //**************************************************************
+  void apply_h(uint index){q_reg_[index].apply_h();}
+  void apply_x(uint index){q_reg_[index].apply_x();}
+  void apply_y(uint index){q_reg_[index].apply_y();}
+  void apply_z(uint index){q_reg_[index].apply_z();}
+  void apply_s(uint index){q_reg_[index].apply_s();}
+  void apply_sdg(uint index){q_reg_[index].apply_sdg();}
+  void apply_t(uint index){q_reg_[index].apply_t();}
+  void apply_tdg(uint index){q_reg_[index].apply_tdg();}
+  void U1(uint index, double lambda){q_reg_[index].apply_u1(lambda);}
+  void U2(uint index, double phi, double lambda){q_reg_[index].apply_u2(phi,lambda);}
+  void U3(uint index, double theta, double phi, double lambda){q_reg_[index].apply_u3(theta,phi,lambda);}
+  void apply_cnot(uint index_A, uint index_B);
+  void apply_swap(uint index_A, uint index_B);
+  void apply_cz(uint index_A, uint index_B);
 
 
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
                       {cout << "apply_matrix not supported yet" <<endl;}
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
                       {cout << "apply_diagonalmatrix not supported yet" <<endl;}
-
-
-  double Expectation_value(vector<uint> indexes, string matrices);
+  void Density_Matrix(uint first_index, uint last_index, complex_t** & rho);
+  //  double Expectation_value(const vector<uint> &indexes, const string &matrices);
+  double Expectation_value(const reg_t &indexes, const string &matrices);
 
   //**************************************************************
   // function name: initialize
@@ -81,9 +99,9 @@ public:
   //  				Initializes qubits with a statevector.
   // Returns: none.
   //**************************************************************
-  void initialize();
-  void initialize(const TensorState &other);
-  void initialize(uint num_qubits, const cvector_t &vecState);
+    //void initialize();
+    //void initialize(const TensorState &other);
+    //void initialize(uint num_qubits, const cvector_t &vecState);
 
   //**************************************************************
   // function name: printTN
@@ -125,18 +143,18 @@ public:
   double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
            cout << "norm not supported yet" <<endl;
            return 0;}
-  auto sample_measure(std::vector<double> &rnds) {
+  std::vector<reg_t> sample_measure(std::vector<double> &rnds) {
     cout << "sample_measure not supported yet" <<endl;
-    return 0;}
+    return std::vector<reg_t>(0);}
     
 
 protected:
     uint size_;
-	/*
-	The data structure of a MPS- a vector of Gamma tensors and a vector of Lambda vectors.
-	*/
-	vector<Tensor> q_reg_;
-	vector<rvector_t> lambda_reg_;
+  /*
+    The data structure of a MPS- a vector of Gamma tensors and a vector of Lambda vectors.
+  */
+  vector<Tensor> q_reg_;
+  vector<rvector_t> lambda_reg_;
 };
 
 
@@ -144,6 +162,6 @@ protected:
 //-------------------------------------------------------------------------
 } // end namespace TensorState
 //-------------------------------------------------------------------------
-//} // end namespace AER
+} // end namespace AER
 //-------------------------------------------------------------------------
 #endif /* _aer_tensor_state_hpp_ */

@@ -23,7 +23,7 @@
 #include "framework/matrix.hpp"
 #include "framework/utils.hpp"
 
-//namespace AER {
+namespace AER {
 namespace TensorState {
 
 // Data types
@@ -31,6 +31,8 @@ using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
 using cmatrix_t = matrix<complex_t>;
+
+uint num_of_SV(rvector_t S, double threshold);
 
 //**************************************************************
 // function name: num_of_SV
@@ -347,8 +349,8 @@ protected:
 /* TL;DR - Functions mul/div Gamma by Lambda are used to keep the MPS in the
  * canonical form.
  *
- * Before applying a 2-qubits gate, we must contract the to relevant Gamma tensors.
- * In order to maintain the canonical form, we must consider the Lambda tensors from
+ * Before applying a 2-qubit gate, we must contract these qubits to relevant Gamma tensors.
+ * To maintain the canonical form, we must consider the Lambda tensors from
  * the sides of the Gamma tensors. This is what the multiply functions do. After the
  * decomposition of the result of the gate, we need to divide back by what we
  * multiplied before. This is what the division functions do.
@@ -393,7 +395,7 @@ friend void div_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 //************************************************************************
 // function name: contract
 // Description: Contract two Gamma tensors and the Lambda between
-// 				them. Usually being used before 2-qubits gate.
+// 				them. Usually used before 2-qubits gate.
 // Parameters: Tensor &left_gamma, &right_gamma , rvector_t &lambda -
 // 			   tensors to contract.
 // Returns: The result tensor of the contract
@@ -412,7 +414,7 @@ friend Tensor contract(Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamm
 //************************************************************************
 // function name: Decompose
 // Description: Decompose a tensor into two Gamma tensors and the Lambda between
-// 				them. Usually being used after 2-qubits gate.
+// 				them. Usually used after applying a 2-qubit gate.
 // Parameters: Tensor &temp - the tensor to decompose.
 //			   Tensor &left_gamma, &right_gamma , rvector_t &lambda -
 // 			   tensors for the result.
@@ -439,7 +441,7 @@ friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tenso
 		cout << "U = " << endl << U ;
 		cout << "S = " << endl;
 		for (uint i = 0; i != S.size(); ++i)
-		    cout << S[i] << ' , ';
+		    cout << S[i] << " , ";
 		cout << endl;
 		cout << "V = " << endl << V ;
 	}
@@ -462,6 +464,6 @@ friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tenso
 //-------------------------------------------------------------------------
 } // end namespace TensorState
 //-------------------------------------------------------------------------
-//} // end namespace AER
+} // end namespace AER
 //-------------------------------------------------------------------------
 #endif
