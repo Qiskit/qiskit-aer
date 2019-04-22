@@ -474,7 +474,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    Circuit opt_noise_circ = optimize_circuit(circ, state, data);
+    Circuit opt_noise_circ = optimize_circuit(noise_circ, state, data);
     run_single_shot(opt_noise_circ, state, initial_state, data, rng);
   }                                   
 }
