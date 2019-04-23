@@ -32,7 +32,6 @@ using reg_t = std::vector<uint_t>;
 using indexes_t = std::unique_ptr<uint_t[]>;
 using complex_t = std::complex<double>;
 using cvector_t = std::vector<complex_t>;
-using cmatrix_t = matrix<complex_t>; 
 using rvector_t = std::vector<double>;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 
@@ -1225,8 +1224,8 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
 
 template <typename data_t>
 void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
-				                                    const reg_t &target_qubits,
-                                            const cvector_t &mat) {
+		const reg_t &target_qubits,
+		const cvector_t &mat) {
   
   // General implementation
   const size_t control_count = control_qubits.size();
@@ -1243,18 +1242,18 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
       data_[ii] = 0.;
     }
     // update state vector
-    for (uint_t b = 0; b < blocks; b++) 
+    for (uint_t b = 0; b < blocks; b++)
       for (uint_t i = 0; i < columns; i++)
-        for (uint_t j = 0; j < columns; j++) 
-	{ 
+        for (uint_t j = 0; j < columns; j++)
+	{
 	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
 	}
   };
 
   // Use the lambda function
-  auto qubits = control_qubits; 
+  auto qubits = control_qubits;
   for (const auto &q : target_qubits) {qubits.push_back(q);}
-  apply_lambda(lambda, qubits, mat); 
+  apply_lambda(lambda, qubits, mat);
 }
 
 template <typename data_t>

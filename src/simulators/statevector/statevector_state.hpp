@@ -68,7 +68,7 @@ public:
       Operations::OpType::roerror,
       Operations::OpType::matrix,
       Operations::OpType::matrix_sequence,
-      Operations::OpType::multiplexer, 
+      Operations::OpType::multiplexer,
       Operations::OpType::kraus
     });
   }
@@ -168,7 +168,7 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
 
   // Apply a vector of control matrices to given qubits (identity on all other qubits)
-  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat); 
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat);
 
   // Apply stacked (flat) version of multiplexer matrix to target qubits (using control qubits to select matrix instance)
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat);
@@ -445,7 +445,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::matrix_sequence:
         apply_matrix_sequence(op.regs, op.mats);
       case Operations::OpType::multiplexer:
-        apply_multiplexer(op.regs[0], op.regs[1], op.mats); 
+        apply_multiplexer(op.regs[0], op.regs[1], op.mats);
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -895,7 +895,7 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
 }
 
 //=========================================================================
-// Implementation: Multiplexer Circuit 
+// Implementation: Multiplexer Circuit
 //=========================================================================
 
 template <class statevec_t>
