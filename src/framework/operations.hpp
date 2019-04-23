@@ -109,9 +109,6 @@ struct Op {
   reg_t memory;             // (opt) register operation it acts on (measure)
   reg_t registers;          // (opt) register locations it acts on (measure, conditional)
 
-  // List of registers
-  std::vector<reg_t> regs;
-
   // Mat and Kraus
   std::vector<cmatrix_t> mats;
 
@@ -767,8 +764,13 @@ Op json_to_op_unitary(const json_t &js) {
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (!Utils::is_unitary(mat, ATOL)) {
-    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  if (op.mats.size() != 1) {
+    throw std::invalid_argument("\"unitary\" params must be a single matrix.");
+  }
+  for (const auto mat : op.mats) {
+    if (!Utils::is_unitary(mat, 1e-7)) {
+      throw std::invalid_argument("\"unitary\" matrix is not unitary.");
+    }
   }
   // Check for a label
   std::string label;
