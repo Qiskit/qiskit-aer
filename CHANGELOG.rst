@@ -27,7 +27,8 @@ Added
 
 Changed
 -------
-
+- Add an optional parameter to `NoiseModel.as_dict()` for returning dictionaries that can be
+  serialized using the standard `json` library directly.
 
 Removed
 -------
