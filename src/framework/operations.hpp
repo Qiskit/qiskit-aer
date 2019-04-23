@@ -121,7 +121,14 @@ struct Op {
 };
 
 std::ostream& operator<<(std::ostream& s, const Op& op) {
-  s << op.name;
+  s << op.name << "[";
+  bool first = true;
+  for (size_t qubit: op.qubits) {
+    if (!first) s << ",";
+    s << qubit;
+    first = false;
+  }
+  s << "]";
   return s;
 }
 

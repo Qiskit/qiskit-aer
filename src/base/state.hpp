@@ -13,6 +13,7 @@
 #include "framework/types.hpp"
 #include "framework/data.hpp"
 #include "framework/creg.hpp"
+#include "framework/circuitopt.hpp"
 
 namespace AER {
 namespace Base {
@@ -187,6 +188,19 @@ public:
   inline const state_t &qreg() const {return qreg_;}
   inline const auto &creg() const {return creg_;}
 
+  //-----------------------------------------------------------------------
+  // Circuit optimization
+  //-----------------------------------------------------------------------
+
+  // Add circuit optimization
+  template <typename Type>
+  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
+  {
+      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+  }
+
+  std::vector<std::shared_ptr<CircuitOptimization>> get_circuit_optimization() { return optimizations_; };
+
 protected:
 
   // The quantum state data structure
@@ -198,6 +212,10 @@ protected:
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
   int threads_ = 1;
+
+  // Circuit optimization
+  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
+
 };
 
 
@@ -309,8 +327,6 @@ void State<state_t>::add_creg_to_data(OutputData &data) const {
     data.add_register_singleshot(creg_.register_hex());
   }
 }
-
-
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

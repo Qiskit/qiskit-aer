@@ -134,13 +134,6 @@ public:
   // Clear the current config
   void virtual clear_config();
 
-  // Add circuit optimization
-  template <typename Type>
-  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
-  {
-      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
-  }
-
 protected:
 
   //-----------------------------------------------------------------------
@@ -203,9 +196,6 @@ protected:
 
   // Noise model
   Noise::NoiseModel noise_model_;
-
-  // Circuit optimization
-  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -273,9 +263,6 @@ void Controller::set_config(const json_t &config) {
     auto system_memory_mb = get_system_memory_mb();
     max_memory_mb_ = system_memory_mb / 2;
   }
-
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
-    opt->set_config(config_);
 
   std::string path;
   JSON::get_value(path, "library_dir", config);
@@ -446,8 +433,10 @@ Circuit Controller::optimize_circuit(const Circuit &input_circ,
   allowed_opset.gates = state.allowed_gates();
   allowed_opset.snapshots = state.allowed_snapshots();
 
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+  for (std::shared_ptr<CircuitOptimization> opt: state.get_circuit_optimization()) {
+    opt->set_config(config_);
     opt->optimize_circuit(working_circ, allowed_opset, data);
+  }
 
   return working_circ;
 }
