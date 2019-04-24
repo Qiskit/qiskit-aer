@@ -335,7 +335,143 @@ cmatrix_t Matrix::U3(double theta, double phi, double lambda) {
   return mat;
 }
 
+//------------------------------------------------------------------------------
+// Static Vectorized Matrices
+//------------------------------------------------------------------------------
+class VMatrix {
+public:
+  // Single-qubit gates
+  const static cvector_t I;     // name: "id"
+  const static cvector_t X;     // name: "x"
+  const static cvector_t Y;     // name: "y"
+  const static cvector_t Z;     // name: "z"
+  const static cvector_t H;     // name: "h"
+  const static cvector_t S;     // name: "s"
+  const static cvector_t Sdg;   // name: "sdg"
+  const static cvector_t T;     // name: "t"
+  const static cvector_t Tdg;   // name: "tdg"
+  const static cvector_t X90;   // name: "x90"
 
+  // Two-qubit gates
+  const static cvector_t CX;    // name: "cx"
+  const static cvector_t CZ;    // name: "cz"
+  const static cvector_t SWAP;  // name: "swap"
+  const static cvector_t CR;    // TODO
+  const static cvector_t CR90;  // TODO
+
+  // Identity Matrix
+  static cvector_t Identity(size_t dim);
+
+  // Single-qubit waltz gates
+  static cvector_t U1(double lam);
+  static cvector_t U2(double phi, double lam);
+  static cvector_t U3(double theta, double phi, double lam);
+
+  // Complex arguments are implemented by taking std::real
+  // of the input
+  inline static cvector_t U1(complex_t lam) {return U1(std::real(lam));}
+  inline static cvector_t U2(complex_t phi, complex_t lam) {
+    return U2(std::real(phi), std::real(lam));
+  }
+  inline static cvector_t U3(complex_t theta, complex_t phi, complex_t lam) {
+    return U3(std::real(theta), std::real(phi), std::real(lam));
+  };
+
+  // Return the matrix for a named matrix string
+  // Allowed names correspond to all the const static single-qubit
+  // and two-qubit gate members
+  inline static const cvector_t from_name(const std::string &name) {
+    return *label_map_.at(name);
+  }
+
+  // Check if the input name string is allowed
+  inline static bool allowed_name(const std::string &name) {
+    return (label_map_.find(name) != label_map_.end());
+  }
+
+
+private:
+  // Lookup table that returns a pointer to the static data member
+  const static stringmap_t<const cvector_t*> label_map_;
+};
+
+//==============================================================================
+// Implementations: Static Matrices
+//==============================================================================
+
+const cvector_t VMatrix::I = vectorize_matrix(Matrix::I);
+
+const cvector_t VMatrix::X = vectorize_matrix(Matrix::X);
+
+const cvector_t VMatrix::Y = vectorize_matrix(Matrix::Y);
+
+const cvector_t VMatrix::Z = vectorize_matrix(Matrix::Z);
+
+const cvector_t VMatrix::S = vectorize_matrix(Matrix::S);
+
+const cvector_t VMatrix::Sdg = vectorize_matrix(Matrix::Sdg);
+
+const cvector_t VMatrix::T = vectorize_matrix(Matrix::T);
+
+const cvector_t VMatrix::Tdg = vectorize_matrix(Matrix::Tdg);
+
+const cvector_t VMatrix::H = vectorize_matrix(Matrix::H);
+
+const cvector_t VMatrix::X90 = vectorize_matrix(Matrix::X90);
+
+const cvector_t VMatrix::CX = vectorize_matrix(Matrix::CX);
+
+const cvector_t VMatrix::CZ = vectorize_matrix(Matrix::CZ);
+
+const cvector_t VMatrix::SWAP = vectorize_matrix(Matrix::SWAP);
+
+// TODO const cvector_t VMatrix::CR = ...
+// TODO const cvector_t VMatrix::CR90 = ...
+
+// Lookup table
+const stringmap_t<const cvector_t*> VMatrix::label_map_ = {
+  {"id", &VMatrix::I}, {"x", &VMatrix::X}, {"y", &VMatrix::Y}, {"z", &VMatrix::Z},
+  {"h", &VMatrix::H}, {"s", &VMatrix::S}, {"sdg", &VMatrix::Sdg},
+  {"t", &VMatrix::T}, {"tdg", &VMatrix::Tdg}, {"x90", &VMatrix::X90},
+  {"cx", &VMatrix::CX}, {"cz", &VMatrix::CZ}, {"swap", &VMatrix::SWAP}
+};
+
+cvector_t VMatrix::Identity(size_t dim) {
+  cvector_t mat(dim * dim);
+  for (size_t j=0; j<dim; j++)
+    mat[j + j * dim] = {1.0, 0.0};
+  return mat;
+}
+
+
+cvector_t VMatrix::U1(double lambda) {
+  cvector_t mat(2 * 2);
+  mat[0 + 0 * 2] = {1., 0.};
+  mat[1 + 1 * 2] = std::exp(complex_t(0., lambda));
+  return mat;
+}
+
+
+cvector_t VMatrix::U2(double phi, double lambda) {
+  cvector_t mat(2 * 2);
+  const complex_t i(0., 1.);
+  const complex_t invsqrt2(1. / std::sqrt(2), 0.);
+  mat[0 + 0 * 2] = invsqrt2;
+  mat[0 + 1 * 2] = -std::exp(i * lambda) * invsqrt2;
+  mat[1 + 0 * 2] = std::exp(i * phi) * invsqrt2;
+  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * invsqrt2;
+  return mat;
+}
+
+cvector_t VMatrix::U3(double theta, double phi, double lambda) {
+  cvector_t mat(2 * 2);
+  const complex_t i(0., 1.);
+  mat[0 + 0 * 2] = std::cos(theta / 2.);
+  mat[0 + 1 * 2] = -std::exp(i * lambda) * std::sin(theta / 2.);
+  mat[1 + 0 * 2] = std::exp(i * phi) * std::sin(theta / 2.);
+  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(theta / 2.);
+  return mat;
+}
 //==============================================================================
 // Implementations: Matrix functions
 //==============================================================================

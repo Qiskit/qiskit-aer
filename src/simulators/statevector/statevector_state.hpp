@@ -728,8 +728,7 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
                                         double theta,
                                         double phi,
                                         double lambda) {
-  const auto u3 = Utils::Matrix::U3(theta, phi, lambda);
-  BaseState::qreg_.apply_mcu(qubits, Utils::vectorize_matrix(u3));
+  BaseState::qreg_.apply_mcu(qubits, Utils::VMatrix::U3(theta, phi, lambda));
 }
 
 template <class statevec_t>
