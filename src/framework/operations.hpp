@@ -398,6 +398,7 @@ inline Op make_u1(uint_t qubit, T lam) {
   op.name = "u1";
   op.qubits = {qubit};
   op.params = {lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -408,6 +409,7 @@ inline Op make_u2(uint_t qubit, T phi, T lam) {
   op.name = "u2";
   op.qubits = {qubit};
   op.params = {phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -418,6 +420,7 @@ inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   op.name = "u3";
   op.qubits = {qubit};
   op.params = {theta, phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -551,6 +554,15 @@ Op json_to_op_gate(const json_t &js) {
   JSON::get_value(op.name, "name", js);
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
+
+  // Check for optional label
+  // If label is not specified record the gate name as the label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if  (label != "") 
+    op.string_params = {label};
+  else
+    op.string_params = {op.name};
 
   // Check conditional
   if (JSON::check_key("conditional", js)) {
