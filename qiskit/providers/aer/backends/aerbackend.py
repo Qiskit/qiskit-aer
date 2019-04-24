@@ -156,7 +156,7 @@ class AerBackend(BaseBackend):
         if not output.get("success", False):
             logger.error("%s: simulation failed", self.name())
             # Check for error message in the failed circuit
-            for res in output.get('results'):
+            for res in output.get('results', []):
                 if not res.get('success', False):
                     raise AerError(res.get("status", None))
             # If no error was found check for error message at qobj level
