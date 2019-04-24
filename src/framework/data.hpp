@@ -227,7 +227,10 @@ template <typename T>
 void OutputData::add_additional_data(const std::string &key, const T &data) {
   if (return_additional_data_) {
     json_t js = data; // use implicit to_json conversion function for T
-    additional_data_[key] = js;
+    if (JSON::check_key(key, additional_data_))
+      additional_data_[key].update(js.begin(), js.end());
+    else
+      additional_data_[key] = js;
   }
 }
 
