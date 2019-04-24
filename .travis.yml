@@ -97,7 +97,7 @@ jobs:
     ###########################################################################
     # C++ and Python linters
     # TODO!
-    - stage: lint
+    # - stage: lint
 
 
     # "test" stage
