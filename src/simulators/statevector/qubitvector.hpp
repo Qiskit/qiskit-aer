@@ -630,7 +630,7 @@ void QubitVector<data_t>::check_checkpoint() const {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-QubitVector<data_t>::QubitVector(size_t num_qubits) : num_qubits_(0), data_(0), checkpoint_(0){
+QubitVector<data_t>::QubitVector(size_t num_qubits) : num_qubits_(0), data_(nullptr), checkpoint_(0){
   set_num_qubits(num_qubits);
 }
 
@@ -772,20 +772,27 @@ void QubitVector<data_t>::zero() {
 
 template <typename data_t>
 void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
+
+  size_t prev_num_qubits = num_qubits_;
   num_qubits_ = num_qubits;
   data_size_ = BITS[num_qubits];
-
-  // Free any currently assigned memory
-  if (data_)
-    free(data_);
 
   if (checkpoint_) {
     free(checkpoint_);
     checkpoint_ = nullptr;
   }
 
+  // Free any currently assigned memory
+  if (data_) {
+    if (prev_num_qubits != num_qubits_) {
+      free(data_);
+      data_ = nullptr;
+    }
+  }
+
   // Allocate memory for new vector
-  data_ = reinterpret_cast<complex_t*>(malloc(sizeof(complex_t) * data_size_));
+  if (data_ == nullptr)
+    data_ = reinterpret_cast<complex_t*>(malloc(sizeof(complex_t) * data_size_));
 }
 
 
