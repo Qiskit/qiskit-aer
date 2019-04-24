@@ -5,7 +5,7 @@ We appreciate all kinds of help, so thank you!
 ## Issue Reporting
 
 This is a good point to start, when you find a problem please add
-it to the [issue tracker](<https://github.com/Qiskit/qiskit-aer/issues).
+it to the [issue tracker](https://github.com/Qiskit/qiskit-aer/issues).
 The ideal report should include the steps to reproduce it.
 
 ## Doubts Solving

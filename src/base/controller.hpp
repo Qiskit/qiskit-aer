@@ -588,13 +588,12 @@ json_t Controller::execute_circuit(Circuit &circ) {
       // Vector to store parallel thread output data
       std::vector<OutputData> data(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
-      for (int i = 0; i < parallel_shots_; ++i)
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
-      for (int j = 0; j < parallel_shots_; j++) {
+      for (int i = 0; i < parallel_shots_; i++) {
         try {
-          data[j] = run_circuit(circ, subshots[j], circ.seed + j);
+          data[i] = run_circuit(circ, subshots[i], circ.seed + i);
         } catch (std::runtime_error error) {
-          error_msgs[j] = error.what();
+          error_msgs[i] = error.what();
         }
       }
 
