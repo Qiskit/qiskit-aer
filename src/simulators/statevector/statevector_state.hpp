@@ -444,6 +444,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::matrix_sequence:
         apply_matrix_sequence(op.regs, op.mats);
+	break;
       case Operations::OpType::multiplexer:
         apply_multiplexer(op.regs[0], op.regs[1], op.mats);
         break;
