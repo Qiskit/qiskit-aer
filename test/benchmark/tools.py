@@ -7,7 +7,7 @@ from itertools import repeat
 from numpy import random
 from scipy import linalg
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.quantum_info.operators import Unitary
+from qiskit.quantum_info.synthesis import two_qubit_kak
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import depolarizing_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
@@ -84,8 +84,12 @@ def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
             X = (rng.randn(4, 4) + 1j * rng.randn(4, 4))
             SU4, _ = linalg.qr(X)  # Q is a unitary matrix
             SU4 /= pow(linalg.det(SU4), 1 / 4)  # make Q a special unitary
+            # Convert unitary to an instruction using the 2-qubit KAK decomposition
+            # We then convert the resulting two-qubit circuit into an instruction
+            # to insert back into the original circuit
+            su4_instruction = two_qubit_kak(SU4).to_instruction()
             qubits = [qr[int(perm[2 * k])], qr[int(perm[2 * k + 1])]]
-            circuit.append(Unitary(SU4), qubits)
+            circuit.append(su4_instruction, qubits)
     if measure is True:
         circuit = _add_measurements(circuit, qr)
     return circuit
