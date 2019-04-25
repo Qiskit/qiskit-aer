@@ -37,7 +37,7 @@ def reset_noise_model():
     noise_model = NoiseModel()
     error1 = thermal_relaxation_error(50, 50, 0.1)
     noise_model.add_all_qubit_quantum_error(error1, ['u1', 'u2', 'u3'])
-    error2 = error1.kron(error1)
+    error2 = error1.tensor(error1)
     noise_model.add_all_qubit_quantum_error(error2, ['cx'])
     return noise_model
 
@@ -47,7 +47,7 @@ def kraus_noise_model():
     noise_model = NoiseModel()
     error1 = amplitude_damping_error(0.1)
     noise_model.add_all_qubit_quantum_error(error1, ['u1', 'u2', 'u3'])
-    error2 = error1.kron(error1)
+    error2 = error1.tensor(error1)
     noise_model.add_all_qubit_quantum_error(error2, ['cx'])
     return noise_model
 
