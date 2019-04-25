@@ -425,13 +425,13 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
     } else if (op.name == "s") {    // Phase gate (aka sqrt(Z) gate)
       return Utils::Matrix::S;
     } else if (op.name == "sdg") {  // Conjugate-transpose of Phase gate
-      return Utils::Matrix::Sdg;
+      return Utils::Matrix::SDG;
     } else if (op.name == "h") {    // Hadamard gate (X + Z / sqrt(2))
       return Utils::Matrix::H;
     } else if (op.name == "t") {    // T-gate (sqrt(S))
       return Utils::Matrix::T;
     } else if (op.name == "tdg") {  // Conjguate-transpose of T gate
-      return Utils::Matrix::Tdg;
+      return Utils::Matrix::TDG;
     } else if (op.name == "u0") {   // idle gate in multiples of X90
       return Utils::Matrix::I;
     } else if (op.name == "u1") {   // zero-X90 pulse waltz gate
@@ -440,9 +440,9 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
         { {0, 0}, std::exp( complex_t(0, 1.) * std::real(op.params[0])) }}
       );
     } else if (op.name == "u2") {   // single-X90 pulse waltz gate
-      return Utils::Matrix::U3( M_PI / 2., std::real(op.params[0]), std::real(op.params[1]));
+      return Utils::Matrix::u3( M_PI / 2., std::real(op.params[0]), std::real(op.params[1]));
     } else if (op.name == "u3" || op.name == "U") {   // two X90 pulse waltz gate
-      return Utils::Matrix::U3( std::real(op.params[0]), std::real(op.params[1]), std::real(op.params[2]));
+      return Utils::Matrix::u3( std::real(op.params[0]), std::real(op.params[1]), std::real(op.params[2]));
     // Two-qubit gates
     } else if (op.name == "CX" || op.name == "cx") {   // Controlled-X gate (CNOT)
       return Utils::Matrix::CX;

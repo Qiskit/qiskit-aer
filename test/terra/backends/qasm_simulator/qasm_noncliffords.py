@@ -286,4 +286,4 @@ class QasmNonCliffordTestsMinimalBasis:
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = self.SIMULATOR.run(qobj).result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=0.1 * shots)
