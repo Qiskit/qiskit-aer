@@ -16,7 +16,6 @@
 #include "framework/json.hpp"
 #include "base/state.hpp"
 #include "qubitvector.hpp"
-#include "simulators/qasm/basic_optimization.hpp"
 
 
 namespace AER {
@@ -46,7 +45,7 @@ class State : public Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;
 
-  State();
+  State() = default;
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -318,16 +317,6 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"register", Snapshots::cregister}
 });
 
-//-------------------------------------------------------------------------
-// Constructor
-//-------------------------------------------------------------------------
-
-template <class statevec_t>
-State<statevec_t>::State() {
-  BaseState::add_circuit_optimization(ReduceNop());
-  BaseState::add_circuit_optimization(Fusion());
-  BaseState::add_circuit_optimization(TruncateQubits());
-}
 
 //=========================================================================
 // Implementation: Base class method overrides
@@ -391,9 +380,6 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
-
-  // Set base controller config
-  BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "chop_threshold", config);

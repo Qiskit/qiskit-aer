@@ -12,6 +12,7 @@
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/qasm/basic_optimization.hpp"
 
 
 namespace AER {
@@ -233,6 +234,9 @@ protected:
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
+  add_circuit_optimization(ReduceNop());
+  add_circuit_optimization(Fusion());
+  add_circuit_optimization(TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
@@ -474,8 +478,8 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    Circuit opt_noise_circ = optimize_circuit(noise_circ, state, data);
-    run_single_shot(opt_noise_circ, state, initial_state, data, rng);
+    noise_circ = optimize_circuit(noise_circ, state, data);
+    run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
 }
 
@@ -488,7 +492,8 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                OutputData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
-  Circuit opt_circ = optimize_circuit(circ, state, data);
+  Circuit opt_circ;
+  opt_circ = optimize_circuit(circ, state, data);
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);

@@ -537,14 +537,14 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
 }
 
 reg_t TruncateQubits::generate_mapping(const Circuit& circ) const {
-  reg_t mapping;
+  size_t not_used = circ.num_qubits + 1;
+  reg_t mapping = reg_t(circ.num_qubits, not_used);
 
-  for (const op_t& op: circ.ops) {
-    for (size_t qubit: op.qubits) {
-      if (std::find(mapping.begin(), mapping.end(), qubit) == mapping.end())
-        mapping.push_back(qubit);
-    }
-  }
+  for (const op_t& op: circ.ops)
+    for (size_t qubit: op.qubits)
+      mapping[qubit] = qubit;
+
+  mapping.erase(std::remove(mapping.begin(), mapping.end(), not_used), mapping.end());
 
   return mapping;
 }
@@ -572,21 +572,13 @@ bool TruncateQubits::can_apply(const Circuit& circ) const {
 
 bool TruncateQubits::can_apply(const op_t& op) const {
   switch (op.type) {
-  case optype_t::gate:
-  case optype_t::measure:
-  case optype_t::reset:
-  case optype_t::bfunc:
-  case optype_t::barrier:
-  case optype_t::roerror:
-  case optype_t::initialize:
-    return true;
-  case optype_t::matrix: //TODO
   case optype_t::matrix_sequence: //TODO
   case optype_t::kraus: //TODO
   case optype_t::snapshot:
   case optype_t::noise_switch:
-  default:
     return false;
+  default:
+    return true;
   }
 }
 
