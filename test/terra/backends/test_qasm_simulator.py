@@ -52,7 +52,6 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmFusionTests,
                         QasmQubitsTruncateTests,
                         QasmBasicsTests):
->>>>>>> upstream/master
     """QasmSimulator automatic method tests."""
 
 
