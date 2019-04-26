@@ -64,6 +64,20 @@ class NoiseModel:
         """Return the set of noisy instructions for this noise model."""
         return self._noise_instructions
 
+    def add_basis_gates(self, instructions):
+        """Add additional gates to the noise model basis_gates.
+
+        This should be used to add any gates that are identified by a
+        custom gate label in the noise model.
+
+        Args:
+            instructions (list[str] or
+                          list[Instruction]): the instructions error applies to.
+        """
+        names = self._instruction_names(instructions)
+        for inst in names:
+            self._basis_gates.add(inst)
+
     def set_x90_single_qubit_gates(self, instructions):
         """
         Declares X90 based gates for noise model.
@@ -77,9 +91,6 @@ class NoiseModel:
         """
         names = self._instruction_names(instructions)
         for inst in names:
-            # Check the input is actually a string
-            if not isinstance(inst, str):
-                raise NoiseError("Qobj invalid instructions.")
             # Add X-90 based gate to noisy gates
             self._noise_instructions.add(inst)
             self._basis_gates.add(inst)
