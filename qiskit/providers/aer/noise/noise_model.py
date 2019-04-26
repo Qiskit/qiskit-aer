@@ -84,7 +84,7 @@ class NoiseModel:
                 self._basis_gates.add(inst)
             elif warnings:
                 logger.warning(
-                    "Warning: Adding a gate %s to basis_gates which is "
+                    "Warning: Adding a gate \"%s\" to basis_gates which is "
                     "not in QasmSimulator basis_gates.", inst)
 
     def set_x90_single_qubit_gates(self, instructions):
@@ -157,7 +157,7 @@ class NoiseModel:
                         "\"%s\" will not apply to qubits: "
                         "%s as specific error already exists.", inst, local_qubits)
             self._noise_instructions.add(inst)
-            self.add_basis_gates(inst)
+            self.add_basis_gates(inst, warnings=False)
 
     def add_quantum_error(self, error, instructions, qubits, warnings=True):
         """
@@ -424,6 +424,7 @@ class NoiseModel:
         if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
             output += " Ideal"
         else:
+            output += "\n  Basis gates: {}".format(self.basis_gates)
             if self._noise_instructions:
                 output += "\n  Instructions with noise: {}".format(
                     list(self._noise_instructions))

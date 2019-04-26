@@ -97,7 +97,7 @@ class QuantumError:
 
         # Convert operator subclasses into Kraus list
         if issubclass(noise_ops.__class__, BaseOperator) or hasattr(
-                noise_ops, 'to_channel') or hasattr(noise_ops, 'to_operator'):
+                noise_ops, 'to_quantumchannel') or hasattr(noise_ops, 'to_operator'):
             noise_ops, other = Kraus(noise_ops)._data
             if other is not None:
                 # A Kraus map with different left and right Kraus matrices
@@ -230,7 +230,7 @@ class QuantumError:
             return True
         return False
 
-    def to_channel(self):
+    def to_quantumchannel(self):
         """Convet the QuantumError to a SuperOp quantum channel."""
         # Initialize as an empty superoperator of the correct size
         dim = 2**self.number_of_qubits
@@ -240,6 +240,10 @@ class QuantumError:
             component = prob * circuit2superop(circuit, self.number_of_qubits)
             channel = channel + component
         return channel
+
+    def to_instruction(self):
+        """Convet the QuantumError to a circuit Instruction."""
+        return self.to_quantumchannel().to_instruction()
 
     def error_term(self, position):
         """
