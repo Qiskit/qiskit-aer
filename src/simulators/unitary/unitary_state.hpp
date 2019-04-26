@@ -152,7 +152,7 @@ protected:
   int omp_qubit_threshold_ = 6;
 
   // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
+  double json_chop_threshold_ = 1e-10;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -244,7 +244,7 @@ void State<data_t>::set_config(const json_t &config) {
   JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 

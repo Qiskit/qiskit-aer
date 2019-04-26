@@ -223,20 +223,16 @@ void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
 void State::set_config(const json_t &config)
 {
   // Set the error upper bound in the stabilizer rank approximation
-  JSON::get_value(approximation_error_, "ch_approximation_error", config); // DEPRECIATED
   JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
   // Set the number of samples used in the norm estimation routine
-  JSON::get_value(norm_estimation_samples_, "ch_norm_estimation_samples", config); // DEPRECIATED
   JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_samples", config);
   // Set the number of steps used in the metropolis sampler before we
   // consider the distribution as approximating the output
-  JSON::get_value(metropolis_mixing_steps_, "ch_mixing_time", config); // DEPRECIATED
   JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_mixing_time", config);
   //Set the threshold of the decomposition before we use omp
-  JSON::get_value(omp_threshold_rank_, "ch_parallel_threshold", config); // DEPRECIATED
   JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
   //Set the truncation threshold for the probabilities snapshot.
-  JSON::get_value(snapshot_chop_threshold_, "chop_threshold", config);
+  JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
   //Set the number of samples for the probabilities snapshot
   JSON::get_value(probabilities_snapshot_samples_, "probabilities_snapshot_samples", config);
 }

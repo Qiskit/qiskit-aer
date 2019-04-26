@@ -30,6 +30,8 @@ class QasmSimulator(AerBackend):
         `backend_options` kwarg diction for `QasmSimulator.run` or
         `qiskit.execute`
 
+        Simulation method option
+        ------------------------
         * "method" (str): Set the simulation method. Allowed values are:
             * "statevector": Uses a dense statevector simulation.
             * "stabilizer": uses a Clifford stabilizer state simulator that
@@ -42,15 +44,11 @@ class QasmSimulator(AerBackend):
             available memory, uses the statevector method. Otherwise, uses
             the extended_stabilizer method (Default: "automatic").
 
-        * "max_memory_mb" (int): Set the amount of memory (in MB)
-        the simulator has access to (Default: Maximum available)
+        General options
+        ---------------
 
-        * "initial_statevector" (vector_like): Sets a custom initial
-            statevector for the simulation instead of the all zero
-            initial state (Default: None).
-
-        * "chop_threshold" (double): Sets the threshold for truncating small
-            values to zero in the Result data (Default: 1e-15)
+        * "zero_threshold" (double): Sets the threshold for truncating
+            small values to zero in the result data (Default: 1e-10).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -70,47 +68,50 @@ class QasmSimulator(AerBackend):
             Note that this cannot be enabled at the same time as parallel
             experiment execution (Default: 1).
 
-        * "max_statevector_memory_mb" (int): Sets the maximum size of memory
+        * "max_memory_mb" (int): Sets the maximum size of memory
             to store a state vector. If a state vector needs more, an error
             is thrown. In general, a state vector of n-qubits uses 2^n complex
             values (16 Bytes). If set to 0, the maximum will be automatically
-            set to the system memory size (Default: 0).
+            set to half the system memory size (Default: 0).
 
+        "statevector" method options
+        ----------------------------
         * "statevector_parallel_threshold" (int): Sets the threshold that
             "n_qubits" must be greater than to enable OpenMP
             parallelization for matrix multiplication during execution of
             an experiment. If parallel circuit or shot execution is enabled
             this will only use unallocated CPU cores up to
             max_parallel_threads. Note that setting this too low can reduce
-            performance (Default: 12).
+            performance (Default: 14).
 
         * "statevector_sample_measure_opt" (int): Sets the threshold that
             the number of qubits must be greater than to enable a large
             qubit optimized implementation of measurement sampling. Note
             that setting this two low can reduce performance (Default: 10)
 
-        * "statevector_hpc_gate_opt" (bool): If set to True this enables
-            a different optimzied gate application routine that can
-            increase performance on systems with a large number of CPU
-            cores. For systems with a small number of cores it enabling
-            can reduce performance (Default: False).
+        "stabilizer" method options
+        ---------------------------
+        * "stabilizer_max_snapshot_probabilities" (int): (Default: 32)
 
-        * "extended_stabilizer_approximation_error" (double): Set the error
-            in the approximation for the extended_stabilizer method. A
-            smaller error needs more memory and computational time.
-            (Default: 0.05)
-
-        * "extended_stabilizer_disable_measurement_opt" (bool): Force the
-            simulator to re-run the monte-carlo step for every measurement.
-            Enabling this will improve the sampling accuracy if the output
-            distribution is strongly peaked, but requires more
-            computational time. (Default: True)
+        "extended_stabilizer" method options
+        ------------------------------------
+        * "extended_stabilizer_measure_sampling" (bool): Enable measure
+            sampling optimization on supported circuits. This prevents the
+            simulator from re-running the measure monte-carlo step for each
+            shot. Enabling measure sampling may reduce accuracy of the
+            measurement counts if the output distribution is strongly
+            peaked. (Default: False)
 
         * "extended_stabilizer_mixing_time" (int): Set how long the
             monte-carlo method runs before performing measurements. If the
             output distribution is strongly peaked, this can be decreased
             alongside setting extended_stabilizer_disable_measurement_opt
             to True. (Default: 5000)
+
+        * "extended_stabilizer_approximation_error" (double): Set the error
+            in the approximation for the extended_stabilizer method. A
+            smaller error needs more memory and computational time.
+            (Default: 0.05)
 
         * "extended_stabilizer_norm_estimation_samples" (int): Number of
             samples used to compute the correct normalisation for a
