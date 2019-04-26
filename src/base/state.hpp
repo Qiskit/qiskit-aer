@@ -309,8 +309,6 @@ void State<state_t>::add_creg_to_data(OutputData &data) const {
     data.add_register_singleshot(creg_.register_hex());
   }
 }
-
-
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

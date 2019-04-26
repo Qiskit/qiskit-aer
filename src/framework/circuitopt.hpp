@@ -17,8 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "base/controller.hpp"
-#include "base/state.hpp"
+#include "framework/operations.hpp"
 
 namespace AER {
 

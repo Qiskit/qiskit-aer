@@ -236,6 +236,7 @@ protected:
 QasmController::QasmController() {
   add_circuit_optimization(ReduceNop());
   add_circuit_optimization(Fusion());
+  add_circuit_optimization(TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
