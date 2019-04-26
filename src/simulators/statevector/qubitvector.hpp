@@ -2073,6 +2073,13 @@ double QubitVector<data_t>::norm(const uint_t qubit, const cvector_t &mat) const
   #ifdef DEBUG
   check_vector(mat, 2);
   #endif
+
+  // Check if input matrix is diagonal, and if so use diagonal function.
+  if (mat[1] == 0.0 && mat[2] == 0.0) {
+    const cvector_t diag = {{mat[0], mat[3]}};
+    return norm_diagonal(qubit, diag);
+  }
+
   // Lambda function for norm reduction to real value.
   auto lambda = [&](const areg_t<2> &inds,
                     const cvector_t &_mat,
