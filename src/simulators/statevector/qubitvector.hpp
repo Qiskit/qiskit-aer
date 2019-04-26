@@ -1211,7 +1211,7 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
 
   for (size_t m = 1; m < sorted_mats.size(); m++) {
 
-    cvector_t u_tmp(U.size(), (0., 0.));
+    cvector_t u_tmp(U.size(), 0.);
     const cvector_t& u = sorted_mats[m];
 
     for (size_t i = 0; i < dim; ++i)
@@ -1825,7 +1825,7 @@ cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_
   const auto src_dim = BITS[src_qubits.size()];
 
   // generate a matrix for op
-  cvector_t u(dst_vmat_size, (.0, .0));
+  cvector_t u(dst_vmat_size, .0);
   std::vector<bool> filled(dst_dim, false);
 
   if (src_qubits.size() == 1) { //1-qubit operation
@@ -2146,8 +2146,8 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   if (N == 1)
     return probabilities(qubits[0]);
 
-  const uint_t DIM = BITS[N];
-  const uint_t END = BITS[num_qubits_ - N];
+  const int_t DIM = BITS[N];
+  const int_t END = BITS[num_qubits_ - N];
 
   // Error checking
   #ifdef DEBUG

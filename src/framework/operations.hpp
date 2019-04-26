@@ -32,7 +32,7 @@ enum class OpType {
   matrix, matrix_sequence, kraus, roerror, noise_switch, initialize
 };
 
-std::ostream& operator<<(std::ostream& stream, const OpType& type) {
+inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   switch (type) {
   case OpType::gate:
     stream << "gate";
@@ -120,7 +120,7 @@ struct Op {
                                                         // M x 1 column-matrices
 };
 
-std::ostream& operator<<(std::ostream& s, const Op& op) {
+inline std::ostream& operator<<(std::ostream& s, const Op& op) {
   s << op.name << "[";
   bool first = true;
   for (size_t qubit: op.qubits) {
@@ -205,7 +205,7 @@ public:
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
 
-std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
+inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
   s << "optypes={";
   bool first = true;
   for (OpType optype: opset.optypes) {

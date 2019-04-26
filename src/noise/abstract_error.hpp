@@ -22,6 +22,10 @@ namespace Noise {
 class AbstractError {
 public:
 
+  // Constructors
+  AbstractError() = default;
+  virtual ~AbstractError() = default;
+
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
 

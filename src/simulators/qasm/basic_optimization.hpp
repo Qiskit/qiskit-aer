@@ -190,7 +190,6 @@ void Fusion::optimize_circuit(Circuit& circ,
   optimized_ops.clear();
   oplist_t buffer;
 
-  int idx = 0;
   for (const op_t op: circ.ops) {
     if (can_ignore(op))
       continue;
@@ -213,7 +212,9 @@ void Fusion::optimize_circuit(Circuit& circ,
     ret = true;
   }
 
-  circ.ops = optimized_ops;
+  if (ret) {
+    circ.ops = optimized_ops;
+  }
 
   if (verbose_) {
     data.add_additional_data("metadata",
@@ -266,7 +267,7 @@ oplist_t Fusion::aggregate(const oplist_t& original) const {
 
   int applied_total = 0;
   // calculate the minimal path to each operation in the circuit
-  for (int i = 0; i < original.size(); ++i) {
+  for (size_t i = 0; i < original.size(); ++i) {
     bool applied = false;
 
     // first, fusion from i-th to i-th

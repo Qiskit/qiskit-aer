@@ -145,7 +145,7 @@ protected:
                         const Initstate_t &initial_state) const;
 
   // Set parallelization for qasm simulator
-  virtual void set_parallelization(const Circuit& circ) override;
+  virtual void set_parallelization_circuit(const Circuit& circ) override;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -397,7 +397,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
   }
 }
 
-void QasmController::set_parallelization(const Circuit& circ) {
+void QasmController::set_parallelization_circuit(const Circuit& circ) {
 
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
@@ -411,7 +411,7 @@ void QasmController::set_parallelization(const Circuit& circ) {
       }
     }
     default: {
-      Base::Controller::set_parallelization(circ);
+      Base::Controller::set_parallelization_circuit(circ);
     }
   }
 }

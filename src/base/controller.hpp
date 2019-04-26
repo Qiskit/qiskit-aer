@@ -215,10 +215,10 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  virtual void set_parallelization(const std::vector<Circuit>& circuits);
+  virtual void set_parallelization_experiments(const std::vector<Circuit>& circuits);
 
   // Set parallelization for a circuit
-  virtual void set_parallelization(const Circuit& circuit);
+  virtual void set_parallelization_circuit(const Circuit& circuit);
 
   // Return an estimate of the required memory for a circuit.
   virtual size_t required_memory_mb(const Circuit& circuit) const = 0;
@@ -300,7 +300,7 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
 }
 
-void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
+void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits) {
 
   if (max_parallel_experiments_ <= 0)
     return;
@@ -330,12 +330,12 @@ void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
   }
 }
 
-void Controller::set_parallelization(const Circuit& circ) {
+void Controller::set_parallelization_circuit(const Circuit& circ) {
 
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
 
-  auto circ_memory_mb = required_memory_mb(circ);
+  int circ_memory_mb = required_memory_mb(circ);
 
   if (max_memory_mb_ < circ_memory_mb)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
@@ -418,7 +418,7 @@ bool Controller::validate_memory_requirements(state_t &state,
   if (max_memory_mb_ == 0)
     return true;
 
-  auto required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  int required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
   if(max_memory_mb_ < required_mb) {
     if(throw_except) {
       std::string name = "";
@@ -501,7 +501,7 @@ json_t Controller::execute(const json_t &qobj_js) {
     #endif
 
     // set parallelization for experiments
-    set_parallelization(qobj.circuits);
+    set_parallelization_experiments(qobj.circuits);
 
   #ifdef _OPENMP
     result["metadata"]["omp_enabled"] = true;
@@ -569,7 +569,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
   try {
     // set parallelization for this circuit
     if (parallel_experiments_ == 1)
-      set_parallelization(circ);
+      set_parallelization_circuit(circ);
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       result["data"] = run_circuit(circ, circ.shots, circ.seed);
@@ -592,7 +592,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       for (int i = 0; i < parallel_shots_; i++) {
         try {
           data[i] = run_circuit(circ, subshots[i], circ.seed + i);
-        } catch (std::runtime_error error) {
+        } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
       }
