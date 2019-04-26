@@ -306,7 +306,7 @@ def _device_thermal_relaxation_error(qubits,
     # for any multi qubit gates
     first = True
     error = None
-    for qubit in reversed(qubits):
+    for qubit in qubits:
         t1, t2, freq = relax_params[qubit]
         population = _excited_population(freq, temperature)
         if first:
@@ -314,7 +314,7 @@ def _device_thermal_relaxation_error(qubits,
             first = False
         else:
             single = thermal_relaxation_error(t1, t2, gate_time, population)
-            error = error.kron(single)
+            error = error.expand(single)
     return error
 
 

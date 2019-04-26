@@ -20,8 +20,7 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from test.terra.reference import ref_unitary_gate
 
-from qiskit import execute
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit import execute, assemble
 from qiskit.providers.aer import StatevectorSimulator
 
 
@@ -35,7 +34,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         """Test StatevectorSimulator initialize"""
         circuits = ref_initialize.initialize_circuits_1(final_measure=False)
         targets = ref_initialize.initialize_statevector_1()
-        qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
+        qobj = assemble(circuits, shots=1)
         sim_job = StatevectorSimulator().run(qobj)
         result = sim_job.result()
         self.is_completed(result)
@@ -45,7 +44,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         """Test StatevectorSimulator initialize"""
         circuits = ref_initialize.initialize_circuits_2(final_measure=False)
         targets = ref_initialize.initialize_statevector_2()
-        qobj = assemble_circuits(circuits, run_config=RunConfig(shots=1))
+        qobj = assemble(circuits, shots=1)
         sim_job = StatevectorSimulator().run(qobj)
         result = sim_job.result()
         self.is_completed(result)

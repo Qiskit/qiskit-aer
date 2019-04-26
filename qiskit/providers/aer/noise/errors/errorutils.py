@@ -428,7 +428,7 @@ def circuit2superop(circuit, min_qubits=1):
             qubits = instr.qubits
         else:
             qubits = instr['qubits']
-        superop = superop.compose(instr_op, qubits=qubits)
+        superop = superop.compose(instr_op, qubits)
     return superop
 
 
