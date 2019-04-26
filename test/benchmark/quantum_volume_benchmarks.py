@@ -37,7 +37,7 @@ class QuantumVolumeTimeSuite:
         self.timeout = 60 * 20
         self.qv_circuits = []
         self.backend = QasmSimulator()
-        for num_qubits in (16, ):
+        for num_qubits in (5, 10, 15):
             for depth in (10, ):
                 # We want always the same seed, as we want always the same circuits
                 # for the same value pairs of qubits,depth
@@ -56,7 +56,7 @@ class QuantumVolumeTimeSuite:
             kraus_noise_model()
         ])
 
-    def setup(self, qobj):
+    def setup(self, qobj, noise_model_wrapper):
         pass
 
     def time_quantum_volume(self, qobj, noise_model_wrapper):
