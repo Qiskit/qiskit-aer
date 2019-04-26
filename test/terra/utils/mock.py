@@ -17,6 +17,7 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
+import datetime
 import uuid
 import logging
 from concurrent import futures
@@ -79,15 +80,16 @@ class FakeBackend(BaseBackend):
 
     def properties(self):
         """Return backend properties"""
+        dummy_date = datetime.datetime.now().isoformat()
         properties = {
             'backend_name': self.name(),
             'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+            'last_update_date': dummy_date,
+            'qubits': [[{'name': 'TODO', 'date': dummy_date,
                          'unit': 'TODO', 'value': 0}]],
             'gates': [{'qubits': [0], 'gate': 'TODO',
                        'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                           [{'name': 'TODO', 'date': dummy_date,
                              'unit': 'TODO', 'value': 0}]}],
             'general': []
         }
