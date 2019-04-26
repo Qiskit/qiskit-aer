@@ -2142,6 +2142,10 @@ template <typename data_t>
 rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
 
   const size_t N = qubits.size();
+
+  if (N == 1)
+    return probabilities(qubits[0]);
+
   const uint_t DIM = BITS[N];
   const uint_t END = BITS[num_qubits_ - N];
 

@@ -7,12 +7,23 @@ from itertools import repeat
 from numpy import random
 from scipy import linalg
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.quantum_info.operators import Unitary
+from qiskit.quantum_info.synthesis import two_qubit_kak
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import depolarizing_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors import thermal_relaxation_error
 
+class NoiseWithDescription:
+    """ This is just a wrapper for adding a descriptive text to the noise model
+    so ASV can print this text in its reports
+    """
+    def __init__(self, noise_model, description):
+        self._noise_model = noise_model
+        self._description = description
+    def __repr__(self):
+        return self._description
+    def __call__(self):
+        return self._noise_model
 
 def _add_measurements(circuit, qr):
     cr = ClassicalRegister(qr.size)
@@ -22,6 +33,11 @@ def _add_measurements(circuit, qr):
     return circuit + meas
 
 
+def no_noise():
+    """ No noise at all """
+    return NoiseWithDescription(None, "No Noise")
+
+
 def mixed_unitary_noise_model():
     """Return test rest mixed unitary noise model"""
     noise_model = NoiseModel()
@@ -29,7 +45,7 @@ def mixed_unitary_noise_model():
     noise_model.add_all_qubit_quantum_error(error1, ['u1', 'u2', 'u3'])
     error2 = depolarizing_error(0.1, 2)
     noise_model.add_all_qubit_quantum_error(error2, ['cx'])
-    return noise_model
+    return NoiseWithDescription(noise_model, "Mixed Unitary Noise")
 
 
 def reset_noise_model():
@@ -37,9 +53,9 @@ def reset_noise_model():
     noise_model = NoiseModel()
     error1 = thermal_relaxation_error(50, 50, 0.1)
     noise_model.add_all_qubit_quantum_error(error1, ['u1', 'u2', 'u3'])
-    error2 = error1.kron(error1)
+    error2 = error1.tensor(error1)
     noise_model.add_all_qubit_quantum_error(error2, ['cx'])
-    return noise_model
+    return NoiseWithDescription(noise_model, "Reset Noise")
 
 
 def kraus_noise_model():
@@ -47,9 +63,9 @@ def kraus_noise_model():
     noise_model = NoiseModel()
     error1 = amplitude_damping_error(0.1)
     noise_model.add_all_qubit_quantum_error(error1, ['u1', 'u2', 'u3'])
-    error2 = error1.kron(error1)
+    error2 = error1.tensor(error1)
     noise_model.add_all_qubit_quantum_error(error2, ['cx'])
-    return noise_model
+    return NoiseWithDescription(noise_model, "Kraus Noise")
 
 
 def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
@@ -84,8 +100,12 @@ def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
             X = (rng.randn(4, 4) + 1j * rng.randn(4, 4))
             SU4, _ = linalg.qr(X)  # Q is a unitary matrix
             SU4 /= pow(linalg.det(SU4), 1 / 4)  # make Q a special unitary
+            # Convert unitary to an instruction using the 2-qubit KAK decomposition
+            # We then convert the resulting two-qubit circuit into an instruction
+            # to insert back into the original circuit
+            su4_instruction = two_qubit_kak(SU4).to_instruction()
             qubits = [qr[int(perm[2 * k])], qr[int(perm[2 * k + 1])]]
-            circuit.append(Unitary(SU4), qubits)
+            circuit.append(su4_instruction, qubits)
     if measure is True:
         circuit = _add_measurements(circuit, qr)
     return circuit
