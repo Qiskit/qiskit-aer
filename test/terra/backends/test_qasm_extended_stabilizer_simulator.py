@@ -19,7 +19,7 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from test.terra.reference import ref_algorithms
 
-from qiskit import compile as qiskit_compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         # count output circuits
         shots = 100
         circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj, backend_options={"method": "extended_stabilizer"})
@@ -52,7 +52,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_reset.reset_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -72,7 +72,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -89,7 +89,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=False)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj, backend_options={"method": "extended_stabilizer"})
@@ -102,7 +102,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -119,7 +119,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj, backend_options={"method": "extended_stabilizer"})
@@ -208,7 +208,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_conditionals.conditional_circuits_1bit(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_1bit(shots)
         job = QasmSimulator().run(
             qobj,
@@ -225,7 +225,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_2bit(shots)
         job = QasmSimulator().run(
             qobj,
@@ -245,7 +245,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -262,7 +262,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -282,7 +282,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -302,7 +302,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -322,7 +322,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -342,7 +342,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -359,7 +359,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -379,7 +379,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -396,7 +396,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         """Test sdg-gate circuits compiling to backend default basis_gates."""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -416,7 +416,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -433,7 +433,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -453,7 +453,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -470,7 +470,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -490,7 +490,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -507,7 +507,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 2000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -527,7 +527,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_non_clifford.t_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -543,7 +543,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 500
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -563,7 +563,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -580,7 +580,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 500
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -600,7 +600,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -617,7 +617,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 500
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         job = QasmSimulator().run(
             qobj,
@@ -637,7 +637,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         shots = 500
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.grovers_counts(shots)
         job = QasmSimulator().run(
             qobj,
@@ -653,7 +653,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         """Test teleport circuits compiling to backend default basis_gates."""
         shots = 1000
         circuits = ref_algorithms.teleport_circuit()
-        qobj = qiskit_compile(circuits, QasmSimulator(), shots=shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.teleport_counts(shots)
         job = QasmSimulator().run(
             qobj,

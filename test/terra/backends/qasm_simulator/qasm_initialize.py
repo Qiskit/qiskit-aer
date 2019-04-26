@@ -9,7 +9,7 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_initialize
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -29,7 +29,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -42,7 +42,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -53,7 +53,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)

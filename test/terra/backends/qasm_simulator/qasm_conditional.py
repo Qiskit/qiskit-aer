@@ -9,7 +9,7 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_conditionals
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -28,7 +28,7 @@ class QasmConditionalTests:
         circuits = ref_conditionals.conditional_circuits_1bit(
             final_measure=True)
         targets = ref_conditionals.conditional_counts_1bit(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -40,7 +40,7 @@ class QasmConditionalTests:
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True)
         targets = ref_conditionals.conditional_counts_2bit(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
