@@ -9,8 +9,7 @@ QasmSimulator Integration Tests
 """
 from test.terra.utils.mock import FakeFailureQasmSimulator, FakeSuccessQasmSimulator
 from qiskit.transpiler import transpile
-from qiskit.compiler import assemble_circuits
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import assemble, QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import AerError
 
 
@@ -24,7 +23,7 @@ class QasmBasicsTests:
         cr = ClassicalRegister(1)
         succeed_circuit = QuantumCircuit(qr, cr)
         quantum_circuit = transpile(succeed_circuit, mocked_backend)
-        qobj = assemble_circuits(quantum_circuit)
+        qobj = assemble(quantum_circuit)
         result = mocked_backend.run(qobj).result()
         self.is_completed(result)
 
@@ -36,6 +35,6 @@ class QasmBasicsTests:
         cr = ClassicalRegister(1)
         failed_circuit = QuantumCircuit(qr, cr)
         quantum_circuit = transpile(failed_circuit, mocked_backend)
-        qobj = assemble_circuits(quantum_circuit)
+        qobj = assemble(quantum_circuit)
         job = mocked_backend.run(qobj)
         self.assertRaises(AerError, job.result)
