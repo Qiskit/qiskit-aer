@@ -27,6 +27,8 @@ Added
 
 Changed
 -------
+- Depreciated "initial_statevector" backend option for QasmSimulator and StatevectorSimulator (#185)
+- Rename "chop_threshold" backend option to "zero_threshold" and change default value to 1e-10 (#185).
 - Add an optional parameter to `NoiseModel.as_dict()` for returning dictionaries that can be
   serialized using the standard `json` library directly. (#165)
 

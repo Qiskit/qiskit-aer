@@ -8,8 +8,8 @@
 QasmSimulator Integration Tests
 """
 from test.terra.utils.mock import FakeFailureQasmSimulator, FakeSuccessQasmSimulator
-from qiskit.transpiler import transpile
-from qiskit import assemble, QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.aer import AerError
 
 

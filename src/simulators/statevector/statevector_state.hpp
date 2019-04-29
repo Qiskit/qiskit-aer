@@ -255,7 +255,7 @@ protected:
   int sample_measure_index_size_ = 10;
 
   // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
+  double json_chop_threshold_ = 1e-10;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -382,7 +382,7 @@ template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions

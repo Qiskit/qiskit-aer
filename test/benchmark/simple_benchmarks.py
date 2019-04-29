@@ -36,7 +36,7 @@ class SimpleU3TimeSuite:
         self.circuits = []
         for i in 5, 10, 15:
             circuit = simple_u3_circuit(i)
-            self.circuits.append(Terra.compile(circuit, self.backend, shots=1))
+            self.circuits.append(Terra.assemble(circuit, self.backend, shots=1))
 
         self.param_names = [
             "Simple u3 circuits", "Noise Model"
@@ -71,7 +71,7 @@ class SimpleCxTimeSuite:
         ]
         for i in 5, 10, 15:
             circuit = simple_cnot_circuit(i)
-            self.circuits.append(Terra.compile(circuit, self.backend, shots=1))
+            self.circuits.append(Terra.assemble(circuit, self.backend, shots=1))
         self.params = (self.circuits, [
             no_noise(),
             mixed_unitary_noise_model(),

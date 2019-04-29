@@ -29,8 +29,8 @@ namespace Simulator {
  * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
- * - "chop_threshold" (double): Threshold for truncating small values to
- *      zero in result data [Default: 1e-15]
+ * - "zero_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-10]
  * - "statevector_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 13]
@@ -222,8 +222,7 @@ protected:
   // TODO: initial stabilizer state
 
   // Controller-level parameter for CH method
-
-  bool extended_stabilizer_disable_measurement_opt_ = true;
+  bool extended_stabilizer_measure_sampling_ = false;
 };
 
 //=========================================================================
@@ -291,7 +290,8 @@ void QasmController::set_config(const json_t &config) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
-  JSON::get_value(extended_stabilizer_disable_measurement_opt_, "disable_measurement_opt", config);
+  JSON::get_value(extended_stabilizer_measure_sampling_,
+                  "extended_stabilizer_measure_sampling", config);
 }
 
 void QasmController::clear_config() {
@@ -527,8 +527,8 @@ std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
   // are no reset or initialize operations before the measurement
-  if(simulation_method(circ) == Method::extended_stabilizer && extended_stabilizer_disable_measurement_opt_)
-  {
+  if(simulation_method(circ) == Method::extended_stabilizer
+     && !extended_stabilizer_measure_sampling_) {
     return std::make_pair(false, 0);
   }
   auto start = circ.ops.begin();
