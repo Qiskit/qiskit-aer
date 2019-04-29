@@ -442,14 +442,11 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   for (const auto &param : op.params_expval_pauli) {
     pauli_matrices += param.second;
   }
-  cout << "pauli matrices = " << pauli_matrices <<endl;
   expval = qreg_.Expectation_value(op.qubits, pauli_matrices);
-  cout << "expval = " << expval <<endl;
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
   //expval += coeff * std::real(BaseState::qreg_.inner_product());
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
-  cout << "after call to data.add_singleshot_snapshot"<<endl;
   
 //qreg_.revert(false);
     // Revert to original state
@@ -468,16 +465,11 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   // Look for gate name in gateset
 
   auto it = gateset_.find(op.name);
-  cout << "gate name = "<< op.name<<endl;
   if (it == gateset_.end())
     throw std::invalid_argument(
       "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
   
   //expval = qreg_.Expectation_value_internal(op);
-  cout << "expval = " << expval <<endl;
-
-					  
-    
 }
 
 //=========================================================================
@@ -509,35 +501,20 @@ void State::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
-      if (DEBUG) {
-	cout <<"gate cx on qubit " << op.qubits[0] <<" " << op.qubits[1] << endl;
-      }
       qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::id:
       break;
     case Gates::x:
-      if (DEBUG) {
-	cout <<"gate x on qubit " << op.qubits[0]<<endl;
-      }
       qreg_.apply_x(op.qubits[0]);
       break;
     case Gates::y:
-     if (DEBUG) {
-	cout <<"gate y on qubit " << op.qubits[0]<<endl;
-      }
       qreg_.apply_y(op.qubits[0]);
       break;
     case Gates::z:
-     if (DEBUG) {
-	cout <<"gate z on qubit " << op.qubits[0]<<endl;
-      }
       qreg_.apply_z(op.qubits[0]);
       break;
     case Gates::h:
-     if (DEBUG) {
-	cout <<"gate h on qubit " << op.qubits[0]<<endl;
-      }
       qreg_.apply_h(op.qubits[0]);
       break;
     case Gates::s:
