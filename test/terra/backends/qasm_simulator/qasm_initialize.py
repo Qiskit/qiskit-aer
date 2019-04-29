@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM Corp. 2017 and later.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_initialize
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -29,7 +34,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -42,7 +47,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -53,7 +58,7 @@ class QasmInitializeTests:
         shots = 2000
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)

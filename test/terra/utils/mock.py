@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM Corp. 2017 and later.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-docstring
 
@@ -17,6 +22,7 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
+import datetime
 import uuid
 import logging
 from concurrent import futures
@@ -79,15 +85,16 @@ class FakeBackend(BaseBackend):
 
     def properties(self):
         """Return backend properties"""
+        dummy_date = datetime.datetime.now().isoformat()
         properties = {
             'backend_name': self.name(),
             'backend_version': self.configuration().backend_version,
-            'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+            'last_update_date': dummy_date,
+            'qubits': [[{'name': 'TODO', 'date': dummy_date,
                          'unit': 'TODO', 'value': 0}]],
             'gates': [{'qubits': [0], 'gate': 'TODO',
                        'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
+                           [{'name': 'TODO', 'date': dummy_date,
                              'unit': 'TODO', 'value': 0}]}],
             'general': []
         }

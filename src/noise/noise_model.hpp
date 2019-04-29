@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_noise_model_hpp_
@@ -421,8 +428,9 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
   if (local_quantum_errors_ == false)
     return;
 
-  // Get op name, or label if it is a matrix
-  std::string name = (op.type == Operations::OpType::matrix)
+  // Get op name, or label if it is a gate or unitary matrix
+  std::string name = (op.type == Operations::OpType::matrix ||
+                      op.type == Operations::OpType::gate)
     ? op.string_params[0]
     : op.name;
 
@@ -485,8 +493,9 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
   if (nonlocal_quantum_errors_ == false)
     return;
   
-  // Get op name, or label if it is a matrix
-  std::string name = (op.type == Operations::OpType::matrix)
+  // Get op name, or label if it is a gate or unitary matrix
+  std::string name = (op.type == Operations::OpType::matrix ||
+                      op.type == Operations::OpType::gate)
     ? op.string_params[0]
     : op.name;
 

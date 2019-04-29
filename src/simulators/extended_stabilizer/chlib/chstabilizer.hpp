@@ -1,3 +1,17 @@
+/**
+ * This code is part of Qiskit.
+ *
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
+ */
+
 #ifndef CH_STABILIZER_HPP
 #define CH_STABILIZER_HPP
 
@@ -993,8 +1007,9 @@ double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std
     for (size_t i=0; i<L; i++)
     {
       double re_eta =0., im_eta = 0.;
+      const int_t END = states.size();
       #pragma omp parallel for reduction(+:re_eta) reduction(+:im_eta)
-      for (int_t j=0; j<states.size(); j++)
+      for (int_t j=0; j<END; j++)
       {
           if(states[j].ScalarPart().eps != 0)
           {

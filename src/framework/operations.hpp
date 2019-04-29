@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_framework_operations_hpp_
@@ -35,7 +42,7 @@ enum class OpType {
   matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
 };
 
-std::ostream& operator<<(std::ostream& stream, const OpType& type) {
+inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   switch (type) {
   case OpType::gate:
     stream << "gate";
@@ -126,8 +133,15 @@ struct Op {
                                                         // M x 1 column-matrices
 };
 
-std::ostream& operator<<(std::ostream& s, const Op& op) {
-  s << op.name;
+inline std::ostream& operator<<(std::ostream& s, const Op& op) {
+  s << op.name << "[";
+  bool first = true;
+  for (size_t qubit: op.qubits) {
+    if (!first) s << ",";
+    s << qubit;
+    first = false;
+  }
+  s << "]";
   return s;
 }
 
@@ -204,7 +218,7 @@ public:
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
 
-std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
+inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
   s << "optypes={";
   bool first = true;
   for (OpType optype: opset.optypes) {
@@ -397,6 +411,7 @@ inline Op make_u1(uint_t qubit, T lam) {
   op.name = "u1";
   op.qubits = {qubit};
   op.params = {lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -407,6 +422,7 @@ inline Op make_u2(uint_t qubit, T phi, T lam) {
   op.name = "u2";
   op.qubits = {qubit};
   op.params = {phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -417,6 +433,7 @@ inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   op.name = "u3";
   op.qubits = {qubit};
   op.params = {theta, phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -603,6 +620,15 @@ Op json_to_op_gate(const json_t &js) {
   JSON::get_value(op.name, "name", js);
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
+
+  // Check for optional label
+  // If label is not specified record the gate name as the label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if  (label != "") 
+    op.string_params = {label};
+  else
+    op.string_params = {op.name};
 
   // Check conditional
   if (JSON::check_key("conditional", js)) {

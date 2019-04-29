@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -401,7 +408,7 @@ protected:
   // Config settings
   //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 13;  // Qubit threshold for multithreading when enabled
+  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
@@ -1215,7 +1222,7 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
 
   for (size_t m = 1; m < sorted_mats.size(); m++) {
 
-    cvector_t u_tmp(U.size(), (0., 0.));
+    cvector_t u_tmp(U.size(), 0.);
     const cvector_t& u = sorted_mats[m];
 
     for (size_t i = 0; i < dim; ++i)
@@ -1863,7 +1870,7 @@ cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_
   const auto src_dim = BITS[src_qubits.size()];
 
   // generate a matrix for op
-  cvector_t u(dst_vmat_size, (.0, .0));
+  cvector_t u(dst_vmat_size, .0);
   std::vector<bool> filled(dst_dim, false);
 
   if (src_qubits.size() == 1) { //1-qubit operation
@@ -1958,51 +1965,148 @@ template <typename data_t>
 double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t &mat) const {
 
   const uint_t N = qubits.size();
-  const uint_t DIM = BITS[N];
+
   // Error checking
   #ifdef DEBUG
   check_vector(mat, 2 * N);
   #endif
 
-  // Lambda function for N-qubit matrix norm
-  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat, 
-                    double &val_re, double &val_im)->void {
-    (void)val_im; // unused
-    for (size_t i = 0; i < DIM; i++) {
-      complex_t vi = 0;
-      for (size_t j = 0; j < DIM; j++)
-        vi += _mat[i + DIM * j] * data_[inds[j]];
-      val_re += std::real(vi * std::conj(vi));
+  // Static array optimized lambda functions
+  switch (N) {
+    case 1:
+      return norm(qubits[0], mat);
+    case 2: {
+      // Lambda function for 2-qubit matrix norm
+      auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 4; i++) {
+          complex_t vi = 0;
+          for (size_t j = 0; j < 4; j++)
+            vi += _mat[i + 4 * j] * data_[inds[j]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<2> qubits_arr = {{qubits[0], qubits[1]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
     }
-  };
-  // Use the lambda function
-  return std::real(apply_reduction_lambda(lambda, qubits, mat));
+    case 3: {
+      // Lambda function for 3-qubit matrix norm
+      auto lambda = [&](const areg_t<8> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 8; i++) {
+          complex_t vi = 0;
+          for (size_t j = 0; j < 8; j++)
+            vi += _mat[i + 8 * j] * data_[inds[j]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<3> qubits_arr = {{qubits[0], qubits[1], qubits[2]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
+    }
+    case 4: {
+      // Lambda function for 4-qubit matrix norm
+      auto lambda = [&](const areg_t<16> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 16; i++) {
+          complex_t vi = 0;
+          for (size_t j = 0; j < 16; j++)
+            vi += _mat[i + 16 * j] * data_[inds[j]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<4> qubits_arr = {{qubits[0], qubits[1], qubits[2], qubits[3]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
+    }
+    default: {
+      // Lambda function for N-qubit matrix norm
+      const uint_t DIM = BITS[N];
+      auto lambda = [&](const indexes_t &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < DIM; i++) {
+          complex_t vi = 0;
+          for (size_t j = 0; j < DIM; j++)
+            vi += _mat[i + DIM * j] * data_[inds[j]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      // Use the lambda function
+      return std::real(apply_reduction_lambda(lambda, qubits, mat));
+    }
+  } // end switch
 }
 
 template <typename data_t>
 double QubitVector<data_t>::norm_diagonal(const reg_t &qubits, const cvector_t &mat) const {
 
   const uint_t N = qubits.size();
-  const uint_t DIM = BITS[N];
 
   // Error checking
   #ifdef DEBUG
   check_vector(mat, N);
   #endif
 
-  // Lambda function for N-qubit matrix norm
-  auto lambda = [&](const indexes_t &inds,
-                    const cvector_t &_mat,
-                    double &val_re,
-                    double &val_im)->void {
-    (void)val_im; // unused
-    for (size_t i = 0; i < DIM; i++) {
-      const auto vi = _mat[i] * data_[inds[i]];
-      val_re += std::real(vi * std::conj(vi));
+  // Static array optimized lambda functions
+  switch (N) {
+    case 1:
+      return norm_diagonal(qubits[0], mat);
+    case 2: {
+      // Lambda function for 2-qubit matrix norm
+      auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 4; i++) {
+          const auto vi = _mat[i] * data_[inds[i]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<2> qubits_arr = {{qubits[0], qubits[1]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
     }
-  };
-  // Use the lambda function
-  return std::real(apply_reduction_lambda(lambda, qubits, mat));
+    case 3: {
+      // Lambda function for 3-qubit matrix norm
+      auto lambda = [&](const areg_t<8> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 8; i++) {
+          const auto vi = _mat[i] * data_[inds[i]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<3> qubits_arr = {{qubits[0], qubits[1], qubits[2]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
+    }
+    case 4: {
+      // Lambda function for 4-qubit matrix norm
+      auto lambda = [&](const areg_t<16> &inds, const cvector_t &_mat, 
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < 16; i++) {
+          const auto vi = _mat[i] * data_[inds[i]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      areg_t<4> qubits_arr = {{qubits[0], qubits[1], qubits[2], qubits[3]}};
+      return std::real(apply_reduction_lambda(lambda, qubits_arr, mat));
+    }
+    default: {
+      // Lambda function for N-qubit matrix norm
+      const uint_t DIM = BITS[N];
+      auto lambda = [&](const indexes_t &inds, const cvector_t &_mat,
+                        double &val_re, double &val_im)->void {
+        (void)val_im; // unused
+        for (size_t i = 0; i < DIM; i++) {
+          const auto vi = _mat[i] * data_[inds[i]];
+          val_re += std::real(vi * std::conj(vi));
+        }
+      };
+      // Use the lambda function
+      return std::real(apply_reduction_lambda(lambda, qubits, mat));
+    }
+  } // end switch
 }
 
 //------------------------------------------------------------------------------
@@ -2014,6 +2118,13 @@ double QubitVector<data_t>::norm(const uint_t qubit, const cvector_t &mat) const
   #ifdef DEBUG
   check_vector(mat, 2);
   #endif
+
+  // Check if input matrix is diagonal, and if so use diagonal function.
+  if (mat[1] == 0.0 && mat[2] == 0.0) {
+    const cvector_t diag = {{mat[0], mat[3]}};
+    return norm_diagonal(qubit, diag);
+  }
+
   // Lambda function for norm reduction to real value.
   auto lambda = [&](const areg_t<2> &inds,
                     const cvector_t &_mat,
@@ -2080,8 +2191,8 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   if (N == 1)
     return probabilities(qubits[0]);
 
-  const uint_t DIM = BITS[N];
-  const uint_t END = BITS[num_qubits_ - N];
+  const int_t DIM = BITS[N];
+  const int_t END = BITS[num_qubits_ - N];
 
   // Error checking
   #ifdef DEBUG
@@ -2102,14 +2213,14 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   {
     rvector_t probs_private(DIM, 0.);
     #pragma omp for
-      for (size_t k = 0; k < END; k++) {
+      for (int_t k = 0; k < END; k++) {
         auto idx = indexes(qubits, qubits_sorted, k);
-        for (size_t m = 0; m < DIM; ++m) {
+        for (int_t m = 0; m < DIM; ++m) {
           probs_private[m] += probability(idx[m]);
         }
       }
     #pragma omp critical
-    for (size_t m = 0; m < DIM; ++m) {
+    for (int_t m = 0; m < DIM; ++m) {
       probs[m] += probs_private[m];
     }
   }

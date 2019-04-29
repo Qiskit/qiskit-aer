@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM Corp. 2017 and later.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 NoiseModel class integration tests
@@ -12,7 +17,7 @@ NoiseModel class integration tests
 import unittest
 from test.terra import common
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile
+from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer.backends import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
@@ -49,12 +54,14 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_readout_error([probs_given0, probs_given1], [0])
 
         shots = 2000
-        target = {'0x0': probs_given0[0] * shots / 2,
-                  '0x1': probs_given0[1] * shots / 2,
-                  '0x2': probs_given1[0] * shots / 2,
-                  '0x3': probs_given1[1] * shots / 2}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': probs_given0[0] * shots / 2,
+            '0x1': probs_given0[1] * shots / 2,
+            '0x2': probs_given1[0] * shots / 2,
+            '0x3': probs_given1[1] * shots / 2
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -82,12 +89,14 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_readout_error([probs_given0, probs_given1], [1])
 
         shots = 2000
-        target = {'0x0': probs_given0[0] * shots / 2,
-                  '0x1': probs_given1[0] * shots / 2,
-                  '0x2': probs_given0[1] * shots / 2,
-                  '0x3': probs_given1[1] * shots / 2}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': probs_given0[0] * shots / 2,
+            '0x1': probs_given1[0] * shots / 2,
+            '0x2': probs_given0[1] * shots / 2,
+            '0x3': probs_given1[1] * shots / 2
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -116,14 +125,20 @@ class TestNoise(common.QiskitAerTestCase):
 
         # Expected counts
         shots = 2000
-        p00 = 0.5 * (probs_given0[0] ** 2 + probs_given1[0] ** 2)
-        p01 = 0.5 * (probs_given0[0] * probs_given0[1] + probs_given1[0] * probs_given1[1])
-        p10 = 0.5 * (probs_given0[0] * probs_given0[1] + probs_given1[0] * probs_given1[1])
-        p11 = 0.5 * (probs_given0[1] ** 2 + probs_given1[1] ** 2)
-        target = target = {'0x0': p00 * shots, '0x1': p01 * shots,
-                           '0x2': p10 * shots, '0x3': p11 * shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        p00 = 0.5 * (probs_given0[0]**2 + probs_given1[0]**2)
+        p01 = 0.5 * (probs_given0[0] * probs_given0[1] +
+                     probs_given1[0] * probs_given1[1])
+        p10 = 0.5 * (probs_given0[0] * probs_given0[1] +
+                     probs_given1[0] * probs_given1[1])
+        p11 = 0.5 * (probs_given0[1]**2 + probs_given1[1]**2)
+        target = target = {
+            '0x0': p00 * shots,
+            '0x1': p01 * shots,
+            '0x2': p10 * shots,
+            '0x3': p11 * shots
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -137,7 +152,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.h(qr)
         circuit.barrier(qr)
         # We will manually add a correlated measure operation to
-        # the compiled qobj
+        # the assembled qobj
         backend = QasmSimulator()
 
         # Correlated 2-qubit readout error
@@ -145,21 +160,35 @@ class TestNoise(common.QiskitAerTestCase):
         probs_given01 = [0, 0.6, 0.4, 0]
         probs_given10 = [0, 0, 1, 0]
         probs_given11 = [0.1, 0, 0, 0.9]
-        probs_noise = [probs_given00, probs_given01, probs_given10, probs_given11]
+        probs_noise = [
+            probs_given00, probs_given01, probs_given10, probs_given11
+        ]
         noise_model = NoiseModel()
         noise_model.add_readout_error(probs_noise, [0, 1])
 
         # Expected counts
         shots = 2000
         probs_ideal = [0.25, 0.25, 0.25, 0.25]
-        p00 = sum([ideal * noise[0] for ideal, noise in zip(probs_ideal, probs_noise)])
-        p01 = sum([ideal * noise[1] for ideal, noise in zip(probs_ideal, probs_noise)])
-        p10 = sum([ideal * noise[2] for ideal, noise in zip(probs_ideal, probs_noise)])
-        p11 = sum([ideal * noise[3] for ideal, noise in zip(probs_ideal, probs_noise)])
-        target = {'0x0': p00 * shots, '0x1': p01 * shots,
-                  '0x2': p10 * shots, '0x3': p11 * shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        p00 = sum([
+            ideal * noise[0] for ideal, noise in zip(probs_ideal, probs_noise)
+        ])
+        p01 = sum([
+            ideal * noise[1] for ideal, noise in zip(probs_ideal, probs_noise)
+        ])
+        p10 = sum([
+            ideal * noise[2] for ideal, noise in zip(probs_ideal, probs_noise)
+        ])
+        p11 = sum([
+            ideal * noise[3] for ideal, noise in zip(probs_ideal, probs_noise)
+        ])
+        target = {
+            '0x0': p00 * shots,
+            '0x1': p01 * shots,
+            '0x2': p10 * shots,
+            '0x3': p11 * shots
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         # Add measure to qobj
         item = measure_instr([0, 1], [0, 1])
         append_instr(qobj, 0, item)
@@ -178,8 +207,13 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.x(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        noise_circs = [[{"name": "reset", "qubits": [0]}],
-                       [{"name": "id", "qubits": [0]}]]
+        noise_circs = [[{
+            "name": "reset",
+            "qubits": [0]
+        }], [{
+            "name": "id",
+            "qubits": [0]
+        }]]
 
         # 50% reset noise on qubit-0 "u3" only.
         noise_probs = [0.5, 0.5]
@@ -188,8 +222,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_quantum_error(error, "u3", [0])
         shots = 2000
         target = {'0x2': shots / 2, '0x3': shots / 2}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -204,8 +238,13 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.x(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        noise_circs = [[{"name": "reset", "qubits": [0]}],
-                       [{"name": "id", "qubits": [0]}]]
+        noise_circs = [[{
+            "name": "reset",
+            "qubits": [0]
+        }], [{
+            "name": "id",
+            "qubits": [0]
+        }]]
 
         # 25% reset noise on qubit-1 "u3" only.
         noise_probs = [0.25, 0.75]
@@ -215,8 +254,8 @@ class TestNoise(common.QiskitAerTestCase):
         shots = 2000
         # target = {'01': shots / 4, '11': 3 * shots / 4}
         target = {'0x1': shots / 4, '0x3': 3 * shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -231,8 +270,13 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.x(qr)
         circuit.measure(qr, cr)
         backend = QasmSimulator()
-        noise_circs = [[{"name": "reset", "qubits": [0]}],
-                       [{"name": "id", "qubits": [0]}]]
+        noise_circs = [[{
+            "name": "reset",
+            "qubits": [0]
+        }], [{
+            "name": "id",
+            "qubits": [0]
+        }]]
 
         # 100% reset noise on all qubit "u3".
         noise_probs = [1, 0]
@@ -242,8 +286,8 @@ class TestNoise(common.QiskitAerTestCase):
         shots = 100
         # target = {'00': shots}
         target = {'0x0': shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -264,8 +308,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, 'id')
         # Execute
         target = {'0x3': shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -285,10 +329,14 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, 'id')
         # Execute
-        target = {'0x0': 9 * shots / 16, '0x1': 3 * shots / 16,
-                  '0x2': 3 * shots / 16, '0x3': shots / 16}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': 9 * shots / 16,
+            '0x1': 3 * shots / 16,
+            '0x2': 3 * shots / 16,
+            '0x3': shots / 16
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -309,8 +357,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_quantum_error(error, 'id', [1])
         # Execute
         target = {'0x2': shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -331,8 +379,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_quantum_error(error, 'id', [0])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -355,8 +403,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_nonlocal_quantum_error(error, 'cx', [0, 1], [0, 1, 2])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x4': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -374,10 +422,14 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, 'measure')
         # Execute
-        target = {'0x0': 9 * shots / 16, '0x1': 3 * shots / 16,
-                  '0x2': 3 * shots / 16, '0x3': shots / 16}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': 9 * shots / 16,
+            '0x1': 3 * shots / 16,
+            '0x2': 3 * shots / 16,
+            '0x3': shots / 16
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -396,8 +448,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_quantum_error(error, 'measure', [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -419,8 +471,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_nonlocal_quantum_error(error, 'measure', [0], [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -430,6 +482,7 @@ class TestNoise(common.QiskitAerTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr)
         circuit.reset(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -440,10 +493,14 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, 'reset')
         # Execute
-        target = {'0x0': 9 * shots / 16, '0x1': 3 * shots / 16,
-                  '0x2': 3 * shots / 16, '0x3': shots / 16}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': 9 * shots / 16,
+            '0x1': 3 * shots / 16,
+            '0x2': 3 * shots / 16,
+            '0x3': shots / 16
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -453,6 +510,7 @@ class TestNoise(common.QiskitAerTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr)
         circuit.reset(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -464,8 +522,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_quantum_error(error, 'reset', [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -475,6 +533,7 @@ class TestNoise(common.QiskitAerTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
+        circuit.barrier(qr)
         circuit.reset(qr[1])
         circuit.barrier(qr)
         circuit.reset(qr[0])
@@ -488,8 +547,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_nonlocal_quantum_error(error, 'reset', [0], [1])
         # Execute
         target = {'0x0': 3 * shots / 4, '0x2': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -514,8 +573,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, 'id')
         # Execute
         target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -536,8 +595,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
         # Execute
         target = {'0x0': shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -558,8 +617,8 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
         # Execute
         target = {'0x1': shots}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0)
@@ -580,13 +639,18 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
         # Execute
-        target = {'0x0': 3 * shots / 16, '0x1': shots / 16,
-                  '0x2': 9 * shots / 16, '0x3': 3 * shots / 16}
-        qobj = compile([circuit], backend, shots=shots,
-                       basis_gates=noise_model.basis_gates)
+        target = {
+            '0x0': 3 * shots / 16,
+            '0x1': shots / 16,
+            '0x2': 9 * shots / 16,
+            '0x3': 3 * shots / 16
+        }
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
 
 if __name__ == '__main__':
     unittest.main()

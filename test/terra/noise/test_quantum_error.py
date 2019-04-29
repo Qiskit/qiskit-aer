@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM Corp. 2017 and later.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QuantumError class tests
 """
@@ -461,13 +466,11 @@ class TestQuantumError(common.QiskitAerTestCase):
         error0 = QuantumError([
             np.sqrt(probs0[0]) * unitaries0[0],
             np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=False)
+        ], standard_gates=False)
         error1 = QuantumError([
             np.sqrt(probs1[0]) * unitaries1[0],
             np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=False)
+        ], standard_gates=False)
         error = error0.compose(error1)
         # Kronecker product unitaries
         target_unitaries = [
@@ -510,13 +513,11 @@ class TestQuantumError(common.QiskitAerTestCase):
         error0 = QuantumError([
             np.sqrt(probs0[0]) * unitaries0[0],
             np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=True)
+        ], standard_gates=True)
         error1 = QuantumError([
             np.sqrt(probs1[0]) * unitaries1[0],
             np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=True)
+        ], standard_gates=True)
         error = error0.compose(error1)
         # Kronecker product probabilities
         target_probs = [
@@ -680,18 +681,18 @@ class TestQuantumError(common.QiskitAerTestCase):
             target_probs, [], msg="Incorrect compose probabilities")
         self.assertEqual(target_circs, [], msg="Incorrect compose circuits")
 
-    def test_to_channel_kraus(self):
-        """Test to_channel for Kraus inputs."""
+    def test_to_quantumchannel_kraus(self):
+        """Test to_quantumchannel for Kraus inputs."""
         A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
         A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
         B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
         B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
         target = SuperOp(Kraus([A0, A1])).tensor(SuperOp(Kraus([B0, B1])))
         error = QuantumError([A0, A1]).tensor(QuantumError([B0, B1]))
-        self.assertEqual(target, error.to_channel())
+        self.assertEqual(target, error.to_quantumchannel())
 
-    def test_to_channel_circuit(self):
-        """Test to_channel for circuit inputs."""
+    def test_to_quantumchannel_circuit(self):
+        """Test to_quantumchannel for circuit inputs."""
         noise_ops = [([{
             'name': 'reset',
             'qubits': [0]
@@ -708,7 +709,7 @@ class TestQuantumError(common.QiskitAerTestCase):
         iden = SuperOp(np.eye(4))
         target = 0.2 * iden.tensor(reset) + 0.3 * reset.tensor(
             iden) + 0.5 * iden.tensor(iden)
-        self.assertEqual(target, error.to_channel())
+        self.assertEqual(target, error.to_quantumchannel())
 
 
 if __name__ == '__main__':

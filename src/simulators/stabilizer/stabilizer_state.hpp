@@ -1,8 +1,15 @@
 /**
- * Copyright 2019, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_stabilizer_state_hpp
@@ -162,7 +169,7 @@ protected:
   size_t max_qubits_snapshot_probs_ = 32;
 
   // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
+  double json_chop_threshold_ = 1e-10;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -244,10 +251,10 @@ size_t State::required_memory_mb(uint_t num_qubits,
 
 void State::set_config(const json_t &config) {
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
 
   // Load max snapshot qubit size and set hard limit of 64 qubits.
-  JSON::get_value(max_qubits_snapshot_probs_, "max_snapshot_probabilities", config);
+  JSON::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
   max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
 }
 

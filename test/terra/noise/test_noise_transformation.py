@@ -1,7 +1,14 @@
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM Corp. 2017 and later.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 NoiseTransformer class tests
 """
@@ -55,7 +62,7 @@ class TestNoiseTransformer(unittest.TestCase):
                 self.assertErrorsAlmostEqual(lhs_error, rhs_error, places=places)
 
     def assertErrorsAlmostEqual(self, lhs, rhs, places = 3):
-        self.assertMatricesAlmostEqual(lhs.to_channel()._data, rhs.to_channel()._data, places)
+        self.assertMatricesAlmostEqual(lhs.to_quantumchannel()._data, rhs.to_quantumchannel()._data, places)
 
     def assertDictAlmostEqual(self, lhs, rhs, places = None):
         keys = set(lhs.keys()).union(set(rhs.keys()))

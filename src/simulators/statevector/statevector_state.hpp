@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _statevector_state_hpp
@@ -263,7 +270,7 @@ protected:
   int sample_measure_index_size_ = 10;
 
   // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
+  double json_chop_threshold_ = 1e-10;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -390,7 +397,7 @@ template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions

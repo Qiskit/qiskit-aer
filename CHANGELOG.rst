@@ -20,6 +20,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- Add support for labelled gates in noise models (#175).
 - Improve efficiency of parallelization with max_memory_mb a new parameter of backend_opts (#61)
 - Add optimized mcx, mcy, mcz, mcu1, mcu2, mcu3, gates to QubitVector (#124)
 - Add optimized controlled-swap gate to QubitVector
@@ -27,6 +28,9 @@ Added
 
 Changed
 -------
+- Add basis_gates kwarg to NoiseModel init (#175).
+- Depreciated "initial_statevector" backend option for QasmSimulator and StatevectorSimulator (#185)
+- Rename "chop_threshold" backend option to "zero_threshold" and change default value to 1e-10 (#185).
 - Add an optional parameter to `NoiseModel.as_dict()` for returning dictionaries that can be
   serialized using the standard `json` library directly. (#165)
 

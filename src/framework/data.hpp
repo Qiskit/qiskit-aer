@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_framework_data_hpp_
@@ -227,7 +234,10 @@ template <typename T>
 void OutputData::add_additional_data(const std::string &key, const T &data) {
   if (return_additional_data_) {
     json_t js = data; // use implicit to_json conversion function for T
-    additional_data_[key] = js;
+    if (JSON::check_key(key, additional_data_))
+      additional_data_[key].update(js.begin(), js.end());
+    else
+      additional_data_[key] = js;
   }
 }
 

@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM Corp. 2017 and later.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_qasm_controller_hpp_
@@ -29,8 +36,8 @@ namespace Simulator {
  * 
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
- * - "chop_threshold" (double): Threshold for truncating small values to
- *      zero in result data [Default: 1e-15]
+ * - "zero_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-10]
  * - "statevector_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 13]
@@ -145,7 +152,7 @@ protected:
                         const Initstate_t &initial_state) const;
 
   // Set parallelization for qasm simulator
-  virtual void set_parallelization(const Circuit& circ) override;
+  virtual void set_parallelization_circuit(const Circuit& circ) override;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -222,8 +229,7 @@ protected:
   // TODO: initial stabilizer state
 
   // Controller-level parameter for CH method
-
-  bool extended_stabilizer_disable_measurement_opt_ = true;
+  bool extended_stabilizer_measure_sampling_ = false;
 };
 
 //=========================================================================
@@ -236,6 +242,7 @@ protected:
 QasmController::QasmController() {
   add_circuit_optimization(ReduceNop());
   add_circuit_optimization(Fusion());
+  add_circuit_optimization(TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
@@ -290,7 +297,8 @@ void QasmController::set_config(const json_t &config) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
-  JSON::get_value(extended_stabilizer_disable_measurement_opt_, "disable_measurement_opt", config);
+  JSON::get_value(extended_stabilizer_measure_sampling_,
+                  "extended_stabilizer_measure_sampling", config);
 }
 
 void QasmController::clear_config() {
@@ -396,7 +404,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
   }
 }
 
-void QasmController::set_parallelization(const Circuit& circ) {
+void QasmController::set_parallelization_circuit(const Circuit& circ) {
 
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
@@ -410,7 +418,7 @@ void QasmController::set_parallelization(const Circuit& circ) {
       }
     }
     default: {
-      Base::Controller::set_parallelization(circ);
+      Base::Controller::set_parallelization_circuit(circ);
     }
   }
 }
@@ -526,8 +534,8 @@ std::pair<bool, size_t>
 QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   // Find first instance of a measurement and check there
   // are no reset or initialize operations before the measurement
-  if(simulation_method(circ) == Method::extended_stabilizer && extended_stabilizer_disable_measurement_opt_)
-  {
+  if(simulation_method(circ) == Method::extended_stabilizer
+     && !extended_stabilizer_measure_sampling_) {
     return std::make_pair(false, 0);
   }
   auto start = circ.ops.begin();
