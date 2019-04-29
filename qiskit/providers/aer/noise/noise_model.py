@@ -28,7 +28,7 @@ class NoiseModel:
     # Get the default basis gates for the Qiskit Aer Qasm Simulator
     # this is used to decide what are instructions for a noise model
     # and what are labels for other named instructions
-    DEFAULT_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION['basis_gates']
+    QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION['basis_gates']
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
@@ -38,9 +38,28 @@ class NoiseModel:
     _2qubit_instructions = set(["CX", "cx", "cz", "swap"])
     _3qubit_instructions = set(["ccx"])
 
-    def __init__(self):
+    def __init__(self, basis_gates=None):
+        """Initialize an empty noise model.
+
+        Args:
+            basis_gates (list[str] or None): Specify an initial basis_gates
+                for the noise model. If None a default value of ['id', 'u3', 'cx']
+                is used [Default: None].
+
+        Additional Information
+        ----------------------
+        Errors added to the noise model will have thier instruction appended to
+        the noise model basis_gates if the instruction is in the QasmSimulator
+        basis_gates. If the instruction is not in the QasmSimulator basis_gates
+        it is assumbed to be a label for a standard gate, and that gate should
+        be added to the NoiseModel basis_gates either using the init method, or
+        the `add_basis_Gates` method.
+        """
         # Initialize empty quantum errors
-        self._basis_gates = set(['u3', 'cx'])  # Store noise model basis gates
+        if basis_gates is None:
+            self._basis_gates = set(['id', 'u3', 'cx'])  # Store noise model basis gates
+        else:
+            self._basis_gates = set(_instruction_names(basis_gates))
         self._noise_instructions = set(
         )  # Store gates with a noise model defined
         # TODO: Code would be cleaner if these were replaced with classes
@@ -80,7 +99,7 @@ class NoiseModel:
         for inst in names:
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
-            if inst in self.DEFAULT_BASIS_GATES:
+            if inst in self.QASMSIMULATOR_BASIS_GATES:
                 self._basis_gates.add(inst)
             elif warnings:
                 logger.warning(
