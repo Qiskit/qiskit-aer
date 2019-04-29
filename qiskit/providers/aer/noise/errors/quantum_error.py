@@ -599,5 +599,5 @@ class QuantumError:
         if name == 'kraus':
             params = Kraus(composed).data
         else:
-            params = [composed]
+            params = [composed.data]
         return {'name': name, 'qubits': qubits, 'params': params}

@@ -461,13 +461,11 @@ class TestQuantumError(common.QiskitAerTestCase):
         error0 = QuantumError([
             np.sqrt(probs0[0]) * unitaries0[0],
             np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=False)
+        ], standard_gates=False)
         error1 = QuantumError([
             np.sqrt(probs1[0]) * unitaries1[0],
             np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=False)
+        ], standard_gates=False)
         error = error0.compose(error1)
         # Kronecker product unitaries
         target_unitaries = [
@@ -510,13 +508,11 @@ class TestQuantumError(common.QiskitAerTestCase):
         error0 = QuantumError([
             np.sqrt(probs0[0]) * unitaries0[0],
             np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=True)
+        ], standard_gates=True)
         error1 = QuantumError([
             np.sqrt(probs1[0]) * unitaries1[0],
             np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=True)
+        ], standard_gates=True)
         error = error0.compose(error1)
         # Kronecker product probabilities
         target_probs = [
