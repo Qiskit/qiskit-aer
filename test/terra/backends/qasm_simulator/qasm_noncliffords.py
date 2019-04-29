@@ -262,3 +262,28 @@ class QasmNonCliffordTestsMinimalBasis:
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test multiplexer-gate
+    # ---------------------------------------------------------------------
+    def test_multiplexer_cxx_gate_deterministic_default_basis_gates(self):
+        """Test multiplexer-gate gate circuits """
+        shots = 100
+        circuits = ref_non_clifford.multiplexer_ccx_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.multiplexer_ccx_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_multiplexer_cxx_gate_nondeterministic_default_basis_gates(self):
+        """Test ccx-gate gate circuits """
+        shots = 2000
+        circuits = ref_non_clifford.multiplexer_ccx_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.multiplexer_ccx_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)

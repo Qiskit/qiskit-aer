@@ -725,3 +725,30 @@ class QasmCliffordTestsMinimalBasis:
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test multiplexer-cx-gate
+    # ---------------------------------------------------------------------
+    def test_multiplexer_cx_gate_deterministic_default_basis_gates(self):
+        """Test cx-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_2q_clifford.multiplexer_cx_gate_counts_deterministic(shots)
+        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_multiplexer_cx_gate_nondeterministic_default_basis_gates(self):
+        """Test cx-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_2q_clifford.multiplexer_cx_gate_counts_nondeterministic(shots)
+        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
