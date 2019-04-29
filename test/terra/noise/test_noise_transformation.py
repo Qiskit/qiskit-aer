@@ -55,7 +55,7 @@ class TestNoiseTransformer(unittest.TestCase):
                 self.assertErrorsAlmostEqual(lhs_error, rhs_error, places=places)
 
     def assertErrorsAlmostEqual(self, lhs, rhs, places = 3):
-        self.assertMatricesAlmostEqual(lhs.to_channel()._data, rhs.to_channel()._data, places)
+        self.assertMatricesAlmostEqual(lhs.to_quantumchannel()._data, rhs.to_quantumchannel()._data, places)
 
     def assertDictAlmostEqual(self, lhs, rhs, places = None):
         keys = set(lhs.keys()).union(set(rhs.keys()))
