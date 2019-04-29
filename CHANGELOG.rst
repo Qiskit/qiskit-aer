@@ -20,11 +20,15 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- Improve efficiency of parallelization with max_memory_mb a new parameter of backend_opts (#61)
+- Add optimized mcx, mcy, mcz, mcu1, mcu2, mcu3, gates to QubitVector (#124)
+- Add optimized controlled-swap gate to QubitVector
+- Add gate-fusion optimization for QasmContoroller, which is enabled by setting fusion_enable=true (#136)
 
 Changed
 -------
-
+- Add an optional parameter to `NoiseModel.as_dict()` for returning dictionaries that can be
+  serialized using the standard `json` library directly. (#165)
 
 Removed
 -------

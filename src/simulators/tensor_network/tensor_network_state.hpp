@@ -340,10 +340,18 @@ void State::initialize_omp() {
     cout << "initialize_creg not supported yet" <<endl;
   }
 
-  uint_t State::required_memory_mb(uint_t num_qubits,
+uint_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) {
-      cout << "sample_measure not supported yet" <<endl;
-      return 0;}
+    // for each qubit we have a tensor structure. 
+    // Initially, each tensor contains 2 matrices with a single complex double
+    // Depending on the number of 2-qubit gates, 
+    // these matrices will double their size
+    // for now - compute only initial size
+    // later - FIXME
+    size_t mem_mb = 16 * 2 * num_qubits;
+    return mem_mb;
+}
+
 void State::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
@@ -584,7 +592,7 @@ void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
 }
 
 void State::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  apply_matrix(reg_t({qubit}), Utils::Matrix::U3(theta, phi, lambda));
+  apply_matrix(reg_t({qubit}), Utils::Matrix::u3(theta, phi, lambda));
 }
 
 void State::apply_gate_phase(uint_t qubit, complex_t phase) {
@@ -675,7 +683,6 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       snapshot_probabilities(op, data, false);
       } break;*/
     case Snapshots::expval_pauli: {
-      cout << "in case Snapshots::expval_pauli" <<endl;
       snapshot_pauli_expval(op, data, false);
     } break;
       /*    case Snapshots::expval_matrix: {

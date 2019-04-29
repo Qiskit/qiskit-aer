@@ -115,9 +115,9 @@ class AerBackend(BaseBackend):
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val
-        if not "available_memory" in config:
-            available_mb = int(local_hardware_info()['memory'] * 1024)
-            config['available_memory'] = available_mb
+        if "max_memory_mb" not in config:
+            max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
+            config['max_memory_mb'] = max_memory_mb
         # Add noise model
         if noise_model is not None:
             config["noise_model"] = noise_model
@@ -144,14 +144,19 @@ class AerBackend(BaseBackend):
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
+        if not isinstance(output, dict):
+            logger.error("%s: simulation failed.", self.name())
+            if output:
+                logger.error('Output: %s', output)
+            raise AerError("simulation terminated without returning valid output.")
         # Check results
         # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
         #       is merged this should be updated to deal with errors using
         #       the Result object methods
         if not output.get("success", False):
-            logger.error("AerBackend: simulation failed")
+            logger.error("%s: simulation failed", self.name())
             # Check for error message in the failed circuit
-            for res in output.get('results'):
+            for res in output.get('results', []):
                 if not res.get('success', False):
                     raise AerError(res.get("status", None))
             # If no error was found check for error message at qobj level

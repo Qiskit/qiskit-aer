@@ -433,12 +433,12 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
   // Convert qubits to string for table lookup
   std::string op_qubits = reg2string(op.qubits);
 
-  // Get the qubit error map for  gate name
+  // Get the qubit error map for gate name
   auto iter = local_quantum_error_table_.find(name);
   if (iter != local_quantum_error_table_.end()) {
     // Check if the qubits are listed in the inner model
     const auto qubit_map = iter->second;
-    // Get the default qubit model incase a specific qubit model is not found
+    // Get the default qubit model in case a specific qubit model is not found
     // The default model is stored under the empty key string ""
     auto iter_default = qubit_map.find(std::string());
     // Format qubit sets
@@ -547,7 +547,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
                                                        complex_t lambda,
                                                        RngEngine &rng) const {
   NoiseOps ret;
-  const auto x90 = Operations::make_mat({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
   if (std::abs(lambda) > u1_threshold_
       && std::abs(lambda - 2 * M_PI) > u1_threshold_
       && std::abs(lambda + 2 * M_PI) > u1_threshold_)
@@ -571,7 +571,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
                                                        complex_t lambda,
                                                        RngEngine &rng) const {
   NoiseOps ret;
-  const auto x90 = Operations::make_mat({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
   if (std::abs(lambda - 0.5 * M_PI) > u1_threshold_)
     ret.push_back(Operations::make_u1(qubit, lambda - 0.5 * M_PI)); // add 1st U1
   auto sample = sample_noise_helper(x90, rng); // sample noise for 1st X90

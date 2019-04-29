@@ -9,7 +9,10 @@
 Noise model class for Qiskit Aer simulators.
 """
 
+import json
 import logging
+
+from qiskit.providers.aer.backends.aerbackend import AerJSONEncoder
 
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
@@ -397,16 +400,19 @@ class NoiseModel:
     def basis_gates(self):
         """Return basis_gates for compiling to the noise model."""
         # Convert noise instructions to basis_gates string
-        return ",".join(self._basis_gates)
+        return list(self._basis_gates)
 
-    def as_dict(self):
+    def as_dict(self, serializable=False):
         """
         Return dictionary for noise model.
+
+        Args:
+            serializable (bool): if `True`, return a dict containing only types
+                that can be serializable by the stdlib `json` module.
 
         Returns:
             dict: a dictionary for a noise model.
         """
-
         error_list = []
 
         # Add default quantum errors
@@ -446,7 +452,11 @@ class NoiseModel:
             error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
             error_list.append(error_dict)
 
-        return {"errors": error_list, "x90_gates": self._x90_gates}
+        ret = {"errors": error_list, "x90_gates": self._x90_gates}
+        if serializable:
+            ret = json.loads(json.dumps(ret, cls=AerJSONEncoder))
+
+        return ret
 
     @staticmethod
     def from_dict(noise_dict):

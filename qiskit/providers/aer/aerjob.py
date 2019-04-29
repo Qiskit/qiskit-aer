@@ -46,10 +46,7 @@ class AerJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    if sys.platform in ['darwin', 'win32']:
-        _executor = futures.ThreadPoolExecutor()
-    else:
-        _executor = futures.ProcessPoolExecutor()
+    _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, fn, qobj, *args):
         super().__init__(backend, job_id)

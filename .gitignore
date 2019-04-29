@@ -13,6 +13,7 @@ out/*
 *.so
 *.pyc
 *_skbuild*
+*_cmake_test_compile*
 *.whl
 *.egg*
 build/*

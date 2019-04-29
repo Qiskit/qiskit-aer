@@ -252,7 +252,7 @@ public:
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
 				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::U1(lambda)*temp;
+				temp = AER::Utils::Matrix::u1(lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
 	}
@@ -268,7 +268,7 @@ public:
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
 				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::U2(phi,lambda)*temp;
+				temp = AER::Utils::Matrix::u2(phi,lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
 	}
@@ -284,7 +284,7 @@ public:
 			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
 				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::U3(theta, phi,lambda)*temp;
+				temp = AER::Utils::Matrix::u3(theta, phi,lambda)*temp;
 				insert_data(a1,a2,temp);
 			}
 	}

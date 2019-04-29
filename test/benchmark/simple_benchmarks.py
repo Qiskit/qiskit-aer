@@ -4,9 +4,10 @@
 import qiskit as Terra
 from qiskit import QiskitError
 from qiskit.providers.aer import QasmSimulator
-from .tools import simple_u3_circuit, simple_cnot_circuit, \
-                    mixed_unitary_noise_model, reset_noise_model, \
-                    kraus_noise_model
+from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
+                   reset_noise_model, kraus_noise_model, no_noise, \
+                   simple_cnot_circuit, simple_u3_circuit
+
 
 class SimpleU3TimeSuite:
     """
@@ -35,29 +36,20 @@ class SimpleU3TimeSuite:
         self.circuits = []
         for i in 5, 10, 15:
             circuit = simple_u3_circuit(i)
-            self.circuits.append(
-                Terra.compile(circuit, self.backend, shots=1)
-            )
+            self.circuits.append(Terra.compile(circuit, self.backend, shots=1))
 
         self.param_names = [
-            "Simple u3 circuits (5/16/20/30 qubits)",
-            "Noise model"
+            "Simple u3 circuits", "Noise Model"
         ]
-        self.params = (
-            self.circuits,
-            [
-                None,
-                mixed_unitary_noise_model(),
-                reset_noise_model(),
-                kraus_noise_model()
-            ]
-        )
+        self.params = (self.circuits, [
+            no_noise(),
+            mixed_unitary_noise_model(),
+            reset_noise_model(),
+            kraus_noise_model()
+        ])
 
-    def time_simple_u3(self, qobj, noise_model):
-        result = self.backend.run(
-            qobj,
-            noise_model=noise_model
-        ).result()
+    def time_simple_u3(self, qobj, noise_model_wrapper):
+        result = self.backend.run(qobj, noise_model=noise_model_wrapper()).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
 
@@ -75,28 +67,19 @@ class SimpleCxTimeSuite:
         self.backend = QasmSimulator()
         self.circuits = []
         self.param_names = [
-            "Simple cnot circuits (5/16/20/30 qubits)",
-            "Noise model"
+            "Simple cnot circuits", "Noise Model"
         ]
         for i in 5, 10, 15:
             circuit = simple_cnot_circuit(i)
-            self.circuits.append(
-                Terra.compile(circuit, self.backend, shots=1)
-            )
-        self.params = (
-            self.circuits,
-            [
-                None,
-                mixed_unitary_noise_model(),
-                reset_noise_model(),
-                kraus_noise_model()
-            ]
-        )
+            self.circuits.append(Terra.compile(circuit, self.backend, shots=1))
+        self.params = (self.circuits, [
+            no_noise(),
+            mixed_unitary_noise_model(),
+            reset_noise_model(),
+            kraus_noise_model()
+        ])
 
-    def time_simple_cx(self, qobj, noise_model):
-        result = self.backend.run(
-            qobj,
-            noise_model=noise_model
-        ).result()
+    def time_simple_cx(self, qobj, noise_model_wrapper):
+        result = self.backend.run(qobj, noise_model=noise_model_wrapper()).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
