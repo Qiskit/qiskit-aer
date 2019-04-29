@@ -521,12 +521,12 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     # Check threshold
     if atol < 0:
         raise NoiseError("atol cannot be negative")
-    if atol > 1e-3:
+    if atol > 1e-5:
         raise NoiseError(
             "atol value is too large. It should be close to zero.")
 
     # Check CPTP
-    if not Kraus(kraus_ops).is_cptp():
+    if not Kraus(kraus_ops).is_cptp(atol=atol):
         raise NoiseError("Input Kraus channel is not CPTP.")
 
     # Get number of qubits
@@ -553,8 +553,8 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
         # Get the value of the maximum diagonal element
         # of op.H * op for rescaling
         prob = abs(max(np.diag(np.conj(np.transpose(mat)).dot(mat))))
-        if prob > atol:
-            if abs(prob - 1) > atol:
+        if prob > 0.0:
+            if abs(prob - 1) > 0.0:
                 # Rescale the operator by square root of prob
                 rescaled_mat = np.array(mat) / np.sqrt(prob)
             else:
@@ -622,4 +622,6 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
         ]
     instructions.append(make_kraus_instruction(non_unitaries, qubits))
     probabilities.append(prob_kraus)
+    # Normalize probabilities to account for any rounding errors
+    probabilities = list(np.array(probabilities) / np.sum(probabilities))
     return zip(instructions, probabilities)
