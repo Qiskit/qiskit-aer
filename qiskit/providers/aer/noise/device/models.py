@@ -450,9 +450,7 @@ def reduced_basic_noise_model(backend, mapping):
     """
     full_noise_model = basic_device_noise_model(backend.properties())
     noise_model = full_noise_model.as_dict()
-
     n_qubits = backend.configuration().n_qubits
-    coupling_map = backend.configuration().coupling_map
 
     inv_map = [None]*n_qubits
     for idx, val in enumerate(mapping):
