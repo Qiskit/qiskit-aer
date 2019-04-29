@@ -458,12 +458,6 @@ def reduced_basic_noise_model(backend, mapping):
     for idx, val in enumerate(mapping):
         inv_map[val] = idx
 
-    reduced_cmap = []
-
-    for edge in coupling_map:
-        if edge[0] in mapping and edge[1] in mapping:
-            reduced_cmap.append(edge)
-
     idx_to_keep = []
     for idx, err in enumerate(noise_model['errors']):
         gate_qubits = err['gate_qubits']
