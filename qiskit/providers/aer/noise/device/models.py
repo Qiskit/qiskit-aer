@@ -430,3 +430,60 @@ def _depol_error_value_two_qubit(error_param,
         2 * (q0_par2 + q1_par2) + 2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
     p_depol = 1 + 5 * (4 * error_param - 3) / denom
     return p_depol
+
+
+def reduced_basic_noise_model(backend, mapping):
+    """Retruns the reduced noise model for a subgraph of
+    a backend for the qubits in the mapping.
+
+    Args:
+        backend (IBMQBackend): The target backend.
+        mapping (list): A list that maps qubits in the subgraph
+                        to qubits in the backend.  For example,
+                        [1,0,5,6] maps qubits 0->4 in the new
+                        subgraph to the qubits 1, 0, 5, and 6,
+                        respectively in the bakend.
+
+    Returns:
+        NoiseModel: A noise model reduced to the given subgraph.
+
+    """
+    full_noise_model = basic_device_noise_model(backend.properties())
+    noise_model = full_noise_model.as_dict()
+
+    n_qubits = backend.configuration().n_qubits
+    coupling_map = backend.configuration().coupling_map
+
+    inv_map = [None]*n_qubits
+    for idx, val in enumerate(mapping):
+        inv_map[val] = idx
+
+    reduced_cmap = []
+
+    for edge in coupling_map:
+        if edge[0] in mapping and edge[1] in mapping:
+            reduced_cmap.append(edge)
+
+    idx_to_keep = []
+    for idx, err in enumerate(noise_model['errors']):
+        gate_qubits = err['gate_qubits']
+        in_reduced_map = True
+        for item in gate_qubits:
+            for qq in item:
+                if qq not in mapping:
+                    in_reduced_map = False
+                    break
+            if not in_reduced_map:
+                break
+
+        if in_reduced_map:
+            idx_to_keep.append(idx)
+            # Change gate_qubit labels to new_map labels
+            for ii, item in enumerate(err['gate_qubits']):
+                for jj, it in enumerate(item):
+                    err['gate_qubits'][ii][jj] = inv_map[it]
+
+    noise_model['errors'] = [noise_model['errors'][idx] for idx in idx_to_keep]
+
+    reduced_noise_model = NoiseModel.from_dict(noise_model)
+    return reduced_noise_model
