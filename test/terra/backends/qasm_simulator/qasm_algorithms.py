@@ -9,7 +9,7 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_algorithms
-from qiskit import compile
+from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -28,8 +28,8 @@ class QasmAlgorithmTests:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -38,8 +38,8 @@ class QasmAlgorithmTests:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -59,12 +59,13 @@ class QasmAlgorithmTestsWaltzBasis:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(
+
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -73,12 +74,12 @@ class QasmAlgorithmTestsWaltzBasis:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -98,9 +99,9 @@ class QasmAlgorithmTestsMinimalBasis:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -109,8 +110,8 @@ class QasmAlgorithmTestsMinimalBasis:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

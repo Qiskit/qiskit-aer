@@ -11,8 +11,8 @@ Test circuits and reference outputs for measure instruction.
 
 
 import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, compile
-
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.providers.aer.backends import QasmSimulator
 from qiskit.providers.aer.utils.qobj_utils import unitary_instr
 from qiskit.providers.aer.utils.qobj_utils import append_instr
@@ -30,7 +30,7 @@ def _dummy_qobj():
     qr = QuantumRegister(1)
     circuit = QuantumCircuit(qr)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     # remove experiment
     qobj.experiments = []
     return qobj
@@ -52,7 +52,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
         append_instr(qobj, 0, measure_instr([0], [0]))
@@ -62,7 +62,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX10, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
         append_instr(qobj, 0, measure_instr([0], [0]))
@@ -72,7 +72,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX01.(X^I), |10> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(x_mat, [1]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
@@ -83,7 +83,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX10.(I^X), |01> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(x_mat, [0]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
@@ -94,7 +94,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX01.(I^X), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(x_mat, [0]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
@@ -105,7 +105,7 @@ def unitary_gate_circuits_real_deterministic(final_measure=True):
     # CX10.(X^I), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(x_mat, [1]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
@@ -218,7 +218,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
         append_instr(qobj, 0, measure_instr([0], [0]))
@@ -228,7 +228,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX10, |00> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
         append_instr(qobj, 0, measure_instr([0], [0]))
@@ -238,7 +238,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX01.(Y^I), |10> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(y_mat, [1]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
@@ -249,7 +249,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX10.(I^Y), |01> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(y_mat, [0]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:
@@ -260,7 +260,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX01.(I^Y), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(y_mat, [0]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [0, 1]))
     if final_measure:
@@ -271,7 +271,7 @@ def unitary_gate_circuits_complex_deterministic(final_measure=True):
     # CX10.(Y^I), |11> state
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    qobj = compile(circuit, QasmSimulator(), shots=1)
+    qobj = assemble(circuit, QasmSimulator(), shots=1)
     append_instr(qobj, 0, unitary_instr(y_mat, [1]))
     append_instr(qobj, 0, unitary_instr(cx_mat, [1, 0]))
     if final_measure:

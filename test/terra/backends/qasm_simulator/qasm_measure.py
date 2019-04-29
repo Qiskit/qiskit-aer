@@ -9,7 +9,7 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_measure
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -28,7 +28,7 @@ class QasmMeasureTests:
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=True)
         targets = ref_measure.measure_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -40,7 +40,7 @@ class QasmMeasureTests:
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -52,7 +52,7 @@ class QasmMeasureTests:
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -64,7 +64,7 @@ class QasmMeasureTests:
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
