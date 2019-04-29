@@ -1007,8 +1007,9 @@ double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std
     for (size_t i=0; i<L; i++)
     {
       double re_eta =0., im_eta = 0.;
+      const int_t END = states.size();
       #pragma omp parallel for reduction(+:re_eta) reduction(+:im_eta)
-      for (int_t j=0; j<states.size(); j++)
+      for (int_t j=0; j<END; j++)
       {
           if(states[j].ScalarPart().eps != 0)
           {
