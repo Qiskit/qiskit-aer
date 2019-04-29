@@ -446,7 +446,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         apply_matrix_sequence(op.regs, op.mats);
 	break;
       case Operations::OpType::multiplexer:
-        apply_multiplexer(op.regs[0], op.regs[1], op.mats);
+        apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);

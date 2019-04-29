@@ -1256,10 +1256,10 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
 	}
   };
-
+  
   // Use the lambda function
-  auto qubits = control_qubits;
-  for (const auto &q : target_qubits) {qubits.push_back(q);}
+  auto qubits = target_qubits;
+  for (const auto &q : control_qubits) {qubits.push_back(q);}
   apply_lambda(lambda, qubits, mat);
 }
 

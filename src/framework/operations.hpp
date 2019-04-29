@@ -60,6 +60,7 @@ std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix_sequence:
     stream << "matrix_sequence";
+    break; 
   case OpType::multiplexer:
     stream << "multiplexer";
     break;

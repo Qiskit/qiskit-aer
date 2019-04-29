@@ -563,37 +563,29 @@ matrix<std::complex<T>> conj(const matrix<std::complex<T>> &A) {
 // Equivalent to a 2^qubits x 2^target "flat" matrix
 template <class T>
 matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat){
-	size_t exp_target_count, exp_control_count, target_count, control_count;
-	double n, base = 2;
-        exp_target_count = mmat[0].GetRows(); // or GetColumns, as these matrices are (should be) square
-	n = std::log(exp_target_count)/std::log(base);
-	target_count = std::trunc(n);
+        size_t size_of_controls = mmat[0].GetRows(); // or GetColumns, as these matrices are (should be) square
+	size_t number_of_controls = mmat.size();
 
-	exp_control_count = mmat.size();
-	n = std::log(exp_control_count)/std::log(base);
-	control_count = std::trunc(n);
+	// Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = (stacked_rows x size_of_controls) where:
+	//     stacked_rows is the number of control matrices * the size (#rows or #columns) of each control matrix
+	//     size_of_controls is the #rows (or #columns) of each control matrix
+	uint_t stacked_rows = number_of_controls*size_of_controls; // Used only for clarity in allocating the matrix
 
-	// Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
-	size_t big_dimension = QV::BITS[(control_count+target_count)];
-	size_t small_dimension = QV::BITS[target_count]; // Should equal exp_target_count
-	size_t offset_row = 0;
-
-	cmatrix_t stacked_matrix(big_dimension, small_dimension);
-	for(size_t row = 0; row < big_dimension; row++)
-		for(size_t col = 0; col < small_dimension; col++)
+	cmatrix_t stacked_matrix(stacked_rows, size_of_controls);
+	for(uint_t row = 0; row < stacked_rows; row++)
+		for(uint_t col = 0; col < size_of_controls; col++)
 			stacked_matrix(row, col) = {0.0, 0.0};
 
-	for(size_t mmat_number = 0; mmat_number < mmat.size(); mmat_number++)
+	for(uint_t mmat_number = 0; mmat_number < mmat.size(); mmat_number++)
 	{
-		for(size_t row = 0; row < exp_target_count; row++)
+		for(uint_t row = 0; row < size_of_controls; row++)
 		{
-			for(size_t col = 0; col < exp_target_count; col++)
+			for(uint_t col = 0; col < size_of_controls; col++)
 			{
-				stacked_matrix(offset_row + row, col) = mmat[mmat_number](row, col);
+				stacked_matrix(mmat_number * size_of_controls + row, col) = mmat[mmat_number](row, col);
 			}
 
 		}
-		offset_row+=exp_target_count; // offset_row == mmat_number * exp_target_count
 	}
 	return stacked_matrix;
 }
