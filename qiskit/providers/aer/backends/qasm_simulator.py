@@ -147,7 +147,7 @@ class QasmSimulator(AerBackend):
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'ccx', 'swap', 'snapshot', 'unitary', 'reset',
+            't', 'tdg', 'ccx', 'swap', 'multiplexer', 'snapshot', 'unitary', 'reset',
             'initialize', 'kraus'
         ],
         'gates': [{

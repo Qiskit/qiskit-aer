@@ -36,7 +36,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, matrix_sequence, kraus, roerror, noise_switch, initialize
+  matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -64,6 +64,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix_sequence:
     stream << "matrix_sequence";
+    break;
+  case OpType::multiplexer:
+    stream << "multiplexer";
     break;
   case OpType::kraus:
     stream << "kraus";
@@ -439,6 +442,56 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   return op;
 }
 
+inline Op make_multiplexer(const reg_t &qubits,
+                           const std::vector<cmatrix_t> &mats,
+                           std::string label = "") {
+
+  // Check matrices are N-qubit
+  auto dim = mats[0].GetRows();
+  uint_t num_targets = uint_t(std::log2(dim));
+  if (1ULL << num_targets != dim) {
+    throw std::invalid_argument("invalid multiplexer matrix dimension.");
+  }
+  // Check number of matrix compents is power of 2.
+  size_t num_mats = mats.size();
+  uint_t num_controls = uint_t(std::log2(num_mats));
+  if (1ULL << num_controls != num_mats) {
+    throw std::invalid_argument("invalid number of multiplexer matrices.");
+  }
+  // Check number of targets and controls matches qubits
+  if (num_controls + num_targets != qubits.size()) {
+    throw std::invalid_argument("multiplexer qubits don't match parameters.");
+  }
+  // Check each matrix component is unitary and same size
+  for (const auto &mat : mats) {
+    if (!Utils::is_unitary(mat, 1e-7))
+      throw std::invalid_argument("multiplexer matrix is not unitary.");
+    if (mat.GetRows() != dim) {
+      throw std::invalid_argument("multiplexer matrices are different size.");
+    }
+  }
+  // Get lists of controls and targets
+  reg_t controls(num_controls), targets(num_targets);
+  std::copy_n(qubits.begin(), num_controls, controls.begin());
+  std::copy_n(qubits.begin() + num_controls, num_targets, targets.begin());
+
+  // Construct the Op
+  Op op;
+  op.type = OpType::multiplexer;
+  op.name = "multiplexer";
+  op.qubits = qubits;
+  op.mats = mats;
+  op.regs = std::vector<reg_t>({controls, targets});
+  if (label != "")
+    op.string_params = {label};
+
+  // Validate qubits are unique.
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
+  return op;
+}
+
 inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
   Op op;
   op.type = OpType::kraus;
@@ -483,6 +536,7 @@ Op json_to_op_snapshot_pauli(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
+Op json_to_op_multiplexer(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
@@ -522,6 +576,8 @@ Op json_to_op(const json_t &js) {
   // Noise functions
   if (name == "noise_switch")
     return json_to_op_noise_switch(js);
+  if (name == "multiplexer")
+    return json_to_op_multiplexer(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   if (name == "roerror")
@@ -747,6 +803,18 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
+Op json_to_op_multiplexer(const json_t &js) {
+
+  // Parse parameters
+  reg_t qubits;
+  std::vector<cmatrix_t> mats;
+  std::string label;
+  JSON::get_value(qubits, "qubits", js);
+  JSON::get_value(mats, "params", js);
+  JSON::get_value(label, "label", js);
+  // Construct op
+  return make_multiplexer(qubits, mats, label);
+}
 
 Op json_to_op_kraus(const json_t &js) {
   Op op;
