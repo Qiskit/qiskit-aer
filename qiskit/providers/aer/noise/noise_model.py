@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Noise model class for Qiskit Aer simulators.
 """
@@ -34,7 +33,8 @@ class NoiseModel:
     # Get the default basis gates for the Qiskit Aer Qasm Simulator
     # this is used to decide what are instructions for a noise model
     # and what are labels for other named instructions
-    QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION['basis_gates']
+    QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION[
+        'basis_gates']
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
@@ -50,7 +50,7 @@ class NoiseModel:
         Args:
             basis_gates (list[str] or None): Specify an initial basis_gates
                 for the noise model. If None a default value of ['id', 'u3', 'cx']
-                is used [Default: None].
+                is used (Default: None).
 
         Additional Information
         ----------------------
@@ -61,33 +61,139 @@ class NoiseModel:
         be added to the NoiseModel basis_gates either using the init method, or
         the `add_basis_Gates` method.
         """
-        # Initialize empty quantum errors
         if basis_gates is None:
-            self._basis_gates = set(['id', 'u3', 'cx'])  # Store noise model basis gates
+            # Default basis gates is id, u3, cx so that all standard
+            # non-identity instructions can be unrolled to u3, cx,
+            # and identities won't be unrolled to u3.
+            self._basis_gates = set(['id', 'u3', 'cx'])
         else:
-            self._basis_gates = set(_instruction_names(basis_gates))
-        self._noise_instructions = set(
-        )  # Store gates with a noise model defined
-        # TODO: Code would be cleaner if these were replaced with classes
-        # Type: dict(str: list(QuantumError)
+            self._basis_gates = set(self._instruction_names(basis_gates))
+        # Store gates with a noise model defined
+        self._noise_instructions = set()
+        # Store qubits referenced in noise model.
+        # These include gate qubits in local quantum and readout errors,
+        # and both gate and noise qubits for non-local quantum errors.
+        self._noise_qubits = set()
+        # Default (all-qubit) quantum errors are stored as:
+        # dict(str: QuantumError)
+        # where they keys are the instruction str label
         self._default_quantum_errors = {}
-        # Type: dict(str: dict(str: list(QuantumError))
+        # Local quantum errors are stored as:
+        # dict(str: dict(str: QuantumError))
+        # where the outer keys are the instruction str label and the
+        # inner dict keys are the gate qubits
         self._local_quantum_errors = {}
-        # Type: dict(str: dict(str: list(pair(list(QuantumError), list(int)))))
+        # Non-local quantum errors are stored as:
+        # dict(str: dict(str: dict(str: QuantumError)))
+        # where the outer keys are the instruction str label, the middle dict
+        # keys are the gate qubits, and the inner most dict keys are
+        # the noise qubits.
         self._nonlocal_quantum_errors = {}
-        # Initialize empty readout errors
-        self._default_readout_error = None  # Type: ReadoutError
-        self._local_readout_errors = {}  # Type: dict(str: ReadoutError)
+        # Default (all-qubit) readout error is stored as a single
+        # ReadoutError object since there may only be one defined.
+        self._default_readout_error = None
+        # Local readout errors are stored as:
+        # dict(str: ReadoutError)
+        # where the dict keys are the gate qubits.
+        self._local_readout_errors = {}
         self._x90_gates = []
 
-    def reset(self):
-        """Reset the noise model."""
-        self.__init__()
+    @property
+    def basis_gates(self):
+        """Return basis_gates for compiling to the noise model."""
+        # Convert noise instructions to basis_gates string
+        return sorted(self._basis_gates)
 
     @property
     def noise_instructions(self):
         """Return the set of noisy instructions for this noise model."""
-        return self._noise_instructions
+        return sorted(self._noise_instructions)
+
+    @property
+    def noise_qubits(self):
+        """Return the set of noisy qubits for this noise model."""
+        return sorted(self._noise_qubits)
+
+    def __repr__(self):
+        """Display noise model"""
+
+        # Get default errors
+        default_error_ops = []
+        for inst in self._default_quantum_errors:
+            default_error_ops.append('{}'.format(inst))
+        if self._default_readout_error is not None:
+            if 'measure' not in default_error_ops:
+                default_error_ops.append('measure')
+
+        # Get local errors
+        local_error_ops = []
+        for inst, dic in self._local_quantum_errors.items():
+            for q_str in dic.keys():
+                local_error_ops.append((inst, self._str2qubits(q_str)))
+        for q_str in self._local_readout_errors:
+            tmp = ('measure', self._str2qubits(q_str))
+            if tmp not in local_error_ops:
+                local_error_ops.append(tmp)
+
+        # Get nonlocal errors
+        nonlocal_error_ops = []
+        for inst, dic in self._nonlocal_quantum_errors.items():
+            for q_str, errors in dic.items():
+                for nq_str in errors:
+                    nonlocal_error_ops.append((inst, self._str2qubits(q_str),
+                                               self._str2qubits(nq_str)))
+
+        output = "NoiseModel:"
+        if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
+            output += " Ideal"
+        else:
+            output += "\n  Basis gates: {}".format(self.basis_gates)
+            if self._noise_instructions:
+                output += "\n  Instructions with noise: {}".format(
+                    list(self._noise_instructions))
+            if self._noise_qubits:
+                output += "\n  Qubits with noise: {}".format(
+                    list(self._noise_qubits))
+            if self._x90_gates:
+                output += "\n  X-90 based single qubit gates: {}".format(
+                    list(self._x90_gates))
+            if default_error_ops != []:
+                output += "\n  All-qubits errors: {}".format(default_error_ops)
+            if local_error_ops != []:
+                output += "\n  Specific qubit errors: {}".format(
+                    local_error_ops)
+            if nonlocal_error_ops != []:
+                output += "\n  Non-local specific qubit errors: {}".format(
+                    nonlocal_error_ops)
+        return output
+
+    def __eq__(self, other):
+        """Test if two noise models are equal."""
+        # This returns True if both noise models have:
+        # the same basis_gates
+        # the same noise_qubits
+        # the same noise_instructions
+        if (not isinstance(other, NoiseModel)
+                or self.basis_gates != other.basis_gates
+                or self.noise_qubits != other.noise_qubits
+                or self.noise_instructions != other.noise_instructions):
+            return False
+        # Check default readout errors is equal
+        if not self._readout_errors_equal(other):
+            return False
+        # Check quantum errors equal
+        if not self._all_qubit_quantum_errors_equal(other):
+            return False
+        if not self._local_quantum_errors_equal(other):
+            return False
+        if not self._nonlocal_quantum_errors_equal(other):
+            return False
+        # If we made it here they are equal
+        return True
+
+    def reset(self):
+        """Reset the noise model."""
+        self.__init__()
 
     def add_basis_gates(self, instructions, warnings=True):
         """Add additional gates to the noise model basis_gates.
@@ -99,14 +205,15 @@ class NoiseModel:
             instructions (list[str] or
                           list[Instruction]): the instructions error applies to.
             warnings (bool): display warning if instruction is not in
-                             QasmSimulator basis_gates [Default: True].
+                             QasmSimulator basis_gates (Default: True).
         """
         names = self._instruction_names(instructions)
         for inst in names:
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
             if inst in self.QASMSIMULATOR_BASIS_GATES:
-                self._basis_gates.add(inst)
+                if inst not in ['measure', 'reset']:
+                    self._basis_gates.add(inst)
             elif warnings:
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
@@ -140,7 +247,7 @@ class NoiseModel:
                           Instruction or
                           list[Instruction]): the instructions error applies to.
             warnings (bool): Display warning if appending to an instruciton that
-                             already has an error [Default: True]
+                             already has an error (Default: True).
 
         Raises:
             NoiseError: if the input parameters are invalid.
@@ -164,14 +271,15 @@ class NoiseModel:
         for inst in instruction_names:
             self._check_number_of_qubits(error, inst)
             if inst in self._default_quantum_errors:
-                self._default_quantum_errors[inst].append(error)
+                new_error = self._default_quantum_errors[inst].compose(error)
+                self._default_quantum_errors[inst] = new_error
                 if warnings:
                     logger.warning(
                         "WARNING: all-qubit error already exists for "
                         "instruction \"%s\", "
-                        "appending additional error.", inst)
+                        "composing with additional error.", inst)
             else:
-                self._default_quantum_errors[inst] = [error]
+                self._default_quantum_errors[inst] = error
             # Check if a specific qubit error has been applied for this instruction
             if inst in self._local_quantum_errors:
                 local_qubits = self._keys2str(
@@ -180,7 +288,8 @@ class NoiseModel:
                     logger.warning(
                         "WARNING: all-qubit error for instruction "
                         "\"%s\" will not apply to qubits: "
-                        "%s as specific error already exists.", inst, local_qubits)
+                        "%s as specific error already exists.", inst,
+                        local_qubits)
             self._noise_instructions.add(inst)
             self.add_basis_gates(inst, warnings=False)
 
@@ -195,7 +304,7 @@ class NoiseModel:
                           list[Instruction]): the instructions error applies to.
             qubits (list[int]): qubits instruction error applies to.
             warnings (bool): Display warning if appending to an instruciton that
-                             already has an error [Default: True]
+                             already has an error (Default: True).
 
         Raises:
             NoiseError: if the input parameters are invalid.
@@ -216,6 +325,9 @@ class NoiseModel:
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
+        # Add noise qubits
+        for qubit in qubits:
+            self._noise_qubits.add(qubit)
         # Add instructions
         for inst in instruction_names:
             if not isinstance(inst, str):
@@ -234,20 +346,20 @@ class NoiseModel:
                                  " the error size ({})".format(
                                      len(qubits), error.number_of_qubits))
             if qubits_str in qubit_dict:
-                qubit_dict[qubits_str].append(error)
+                new_error = qubit_dict[qubits_str].compose(error)
+                qubit_dict[qubits_str] = new_error
                 if warnings:
                     logger.warning(
                         "WARNING: quantum error already exists for "
                         "instruction \"%s\" on qubits %s "
                         ", appending additional error.", inst, qubits)
             else:
-                qubit_dict[qubits_str] = [error]
+                qubit_dict[qubits_str] = error
             # Add updated dictionary
             self._local_quantum_errors[inst] = qubit_dict
 
             # Check if all-qubit error is already defined for this instruction
             if inst in self._default_quantum_errors:
-                self._default_quantum_errors[inst].append(error)
                 if warnings:
                     logger.warning(
                         "WARNING: Specific error for instruction \"%s\" "
@@ -256,8 +368,12 @@ class NoiseModel:
             self._noise_instructions.add(inst)
             self.add_basis_gates(inst, warnings=False)
 
-    def add_nonlocal_quantum_error(self, error, instructions, qubits,
-                                   noise_qubits, warnings=True):
+    def add_nonlocal_quantum_error(self,
+                                   error,
+                                   instructions,
+                                   qubits,
+                                   noise_qubits,
+                                   warnings=True):
         """
         Add a non-local quantum error to the noise model.
 
@@ -271,7 +387,7 @@ class NoiseModel:
                                       should be applied to if different
                                       to the instruction qubits.
             warnings (bool): Display warning if appending to an instruciton that
-                             already has an error [Default: True]
+                             already has an error (Default: True).
 
         Raises:
             NoiseError: if the input parameters are invalid.
@@ -293,25 +409,36 @@ class NoiseModel:
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
-
+        # Add noise qubits
+        for qubit in qubits:
+            self._noise_qubits.add(qubit)
+        for qubit in noise_qubits:
+            self._noise_qubits.add(qubit)
         # Add instructions
         for inst in instruction_names:
             if inst in self._nonlocal_quantum_errors:
-                qubit_dict = self._nonlocal_quantum_errors[inst]
+                gate_qubit_dict = self._nonlocal_quantum_errors[inst]
             else:
-                qubit_dict = {}
-            qubits_str = self._qubits2str(qubits)
-            if qubits_str in qubit_dict:
-                qubit_dict[qubits_str].append((error, noise_qubits))
+                gate_qubit_dict = {}
+            qs_str = self._qubits2str(qubits)
+            nqs_str = self._qubits2str(noise_qubits)
+            if qs_str in gate_qubit_dict:
+                noise_qubit_dict = gate_qubit_dict[nqs_str]
+                if nqs_str in noise_qubit_dict:
+                    new_error = noise_qubit_dict[nqs_str].compose(error)
+                    noise_qubit_dict[nqs_str] = new_error
+                else:
+                    noise_qubit_dict[nqs_str] = error
+                gate_qubit_dict[qs_str] = noise_qubit_dict
                 if warnings:
                     logger.warning(
-                        "WARNING: nonlocal error already exists for "
+                        "Warning: nonlocal error already exists for "
                         "instruction \"%s\" on qubits %s."
-                        "Appending additional error.", inst, qubits)
+                        "Composing additional error.", inst, qubits)
             else:
-                qubit_dict[qubits_str] = [(error, noise_qubits)]
+                gate_qubit_dict[qs_str] = {nqs_str: error}
             # Add updated dictionary
-            self._nonlocal_quantum_errors[inst] = qubit_dict
+            self._nonlocal_quantum_errors[inst] = gate_qubit_dict
             self._noise_instructions.add(inst)
             self.add_basis_gates(inst, warnings=False)
 
@@ -322,7 +449,7 @@ class NoiseModel:
         Args:
             error (ReadoutError): the quantum error object.
             warnings (bool): Display warning if appending to an instruciton that
-                             already has an error [Default: True]
+                             already has an error (Default: True)
 
         Raises:
             NoiseError: if the input parameters are invalid.
@@ -349,8 +476,9 @@ class NoiseModel:
             )
         if self._default_readout_error is not None:
             if warnings:
-                logger.warning("WARNING: all-qubit readout error already exists, "
-                               "overriding with new readout error.")
+                logger.warning(
+                    "WARNING: all-qubit readout error already exists, "
+                    "overriding with new readout error.")
         self._default_readout_error = error
 
         # Check if a specific qubit error has been applied for this instruction
@@ -393,6 +521,10 @@ class NoiseModel:
         if error.ideal():
             return
 
+        # Add noise qubits
+        for qubit in qubits:
+            self._noise_qubits.add(qubit)
+
         # Convert qubits list to hashable string
         qubits_str = self._qubits2str(qubits)
         # Check error matches qubit size
@@ -410,67 +542,12 @@ class NoiseModel:
 
         # Check if all-qubit readout error is already defined
         if self._default_readout_error is not None:
-            logger.warning(
-                "WARNING: Specific readout error on qubits "
-                "%s overrides previously defined "
-                "all-qubit readout error for these qubits.", qubits)
+            if warnings:
+                logger.warning(
+                    "WARNING: Specific readout error on qubits "
+                    "%s overrides previously defined "
+                    "all-qubit readout error for these qubits.", qubits)
         self._noise_instructions.add("measure")
-
-    def __repr__(self):
-        """Display noise model"""
-
-        # Get default errors
-        default_error_ops = []
-        for inst in self._default_quantum_errors:
-            default_error_ops.append('{}'.format(inst))
-        if self._default_readout_error is not None:
-            if 'measure' not in default_error_ops:
-                default_error_ops.append('measure')
-
-        # Get local errors
-        local_error_ops = []
-        for inst, dic in self._local_quantum_errors.items():
-            for q_str in dic.keys():
-                local_error_ops.append((inst, self._str2qubits(q_str)))
-        for q_str in self._local_readout_errors:
-            tmp = ('measure', self._str2qubits(q_str))
-            if tmp not in local_error_ops:
-                local_error_ops.append(tmp)
-
-        # Get nonlocal errors
-        nonlocal_error_ops = []
-        for inst, dic in self._nonlocal_quantum_errors.items():
-            for q_str, errors in dic.items():
-                for error in errors:
-                    nonlocal_error_ops.append((inst, self._str2qubits(q_str),
-                                               error[1]))
-
-        output = "NoiseModel:"
-        if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
-            output += " Ideal"
-        else:
-            output += "\n  Basis gates: {}".format(self.basis_gates)
-            if self._noise_instructions:
-                output += "\n  Instructions with noise: {}".format(
-                    list(self._noise_instructions))
-            if self._x90_gates:
-                output += "\n  X-90 based single qubit gates: {}".format(
-                    list(self._x90_gates))
-            if default_error_ops != []:
-                output += "\n  All-qubits errors: {}".format(default_error_ops)
-            if local_error_ops != []:
-                output += "\n  Specific qubit errors: {}".format(
-                    local_error_ops)
-            if nonlocal_error_ops != []:
-                output += "\n  Non-local specific qubit errors: {}".format(
-                    nonlocal_error_ops)
-        return output
-
-    @property
-    def basis_gates(self):
-        """Return basis_gates for compiling to the noise model."""
-        # Convert noise instructions to basis_gates string
-        return list(self._basis_gates)
 
     def as_dict(self, serializable=False):
         """
@@ -486,29 +563,29 @@ class NoiseModel:
         error_list = []
 
         # Add default quantum errors
-        for name, errors in self._default_quantum_errors.items():
-            for error in errors:
-                error_dict = error.as_dict()
-                error_dict["operations"] = [name]
-                error_list.append(error_dict)
+        for name, error in self._default_quantum_errors.items():
+            error_dict = error.as_dict()
+            error_dict["operations"] = [name]
+            error_list.append(error_dict)
 
         # Add specific qubit errors
         for name, qubit_dict in self._local_quantum_errors.items():
-            for qubits_str, errors in qubit_dict.items():
-                for error in errors:
-                    error_dict = error.as_dict()
-                    error_dict["operations"] = [name]
-                    error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
-                    error_list.append(error_dict)
+            for qubits_str, error in qubit_dict.items():
+                error_dict = error.as_dict()
+                error_dict["operations"] = [name]
+                error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
+                error_list.append(error_dict)
 
         # Add non-local errors
         for name, qubit_dict in self._nonlocal_quantum_errors.items():
-            for qubits_str, errors in qubit_dict.items():
-                for error, noise_qubits in errors:
+            for qubits_str, noise_qubit_dict in qubit_dict.items():
+                for noise_qubits_str, error in noise_qubit_dict.items():
                     error_dict = error.as_dict()
                     error_dict["operations"] = [name]
                     error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
-                    error_dict["noise_qubits"] = [list(noise_qubits)]
+                    error_dict["noise_qubits"] = [
+                        self._str2qubits(noise_qubits_str)
+                    ]
                     error_list.append(error_dict)
 
         # Add default readout error
@@ -532,6 +609,9 @@ class NoiseModel:
     def from_dict(noise_dict):
         """
         Load NoiseModel from a dictionary.
+
+        Args:
+            noise_dict (dict): A serialized noise model.
 
         Returns:
             NoiseModel: the noise model.
@@ -565,16 +645,22 @@ class NoiseModel:
                         if all_noise_qubits is not None:
                             for noise_qubits in all_noise_qubits:
                                 noise_model.add_nonlocal_quantum_error(
-                                    qerror, instruction_names, gate_qubits,
-                                    noise_qubits)
+                                    qerror,
+                                    instruction_names,
+                                    gate_qubits,
+                                    noise_qubits,
+                                    warnings=False)
                         # Add local quantum error
                         else:
                             noise_model.add_quantum_error(
-                                qerror, instruction_names, gate_qubits)
+                                qerror,
+                                instruction_names,
+                                gate_qubits,
+                                warnings=False)
                 else:
                     # Add all-qubit quantum error
                     noise_model.add_all_qubit_quantum_error(
-                        qerror, instruction_names)
+                        qerror, instruction_names, warnings=False)
 
             # Add ReadoutError
             elif error_type is 'roerror':
@@ -584,10 +670,12 @@ class NoiseModel:
                 # Add local readout error
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
-                        noise_model.add_readout_error(roerror, gate_qubits)
+                        noise_model.add_readout_error(
+                            roerror, gate_qubits, warnings=False)
                 # Add all-qubit readout error
                 else:
-                    noise_model.add_all_qubit_readout_error(roerror)
+                    noise_model.add_all_qubit_readout_error(
+                        roerror, warnings=False)
             # Invalid error type
             else:
                 raise NoiseError("Invalid error type: {}".format(error_type))
@@ -644,3 +732,67 @@ class NoiseModel:
         """Convert dicitonary keys to comma seperated print string."""
         tmp = "".join(["{}, ".format(self._str2qubits(key)) for key in keys])
         return tmp[:-2]
+
+    def _readout_errors_equal(self, other):
+        """Check two noise models have equal readout errors"""
+        # Check default readout error is equal
+        if self._default_readout_error != other._default_readout_error:
+            return False
+        # Check local readout errors are equal
+        if sorted(self._local_readout_errors.keys()) != sorted(
+                other._local_readout_errors.keys()):
+            return False
+        for key in self._local_readout_errors:
+            if self._local_readout_errors[key] != other._local_readout_errors[
+                    key]:
+                return False
+        return True
+
+    def _all_qubit_quantum_errors_equal(self, other):
+        """Check two noise models have equal local quantum errors"""
+        if sorted(self._default_quantum_errors.keys()) != sorted(
+                other._default_quantum_errors.keys()):
+            return False
+        for key in self._default_quantum_errors:
+            if self._default_quantum_errors[
+                    key] != other._default_quantum_errors[key]:
+                return False
+        return True
+
+    def _local_quantum_errors_equal(self, other):
+        """Check two noise models have equal local quantum errors"""
+        if sorted(self._local_quantum_errors.keys()) != sorted(
+                other._local_quantum_errors.keys()):
+            return False
+        for key in self._local_quantum_errors:
+            inner_dict1 = self._local_quantum_errors[key]
+            inner_dict2 = other._local_quantum_errors[key]
+            if sorted(inner_dict1.keys()) != sorted(inner_dict2.keys()):
+                return False
+            for inner_key in inner_dict1:
+                if inner_dict1[inner_key] != inner_dict2[inner_key]:
+                    return False
+            if self._local_quantum_errors[key] != other._local_quantum_errors[
+                    key]:
+                return False
+        return True
+
+    def _nonlocal_quantum_errors_equal(self, other):
+        """Check two noise models have equal non-local quantum errors"""
+        if sorted(self._nonlocal_quantum_errors.keys()) != sorted(
+                other._nonlocal_quantum_errors.keys()):
+            return False
+        for key in self._nonlocal_quantum_errors:
+            inner_dict1 = self._nonlocal_quantum_errors[key]
+            inner_dict2 = other._nonlocal_quantum_errors[key]
+            if sorted(inner_dict1.keys()) != sorted(inner_dict2.keys()):
+                return False
+            for inner_key in inner_dict1:
+                iinner_dict1 = inner_dict1[inner_key]
+                iinner_dict2 = inner_dict2[inner_key]
+                if sorted(iinner_dict1.keys()) != sorted(iinner_dict2.keys()):
+                    return False
+                for iinner_key in iinner_dict1:
+                    if iinner_dict1[iinner_key] != iinner_dict2[iinner_key]:
+                        return False
+        return True

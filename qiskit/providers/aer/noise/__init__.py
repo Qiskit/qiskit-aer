@@ -71,10 +71,11 @@ canonical types of quantum errors:
 Noise Utilities
 --------------
 The `noise.utils` module contains utilities for noise models and errors including:
-    'approximate_quantum_error' for approximating a general quantum error via
-    a provided set of errors (e.g. approximating amplitude damping via reset errors)
-    'approximate_noise_model' for approximating all the errors in a nose model using
-    the same provided set of errors
+   `remap_noise_model` for remapping the qubits specified in a NoiseModel.
+   `approximate_quantum_error` for approximating a general quantum error via
+   a provided set of errors (e.g. approximating amplitude damping via reset errors).
+   `approximate_noise_model` for approximating all the errors in a nose model using
+   the same provided set of errors.
 """
 
 from .noise_model import NoiseModel
