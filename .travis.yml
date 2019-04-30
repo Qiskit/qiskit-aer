@@ -102,6 +102,7 @@ jobs:
     ###########################################################################
     # GNU/Linux, Python 3.7
     - stage: test
+      name: Python 3.7 Tests Linux
       <<: *stage_linux
       python: 3.7
 
