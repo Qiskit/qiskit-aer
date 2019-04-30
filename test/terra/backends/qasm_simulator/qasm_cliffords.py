@@ -735,9 +735,8 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.multiplexer_cx_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -747,8 +746,7 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.multiplexer_cx_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
