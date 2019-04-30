@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import qiskit as Terra
 from qiskit import QiskitError
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
                    reset_noise_model, kraus_noise_model, no_noise, \
@@ -48,7 +48,7 @@ class SimpleU3TimeSuite:
         self.circuits = []
         for i in 5, 10, 15:
             circuit = simple_u3_circuit(i)
-            self.circuits.append(Terra.assemble(circuit, self.backend, shots=1))
+            self.circuits.append(assemble(circuit, self.backend, shots=1))
 
         self.param_names = [
             "Simple u3 circuits", "Noise Model"
@@ -83,7 +83,7 @@ class SimpleCxTimeSuite:
         ]
         for i in 5, 10, 15:
             circuit = simple_cnot_circuit(i)
-            self.circuits.append(Terra.assemble(circuit, self.backend, shots=1))
+            self.circuits.append(assemble(circuit, self.backend, shots=1))
         self.params = (self.circuits, [
             no_noise(),
             mixed_unitary_noise_model(),
