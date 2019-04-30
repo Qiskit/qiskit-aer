@@ -47,7 +47,8 @@ install:
   - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
   - pip install -r requirements-dev.txt
   - python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-  - pip install dist/qiskit_aer*whl
+  - pip install dist\qiskit_aer*.whl
+
 
 build: off
 
