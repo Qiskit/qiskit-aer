@@ -43,6 +43,7 @@ install:
   # - "conda install --update-deps -y mkl"
   # Because of issue #193, we have to keep pip in version 18.
   - python -m pip install --disable-pip-version-check pip==18
+  - pip install cython
   - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
   - pip install -r requirements-dev.txt
   - python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
