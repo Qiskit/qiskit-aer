@@ -56,8 +56,6 @@ stage_osx: &stage_osx
     pip: true
     directories:
       - ~/python-interpreters/
-  env:
-    - SCIKIT_PARAMS=--plat-name=macosx-10.9-x86_64
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
@@ -76,7 +74,7 @@ stage_osx: &stage_osx
     - brew install libomp
     - brew install openblas
   script:
-    - python setup.py bdist_wheel --plat-name=macosx-10.9-x86_64 -- -- -j4
+    - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
     - python -m unittest discover -s test -v
 
