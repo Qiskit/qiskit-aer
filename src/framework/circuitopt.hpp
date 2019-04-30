@@ -30,6 +30,10 @@ namespace AER {
 
 class CircuitOptimization {
 public:
+
+  CircuitOptimization() = default;
+  virtual ~CircuitOptimization() = default;
+
   virtual void optimize_circuit(Circuit& circ,
                                 const Operations::OpSet &opset,
                                 OutputData &data) const = 0;
