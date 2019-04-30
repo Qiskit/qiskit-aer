@@ -75,6 +75,7 @@ public:
       Operations::OpType::roerror,
       Operations::OpType::matrix,
       Operations::OpType::matrix_sequence,
+      Operations::OpType::multiplexer,
       Operations::OpType::kraus
     });
   }
@@ -171,7 +172,14 @@ protected:
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
+  void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
+
+  // Apply a vector of control matrices to given qubits (identity on all other qubits)
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat);
+
+  // Apply stacked (flat) version of multiplexer matrix to target qubits (using control qubits to select matrix instance)
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat);
+
 
   // Apply multiple gate operations
   void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats);
@@ -443,6 +451,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::matrix_sequence:
         apply_matrix_sequence(op.regs, op.mats);
+	break;
+      case Operations::OpType::multiplexer:
+        apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
@@ -707,6 +718,14 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) 
 }
 
 template <class statevec_t>
+void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
+  if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
+    cvector_t vmat = Utils::vectorize_matrix(mat);
+    BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
+  }
+}
+
+template <class statevec_t>
 void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
@@ -715,6 +734,8 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
     BaseState::qreg_.apply_matrix(qubits, vmat);
   }
 }
+
+
 
 template <class statevec_t>
 void State<statevec_t>::apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats) {
@@ -879,6 +900,20 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
    // Apply initialize_component
    BaseState::qreg_.initialize_component(qubits, params);
 }
+
+//=========================================================================
+// Implementation: Multiplexer Circuit
+//=========================================================================
+
+template <class statevec_t>
+void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat) {
+	// (1) Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
+	cmatrix_t multiplexer_matrix = Utils::stacked_matrix(mmat);
+
+	// (2) Treat as single, large(r), chained/batched matrix operator
+	apply_multiplexer(control_qubits, target_qubits, multiplexer_matrix);
+}
+
 
 //=========================================================================
 // Implementation: Kraus Noise

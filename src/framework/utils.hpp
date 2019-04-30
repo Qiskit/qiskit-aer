@@ -99,6 +99,8 @@ template <class T>
 matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A);
 template <class T>
 matrix<std::complex<T>> conjugate(const matrix<std::complex<T>> &A);
+template<class T>
+matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat);
 
 // Tracing
 template <class T> T trace(const matrix<T> &A);
@@ -561,6 +563,37 @@ matrix<std::complex<T>> conj(const matrix<std::complex<T>> &A) {
     }
   }
   return temp;
+}
+
+// Given a list of matrices for a multiplexer, stacks and packs them 0/1/2/... into a single 2^control x (2^target x 2^target) cmatrix_t) 
+// Equivalent to a 2^qubits x 2^target "flat" matrix
+template <class T>
+matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat){
+        size_t size_of_controls = mmat[0].GetRows(); // or GetColumns, as these matrices are (should be) square
+	size_t number_of_controls = mmat.size();
+
+	// Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = (stacked_rows x size_of_controls) where:
+	//     stacked_rows is the number of control matrices * the size (#rows or #columns) of each control matrix
+	//     size_of_controls is the #rows (or #columns) of each control matrix
+	uint_t stacked_rows = number_of_controls*size_of_controls; // Used only for clarity in allocating the matrix
+
+	cmatrix_t stacked_matrix(stacked_rows, size_of_controls);
+	for(uint_t row = 0; row < stacked_rows; row++)
+		for(uint_t col = 0; col < size_of_controls; col++)
+			stacked_matrix(row, col) = {0.0, 0.0};
+
+	for(uint_t mmat_number = 0; mmat_number < mmat.size(); mmat_number++)
+	{
+		for(uint_t row = 0; row < size_of_controls; row++)
+		{
+			for(uint_t col = 0; col < size_of_controls; col++)
+			{
+				stacked_matrix(mmat_number * size_of_controls + row, col) = mmat[mmat_number](row, col);
+			}
+
+		}
+	}
+	return stacked_matrix;
 }
 
 
