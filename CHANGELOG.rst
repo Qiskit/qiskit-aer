@@ -20,6 +20,8 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+- add `remap_noise_model` function to noise.utils (#181)
+- Add `__eq__` method to NoiseModel, QuantumError, ReadoutError (#181)
 - Add support for labelled gates in noise models (#175).
 - Improve efficiency of parallelization with max_memory_mb a new parameter of backend_opts (#61)
 - Add optimized mcx, mcy, mcz, mcu1, mcu2, mcu3, gates to QubitVector (#124)

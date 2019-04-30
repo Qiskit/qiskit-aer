@@ -10,8 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Noise utils for Qiskit Aer.
 """
+Noise utils for Qiskit Aer.
+"""
+
+from .noise_remapper import remap_noise_model
 from .noise_transformation import NoiseTransformer
 from .noise_transformation import approximate_quantum_error
 from .noise_transformation import approximate_noise_model
