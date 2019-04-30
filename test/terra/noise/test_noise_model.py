@@ -651,6 +651,136 @@ class TestNoise(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
+    def test_noise_model_basis_gates(self):
+        """Test noise model basis_gates"""
+        basis_gates = ['u1', 'u2', 'u3', 'cx']
+        model = NoiseModel(basis_gates)
+        target = sorted(basis_gates)
+        self.assertEqual(model.basis_gates, target)
+
+        # Check adding readout errors doesn't add to basis gates
+        model = NoiseModel(basis_gates)
+        target = sorted(basis_gates)
+        model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]], False)
+        self.assertEqual(model.basis_gates, target)
+        model.add_readout_error([[0.9, 0.1], [0, 1]], [2], False)
+        self.assertEqual(model.basis_gates, target)
+
+        # Check a reset instruction error isn't added to basis gates
+        model = NoiseModel(basis_gates)
+        target = sorted(basis_gates)
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['reset'], False)
+        self.assertEqual(model.basis_gates, target)
+
+        # Check a non-standard gate isn't added to basis gates
+        model = NoiseModel(basis_gates)
+        target = sorted(basis_gates)
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['label'], False)
+        self.assertEqual(model.basis_gates, target)
+
+        # Check a standard gate is added to basis gates
+        model = NoiseModel(basis_gates)
+        target = sorted(basis_gates + ['h'])
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['h'], False)
+        self.assertEqual(model.basis_gates, target)
+
+    def test_noise_model_noise_instructions(self):
+        """Test noise instructions"""
+        model = NoiseModel()
+        target = []
+        self.assertEqual(model.noise_instructions, target)
+
+        # Check a non-standard gate is added to noise instructions
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['label'], False)
+        target = ['label']
+        self.assertEqual(model.noise_instructions, target)
+
+        # Check a standard gate is added to noise instructions
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['h'], False)
+        target = ['h']
+        self.assertEqual(model.noise_instructions, target)
+
+        # Check a reset is added to noise instructions
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['reset'], False)
+        target = ['reset']
+        self.assertEqual(model.noise_instructions, target)
+
+        # Check a measure is added to noise instructions for readout error
+        model = NoiseModel()
+        model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]], False)
+        target = ['measure']
+        self.assertEqual(model.noise_instructions, target)
+
+    def test_noise_model_noise_qubits(self):
+        """Test noise instructions"""
+        model = NoiseModel()
+        target = []
+        self.assertEqual(model.noise_qubits, target)
+
+        # Check adding a default error isn't added to noise qubits
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(pauli_error([['XX', 1]]), ['label'], False)
+        target = []
+        self.assertEqual(model.noise_qubits, target)
+
+        # Check adding a local error adds to noise qubits
+        model = NoiseModel()
+        model.add_quantum_error(pauli_error([['XX', 1]]), ['label'], [1, 0], False)
+        target = sorted([0, 1])
+        self.assertEqual(model.noise_qubits, target)
+
+        # Check adding a non-local error adds to noise qubits
+        model = NoiseModel()
+        model.add_nonlocal_quantum_error(pauli_error([['XX', 1]]), ['label'], [0], [1, 2], False)
+        target = sorted([0, 1, 2])
+        self.assertEqual(model.noise_qubits, target)
+
+        # Check adding a default error isn't added to noise qubits
+        model = NoiseModel()
+        model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]], False)
+        target = []
+        self.assertEqual(model.noise_qubits, target)
+
+        # Check adding a local error adds to noise qubits
+        model = NoiseModel()
+        model.add_readout_error([[0.9, 0.1], [0, 1]], [2], False)
+        target = [2]
+        self.assertEqual(model.noise_qubits, target)
+
+    def test_noise_models_equal(self):
+        """Test two noise models are Equal"""
+        roerror = [[0.9, 0.1], [0.5, 0.5]]
+        error1 = pauli_error([['X', 1]], standard_gates=False)
+        error2 = pauli_error([['X', 1]], standard_gates=True)
+
+        model1 = NoiseModel()
+        model1.add_all_qubit_quantum_error(error1, ['u3'], False)
+        model1.add_quantum_error(error1, ['u3'], [2], False)
+        model1.add_nonlocal_quantum_error(error1, ['cx'], [0, 1], [3], False)
+        model1.add_all_qubit_readout_error(roerror, False)
+        model1.add_readout_error(roerror, [0], False)
+
+        model2 = NoiseModel()
+        model2.add_all_qubit_quantum_error(error2, ['u3'], False)
+        model2.add_quantum_error(error2, ['u3'], [2], False)
+        model2.add_nonlocal_quantum_error(error2, ['cx'], [0, 1], [3], False)
+        model2.add_all_qubit_readout_error(roerror, False)
+        model2.add_readout_error(roerror, [0], False)
+        self.assertEqual(model1, model2)
+
+    def test_noise_models_not_equal(self):
+        """Test two noise models are not equal"""
+        error = pauli_error([['X', 1]])
+
+        model1 = NoiseModel()
+        model1.add_all_qubit_quantum_error(error, ['u3'], False)
+
+        model2 = NoiseModel(basis_gates=['u3', 'cx'])
+        model2.add_all_qubit_quantum_error(error, ['u3'], False)
+
 
 if __name__ == '__main__':
     unittest.main()

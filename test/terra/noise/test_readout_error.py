@@ -170,6 +170,12 @@ class TestReadoutError(common.QiskitAerTestCase):
         self.assertEqual(error.probabilities.tolist(), probs)
         self.assertEqual(error.as_dict(), error_dict)
 
+    def test_equal(self):
+        """Test two readout errors are equal"""
+        error1 = ReadoutError([[0.9, 0.1], [0.5, 0.5]])
+        error2 = ReadoutError(np.array([[0.9, 0.1], [0.5, 0.5]]))
+        self.assertEqual(error1, error2)
+
 
 if __name__ == '__main__':
     unittest.main()
