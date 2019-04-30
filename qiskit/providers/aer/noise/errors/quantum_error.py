@@ -155,7 +155,7 @@ class QuantumError:
         # Rescale probabilities if their sum is ok to avoid
         # accumulation of rounding errors
         self._noise_probabilities = list(np.array(self._noise_probabilities) / total_probs)
-    
+
     def __repr__(self):
         """Display QuantumError."""
         return "QuantumError({})".format(
@@ -170,6 +170,12 @@ class QuantumError:
                 j, pair[0], pair[1])
         return output
 
+    def __eq__(self, other):
+        """Test if two QuantumErrors are equal as SuperOps"""
+        if not isinstance(other, QuantumError):
+            return False
+        return self.to_quantumchannel() == other.to_quantumchannel()
+
     def copy(self):
         """Make a copy of current QuantumError."""
         # pylint: disable=no-value-for-parameter
@@ -179,7 +185,7 @@ class QuantumError:
     @property
     def atol(self):
         """The absolute tolerence parameter for float comparisons."""
-        return QuantumError.ATOL
+        return self.ATOL
 
     @atol.setter
     def atol(self, atol):
@@ -200,7 +206,7 @@ class QuantumError:
     @rtol.setter
     def rtol(self, rtol):
         """Set the relative tolerence parameter for float comparisons."""
-        max_tol = QuantumError.MAX_TOL
+        max_tol = self.MAX_TOL
         if rtol < 0:
             raise NoiseError("Invalid rtol: must be non-negative.")
         if rtol > max_tol:

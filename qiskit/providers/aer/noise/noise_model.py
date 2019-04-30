@@ -98,19 +98,102 @@ class NoiseModel:
         self._local_readout_errors = {}
         self._x90_gates = []
 
-    def reset(self):
-        """Reset the noise model."""
-        self.__init__()
+    @property
+    def basis_gates(self):
+        """Return basis_gates for compiling to the noise model."""
+        # Convert noise instructions to basis_gates string
+        return sorted(self._basis_gates)
 
     @property
     def noise_instructions(self):
         """Return the set of noisy instructions for this noise model."""
-        return self._noise_instructions
+        return sorted(self._noise_instructions)
 
     @property
     def noise_qubits(self):
         """Return the set of noisy qubits for this noise model."""
-        return self._noise_qubits
+        return sorted(self._noise_qubits)
+
+    def __repr__(self):
+        """Display noise model"""
+
+        # Get default errors
+        default_error_ops = []
+        for inst in self._default_quantum_errors:
+            default_error_ops.append('{}'.format(inst))
+        if self._default_readout_error is not None:
+            if 'measure' not in default_error_ops:
+                default_error_ops.append('measure')
+
+        # Get local errors
+        local_error_ops = []
+        for inst, dic in self._local_quantum_errors.items():
+            for q_str in dic.keys():
+                local_error_ops.append((inst, self._str2qubits(q_str)))
+        for q_str in self._local_readout_errors:
+            tmp = ('measure', self._str2qubits(q_str))
+            if tmp not in local_error_ops:
+                local_error_ops.append(tmp)
+
+        # Get nonlocal errors
+        nonlocal_error_ops = []
+        for inst, dic in self._nonlocal_quantum_errors.items():
+            for q_str, errors in dic.items():
+                for nq_str in errors:
+                    nonlocal_error_ops.append((inst, self._str2qubits(q_str),
+                                               self._str2qubits(nq_str)))
+
+        output = "NoiseModel:"
+        if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
+            output += " Ideal"
+        else:
+            output += "\n  Basis gates: {}".format(self.basis_gates)
+            if self._noise_instructions:
+                output += "\n  Instructions with noise: {}".format(
+                    list(self._noise_instructions))
+            if self._noise_qubits:
+                output += "\n  Qubits with noise: {}".format(
+                    list(self._noise_qubits))
+            if self._x90_gates:
+                output += "\n  X-90 based single qubit gates: {}".format(
+                    list(self._x90_gates))
+            if default_error_ops != []:
+                output += "\n  All-qubits errors: {}".format(default_error_ops)
+            if local_error_ops != []:
+                output += "\n  Specific qubit errors: {}".format(
+                    local_error_ops)
+            if nonlocal_error_ops != []:
+                output += "\n  Non-local specific qubit errors: {}".format(
+                    nonlocal_error_ops)
+        return output
+
+    def __eq__(self, other):
+        """Test if two noise models are equal."""
+        # This returns True if both noise models have:
+        # the same basis_gates
+        # the same noise_qubits
+        # the same noise_instructions
+        if (not isinstance(other, NoiseModel)
+                or self.basis_gates != other.basis_gates
+                or self.noise_qubits != other.noise_qubits
+                or self.noise_instructions != other.noise_instructions):
+            return False
+        # Check default readout errors is equal
+        if not self._readout_errors_equal(other):
+            return False
+        # Check quantum errors equal
+        if not self._all_qubit_quantum_errors_equal(other):
+            return False
+        if not self._local_quantum_errors_equal(other):
+            return False
+        if not self._nonlocal_quantum_errors_equal(other):
+            return False
+        # If we made it here they are equal
+        return True
+
+    def reset(self):
+        """Reset the noise model."""
+        self.__init__()
 
     def add_basis_gates(self, instructions, warnings=True):
         """Add additional gates to the noise model basis_gates.
@@ -129,7 +212,8 @@ class NoiseModel:
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
             if inst in self.QASMSIMULATOR_BASIS_GATES:
-                self._basis_gates.add(inst)
+                if inst not in ['measure', 'reset']:
+                    self._basis_gates.add(inst)
             elif warnings:
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
@@ -465,65 +549,6 @@ class NoiseModel:
                     "all-qubit readout error for these qubits.", qubits)
         self._noise_instructions.add("measure")
 
-    def __repr__(self):
-        """Display noise model"""
-
-        # Get default errors
-        default_error_ops = []
-        for inst in self._default_quantum_errors:
-            default_error_ops.append('{}'.format(inst))
-        if self._default_readout_error is not None:
-            if 'measure' not in default_error_ops:
-                default_error_ops.append('measure')
-
-        # Get local errors
-        local_error_ops = []
-        for inst, dic in self._local_quantum_errors.items():
-            for q_str in dic.keys():
-                local_error_ops.append((inst, self._str2qubits(q_str)))
-        for q_str in self._local_readout_errors:
-            tmp = ('measure', self._str2qubits(q_str))
-            if tmp not in local_error_ops:
-                local_error_ops.append(tmp)
-
-        # Get nonlocal errors
-        nonlocal_error_ops = []
-        for inst, dic in self._nonlocal_quantum_errors.items():
-            for q_str, errors in dic.items():
-                for nq_str in errors:
-                    nonlocal_error_ops.append((inst, self._str2qubits(q_str),
-                                               self._str2qubits(nq_str)))
-
-        output = "NoiseModel:"
-        if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
-            output += " Ideal"
-        else:
-            output += "\n  Basis gates: {}".format(self.basis_gates)
-            if self._noise_instructions:
-                output += "\n  Instructions with noise: {}".format(
-                    list(self._noise_instructions))
-            if self._noise_qubits:
-                output += "\n  Qubits with noise: {}".format(
-                    list(self._noise_qubits))
-            if self._x90_gates:
-                output += "\n  X-90 based single qubit gates: {}".format(
-                    list(self._x90_gates))
-            if default_error_ops != []:
-                output += "\n  All-qubits errors: {}".format(default_error_ops)
-            if local_error_ops != []:
-                output += "\n  Specific qubit errors: {}".format(
-                    local_error_ops)
-            if nonlocal_error_ops != []:
-                output += "\n  Non-local specific qubit errors: {}".format(
-                    nonlocal_error_ops)
-        return output
-
-    @property
-    def basis_gates(self):
-        """Return basis_gates for compiling to the noise model."""
-        # Convert noise instructions to basis_gates string
-        return list(self._basis_gates)
-
     def as_dict(self, serializable=False):
         """
         Return dictionary for noise model.
@@ -707,3 +732,67 @@ class NoiseModel:
         """Convert dicitonary keys to comma seperated print string."""
         tmp = "".join(["{}, ".format(self._str2qubits(key)) for key in keys])
         return tmp[:-2]
+
+    def _readout_errors_equal(self, other):
+        """Check two noise models have equal readout errors"""
+        # Check default readout error is equal
+        if self._default_readout_error != other._default_readout_error:
+            return False
+        # Check local readout errors are equal
+        if sorted(self._local_readout_errors.keys()) != sorted(
+                other._local_readout_errors.keys()):
+            return False
+        for key in self._local_readout_errors:
+            if self._local_readout_errors[key] != other._local_readout_errors[
+                    key]:
+                return False
+        return True
+
+    def _all_qubit_quantum_errors_equal(self, other):
+        """Check two noise models have equal local quantum errors"""
+        if sorted(self._default_quantum_errors.keys()) != sorted(
+                other._default_quantum_errors.keys()):
+            return False
+        for key in self._default_quantum_errors:
+            if self._default_quantum_errors[
+                    key] != other._default_quantum_errors[key]:
+                return False
+        return True
+
+    def _local_quantum_errors_equal(self, other):
+        """Check two noise models have equal local quantum errors"""
+        if sorted(self._local_quantum_errors.keys()) != sorted(
+                other._local_quantum_errors.keys()):
+            return False
+        for key in self._local_quantum_errors:
+            inner_dict1 = self._local_quantum_errors[key]
+            inner_dict2 = other._local_quantum_errors[key]
+            if sorted(inner_dict1.keys()) != sorted(inner_dict2.keys()):
+                return False
+            for inner_key in inner_dict1:
+                if inner_dict1[inner_key] != inner_dict2[inner_key]:
+                    return False
+            if self._local_quantum_errors[key] != other._local_quantum_errors[
+                    key]:
+                return False
+        return True
+
+    def _nonlocal_quantum_errors_equal(self, other):
+        """Check two noise models have equal non-local quantum errors"""
+        if sorted(self._nonlocal_quantum_errors.keys()) != sorted(
+                other._nonlocal_quantum_errors.keys()):
+            return False
+        for key in self._nonlocal_quantum_errors:
+            inner_dict1 = self._nonlocal_quantum_errors[key]
+            inner_dict2 = other._nonlocal_quantum_errors[key]
+            if sorted(inner_dict1.keys()) != sorted(inner_dict2.keys()):
+                return False
+            for inner_key in inner_dict1:
+                iinner_dict1 = inner_dict1[inner_key]
+                iinner_dict2 = inner_dict2[inner_key]
+                if sorted(iinner_dict1.keys()) != sorted(iinner_dict2.keys()):
+                    return False
+                for iinner_key in iinner_dict1:
+                    if iinner_dict1[iinner_key] != iinner_dict2[iinner_key]:
+                        return False
+        return True
