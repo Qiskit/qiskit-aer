@@ -25,7 +25,8 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from test.terra.reference import ref_unitary_gate
 
-from qiskit import execute, assemble
+from qiskit import execute
+from qiskit.compiler import assemble
 from qiskit.providers.aer import StatevectorSimulator
 
 
