@@ -518,9 +518,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Optimize circuit for state type
   Circuit opt_circ = circ;
   if (circ.num_qubits > circuit_opt_ideal_threshold_) {
-    const Circuit opt_circ = optimize_circuit(circ, state, data);
-  } else {
-    const Circuit &opt_circ = circ;
+    opt_circ = optimize_circuit(opt_circ, state, data);
   }
 
   // Check if measure sampler and optimization are valid
