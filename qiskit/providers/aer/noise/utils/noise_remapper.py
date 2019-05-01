@@ -78,7 +78,6 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
             if qubit not in inv_map:
                 inv_map[qubit] = qubit
 
-    print(inv_map)
     # Check mapping doesn't have duplicate qubits in output
     new_qubits = list(inv_map.values())
     if len(set(new_qubits)) != len(new_qubits):
