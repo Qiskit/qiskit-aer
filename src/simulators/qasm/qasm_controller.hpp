@@ -16,10 +16,12 @@
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
+#include "transpile/basic_opts.hpp"
+#include "transpile/fusion.hpp"
+#include "transpile/truncate_qubits.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
-#include "simulators/qasm/basic_optimization.hpp"
 
 
 namespace AER {
@@ -240,9 +242,9 @@ protected:
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
-  add_circuit_optimization(ReduceNop());
-  add_circuit_optimization(Fusion());
-  add_circuit_optimization(TruncateQubits());
+  add_circuit_optimization(Transpile::ReduceNop());
+  add_circuit_optimization(Transpile::Fusion());
+  add_circuit_optimization(Transpile::TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
