@@ -29,7 +29,6 @@ class QasmFusionTests:
     """QasmSimulator fusion tests."""
 
     SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {'fusion_verbose': True}
 
     def create_statevector_circuit(self):
         qr = QuantumRegister(10)
@@ -72,10 +71,14 @@ class QasmFusionTests:
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_verbose'] = True
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result = self.SIMULATOR.run(
-            qobj, backend_options={
-                'fusion_verbose': True
-            }).result()
+            qobj, backend_options=backend_options).result()
         self.is_completed(result)
 
         self.assertTrue(
@@ -98,14 +101,17 @@ class QasmFusionTests:
                             basis_gates=noise_model.basis_gates)
         qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result = self.SIMULATOR.run(
             qobj,
             noise_model=noise_model,
-            backend_options={
-                'fusion_enable': True,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result)
 
         self.assertTrue(
@@ -124,13 +130,16 @@ class QasmFusionTests:
         shots = 100
         qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+    
         result_verbose = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': True,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_verbose)
         self.assertTrue(
             'results' in result_verbose.as_dict(),
@@ -143,13 +152,16 @@ class QasmFusionTests:
             ['metadata'],
             msg="fusion must work for satevector")
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = False
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result_nonverbose = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': True,
-                'fusion_verbose': False,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_nonverbose)
         self.assertTrue(
             'results' in result_nonverbose.as_dict(),
@@ -162,10 +174,13 @@ class QasmFusionTests:
             ['metadata'],
             msg="verbose must not work if fusion_verbose is False")
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result_default = self.SIMULATOR.run(
-            qobj, backend_options={
-                'fusion_enable': True
-            }).result()
+            qobj, backend_options=backend_options).result()
         self.is_completed(result_default)
         self.assertTrue(
             'results' in result_default.as_dict(),
@@ -184,13 +199,16 @@ class QasmFusionTests:
         circuit = self.create_statevector_circuit()
         qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=0)
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result_verbose = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': True,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_verbose)
         self.assertTrue(
             'results' in result_verbose.as_dict(),
@@ -203,13 +221,16 @@ class QasmFusionTests:
             ['metadata'],
             msg="fusion must work for satevector")
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = False
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result_disabled = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': False,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_disabled)
         self.assertTrue(
             'results' in result_disabled.as_dict(),
@@ -222,10 +243,11 @@ class QasmFusionTests:
             ['metadata'],
             msg="fusion must not work with fusion_enable is False")
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_verbose'] = True
+
         result_default = self.SIMULATOR.run(
-            qobj, backend_options={
-                'fusion_verbose': True
-            }).result()
+            qobj, backend_options=backend_options).result()
         self.is_completed(result_default)
         self.assertTrue(
             'results' in result_default.as_dict(),
@@ -299,22 +321,28 @@ class QasmFusionTests:
 
         qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
 
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result_fusion = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': True,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_fusion)
+
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = False
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
 
         result_nonfusion = self.SIMULATOR.run(
             qobj,
-            backend_options={
-                'fusion_enable': False,
-                'fusion_verbose': True,
-                'fusion_threshold': 1
-            }).result()
+            backend_options=backend_options).result()
         self.is_completed(result_nonfusion)
 
         self.assertDictAlmostEqual(
