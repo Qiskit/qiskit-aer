@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM Corp. 2017 and later.
+# (C) Copyright IBM 2018, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -710,6 +710,16 @@ class TestQuantumError(common.QiskitAerTestCase):
         target = 0.2 * iden.tensor(reset) + 0.3 * reset.tensor(
             iden) + 0.5 * iden.tensor(iden)
         self.assertEqual(target, error.to_quantumchannel())
+
+    def test_equal(self):
+        """Test two quantum errors are equal"""
+        Ai = np.sqrt(0.25) * standard_gate_unitary('id')
+        Ax = np.sqrt(0.25) * standard_gate_unitary('x')
+        Ay = np.sqrt(0.25) * standard_gate_unitary('y')
+        Az = np.sqrt(0.25) * standard_gate_unitary('z')
+        error1 = QuantumError([Ai, Ax, Ay, Az], standard_gates=True)
+        error2 = QuantumError([Ai, Ax, Ay, Az], standard_gates=False)
+        self.assertEqual(error1, error2)
 
 
 if __name__ == '__main__':

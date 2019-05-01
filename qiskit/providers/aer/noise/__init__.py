@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM Corp. 2017 and later.
+# (C) Copyright IBM 2018, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -71,10 +71,11 @@ canonical types of quantum errors:
 Noise Utilities
 --------------
 The `noise.utils` module contains utilities for noise models and errors including:
-    'approximate_quantum_error' for approximating a general quantum error via
-    a provided set of errors (e.g. approximating amplitude damping via reset errors)
-    'approximate_noise_model' for approximating all the errors in a nose model using
-    the same provided set of errors
+   `remap_noise_model` for remapping the qubits specified in a NoiseModel.
+   `approximate_quantum_error` for approximating a general quantum error via
+   a provided set of errors (e.g. approximating amplitude damping via reset errors).
+   `approximate_noise_model` for approximating all the errors in a nose model using
+   the same provided set of errors.
 """
 
 from .noise_model import NoiseModel
