@@ -37,15 +37,18 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
   # Check that we have the expected version and architecture for Python
-  - "python --version"
-  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+  - python --version
+  - python -c \"import struct; print(struct.calcsize('P') * 8)\"
 
   # - "conda install --update-deps -y mkl"
   # Because of issue #193, we have to keep pip in version 18.
   - python -m pip install --disable-pip-version-check pip==18
   - pip install cython
   - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
-  - pip install -r requirements-dev.txt
+  # Due to https://github.com/ContinuumIO/anaconda-issues/issues/542
+  # we need to pass --ignore-installed, otherwise Python3.5 will fail
+  # while upgrading setuptools.
+  - pip install --ignore-installed -r requirements-dev.txt
   - python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
   - pip install --find-links=dist\ qiskit_aer
 
