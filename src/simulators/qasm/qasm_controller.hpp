@@ -34,6 +34,11 @@ namespace Simulator {
 /**************************************************************************
  * Config settings:
  * 
+ * - "optimize_ideal_threshold" (int): Qubit threshold for running circuit
+ *   optimizations passes for an ideal circuit [Default: 5].
+ * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
+ *   optimizations passes for a noisy circuit [Default: 12].
+ * 
  * From Statevector::State class
  * 
  * - "initial_statevector" (json complex vector): Use a custom initial
@@ -225,6 +230,10 @@ protected:
     // Simulation method
   Method simulation_method_ = Method::automatic;
 
+  // Qubit threshold for running circuit optimizations
+  uint_t circuit_opt_ideal_threshold_ = 5;
+  uint_t circuit_opt_noise_threshold_ = 12;
+
   // Initial statevector for Statevector simulation method
   cvector_t initial_statevector_;
 
@@ -259,26 +268,32 @@ void QasmController::set_config(const json_t &config) {
   // Override automatic simulation method with a fixed method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
-    if (method == "statevector")
-    {
+    if (method == "statevector") {
       simulation_method_ = Method::statevector;
     }
-    else if (method == "stabilizer")
-    {
+    else if (method == "stabilizer") {
       simulation_method_ = Method::stabilizer;
     }
-    else if (method == "extended_stabilizer")
-    {
+    else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
     }
-    else if (method != "automatic")
-    {
+    else if (method != "automatic") {
       throw std::runtime_error(std::string("QasmController: Invalid simulation method (") +
                                method + std::string(")."));
     }
   }
 
-  //Add custom initial state
+  // Check for circuit optimization threshold
+  JSON::get_value(circuit_opt_ideal_threshold_,
+                  "optimize_ideal_threshold", config);
+  JSON::get_value(circuit_opt_noise_threshold_,
+                  "optimize_noise_threshold", config);
+
+  // Check for extended stabilizer measure sampling
+  JSON::get_value(extended_stabilizer_measure_sampling_,
+                  "extended_stabilizer_measure_sampling", config);
+
+  // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
     // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
@@ -299,8 +314,6 @@ void QasmController::set_config(const json_t &config) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
-  JSON::get_value(extended_stabilizer_measure_sampling_,
-                  "extended_stabilizer_measure_sampling", config);
 }
 
 void QasmController::clear_config() {
@@ -487,7 +500,9 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    noise_circ = optimize_circuit(noise_circ, state, data);
+    if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
+      noise_circ = optimize_circuit(noise_circ, state, data);
+    }
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
 }
@@ -501,8 +516,10 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                OutputData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
-  Circuit opt_circ;
-  opt_circ = optimize_circuit(circ, state, data);
+  Circuit opt_circ = circ;
+  if (circ.num_qubits > circuit_opt_ideal_threshold_) {
+    opt_circ = optimize_circuit(opt_circ, state, data);
+  }
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ);

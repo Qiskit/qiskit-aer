@@ -69,7 +69,7 @@ public:
 
 protected:
 
-  size_t required_memory_mb(const Circuit& circ) const;
+  size_t required_memory_mb(const Circuit& circ) const override;
 
 private:
 
