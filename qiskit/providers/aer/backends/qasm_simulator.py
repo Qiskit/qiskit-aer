@@ -79,6 +79,16 @@ class QasmSimulator(AerBackend):
             values (16 Bytes). If set to 0, the maximum will be automatically
             set to half the system memory size (Default: 0).
 
+        * "optimize_ideal_threshold" (int): Sets the qubit threshold for
+            applying circuit optimization passes on ideal circuits.
+            Passes include gate fusion and truncation of unused qubits
+            (Default: 5).
+
+        * "optimize_noise_threshold" (int): Sets the qubit threshold for
+            applying circuit optimization passes on ideal circuits.
+            Passes include gate fusion and truncation of unused qubits
+            (Default: 12).
+
         "statevector" method options
         ----------------------------
         * "statevector_parallel_threshold" (int): Sets the threshold that
