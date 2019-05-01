@@ -102,12 +102,47 @@ jobs:
     ###########################################################################
     # GNU/Linux, Python 3.7
     - stage: test
+      name: Python 3.7 Tests Linux
       <<: *stage_linux
       python: 3.7
 
+    # GNU/Linux, Python 3.6
+    - stage: test
+      if: type = cron
+      name: Python 3.6 Tests Linux
+      <<: *stage_linux
+      python: 3.6
+
+    # GNU/Linux, Python 3.5
+    - stage: test
+      if: type = cron
+      name: Python 3.5 Tests Linux
+      <<: *stage_linux
+      python: 3.5
+
     # OSX, Python 3.7.2 (via pyenv)
     - stage: test
+      name: Python 3.7 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+
+    # OSX, Python 3.6.5 (via pyenv)
+    - stage: test
+      if: type = cron
+      name: Python 3.6 Tests OSX
+      <<: *stage_osx
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.6.5
+
+    # OSX, Python 3.5.6 (via pyenv)
+    - stage: test
+      if: type = cron
+      <<: *stage_osx
+      name: Python 3.5 Tests OSX
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.5.6
+
