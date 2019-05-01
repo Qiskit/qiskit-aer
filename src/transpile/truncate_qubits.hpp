@@ -20,15 +20,6 @@
 namespace AER {
 namespace Transpile {
 
-
-using uint_t = uint_t;
-using op_t = Operations::Op;
-using optype_t = Operations::OpType;
-using oplist_t = std::vector<op_t>;
-using opset_t = Operations::OpSet;
-using reg_t = std::vector<uint_t>;
-
-
 class TruncateQubits : public CircuitOptimization {
 public:
 
@@ -36,7 +27,7 @@ public:
 
   // truncate unnecessary qubits
   void optimize_circuit(Circuit& circ,
-                        const opset_t &opset,
+                        const Operations::OpSet &opset,
                         OutputData &data) const override;
 
 private:
@@ -44,13 +35,14 @@ private:
   bool can_apply(const Circuit& circ) const;
 
   // check this optimization can be applied
-  bool can_apply(const op_t& op) const;
+  bool can_apply(const Operations::Op& op) const;
 
   // generate a new mapping. a value of reg_t is original and its index is the new mapping
   reg_t generate_mapping(const Circuit& circ) const;
 
   // remap qubits in an operation
-  op_t remap_qubits(const op_t op, const reg_t new_mapping)const;
+  reg_t remap_qubits(const reg_t &qubits,
+                     const reg_t &mapping) const;
 
   // show debug info
   bool verbose_ = false;
@@ -75,8 +67,8 @@ void TruncateQubits::set_config(const json_t &config) {
 }
 
 void TruncateQubits::optimize_circuit(Circuit& circ,
-                             const opset_t &allowed_opset,
-                             OutputData &data) const {
+                                      const Operations::OpSet &allowed_opset,
+                                      OutputData &data) const {
 
   if (!active_ || !can_apply(circ))
     return;
@@ -86,9 +78,17 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
   if (new_mapping.size() == circ.num_qubits)
     return;
 
-  oplist_t new_ops;
-  for (const op_t& old_op: circ.ops)
-    new_ops.push_back(remap_qubits(old_op, new_mapping));
+  std::vector<Operations::Op> new_ops;
+  for (const Operations::Op& old_op: circ.ops) {
+    auto op = old_op;
+    // Remap qubits
+    op.qubits = remap_qubits(op.qubits, new_mapping);
+    // Remap regs
+    for (reg_t &reg : op.regs) {
+      reg = remap_qubits(reg, new_mapping);
+    }
+    new_ops.push_back(op);
+  }
 
   circ.ops = new_ops;
   circ.num_qubits = new_mapping.size();
@@ -104,43 +104,47 @@ reg_t TruncateQubits::generate_mapping(const Circuit& circ) const {
   size_t not_used = circ.num_qubits + 1;
   reg_t mapping = reg_t(circ.num_qubits, not_used);
 
-  for (const op_t& op: circ.ops)
+  for (const Operations::Op& op: circ.ops)
     for (size_t qubit: op.qubits)
       mapping[qubit] = qubit;
 
-  mapping.erase(std::remove(mapping.begin(), mapping.end(), not_used), mapping.end());
+  mapping.erase(std::remove(mapping.begin(), mapping.end(), not_used),
+                mapping.end());
 
   return mapping;
 }
 
-op_t TruncateQubits::remap_qubits(const op_t op, const reg_t new_mapping) const {
-  op_t new_op = op;
-  new_op.qubits.clear();
-
-  for (const size_t qubit: op.qubits) {
-    size_t new_qubit = std::distance(new_mapping.begin(), find(new_mapping.begin(), new_mapping.end(), qubit));
-    new_op.qubits.push_back(new_qubit);
+reg_t TruncateQubits::remap_qubits(const reg_t &qubits,
+                                   const reg_t &mapping) const {
+  reg_t new_qubits;
+  for (const size_t qubit: qubits) {
+    size_t new_qubit = std::distance(mapping.begin(),
+                                     find(mapping.begin(), mapping.end(), qubit));
+    new_qubits.push_back(new_qubit);
   }
-  return new_op;
-
+  return new_qubits;
 }
 
 bool TruncateQubits::can_apply(const Circuit& circ) const {
-
-  for (const op_t& op: circ.ops)
+  for (const Operations::Op& op: circ.ops)
     if (!can_apply(op))
       return false;
-
   return true;
 }
 
-bool TruncateQubits::can_apply(const op_t& op) const {
+bool TruncateQubits::can_apply(const Operations::Op& op) const {
   switch (op.type) {
-  case optype_t::matrix_sequence: //TODO
-  case optype_t::kraus: //TODO
-  case optype_t::snapshot:
-  case optype_t::noise_switch:
-    return false;
+  case Operations::OpType::snapshot: {
+    const stringset_t allowed({
+      "memory",
+      "register",
+      "probabilities",
+      "probabilities_with_variance",
+      "expectation_value_pauli",
+      "expectation_value_pauli_with_variance"
+    });
+    return allowed.find(op.name) != allowed.end();
+  }
   default:
     return true;
   }
