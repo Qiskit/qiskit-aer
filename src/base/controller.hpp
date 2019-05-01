@@ -37,7 +37,7 @@
 #include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
-#include "framework/circuitopt.hpp"
+#include "transpile/circuitopt.hpp"
 #include "noise/noise_model.hpp"
 
 #ifdef _OPENMP
@@ -143,9 +143,9 @@ public:
 
   // Add circuit optimization
   template <typename Type>
-  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
+  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<Transpile::CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
   {
-      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type>>>(std::forward<Type>(opt)));
   }
 
 protected:
@@ -212,7 +212,7 @@ protected:
   Noise::NoiseModel noise_model_;
 
   // Circuit optimization
-  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
+  std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -281,7 +281,7 @@ void Controller::set_config(const json_t &config) {
     max_memory_mb_ = system_memory_mb / 2;
   }
 
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->set_config(config_);
 
   std::string path;
@@ -453,7 +453,7 @@ Circuit Controller::optimize_circuit(const Circuit &input_circ,
   allowed_opset.gates = state.allowed_gates();
   allowed_opset.snapshots = state.allowed_snapshots();
 
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->optimize_circuit(working_circ, allowed_opset, data);
 
   return working_circ;
