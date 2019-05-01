@@ -37,7 +37,7 @@ namespace Simulator {
  * - "optimize_ideal_threshold" (int): Qubit threshold for running circuit
  *   optimizations passes for an ideal circuit [Default: 5].
  * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
- *   optimizations passes for a noisy circuit [Default: 10].
+ *   optimizations passes for a noisy circuit [Default: 12].
  * 
  * From Statevector::State class
  * 
@@ -232,7 +232,7 @@ protected:
 
   // Qubit threshold for running circuit optimizations
   uint_t circuit_opt_ideal_threshold_ = 5;
-  uint_t circuit_opt_noise_threshold_ = 10;
+  uint_t circuit_opt_noise_threshold_ = 12;
 
   // Initial statevector for Statevector simulation method
   cvector_t initial_statevector_;
@@ -293,7 +293,7 @@ void QasmController::set_config(const json_t &config) {
   JSON::get_value(extended_stabilizer_measure_sampling_,
                   "extended_stabilizer_measure_sampling", config);
 
-  // DEPRECIATED: Add custom initial state
+  // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
     // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
