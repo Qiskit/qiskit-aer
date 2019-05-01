@@ -24,7 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "framework/operations.hpp"
+#include "framework/circuit.hpp"
+#include "framework/data.hpp"
+
 
 namespace AER {
 
