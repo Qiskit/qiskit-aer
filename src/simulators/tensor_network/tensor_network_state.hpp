@@ -504,7 +504,12 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::id:
-      break;
+    {
+    	// just until we
+    	TensorState::Tensor result = qreg_.state_vec(0,qreg_.num_qubits()-1);
+//    	result.print(true);
+        break;
+    }
     case Gates::x:
       qreg_.apply_x(op.qubits[0]);
       break;
@@ -533,13 +538,8 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_swap(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cz:
-    {
-    	// just until we
-    	  TensorState::Tensor result = qreg_.state_vec(0,qreg_.num_qubits()-1);
-//    	  result.print(true);
-//          qreg_.apply_cz(op.qubits[0], op.qubits[1]);
-          break;
-    }
+      qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
