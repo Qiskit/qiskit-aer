@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
@@ -12,13 +17,14 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
+import os
 from math import log2, sqrt
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-from unitary_controller_wrapper import unitary_controller_execute
+from .unitary_controller_wrapper import unitary_controller_execute
 from ..version import __version__
 
 # Logger
@@ -37,34 +43,40 @@ class UnitarySimulator(AerBackend):
         * "initial_unitary" (matrix_like): Sets a custom initial unitary
             matrix for the simulation instead of identity (Default: None).
 
-        * "chop_threshold" (double): Sets the threshold for truncating small
-            values to zero in the Result data (Default: 1e-15)
+        * "zero_threshold" (double): Sets the threshold for truncating
+            small values to zero in the result data (Default: 1e-10).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
             maximum will be set to the number of CPU cores (Default: 0).
 
-         * "max_parallel_experiments" (int): Sets the maximum number of
+        * "max_parallel_experiments" (int): Sets the maximum number of
             qobj experiments that may be executed in parallel up to the
             max_parallel_threads value. If set to 1 parallel circuit
             execution will be disabled. If set to 0 the maximum will be
             automatically set to max_parallel_threads (Default: 1).
 
-        * "unitary_parallel_threshold" (int): Sets the threshold that
-            "n_qubits" must be greater than to enable OpenMP
+        * "max_memory_mb" (int): Sets the maximum size of memory
+            to store a state vector. If a state vector needs more, an error
+            is thrown. In general, a state vector of n-qubits uses 2^n complex
+            values (16 Bytes). If set to 0, the maximum will be automatically
+            set to half the system memory size (Default: 0).
+
+        * "statevector_parallel_threshold" (int): Sets the threshold that
+            2 * "n_qubits" must be greater than to enable OpenMP
             parallelization for matrix multiplication during execution of
-            an experiment. If parallel circuit execution is enabled this
-            will only use unallocated CPU cores up to max_parallel_threads.
-            Note that setting this too low can reduce performance
-            (Default: 6).
+            an experiment. If parallel circuit or shot execution is enabled
+            this will only use unallocated CPU cores up to
+            max_parallel_threads. Note that setting this too low can reduce
+            performance (Default: 14).
     """
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
+    MAX_QUBIT_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_MEMORY,
+        'n_qubits': MAX_QUBIT_MEMORY,
         'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,
@@ -73,17 +85,21 @@ class UnitarySimulator(AerBackend):
         'memory': False,
         'max_shots': 1,
         'description': 'A Python simulator for computing the unitary' +
-                        'matrix for experiments in qobj files',
+                       'matrix for experiments in qobj files',
+        'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                        'snapshot', 'unitary'],
+                        'multiplexer', 'snapshot', 'unitary'],
         'gates': [
             {
                 'name': 'TODO',
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ]
+        ],
+        # Location where we put external libraries that will be loaded at runtime
+        # by the simulator extension
+        'library_dir': os.path.dirname(__file__)
     }
 
     def __init__(self, configuration=None, provider=None):

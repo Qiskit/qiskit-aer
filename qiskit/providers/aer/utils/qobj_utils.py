@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Temporary hacks for qobj until Terra supports Aer instructions (likely 0.8)
@@ -14,28 +19,28 @@ IS ADDED TO QISKIT TERRA. THEY WILL NOT BE SUPPORTED AFTER THAT.
 
 import copy
 import numpy as np
-from qiskit.qobj import QobjInstruction
+from qiskit.qobj import QasmQobjInstruction
 
 
 def append_instr(qobj, exp_index, instruction):
-    """Append a QobjInstruction to a QobjExperiment.
+    """Append a QasmQobjInstruction to a QobjExperiment.
 
     Args:
         qobj (Qobj): a Qobj object.
         exp_index (int): The index of the experiment in the qobj.
-        instruction (QobjInstruction): instruction to insert.
+        instruction (QasmQobjInstruction): instruction to insert.
     """
     qobj.experiments[exp_index].instructions.append(instruction)
     return qobj
 
 
 def insert_instr(qobj, exp_index, item, pos):
-    """Insert a QobjInstruction into a QobjExperiment.
+    """Insert a QasmQobjInstruction into a QobjExperiment.
 
     Args:
         qobj (Qobj): a Qobj object
         exp_index (int): The index of the experiment in the qobj.
-        instruction(QobjInstruction): instruction to insert.
+        instruction(QasmQobjInstruction): instruction to insert.
         pos (int): the position to insert the item.
     """
     qobj.experiments[exp_index].instructions.insert(pos, item)
@@ -43,7 +48,7 @@ def insert_instr(qobj, exp_index, item, pos):
 
 
 def get_instr_pos(qobj, exp_index, name):
-    """Return all locations of QobjInstruction in a Qobj experiment.
+    """Return all locations of QasmQobjInstruction in a Qobj experiment.
 
     The return list is sorted in reverse order so iterating over it
     to insert new items will work as expected.
@@ -51,10 +56,10 @@ def get_instr_pos(qobj, exp_index, name):
     Args:
         qobj (Qobj): a Qobj object
         exp_index (int): The index of the experiment in the qobj
-        name (str): QobjInstruction name to find
+        name (str): QasmQobjInstruction name to find
 
     Returns:
-        list[int]: A list of positions where the QobjInstruction is located.
+        list[int]: A list of positions where the QasmQobjInstruction is located.
     """
     # Check only the name string of the item
     positions = [i for i, val in enumerate(qobj.experiments[exp_index].instructions)
@@ -63,7 +68,7 @@ def get_instr_pos(qobj, exp_index, name):
 
 
 def unitary_instr(mat, qubits, label=None):
-    """Create a unitary gate QobjInstruction.
+    """Create a unitary gate QasmQobjInstruction.
 
     Args:
         mat (matrix_like): an n-qubit unitary matrix
@@ -71,7 +76,7 @@ def unitary_instr(mat, qubits, label=None):
         label (str): optional string label for the untiary matrix
 
     Returns:
-        QobjInstruction: The qobj item for the unitary instruction.
+        QasmQobjInstruction: The qobj item for the unitary instruction.
 
     Raises:
         ValueError: if the input matrix is not unitary
@@ -94,38 +99,39 @@ def unitary_instr(mat, qubits, label=None):
     if array.shape not in [(dim, dim), (1, dim)]:
         raise ValueError("Invalid")
     instruction = {"name": "unitary", "qubits": list(qubits),
-                   "params": np.array(mat, dtype=complex)}
+                   "params": [np.array(mat, dtype=complex)]}
     if label is not None:
         instruction["label"] = str(label)
-    return QobjInstruction(**instruction)
+    return QasmQobjInstruction(**instruction)
 
 
 def measure_instr(qubits, memory, registers=None):
+
     """Create a multi-qubit measure instruction"""
     if len(qubits) != len(memory):
         raise ValueError("Number of qubits does not match number of memory")
     if registers is None:
-        return QobjInstruction(name='measure', qubits=qubits, memory=memory)
+        return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory)
     # Case where we also measure to registers
     if len(qubits) != len(registers):
         raise ValueError("Number of qubits does not match number of registers")
-    return QobjInstruction(name='measure', qubits=qubits, memory=memory,
+    return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory,
                            register=registers)
 
 
 def reset_instr(qubits):
     """Create a multi-qubit reset instruction"""
-    return QobjInstruction(name='reset', qubits=qubits)
+    return QasmQobjInstruction(name='reset', qubits=qubits)
 
 
 def barrier_instr(num_qubits):
-    """Create a barrier QobjInstruction."""
-    return QobjInstruction(name='barrier', qubits=list(range(num_qubits)))
+    """Create a barrier QasmQobjInstruction."""
+    return QasmQobjInstruction(name='barrier', qubits=list(range(num_qubits)))
 
 
 def iden_instr(qubit):
-    """Create a barrier QobjInstruction."""
-    return QobjInstruction(name='id', qubits=[qubit])
+    """Create a barrier QasmQobjInstruction."""
+    return QasmQobjInstruction(name='id', qubits=[qubit])
 
 
 def snapshot_instr(snapshot_type, label, qubits=None, params=None):
@@ -139,7 +145,7 @@ def snapshot_instr(snapshot_type, label, qubits=None, params=None):
                          See additional information.
 
     Returns:
-        QobjInstruction: The qobj item for the snapshot instruction.
+        QasmQobjInstruction: The qobj item for the snapshot instruction.
 
 
     Additional Information:
@@ -167,7 +173,7 @@ def snapshot_instr(snapshot_type, label, qubits=None, params=None):
         Matrix expectation value params:
             TODO
     """
-    snap = {"name": "snapshot", "type": snapshot_type, "label": str(label)}
+    snap = {"name": "snapshot", "snapshot_type": snapshot_type, "label": str(label)}
     if qubits is not None:
         snap["qubits"] = list(qubits)
     if params is not None:
@@ -178,7 +184,7 @@ def snapshot_instr(snapshot_type, label, qubits=None, params=None):
         snap["name"] = "expval_matrix"
         snap["params"] = [[1.0, qubits, params]]
     # TODO: implicit conversion for Pauli expval params
-    return QobjInstruction(**snap)
+    return QasmQobjInstruction(**snap)
 
 
 def insert_snapshots_after_barriers(qobj, snapshot):
@@ -189,7 +195,7 @@ def insert_snapshots_after_barriers(qobj, snapshot):
 
     Args:
         qobj (Qobj): a qobj to insert snapshots into
-        snapshot (QobjInstruction): a snapshot instruction.
+        snapshot (QasmQobjInstruction): a snapshot instruction.
 
     Additional Information:
     """

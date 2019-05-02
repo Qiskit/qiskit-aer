@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_framework_operations_hpp_
@@ -10,6 +17,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 #include <sstream>
 #include <tuple>
 
@@ -28,8 +36,56 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, kraus, roerror, noise_switch
+  matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
 };
+
+inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
+  switch (type) {
+  case OpType::gate:
+    stream << "gate";
+    break;
+  case OpType::measure:
+    stream << "measure";
+    break;
+  case OpType::reset:
+    stream << "reset";
+    break;
+  case OpType::bfunc:
+    stream << "bfunc";
+    break;
+  case OpType::barrier:
+    stream << "barrier";
+    break;
+  case OpType::snapshot:
+    stream << "snapshot";
+    break;
+  case OpType::matrix:
+    stream << "matrix";
+    break;
+  case OpType::matrix_sequence:
+    stream << "matrix_sequence";
+    break;
+  case OpType::multiplexer:
+    stream << "multiplexer";
+    break;
+  case OpType::kraus:
+    stream << "kraus";
+    break;
+  case OpType::roerror:
+    stream << "roerror";
+    break;
+  case OpType::noise_switch:
+    stream << "noise_switch";
+    break;
+  case OpType::initialize:
+    stream << "initialize";
+    break;
+  default:
+    stream << "unknown";
+  }
+  return stream;
+}
+
 
 //------------------------------------------------------------------------------
 // Op Class
@@ -40,6 +96,7 @@ struct Op {
   OpType type;                    // operation type identifier
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
+  std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
@@ -73,15 +130,36 @@ struct Op {
                                                         // M x 1 column-matrices
 };
 
+inline std::ostream& operator<<(std::ostream& s, const Op& op) {
+  s << op.name << "[";
+  bool first = true;
+  for (size_t qubit: op.qubits) {
+    if (!first) s << ",";
+    s << qubit;
+    first = false;
+  }
+  s << "]";
+  return s;
+}
+
 //=========================================================================
 // OpSet Class
 //=========================================================================
 
 // This class is used to store type information about a set of operations.
 class OpSet {
+private:
+  // Hash function so that we can use an enum class as a std::unordered_set
+  // key on older C++11 compilers like GCC 5.
+  struct EnumClassHash {
+    template <typename T> size_t operator()(T t) const {
+      return static_cast<size_t>(t);
+    }
+  };
+
 public:
   // Alias for set of OpTypes
-  using optypeset_t = std::unordered_set<Operations::OpType>;
+  using optypeset_t = std::unordered_set<Operations::OpType, EnumClassHash>;
 
   // Public data members
   optypeset_t optypes;     // A set of op types
@@ -136,6 +214,38 @@ public:
   // Return a set of all invalid circuit op names
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
+
+inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
+  s << "optypes={";
+  bool first = true;
+  for (OpType optype: opset.optypes) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << optype;
+  }
+  s << "}, gates={";
+  first = true;
+  for (const std::string& gate: opset.gates) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << gate;
+  }
+  s << "}, snapshots={";
+  first = true;
+  for (const std::string& snapshot: opset.snapshots) {
+    if (first)
+      first = false;
+    else
+      s << ",";
+    s << snapshot;
+  }
+  s << "}";
+  return s;
+}
 
 //------------------------------------------------------------------------------
 // OpSet class methods
@@ -232,14 +342,28 @@ stringset_t OpSet::invalid_snapshots(const stringset_t &allowed_snapshots) const
 // Raise an exception if name string is empty
 inline void check_empty_name(const Op &op) {
   if (op.name.empty())
-    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty.");
+    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty).");
 }
 
 // Raise an exception if qubits list is empty
 inline void check_empty_qubits(const Op &op) {
   if (op.qubits.empty())
     throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"qubits\" are empty");
+                                "\" instruction (\"qubits\" is empty).");
+}
+
+// Raise an exception if params is empty
+inline void check_empty_params(const Op &op) {
+  if (op.params.empty())
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"params\" is empty).");
+}
+
+// Raise an exception if params is empty
+inline void check_length_params(const Op &op, const size_t size) {
+  if (op.params.size() != size)
+    throw std::invalid_argument("Invalid qobj \"" + op.name + 
+                                "\" instruction (\"params\" is incorrect length)");
 }
 
 // Raise an exception if qubits list contains duplications
@@ -255,12 +379,23 @@ inline void check_duplicate_qubits(const Op &op) {
 // Generator functions
 //------------------------------------------------------------------------------
 
-inline Op make_mat(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   op.qubits = qubits;
   op.mats = {mat};
+  if (label != "")
+    op.string_params = {label};
+  return op;
+}
+
+inline Op make_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t> &mats, std::string label = "") {
+  Op op;
+  op.type = OpType::matrix_sequence;
+  op.name = "matrix_sequence";
+  op.regs = regs;
+  op.mats = mats;
   if (label != "")
     op.string_params = {label};
   return op;
@@ -273,6 +408,7 @@ inline Op make_u1(uint_t qubit, T lam) {
   op.name = "u1";
   op.qubits = {qubit};
   op.params = {lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -283,6 +419,7 @@ inline Op make_u2(uint_t qubit, T phi, T lam) {
   op.name = "u2";
   op.qubits = {qubit};
   op.params = {phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -293,6 +430,7 @@ inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   op.name = "u3";
   op.qubits = {qubit};
   op.params = {theta, phi, lam};
+  op.string_params = {op.name};
   return op;
 }
 
@@ -301,6 +439,56 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
+  return op;
+}
+
+inline Op make_multiplexer(const reg_t &qubits,
+                           const std::vector<cmatrix_t> &mats,
+                           std::string label = "") {
+
+  // Check matrices are N-qubit
+  auto dim = mats[0].GetRows();
+  uint_t num_targets = uint_t(std::log2(dim));
+  if (1ULL << num_targets != dim) {
+    throw std::invalid_argument("invalid multiplexer matrix dimension.");
+  }
+  // Check number of matrix compents is power of 2.
+  size_t num_mats = mats.size();
+  uint_t num_controls = uint_t(std::log2(num_mats));
+  if (1ULL << num_controls != num_mats) {
+    throw std::invalid_argument("invalid number of multiplexer matrices.");
+  }
+  // Check number of targets and controls matches qubits
+  if (num_controls + num_targets != qubits.size()) {
+    throw std::invalid_argument("multiplexer qubits don't match parameters.");
+  }
+  // Check each matrix component is unitary and same size
+  for (const auto &mat : mats) {
+    if (!Utils::is_unitary(mat, 1e-7))
+      throw std::invalid_argument("multiplexer matrix is not unitary.");
+    if (mat.GetRows() != dim) {
+      throw std::invalid_argument("multiplexer matrices are different size.");
+    }
+  }
+  // Get lists of controls and targets
+  reg_t controls(num_controls), targets(num_targets);
+  std::copy_n(qubits.begin(), num_controls, controls.begin());
+  std::copy_n(qubits.begin() + num_controls, num_targets, targets.begin());
+
+  // Construct the Op
+  Op op;
+  op.type = OpType::multiplexer;
+  op.name = "multiplexer";
+  op.qubits = qubits;
+  op.mats = mats;
+  op.regs = std::vector<reg_t>({controls, targets});
+  if (label != "")
+    op.string_params = {label};
+
+  // Validate qubits are unique.
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
   return op;
 }
 
@@ -328,7 +516,9 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
 
 // Main JSON deserialization functions
 Op json_to_op(const json_t &js); // Patial TODO
+json_t op_to_json(const Op &op); // Patial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
+inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
 // Standard operations
 Op json_to_op_gate(const json_t &js);
@@ -336,6 +526,7 @@ Op json_to_op_barrier(const json_t &js);
 Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
+Op json_to_op_initialize(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -345,6 +536,7 @@ Op json_to_op_snapshot_pauli(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
+Op json_to_op_multiplexer(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
 
@@ -370,6 +562,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_measure(js);
   if (name == "reset")
     return json_to_op_reset(js);
+  if (name == "initialize")
+    return json_to_op_initialize(js);
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
@@ -382,12 +576,34 @@ Op json_to_op(const json_t &js) {
   // Noise functions
   if (name == "noise_switch")
     return json_to_op_noise_switch(js);
+  if (name == "multiplexer")
+    return json_to_op_multiplexer(js);
   if (name == "kraus")
     return json_to_op_kraus(js);
   if (name == "roerror")
     return json_to_op_roerror(js);
   // Default assume gate
   return json_to_op_gate(js);
+}
+
+json_t op_to_json(const Op &op) {
+  json_t ret;
+  ret["name"] = op.name;
+  if (!op.qubits.empty())
+    ret["qubits"] = op.qubits;
+  if (!op.regs.empty())
+    ret["regs"] = op.regs;
+  if (!op.params.empty())
+    ret["params"] = op.params;
+  if (op.conditional)
+    ret["conditional"] = op.conditional_reg;
+  if (!op.memory.empty())
+    ret["memory"] = op.memory;
+  if (!op.registers.empty())
+    ret["register"] = op.registers;
+  if (!op.mats.empty())
+    ret["mats"] = op.mats;
+  return ret;
 }
 
 
@@ -401,6 +617,15 @@ Op json_to_op_gate(const json_t &js) {
   JSON::get_value(op.name, "name", js);
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
+
+  // Check for optional label
+  // If label is not specified record the gate name as the label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if  (label != "") 
+    op.string_params = {label};
+  else
+    op.string_params = {op.name};
 
   // Check conditional
   if (JSON::check_key("conditional", js)) {
@@ -420,7 +645,12 @@ Op json_to_op_gate(const json_t &js) {
   check_empty_name(op);
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-
+  if (op.name == "u1")
+    check_length_params(op, 1);
+  else if (op.name == "u2")
+    check_length_params(op, 2);
+  else if (op.name == "u3")
+    check_length_params(op, 3);
   return op;
 }
 
@@ -467,6 +697,21 @@ Op json_to_op_reset(const json_t &js) {
   return op;
 }
 
+
+Op json_to_op_initialize(const json_t &js) {
+  Op op;
+  op.type = OpType::initialize;
+  op.name = "initialize";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.params, "params", js);
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  check_length_params(op, 1ULL << op.qubits.size());
+  return op;
+}
+
+
 //------------------------------------------------------------------------------
 // Implementation: Boolean Functions
 //------------------------------------------------------------------------------
@@ -480,8 +725,14 @@ Op json_to_op_bfunc(const json_t &js) {
   JSON::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
   JSON::get_value(op.string_params[1], "val", js);  // value hexadecimal string
   JSON::get_value(relation, "relation", js); // relation string
-  JSON::get_value(op.memory, "memory", js);
-  JSON::get_value(op.registers, "register", js);
+  // Load single register / memory bit for storing result
+  uint_t tmp;
+  if (JSON::get_value(tmp, "register", js)) {
+    op.registers.push_back(tmp);
+  }
+  if (JSON::get_value(tmp, "memory", js)) {
+    op.memory.push_back(tmp);
+  }
   
   // Format hex strings
   Utils::format_hex_inplace(op.string_params[0]);
@@ -531,17 +782,20 @@ Op json_to_op_roerror(const json_t &js) {
 Op json_to_op_unitary(const json_t &js) {
   Op op;
   op.type = OpType::matrix;
-  op.name = "mat";
+  op.name = "unitary";
   JSON::get_value(op.qubits, "qubits", js);
-  cmatrix_t mat;
-  JSON::get_value(mat, "params", js);
+  JSON::get_value(op.mats, "params", js);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (!Utils::is_unitary(mat, 1e-10)) {
-    throw std::invalid_argument("\"mat\" matrix is not unitary.");
+  if (op.mats.size() != 1) {
+    throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  op.mats.push_back(mat);
+  for (const auto mat : op.mats) {
+    if (!Utils::is_unitary(mat, 1e-7)) {
+      throw std::invalid_argument("\"unitary\" matrix is not unitary.");
+    }
+  }
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);
@@ -549,6 +803,18 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
+Op json_to_op_multiplexer(const json_t &js) {
+
+  // Parse parameters
+  reg_t qubits;
+  std::vector<cmatrix_t> mats;
+  std::string label;
+  JSON::get_value(qubits, "qubits", js);
+  JSON::get_value(mats, "params", js);
+  JSON::get_value(label, "label", js);
+  // Construct op
+  return make_multiplexer(qubits, mats, label);
+}
 
 Op json_to_op_kraus(const json_t &js) {
   Op op;
@@ -577,13 +843,14 @@ Op json_to_op_noise_switch(const json_t &js) {
 //------------------------------------------------------------------------------
 
 Op json_to_op_snapshot(const json_t &js) {
-  std::string type;
-  JSON::get_value(type, "type", js);
-  if (type == "expectation_value_pauli" ||
-      type == "expectation_value_pauli_with_variance")
+  std::string snapshot_type;
+  JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(snapshot_type, "type", js);
+  if (snapshot_type == "expectation_value_pauli" ||
+      snapshot_type == "expectation_value_pauli_with_variance")
     return json_to_op_snapshot_pauli(js);
-  if (type == "expectation_value_matrix" ||
-      type == "expectation_value_matrix_with_variance")
+  if (snapshot_type == "expectation_value_matrix" ||
+      snapshot_type == "expectation_value_matrix_with_variance")
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   return json_to_op_snapshot_default(js);
@@ -593,7 +860,8 @@ Op json_to_op_snapshot(const json_t &js) {
 Op json_to_op_snapshot_default(const json_t &js) {
   Op op;
   op.type = OpType::snapshot;
-  JSON::get_value(op.name, "type", js);
+  JSON::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
+  JSON::get_value(op.name, "snapshot_type", js);
   // If missing use "default" for label
   op.string_params.push_back("default");
   JSON::get_value(op.string_params[0], "label", js);

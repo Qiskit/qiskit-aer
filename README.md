@@ -16,7 +16,7 @@ pip install qiskit
 
 PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [contribution guidelines](.github/CONTRIBUTING.rst).
+To install from source, follow the instructions in the [contribution guidelines](.github/CONTRIBUTING.md).
 
 ## Simulating your first quantum program with Qiskit Aer
 Now that you have Qiskit Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
@@ -64,23 +64,23 @@ print(sim_result.get_counts(qc))
 {'11': 412, '00': 379, '10': 117, '01': 116}
 ```
 
-## Contribution guidelines
 
-If you'd like to contribute to Qiskit Aer, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold this code.
+## Contribution Guidelines
 
-We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs.
-Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). For questions that are more suited for a forum we use the Qiskit tag in the [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
+If you'd like to contribute to Qiskit, please take a look at our
+[contribution guidelines](.github/CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.md). By participating, you are expect to uphold to this code.
 
-### Next Steps
+We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
+
+## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
 [Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/qiskit/aer) repository.
 
-## Authors
+## Authors and Citation
 
 Qiskit Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute
-to the project at different levels.
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
 
 ## License
 
