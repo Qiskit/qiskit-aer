@@ -12,29 +12,29 @@
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
-#include "tensor.hpp"
+#include "MPS_tensor.hpp"
 
 namespace AER {
-namespace TensorState {
+namespace TensorNetworkState {
 
-class TensorState{
+class MPS{
 public:
-  TensorState(uint size = 0):
-    size_(size) {}
-  ~TensorState() {}
+  MPS(uint num_qubits = 0):
+    num_qubits_(num_qubits) {}
+  ~MPS() {}
 
-  //void initialize();
-
-  // Initializes the State to the default state.
-  // Typically this is the n-qubit all |0> state
-  virtual void initialize(uint num_qubits);
-
-  // Initializes the State to a specific state.
-  //  virtual void initialize(uint num_qubits, const cvector_t &vecState) {
-  //    cout << "initialize currently not implemented yet" <<endl;
-  //  }
-
-  void initialize(const TensorState &other);
+  //**************************************************************
+  // function name: initialize
+  // Description: Initialize the tensor network with some state.
+  // 1.	Parameters: none. Initializes all qubits to |0>.
+  // 2.	Parameters: const MPS &other - Copy another tensor network
+  // TODO:
+  // 3.	Parameters: uint num_qubits, const cvector_t &vecState -
+  //  				Initializes qubits with a statevector.
+  // Returns: none.
+  //**************************************************************
+  virtual void initialize(uint num_qubits=0);
+  void initialize(const MPS &other);
   //void initialize(uint num_qubits, const cvector_t &vecState);
 
   //**************************************************************
@@ -43,19 +43,19 @@ public:
     // Parameters: none.
     // Returns: none.
   //**************************************************************
-  uint num_qubits() const{return size_;}
+  uint num_qubits() const{return num_qubits_;}
   
   //**************************************************************
     // function name: set_num_qubits
     // Description: Set the number of qubits in the tensor network
-    // Parameters: size_t size - number of qubits to set.
+    // Parameters: size_t num_qubits - number of qubits to set.
     // Returns: none.
   //**************************************************************
-  void set_num_qubits(uint size) {
-    size_ = size;
+  void set_num_qubits(uint num_qubits) {
+    num_qubits_ = num_qubits;
   }
   bool empty() const {
-    return(size_ == 0);
+    return(num_qubits_ == 0);
   }
   
 
@@ -105,20 +105,6 @@ public:
   double Expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
   //**************************************************************
-  // function name: initialize
-  // Description: Initialize the tensor network with some state.
-  // 1.	Parameters: none. Initializes all qubits to |0>.
-  // 2.	Parameters: const TensorState &other - Copy another tensor network
-  // TODO:
-  // 3.	Parameters: uint num_qubits, const cvector_t &vecState -
-  //  				Initializes qubits with a statevector.
-  // Returns: none.
-  //**************************************************************
-    //void initialize();
-    //void initialize(const TensorState &other);
-    //void initialize(uint num_qubits, const cvector_t &vecState);
-
-  //**************************************************************
   // function name: printTN
   // Description: Prints the tensor network
   // Parameters: none.
@@ -130,14 +116,14 @@ public:
   // function name: state_vec
   // Description: Computes the state vector of a subset of qubits.
   // 	The regular use is with for all qubits. in this case the output is
-  //  	Tensor with a 2^n vector of 1X1 matrices.
+  //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
   //  	If not used for all qubits,	the result tensor will contain a
   //   	2^(distance between edges) vector of matrices of some size. This
   //	method is being used for computing expectation value of subset of qubits.
   // Parameters: none.
   // Returns: none.
   //**********************************************************************
-  Tensor state_vec(uint first_index, uint last_index) const;
+  MPS_Tensor state_vec(uint first_index, uint last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
 
   //methods from qasm_controller that are not supported yet
@@ -154,7 +140,7 @@ public:
   rvector_t probabilities(const AER::reg_t &qubits) const
   {
 	  rvector_t res;
-	  Tensor temp =  state_vec(0, num_qubits() - 1);
+	  MPS_Tensor temp =  state_vec(0, num_qubits() - 1);
 	  for(uint i = 0; i < temp.get_dim(); i++)
 		  res[i] = std::norm(temp.get_data(i)(0,0));
 	  return res;
@@ -170,18 +156,18 @@ public:
     
 
 protected:
-    uint size_;
+    uint num_qubits_;
   /*
     The data structure of a MPS- a vector of Gamma tensors and a vector of Lambda vectors.
   */
-  vector<Tensor> q_reg_;
+  vector<MPS_Tensor> q_reg_;
   vector<rvector_t> lambda_reg_;
 };
 
 
 
 //-------------------------------------------------------------------------
-} // end namespace TensorState
+} // end namespace MPS
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

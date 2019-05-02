@@ -14,9 +14,8 @@
 
 #include "framework/json.hpp"
 #include "base/state.hpp"
-#include "tensor_state.hpp"
-#include "tensor_state.cpp"
-
+#include "MPS.hpp"
+#include "MPS.cpp"
 
 namespace AER {
 namespace TensorNetworkState { 
@@ -42,7 +41,7 @@ enum class Snapshots {
 // Tensor Network State subclass
 //=========================================================================
 
-using tensorstate_t = TensorState::TensorState;
+using tensorstate_t = TensorNetworkState::MPS;
 
 class State : public Base::State<tensorstate_t> {
 public:
@@ -480,11 +479,10 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   void State::snapshot_state(const Operations::Op &op,
 		      OutputData &data,
 		      std::string name) {
-    TensorState::Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+    TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
     cvector_t statevector;
     qreg_.full_state_vector(statevector);
     data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
-    cout << "data " <<endl;
   }
 //=========================================================================
 // Implementation: Matrix multiplication
@@ -520,7 +518,7 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::id:
     {
     	// just until we
-    	TensorState::Tensor result = qreg_.state_vec(0,qreg_.num_qubits()-1);
+    	TensorNetworkState::MPS_Tensor result = qreg_.state_vec(0,qreg_.num_qubits()-1);
 //    	result.print(true);
         break;
     }

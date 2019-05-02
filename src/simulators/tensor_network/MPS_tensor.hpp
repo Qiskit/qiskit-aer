@@ -24,7 +24,7 @@
 #include "framework/utils.hpp"
 
 namespace AER {
-namespace TensorState {
+namespace TensorNetworkState {
 
 // Data types
 using complex_t = std::complex<double>;
@@ -57,26 +57,26 @@ uint num_of_SV(rvector_t S, double threshold)
 	return sum;
 }
 
-class Tensor
+class MPS_Tensor
 {
 public:
-  // Constructors of Tensor class
-  Tensor(){}
-  explicit Tensor(complex_t& alpha, complex_t& beta){
+  // Constructors of MPS_Tensor class
+  MPS_Tensor(){}
+  explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
     matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
     A(0,0) = alpha;
     B(0,0) = beta;
     data_.push_back(A);
     data_.push_back(B);
   }
-  Tensor(const Tensor& rhs){
+  MPS_Tensor(const MPS_Tensor& rhs){
     data_ = rhs.data_;
   }
   // Destructor
-  virtual ~Tensor(){}
+  virtual ~MPS_Tensor(){}
   
   // Assignment operator
-  Tensor& operator=(const Tensor& rhs){
+  MPS_Tensor& operator=(const MPS_Tensor& rhs){
     if (this != &rhs){
       data_ = rhs.data_;
     }
@@ -117,8 +117,8 @@ public:
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
-  static Tensor contract(const Tensor &left_gamma, const rvector_t &lambda, const Tensor &right_gamma);
-  static void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma);
+  static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma);
+  static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
 
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
@@ -145,7 +145,7 @@ private:
     //			   false to print as vector of matrices.
     // Returns: none.
     //**************************************************************
-    void Tensor::print(bool statevector) {
+    void MPS_Tensor::print(bool statevector) {
       if(statevector == false)
 	for(uint i = 0; i < data_.size(); i++)
 	  {
@@ -166,13 +166,13 @@ private:
   
   //**************************************************************
     // function name: get_data
-    // Description: Get the data in some axis of the Tensor
+    // Description: Get the data in some axis of the MPS_Tensor
     // 1.	Parameters: uint a1, uint a2 - indexes of data in matrix
     // 		Returns: cvector_t of data in (a1,a2) in all matrices
-    // 2.	Parameters: uint i - index of a matrix in the Tensor
+    // 2.	Parameters: uint i - index of a matrix in the MPS_Tensor
     // 		Returns: cmatrix_t of the data
     //**************************************************************
-    cvector_t Tensor::get_data(uint a1, uint a2) const
+    cvector_t MPS_Tensor::get_data(uint a1, uint a2) const
    {
     cvector_t Res;
     for(uint i = 0; i < data_.size(); i++)
@@ -182,12 +182,12 @@ private:
 
   //**************************************************************
     // function name: insert_data
-    // Description: Insert data to some axis of the Tensor
+    // Description: Insert data to some axis of the MPS_Tensor
     // Parameters: uint a1, uint a2 - indexes of data in matrix
     // Parameters: cvector_t data - data to insert.
     // Returns: void.
     //**************************************************************
-    void Tensor::insert_data(uint a1, uint a2, cvector_t data)
+    void MPS_Tensor::insert_data(uint a1, uint a2, cvector_t data)
   {
     for(uint i = 0; i < data_.size(); i++)
       data_[i](a1,a2) = data[i];
@@ -202,7 +202,7 @@ private:
 	// Parameters: none.
 	// Returns: none.
 	//**************************************************************
-	void Tensor::apply_x()
+	void MPS_Tensor::apply_x()
 	{
 		if (data_.size() != 2)
 		{
@@ -211,7 +211,7 @@ private:
 		}
 		swap(data_[0],data_[1]);
 	}
-	void Tensor::apply_y()
+	void MPS_Tensor::apply_y()
 	{
 		if (data_.size() != 2)
 		{
@@ -222,7 +222,7 @@ private:
 		data_[1] = data_[1] * complex_t(0, -1);
 		swap(data_[0],data_[1]);
 	}
-	void Tensor::apply_z()
+	void MPS_Tensor::apply_z()
 	{
 		if (data_.size() != 2)
 		{
@@ -231,7 +231,7 @@ private:
 		}
 		data_[1] = data_[1] * (-1.0);
 	}
-	void Tensor::apply_h()
+	void MPS_Tensor::apply_h()
 	{
 		if (data_.size() != 2)
 		{
@@ -247,7 +247,7 @@ private:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void Tensor::apply_s()
+	void MPS_Tensor::apply_s()
 	{
 		if (data_.size() != 2)
 		{
@@ -256,7 +256,7 @@ private:
 		}
 		data_[1] = data_[1] * complex_t(0, 1);
 	}
-	void Tensor::apply_sdg()
+	void MPS_Tensor::apply_sdg()
 	{
 		if (data_.size() != 2)
 		{
@@ -265,7 +265,7 @@ private:
 		}
 		data_[1] = data_[1] * complex_t(0, -1);
 	}
-	void Tensor::apply_t()
+	void MPS_Tensor::apply_t()
 	{
 		if (data_.size() != 2)
 		{
@@ -274,7 +274,7 @@ private:
 		}
 		data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
 	}
-	void Tensor::apply_tdg()
+	void MPS_Tensor::apply_tdg()
 	{
 		if (data_.size() != 2)
 		{
@@ -283,7 +283,7 @@ private:
 		}
 		data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 	}
-	void Tensor::apply_u1(double lambda)
+	void MPS_Tensor::apply_u1(double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -299,7 +299,7 @@ private:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void Tensor::apply_u2(double phi, double lambda)
+	void MPS_Tensor::apply_u2(double phi, double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -315,7 +315,7 @@ private:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void Tensor::apply_u3(double theta, double phi, double lambda)
+	void MPS_Tensor::apply_u3(double theta, double phi, double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -331,7 +331,7 @@ private:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void Tensor::apply_matrix(cmatrix_t &mat)
+	void MPS_Tensor::apply_matrix(cmatrix_t &mat)
 	{
 		if (data_.size() != 2)
 		{
@@ -348,7 +348,7 @@ private:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void Tensor::apply_cnot(bool swapped)
+	void MPS_Tensor::apply_cnot(bool swapped)
 	{
 		if (data_.size() != 4)
 		{
@@ -360,7 +360,7 @@ private:
 		else
 			swap(data_[1],data_[3]);
 	}
-	void Tensor::apply_swap()
+	void MPS_Tensor::apply_swap()
 	{
 		if (data_.size() != 4)
 		{
@@ -369,7 +369,7 @@ private:
 		}
 		swap(data_[1],data_[2]);
 	}
-	void Tensor::apply_cz()
+	void MPS_Tensor::apply_cz()
 	{
 		if (data_.size() != 4)
 		{
@@ -389,27 +389,27 @@ private:
  * decomposition of the result of the gate, we need to divide back by what we
  * multiplied before. This is what the division functions do.
  * */
-void Tensor::mul_Gamma_by_left_Lambda(const rvector_t &Lambda)
+void MPS_Tensor::mul_Gamma_by_left_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, false,/*left*/ true /*mul*/);
 }
 
-void Tensor::mul_Gamma_by_right_Lambda(const rvector_t &Lambda)
+void MPS_Tensor::mul_Gamma_by_right_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, true,/*right*/ true /*mul*/);
 }
 
-void Tensor::div_Gamma_by_left_Lambda(const rvector_t &Lambda)
+void MPS_Tensor::div_Gamma_by_left_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, false,/*left*/ false /*div*/);
 }
 
-void Tensor::div_Gamma_by_right_Lambda(const rvector_t &Lambda)
+void MPS_Tensor::div_Gamma_by_right_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, true,/*right*/ false /*div*/);
 }
 
-void Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda, 
+void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			 bool right, /* or left */
 			 bool mul    /* or div */)
 {
@@ -431,14 +431,14 @@ void Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 // function name: contract
 // Description: Contract two Gamma tensors and the Lambda between
 // 				them. Usually used before 2-qubits gate.
-// Parameters: Tensor &left_gamma, &right_gamma , rvector_t &lambda -
+// Parameters: MPS_Tensor &left_gamma, &right_gamma , rvector_t &lambda -
 // 			   tensors to contract.
 // Returns: The result tensor of the contract
 //*************************************************************************
-Tensor Tensor::contract(const Tensor &left_gamma, const rvector_t &lambda, const Tensor &right_gamma)
+MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma)
 {
-	Tensor Res;
-	Tensor new_left = left_gamma;
+	MPS_Tensor Res;
+	MPS_Tensor new_left = left_gamma;
 	new_left.mul_Gamma_by_right_Lambda(lambda);
 	for(uint i = 0; i < new_left.data_.size(); i++)
 		for(uint j = 0; j < right_gamma.data_.size(); j++)
@@ -451,12 +451,12 @@ Tensor Tensor::contract(const Tensor &left_gamma, const rvector_t &lambda, const
 // function name: Decompose
 // Description: Decompose a tensor into two Gamma tensors and the Lambda between
 // 				them. Usually used after applying a 2-qubit gate.
-// Parameters: Tensor &temp - the tensor to decompose.
-//			   Tensor &left_gamma, &right_gamma , rvector_t &lambda -
+// Parameters: MPS_Tensor &temp - the tensor to decompose.
+//			   MPS_Tensor &left_gamma, &right_gamma , rvector_t &lambda -
 // 			   tensors for the result.
 // Returns: none.
 //*************************************************************************
-void Tensor::Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
+void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
 	matrix<complex_t> C = reshape_before_SVD(temp.data_);
 	matrix<complex_t> U,V;
@@ -492,7 +492,7 @@ void Tensor::Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tens
 }
 
 //-------------------------------------------------------------------------
-} // end namespace TensorState
+} // end namespace MPS_TensorState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

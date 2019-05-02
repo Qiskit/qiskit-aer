@@ -89,7 +89,6 @@ class AerJob(BaseJob):
             concurrent.futures.TimeoutError: if timeout occurred.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
-        print("future is ", self._future)
         return self._future.result(timeout=timeout)
 
     @requires_submit

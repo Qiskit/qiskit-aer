@@ -347,7 +347,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<TensorNetworkState::State>(circ,
 							   shots,
 							   rng_seed,
-        						   TensorNetworkState::State(0)); // no custom initial state
+        						   TensorNetworkState::State()); // no custom initial state
 
     default:
       throw std::runtime_error("QasmController:Invalid simulation method");

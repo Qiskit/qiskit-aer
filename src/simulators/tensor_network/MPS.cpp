@@ -16,13 +16,14 @@
 
 #include "framework/utils.hpp"
 
-#include "tensor_state.hpp"
-#include "tensor.hpp"
+#include "MPS.hpp"
+#include "MPS_tensor.hpp"
 
 namespace AER {
-namespace TensorState {
+namespace TensorNetworkState {
 
 uint reverse_bits(uint num, uint len);
+vector<uint> calc_new_indexes(vector<uint> indexes);
 
 template <class T>
 void myswap(T &a, T &b){
@@ -55,53 +56,27 @@ vector<uint> calc_new_indexes(vector<uint> indexes)
 	return new_indexes;
 }
 
-  /*
-void TensorState::initialize()
+void MPS::initialize(uint num_qubits)
 {
-  if ( size_ == 0) {
-    cout << "must set size before initialize" <<endl;
-    return;
-  }
-  
+  num_qubits_ = num_qubits;
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
-  for(uint i = 0; i < size_; i++)
-      q_reg_.push_back(Tensor(alpha,beta));
-  for(uint i = 0; i < size_-1; i++)
-      lambda_reg_.push_back(rvector_t {1.0}) ;
-
-}
-  */
-void TensorState::initialize(uint num_qubits)
-{
-  if ( num_qubits == 0) {
-    cout << "size must be larger than 0" <<endl;
-    return;
-  }
-  size_ = num_qubits;
-  complex_t alpha = 1.0f;
-  complex_t beta = 0.0f;
-  for(uint i = 0; i < size_; i++)
-      q_reg_.push_back(Tensor(alpha,beta));
-  for(uint i = 0; i < size_-1; i++)
+  for(uint i = 0; i < num_qubits_; i++)
+      q_reg_.push_back(MPS_Tensor(alpha,beta));
+  for(uint i = 0; i < num_qubits_-1; i++)
       lambda_reg_.push_back(rvector_t {1.0}) ;
 
 }
 
-void TensorState::initialize(const TensorState &other){
+void MPS::initialize(const MPS &other){
     if (this != &other) {
-      size_ = other.size_;
+      num_qubits_ = other.num_qubits_;
       q_reg_ = other.q_reg_;
       lambda_reg_ = other.lambda_reg_;
     }     
 }
 
-/*
-void TensorState::initialize(uint num_qubits, const cvector_t &vecState) {
-  cout << "TensorState::initialize not supported yet" <<endl;
-}
-  */
-void TensorState::apply_cnot(uint index_A, uint index_B)
+void MPS::apply_cnot(uint index_A, uint index_B)
 {
 	//for MPS
 	if(index_A + 1 < index_B)
@@ -126,22 +101,22 @@ void TensorState::apply_cnot(uint index_A, uint index_B)
 		swapped = true;
 	}
 
-	Tensor A = q_reg_[index_A], B = q_reg_[index_B];
+	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
 	rvector_t left_lambda, right_lambda;
 	//There is no lambda in the edges of the MPS
 	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != size_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
+	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
 
 	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	Tensor temp = Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
+	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
 
 	if(DEBUG) temp.print();
 	temp.apply_cnot(swapped);
 	if(DEBUG) temp.print();
-	Tensor left_gamma,right_gamma;
+	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
-	Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
 	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
 	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
 	q_reg_[index_A] = left_gamma;
@@ -149,7 +124,7 @@ void TensorState::apply_cnot(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void TensorState::apply_swap(uint index_A, uint index_B)
+void MPS::apply_swap(uint index_A, uint index_B)
 {
 	if(index_A > index_B)
 	{
@@ -170,22 +145,22 @@ void TensorState::apply_swap(uint index_A, uint index_B)
 		return;
 	}
 
-	Tensor A = q_reg_[index_A], B = q_reg_[index_B];
+	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
 	rvector_t left_lambda, right_lambda;
 	//There is no lambda in the edges of the MPS
 	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != size_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
+	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
 
 	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	Tensor temp = Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
+	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
 
 	if(DEBUG) temp.print();
 	temp.apply_swap();
 	if(DEBUG) temp.print();
-	Tensor left_gamma,right_gamma;
+	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
-	Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
 	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
 	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
 	q_reg_[index_A] = left_gamma;
@@ -193,7 +168,7 @@ void TensorState::apply_swap(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void TensorState::apply_cz(uint index_A, uint index_B)
+void MPS::apply_cz(uint index_A, uint index_B)
 {
 	//for MPS
 	if(index_A + 1 < index_B)
@@ -215,22 +190,22 @@ void TensorState::apply_cz(uint index_A, uint index_B)
 		myswap<uint>(index_A, index_B);
 	}
 
-	Tensor A = q_reg_[index_A], B = q_reg_[index_B];
+	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
 	rvector_t left_lambda, right_lambda;
 	//There is no lambda in the edges of the MPS
 	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != size_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
+	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
 
 	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	Tensor temp = Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
+	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
 
 	if(DEBUG) temp.print();
 	temp.apply_cz();
 	if(DEBUG) temp.print();
-	Tensor left_gamma,right_gamma;
+	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
-	Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
 	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
 	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
 	q_reg_[index_A] = left_gamma;
@@ -238,7 +213,7 @@ void TensorState::apply_cz(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void TensorState::change_position(uint src, uint dst)
+void MPS::change_position(uint src, uint dst)
 {
 	if(src == dst)
 		return;
@@ -250,17 +225,15 @@ void TensorState::change_position(uint src, uint dst)
 			apply_swap(i,i-1);
 }
 
-cmatrix_t TensorState::Density_matrix(const reg_t &qubits) const
+cmatrix_t MPS::Density_matrix(const reg_t &qubits) const
 {
   // ***** Assuming ascending sorted qubits register *****
-//  vector<uint> internalIndexes = qubits;
-	vector<uint> internalIndexes;
-    for (uint_t index : qubits)
-      internalIndexes.push_back((uint)index);
-
+  vector<uint> internalIndexes;
+  for (uint_t index : qubits)
+    internalIndexes.push_back((uint)index);
   //  std::sort(internalIndexes.begin(), internalIndexes.end()); -- Assuming sorted
 
-  TensorState temp_TN;
+  MPS temp_TN;
   temp_TN.initialize(*this);
   vector<uint> new_indexes = calc_new_indexes(internalIndexes);
   uint avg = new_indexes[new_indexes.size()/2];
@@ -274,7 +247,7 @@ cmatrix_t TensorState::Density_matrix(const reg_t &qubits) const
   {
     temp_TN.change_position(internalIndexes[i],new_indexes[i]);
   }
-  Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
+  MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
   uint size = psi.get_dim();
   cmatrix_t rho(size,size);
   for(uint i = 0; i < size; i++) {
@@ -285,7 +258,7 @@ cmatrix_t TensorState::Density_matrix(const reg_t &qubits) const
   return rho;
 }
 
-double TensorState::Expectation_value(const reg_t &qubits, const string &matrices) const
+double MPS::Expectation_value(const reg_t &qubits, const string &matrices) const
 {
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = Density_matrix(qubits);
@@ -312,7 +285,7 @@ double TensorState::Expectation_value(const reg_t &qubits, const string &matrice
   return real(res);
 }
 
-double TensorState::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
+double MPS::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = Density_matrix(qubits);
@@ -325,13 +298,13 @@ double TensorState::Expectation_value(const reg_t &qubits, const cmatrix_t &M) c
   return real(res);
 }
 
-void TensorState::printTN()
+void MPS::printTN()
 {
-	for(uint i=0; i<size_; i++)
+	for(uint i=0; i<num_qubits_; i++)
 	{
 	  cout << "Gamma [" << i << "] :" << endl;
 	  q_reg_[i].print();
-	  if(i < size_- 1)
+	  if(i < num_qubits_- 1)
 	    {
 	      cout << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << endl;
 	      cout << lambda_reg_[i] << endl;
@@ -340,31 +313,31 @@ void TensorState::printTN()
 	cout << endl;
 }
 
-Tensor TensorState::state_vec(uint first_index, uint last_index) const
+MPS_Tensor MPS::state_vec(uint first_index, uint last_index) const
 {
-	Tensor temp = q_reg_[first_index];
+	MPS_Tensor temp = q_reg_[first_index];
 	rvector_t left_lambda, right_lambda;
 	left_lambda  = (first_index != 0) ? lambda_reg_[first_index-1] : rvector_t {1.0};
-	right_lambda = (last_index != size_-1) ? lambda_reg_[last_index] : rvector_t {1.0};
+	right_lambda = (last_index != num_qubits_-1) ? lambda_reg_[last_index] : rvector_t {1.0};
 
 	temp.mul_Gamma_by_left_Lambda(left_lambda);
 	for(uint i = first_index+1; i < last_index+1; i++)
-	  temp = Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
+	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
 	return temp;
 }
-void TensorState::full_state_vector(cvector_t& statevector) const
+void MPS::full_state_vector(cvector_t& statevector) const
 {
-  Tensor mps_vec = state_vec(0, size_-1);
-  uint length = pow(2, size_);
+  MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
+  uint length = pow(2, num_qubits_);
   for (uint i = 0; i < length; i++) {
-    statevector.push_back(mps_vec.get_data(reverse_bits(i, size_))(0,0));
+    statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
 }
 
 //-------------------------------------------------------------------------
-} // end namespace TensorState
+} // end namespace MPS
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
