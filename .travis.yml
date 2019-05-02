@@ -3,27 +3,146 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-language: python
-python:
-  - "3.6"
-os: linux
-dist: trusty
-env:
-  - PYTHONPATH=qiskit-terra/
+notifications:
+  email: false
 
-before_install:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get -y update
-  - sudo apt-get -y install g++-7
-  - sudo apt-get -y install cmake
-  - sudo apt-get -y install libopenblas-dev
+cache: pip
+sudo: false
 
-install:
-  - git clone https://github.com/Qiskit/qiskit-terra.git
-  - pip install -r qiskit-terra/requirements.txt
-  - pip install -r requirements-dev.txt
+###############################################################################
+# Anchored and aliased definitions.
+###############################################################################
 
-script:
-  - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
-  - pip install dist/qiskit_aer*whl
-  - python -m unittest discover -s test -v
+# These are used for avoiding repeating code, and due to problems with
+# overriding some keys (in particular, "os" and "language: ptyhon") when using
+# the standard travis matrix with stages.
+#
+# This allows re-using different "sets" of configurations in the stages
+# matrix, mimicking a hierarchy:
+# * stage_generic
+#   * stage_linux
+#   * stage_osx
+stage_generic: &stage_generic
+  install:
+    - pip install cython
+    # Installing qiskit-terra master branch...
+    - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
+    # Installing qiskit-aer...
+    - pip install -U -r requirements-dev.txt
+
+stage_linux: &stage_linux
+  <<: *stage_generic
+  os: linux
+  dist: xenial
+  language: python
+  python: 3.7
+  sudo: true
+  before_install:
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    - sudo apt-get -y update
+    - sudo apt-get -y install g++-7
+    - sudo apt-get -y install libopenblas-dev
+  script:
+    - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    - pip install dist/qiskit_aer*whl
+    - python -m unittest discover -s test -v
+
+stage_osx: &stage_osx
+  <<: *stage_generic
+  os: osx
+  osx_image: xcode9.2
+  language: generic
+  cache:
+    pip: true
+    directories:
+      - ~/python-interpreters/
+  before_install:
+    # Travis does not provide support for Python 3 under osx - it needs to be
+    # installed manually.
+    - |
+      if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+        if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
+          git clone git://github.com/pyenv/pyenv.git
+          cd pyenv/plugins/python-build
+          ./install.sh
+          cd ../../..
+          python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
+        fi
+        virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
+        source venv/bin/activate
+      fi
+    - brew install libomp
+    - brew install openblas
+  script:
+    - python setup.py bdist_wheel -- -- -j4
+    - pip install dist/qiskit_aer*whl
+    - python -m unittest discover -s test -v
+
+###############################################################################
+# Stage-related definitions
+###############################################################################
+
+# Define the order of the stages.
+stages:
+  # - lint
+  - test
+
+# Define the job matrix explicitly, as matrix expansion causes issues when
+# using it with stages and some variables/sections cannot be overridden.
+jobs:
+  include:
+    # "lint" stage
+    ###########################################################################
+    # C++ and Python linters
+    # TODO!
+    # - stage: lint
+
+
+    # "test" stage
+    ###########################################################################
+    # GNU/Linux, Python 3.7
+    - stage: test
+      name: Python 3.7 Tests Linux
+      <<: *stage_linux
+      python: 3.7
+
+    # GNU/Linux, Python 3.6
+    - stage: test
+      if: type = cron
+      name: Python 3.6 Tests Linux
+      <<: *stage_linux
+      python: 3.6
+
+    # GNU/Linux, Python 3.5
+    - stage: test
+      if: type = cron
+      name: Python 3.5 Tests Linux
+      <<: *stage_linux
+      python: 3.5
+
+    # OSX, Python 3.7.2 (via pyenv)
+    - stage: test
+      name: Python 3.7 Tests OSX
+      <<: *stage_osx
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.7.2
+
+    # OSX, Python 3.6.5 (via pyenv)
+    - stage: test
+      if: type = cron
+      name: Python 3.6 Tests OSX
+      <<: *stage_osx
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.6.5
+
+    # OSX, Python 3.5.6 (via pyenv)
+    - stage: test
+      if: type = cron
+      <<: *stage_osx
+      name: Python 3.5 Tests OSX
+      env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.5.6
+
