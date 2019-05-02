@@ -60,97 +60,140 @@ uint num_of_SV(rvector_t S, double threshold)
 class Tensor
 {
 public:
-	// Constructors of Tensor class
-	Tensor(){}
-	explicit Tensor(complex_t& alpha, complex_t& beta){
-		matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
-		A(0,0) = alpha;
-		B(0,0) = beta;
-		data_.push_back(A);
-		data_.push_back(B);
-	}
-	Tensor(const Tensor& rhs){
-		data_ = rhs.data_;
-	}
-	// Destructor
-	virtual ~Tensor(){}
+  // Constructors of Tensor class
+  Tensor(){}
+  explicit Tensor(complex_t& alpha, complex_t& beta){
+    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
+    A(0,0) = alpha;
+    B(0,0) = beta;
+    data_.push_back(A);
+    data_.push_back(B);
+  }
+  Tensor(const Tensor& rhs){
+    data_ = rhs.data_;
+  }
+  // Destructor
+  virtual ~Tensor(){}
+  
+  // Assignment operator
+  Tensor& operator=(const Tensor& rhs){
+    if (this != &rhs){
+      data_ = rhs.data_;
+    }
+    return *this;
+  }
+  void print(bool statevector = false);
+  cvector_t get_data(uint a1, uint a2) const;
+  cmatrix_t get_data(uint i) const {
+    return data_[i];
+  }
+  void insert_data(uint a1, uint a2, cvector_t data);
 
-	// Assignment operator
-	Tensor& operator=(const Tensor& rhs){
-		if (this != &rhs){
-			data_ = rhs.data_;
-		}
-		return *this;
-	}
+  //**************************************************************
+  // function name: get_dim
+  // Description: Get the dimension of the physical index of the tensor
+  // Parameters: none.
+  // Returns: uint of the dimension of the physical index of the tensor.
+  //**************************************************************
+  uint get_dim() const {
+    return data_.size();
+  }
+  void apply_x();
+  void apply_y();
+  void apply_z();
+  void apply_h();
+  void apply_s();
+  void apply_sdg();
+  void apply_t();
+  void apply_tdg();
+  void apply_u1(double lambda);
+  void apply_u2(double phi, double lambda);
+  void apply_u3(double theta, double phi, double lambda);
+  void apply_matrix(cmatrix_t &mat);
+  void apply_cnot(bool swapped = false);
+  void apply_swap();
+  void apply_cz();
+  void mul_Gamma_by_left_Lambda(rvector_t &Lambda);
+  void mul_Gamma_by_right_Lambda(rvector_t &Lambda);
+  void div_Gamma_by_left_Lambda(rvector_t &Lambda);
+  void div_Gamma_by_right_Lambda(rvector_t &Lambda);
+  static Tensor contract(Tensor left_gamma, rvector_t lambda, Tensor right_gamma);
+  static void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma);
 
-	//**************************************************************
-	// function name: print
-	// Description: Add a new command to the history
-	// Parameters: bool statevector: true to print as a state vector
-	//			   false to print as vector of matrices.
-	// Returns: none.
-	//**************************************************************
-	void print(bool statevector = false) {
-	  if(statevector == false)
-		  for(uint i = 0; i < data_.size(); i++)
-			{
-			  data_[i].SetOutputStyle(Matrix);
-			  std::cout << "i = " << i << endl;
-			  std::cout << data_[i];
-			}
-	  else
+private:
+  void mul_Gamma_by_Lambda(rvector_t &Lambda, 
+			   bool right, /* or left */
+			   bool mul    /* or div */);
+	/*
+	The data structure of a Gamma tensor in MPS- a vector of matrices of
+	the same dimensions. Size of the vector is for the physical index,
+	dimensions of the matrices are for the bond indices. (3-dimensions tensors).
+	Notation: i will represent the physical index, a1,a2 will represent the
+	matrix indexes
+	*/	
+	vector<cmatrix_t> data_;
+};
+
+//=========================================================================
+// Implementation
+//=========================================================================
+
+  //**************************************************************
+    // function name: print
+    // Description: Add a new command to the history
+    // Parameters: bool statevector: true to print as a state vector
+    //			   false to print as vector of matrices.
+    // Returns: none.
+    //**************************************************************
+    void Tensor::print(bool statevector) {
+      if(statevector == false)
+	for(uint i = 0; i < data_.size(); i++)
 	  {
-		  std::cout << "[";
-		  for(uint i = 0; i < data_.size(); i++)
-			{
-			  std::cout << data_[i](0,0)<< " ";
-			}
-		  std::cout << "]" << endl;
+	    data_[i].SetOutputStyle(Matrix);
+	    std::cout << "i = " << i << endl;
+	    std::cout << data_[i];
 	  }
-	}
-
-	//**************************************************************
-	// function name: get_data
-	// Description: Get the data in some axis of the Tensor
-	// 1.	Parameters: uint a1, uint a2 - indexes of data in matrix
-	// 		Returns: cvector_t of data in (a1,a2) in all matrices
-	// 2.	Parameters: uint i - index of a matrix in the Tensor
-	// 		Returns: cmatrix_t of the data
-	//**************************************************************
-	cvector_t get_data(uint a1, uint a2) const
+      else
 	{
-		cvector_t Res;
-		for(uint i = 0; i < data_.size(); i++)
-			Res.push_back(data_[i](a1,a2));
-		return Res;
+	  std::cout << "[";
+	  for(uint i = 0; i < data_.size(); i++)
+	    {
+	      std::cout << data_[i](0,0)<< " ";
+	    }
+	  std::cout << "]" << endl;
 	}
-	cmatrix_t get_data(uint i) const
-	{
-		return data_[i];
-	}
+    }
+  
+  //**************************************************************
+    // function name: get_data
+    // Description: Get the data in some axis of the Tensor
+    // 1.	Parameters: uint a1, uint a2 - indexes of data in matrix
+    // 		Returns: cvector_t of data in (a1,a2) in all matrices
+    // 2.	Parameters: uint i - index of a matrix in the Tensor
+    // 		Returns: cmatrix_t of the data
+    //**************************************************************
+    cvector_t Tensor::get_data(uint a1, uint a2) const
+   {
+    cvector_t Res;
+    for(uint i = 0; i < data_.size(); i++)
+      Res.push_back(data_[i](a1,a2));
+    return Res;
+   }
 
-	//**************************************************************
-	// function name: insert_data
-	// Description: Insert data to some axis of the Tensor
-	// Parameters: uint a1, uint a2 - indexes of data in matrix
-	// Parameters: cvector_t data - data to insert.
-	// Returns: void.
-	//**************************************************************
-	void insert_data(uint a1, uint a2, cvector_t data)
-	{
-		for(uint i = 0; i < data_.size(); i++)
-			data_[i](a1,a2) = data[i];
-	}
+  //**************************************************************
+    // function name: insert_data
+    // Description: Insert data to some axis of the Tensor
+    // Parameters: uint a1, uint a2 - indexes of data in matrix
+    // Parameters: cvector_t data - data to insert.
+    // Returns: void.
+    //**************************************************************
+    void Tensor::insert_data(uint a1, uint a2, cvector_t data)
+  {
+    for(uint i = 0; i < data_.size(); i++)
+      data_[i](a1,a2) = data[i];
+  }
 
-	//**************************************************************
-	// function name: get_dim
-	// Description: Get the dimension of the physical index of the tensor
-	// Parameters: none.
-	// Returns: uint of the dimension of the physical index of the tensor.
-	//**************************************************************
-	uint get_dim() const {
-		return data_.size();
-	}
+
 
 	//**************************************************************
 	// function name: apply_x,y,z,...
@@ -159,7 +202,7 @@ public:
 	// Parameters: none.
 	// Returns: none.
 	//**************************************************************
-	void apply_x()
+	void Tensor::apply_x()
 	{
 		if (data_.size() != 2)
 		{
@@ -168,7 +211,7 @@ public:
 		}
 		swap(data_[0],data_[1]);
 	}
-	void apply_y()
+	void Tensor::apply_y()
 	{
 		if (data_.size() != 2)
 		{
@@ -179,7 +222,7 @@ public:
 		data_[1] = data_[1] * complex_t(0, -1);
 		swap(data_[0],data_[1]);
 	}
-	void apply_z()
+	void Tensor::apply_z()
 	{
 		if (data_.size() != 2)
 		{
@@ -188,7 +231,7 @@ public:
 		}
 		data_[1] = data_[1] * (-1.0);
 	}
-	void apply_h()
+	void Tensor::apply_h()
 	{
 		if (data_.size() != 2)
 		{
@@ -204,7 +247,7 @@ public:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void apply_s()
+	void Tensor::apply_s()
 	{
 		if (data_.size() != 2)
 		{
@@ -213,7 +256,7 @@ public:
 		}
 		data_[1] = data_[1] * complex_t(0, 1);
 	}
-	void apply_sdg()
+	void Tensor::apply_sdg()
 	{
 		if (data_.size() != 2)
 		{
@@ -222,7 +265,7 @@ public:
 		}
 		data_[1] = data_[1] * complex_t(0, -1);
 	}
-	void apply_t()
+	void Tensor::apply_t()
 	{
 		if (data_.size() != 2)
 		{
@@ -231,7 +274,7 @@ public:
 		}
 		data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
 	}
-	void apply_tdg()
+	void Tensor::apply_tdg()
 	{
 		if (data_.size() != 2)
 		{
@@ -240,7 +283,7 @@ public:
 		}
 		data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 	}
-	void apply_u1(double lambda)
+	void Tensor::apply_u1(double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -256,7 +299,7 @@ public:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void apply_u2(double phi, double lambda)
+	void Tensor::apply_u2(double phi, double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -272,7 +315,7 @@ public:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void apply_u3(double theta, double phi, double lambda)
+	void Tensor::apply_u3(double theta, double phi, double lambda)
 	{
 		if (data_.size() != 2)
 		{
@@ -288,7 +331,7 @@ public:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void apply_matrix(cmatrix_t &mat)
+	void Tensor::apply_matrix(cmatrix_t &mat)
 	{
 		if (data_.size() != 2)
 		{
@@ -305,7 +348,7 @@ public:
 				insert_data(a1,a2,temp);
 			}
 	}
-	void apply_cnot(bool swapped = false)
+	void Tensor::apply_cnot(bool swapped)
 	{
 		if (data_.size() != 4)
 		{
@@ -317,7 +360,7 @@ public:
 		else
 			swap(data_[1],data_[3]);
 	}
-	void apply_swap()
+	void Tensor::apply_swap()
 	{
 		if (data_.size() != 4)
 		{
@@ -326,7 +369,7 @@ public:
 		}
 		swap(data_[1],data_[2]);
 	}
-	void apply_cz()
+	void Tensor::apply_cz()
 	{
 		if (data_.size() != 4)
 		{
@@ -336,15 +379,6 @@ public:
 		data_[3] = data_[3] * (-1.0);
 	}
   
-protected:
-	/*
-	The data structure of a Gamma tensor in MPS- a vector of matrices of
-	the same dimensions. Size of the vector is for the physical index,
-	dimensions of the matrices are for the bond indices. (3-dimensions tensors).
-	Notation: i will represent the physical index, a1,a2 will represent the
-	matrix indexes
-	*/	
-	vector<cmatrix_t> data_;
 
 /* TL;DR - Functions mul/div Gamma by Lambda are used to keep the MPS in the
  * canonical form.
@@ -355,41 +389,42 @@ protected:
  * decomposition of the result of the gate, we need to divide back by what we
  * multiplied before. This is what the division functions do.
  * */
-friend void mul_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
+void Tensor::mul_Gamma_by_left_Lambda(rvector_t &Lambda)
 {
-	if (Lambda == rvector_t {1.0}) return;
-	uint rows = Gamma.data_[0].GetRows(), cols = Gamma.data_[0].GetColumns();
-	for(uint i = 0; i < Gamma.data_.size(); i++)
-		for(uint a1 = 0; a1 < rows; a1++)
-			for(uint a2 = 0; a2 < cols; a2++)
-				Gamma.data_[i](a1,a2) *= Lambda[a1];
+  mul_Gamma_by_Lambda(Lambda, false,/*left*/ true /*mul*/);
 }
-friend void mul_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
+
+void Tensor::mul_Gamma_by_right_Lambda(rvector_t &Lambda)
 {
-	if (Lambda == rvector_t {1.0}) return;
-	uint rows = Gamma.data_[0].GetRows(), cols = Gamma.data_[0].GetColumns();
-	for(uint i = 0; i < Gamma.data_.size(); i++)
-		for(uint a1 = 0; a1 < rows; a1++)
-			for(uint a2 = 0; a2 < cols; a2++)
-				Gamma.data_[i](a1,a2) *= Lambda[a2];
+  mul_Gamma_by_Lambda(Lambda, true,/*right*/ true /*mul*/);
 }
-friend void div_Gamma_by_left_Lambda(rvector_t &Lambda, Tensor &Gamma)
+
+void Tensor::div_Gamma_by_left_Lambda(rvector_t &Lambda)
 {
-	if (Lambda == rvector_t {1.0}) return;
-	uint rows = Gamma.data_[0].GetRows(), cols = Gamma.data_[0].GetColumns();
-	for(uint i = 0; i < Gamma.data_.size(); i++)
-		for(uint a1 = 0; a1 < rows; a1++)
-			for(uint a2 = 0; a2 < cols; a2++)
-				Gamma.data_[i](a1,a2) /= Lambda[a1];
+  mul_Gamma_by_Lambda(Lambda, false,/*left*/ false /*div*/);
 }
-friend void div_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
+
+void Tensor::div_Gamma_by_right_Lambda(rvector_t &Lambda)
+{
+  mul_Gamma_by_Lambda(Lambda, true,/*right*/ false /*div*/);
+}
+
+void Tensor::mul_Gamma_by_Lambda(rvector_t &Lambda, 
+			 bool right, /* or left */
+			 bool mul    /* or div */)
 {
 	if (Lambda == rvector_t {1.0}) return;
-	uint rows = Gamma.data_[0].GetRows(), cols = Gamma.data_[0].GetColumns();
-	for(uint i = 0; i < Gamma.data_.size(); i++)
+	uint rows = data_[0].GetRows(), cols = data_[0].GetColumns();
+	for(uint i = 0; i < data_.size(); i++)
 		for(uint a1 = 0; a1 < rows; a1++)
-			for(uint a2 = 0; a2 < cols; a2++)
-				Gamma.data_[i](a1,a2) /= Lambda[a2];
+		  for(uint a2 = 0; a2 < cols; a2++) {
+		    uint factor = right ? a2 : a1;
+		    if (mul) {
+		      data_[i](a1,a2) *= Lambda[factor];
+		    } else{
+		      data_[i](a1,a2) /= Lambda[factor];
+		    }
+		  }
 }
 
 //************************************************************************
@@ -400,10 +435,10 @@ friend void div_Gamma_by_right_Lambda(Tensor &Gamma, rvector_t &Lambda)
 // 			   tensors to contract.
 // Returns: The result tensor of the contract
 //*************************************************************************
-friend Tensor contract(Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
+Tensor Tensor::contract(Tensor left_gamma, rvector_t lambda, Tensor right_gamma)
 {
 	Tensor Res;
-	mul_Gamma_by_right_Lambda(left_gamma,lambda);
+	left_gamma.mul_Gamma_by_right_Lambda(lambda);
 	for(uint i = 0; i < left_gamma.data_.size(); i++)
 		for(uint j = 0; j < right_gamma.data_.size(); j++)
 			Res.data_.push_back(left_gamma.data_[i] * right_gamma.data_[j]);
@@ -420,12 +455,11 @@ friend Tensor contract(Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamm
 // 			   tensors for the result.
 // Returns: none.
 //*************************************************************************
-friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
+void Tensor::Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma)
 {
 	matrix<complex_t> C = reshape_before_SVD(temp.data_);
 	matrix<complex_t> U,V;
 	rvector_t S(min(C.GetRows(), C.GetColumns()));
-
 
 	if(SHOW_SVD)
 	{
@@ -454,12 +488,6 @@ friend void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tenso
 	lambda            = S;
 	right_gamma.data_ = reshape_V_after_SVD(V);
 }
-
-
-};
-
-
-
 
 //-------------------------------------------------------------------------
 } // end namespace TensorState

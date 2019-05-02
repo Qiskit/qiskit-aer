@@ -34,11 +34,11 @@ public:
   //    cout << "initialize currently not implemented yet" <<endl;
   //  }
 
-  //void initialize(const TensorState &other);
+  void initialize(const TensorState &other);
   //void initialize(uint num_qubits, const cvector_t &vecState);
 
   //**************************************************************
-    // function name: num_qubits
+  // function name: num_qubits
     // Description: Get the number of qubits in the tensor network
     // Parameters: none.
     // Returns: none.
@@ -85,9 +85,25 @@ public:
                       {cout << "apply_matrix not supported yet" <<endl;}
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
                       {cout << "apply_diagonalmatrix not supported yet" <<endl;}
-  void Density_Matrix(uint first_index, uint last_index, complex_t** & rho);
+  //void Density_Matrix(uint first_index, uint last_index, complex_t** & rho);
+
+  //************************************************************************
+    // function name: change_position
+    // Description: Move qubit from src to dst in the MPS. Used only
+    //   for expectation value calculations. Similar to swap, but doesn't
+    //   move qubit in dst back to src, therefore being used only on the temp TN
+    //   in Expectation_value function.
+    // Parameters: uint src, source of the qubit.
+    //			 uint dst, destination of the qubit.
+    // Returns: none.
+  //************************************************************************
+  void change_position(uint src, uint dst);
+
+  cmatrix_t Density_matrix(const reg_t &qubits);
+
   //  double Expectation_value(const vector<uint> &indexes, const string &matrices);
-  double Expectation_value(const reg_t &indexes, const string &matrices);
+  double Expectation_value(const reg_t &qubits, const string &matrices);
+  double Expectation_value(const reg_t &qubits, const cmatrix_t &M);
 
   //**************************************************************
   // function name: initialize
@@ -122,7 +138,7 @@ public:
   // Parameters: none.
   // Returns: none.
   //**********************************************************************
-  Tensor state_vec(uint first_index, uint last_index);
+  Tensor state_vec(uint first_index, uint last_index) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -135,9 +151,14 @@ public:
            cout << "set_sample_measure_index_size not supported yet" <<endl;}
   void enable_gate_opt() {
            cout << "enable_gate_opt not supported yet" <<endl;}
-  rvector_t probabilities(const AER::reg_t &qubits) const{
-           cout << "probabilities not supported yet" <<endl;
-           return rvector_t();}
+  rvector_t probabilities(const AER::reg_t &qubits) const
+  {
+	  rvector_t res;
+	  Tensor temp =  state_vec(0, num_qubits() - 1);
+	  for(uint i = 0; i < temp.get_dim(); i++)
+		  res[i] = std::norm(temp.get_data(i)(0,0));
+	  return res;
+  }
   void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
            cout << " store_measure not supported yet" <<endl;}
   double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
