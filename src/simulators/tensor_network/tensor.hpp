@@ -113,15 +113,15 @@ public:
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
-  void mul_Gamma_by_left_Lambda(rvector_t &Lambda);
-  void mul_Gamma_by_right_Lambda(rvector_t &Lambda);
-  void div_Gamma_by_left_Lambda(rvector_t &Lambda);
-  void div_Gamma_by_right_Lambda(rvector_t &Lambda);
-  static Tensor contract(Tensor left_gamma, rvector_t lambda, Tensor right_gamma);
+  void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
+  void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
+  void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
+  void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
+  static Tensor contract(const Tensor &left_gamma, const rvector_t &lambda, const Tensor &right_gamma);
   static void Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tensor &right_gamma);
 
 private:
-  void mul_Gamma_by_Lambda(rvector_t &Lambda, 
+  void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			   bool right, /* or left */
 			   bool mul    /* or div */);
 	/*
@@ -131,7 +131,7 @@ private:
 	Notation: i will represent the physical index, a1,a2 will represent the
 	matrix indexes
 	*/	
-	vector<cmatrix_t> data_;
+  vector<cmatrix_t> data_;
 };
 
 //=========================================================================
@@ -389,27 +389,27 @@ private:
  * decomposition of the result of the gate, we need to divide back by what we
  * multiplied before. This is what the division functions do.
  * */
-void Tensor::mul_Gamma_by_left_Lambda(rvector_t &Lambda)
+void Tensor::mul_Gamma_by_left_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, false,/*left*/ true /*mul*/);
 }
 
-void Tensor::mul_Gamma_by_right_Lambda(rvector_t &Lambda)
+void Tensor::mul_Gamma_by_right_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, true,/*right*/ true /*mul*/);
 }
 
-void Tensor::div_Gamma_by_left_Lambda(rvector_t &Lambda)
+void Tensor::div_Gamma_by_left_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, false,/*left*/ false /*div*/);
 }
 
-void Tensor::div_Gamma_by_right_Lambda(rvector_t &Lambda)
+void Tensor::div_Gamma_by_right_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, true,/*right*/ false /*div*/);
 }
 
-void Tensor::mul_Gamma_by_Lambda(rvector_t &Lambda, 
+void Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			 bool right, /* or left */
 			 bool mul    /* or div */)
 {
@@ -435,13 +435,14 @@ void Tensor::mul_Gamma_by_Lambda(rvector_t &Lambda,
 // 			   tensors to contract.
 // Returns: The result tensor of the contract
 //*************************************************************************
-Tensor Tensor::contract(Tensor left_gamma, rvector_t lambda, Tensor right_gamma)
+Tensor Tensor::contract(const Tensor &left_gamma, const rvector_t &lambda, const Tensor &right_gamma)
 {
 	Tensor Res;
-	left_gamma.mul_Gamma_by_right_Lambda(lambda);
-	for(uint i = 0; i < left_gamma.data_.size(); i++)
+	Tensor new_left = left_gamma;
+	new_left.mul_Gamma_by_right_Lambda(lambda);
+	for(uint i = 0; i < new_left.data_.size(); i++)
 		for(uint j = 0; j < right_gamma.data_.size(); j++)
-			Res.data_.push_back(left_gamma.data_[i] * right_gamma.data_[j]);
+			Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
 	return Res;
 }
 
@@ -460,6 +461,7 @@ void Tensor::Decompose(Tensor &temp, Tensor &left_gamma, rvector_t &lambda, Tens
 	matrix<complex_t> C = reshape_before_SVD(temp.data_);
 	matrix<complex_t> U,V;
 	rvector_t S(min(C.GetRows(), C.GetColumns()));
+
 
 	if(SHOW_SVD)
 	{

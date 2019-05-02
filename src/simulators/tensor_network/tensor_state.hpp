@@ -85,7 +85,6 @@ public:
                       {cout << "apply_matrix not supported yet" <<endl;}
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
                       {cout << "apply_diagonalmatrix not supported yet" <<endl;}
-  //void Density_Matrix(uint first_index, uint last_index, complex_t** & rho);
 
   //************************************************************************
     // function name: change_position
@@ -99,11 +98,11 @@ public:
   //************************************************************************
   void change_position(uint src, uint dst);
 
-  cmatrix_t Density_matrix(const reg_t &qubits);
+  cmatrix_t Density_matrix(const reg_t &qubits) const;
 
   //  double Expectation_value(const vector<uint> &indexes, const string &matrices);
-  double Expectation_value(const reg_t &qubits, const string &matrices);
-  double Expectation_value(const reg_t &qubits, const cmatrix_t &M);
+  double Expectation_value(const reg_t &qubits, const string &matrices) const;
+  double Expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
   //**************************************************************
   // function name: initialize
@@ -139,6 +138,7 @@ public:
   // Returns: none.
   //**********************************************************************
   Tensor state_vec(uint first_index, uint last_index) const;
+  void full_state_vector(cvector_t &state_vector) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {

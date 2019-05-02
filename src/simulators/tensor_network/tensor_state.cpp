@@ -45,6 +45,16 @@ uint reverse_bits(uint num, uint len) {
   }
   return sum;
 }
+
+vector<uint> calc_new_indexes(vector<uint> indexes)
+{
+	uint n = indexes.size();
+	uint avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
+	vector<uint> new_indexes( n );
+	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
+	return new_indexes;
+}
+
   /*
 void TensorState::initialize()
 {
@@ -175,15 +185,12 @@ void TensorState::apply_swap(uint index_A, uint index_B)
 	if(DEBUG) temp.print();
 	Tensor left_gamma,right_gamma;
 	rvector_t lambda;
-	//	if(DEBUG) cout << "started new DeCompose" << endl;
 	Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-	//	if(DEBUG) cout << "finished new DeCompose" << endl;
 	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
 	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
 	q_reg_[index_A] = left_gamma;
 	lambda_reg_[index_A] = lambda;
 	q_reg_[index_B] = right_gamma;
-	//	if(DEBUG) cout << "finished apply_swap" << endl;
 }
 
 void TensorState::apply_cz(uint index_A, uint index_B)
@@ -243,16 +250,7 @@ void TensorState::change_position(uint src, uint dst)
 			apply_swap(i,i-1);
 }
 
-vector<uint> calc_new_indexes(vector<uint> indexes)
-{
-	uint n = indexes.size();
-	uint avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
-	vector<uint> new_indexes( n );
-	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
-	return new_indexes;
-}
-
-cmatrix_t TensorState::Density_matrix(const reg_t &qubits)
+cmatrix_t TensorState::Density_matrix(const reg_t &qubits) const
 {
   // ***** Assuming ascending sorted qubits register *****
 //  vector<uint> internalIndexes = qubits;
@@ -268,7 +266,7 @@ cmatrix_t TensorState::Density_matrix(const reg_t &qubits)
   uint avg = new_indexes[new_indexes.size()/2];
   vector<uint>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
-  for(int i = mid; i < internalIndexes.size(); i++)
+  for(uint i = mid; i < internalIndexes.size(); i++)
   {
     temp_TN.change_position(internalIndexes[i],new_indexes[i]);
   }
@@ -287,7 +285,7 @@ cmatrix_t TensorState::Density_matrix(const reg_t &qubits)
   return rho;
 }
 
-double TensorState::Expectation_value(const reg_t &qubits, const string &matrices)
+double TensorState::Expectation_value(const reg_t &qubits, const string &matrices) const
 {
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = Density_matrix(qubits);
@@ -314,7 +312,7 @@ double TensorState::Expectation_value(const reg_t &qubits, const string &matrice
   return real(res);
 }
 
-double TensorState::Expectation_value(const reg_t &qubits, const cmatrix_t &M)
+double TensorState::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = Density_matrix(qubits);
@@ -355,6 +353,14 @@ Tensor TensorState::state_vec(uint first_index, uint last_index) const
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
 	return temp;
+}
+void TensorState::full_state_vector(cvector_t& statevector) const
+{
+  Tensor mps_vec = state_vec(0, size_-1);
+  uint length = pow(2, size_);
+  for (uint i = 0; i < length; i++) {
+    statevector.push_back(mps_vec.get_data(reverse_bits(i, size_))(0,0));
+  }
 }
 
 //-------------------------------------------------------------------------

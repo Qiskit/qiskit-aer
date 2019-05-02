@@ -231,6 +231,11 @@ protected:
                               OutputData &data,
                               bool variance);
 
+  // Snapshot the state vector
+  void snapshot_state(const Operations::Op &op,
+		      OutputData &data,
+		      std::string name = "");
+
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -413,7 +418,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         apply_kraus(op.qubits, op.mats, rng);
         break;
       default:
-        throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
+        throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
                                     op.name + "\'.");
     }
   }
@@ -472,6 +477,15 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   //expval = qreg_.Expectation_value_internal(op);
 }
 
+  void State::snapshot_state(const Operations::Op &op,
+		      OutputData &data,
+		      std::string name) {
+    TensorState::Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+    cvector_t statevector;
+    qreg_.full_state_vector(statevector);
+    data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+    cout << "data " <<endl;
+  }
 //=========================================================================
 // Implementation: Matrix multiplication
 //=========================================================================
@@ -646,10 +660,11 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
     throw std::invalid_argument("Tensor_Network_State::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
   switch (it -> second) {
-    /*    case Snapshots::statevector:
-      BaseState::snapshot_state(op, data, "statevector");
-      break;
-    case Snapshots::cmemory:
+  case Snapshots::statevector: {
+      snapshot_state(op, data, "statevector"); 
+      break; 
+      }
+      /*    case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
       break;
     case Snapshots::cregister:
@@ -677,7 +692,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       }  break;*/
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("QubitVector::State::invalid snapshot instruction \'" +
+      throw std::invalid_argument("TensorNetworkState::State::invalid snapshot instruction \'" +
                                   op.name + "\'."); 
   }
 
