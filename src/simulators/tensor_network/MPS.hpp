@@ -17,6 +17,12 @@
 namespace AER {
 namespace TensorNetworkState {
 
+// Allowed gates enum class
+enum Gates {
+  id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
+  cx, cz, swap // two qubit
+};
+
 class MPS{
 public:
   MPS(uint num_qubits = 0):
@@ -76,9 +82,11 @@ public:
   void U1(uint index, double lambda){q_reg_[index].apply_u1(lambda);}
   void U2(uint index, double phi, double lambda){q_reg_[index].apply_u2(phi,lambda);}
   void U3(uint index, double theta, double phi, double lambda){q_reg_[index].apply_u3(theta,phi,lambda);}
+  //void old_apply_swap(uint index_A, uint index_B);
   void apply_cnot(uint index_A, uint index_B);
   void apply_swap(uint index_A, uint index_B);
   void apply_cz(uint index_A, uint index_B);
+  void apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type);
 
 
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 

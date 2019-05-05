@@ -78,50 +78,12 @@ void MPS::initialize(const MPS &other){
 
 void MPS::apply_cnot(uint index_A, uint index_B)
 {
-	//for MPS
-	if(index_A + 1 < index_B)
-	{
-		apply_swap(index_A,index_B-1); //bring first qubit next to second qubit (recursive)
-		apply_cnot(index_B-1,index_B); //apply gate
-		apply_swap(index_A,index_B-1); //bring first qubit back (recursive)
-	  return;
-	}
-	else if(index_A  > index_B + 1)
-	{
-		apply_swap(index_A-1,index_B);
-		apply_cnot(index_A,index_A-1);
-		apply_swap(index_A-1,index_B);
-		return;
-	}
+  apply_2_qubit_gate(index_A, index_B, cx);
+}
 
-	bool swapped = false;
-	if(index_A >  index_B)
-	{
-		myswap<uint>(index_A, index_B);
-		swapped = true;
-	}
-
-	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
-	rvector_t left_lambda, right_lambda;
-	//There is no lambda in the edges of the MPS
-	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
-
-	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
-	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
-
-	if(DEBUG) temp.print();
-	temp.apply_cnot(swapped);
-	if(DEBUG) temp.print();
-	MPS_Tensor left_gamma,right_gamma;
-	rvector_t lambda;
-	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-	q_reg_[index_A] = left_gamma;
-	lambda_reg_[index_A] = lambda;
-	q_reg_[index_B] = right_gamma;
+void MPS::apply_cz(uint index_A, uint index_B)
+{
+  apply_2_qubit_gate(index_A, index_B, cz);
 }
 
 void MPS::apply_swap(uint index_A, uint index_B)
@@ -168,26 +130,29 @@ void MPS::apply_swap(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void MPS::apply_cz(uint index_A, uint index_B)
+void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type)
 {
 	//for MPS
 	if(index_A + 1 < index_B)
 	{
 		apply_swap(index_A,index_B-1);
-		apply_cz(index_B-1,index_B);
+		apply_2_qubit_gate(index_B-1,index_B, gate_type);
 		apply_swap(index_A,index_B-1);
 	  return;
 	}
-	else if(index_A  > index_B + 1)
+	else if(index_A > index_B + 1)
 	{
 		apply_swap(index_A-1,index_B);
-		apply_cz(index_A,index_A-1);
+		apply_2_qubit_gate(index_A,index_A-1, gate_type);
 		apply_swap(index_A-1,index_B);
 		return;
 	}
+
+	bool swapped = false;
 	if(index_A >  index_B)
 	{
 		myswap<uint>(index_A, index_B);
+		swapped = true;
 	}
 
 	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
@@ -201,7 +166,16 @@ void MPS::apply_cz(uint index_A, uint index_B)
 	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
 
 	if(DEBUG) temp.print();
-	temp.apply_cz();
+	switch (gate_type) {
+	case cx:
+	  temp.apply_cnot(swapped);
+	  break;
+	case cz:
+	  temp.apply_cz();
+	  break;
+        default:
+	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
+	}
 	if(DEBUG) temp.print();
 	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;

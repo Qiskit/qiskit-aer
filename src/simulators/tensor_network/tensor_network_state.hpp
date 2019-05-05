@@ -20,13 +20,6 @@
 namespace AER {
 namespace TensorNetworkState { 
 
-// Allowed gates enum class
-enum class Gates {
-  //TODO: id was i , is this right?
-  id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, swap // two qubit
-};
-
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
@@ -34,7 +27,6 @@ enum class Snapshots {
   expval_pauli, expval_pauli_var,
   expval_matrix, expval_matrix_var
 };
-
 
 
 //=========================================================================
