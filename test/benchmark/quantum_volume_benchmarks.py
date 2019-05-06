@@ -1,9 +1,21 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Quantum Voluming benchmark suite"""
 # Write the benchmarking functions here.
 # See "Writing benchmarks" in the asv docs for more information.
-"""Quantum Voluming benchmark suite"""
 
-import qiskit as Terra
 from qiskit import QiskitError
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.aer import QasmSimulator
 from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
                    reset_noise_model, kraus_noise_model, no_noise
@@ -42,9 +54,9 @@ class QuantumVolumeTimeSuite:
                 # We want always the same seed, as we want always the same circuits
                 # for the same value pairs of qubits,depth
                 circ = quantum_volume_circuit(num_qubits, depth, seed=1)
-                self.qv_circuits.append(
-                    Terra.compile(
-                        circ, self.backend, shots=1, basis_gates=['u3', 'cx']))
+                circ = transpile(circ, basis_gates=['u3', 'cx'])
+                qobj = assemble(circ, self.backend, shots=1)
+                self.qv_circuits.append(qobj)
         self.param_names = ["Quantum Volume", "Noise Model"]
         # This will run every benchmark for one of the combinations we have here:
         # bench(qv_circuits, None) => bench(qv_circuits, mixed()) =>

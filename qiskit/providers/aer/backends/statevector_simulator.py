@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
@@ -34,12 +39,8 @@ class StatevectorSimulator(AerBackend):
         `backend_options` kwarg diction for `StatevectorSimulator.run` or
         `qiskit.execute`
 
-        * "initial_statevector" (vector_like): Sets a custom initial
-            statevector for the simulation instead of the all zero
-            initial state (Default: None).
-
-        * "chop_threshold" (double): Sets the threshold for truncating small
-            values to zero in the Result data (Default: 1e-15)
+        * "zero_threshold" (double): Sets the threshold for truncating
+            small values to zero in the result data (Default: 1e-10).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -51,19 +52,19 @@ class StatevectorSimulator(AerBackend):
             execution will be disabled. If set to 0 the maximum will be
             automatically set to max_parallel_threads (Default: 1).
 
+        * "max_memory_mb" (int): Sets the maximum size of memory
+            to store a state vector. If a state vector needs more, an error
+            is thrown. In general, a state vector of n-qubits uses 2^n complex
+            values (16 Bytes). If set to 0, the maximum will be automatically
+            set to half the system memory size (Default: 0).
+
         * "statevector_parallel_threshold" (int): Sets the threshold that
             "n_qubits" must be greater than to enable OpenMP
             parallelization for matrix multiplication during execution of
             an experiment. If parallel circuit or shot execution is enabled
             this will only use unallocated CPU cores up to
             max_parallel_threads. Note that setting this too low can reduce
-            performance (Default: 12).
-
-        * "statevector_hpc_gate_opt" (bool): If set to True this enables
-            a different optimzied gate application routine that can
-            increase performance on systems with a large number of CPU
-            cores. For systems with a small number of cores it enabling
-            can reduce performance (Default: False).
+            performance (Default: 14).
     """
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
@@ -83,7 +84,7 @@ class StatevectorSimulator(AerBackend):
         'coupling_map': None,
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                        'snapshot', 'unitary', 'reset', 'initialize'],
+                        'multiplexer', 'snapshot', 'unitary', 'reset', 'initialize'],
         'gates': [
             {
                 'name': 'TODO',

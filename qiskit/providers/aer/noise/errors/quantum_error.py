@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 Quantum error class for Qiskit Aer noise model
 """
@@ -14,7 +19,7 @@ import copy
 import numpy as np
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators import Kraus, SuperOp
+from qiskit.quantum_info.operators import Kraus, SuperOp, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
@@ -97,7 +102,8 @@ class QuantumError:
 
         # Convert operator subclasses into Kraus list
         if issubclass(noise_ops.__class__, BaseOperator) or hasattr(
-                noise_ops, 'to_channel') or hasattr(noise_ops, 'to_operator'):
+                noise_ops, 'to_quantumchannel') or hasattr(
+                    noise_ops, 'to_operator'):
             noise_ops, other = Kraus(noise_ops)._data
             if other is not None:
                 # A Kraus map with different left and right Kraus matrices
@@ -113,7 +119,7 @@ class QuantumError:
         minimum_qubits = 0
         # Add non-zero probability error circuits to the error
         for circuit, prob in noise_ops:
-            if prob > atol:
+            if prob > 0.0:
                 self._noise_circuits.append(circuit)
                 self._noise_probabilities.append(prob)
                 # Determinine minimum qubit number for error from circuits
@@ -146,6 +152,9 @@ class QuantumError:
                     total_probs))
         if [p for p in self._noise_probabilities if p < 0]:
             raise NoiseError("Probabilities are invalid.")
+        # Rescale probabilities if their sum is ok to avoid
+        # accumulation of rounding errors
+        self._noise_probabilities = list(np.array(self._noise_probabilities) / total_probs)
 
     def __repr__(self):
         """Display QuantumError."""
@@ -161,6 +170,12 @@ class QuantumError:
                 j, pair[0], pair[1])
         return output
 
+    def __eq__(self, other):
+        """Test if two QuantumErrors are equal as SuperOps"""
+        if not isinstance(other, QuantumError):
+            return False
+        return self.to_quantumchannel() == other.to_quantumchannel()
+
     def copy(self):
         """Make a copy of current QuantumError."""
         # pylint: disable=no-value-for-parameter
@@ -170,7 +185,7 @@ class QuantumError:
     @property
     def atol(self):
         """The absolute tolerence parameter for float comparisons."""
-        return QuantumError.ATOL
+        return self.ATOL
 
     @atol.setter
     def atol(self, atol):
@@ -191,7 +206,7 @@ class QuantumError:
     @rtol.setter
     def rtol(self, rtol):
         """Set the relative tolerence parameter for float comparisons."""
-        max_tol = QuantumError.MAX_TOL
+        max_tol = self.MAX_TOL
         if rtol < 0:
             raise NoiseError("Invalid rtol: must be non-negative.")
         if rtol > max_tol:
@@ -230,7 +245,7 @@ class QuantumError:
             return True
         return False
 
-    def to_channel(self):
+    def to_quantumchannel(self):
         """Convet the QuantumError to a SuperOp quantum channel."""
         # Initialize as an empty superoperator of the correct size
         dim = 2**self.number_of_qubits
@@ -240,6 +255,10 @@ class QuantumError:
             component = prob * circuit2superop(circuit, self.number_of_qubits)
             channel = channel + component
         return channel
+
+    def to_instruction(self):
+        """Convet the QuantumError to a circuit Instruction."""
+        return self.to_quantumchannel().to_instruction()
 
     def error_term(self, position):
         """
@@ -329,7 +348,7 @@ class QuantumError:
                     if (can_combine and self._check_instr(last_name)
                             and self._check_instr(name)):
                         combined_circuit[-1] = self._compose_instr(
-                            last_instr, instr)
+                            last_instr, instr, self.number_of_qubits)
                     else:
                         # If they cannot be combined append the operation
                         combined_circuit.append(instr)
@@ -338,7 +357,8 @@ class QuantumError:
                     combined_circuit.append({'name': 'id', 'qubits': [0]})
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
-        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
+        noise_ops = self._combine_kraus(
+            zip(combined_noise_circuits, combined_noise_probabilities))
         return QuantumError(noise_ops)
 
     def power(self, n):
@@ -469,7 +489,8 @@ class QuantumError:
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
         # Now we combine any error circuits containing only Kraus operations
-        noise_ops = self._combine_kraus(zip(combined_noise_circuits, combined_noise_probabilities))
+        noise_ops = self._combine_kraus(
+            zip(combined_noise_circuits, combined_noise_probabilities))
         return QuantumError(noise_ops)
 
     @staticmethod
@@ -550,7 +571,7 @@ class QuantumError:
         return {'name': name, 'qubits': qubits, 'params': params}
 
     @staticmethod
-    def _compose_instr(instr0, instr1):
+    def _compose_instr(instr0, instr1, num_qubits):
         """Helper function for compose a kraus with another instruction."""
         # If one of the instructions is an identity we only need
         # to return the other instruction
@@ -558,21 +579,36 @@ class QuantumError:
             return instr1
         if instr1['name'] == 'id':
             return instr0
-        # Check qubits match
-        qubits0 = instr0['qubits']
-        qubits1 = instr1['qubits']
-        if qubits0 != qubits1:
-            raise NoiseError("Unitary instructions are on different qubits")
         # Convert to ops
         op0 = QuantumError._instr2op(instr0)
         op1 = QuantumError._instr2op(instr1)
         # Check if at least one of the instructions is a channel
-        # and if so convert to Kraus representation.
+        # and if so convert both to SuperOp representation
         if isinstance(op0,
                       (SuperOp, Kraus)) or isinstance(op1, (SuperOp, Kraus)):
             name = 'kraus'
-            params = Kraus(SuperOp(op0).compose(op1)).data
+            op0 = SuperOp(op0)
+            op1 = SuperOp(op1)
         else:
             name = 'unitary'
-            params = [op0.compose(op1).data]
-        return {'name': name, 'qubits': qubits0, 'params': params}
+        # Check qubits for compositions
+        qubits0 = instr0['qubits']
+        qubits1 = instr1['qubits']
+        if qubits0 == qubits1:
+            composed = op0.compose(op1)
+            qubits = qubits0
+        else:
+            # If qubits don't match we compose with total number of qubits
+            # for the error
+            if name == 'kraus':
+                composed = SuperOp(np.eye(4 ** num_qubits))
+            else:
+                composed = Operator(np.eye(2 ** num_qubits))
+            composed.compose(op0, qargs=qubits0).compose(op1, qargs=qubits1)
+            qubits = list(range(num_qubits))
+        # Get instruction params
+        if name == 'kraus':
+            params = Kraus(composed).data
+        else:
+            params = [composed.data]
+        return {'name': name, 'qubits': qubits, 'params': params}

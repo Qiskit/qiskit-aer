@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_unitary_controller_hpp_
@@ -26,8 +33,8 @@ namespace Simulator {
  * 
  * - "initial_unitary" (json complex matrix): Use a custom initial unitary
  *      matrix for the simulation [Default: null].
- * - "chop_threshold" (double): Threshold for truncating small values to
- *      zero in result data [Default: 1e-15]
+ * - "zero_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-10]
  * - "unitary_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 6]
@@ -62,7 +69,7 @@ public:
 
 protected:
 
-  size_t required_memory_mb(const Circuit& circ) const;
+  size_t required_memory_mb(const Circuit& circ) const override;
 
 private:
 

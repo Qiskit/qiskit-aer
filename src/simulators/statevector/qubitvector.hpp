@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -243,6 +250,10 @@ public:
   // is input as a column-major vectorized matrix.
   void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cvector_t> &mats);
 
+  // Apply a stacked set of 2^control_count target_count--qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
+  void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cvector_t &mat);
+
   // Apply a 1-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const uint_t qubit, const cvector_t &mat);
@@ -397,7 +408,7 @@ protected:
   // Config settings
   //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 13;  // Qubit threshold for multithreading when enabled
+  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
@@ -1211,7 +1222,7 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
 
   for (size_t m = 1; m < sorted_mats.size(); m++) {
 
-    cvector_t u_tmp(U.size(), (0., 0.));
+    cvector_t u_tmp(U.size(), 0.);
     const cvector_t& u = sorted_mats[m];
 
     for (size_t i = 0; i < dim; ++i)
@@ -1223,6 +1234,40 @@ void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
   }
 
   apply_matrix(sorted_qubits, U);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
+		const reg_t &target_qubits,
+		const cvector_t &mat) {
+  
+  // General implementation
+  const size_t control_count = control_qubits.size();
+  const size_t target_count  = target_qubits.size();
+  const uint_t DIM = BITS[(target_count+control_count)];
+  const uint_t columns = BITS[target_count];
+  const uint_t blocks = BITS[control_count];
+  // Lambda function for stacked matrix multiplication
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat)->void {
+    auto cache = std::make_unique<complex_t[]>(DIM);
+    for (uint_t i = 0; i < DIM; i++) {
+      const auto ii = inds[i];
+      cache[i] = data_[ii];
+      data_[ii] = 0.;
+    }
+    // update state vector
+    for (uint_t b = 0; b < blocks; b++)
+      for (uint_t i = 0; i < columns; i++)
+        for (uint_t j = 0; j < columns; j++)
+	{
+	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
+	}
+  };
+  
+  // Use the lambda function
+  auto qubits = target_qubits;
+  for (const auto &q : control_qubits) {qubits.push_back(q);}
+  apply_lambda(lambda, qubits, mat);
 }
 
 template <typename data_t>
@@ -1825,7 +1870,7 @@ cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_
   const auto src_dim = BITS[src_qubits.size()];
 
   // generate a matrix for op
-  cvector_t u(dst_vmat_size, (.0, .0));
+  cvector_t u(dst_vmat_size, .0);
   std::vector<bool> filled(dst_dim, false);
 
   if (src_qubits.size() == 1) { //1-qubit operation
@@ -2146,8 +2191,8 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   if (N == 1)
     return probabilities(qubits[0]);
 
-  const uint_t DIM = BITS[N];
-  const uint_t END = BITS[num_qubits_ - N];
+  const int_t DIM = BITS[N];
+  const int_t END = BITS[num_qubits_ - N];
 
   // Error checking
   #ifdef DEBUG
@@ -2168,14 +2213,14 @@ rvector_t QubitVector<data_t>::probabilities(const reg_t &qubits) const {
   {
     rvector_t probs_private(DIM, 0.);
     #pragma omp for
-      for (size_t k = 0; k < END; k++) {
+      for (int_t k = 0; k < END; k++) {
         auto idx = indexes(qubits, qubits_sorted, k);
-        for (size_t m = 0; m < DIM; ++m) {
+        for (int_t m = 0; m < DIM; ++m) {
           probs_private[m] += probability(idx[m]);
         }
       }
     #pragma omp critical
-    for (size_t m = 0; m < DIM; ++m) {
+    for (int_t m = 0; m < DIM; ++m) {
       probs[m] += probs_private[m];
     }
   }

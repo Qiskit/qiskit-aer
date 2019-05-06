@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_reset
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -29,7 +34,7 @@ class QasmResetTests:
         shots = 100
         circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
         targets = ref_reset.reset_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -43,7 +48,7 @@ class QasmResetTests:
         circuits = ref_reset.reset_circuits_nondeterministic(
             final_measure=True)
         targets = ref_reset.reset_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
@@ -54,7 +59,7 @@ class QasmResetTests:
         shots = 2000
         circuits = ref_reset.reset_sampling_optimization()
         targets = ref_reset.reset_counts_sampling_optimization(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)

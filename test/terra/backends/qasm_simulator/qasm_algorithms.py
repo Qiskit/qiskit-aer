@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_algorithms
-from qiskit import compile
+from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -28,8 +33,8 @@ class QasmAlgorithmTests:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -38,8 +43,8 @@ class QasmAlgorithmTests:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -59,12 +64,13 @@ class QasmAlgorithmTestsWaltzBasis:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(
+
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -73,12 +79,12 @@ class QasmAlgorithmTestsWaltzBasis:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -98,9 +104,9 @@ class QasmAlgorithmTestsMinimalBasis:
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -109,8 +115,8 @@ class QasmAlgorithmTestsMinimalBasis:
         shots = 2000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(qobj).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

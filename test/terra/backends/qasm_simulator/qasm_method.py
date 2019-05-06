@@ -1,16 +1,21 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
-from qiskit import compile
+from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
 from qiskit.providers.aer.noise import NoiseModel
@@ -34,7 +39,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -71,7 +76,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -101,7 +106,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -132,7 +137,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -162,7 +167,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -189,7 +194,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -225,7 +230,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -254,7 +259,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -283,7 +288,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(
@@ -313,7 +318,7 @@ class QasmMethodTests:
         shots = 100
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         def get_result():
             return self.SIMULATOR.run(

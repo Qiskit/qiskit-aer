@@ -22,8 +22,7 @@ class QasmQubitsTruncateTests:
     """QasmSimulator Qubits Truncate tests."""
 
     SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {'fusion_verbose': True}
-    
+
     def create_circuit_for_truncate(self):
         qr = QuantumRegister(4)
         cr = ClassicalRegister(4)
@@ -41,7 +40,7 @@ class QasmQubitsTruncateTests:
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[1])
         return circuit
-    
+
     def device_properties(self):
         properties = {"general": [],
                       "last_update_date": "2019-04-22T03:26:08+00:00", 
@@ -148,13 +147,17 @@ class QasmQubitsTruncateTests:
         circuit = self.create_circuit_for_truncate()
         
         qasm_sim = Aer.get_backend('qasm_simulator')
-        
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options["truncate_verbose"] = True
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result = execute(circuit, 
                             qasm_sim, 
                             noise_model=basic_device_noise_model(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            backend_options={"truncate_verbose": True}).result()
+                            backend_options=backend_options).result()
                             
         self.assertTrue('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must work.")
            
@@ -163,13 +166,17 @@ class QasmQubitsTruncateTests:
         circuit = self.create_circuit_for_truncate()
         
         qasm_sim = Aer.get_backend('qasm_simulator')
-        
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options["truncate_verbose"] = True
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result = execute(circuit, 
                             qasm_sim, 
                             noise_model=basic_device_noise_model(self.device_properties()), 
                             shots=100,
                             coupling_map=[[1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]], # 4-qubit device
-                            backend_options={"truncate_verbose": True}).result()
+                            backend_options=backend_options).result()
                             
         self.assertFalse('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must work.")
 
@@ -179,13 +186,18 @@ class QasmQubitsTruncateTests:
         circuit = self.create_circuit_for_truncate()
         
         qasm_sim = Aer.get_backend('qasm_simulator')
-        
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options["truncate_verbose"] = True
+        backend_options["truncate_enable"] = False
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
         result = execute(circuit, 
                             qasm_sim, 
                             noise_model=basic_device_noise_model(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            backend_options={"truncate_verbose": True, "truncate_enable": False}).result()
+                            backend_options=backend_options).result()
                             
         self.assertFalse('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must not work.")
      

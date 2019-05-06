@@ -1,16 +1,21 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford
-from qiskit import compile
+from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -29,9 +34,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -41,9 +45,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -56,9 +59,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -71,9 +73,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -86,9 +87,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -101,9 +101,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -113,9 +112,12 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(
+            circuits,
+            self.SIMULATOR,
+            shots=shots,
+            basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -128,9 +130,12 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(
+            circuits,
+            self.SIMULATOR,
+            shots=shots,
+            basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -140,9 +145,8 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -155,9 +159,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -167,9 +170,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -182,9 +184,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -194,9 +195,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -209,9 +209,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -221,9 +220,8 @@ class QasmCliffordTests:
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -243,13 +241,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -259,13 +256,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -278,13 +274,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -298,13 +293,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -314,10 +308,9 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -330,9 +323,8 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        qobj = compile(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -342,13 +334,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -361,13 +352,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -377,13 +367,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -396,13 +385,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -412,13 +400,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -431,13 +418,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -447,13 +433,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -466,13 +451,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -482,13 +466,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -501,13 +484,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -517,13 +499,12 @@ class QasmCliffordTestsWaltzBasis:
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits,
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -544,10 +525,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -557,10 +537,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -573,10 +552,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -590,10 +568,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -607,10 +584,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -624,10 +600,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -637,10 +612,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -653,10 +627,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -666,10 +639,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -682,10 +654,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -695,10 +666,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -711,10 +681,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -724,10 +693,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -740,10 +708,9 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -753,9 +720,33 @@ class QasmCliffordTestsMinimalBasis:
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
-        qobj = compile(
+        job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test multiplexer-cx-gate
+    # ---------------------------------------------------------------------
+    def test_multiplexer_cx_gate_deterministic_default_basis_gates(self):
+        """Test cx-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_2q_clifford.multiplexer_cx_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_multiplexer_cx_gate_nondeterministic_default_basis_gates(self):
+        """Test cx-gate circuits compiling to backend default basis_gates."""
+        shots = 2000
+        circuits = ref_2q_clifford.multiplexer_cx_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_2q_clifford.multiplexer_cx_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

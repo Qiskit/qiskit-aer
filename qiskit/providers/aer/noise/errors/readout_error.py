@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 Readout error class for Qiskit Aer noise model.
 """
@@ -71,6 +76,15 @@ class ReadoutError:
             output += "\n P(j|{0}) =  {1}".format(j, vec)
         return output
 
+    def __eq__(self, other):
+        """Test if two ReadoutErrors are equal."""
+        if not isinstance(other, ReadoutError):
+            return False
+        if self.number_of_qubits != other.number_of_qubits:
+            return False
+        return np.allclose(self._probabilities, other._probabilities,
+                           atol=self.atol, rtol=self.rtol)
+
     def copy(self):
         """Make a copy of current ReadoutError."""
         # pylint: disable=no-value-for-parameter
@@ -90,34 +104,34 @@ class ReadoutError:
     @property
     def atol(self):
         """The absolute tolerence parameter for float comparisons."""
-        return ReadoutError.ATOL
+        return self.ATOL
 
     @atol.setter
     def atol(self, atol):
         """Set the absolute tolerence parameter for float comparisons."""
-        max_tol = ReadoutError.MAX_TOL
+        max_tol = self.MAX_TOL
         if atol < 0:
             raise NoiseError("Invalid atol: must be non-negative.")
         if atol > max_tol:
             raise NoiseError(
                 "Invalid atol: must be less than {}.".format(max_tol))
-        ReadoutError.ATOL = atol
+        self.ATOL = atol
 
     @property
     def rtol(self):
         """The relative tolerence parameter for float comparisons."""
-        return ReadoutError.RTOL
+        return self.RTOL
 
     @rtol.setter
     def rtol(self, rtol):
         """Set the relative tolerence parameter for float comparisons."""
-        max_tol = ReadoutError.MAX_TOL
+        max_tol = self.MAX_TOL
         if rtol < 0:
             raise NoiseError("Invalid rtol: must be non-negative.")
         if rtol > max_tol:
             raise NoiseError(
                 "Invalid rtol: must be less than {}.".format(max_tol))
-        ReadoutError.RTOL = rtol
+        self.RTOL = rtol
 
     def ideal(self):
         """Return True if current error object is an identity"""

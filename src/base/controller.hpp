@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_base_controller_hpp_
@@ -30,7 +37,7 @@
 #include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
-#include "framework/circuitopt.hpp"
+#include "transpile/circuitopt.hpp"
 #include "noise/noise_model.hpp"
 
 #ifdef _OPENMP
@@ -136,9 +143,9 @@ public:
 
   // Add circuit optimization
   template <typename Type>
-  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
+  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<Transpile::CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
   {
-      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type> > >(std::forward<Type>(opt)));
+      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type>>>(std::forward<Type>(opt)));
   }
 
 protected:
@@ -205,7 +212,7 @@ protected:
   Noise::NoiseModel noise_model_;
 
   // Circuit optimization
-  std::vector<std::shared_ptr<CircuitOptimization>> optimizations_;
+  std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -215,10 +222,10 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  virtual void set_parallelization(const std::vector<Circuit>& circuits);
+  virtual void set_parallelization_experiments(const std::vector<Circuit>& circuits);
 
   // Set parallelization for a circuit
-  virtual void set_parallelization(const Circuit& circuit);
+  virtual void set_parallelization_circuit(const Circuit& circuit);
 
   // Return an estimate of the required memory for a circuit.
   virtual size_t required_memory_mb(const Circuit& circuit) const = 0;
@@ -274,7 +281,7 @@ void Controller::set_config(const json_t &config) {
     max_memory_mb_ = system_memory_mb / 2;
   }
 
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->set_config(config_);
 
   std::string path;
@@ -300,7 +307,7 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
 }
 
-void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
+void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits) {
 
   if (max_parallel_experiments_ <= 0)
     return;
@@ -329,10 +336,14 @@ void Controller::set_parallelization(const std::vector<Circuit>& circuits) {
   }
 }
 
-void Controller::set_parallelization(const Circuit& circ) {
+void Controller::set_parallelization_circuit(const Circuit& circ) {
+
+
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
-  auto circ_memory_mb = required_memory_mb(circ);
+
+  int circ_memory_mb = required_memory_mb(circ);
+
   if (max_memory_mb_ < circ_memory_mb)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
   if (circ_memory_mb == 0)
@@ -412,7 +423,7 @@ bool Controller::validate_memory_requirements(state_t &state,
   if (max_memory_mb_ == 0)
     return true;
 
-  auto required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  int required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
   if(max_memory_mb_ < required_mb) {
     if(throw_except) {
       std::string name = "";
@@ -440,7 +451,7 @@ Circuit Controller::optimize_circuit(const Circuit &input_circ,
   allowed_opset.gates = state.allowed_gates();
   allowed_opset.snapshots = state.allowed_snapshots();
 
-  for (std::shared_ptr<CircuitOptimization> opt: optimizations_)
+  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->optimize_circuit(working_circ, allowed_opset, data);
 
   return working_circ;
@@ -494,7 +505,7 @@ json_t Controller::execute(const json_t &qobj_js) {
       max_parallel_threads_ = 1;
     #endif
     // set parallelization for experiments
-    set_parallelization(qobj.circuits);
+    set_parallelization_experiments(qobj.circuits);
 
   #ifdef _OPENMP
     result["metadata"]["omp_enabled"] = true;
@@ -560,7 +571,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
   try {
     // set parallelization for this circuit
     if (parallel_experiments_ == 1)
-      set_parallelization(circ);
+      set_parallelization_circuit(circ);
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       result["data"] = run_circuit(circ, circ.shots, circ.seed);
@@ -583,7 +594,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       for (int i = 0; i < parallel_shots_; i++) {
         try {
           data[i] = run_circuit(circ, subshots[i], circ.seed + i);
-        } catch (std::runtime_error error) {
+        } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
       }

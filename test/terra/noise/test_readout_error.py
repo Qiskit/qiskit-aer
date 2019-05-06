@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 ReadoutError class tests
 """
@@ -164,6 +169,12 @@ class TestReadoutError(common.QiskitAerTestCase):
         self.assertEqual(error.number_of_qubits, 1)
         self.assertEqual(error.probabilities.tolist(), probs)
         self.assertEqual(error.as_dict(), error_dict)
+
+    def test_equal(self):
+        """Test two readout errors are equal"""
+        error1 = ReadoutError([[0.9, 0.1], [0.5, 0.5]])
+        error2 = ReadoutError(np.array([[0.9, 0.1], [0.5, 0.5]]))
+        self.assertEqual(error1, error2)
 
 
 if __name__ == '__main__':
