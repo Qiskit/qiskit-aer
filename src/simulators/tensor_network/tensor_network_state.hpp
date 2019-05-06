@@ -112,7 +112,7 @@ public:
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
-    virtual uint_t required_memory_mb(uint_t num_qubits,
+    virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) override;
 
   // Load the threshold for applying OpenMP parallelization
@@ -336,7 +336,7 @@ void State::initialize_omp() {
     cout << "initialize_creg not supported yet" <<endl;
   }
 
-uint_t State::required_memory_mb(uint_t num_qubits,
+size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) {
     // for each qubit we have a tensor structure. 
     // Initially, each tensor contains 2 matrices with a single complex double
