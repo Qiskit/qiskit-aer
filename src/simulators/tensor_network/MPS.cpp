@@ -76,6 +76,30 @@ void MPS::initialize(const MPS &other){
     }     
 }
 
+void MPS::apply_h(uint index) 
+{
+    cmatrix_t h_matrix = AER::Utils::Matrix::H;
+    q_reg_[index].apply_matrix(h_matrix);
+}
+
+void MPS::apply_u1(uint index, double lambda)
+{
+  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
+  q_reg_[index].apply_matrix(u1_matrix);
+}
+
+void MPS::apply_u2(uint index, double phi, double lambda)
+{
+  cmatrix_t u2_matrix = AER::Utils::Matrix::u2(phi, lambda);
+  q_reg_[index].apply_matrix(u2_matrix);
+}
+
+void MPS::apply_u3(uint index, double theta, double phi, double lambda)
+{
+  cmatrix_t u3_matrix = AER::Utils::Matrix::u3(theta, phi, lambda);
+  q_reg_[index].apply_matrix(u3_matrix);
+}
+
 void MPS::apply_cnot(uint index_A, uint index_B)
 {
   apply_2_qubit_gate(index_A, index_B, cx);

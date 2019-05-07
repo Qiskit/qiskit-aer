@@ -231,22 +231,7 @@ private:
 		}
 		data_[1] = data_[1] * (-1.0);
 	}
-	void MPS_Tensor::apply_h()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		cvector_t temp;
-		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
-			{
-				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::H*temp;
-				insert_data(a1,a2,temp);
-			}
-	}
+
 	void MPS_Tensor::apply_s()
 	{
 		if (data_.size() != 2)
@@ -283,54 +268,7 @@ private:
 		}
 		data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 	}
-	void MPS_Tensor::apply_u1(double lambda)
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		cvector_t temp;
-		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
-			{
-				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::u1(lambda)*temp;
-				insert_data(a1,a2,temp);
-			}
-	}
-	void MPS_Tensor::apply_u2(double phi, double lambda)
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		cvector_t temp;
-		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
-			{
-				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::u2(phi,lambda)*temp;
-				insert_data(a1,a2,temp);
-			}
-	}
-	void MPS_Tensor::apply_u3(double theta, double phi, double lambda)
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		cvector_t temp;
-		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
-			{
-				temp = get_data(a1,a2);
-				temp = AER::Utils::Matrix::u3(theta, phi,lambda)*temp;
-				insert_data(a1,a2,temp);
-			}
-	}
+
 	void MPS_Tensor::apply_matrix(cmatrix_t &mat)
 	{
 		if (data_.size() != 2)
@@ -360,6 +298,7 @@ private:
 		else
 			swap(data_[1],data_[3]);
 	}
+
 	void MPS_Tensor::apply_swap()
 	{
 		if (data_.size() != 4)

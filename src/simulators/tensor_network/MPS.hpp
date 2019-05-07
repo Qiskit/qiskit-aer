@@ -71,7 +71,7 @@ public:
     // Parameters: uint index of the qubit/qubits.
     // Returns: none.
   //**************************************************************
-  void apply_h(uint index){q_reg_[index].apply_h();}
+  void apply_h(uint index);
   void apply_x(uint index){q_reg_[index].apply_x();}
   void apply_y(uint index){q_reg_[index].apply_y();}
   void apply_z(uint index){q_reg_[index].apply_z();}
@@ -79,9 +79,9 @@ public:
   void apply_sdg(uint index){q_reg_[index].apply_sdg();}
   void apply_t(uint index){q_reg_[index].apply_t();}
   void apply_tdg(uint index){q_reg_[index].apply_tdg();}
-  void U1(uint index, double lambda){q_reg_[index].apply_u1(lambda);}
-  void U2(uint index, double phi, double lambda){q_reg_[index].apply_u2(phi,lambda);}
-  void U3(uint index, double theta, double phi, double lambda){q_reg_[index].apply_u3(theta,phi,lambda);}
+  void apply_u1(uint index, double lambda);
+  void apply_u2(uint index, double phi, double lambda);
+  void apply_u3(uint index, double theta, double phi, double lambda);
   //void old_apply_swap(uint index_A, uint index_B);
   void apply_cnot(uint index_A, uint index_B);
   void apply_swap(uint index_A, uint index_B);

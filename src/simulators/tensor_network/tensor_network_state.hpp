@@ -161,6 +161,7 @@ protected:
   virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
+  // We assume matrix to be 2x2
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
@@ -490,19 +491,21 @@ void State::apply_gate(const Operations::Op &op) {
 
   switch (it -> second) {
     case Gates::u3:
-      apply_gate_u3(op.qubits[0],
+      qreg_.apply_u3(op.qubits[0],
                     std::real(op.params[0]),
                     std::real(op.params[1]),
                     std::real(op.params[2]));
       break;
     case Gates::u2:
-      apply_gate_u3(op.qubits[0],
-                    M_PI / 2.,
+      qreg_.apply_u2(op.qubits[0],
                     std::real(op.params[0]),
                     std::real(op.params[1]));
       break;
     case Gates::u1:
-      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      qreg_.apply_u1(op.qubits[0],
+		     std::real(op.params[0]));
+
+	//      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
       qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
@@ -558,7 +561,7 @@ void State::apply_gate(const Operations::Op &op) {
 }
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (qubits.empty() == false && mat.size() > 0) {
+  if (!qubits.empty() && mat.size() > 0) {
     apply_matrix(qubits, Utils::vectorize_matrix(mat));
   }
 }
