@@ -236,10 +236,11 @@ double MPS::Expectation_value(const reg_t &qubits, const string &matrices) const
 {
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = Density_matrix(qubits);
-
+  string matrices_reverse = matrices;
+  reverse(matrices_reverse.begin(), matrices_reverse.end());
   cmatrix_t M(1), temp;
   M(0,0) = complex_t(1);
-  for(const char& gate : matrices)
+  for(const char& gate : matrices_reverse)
   {
     if (gate == 'X')
 	  temp = AER::Utils::Matrix::X;
