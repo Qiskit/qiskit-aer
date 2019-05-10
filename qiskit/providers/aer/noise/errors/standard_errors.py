@@ -51,7 +51,7 @@ def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
     kraus = Kraus(noise_ops)
     if canonical_kraus:
         # Convert to Choi and back to get canonical Kraus
-        kraus = Kraus(Choi(kraus))  
+        kraus = Kraus(Choi(kraus))
     return QuantumError(kraus, standard_gates=standard_gates)
 
 
@@ -203,7 +203,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     qubits.append(qubit)
                 elif pstr != 'I':
                     raise NoiseError("Invalid Pauli string.")
-            if mat is 1:
+            if mat == 1:
                 prob_identity += prob
             else:
                 circ = make_unitary_instruction(

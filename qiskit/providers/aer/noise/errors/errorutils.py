@@ -114,9 +114,9 @@ def standard_gate_instruction(instruction, ignore_phase=True):
                     standard_gate_unitary(pauli1),
                     standard_gate_unitary(pauli0))
                 if matrix_equal(mat_dagger, pmat, ignore_phase=ignore_phase):
-                    if pauli0 is "id":
+                    if pauli0 == "id":
                         return [{"name": pauli1, "qubits": [qubits[1]]}]
-                    elif pauli1 is "id":
+                    elif pauli1 == "id":
                         return [{"name": pauli0, "qubits": [qubits[0]]}]
                     else:
                         return [{
@@ -296,7 +296,7 @@ def standard_gate_unitary(name):
         return np.array(
             [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]],
             dtype=complex)
-    if name is "cx_10":
+    if name == "cx_10":
         return np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
             dtype=complex)
