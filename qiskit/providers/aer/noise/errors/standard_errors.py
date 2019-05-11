@@ -203,7 +203,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     qubits.append(qubit)
                 elif pstr != 'I':
                     raise NoiseError("Invalid Pauli string.")
-            if mat == 1:
+            if mat is 1:
                 prob_identity += prob
             else:
                 circ = make_unitary_instruction(
