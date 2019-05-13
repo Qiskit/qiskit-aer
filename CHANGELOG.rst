@@ -22,6 +22,7 @@ Added
 
 Changed
 -------
+- Set simulator seed from "seed_simulator" in qobj (#210)
 
 Removed
 -------
