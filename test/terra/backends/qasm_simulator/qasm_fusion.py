@@ -99,7 +99,7 @@ class QasmFusionTests:
         circuit = transpile([circuit],
                             backend=self.SIMULATOR,
                             basis_gates=noise_model.basis_gates)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
 
         backend_options = self.BACKEND_OPTS.copy()
         backend_options['fusion_enable'] = True
@@ -128,7 +128,7 @@ class QasmFusionTests:
         circuit = self.create_statevector_circuit()
 
         shots = 100
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
 
         backend_options = self.BACKEND_OPTS.copy()
         backend_options['fusion_enable'] = True
@@ -197,7 +197,7 @@ class QasmFusionTests:
         """Test Fusion enable/disable option"""
         shots = 100
         circuit = self.create_statevector_circuit()
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=0)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
 
         backend_options = self.BACKEND_OPTS.copy()
         backend_options['fusion_enable'] = True
@@ -319,7 +319,7 @@ class QasmFusionTests:
 
         circuit.measure(qr, cr)
 
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed=1)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
 
         backend_options = self.BACKEND_OPTS.copy()
         backend_options['fusion_enable'] = True

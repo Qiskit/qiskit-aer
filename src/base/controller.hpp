@@ -622,7 +622,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
     // Pass through circuit header and add metadata
     result["header"] = circ.header;
     result["shots"] = circ.shots;
-    result["seed"] = circ.seed;
+    result["seed_simulator"] = circ.seed;
     // Move any metadata from the subclass run_circuit data
     // to the experiment resultmetadata field
     if (JSON::check_key("metadata", result["data"])) {
