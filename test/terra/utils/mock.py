@@ -253,6 +253,6 @@ def new_fake_qobj():
                 QasmQobjInstruction(name='barrier', qubits=[1])
             ],
             header=QobjExperimentHeader(),
-            config=QasmQobjExperimentConfig(seed=123456)
+            config=QasmQobjExperimentConfig(seed_simulator=123456)
         )]
     )

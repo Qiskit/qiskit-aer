@@ -72,7 +72,7 @@ class AerBackend(BaseBackend):
 
         Raises:
             FileNotFoundError if backend executable is not available.
-            QiskitError: if there is no name in the configuration
+            AerError: if there is no name in the configuration
         """
         super().__init__(configuration, provider=provider)
         self._controller = controller
