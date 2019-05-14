@@ -23,14 +23,6 @@ using namespace std;
 
 cmatrix_t diag(rvector_t S, uint m, uint n);
 
-//template <class T>
-//void cswap(T &a, T &b)
-//{
-//	T temp = a;
-//	a = b;
-//	b = temp;
-//}
-
 cmatrix_t diag(rvector_t S, uint m, uint n)
 {
 	cmatrix_t Res = cmatrix_t(m, n);
@@ -68,6 +60,7 @@ vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 	return Res;
 }
 
+// added cut-off at the end
 void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
 	int m = A.GetRows(), n = A.GetColumns(), size = max(m,n);
@@ -324,34 +317,34 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 					V(j,i)   = complex_t( w * cs - x * sn, 0.0 );
 				}
 
-//				bool tiny_w = false;
+				bool tiny_w = false;
 //				if (DEBUG) cout.precision(32);
 //				if (DEBUG) cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
-//				if (abs(h)  < 1e-13 && abs(f) < 1e-13 && large_f != 0) {
-//				  tiny_w = true;
-//				}
-//				else {
-//				  w = sqrt( h * h + f * f );
-//				}
+				if (abs(h)  < 1e-13 && abs(f) < 1e-13 && large_f != 0) {
+				  tiny_w = true;
+				}
+				else {
+				  w = sqrt( h * h + f * f );
+				}
 				w = sqrt( h * h + f * f );
-//				if (w == 0 && !tiny_w) {
-//				  cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
-//				  cout << " w = " << w << endl;
-//				  assert(false);
-//				  throw("ERROR");
-//				}
+				if (w == 0 && !tiny_w) {
+				  cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
+				  cout << " w = " << w << endl;
+				  assert(false);
+				  throw("ERROR");
+				}
 
 				S[i-1] = w;
-//				if (tiny_w) {
-//				  if (DEBUG) cout << "tiny" <<endl;
-//				  cs = 1.0; // because h==0, so w = f
-//				  sn = 0;
-//				} else {
-//				  cs = f / w;
-//				  sn = h / w;
-//				}
-				cs = f / w;
-				sn = h / w;
+				if (tiny_w) {
+				  if (DEBUG) cout << "tiny" <<endl;
+				  cs = 1.0; // because h==0, so w = f
+				  sn = 0;
+				} else {
+				  cs = f / w;
+				  sn = h / w;
+				}
+//				cs = f / w;
+//				sn = h / w;
 
 				f = cs * g + sn * y;
 				x = cs * y - sn * g;
@@ -494,9 +487,76 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 //		assert(false);
 	}
 
+	// Cut-off small elements
+	double cut_off_threshold = 1e-15;
+	if(DEBUG) cout << "Cut-off small elements" << endl;
+	for (i=0; i < nrows; i++)
+		for (j=0; j < nrows; j++)
+		{
+			if(std::abs(U(i, j).real()) < cut_off_threshold)
+				U(i, j).real(0);
+			if(std::abs(U(i, j).imag()) < cut_off_threshold)
+				U(i, j).imag(0);
+		}
+	for (i=0; i < S.size(); i++)
+	{
+		if(S[i] < cut_off_threshold)
+			S[i] = 0;
+	}
+	for (i=0; i < ncols; i++)
+		for (j=0; j < ncols; j++)
+		{
+			if(std::abs(V(i, j).real()) < cut_off_threshold)
+				V(i, j).real(0);
+			if(std::abs(V(i, j).imag()) < cut_off_threshold)
+				V(i, j).imag(0);
+		}
+
 	// Transpose again if m < n
 	if(transposed)
 		swap(U,V);
 }
+
+
+void csvd_warp (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
+{
+	cmatrix_t coppied_A = A;
+	int times = 0;
+	try
+	{
+		if(DEBUG) cout << "1st try" << endl;
+		csvd(A, U, S, V);
+		if(DEBUG) cout << "1st try success" << endl;
+	}
+	catch(...)
+	{
+		if(DEBUG) cout << "1st try fail" << endl;
+
+		while(true)
+		{
+			times++;
+			coppied_A = coppied_A*mul_factor;
+			A = coppied_A;
+			try
+			{
+				if(DEBUG) cout << "another try" << endl;
+				csvd(A, U, S, V);
+				break;
+			}
+			catch(...)
+			{
+				if(DEBUG) cout << "another try fail" << endl;
+			}
+			if(times == 15)
+				assert(false);
+		}
+//		assert(false);
+	}
+
+	//Divide by mul_factor every singular value after we multiplied matrix a
+	for(int k = 0; k < S.size(); k++)
+			S[k] /= pow(mul_factor, times);
+}
+
 
 

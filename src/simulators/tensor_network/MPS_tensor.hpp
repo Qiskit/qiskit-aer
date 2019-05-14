@@ -410,7 +410,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 		cout << "C =" << endl << C ;
 	}
 
-	csvd(C,U,S,V);
+	csvd_warp(C,U,S,V);
 
 	if(SHOW_SVD) {
 		cout << "U = " << endl << U ;
