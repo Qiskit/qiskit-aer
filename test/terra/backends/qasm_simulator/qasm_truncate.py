@@ -10,7 +10,7 @@ QasmSimulator Integration Tests
 """
 import json
 from test.benchmark.tools import quantum_volume_circuit
-from qiskit import execute, compile, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
+from qiskit import execute, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import noise
 from qiskit.providers.aer.noise import NoiseModel

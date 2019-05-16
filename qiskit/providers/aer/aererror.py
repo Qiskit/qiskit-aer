@@ -14,7 +14,7 @@
 Exception for errors raised by Qiskit Aer simulators backends.
 """
 
-from qiskit.qiskiterror import QiskitError
+from qiskit import QiskitError
 
 
 class AerError(QiskitError):

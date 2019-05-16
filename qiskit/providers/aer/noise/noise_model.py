@@ -632,7 +632,7 @@ class NoiseModel:
             error_type = error['type']
 
             # Add QuantumError
-            if error_type is 'qerror':
+            if error_type == 'qerror':
                 noise_ops = tuple(
                     zip(error['instructions'], error['probabilities']))
                 instruction_names = error['operations']
@@ -663,7 +663,7 @@ class NoiseModel:
                         qerror, instruction_names, warnings=False)
 
             # Add ReadoutError
-            elif error_type is 'roerror':
+            elif error_type == 'roerror':
                 probabilities = error['probabilities']
                 all_gate_qubits = error.get('gate_qubits', None)
                 roerror = ReadoutError(probabilities)
