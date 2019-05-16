@@ -518,7 +518,7 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 }
 
 
-void csvd_warp (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
+void csvd_wrap (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
 	cmatrix_t coppied_A = A;
 	int times = 0;

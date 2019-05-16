@@ -29,6 +29,6 @@ vector<cmatrix_t> reshape_U_after_SVD(cmatrix_t U);
 rvector_t reshape_S_after_SVD(rvector_t S);
 vector<cmatrix_t> reshape_V_after_SVD(cmatrix_t V);
 void csvd(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
-void csvd_warp(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
+void csvd_wrap(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 
 #endif /* SVD_HPP_ */

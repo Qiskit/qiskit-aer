@@ -19,7 +19,7 @@
 #include <exception>
 
 #include "SVD.hpp"
-#include "CSVD.cpp"
+#include "SVD.cpp"
 #include "framework/matrix.hpp"
 #include "framework/utils.hpp"
 
@@ -410,7 +410,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 		cout << "C =" << endl << C ;
 	}
 
-	csvd_warp(C,U,S,V);
+	csvd_wrap(C,U,S,V);
 
 	if(SHOW_SVD) {
 		cout << "U = " << endl << U ;
