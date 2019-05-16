@@ -102,12 +102,20 @@ void MPS::apply_u3(uint index, double theta, double phi, double lambda)
 
 void MPS::apply_cnot(uint index_A, uint index_B)
 {
-  apply_2_qubit_gate(index_A, index_B, cx);
+  apply_2_qubit_gate(index_A, index_B, cx, cmatrix_t(1));
 }
 
 void MPS::apply_cz(uint index_A, uint index_B)
 {
-  apply_2_qubit_gate(index_A, index_B, cz);
+  apply_2_qubit_gate(index_A, index_B, cz, cmatrix_t(1));
+}
+void MPS::apply_cu(uint index_A, uint index_B, cmatrix_t mat)
+{
+  apply_2_qubit_gate(index_A, index_B, cu, mat);
+}
+void MPS::apply_su4(uint index_A, uint index_B, cmatrix_t mat)
+{
+  apply_2_qubit_gate(index_A, index_B, su4, mat);
 }
 
 void MPS::apply_swap(uint index_A, uint index_B)
@@ -154,20 +162,20 @@ void MPS::apply_swap(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type)
+void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatrix_t mat)
 {
 	//for MPS
 	if(index_A + 1 < index_B)
 	{
 		apply_swap(index_A,index_B-1);
-		apply_2_qubit_gate(index_B-1,index_B, gate_type);
+		apply_2_qubit_gate(index_B-1,index_B, gate_type, mat);
 		apply_swap(index_A,index_B-1);
 	  return;
 	}
 	else if(index_A > index_B + 1)
 	{
 		apply_swap(index_A-1,index_B);
-		apply_2_qubit_gate(index_A,index_A-1, gate_type);
+		apply_2_qubit_gate(index_A,index_A-1, gate_type, mat);
 		apply_swap(index_A-1,index_B);
 		return;
 	}
@@ -197,7 +205,20 @@ void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type)
 	case cz:
 	  temp.apply_cz();
 	  break;
-        default:
+	case cu:
+	{
+	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
+	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
+			  	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
+	  cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
+	  temp.apply_matrix(cu);
+	  break;
+	}
+	case su4:
+	  temp.apply_matrix(mat);
+	  break;
+
+    default:
 	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
 	}
 	if(DEBUG) temp.print();

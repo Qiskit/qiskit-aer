@@ -328,9 +328,9 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				}
 				w = sqrt( h * h + f * f );
 				if (w == 0 && !tiny_w) {
-				  cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
-				  cout << " w = " << w << endl;
-				  assert(false);
+					if (DEBUG) cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
+				  if (DEBUG) cout << " w = " << w << endl;
+//				  assert(false);
 				  throw("ERROR");
 				}
 
@@ -467,50 +467,53 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	for (i=0; i < nrows; i++)
 	    for (j=0; j < ncols; j++)
 	      if (std::real(std::abs(temp_A(i, j) - temp(i, j))) > threshold)
+	      {
 	    	  equal = false;
+	      	  cout << "diff = " << (std::real(std::abs(temp_A(i, j) - temp(i, j)))) << endl;
+	      }
 	if( ! equal )
 	{
-		temp_A.SetOutputStyle(Matrix);
-		diag_S.SetOutputStyle(Matrix);
+//		temp_A.SetOutputStyle(Matrix);
+//		diag_S.SetOutputStyle(Matrix);
 		cout << "error: wrong SVD calc: A != USV*" << endl;
-		cout << "A = " << endl;
-		cout << temp_A;
+//		cout << "A = " << endl;
+//		cout << temp_A;
 //		cout << "U = " << endl;
 //		cout << U;
 //		cout << "S = " << endl;
 //		cout << diag_S;
 //		cout << "V* = " << endl;
 //		cout << AER::Utils::dagger(V);
-		cout << "USV* = " << endl;
+//		cout << "USV* = " << endl;
 //		cout << U*diag_S*(AER::Utils::dagger(V));
-		cout << temp;
+//		cout << temp;
 //		assert(false);
 	}
 
 	// Cut-off small elements
-	double cut_off_threshold = 1e-15;
-	if(DEBUG) cout << "Cut-off small elements" << endl;
-	for (i=0; i < nrows; i++)
-		for (j=0; j < nrows; j++)
-		{
-			if(std::abs(U(i, j).real()) < cut_off_threshold)
-				U(i, j).real(0);
-			if(std::abs(U(i, j).imag()) < cut_off_threshold)
-				U(i, j).imag(0);
-		}
-	for (i=0; i < S.size(); i++)
-	{
-		if(S[i] < cut_off_threshold)
-			S[i] = 0;
-	}
-	for (i=0; i < ncols; i++)
-		for (j=0; j < ncols; j++)
-		{
-			if(std::abs(V(i, j).real()) < cut_off_threshold)
-				V(i, j).real(0);
-			if(std::abs(V(i, j).imag()) < cut_off_threshold)
-				V(i, j).imag(0);
-		}
+//	double cut_off_threshold = 1e-15;
+//	if(DEBUG) cout << "Cut-off small elements" << endl;
+//	for (i=0; i < nrows; i++)
+//		for (j=0; j < nrows; j++)
+//		{
+//			if(std::abs(U(i, j).real()) < cut_off_threshold)
+//				U(i, j).real(0);
+//			if(std::abs(U(i, j).imag()) < cut_off_threshold)
+//				U(i, j).imag(0);
+//		}
+//	for (i=0; i < S.size(); i++)
+//	{
+//		if(S[i] < cut_off_threshold)
+//			S[i] = 0;
+//	}
+//	for (i=0; i < ncols; i++)
+//		for (j=0; j < ncols; j++)
+//		{
+//			if(std::abs(V(i, j).real()) < cut_off_threshold)
+//				V(i, j).real(0);
+//			if(std::abs(V(i, j).imag()) < cut_off_threshold)
+//				V(i, j).imag(0);
+//		}
 
 	// Transpose again if m < n
 	if(transposed)

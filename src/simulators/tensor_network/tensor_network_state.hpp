@@ -285,7 +285,10 @@ const stringmap_t<Gates> State::gateset_({
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
   {"cz", Gates::cz},     // Controlled-Z gate
+  {"cu", Gates::cu},     // Controlled-U gate
+  {"cu1", Gates::cu},     // Controlled-U gate
   {"swap", Gates::swap}, // SWAP gate
+  {"su4", Gates::su4},   // general su4 matrix gate
   // Three-qubit gates
   // TODO: No Toffoli support?
   //{"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
