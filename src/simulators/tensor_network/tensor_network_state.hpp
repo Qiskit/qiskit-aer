@@ -443,7 +443,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
   //expval += coeff * std::real(BaseState::qreg_.inner_product());
-  data.add_singleshot_snapshot("expectation_value_pauli", op.string_params[0], expval);
+  data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
   
 //qreg_.revert(false);
     // Revert to original state
@@ -468,7 +468,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
     //expval += coeff * std::real(BaseState::qreg_.inner_product());
-      data.add_singleshot_snapshot("expectation_value_matrix", op.string_params[0], expval);
+      data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
     }
   }
   }
