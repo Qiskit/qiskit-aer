@@ -443,7 +443,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
   //expval += coeff * std::real(BaseState::qreg_.inner_product());
-  data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
+  data.add_singleshot_snapshot("expectation_value_pauli", op.string_params[0], expval);
   
 //qreg_.revert(false);
     // Revert to original state
@@ -457,17 +457,21 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
 
-  //  complex_t expval(0., 0.);
-  double expval = 0;
-  // Look for gate name in gateset
+  for (const auto &param : op.params_expval_matrix) {
+    complex_t coeff = param.first;
 
-  auto it = gateset_.find(op.name);
-  if (it == gateset_.end())
-    throw std::invalid_argument(
-      "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
-  
-  //expval = qreg_.Expectation_value_internal(op);
-}
+    for (const auto &pair: param.second) {
+      const reg_t &qubits = pair.first;
+      const cmatrix_t &mat = pair.second;
+      double expval = 0;
+      expval = qreg_.Expectation_value(qubits, mat);
+    // Pauli expectation values should always be real for a valid state
+    // so we truncate the imaginary part
+    //expval += coeff * std::real(BaseState::qreg_.inner_product());
+      data.add_singleshot_snapshot("expectation_value_matrix", op.string_params[0], expval);
+    }
+  }
+  }
 
   void State::snapshot_state(const Operations::Op &op,
 		      OutputData &data,
@@ -670,9 +674,10 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
     } break;
-      /*    case Snapshots::expval_matrix: {
+    case Snapshots::expval_matrix: {
       snapshot_matrix_expval(op, data, false);
-    }  break;
+    } break;
+      /*
     case Snapshots::probs_var: {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, true);
