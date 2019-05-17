@@ -794,7 +794,7 @@ size_t State::required_memory_mb(uint_t num_qubits,
   // Plus 2*CHSimulator::scalar_t which has 3 4 byte words
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;
   double mb_per_state = 5e-5*num_qubits;//
-  size_t required_mb = std::ceil(mb_per_state*required_chi);
+  size_t required_mb = std::llrint(std::ceil(mb_per_state*required_chi));
   return required_mb;
   //Todo: Update this function to account for snapshots
 }
