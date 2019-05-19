@@ -140,8 +140,8 @@ def approximate_noise_model(model, *,
     For further information see `NoiseTransformer.named_operators`.
     """
 
-    #We need to iterate over all the errors in the noise model.
-    #No nice interface for this now, easiest way is to mimic as_dict
+    # We need to iterate over all the errors in the noise model.
+    # No nice interface for this now, easiest way is to mimic as_dict
 
     error_list = []
     # Add default quantum errors
@@ -294,8 +294,8 @@ class NoiseTransformer:
                 a list of kraus operators that define the output channel
                 (which is "close" to the input chanel given by [E0, ..., Em])
 
-            This channel can be thought of as choosing the operator Ai in probability pi and applying
-            this operator to the quantum state.
+            This channel can be thought of as choosing the operator Ai in probability pi and
+            applying this operator to the quantum state.
 
             More generally, if the input is a list of tuples (not neccesarily of the same size):
             [(A1, B1, ...), (A2, B2, ...), ... (An, Bn, ...)] then the output is
@@ -345,15 +345,17 @@ class NoiseTransformer:
 
     def generate_channel_matrices(self, transform_channel_operators_list):
         """
-        Generates a list of 4x4 symbolic matrices describing the channel defined from the given operators
+        Generates a list of 4x4 symbolic matrices describing the channel defined from the given
+        operators
 
         Args:
-             transform_channel_operators_list: a list of tuples of matrices which represent Kraus operators
+             transform_channel_operators_list: A list of tuples of matrices which represent Kraus
+             operators.
              The identity matrix is assumed to be the first element in the list
              [(I, ), (A1, B1, ...), (A2, B2, ...), ..., (An, Bn, ...)]
-             e.g. for a Pauli channel, the matrices are
+             e.g. for a Pauli channel, the matrices are:
              [(I,), (X,), (Y,), (Z,)]
-             for relaxation they are
+             for relaxation they are:
              [(I, ), (|0><0|, |0><1|), |1><0|, |1><1|)]
 
         We consider this input to symbolically represent a channel in the following manner:
@@ -366,8 +368,10 @@ class NoiseTransformer:
 
         Output:
             A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
-            The matrix x1*D1 + ... + xn*Dn + E represents the operation of the channel C on the density operator
-            we find it easier to work with this representation of C when performing the combinatorial optimization
+            The matrix x1*D1 + ... + xn*Dn + E represents the operation of the channel C
+            on the density operator.
+            we find it easier to work with this representation of C when performing the
+            combinatorial optimization.
         """
 
         symbols_string = " ".join([

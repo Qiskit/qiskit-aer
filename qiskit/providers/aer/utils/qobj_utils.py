@@ -116,7 +116,7 @@ def measure_instr(qubits, memory, registers=None):
     if len(qubits) != len(registers):
         raise ValueError("Number of qubits does not match number of registers")
     return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory,
-                           register=registers)
+                               register=registers)
 
 
 def reset_instr(qubits):
