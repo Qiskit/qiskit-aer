@@ -239,7 +239,7 @@ protected:
   // Parameters for parallelization management in configuration
   int max_parallel_experiments_;
   int max_parallel_shots_;
-  int max_memory_mb_;
+  size_t max_memory_mb_;
 
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
@@ -423,7 +423,7 @@ bool Controller::validate_memory_requirements(state_t &state,
   if (max_memory_mb_ == 0)
     return true;
 
-  int required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
+  size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops);
   if(max_memory_mb_ < required_mb) {
     if(throw_except) {
       std::string name = "";
