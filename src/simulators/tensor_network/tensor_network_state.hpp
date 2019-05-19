@@ -285,7 +285,10 @@ const stringmap_t<Gates> State::gateset_({
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
   {"cz", Gates::cz},     // Controlled-Z gate
+  {"cu", Gates::cu},     // Controlled-U gate
+  {"cu1", Gates::cu},     // Controlled-U gate
   {"swap", Gates::swap}, // SWAP gate
+  {"su4", Gates::su4},   // general su4 matrix gate
   // Three-qubit gates
   // TODO: No Toffoli support?
   //{"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
@@ -508,17 +511,12 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::u1:
       qreg_.apply_u1(op.qubits[0],
 		     std::real(op.params[0]));
-
-	//      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
       qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::id:
     {
-    	// just until we
-    	TensorNetworkState::MPS_Tensor result = qreg_.state_vec(0,qreg_.num_qubits()-1);
-//    	result.print(true);
         break;
     }
     case Gates::x:
