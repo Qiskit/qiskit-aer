@@ -18,6 +18,7 @@
 
 #define mul_factor 1e2
 #define tiny_factor 1e30
+#define NUM_SVD_TRIES 15
 
 using namespace std;
 
@@ -61,7 +62,7 @@ vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 }
 
 // added cut-off at the end
-void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
+status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
 	int m = A.GetRows(), n = A.GetColumns(), size = max(m,n);
 	rvector_t b(size,0.0), c(size,0.0), t(size,0.0);
@@ -328,10 +329,11 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				}
 				w = sqrt( h * h + f * f );
 				if (w == 0 && !tiny_w) {
-				  cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
-				  cout << " w = " << w << endl;
-				  assert(false);
-				  throw("ERROR");
+				  if (DEBUG) {
+				    cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
+				    cout << " w = " << w << endl;
+				  }
+				  return FAILURE;
 				}
 
 				S[i-1] = w;
@@ -515,42 +517,32 @@ void csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	// Transpose again if m < n
 	if(transposed)
 		swap(U,V);
+
+	return SUCCESS;
 }
 
 
-void csvd_wrap (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
+void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
 	cmatrix_t coppied_A = A;
 	int times = 0;
-	try
-	{
-		if(DEBUG) cout << "1st try" << endl;
-		csvd(A, U, S, V);
-		if(DEBUG) cout << "1st try success" << endl;
-	}
-	catch(...)
-	{
-		if(DEBUG) cout << "1st try fail" << endl;
+	if(DEBUG) cout << "1st try" << endl;
+	status current_status = csvd(A, U, S, V);
+	if (current_status == SUCCESS)
+	  return;
+	if(DEBUG) cout << "1st try success" << endl;
 
-		while(true)
-		{
-			times++;
-			coppied_A = coppied_A*mul_factor;
-			A = coppied_A;
-			try
-			{
-				if(DEBUG) cout << "another try" << endl;
-				csvd(A, U, S, V);
-				break;
-			}
-			catch(...)
-			{
-				if(DEBUG) cout << "another try fail" << endl;
-			}
-			if(times == 15)
-				assert(false);
-		}
-//		assert(false);
+	while(times <= NUM_SVD_TRIES && current_status == FAILURE)
+	  {
+	    times++;
+	    coppied_A = coppied_A*mul_factor;
+	    A = coppied_A;
+	    if(DEBUG) cout << "another try" << endl;
+	    current_status = csvd(A, U, S, V);
+	  }
+	if(times == NUM_SVD_TRIES) {
+	  cout << "SVD failed" <<endl;
+	  assert(false);
 	}
 
 	//Divide by mul_factor every singular value after we multiplied matrix a
