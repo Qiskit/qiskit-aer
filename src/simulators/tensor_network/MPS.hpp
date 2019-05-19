@@ -20,7 +20,7 @@ namespace TensorNetworkState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, swap // two qubit
+  cx, cz, cu, swap, su4 // two qubit
 };
 
 class MPS{
@@ -86,7 +86,9 @@ public:
   void apply_cnot(uint index_A, uint index_B);
   void apply_swap(uint index_A, uint index_B);
   void apply_cz(uint index_A, uint index_B);
-  void apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type);
+  void apply_cu(uint index_A, uint index_B, cmatrix_t mat);
+  void apply_su4(uint index_A, uint index_B, cmatrix_t mat);
+  void apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatrix_t mat);
 
 
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 

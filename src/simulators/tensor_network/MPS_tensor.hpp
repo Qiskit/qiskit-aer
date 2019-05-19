@@ -271,9 +271,9 @@ private:
 
 	void MPS_Tensor::apply_matrix(cmatrix_t &mat)
 	{
-		if (data_.size() != 2)
+		if (data_.size() != mat.GetRows())
 		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+			cout << "ERROR: The matrix and tensor doesn't represent the same number of qubits" << '\n';
 			assert(false);
 		}
 
@@ -317,7 +317,8 @@ private:
 		}
 		data_[3] = data_[3] * (-1.0);
 	}
-  
+
+
 
 /* TL;DR - Functions mul/div Gamma by Lambda are used to keep the MPS in the
  * canonical form.
