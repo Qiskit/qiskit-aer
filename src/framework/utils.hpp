@@ -111,8 +111,8 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 
 // Matrix concatenate and split.
-template <class T> matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint axis);
-template <class T> void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint axis);
+template <class T> matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis);
+template <class T> void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis);
 
 //Elementwise matrix multiplication
 template <class T> matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B);
@@ -708,7 +708,7 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
 }
 
 template <class T>
-matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint axis) {
+matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
   // Works out a concatenate of two matrices A, B
   // To add B as new rows axis == 0 (vertical)
   // To add A as new cols axis == 1 (horizontal)
@@ -742,7 +742,7 @@ matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint axis) {
 }
 
 template <class T>
-void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint axis) {
+void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
   // Works out a split of matrix A to two matrices B, C, with the same dimensions
   // To split by rows, axis == 0 (Only when A rows divide by 2)
   // To split by cols, axis == 1 (Only when A cols divide by 2)
