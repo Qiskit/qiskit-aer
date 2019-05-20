@@ -800,7 +800,7 @@ matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B) {
 template <class T>
 T sum(const matrix<T> &A){
   T temp = 0;
-  for(uint i = 0; i < A.size(); i++)
+  for(uint_t i = 0; i < A.size(); i++)
 	  temp += A[i];
   return temp;
 }
