@@ -11,6 +11,7 @@
 #include <complex>
 #include <vector>
 #include "framework/utils.hpp"
+#include "framework/types.hpp"
 
 #define DEBUG false
 #define SHOW_SVD false

@@ -32,7 +32,7 @@ using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
 using cmatrix_t = matrix<complex_t>;
 
-uint num_of_SV(rvector_t S, double threshold);
+uint_t num_of_SV(rvector_t S, double threshold);
 
 //**************************************************************
 // function name: num_of_SV
@@ -44,10 +44,10 @@ uint num_of_SV(rvector_t S, double threshold);
 // Returns: number of elements in S that are greater than 0
 //			(actually greater than threshold)
 //**************************************************************
-uint num_of_SV(rvector_t S, double threshold)
+uint_t num_of_SV(rvector_t S, double threshold)
 {
-	uint sum = 0;
-	for(uint i = 0; i < S.size(); ++i)
+	uint_t sum = 0;
+	for(uint_t i = 0; i < S.size(); ++i)
 	{
 	  if(std::norm(S[i]) > threshold)
 		sum++;
@@ -83,19 +83,19 @@ public:
     return *this;
   }
   void print(bool statevector = false);
-  cvector_t get_data(uint a1, uint a2) const;
-  cmatrix_t get_data(uint i) const {
+  cvector_t get_data(uint_t a1, uint_t a2) const;
+  cmatrix_t get_data(uint_t i) const {
     return data_[i];
   }
-  void insert_data(uint a1, uint a2, cvector_t data);
+  void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
   //**************************************************************
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
   // Parameters: none.
-  // Returns: uint of the dimension of the physical index of the tensor.
+  // Returns: uint_t of the dimension of the physical index of the tensor.
   //**************************************************************
-  uint get_dim() const {
+  uint_t get_dim() const {
     return data_.size();
   }
   void apply_x();
@@ -147,7 +147,7 @@ private:
     //**************************************************************
     void MPS_Tensor::print(bool statevector) {
       if(statevector == false)
-	for(uint i = 0; i < data_.size(); i++)
+	for(uint_t i = 0; i < data_.size(); i++)
 	  {
 	    data_[i].SetOutputStyle(Matrix);
 	    std::cout << "i = " << i << endl;
@@ -156,7 +156,7 @@ private:
       else
 	{
 	  std::cout << "[";
-	  for(uint i = 0; i < data_.size(); i++)
+	  for(uint_t i = 0; i < data_.size(); i++)
 	    {
 	      std::cout << data_[i](0,0)<< " ";
 	    }
@@ -167,15 +167,15 @@ private:
   //**************************************************************
     // function name: get_data
     // Description: Get the data in some axis of the MPS_Tensor
-    // 1.	Parameters: uint a1, uint a2 - indexes of data in matrix
+    // 1.	Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
     // 		Returns: cvector_t of data in (a1,a2) in all matrices
-    // 2.	Parameters: uint i - index of a matrix in the MPS_Tensor
+    // 2.	Parameters: uint_t i - index of a matrix in the MPS_Tensor
     // 		Returns: cmatrix_t of the data
     //**************************************************************
-    cvector_t MPS_Tensor::get_data(uint a1, uint a2) const
+    cvector_t MPS_Tensor::get_data(uint_t a1, uint_t a2) const
    {
     cvector_t Res;
-    for(uint i = 0; i < data_.size(); i++)
+    for(uint_t i = 0; i < data_.size(); i++)
       Res.push_back(data_[i](a1,a2));
     return Res;
    }
@@ -183,13 +183,13 @@ private:
   //**************************************************************
     // function name: insert_data
     // Description: Insert data to some axis of the MPS_Tensor
-    // Parameters: uint a1, uint a2 - indexes of data in matrix
+    // Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
     // Parameters: cvector_t data - data to insert.
     // Returns: void.
     //**************************************************************
-    void MPS_Tensor::insert_data(uint a1, uint a2, cvector_t data)
+    void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
   {
-    for(uint i = 0; i < data_.size(); i++)
+    for(uint_t i = 0; i < data_.size(); i++)
       data_[i](a1,a2) = data[i];
   }
 
@@ -278,8 +278,8 @@ private:
 		}
 
 		cvector_t temp;
-		for (uint a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint a2 = 0; a2 < data_[0].GetColumns(); a2++)
+		for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)
+			for (uint_t a2 = 0; a2 < data_[0].GetColumns(); a2++)
 			{
 				temp = get_data(a1,a2);
 				temp = mat * temp;
@@ -354,11 +354,11 @@ void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			 bool mul    /* or div */)
 {
 	if (Lambda == rvector_t {1.0}) return;
-	uint rows = data_[0].GetRows(), cols = data_[0].GetColumns();
-	for(uint i = 0; i < data_.size(); i++)
-		for(uint a1 = 0; a1 < rows; a1++)
-		  for(uint a2 = 0; a2 < cols; a2++) {
-		    uint factor = right ? a2 : a1;
+	uint_t rows = data_[0].GetRows(), cols = data_[0].GetColumns();
+	for(uint_t i = 0; i < data_.size(); i++)
+		for(uint_t a1 = 0; a1 < rows; a1++)
+		  for(uint_t a2 = 0; a2 < cols; a2++) {
+		    uint_t factor = right ? a2 : a1;
 		    if (mul) {
 		      data_[i](a1,a2) *= Lambda[factor];
 		    } else{
@@ -380,8 +380,8 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &l
 	MPS_Tensor Res;
 	MPS_Tensor new_left = left_gamma;
 	new_left.mul_Gamma_by_right_Lambda(lambda);
-	for(uint i = 0; i < new_left.data_.size(); i++)
-		for(uint j = 0; j < right_gamma.data_.size(); j++)
+	for(uint_t i = 0; i < new_left.data_.size(); i++)
+		for(uint_t j = 0; j < right_gamma.data_.size(); j++)
 			Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
 	return Res;
 }
@@ -416,13 +416,13 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 	if(SHOW_SVD) {
 		cout << "U = " << endl << U ;
 		cout << "S = " << endl;
-		for (uint i = 0; i != S.size(); ++i)
+		for (uint_t i = 0; i != S.size(); ++i)
 		    cout << S[i] << " , ";
 		cout << endl;
 		cout << "V = " << endl << V ;
 	}
 
-	uint SV_num = num_of_SV(S, 1e-16);
+	uint_t SV_num = num_of_SV(S, 1e-16);
 	U.resize(U.GetRows(),SV_num);
 	S.resize(SV_num);
 	V.resize(V.GetRows(),SV_num);

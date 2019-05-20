@@ -22,8 +22,8 @@
 namespace AER {
 namespace TensorNetworkState {
 
-uint reverse_bits(uint num, uint len);
-vector<uint> calc_new_indexes(vector<uint> indexes);
+uint_t reverse_bits(uint_t num, uint_t len);
+vector<uint_t> calc_new_indexes(vector<uint_t> indexes);
 
 template <class T>
 void myswap(T &a, T &b){
@@ -32,10 +32,10 @@ void myswap(T &a, T &b){
 	b = temp;
 }
 
-uint reverse_bits(uint num, uint len) {
-  uint sum = 0;
+uint_t reverse_bits(uint_t num, uint_t len) {
+  uint_t sum = 0;
   //  std::assert(num < pow(2, len));
-  for (uint i=0; i<len; ++i) {
+  for (uint_t i=0; i<len; ++i) {
     if ((num & 0x1) == 1) {
       sum += pow(2, len-1-i);
     }
@@ -47,23 +47,23 @@ uint reverse_bits(uint num, uint len) {
   return sum;
 }
 
-vector<uint> calc_new_indexes(vector<uint> indexes)
+vector<uint_t> calc_new_indexes(vector<uint_t> indexes)
 {
-	uint n = indexes.size();
-	uint avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
-	vector<uint> new_indexes( n );
+	uint_t n = indexes.size();
+	uint_t avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
+	vector<uint_t> new_indexes( n );
 	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
 	return new_indexes;
 }
 
-void MPS::initialize(uint num_qubits)
+void MPS::initialize(uint_t num_qubits)
 {
   num_qubits_ = num_qubits;
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
-  for(uint i = 0; i < num_qubits_; i++)
+  for(uint_t i = 0; i < num_qubits_; i++)
       q_reg_.push_back(MPS_Tensor(alpha,beta));
-  for(uint i = 0; i < num_qubits_-1; i++)
+  for(uint_t i = 0; i < num_qubits_-1; i++)
       lambda_reg_.push_back(rvector_t {1.0}) ;
 
 }
@@ -76,58 +76,58 @@ void MPS::initialize(const MPS &other){
     }     
 }
 
-void MPS::apply_h(uint index) 
+void MPS::apply_h(uint_t index) 
 {
     cmatrix_t h_matrix = AER::Utils::Matrix::H;
     q_reg_[index].apply_matrix(h_matrix);
 }
 
-void MPS::apply_u1(uint index, double lambda)
+void MPS::apply_u1(uint_t index, double lambda)
 {
   cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
   q_reg_[index].apply_matrix(u1_matrix);
 }
 
-void MPS::apply_u2(uint index, double phi, double lambda)
+void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
   cmatrix_t u2_matrix = AER::Utils::Matrix::u2(phi, lambda);
   q_reg_[index].apply_matrix(u2_matrix);
 }
 
-void MPS::apply_u3(uint index, double theta, double phi, double lambda)
+void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
   cmatrix_t u3_matrix = AER::Utils::Matrix::u3(theta, phi, lambda);
   q_reg_[index].apply_matrix(u3_matrix);
 }
 
-void MPS::apply_cnot(uint index_A, uint index_B)
+void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(index_A, index_B, cx, cmatrix_t(1));
 }
 
-void MPS::apply_cz(uint index_A, uint index_B)
+void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(index_A, index_B, cz, cmatrix_t(1));
 }
-void MPS::apply_cu(uint index_A, uint index_B, cmatrix_t mat)
+void MPS::apply_cu(uint_t index_A, uint_t index_B, cmatrix_t mat)
 {
   apply_2_qubit_gate(index_A, index_B, cu, mat);
 }
-void MPS::apply_su4(uint index_A, uint index_B, cmatrix_t mat)
+void MPS::apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat)
 {
   apply_2_qubit_gate(index_A, index_B, su4, mat);
 }
 
-void MPS::apply_swap(uint index_A, uint index_B)
+void MPS::apply_swap(uint_t index_A, uint_t index_B)
 {
 	if(index_A > index_B)
 	{
-		myswap<uint>(index_A, index_B);
+		myswap<uint_t>(index_A, index_B);
 	}
 	//for MPS
 	if(index_A + 1 < index_B)
 	{
-		uint i;
+		uint_t i;
 		for(i = index_A; i < index_B; i++)
 		{
 			apply_swap(i,i+1);
@@ -162,7 +162,7 @@ void MPS::apply_swap(uint index_A, uint index_B)
 	q_reg_[index_B] = right_gamma;
 }
 
-void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatrix_t mat)
+void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat)
 {
 	//for MPS
 	if(index_A + 1 < index_B)
@@ -183,7 +183,7 @@ void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatri
 	bool swapped = false;
 	if(index_A >  index_B)
 	{
-		myswap<uint>(index_A, index_B);
+		myswap<uint_t>(index_A, index_B);
 		swapped = true;
 	}
 
@@ -232,33 +232,33 @@ void MPS::apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatri
 	q_reg_[index_B] = right_gamma;
 }
 
-void MPS::change_position(uint src, uint dst)
+void MPS::change_position(uint_t src, uint_t dst)
 {
 	if(src == dst)
 		return;
 	else if(src < dst)
-		for(uint i = src; i < dst; i++)
+		for(uint_t i = src; i < dst; i++)
 			apply_swap(i,i+1);
 	else
-		for(uint i = src; i > dst; i--)
+		for(uint_t i = src; i > dst; i--)
 			apply_swap(i,i-1);
 }
 
 cmatrix_t MPS::Density_matrix(const reg_t &qubits) const
 {
   // ***** Assuming ascending sorted qubits register *****
-  vector<uint> internalIndexes;
+  vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
-    internalIndexes.push_back((uint)index);
+    internalIndexes.push_back((uint_t)index);
   //  std::sort(internalIndexes.begin(), internalIndexes.end()); -- Assuming sorted
 
   MPS temp_TN;
   temp_TN.initialize(*this);
-  vector<uint> new_indexes = calc_new_indexes(internalIndexes);
-  uint avg = new_indexes[new_indexes.size()/2];
-  vector<uint>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
+  vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
+  uint_t avg = new_indexes[new_indexes.size()/2];
+  vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
-  for(uint i = mid; i < internalIndexes.size(); i++)
+  for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
     temp_TN.change_position(internalIndexes[i],new_indexes[i]);
   }
@@ -267,10 +267,10 @@ cmatrix_t MPS::Density_matrix(const reg_t &qubits) const
     temp_TN.change_position(internalIndexes[i],new_indexes[i]);
   }
   MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
-  uint size = psi.get_dim();
+  uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
-  for(uint i = 0; i < size; i++) {
-    for(uint j = 0; j < size; j++) {
+  for(uint_t i = 0; i < size; i++) {
+    for(uint_t j = 0; j < size; j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conj(psi.get_data(j))) );
     }
   }
@@ -299,8 +299,8 @@ double MPS::Expectation_value(const reg_t &qubits, const string &matrices) const
   }
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
-  for (uint i = 0; i < M.GetRows(); i++)
-    for (uint j = 0; j < M.GetRows(); j++)
+  for (uint_t i = 0; i < M.GetRows(); i++)
+    for (uint_t j = 0; j < M.GetRows(); j++)
       res += M(i,j)*rho(j,i);
   return real(res);
 }
@@ -312,15 +312,15 @@ double MPS::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
-  for (uint i = 0; i < M.GetRows(); i++)
-    for (uint j = 0; j < M.GetRows(); j++)
+  for (uint_t i = 0; i < M.GetRows(); i++)
+    for (uint_t j = 0; j < M.GetRows(); j++)
       res += M(i,j)*rho(j,i);
   return real(res);
 }
 
 void MPS::printTN()
 {
-	for(uint i=0; i<num_qubits_; i++)
+	for(uint_t i=0; i<num_qubits_; i++)
 	{
 	  cout << "Gamma [" << i << "] :" << endl;
 	  q_reg_[i].print();
@@ -333,7 +333,7 @@ void MPS::printTN()
 	cout << endl;
 }
 
-MPS_Tensor MPS::state_vec(uint first_index, uint last_index) const
+MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
 {
 	MPS_Tensor temp = q_reg_[first_index];
 	rvector_t left_lambda, right_lambda;
@@ -341,18 +341,30 @@ MPS_Tensor MPS::state_vec(uint first_index, uint last_index) const
 	right_lambda = (last_index != num_qubits_-1) ? lambda_reg_[last_index] : rvector_t {1.0};
 
 	temp.mul_Gamma_by_left_Lambda(left_lambda);
-	for(uint i = first_index+1; i < last_index+1; i++)
+	for(uint_t i = first_index+1; i < last_index+1; i++)
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
 	return temp;
 }
+
 void MPS::full_state_vector(cvector_t& statevector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
-  uint length = pow(2, num_qubits_);
-  for (uint i = 0; i < length; i++) {
+  uint_t length = pow(2, num_qubits_);
+  for (uint_t i = 0; i < length; i++) {
     statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
+  }
+}
+
+void MPS::probabilities_vector(rvector_t& probvector) const
+{
+  MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
+  uint_t length = pow(2, num_qubits_);
+  complex_t data = 0;
+  for (uint_t i = 0; i < length; i++) {
+    data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
+    probvector.push_back(std::norm(data));
   }
 }
 

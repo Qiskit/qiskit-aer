@@ -42,7 +42,7 @@ public:
   State() = default;
 
   State(uint_t num_qubits) {
-    qreg_.initialize((uint)num_qubits);
+    qreg_.initialize((uint_t)num_qubits);
   }
   virtual ~State() = default;
 
@@ -107,7 +107,7 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const tensorstate_t &state) override;
 
-  virtual void initialize_creg(uint num_memory, uint num_registers);
+  virtual void initialize_creg(uint_t num_memory, uint_t num_registers);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -157,7 +157,7 @@ protected:
   void apply_reset(const reg_t &qubits, RngEngine &rng);
 
   // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
+  // If the input is not in allowed_snapshots an exception will be raised.
   virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
@@ -317,7 +317,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
 
 void State::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
-  qreg_.initialize((uint)num_qubits);
+  qreg_.initialize((uint_t)num_qubits);
 }
 
   void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
@@ -326,7 +326,7 @@ void State::initialize_qreg(uint_t num_qubits) {
     throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();
-  //qreg_.initialize((uint)num_qubits, state);
+  //qreg_.initialize((uint_t)num_qubits, state);
   cout << "initialize with state not supported yet" <<endl;
 }
 
@@ -336,7 +336,7 @@ void State::initialize_omp() {
     qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in qubitvector
 }
 
-  void State::initialize_creg(uint num_memory, uint num_registers) {
+  void State::initialize_creg(uint_t num_memory, uint_t num_registers) {
     cout << "initialize_creg not supported yet" <<endl;
   }
 
@@ -484,6 +484,15 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     qreg_.full_state_vector(statevector);
     data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
   }
+
+  void State::snapshot_probabilities(const Operations::Op &op,
+                              OutputData &data,
+                              bool variance) {
+    TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+    rvector_t prob_vector;
+    qreg_.probabilities_vector(prob_vector);
+    data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
+  }
 //=========================================================================
 // Implementation: Matrix multiplication
 //=========================================================================
@@ -597,7 +606,7 @@ void State::apply_measure(const reg_t &qubits,
                           RngEngine &rng) {
 
 //	  double threshold = 1e-10;
-//	  vector<uint> indexes {0,2};
+//	  vector<uint_t> indexes {0,2};
 //	  string matrices = "XYZ" ;
 //	  cout << "Expectation value on XYZ qubits 0-2 = " << endl ;
 //	  cout << qreg_.Expectation_value(indexes,matrices) << endl;
@@ -665,16 +674,20 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
     case Snapshots::cregister:
       BaseState::snapshot_creg_register(op, data);
       break;
-    case Snapshots::probs: {
+      */
+  case Snapshots::probs: {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, false);
-      } break;*/
+      break;
+    } 
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
-    } break;
+      break;
+    }
     case Snapshots::expval_matrix: {
       snapshot_matrix_expval(op, data, false);
-    } break;
+      break;
+    }
       /*
     case Snapshots::probs_var: {
       // get probs as hexadecimal
@@ -691,8 +704,6 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       throw std::invalid_argument("TensorNetworkState::State::invalid snapshot instruction \'" +
                                   op.name + "\'."); 
   }
-
-
 }
 
 void State::apply_reset(const reg_t &qubits,

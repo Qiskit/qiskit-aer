@@ -25,7 +25,7 @@ enum Gates {
 
 class MPS{
 public:
-  MPS(uint num_qubits = 0):
+  MPS(uint_t num_qubits = 0):
     num_qubits_(num_qubits) {}
   ~MPS() {}
 
@@ -35,13 +35,13 @@ public:
   // 1.	Parameters: none. Initializes all qubits to |0>.
   // 2.	Parameters: const MPS &other - Copy another tensor network
   // TODO:
-  // 3.	Parameters: uint num_qubits, const cvector_t &vecState -
+  // 3.	Parameters: uint_t num_qubits, const cvector_t &vecState -
   //  				Initializes qubits with a statevector.
   // Returns: none.
   //**************************************************************
-  virtual void initialize(uint num_qubits=0);
+  virtual void initialize(uint_t num_qubits=0);
   void initialize(const MPS &other);
-  //void initialize(uint num_qubits, const cvector_t &vecState);
+  //void initialize(uint_t num_qubits, const cvector_t &vecState);
 
   //**************************************************************
   // function name: num_qubits
@@ -49,7 +49,7 @@ public:
     // Parameters: none.
     // Returns: none.
   //**************************************************************
-  uint num_qubits() const{return num_qubits_;}
+  uint_t num_qubits() const{return num_qubits_;}
   
   //**************************************************************
     // function name: set_num_qubits
@@ -57,7 +57,7 @@ public:
     // Parameters: size_t num_qubits - number of qubits to set.
     // Returns: none.
   //**************************************************************
-  void set_num_qubits(uint num_qubits) {
+  void set_num_qubits(uint_t num_qubits) {
     num_qubits_ = num_qubits;
   }
   bool empty() const {
@@ -68,27 +68,27 @@ public:
   //**************************************************************
     // function name: apply_x,y,z,...
     // Description: Apply a gate on some qubits by their indexes.
-    // Parameters: uint index of the qubit/qubits.
+    // Parameters: uint_t index of the qubit/qubits.
     // Returns: none.
   //**************************************************************
-  void apply_h(uint index);
-  void apply_x(uint index){q_reg_[index].apply_x();}
-  void apply_y(uint index){q_reg_[index].apply_y();}
-  void apply_z(uint index){q_reg_[index].apply_z();}
-  void apply_s(uint index){q_reg_[index].apply_s();}
-  void apply_sdg(uint index){q_reg_[index].apply_sdg();}
-  void apply_t(uint index){q_reg_[index].apply_t();}
-  void apply_tdg(uint index){q_reg_[index].apply_tdg();}
-  void apply_u1(uint index, double lambda);
-  void apply_u2(uint index, double phi, double lambda);
-  void apply_u3(uint index, double theta, double phi, double lambda);
-  //void old_apply_swap(uint index_A, uint index_B);
-  void apply_cnot(uint index_A, uint index_B);
-  void apply_swap(uint index_A, uint index_B);
-  void apply_cz(uint index_A, uint index_B);
-  void apply_cu(uint index_A, uint index_B, cmatrix_t mat);
-  void apply_su4(uint index_A, uint index_B, cmatrix_t mat);
-  void apply_2_qubit_gate(uint index_A, uint index_B, Gates gate_type, cmatrix_t mat);
+  void apply_h(uint_t index);
+  void apply_x(uint_t index){q_reg_[index].apply_x();}
+  void apply_y(uint_t index){q_reg_[index].apply_y();}
+  void apply_z(uint_t index){q_reg_[index].apply_z();}
+  void apply_s(uint_t index){q_reg_[index].apply_s();}
+  void apply_sdg(uint_t index){q_reg_[index].apply_sdg();}
+  void apply_t(uint_t index){q_reg_[index].apply_t();}
+  void apply_tdg(uint_t index){q_reg_[index].apply_tdg();}
+  void apply_u1(uint_t index, double lambda);
+  void apply_u2(uint_t index, double phi, double lambda);
+  void apply_u3(uint_t index, double theta, double phi, double lambda);
+  //void old_apply_swap(uint_t index_A, uint_t index_B);
+  void apply_cnot(uint_t index_A, uint_t index_B);
+  void apply_swap(uint_t index_A, uint_t index_B);
+  void apply_cz(uint_t index_A, uint_t index_B);
+  void apply_cu(uint_t index_A, uint_t index_B, cmatrix_t mat);
+  void apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
 
 
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
@@ -102,15 +102,15 @@ public:
     //   for expectation value calculations. Similar to swap, but doesn't
     //   move qubit in dst back to src, therefore being used only on the temp TN
     //   in Expectation_value function.
-    // Parameters: uint src, source of the qubit.
-    //			 uint dst, destination of the qubit.
+    // Parameters: uint_t src, source of the qubit.
+    //			 uint_t dst, destination of the qubit.
     // Returns: none.
   //************************************************************************
-  void change_position(uint src, uint dst);
+  void change_position(uint_t src, uint_t dst);
 
   cmatrix_t Density_matrix(const reg_t &qubits) const;
 
-  //  double Expectation_value(const vector<uint> &indexes, const string &matrices);
+  //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
   double Expectation_value(const reg_t &qubits, const string &matrices) const;
   double Expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
@@ -133,8 +133,9 @@ public:
   // Parameters: none.
   // Returns: none.
   //**********************************************************************
-  MPS_Tensor state_vec(uint first_index, uint last_index) const;
+  MPS_Tensor state_vec(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
+  void probabilities_vector(rvector_t& probvector) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -151,10 +152,11 @@ public:
   {
 	  rvector_t res;
 	  MPS_Tensor temp =  state_vec(0, num_qubits() - 1);
-	  for(uint i = 0; i < temp.get_dim(); i++)
+	  for(uint_t i = 0; i < temp.get_dim(); i++)
 		  res[i] = std::norm(temp.get_data(i)(0,0));
 	  return res;
   }
+
   void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
            cout << " store_measure not supported yet" <<endl;}
   double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
@@ -166,7 +168,7 @@ public:
     
 
 protected:
-    uint num_qubits_;
+    uint_t num_qubits_;
   /*
     The data structure of a MPS- a vector of Gamma tensors and a vector of Lambda vectors.
   */
