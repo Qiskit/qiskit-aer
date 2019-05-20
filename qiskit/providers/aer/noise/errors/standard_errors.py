@@ -51,7 +51,7 @@ def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
     kraus = Kraus(noise_ops)
     if canonical_kraus:
         # Convert to Choi and back to get canonical Kraus
-        kraus = Kraus(Choi(kraus))  
+        kraus = Kraus(Choi(kraus))
     return QuantumError(kraus, standard_gates=standard_gates)
 
 

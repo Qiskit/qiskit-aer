@@ -86,7 +86,8 @@ void Qobj::load_qobj_from_json(const json_t &js) {
   JSON::get_value(config, "config", js);
   JSON::get_value(header, "header", js);
   // Check for fixed seed
-  JSON::get_value(seed, "seed", config);
+  JSON::get_value(seed, "seed", config); // DEPRECIATED: Remove in 0.3.
+  JSON::get_value(seed, "seed_simulator", config);
   // Get type
   JSON::get_value(type, "type", js);
   if (type != "QASM") {
