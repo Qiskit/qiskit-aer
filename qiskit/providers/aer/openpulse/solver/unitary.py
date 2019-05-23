@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 # pylint: disable = unused-variable, no-name-in-module
 
 import numpy as np
@@ -34,14 +41,13 @@ def unitary_evolution(exp, global_data, ode_options):
     tlist = exp['tlist']
     snapshots = []
     shots = global_data['shots']
+    # Init memory
     memory = np.zeros((shots, global_data['memory_slots']),
                       dtype=np.uint8)
-    
+    # Init register
     register = np.zeros(global_data['n_registers'], dtype=np.uint8)
+
     num_channels = len(exp['channels'])
-    chan_pulse_idx = np.zeros(num_channels, dtype=np.uint32)
-    chan_fc_idx = np.zeros(num_channels, dtype=np.uint32)
-    fc_values = np.ones(num_channels, dtype=complex)
 
     ODE = ode(cy_rhs_func)
     ODE.set_integrator('zvode',
@@ -69,6 +75,8 @@ def unitary_evolution(exp, global_data, ode_options):
             raise Exception(err_msg)
 
         # Do any snapshots here
+
+        # set channel and frame change indexing arrays
     
     
     # Do final measurement at end
@@ -79,8 +87,8 @@ def unitary_evolution(exp, global_data, ode_options):
     write_shots_memory(memory, memory_slots, probs, rand_vals)
     int_mem = memory.dot(np.power(2.0,
                          np.arange(memory.shape[1]-1,-1,-1))).astype(int)
-    hex_mem = [hex(val) for val in int_mem]
     if global_data['memory']:
+        hex_mem = [hex(val) for val in int_mem]
         return hex_mem
     # Get hex counts dict
     unique = np.unique(int_mem, return_counts = True)
