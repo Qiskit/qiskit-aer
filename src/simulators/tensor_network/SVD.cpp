@@ -46,7 +46,7 @@ cmatrix_t reshape_before_SVD(vector<cmatrix_t> data)
 //	A2 A3
 //	if(DEBUG) cout << "started first&second concatenate" << endl;
 	cmatrix_t temp1 = AER::Utils::concatenate(data[0], data[1], 1),
-			  temp2 = AER::Utils::concatenate(data[2], data[3], 1);
+		  temp2 = AER::Utils::concatenate(data[2], data[3], 1);
 //	if(DEBUG) cout << "started third concatenate" << endl;
 	return AER::Utils::concatenate(temp1, temp2 ,0) ;
 }
@@ -70,7 +70,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	rvector_t b(size,0.0), c(size,0.0), t(size,0.0);
 	double cs = 0.0, eps = 0.0, f = 0.0 ,g = 0.0, h = 0.0, sn = 0.0 , w = 0.0, x = 0.0, y = 0.0, z = 0.0;
 	double eta = 1e-10, tol = 1.5e-34;
-	// using int and not uint_t because uint_t caused bugs in loops with conditoin of >= 0
+	// using int and not uint_t because uint_t caused bugs in loops with condition of >= 0
 	int i = 0, j = 0, k = 0, k1 = 0, l = 0, l1 = 0;
 	complex_t q = 0;
 	// Transpose when m < n

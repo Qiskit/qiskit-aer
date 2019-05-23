@@ -139,32 +139,38 @@ public:
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
-           cout << "set_omp_threads not supported yet" <<endl;}
+    if (threads > 0)
+    omp_threads_ = threads;
+  }
   void set_omp_threshold(int omp_qubit_threshold) {
-           cout << "set_omp_threadshold not supported yet" <<endl;}
+    if (omp_qubit_threshold > 0)
+      omp_threshold_ = omp_qubit_threshold; 
+  }          
   void set_json_chop_threshold(double json_chop_threshold) {
-           cout << "set_json_chop_threshold not supported yet" <<endl;}
+    json_chop_threshold_ = json_chop_threshold;
+  }
   void set_sample_measure_index_size(int index_size){
-           cout << "set_sample_measure_index_size not supported yet" <<endl;}
+    sample_measure_index_size_ = index_size;
+  }
   void enable_gate_opt() {
            cout << "enable_gate_opt not supported yet" <<endl;}
+
   rvector_t probabilities(const AER::reg_t &qubits) const
   {
-	  rvector_t res;
-	  MPS_Tensor temp =  state_vec(0, num_qubits() - 1);
-	  for(uint_t i = 0; i < temp.get_dim(); i++)
-		  res[i] = std::norm(temp.get_data(i)(0,0));
-	  return res;
+	  rvector_t probvector;
+	  probabilities_vector(probvector);
+	  return probvector;
   }
 
-  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
-           cout << " store_measure not supported yet" <<endl;}
+  //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
+  //           cout << " store_measure not supported yet" <<endl;}
+
   double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
            cout << "norm not supported yet" <<endl;
            return 0;}
-  std::vector<reg_t> sample_measure(std::vector<double> &rnds) {
-    cout << "sample_measure not supported yet" <<endl;
-    return std::vector<reg_t>(0);}
+
+  //  std::vector<reg_t> sample_measure(std::vector<double> &rnds);
+  reg_t sample_measure(std::vector<double> &rnds);
     
 
 protected:
@@ -174,6 +180,14 @@ protected:
   */
   vector<MPS_Tensor> q_reg_;
   vector<rvector_t> lambda_reg_;
+  //-----------------------------------------------------------------------
+  // Config settings
+  //----------------------------------------------------------------------- 
+  uint_t omp_threads_ = 1;     // Disable multithreading by default
+  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
+  int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
+  double json_chop_threshold_ = 0;  // Threshold for choping small values
+                                    // in JSON serialization
 };
 
 
