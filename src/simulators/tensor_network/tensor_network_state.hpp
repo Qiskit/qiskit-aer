@@ -382,11 +382,9 @@ void State::set_config(const json_t &config) {
 void State::apply_ops(const std::vector<Operations::Op> &ops,
                       OutputData &data,
                       RngEngine &rng) {
-  cout << "in apply ops" <<endl;
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
-  cout << op.type <<endl;
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
@@ -394,7 +392,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         apply_reset(op.qubits, rng);
         break;
       case Operations::OpType::measure:
-	cout <<"in switch for apply_measure" <<endl;
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case Operations::OpType::bfunc:
@@ -504,7 +501,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 void State::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
-  if(DEBUG) cout << "gate name = "<< op.name<<endl;
   if (it == gateset_.end())
     throw std::invalid_argument(
       "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
@@ -618,7 +614,6 @@ void State::apply_measure(const reg_t &qubits,
 //	  result = qreg_.state_vec(0,qreg_.num_qubits()-1);
 //	  result.print(true);
 
-  cout << "in apply measure" <<endl;
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits, rng);
   // Implement measurement update
@@ -635,7 +630,13 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
-  cout << "in sample measure" <<endl;
+  std::vector<reg_t> all_samples;
+  all_samples.reserve(shots);
+
+  if (qubits[0] > 0 || qubits[qubits.size()] < pow(2, qreg_.num_qubits())) {
+    cout << "sample_measure currently only supports the full set of qubits" << endl;
+    return all_samples;
+  }
   
   // Generate flat register for storing
   std::vector<double> rnds;
@@ -645,10 +646,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 
   reg_t allbit_samples = qreg_.sample_measure(rnds);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  
-  all_samples.reserve(shots);
   for (int_t val : allbit_samples) {
     reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
     reg_t sample;
@@ -725,13 +722,14 @@ std::pair<uint_t, double>
 State::sample_measure_with_prob(const reg_t &qubits,
                                 RngEngine &rng) {
   rvector_t probs = measure_probs(qubits);
-  cout << "MERAV: probs =" ;
-  for (uint i=0; i<qubits.size(); i++)
-    cout << probs[i] << " ";
-  cout << endl;
+  if (DEBUG) {
+    for (uint i=0; i<qubits.size(); i++) {
+      cout << probs[i] << " ";
+    }
+      cout << endl;
+  }
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);
-  cout <<"outcome = " << outcome << "probs[outcome] = " << probs[outcome] <<endl;
   return std::make_pair(outcome, probs[outcome]);
 }
 
