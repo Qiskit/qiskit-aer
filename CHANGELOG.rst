@@ -22,7 +22,6 @@ Added
 
 Changed
 -------
-- Set simulator seed from "seed_simulator" in qobj (#210)
 
 Removed
 -------
@@ -30,6 +29,24 @@ Removed
 Fixed
 -----
 
+
+`0.2.1`_ - 2019-05-20
+=====================
+
+Added
+-----
+
+Changed
+-------
+- Set simulator seed from "seed_simulator" in qobj (#210)
+
+Removed
+-------
+
+Fixed
+-----
+- Fix memory error handling for huge circuits (#216)
+- Fix equality expressions in Python code (#208)
 
 `0.2.0`_ - 2019-05-02
 =====================
@@ -112,7 +129,8 @@ Added
 - Standalone Simulators support
 
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-aer/compare/0.2.0...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-aer/compare/0.2.1...HEAD
+.. _0.2.1: https://github.com/Qiskit/qiskit-aer/compare/0.2.0...0.2.1
 .. _0.2.0: https://github.com/Qiskit/qiskit-aer/compare/0.1.1...0.2.0
 .. _0.1.1: https://github.com/Qiskit/qiskit-aer/compare/0.1.0...0.1.1
 .. _0.1.0: https://github.com/Qiskit/qiskit-aer/compare/0.0.0...0.1.0
