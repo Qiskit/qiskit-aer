@@ -338,7 +338,6 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
 
 void Controller::set_parallelization_circuit(const Circuit& circ) {
 
-
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
 
@@ -481,7 +480,6 @@ json_t Controller::execute(const json_t &qobj_js) {
   try {
     qobj.load_qobj_from_json(qobj_js);
   }
-
   catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
     result["success"] = false;

@@ -723,7 +723,7 @@ State::sample_measure_with_prob(const reg_t &qubits,
                                 RngEngine &rng) {
   rvector_t probs = measure_probs(qubits);
   if (DEBUG) {
-    for (uint i=0; i<qubits.size(); i++) {
+    for (uint_t i=0; i<qubits.size(); i++) {
       cout << probs[i] << " ";
     }
       cout << endl;
