@@ -18,7 +18,6 @@ import copy
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
@@ -29,7 +28,7 @@ class ReadoutError:
     """
     Readout error class for Qiskit Aer noise model.
     """
-
+    # pylint: disable=invalid-name
     ATOL = ATOL_DEFAULT
     RTOL = RTOL_DEFAULT
     MAX_TOL = 1e-4
@@ -226,7 +225,7 @@ class ReadoutError:
     @staticmethod
     def _check_probabilities(probabilities, threshold):
         """Check probabilities are valid."""
-        if len(probabilities) == 0:
+        if not probabilities:
             raise NoiseError("Input probabilities: empty.")
         num_outcomes = len(probabilities[0])
         num_qubits = int(np.log2(num_outcomes))
@@ -243,7 +242,7 @@ class ReadoutError:
             if abs(sum(arr) - 1) > threshold:
                 raise NoiseError("Invalid probabilities: sum({})= {} "
                                  "is not 1.".format(vec, sum(arr)))
-            if len(arr[arr < 0]) > 0:
+            if arr[arr < 0]:
                 raise NoiseError(
                     "Invalid probabilities: {} "
                     "contains a negative probability.".format(vec))

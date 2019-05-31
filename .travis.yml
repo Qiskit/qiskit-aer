@@ -99,8 +99,8 @@ jobs:
       name: Python Style and Linter
       <<: *stage_linux
       script:
-        - pycodestyle --max-line-length=100 qiskit/providers/aer test/terra test/benchmark
-        - pylint -j 2 -rn qiskit qiskit/providers/aer test/terra test/benchmark
+        - pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
+        - pylint -j 2 -rn qiskit qiskit/providers/aer
 
     # "test" stage
     ###########################################################################

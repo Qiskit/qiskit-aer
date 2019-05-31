@@ -10,8 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Helper tools for getting Terra addon version information
+"""
+
 import os
-from pathlib import Path
 
 ROOT_DIR = os.path.dirname(__file__)
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:

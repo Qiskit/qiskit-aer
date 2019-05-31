@@ -59,7 +59,8 @@ def approximate_quantum_error(error, *,
 
     Raises:
         NoiseError: if number of qubits is not supported or approximation
-        failsed.
+                    failsed.
+        RuntimeError: If there's no information about the noise type
 
     Additional Information
     ----------------------
@@ -228,8 +229,7 @@ class NoiseTransformer:
                 'q': [{'name': 'reset', 'qubits': [0]},
                       {'name': 'x', 'qubits': [0]}]  # reset to |1>
             },
-            'clifford': dict([(j, single_qubit_clifford_instructions(j))
-                              for j in range(1, 24)])
+            'clifford': [(j, single_qubit_clifford_instructions(j)) for j in range(1, 24)]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True
@@ -257,7 +257,7 @@ class NoiseTransformer:
         Args:
             operator (operator): operator representation. Can be a noise
                 circuit or a matrix or a list of matrices.
-        Output:
+        Returns:
             List: The operator, converted to noise circuit representation.
         """
         if isinstance(operator, numpy.ndarray):
@@ -277,32 +277,34 @@ class NoiseTransformer:
                                    noise_kraus_operators):
         """
         Args:
-            noise_kraus_operators: a list of matrices (Kraus operators) for the input channel
-            transform_channel_operators: a list of matrices or tuples of matrices
-            representing Kraus operators that can construct the output channel
-            e.g. [X,Y,Z] represent the Pauli channel
-            and [(|0><0|, |0><1|), |1><0|, |1><1|)] represents the relaxation channel
+            noise_kraus_operators (List): a list of matrices (Kraus operators) for the input channel
+            transform_channel_operators (List): a list of matrices or tuples of matrices
+                representing Kraus operators that can construct the output channel
+                e.g. [X,Y,Z] represent the Pauli channel
+                and [(|0><0|, |0><1|), |1><0|, |1><1|)] represents the relaxation channel
 
-        Output:
-            A list of amplitudes that define the output channel.
-            In the case the input is a list [A1, A2, ..., An] of transform matrices
-            and [E0, E1, ..., Em] of noise kraus operators, the output is
-            a list [p1, p2, ..., pn] of probabilities such that:
-            1) p_i >= 0
-            2) p1 + ... + pn <= 1
-            3) [sqrt(p1)A1, sqrt(p2)A2, ..., sqrt(pn)An, sqrt(1-(p1 + ... + pn))I] is
-                a list of kraus operators that define the output channel
-                (which is "close" to the input chanel given by [E0, ..., Em])
+        Returns:
+            List: A list of amplitudes that define the output channel.
+                In the case the input is a list [A1, A2, ..., An] of transform matrices
+                and [E0, E1, ..., Em] of noise kraus operators, the output is
+                a list [p1, p2, ..., pn] of probabilities such that:
+                1) p_i >= 0
+                2) p1 + ... + pn <= 1
+                3) [sqrt(p1)A1, sqrt(p2)A2, ..., sqrt(pn)An, sqrt(1-(p1 + ... + pn))I] is
+                    a list of kraus operators that define the output channel
+                    (which is "close" to the input chanel given by [E0, ..., Em])
 
-            This channel can be thought of as choosing the operator Ai in probability pi and
-            applying this operator to the quantum state.
+                This channel can be thought of as choosing the operator Ai in probability pi and
+                applying this operator to the quantum state.
 
-            More generally, if the input is a list of tuples (not neccesarily of the same size):
-            [(A1, B1, ...), (A2, B2, ...), ... (An, Bn, ...)] then the output is
-            still a list [p1, p2, ..., pn] and now the output channel is defined by the operators
-            [sqrt(p1)A1, sqrt(p1)B1, ..., sqrt(pn)An, sqrt(pn)Bn, ..., sqrt(1-(p1 + ... + pn))I]
+                More generally, if the input is a list of tuples (not neccesarily of the same size):
+                [(A1, B1, ...), (A2, B2, ...), ... (An, Bn, ...)] then the output is
+                still a list [p1, p2, ..., pn] and now the output channel is defined by theo
+                perators:
+                [sqrt(p1)A1, sqrt(p1)B1, ..., sqrt(pn)An, sqrt(pn)Bn, ..., sqrt(1-(p1 + ... + pn))I]
         """
         self.noise_kraus_operators = noise_kraus_operators
+        # pylint: disable=invalid-name
         self.transform_channel_operators = transform_channel_operators
         full_transform_channel_operators = self.prepare_channel_operator_list(
             self.transform_channel_operators)
@@ -315,6 +317,14 @@ class NoiseTransformer:
 
     @staticmethod
     def prepare_channel_operator_list(ops_list):
+        """
+        Prepares a list of channel operators
+        Args:
+            ops_list (List): The list of operators to prepare
+
+        Returns:
+            List: The channel operator list
+        """
         # convert to sympy matrices and verify that each singleton is
         # in a tuple; also add identity matrix
         result = [[sympy.eye(2)]]
@@ -324,9 +334,18 @@ class NoiseTransformer:
             result.append([sympy.Matrix(op) for op in ops])
         return result
 
+    # pylint: disable=invalid-name
     def prepare_honesty_constraint(self, transform_channel_operators_list):
+        """
+        Prepares the honesty constraint
+
+        Args:
+            transform_channel_operators_list (list): A list of tuples of matrices which represent
+            Kraus operators.
+         """
         if not self.use_honesty_constraint:
             return
+
         goal = self.fidelity(self.noise_kraus_operators)
         coefficients = [
             self.fidelity(ops) for ops in transform_channel_operators_list
@@ -341,16 +360,18 @@ class NoiseTransformer:
 
     @staticmethod
     def fidelity(channel):
+        """ Calculates channel fidelity """
         return sum([numpy.abs(numpy.trace(E))**2 for E in channel])
 
+    # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
         """
         Generates a list of 4x4 symbolic matrices describing the channel defined from the given
         operators
 
         Args:
-             transform_channel_operators_list: A list of tuples of matrices which represent Kraus
-             operators.
+             transform_channel_operators_list (list): A list of tuples of matrices which represent
+             Kraus operators.
              The identity matrix is assumed to be the first element in the list
              [(I, ), (A1, B1, ...), (A2, B2, ...), ..., (An, Bn, ...)]
              e.g. for a Pauli channel, the matrices are:
@@ -366,8 +387,8 @@ class NoiseTransformer:
         This is the channel C symbolically represented by the operators
 
 
-        Output:
-            A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
+        Returns:
+            list: A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
             The matrix x1*D1 + ... + xn*Dn + E represents the operation of the channel C
             on the density operator.
             we find it easier to work with this representation of C when performing the
@@ -399,20 +420,46 @@ class NoiseTransformer:
 
     @staticmethod
     def compute_channel_operation(rho, operators):
-        # Given a quantum state's density function rho, the effect of the
-        # channel on this state is
-        # rho -> \sum_{i=1}^n E_i * rho * E_i^\dagger
+        """
+        Given a quantum state's density function rho, the effect of the
+        channel on this state is:
+        rho -> sum_{i=1}^n E_i * rho * E_i^dagger
+
+        Args:
+            rho (number): Density function
+            operators (list): List of operators
+
+        Returns:
+            number: The result of applying the list of operators
+        """
         return sum([E * rho * E.H for E in operators],
                    sympy.zeros(operators[0].rows))
 
     @staticmethod
     def flatten_matrix(m):
+        """
+        Args:
+            m (Matrix): The matrix to flatten
+
+        Returns:
+            list: A row vector repesenting the flattened matrix
+        """
+
         return [element for element in m]
 
     def channel_matrix_representation(self, operators):
-        # We convert the operators to a matrix by applying the channel to
-        # the four basis elements of the 2x2 matrix space representing
-        # density operators; this is standard linear algebra
+        """
+        We convert the operators to a matrix by applying the channel to
+        the four basis elements of the 2x2 matrix space representing
+        density operators; this is standard linear algebra
+
+        Args:
+            operators (list): The list of operators to transform into a Matrix
+
+        Returns:
+            sympy.Matrix: The matrx representation of the operators
+        """
+
         standard_base = [
             sympy.Matrix([[1, 0], [0, 0]]),
             sympy.Matrix([[0, 1], [0, 0]]),
@@ -429,11 +476,11 @@ class NoiseTransformer:
             self, channel, symbols):
         """
         Args:
-             channel: a 4x4 symbolic matrix
-             symbols: the symbols x1, ..., xn which may occur in the matrix
+             channel (Matrix): a 4x4 symbolic matrix
+             symbols (list): the symbols x1, ..., xn which may occur in the matrix
 
-        Output:
-            A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
+        Returns:
+            list: A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
             channel == x1*D1 + ... + xn*Dn + E
         """
         return ([
@@ -442,13 +489,14 @@ class NoiseTransformer:
 
     @staticmethod
     def get_matrix_from_channel(channel, symbol):
-        """Extract the numeric parameter matrix.
+        """
+        Extract the numeric parameter matrix.
 
         Args:
             channel (matrix): a 4x4 symbolic matrix.
             symbol (list): a symbol xi
 
-        Returns
+        Returns:
             matrix: a 4x4 numeric matrix.
 
         Additional Information
@@ -466,14 +514,15 @@ class NoiseTransformer:
 
     @staticmethod
     def get_const_matrix_from_channel(channel, symbols):
-        """Extract the numeric constant matrix.
+        """
+        Extract the numeric constant matrix.
 
         Args:
             channel (matrix): a 4x4 symbolic matrix.
             symbols (list): The full list [x1, ..., xn] of symbols
                 used in the matrix.
 
-        Returns
+        Returns:
             matrix: a 4x4 numeric matrix.
 
         Additional Information
@@ -491,10 +540,19 @@ class NoiseTransformer:
 
     def transform_by_given_channel(self, channel_matrices,
                                    const_channel_matrix):
-        # This method creates the quadratic programming instance for
-        # minimizing the Hilbert-Schmidt norm of the matrix (A-B) obtained
-        # as the difference of the input noise channel and the output
-        # channel we wish to determine.
+        """
+        This method creates the quadratic programming instance for
+        minimizing the Hilbert-Schmidt norm of the matrix (A-B) obtained
+        as the difference of the input noise channel and the output
+        channel we wish to determine.
+
+        Args:
+            channel_matrices (TODO): TODO
+            const_channel_matrix (TODO): TODD
+
+        Returns:
+            quadratic_program: TODO
+        """
         target_channel = SuperOp(Kraus(self.noise_kraus_operators))
         target_channel_matrix = target_channel._data.T
 
@@ -504,6 +562,14 @@ class NoiseTransformer:
         return self.solve_quadratic_program(P, q)
 
     def compute_P(self, As):
+        """
+        TODO
+        Args:
+            As (TODO): TODO
+
+        Returns:
+            Array: TODO
+        """
         vs = [numpy.array(A).flatten() for A in As]
         n = len(vs)
         P = sympy.zeros(n, n)
@@ -512,6 +578,15 @@ class NoiseTransformer:
         return P
 
     def compute_q(self, As, C):
+        """
+        TODO
+        Args:
+            As (TODO): TODO
+            C (TODO): TODO
+
+        Returns:
+            Array: TODO
+        """
         vs = [numpy.array(A).flatten() for A in As]
         vC = numpy.array(C).flatten()
         n = len(vs)
@@ -520,9 +595,24 @@ class NoiseTransformer:
             q[i] = 2 * numpy.real(numpy.dot(numpy.conj(vC), vs[i]))
         return q
 
-    # the following method is the only place in the code where we rely on the cvxopt library
-    # should we consider another library, only this method needs to change
     def solve_quadratic_program(self, P, q):
+        """
+        TODO
+        Args:
+            P (TODO): TODO
+            q (TODO): TODO
+
+        Returns:
+            Array: TODO
+
+        Raises:
+            ImportError: If cvxopt external module is not installed
+
+        Additional information
+        ======================
+        This method is the only place in the code where we rely on the cvxopt library
+        should we consider another library, only this method needs to change
+        """
         try:
             import cvxopt
         except ImportError:
