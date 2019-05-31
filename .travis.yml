@@ -100,7 +100,7 @@ jobs:
       <<: *stage_linux
       script:
         - pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
-        - pylint -j 2 -rn qiskit qiskit/providers/aer
+        - pylint -j 2 -rn qiskit/providers/aer
 
     # "test" stage
     ###########################################################################
