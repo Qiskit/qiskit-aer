@@ -324,7 +324,7 @@ def standard_gate_unitary(name):
                      dtype=complex)
     }
 
-    return next((value for key, value in unitary_matrices.items() if name in value), None)
+    return next((value for key, value in unitary_matrices.items() if name in key), None)
 
 
 def reset_superop(num_qubits):
