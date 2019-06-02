@@ -12,14 +12,13 @@
 """
 QasmSimulator Integration Tests
 """
-from test.terra.common import QiskitAerTestCase
 from test.terra.utils.mock import FakeFailureQasmSimulator, FakeSuccessQasmSimulator
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.aer import AerError
 
 
-class QasmBasicsTests(QiskitAerTestCase):
+class QasmBasicsTests:
     """QasmSimulator basic tests."""
 
     def test_simulation_succeed(self):
