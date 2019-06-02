@@ -749,16 +749,17 @@ void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
   size_t rows = A.GetRows(), cols = A.GetColumns();
   matrix<T> temp = A;
   if(axis == 0) {
-	if (rows % 2 != 0) {
-	  throw std::invalid_argument("Utils::split: can't split matrix A by rows");
-	}
-  B.resize(rows/2 , cols);
-  C.resize(rows/2 , cols);
-  for (size_t i = 0; i < rows/2; i++)
-	for (size_t j = 0; j < cols; j++) {
-	  B(i,j) = A(i,j);
-	  C(i,j) = A(i+rows/2,j);
-   	}
+    if (rows % 2 != 0) {
+      throw std::invalid_argument("Utils::split: can't split matrix A by rows");
+    }
+    B.resize(rows/2 , cols);
+    C.resize(rows/2 , cols);
+    for (size_t i = 0; i < rows/2; i++) {
+      for (size_t j = 0; j < cols; j++) {
+	B(i,j) = A(i,j);
+	C(i,j) = A(i+rows/2,j);
+      }
+    }
   }
   else if(axis == 1) {
     if (cols % 2 != 0) {
@@ -766,11 +767,12 @@ void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
     }
     B.resize(rows, cols/2);
     C.resize(rows, cols/2);
-    for (size_t i = 0; i < rows; i++)
+    for (size_t i = 0; i < rows; i++){
       for (size_t j = 0; j < cols/2; j++) {
 	B(i,j) = A(i,j);
 	C(i,j) = A(i,j+cols/2);
       }
+    }
   }
 }
 
@@ -794,7 +796,7 @@ template <class T>
 T sum(const matrix<T> &A){
   T temp = 0;
   for(uint_t i = 0; i < A.size(); i++)
-	  temp += A[i];
+    temp += A[i];
   return temp;
 }
 
