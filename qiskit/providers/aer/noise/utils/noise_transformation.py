@@ -229,7 +229,7 @@ class NoiseTransformer:
                 'q': [{'name': 'reset', 'qubits': [0]},
                       {'name': 'x', 'qubits': [0]}]  # reset to |1>
             },
-            'clifford': [(j, single_qubit_clifford_instructions(j)) for j in range(1, 24)]
+            'clifford': {j: single_qubit_clifford_instructions(j) for j in range(1, 24)}
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True

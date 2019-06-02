@@ -225,7 +225,9 @@ class ReadoutError:
     @staticmethod
     def _check_probabilities(probabilities, threshold):
         """Check probabilities are valid."""
-        if not probabilities:
+        # probabilities parameter can be a list or a numpy.ndarray
+        if (isinstance(probabilities, list) and not probabilities) or \
+            (isinstance(probabilities, np.ndarray) and probabilities.size == 0):
             raise NoiseError("Input probabilities: empty.")
         num_outcomes = len(probabilities[0])
         num_qubits = int(np.log2(num_outcomes))

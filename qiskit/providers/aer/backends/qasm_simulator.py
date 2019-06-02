@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class QasmSimulator(AerBackend):
-    """Aer quantum circuit simulator
+    """Aer quantumç circuit simulator
 
     Backend options:
 

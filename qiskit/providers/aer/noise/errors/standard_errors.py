@@ -191,7 +191,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
             # Pauli strings go from qubit-0 on left to qubit-N on right
             # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
             # We also drop identity operators to reduce dimension of matrix multiplication
-            mat = 1
+            mat = np.identity(1)
             qubits = []
             if isinstance(pauli, Pauli):
                 pauli_str = pauli.to_label()
@@ -203,7 +203,8 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     qubits.append(qubit)
                 elif pstr != 'I':
                     raise NoiseError("Invalid Pauli string.")
-            if mat == 1:
+            # TODO Needs Chris review
+            if mat.size == 1:
                 prob_identity += prob
             else:
                 circ = make_unitary_instruction(
