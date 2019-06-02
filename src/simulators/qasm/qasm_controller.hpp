@@ -39,7 +39,6 @@ namespace Simulator {
  * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
  *   optimizations passes for a noisy circuit [Default: 12].
  * 
->>>>>>> master
  * From Statevector::State class
  *
  * - "initial_statevector" (json complex vector): Use a custom initial

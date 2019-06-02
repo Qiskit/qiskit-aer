@@ -713,16 +713,14 @@ matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
   // To add B as new rows axis == 0 (vertical)
   // To add A as new cols axis == 1 (horizontal)
   if (axis != 0 && axis!= 1) {
-    std::cerr << "MU::concatenate: axis must be 0 or 1" << std::endl;
-	exit(1);
+    throw std::invalid_argument("Utils::concatenate: axis must be 0 or 1");
   }
   size_t rows1 = A.GetRows(), rows2 = B.GetRows(), cols1 = A.GetColumns(), cols2 = B.GetColumns();
   matrix<T> temp = A;
   if(axis == 0) {
-	if(cols1 != cols2) {
-	  std::cerr << "MU::concatenate: axis = 0 but cols_A =! cols_B" << std::endl;
-	  exit(1);
-	}
+     if(cols1 != cols2) {
+	throw std::invalid_argument("Utils::concatenate: axis must be 0 or 1");
+     }
   temp.resize(rows1 + rows2, cols1);
   for (size_t i = 0; i < rows2; i++)
 	for (size_t j = 0; j < cols1; j++)
@@ -730,8 +728,7 @@ matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
   }
   else if(axis == 1) {
     if(rows1 != rows2) {
-	  std::cerr << "MU::concatenate: axis = 1 but rows_A =! rows_B" << std::endl;
-	  exit(1);
+      throw std::invalid_argument("Utils::concatenate: the 2 matrices have a different number of rows");
 	}
 	temp.resize(rows1, cols1 + cols2);
 	for (size_t i = 0; i < rows1; i++)
@@ -747,15 +744,13 @@ void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
   // To split by rows, axis == 0 (Only when A rows divide by 2)
   // To split by cols, axis == 1 (Only when A cols divide by 2)
   if (axis != 0 && axis != 1) {
-    std::cerr << "MU::split: axis must be 0 or 1" << std::endl;
-    exit(1);
+    throw std::invalid_argument("Utils::split: axis must be 0 or 1");
   }
   size_t rows = A.GetRows(), cols = A.GetColumns();
   matrix<T> temp = A;
   if(axis == 0) {
 	if (rows % 2 != 0) {
-	  std::cerr << "MU::split: can't matrix A split by rows"  << std::endl;
-	  exit(1);
+	  throw std::invalid_argument("Utils::split: can't split matrix A by rows");
 	}
   B.resize(rows/2 , cols);
   C.resize(rows/2 , cols);
@@ -767,16 +762,15 @@ void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
   }
   else if(axis == 1) {
     if (cols % 2 != 0) {
-	  std::cerr << "MU::split: can't split matrix A by cols"  << std::endl;
-	  exit(1);
-	}
-	B.resize(rows, cols/2);
-	C.resize(rows, cols/2);
-	for (size_t i = 0; i < rows; i++)
-	  for (size_t j = 0; j < cols/2; j++) {
-		B(i,j) = A(i,j);
-		C(i,j) = A(i,j+cols/2);
-	  }
+      throw std::invalid_argument("Utils::split: can't split matrix A by columns"); 
+    }
+    B.resize(rows, cols/2);
+    C.resize(rows, cols/2);
+    for (size_t i = 0; i < rows; i++)
+      for (size_t j = 0; j < cols/2; j++) {
+	B(i,j) = A(i,j);
+	C(i,j) = A(i,j+cols/2);
+      }
   }
 }
 
@@ -787,8 +781,7 @@ matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B) {
   size_t rows1 = A.GetRows(), rows2 = B.GetRows(), cols1 = A.GetColumns(),
          cols2 = B.GetColumns();
   if(rows1 != rows2 || cols1 != cols2) {
-	  std::cerr << "MU::elementwise_multiplication: matrices have different sizes"  << std::endl;
-	  exit(1);
+    throw std::invalid_argument("Utils::elementwise_multiplication: matrices have different sizes");
   }
   matrix<T> temp(rows1, cols1);
   for (size_t i = 0; i < rows1; i++)
