@@ -28,7 +28,7 @@ thread_num = <The Number of Permits to Execute Simulations>
 ```
 ## Execution Flow
 
-![Flow](https://github.ibm.com/HITOMI/qiskit-aer-internal/blob/server/server/worker/Flow.png)
+![Flow](https://github.com/hitomitak/qiskit-aer/blob/distribute/server/Flow.png)
 
 ## How to use
 ## How to use
