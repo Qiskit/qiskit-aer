@@ -14,7 +14,7 @@
 #include <cmath>
 #include <complex>
 #include <cassert>
-#include "SVD.hpp"
+#include "svd.hpp"
 
 #define mul_factor 1e2
 #define tiny_factor 1e30
@@ -48,12 +48,12 @@ cmatrix_t reshape_before_SVD(vector<cmatrix_t> data)
 	cmatrix_t temp1 = AER::Utils::concatenate(data[0], data[1], 1),
 		  temp2 = AER::Utils::concatenate(data[2], data[3], 1);
 //	if(DEBUG) cout << "started third concatenate" << endl;
-	return AER::Utils::concatenate(temp1, temp2 ,0) ;
+	return AER::Utils::concatenate(temp1, temp2, 0);
 }
 vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t U)
 {
 	vector<cmatrix_t> Res(2);
-	AER::Utils::split(U, Res[0], Res[1] ,0);
+	AER::Utils::split(U, Res[0], Res[1], 0);
 	return Res;
 }
 vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)

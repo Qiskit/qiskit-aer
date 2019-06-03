@@ -14,8 +14,8 @@
 
 #include "framework/json.hpp"
 #include "base/state.hpp"
-#include "MPS.hpp"
-#include "MPS.cpp"
+#include "matrix_product_state.hpp"
+#include "matrix_product_state.cpp"
 
 namespace AER {
 namespace TensorNetworkState { 

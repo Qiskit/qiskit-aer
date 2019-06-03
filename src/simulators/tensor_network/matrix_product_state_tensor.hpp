@@ -18,8 +18,8 @@
 #include <string.h>
 #include <exception>
 
-#include "SVD.hpp"
-#include "SVD.cpp"
+#include "svd.hpp"
+#include "svd.cpp"
 #include "framework/matrix.hpp"
 #include "framework/utils.hpp"
 

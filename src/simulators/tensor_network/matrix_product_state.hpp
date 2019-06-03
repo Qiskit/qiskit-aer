@@ -12,7 +12,7 @@
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
-#include "MPS_tensor.hpp"
+#include "matrix_product_state_tensor.hpp"
 
 namespace AER {
 namespace TensorNetworkState {
