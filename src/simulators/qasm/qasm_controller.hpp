@@ -223,7 +223,7 @@ protected:
                        OutputData &data,
                        RngEngine &rng) const;
 
-  // Check if measure sampling optimization if valid for the input circuit
+  // Check if measure sampling optimization is valid for the input circuit
   // if so return a pair {true, pos} where pos is the position of the
   // first measurement operation in the input circuit
   std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ) const;
@@ -448,7 +448,8 @@ void QasmController::set_parallelization_circuit(const Circuit& circ) {
     max_parallel_shots_ = max_parallel_threads_;
 
   switch (simulation_method(circ)) {
-    case Method::statevector: {
+    case Method::statevector:
+    case Method::tensor_network: {
       if (noise_model_.ideal() && check_measure_sampling_opt(circ).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
