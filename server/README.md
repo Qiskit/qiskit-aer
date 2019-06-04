@@ -3,7 +3,7 @@
 ## How to install
 1. Copy the simulator binary file to the local directory
 ``` 
-cp qasm_simulator qiskit-aer-internal/server
+cp qasm_simulator qiskit-aer/server
 ```
 
 2. Update a configuration file (server.ini)
@@ -31,16 +31,12 @@ thread_num = <The Number of Permits to Execute Simulations>
 ![Flow](https://github.com/hitomitak/qiskit-aer/blob/distribute/server/Flow.png)
 
 ## How to use
-## How to use
 1. Install ibmq provider
 ```
 # pip install qiskit-ibmq-provider
 ```
 
-2. Copy aercloud provider to qiskit-terra installation dir manually 
-```
-# cp -rf qiskit-aer-internal/providers/aercloud <Python Installation Dir>/pythonx.x/site-packages/qiskit/providers
-```
+2. Re-install qiksit-aer from source ( https://github.com/Qiskit/qiskit-aer/blob/master/.github/CONTRIBUTING.md )
 
 3. Add `from qiskit.providers.aercloud import AerCloud` to `__init__.py` file
 ```
