@@ -461,7 +461,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		}
 	}
 
-	// Check if SVD out put is wrong
+	// Check if SVD output is wrong
 	cmatrix_t diag_S = diag(S,m,n);
 	cmatrix_t temp = U*diag_S;
 	temp = temp * AER::Utils::dagger(V);

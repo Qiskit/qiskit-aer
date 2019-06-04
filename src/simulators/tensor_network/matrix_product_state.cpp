@@ -9,7 +9,6 @@
 #include <bitset>
 #include <math.h>
 
-// for analysis of memory consumption
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
@@ -161,6 +160,19 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 	lambda_reg_[index_A] = lambda;
 	q_reg_[index_B] = right_gamma;
 }
+
+//-------------------------------------------------------------------------
+// MPS::apply_2_qubit_gate - outline of the algorithm
+// 1. Swap qubits A and B until they are consecutive
+// 2. Contract MPS_Tensor[A] and MPS_Tensor[B], yielding a temporary four-matrix MPS_Tensor 
+//    that represents the entangled states of A and B.
+// 3. Apply the gate
+// 4. Decompose the temporary MPS_Tensor (using SVD) into U*S*V, where U and V are matrices
+//    and S is a diagonal matrix
+// 5. U is split by rows to yield two MPS_Tensors representing qubit A (in reshape_U_after_SVD), 
+//    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
+//    the diagonal of S becomes the Lambda-vector in between A and B.
+//-------------------------------------------------------------------------
 
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat)
 {

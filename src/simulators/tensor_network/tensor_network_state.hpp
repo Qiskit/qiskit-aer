@@ -5,6 +5,18 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
+
+//=========================================================================
+// Tensor Network State - simulation method
+//=========================================================================
+// For this simulation method, we represent the state of the circuit using a tensor
+// network structure, the specifically matrix product state. The idea is based on
+// the following paper (there exist other sources as well):
+// The density-matrix renormalization group in the age of matrix product states by 
+// Ulrich Schollwock.
+//
+//--------------------------------------------------------------------------
+
 #ifndef _tensor_tensor_state_hpp
 #define _tensor_tensor_state_hpp
 
@@ -117,6 +129,7 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
+  // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
 
   // Sample n-measurement outcomes without applying the measure operation
@@ -129,7 +142,6 @@ public:
   // Additional methods
   //-----------------------------------------------------------------------
 
-  // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
 protected:
@@ -143,9 +155,8 @@ protected:
   void apply_gate(const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
-  // If a state subclass supports this function it then "measure"
-  // should be contained in the set returned by the 'allowed_ops'
-  // method.
+  // If a state subclass supports this function, then "measure"
+  // should be contained in the set defineed by 'allowed_ops'
   virtual void apply_measure(const reg_t &qubits,
                              const reg_t &cmemory,
                              const reg_t &cregister,
@@ -177,10 +188,8 @@ protected:
   //-----------------------------------------------------------------------
 
   // Return vector of measure probabilities for specified qubits
-  // If a state subclass supports this function it then "measure"
-  // should be contained in the set returned by the 'allowed_ops'
-  // method.
-  // TODO: move to private (no longer part of base class)
+  // If a state subclass supports this function, then "measure"
+  // must be contained in the set defined by 'allowed_ops'
   rvector_t measure_probs(const reg_t &qubits) const;
 
   // Sample the measurement outcome for qubits
@@ -320,7 +329,7 @@ void State::initialize_qreg(uint_t num_qubits) {
   qreg_.initialize((uint_t)num_qubits);
 }
 
-  void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
+void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
@@ -336,16 +345,16 @@ void State::initialize_omp() {
     qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in qubitvector
 }
 
-  void State::initialize_creg(uint_t num_memory, uint_t num_registers) {
-    cout << "initialize_creg not supported yet" <<endl;
-  }
+void State::initialize_creg(uint_t num_memory, uint_t num_registers) {
+  cout << "initialize_creg not supported yet" <<endl;
+}
 
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) {
     // for each qubit we have a tensor structure. 
     // Initially, each tensor contains 2 matrices with a single complex double
     // Depending on the number of 2-qubit gates, 
-    // these matrices will double their size
+    // these matrices may double their size
     // for now - compute only initial size
     // later - FIXME
     size_t mem_mb = 16 * 2 * num_qubits;
@@ -373,7 +382,6 @@ void State::set_config(const json_t &config) {
   if (gate_opt)
     qreg_.enable_gate_opt();
 }
-
 
 //=========================================================================
 // Implementation: apply operations
@@ -420,14 +428,13 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   }
 }
 
-
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
 
-  void State::snapshot_pauli_expval(const Operations::Op &op,
-				     OutputData &data,
-				     bool variance){
+void State::snapshot_pauli_expval(const Operations::Op &op,
+				  OutputData &data,
+				  bool variance){
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
@@ -436,7 +443,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   //BaseState::qreg_.checkpoint(); 
   //bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
 
-   //Compute expval components
+  //Compute expval components
   double expval = 0;
   string pauli_matrices;
 
@@ -449,14 +456,14 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   //expval += coeff * std::real(BaseState::qreg_.inner_product());
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
   
-//qreg_.revert(false);
-    // Revert to original state
+  //qreg_.revert(false);
+  // Revert to original state
   //BaseState::qreg_.revert(false);
 }
 
-  void State::snapshot_matrix_expval(const Operations::Op &op,
-				     OutputData &data,
-				     bool variance){
+void State::snapshot_matrix_expval(const Operations::Op &op,
+				   OutputData &data,
+				   bool variance){
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
@@ -475,28 +482,25 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
       data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
     }
   }
-  }
+}
 
-  void State::snapshot_state(const Operations::Op &op,
-		      OutputData &data,
-		      std::string name) {
-    TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
-    cvector_t statevector;
-    qreg_.full_state_vector(statevector);
-    data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
-  }
+void State::snapshot_state(const Operations::Op &op,
+			   OutputData &data,
+			   std::string name) {
+  TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+  cvector_t statevector;
+  qreg_.full_state_vector(statevector);
+  data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+}
 
-  void State::snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
-                              bool variance) {
-    TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
-    rvector_t prob_vector;
-    qreg_.probabilities_vector(prob_vector);
-    data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
-  }
-//=========================================================================
-// Implementation: Matrix multiplication
-//=========================================================================
+void State::snapshot_probabilities(const Operations::Op &op,
+				   OutputData &data,
+				   bool variance) {
+  TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+  rvector_t prob_vector;
+  qreg_.probabilities_vector(prob_vector);
+  data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
+}
 
 void State::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
@@ -777,9 +781,9 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
   }
 }
 
-
 //=========================================================================
 // Implementation: Kraus Noise
+// This function has not been checked yet
 //=========================================================================
 void State::apply_kraus(const reg_t &qubits,
                         const std::vector<cmatrix_t> &kmats,
@@ -828,7 +832,7 @@ void State::apply_kraus(const reg_t &qubits,
 }
 
 //-------------------------------------------------------------------------
-} // end namespace QubitVector
+} // end namespace TensorNetworkState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

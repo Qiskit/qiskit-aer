@@ -34,7 +34,7 @@ using cmatrix_t = matrix<complex_t>;
 
 uint_t num_of_SV(rvector_t S, double threshold);
 
-//**************************************************************
+//-------------------------------------------------------------
 // function name: num_of_SV
 // Description: Computes the number of none-zero singular values
 //				in S
@@ -43,7 +43,7 @@ uint_t num_of_SV(rvector_t S, double threshold);
 //			   false to print as vector of matrices.
 // Returns: number of elements in S that are greater than 0
 //			(actually greater than threshold)
-//**************************************************************
+//-------------------------------------------------------------
 uint_t num_of_SV(rvector_t S, double threshold)
 {
 	uint_t sum = 0;
@@ -56,6 +56,18 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	  cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
+//============================================================================
+// MPS_Tensor class
+//============================================================================
+// The MPS_Tensor class is used to represent the data structure of a single 
+// Gamma-tensor (corresponding to a single qubit) in the MPS algorithm. 
+// In the stable state, each MPS_Tensor consists of two matrices - 
+// the matrix with index 0 (data_[0]) represents the amplitude of |0> and 
+// the matrix with index 1 (data_[1]) represents the amplitude of |1>.
+// When applying a two-qubit gate, we temporarily create an MPS_Tensor of four matrices, 
+// corresponding to |00>, |01>, |10>, |11>.
+// These are later decomposed back to the stable state of two matrices MPS_Tensor (per qubit).
+//----------------------------------------------------------------	
 
 class MPS_Tensor
 {
@@ -89,12 +101,12 @@ public:
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
-  //**************************************************************
+  //------------------------------------------------------------------
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
   // Parameters: none.
   // Returns: uint_t of the dimension of the physical index of the tensor.
-  //**************************************************************
+  //------------------------------------------------------------------
   uint_t get_dim() const {
     return data_.size();
   }
@@ -124,13 +136,7 @@ private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			   bool right, /* or left */
 			   bool mul    /* or div */);
-	/*
-	The data structure of a Gamma tensor in MPS- a vector of matrices of
-	the same dimensions. Size of the vector is for the physical index,
-	dimensions of the matrices are for the bond indices. (3-dimensions tensors).
-	Notation: i will represent the physical index, a1,a2 will represent the
-	matrix indexes
-	*/	
+
   vector<cmatrix_t> data_;
 };
 
@@ -138,197 +144,199 @@ private:
 // Implementation
 //=========================================================================
 
-  //**************************************************************
-    // function name: print
-    // Description: Add a new command to the history
-    // Parameters: bool statevector: true to print as a state vector
-    //			   false to print as vector of matrices.
-    // Returns: none.
-    //**************************************************************
-    void MPS_Tensor::print(bool statevector) {
-      if(statevector == false)
-	for(uint_t i = 0; i < data_.size(); i++)
-	  {
-	    data_[i].SetOutputStyle(Matrix);
-	    std::cout << "i = " << i << endl;
-	    std::cout << data_[i];
-	  }
-      else
-	{
-	  std::cout << "[";
-	  for(uint_t i = 0; i < data_.size(); i++)
-	    {
-	      std::cout << data_[i](0,0)<< " ";
-	    }
-	  std::cout << "]" << endl;
-	}
-    }
+//---------------------------------------------------------------
+// function name: print
+// Description: Add a new command to the history
+// Parameters: bool statevector: true to print as a state vector
+//			   false to print as vector of matrices.
+// Returns: none.
+//-------------------------------------------------------------
+void MPS_Tensor::print(bool statevector) {
+  if(statevector == false)
+    for(uint_t i = 0; i < data_.size(); i++)
+      {
+	data_[i].SetOutputStyle(Matrix);
+	std::cout << "i = " << i << endl;
+	std::cout << data_[i];
+      } else {
+    std::cout << "[";
+    for(uint_t i = 0; i < data_.size(); i++)
+      {
+	std::cout << data_[i](0,0)<< " ";
+      }
+    std::cout << "]" << endl;
+  }
+}
   
-  //**************************************************************
-    // function name: get_data
-    // Description: Get the data in some axis of the MPS_Tensor
-    // 1.	Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
-    // 		Returns: cvector_t of data in (a1,a2) in all matrices
-    // 2.	Parameters: uint_t i - index of a matrix in the MPS_Tensor
-    // 		Returns: cmatrix_t of the data
-    //**************************************************************
-    cvector_t MPS_Tensor::get_data(uint_t a1, uint_t a2) const
-   {
-    cvector_t Res;
-    for(uint_t i = 0; i < data_.size(); i++)
-      Res.push_back(data_[i](a1,a2));
-    return Res;
-   }
+//----------------------------------------------------------------
+// function name: get_data
+// Description: Get the data in some axis of the MPS_Tensor
+// 1.	Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
+// 		Returns: cvector_t of data in (a1,a2) in all matrices
+// 2.	Parameters: uint_t i - index of a matrix in the MPS_Tensor
+// 		Returns: cmatrix_t of the data
+//---------------------------------------------------------------
+cvector_t MPS_Tensor::get_data(uint_t a1, uint_t a2) const
+{
+  cvector_t Res;
+  for(uint_t i = 0; i < data_.size(); i++)
+    Res.push_back(data_[i](a1,a2));
+  return Res;
+}
 
-  //**************************************************************
-    // function name: insert_data
-    // Description: Insert data to some axis of the MPS_Tensor
-    // Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
-    // Parameters: cvector_t data - data to insert.
-    // Returns: void.
-    //**************************************************************
-    void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
+//---------------------------------------------------------------
+// function name: insert_data
+// Description: Insert data to some axis of the MPS_Tensor
+// Parameters: uint_t a1, uint_t a2 - indexes of data in matrix
+// Parameters: cvector_t data - data to insert.
+// Returns: void.
+//---------------------------------------------------------------
+void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
+{
+  for(uint_t i = 0; i < data_.size(); i++)
+    data_[i](a1,a2) = data[i];
+}
+
+//---------------------------------------------------------------
+// function name: apply_x,y,z,...
+// Description: Apply some gate on the tensor. tensor must represent
+//		the number of qubits the gate expect
+// Parameters: none.
+// Returns: none.
+//---------------------------------------------------------------
+void MPS_Tensor::apply_x()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  swap(data_[0],data_[1]);
+}
+  void MPS_Tensor::apply_y()
   {
-    for(uint_t i = 0; i < data_.size(); i++)
-      data_[i](a1,a2) = data[i];
+    if (data_.size() != 2)
+      {
+	cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+	assert(false);
+      }
+    data_[0] = data_[0] * complex_t(0, 1);
+    data_[1] = data_[1] * complex_t(0, -1);
+    swap(data_[0],data_[1]);
   }
 
+void MPS_Tensor::apply_z()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  data_[1] = data_[1] * (-1.0);
+}
+
+void MPS_Tensor::apply_s()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  data_[1] = data_[1] * complex_t(0, 1);
+}
+
+void MPS_Tensor::apply_sdg()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  data_[1] = data_[1] * complex_t(0, -1);
+}
+  
+void MPS_Tensor::apply_t()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
+}
+
+void MPS_Tensor::apply_tdg()
+{
+  if (data_.size() != 2)
+    {
+      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
+      assert(false);
+    }
+  data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
+}
+
+void MPS_Tensor::apply_matrix(cmatrix_t &mat)
+{
+  if (data_.size() != mat.GetRows())
+    {
+      cout << "ERROR: The matrix and tensor doesn't represent the same number of qubits" << '\n';
+      assert(false);
+    }
+
+  cvector_t temp;
+  for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)
+    for (uint_t a2 = 0; a2 < data_[0].GetColumns(); a2++)
+      {
+	temp = get_data(a1,a2);
+	temp = mat * temp;
+	insert_data(a1,a2,temp);
+      }
+}
+
+void MPS_Tensor::apply_cnot(bool swapped)
+{
+  if (data_.size() != 4)
+    {
+      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
+      assert(false);
+    }
+  if(!swapped)
+    swap(data_[2],data_[3]);
+  else
+    swap(data_[1],data_[3]);
+}
+
+void MPS_Tensor::apply_swap()
+{
+  if (data_.size() != 4)
+    {
+      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
+      assert(false);
+    }
+  swap(data_[1],data_[2]);
+}
+
+void MPS_Tensor::apply_cz()
+{
+  if (data_.size() != 4)
+    {
+      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
+      assert(false);
+    }
+  data_[3] = data_[3] * (-1.0);
+}
 
 
-	//**************************************************************
-	// function name: apply_x,y,z,...
-	// Description: Apply some gate on the tensor. tensor must represent
-	//				the number of qubits the gate expect
-	// Parameters: none.
-	// Returns: none.
-	//**************************************************************
-	void MPS_Tensor::apply_x()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		swap(data_[0],data_[1]);
-	}
-	void MPS_Tensor::apply_y()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[0] = data_[0] * complex_t(0, 1);
-		data_[1] = data_[1] * complex_t(0, -1);
-		swap(data_[0],data_[1]);
-	}
-	void MPS_Tensor::apply_z()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[1] = data_[1] * (-1.0);
-	}
-
-	void MPS_Tensor::apply_s()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[1] = data_[1] * complex_t(0, 1);
-	}
-	void MPS_Tensor::apply_sdg()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[1] = data_[1] * complex_t(0, -1);
-	}
-	void MPS_Tensor::apply_t()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
-	}
-	void MPS_Tensor::apply_tdg()
-	{
-		if (data_.size() != 2)
-		{
-			cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-			assert(false);
-		}
-		data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
-	}
-
-	void MPS_Tensor::apply_matrix(cmatrix_t &mat)
-	{
-		if (data_.size() != mat.GetRows())
-		{
-			cout << "ERROR: The matrix and tensor doesn't represent the same number of qubits" << '\n';
-			assert(false);
-		}
-
-		cvector_t temp;
-		for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)
-			for (uint_t a2 = 0; a2 < data_[0].GetColumns(); a2++)
-			{
-				temp = get_data(a1,a2);
-				temp = mat * temp;
-				insert_data(a1,a2,temp);
-			}
-	}
-	void MPS_Tensor::apply_cnot(bool swapped)
-	{
-		if (data_.size() != 4)
-		{
-			cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-			assert(false);
-		}
-		if(!swapped)
-			swap(data_[2],data_[3]);
-		else
-			swap(data_[1],data_[3]);
-	}
-
-	void MPS_Tensor::apply_swap()
-	{
-		if (data_.size() != 4)
-		{
-			cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-			assert(false);
-		}
-		swap(data_[1],data_[2]);
-	}
-	void MPS_Tensor::apply_cz()
-	{
-		if (data_.size() != 4)
-		{
-			cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-			assert(false);
-		}
-		data_[3] = data_[3] * (-1.0);
-	}
-
-
-
-/* TL;DR - Functions mul/div Gamma by Lambda are used to keep the MPS in the
- * canonical form.
- *
- * Before applying a 2-qubit gate, we must contract these qubits to relevant Gamma tensors.
- * To maintain the canonical form, we must consider the Lambda tensors from
- * the sides of the Gamma tensors. This is what the multiply functions do. After the
- * decomposition of the result of the gate, we need to divide back by what we
- * multiplied before. This is what the division functions do.
- * */
+//-------------------------------------------------------------------------
+// The following functions mul/div Gamma by Lambda are used to keep the MPS in the
+// canonical form.
+//
+// Before applying a 2-qubit gate, we must contract these qubits to relevant Gamma tensors.
+// To maintain the canonical form, we must consider the Lambda tensors from
+// the sides of the Gamma tensors. This is what the multiply functions do. After the
+// decomposition of the result of the gate, we need to divide back by what we
+// multiplied before. This is what the division functions do.
+//-------------------------------------------------------------------------
 void MPS_Tensor::mul_Gamma_by_left_Lambda(const rvector_t &Lambda)
 {
   mul_Gamma_by_Lambda(Lambda, false,/*left*/ true /*mul*/);
@@ -353,41 +361,40 @@ void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			 bool right, /* or left */
 			 bool mul    /* or div */)
 {
-	if (Lambda == rvector_t {1.0}) return;
-	uint_t rows = data_[0].GetRows(), cols = data_[0].GetColumns();
-	for(uint_t i = 0; i < data_.size(); i++)
-		for(uint_t a1 = 0; a1 < rows; a1++)
-		  for(uint_t a2 = 0; a2 < cols; a2++) {
-		    uint_t factor = right ? a2 : a1;
-		    if (mul) {
-		      data_[i](a1,a2) *= Lambda[factor];
-		    } else{
-		      data_[i](a1,a2) /= Lambda[factor];
-		    }
-		  }
+  if (Lambda == rvector_t {1.0}) return;
+  uint_t rows = data_[0].GetRows(), cols = data_[0].GetColumns();
+  for(uint_t i = 0; i < data_.size(); i++)
+    for(uint_t a1 = 0; a1 < rows; a1++)
+      for(uint_t a2 = 0; a2 < cols; a2++) {
+	uint_t factor = right ? a2 : a1;
+	if (mul) {
+	  data_[i](a1,a2) *= Lambda[factor];
+	} else{
+	  data_[i](a1,a2) /= Lambda[factor];
+	}
+      }
 }
 
-//************************************************************************
+//---------------------------------------------------------------
 // function name: contract
 // Description: Contract two Gamma tensors and the Lambda between
-// 				them. Usually used before 2-qubits gate.
+// 		them. Usually used before 2-qubits gate.
 // Parameters: MPS_Tensor &left_gamma, &right_gamma , rvector_t &lambda -
-// 			   tensors to contract.
+// 	       tensors to contract.
 // Returns: The result tensor of the contract
-//*************************************************************************
+//---------------------------------------------------------------
 MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma)
 {
-	MPS_Tensor Res;
-	MPS_Tensor new_left = left_gamma;
-	new_left.mul_Gamma_by_right_Lambda(lambda);
-	for(uint_t i = 0; i < new_left.data_.size(); i++)
-		for(uint_t j = 0; j < right_gamma.data_.size(); j++)
-			Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
-	return Res;
+  MPS_Tensor Res;
+  MPS_Tensor new_left = left_gamma;
+  new_left.mul_Gamma_by_right_Lambda(lambda);
+  for(uint_t i = 0; i < new_left.data_.size(); i++)
+    for(uint_t j = 0; j < right_gamma.data_.size(); j++)
+      Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
+  return Res;
 }
 
-// Decompose a tensor into 2 gammas and lambda of the MPS. Usually being used after 2-qubits gate.
-//************************************************************************
+//---------------------------------------------------------------
 // function name: Decompose
 // Description: Decompose a tensor into two Gamma tensors and the Lambda between
 // 				them. Usually used after applying a 2-qubit gate.
@@ -395,40 +402,39 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &l
 //			   MPS_Tensor &left_gamma, &right_gamma , rvector_t &lambda -
 // 			   tensors for the result.
 // Returns: none.
-//*************************************************************************
+//---------------------------------------------------------------
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
-	matrix<complex_t> C = reshape_before_SVD(temp.data_);
-	matrix<complex_t> U,V;
-	rvector_t S(min(C.GetRows(), C.GetColumns()));
+  matrix<complex_t> C = reshape_before_SVD(temp.data_);
+  matrix<complex_t> U,V;
+  rvector_t S(min(C.GetRows(), C.GetColumns()));
 
+  if(SHOW_SVD)
+    {
+      C.SetOutputStyle(Matrix);
+      U.SetOutputStyle(Matrix);
+      V.SetOutputStyle(Matrix);
+      cout << "C =" << endl << C ;
+    }
+  
+  csvd_wrapper(C,U,S,V);
 
-	if(SHOW_SVD)
-	{
-		C.SetOutputStyle(Matrix);
-		U.SetOutputStyle(Matrix);
-		V.SetOutputStyle(Matrix);
-		cout << "C =" << endl << C ;
-	}
+  if(SHOW_SVD) {
+    cout << "U = " << endl << U ;
+    cout << "S = " << endl;
+    for (uint_t i = 0; i != S.size(); ++i)
+      cout << S[i] << " , ";
+    cout << endl;
+    cout << "V = " << endl << V ;
+  }
 
-	csvd_wrapper(C,U,S,V);
-
-	if(SHOW_SVD) {
-		cout << "U = " << endl << U ;
-		cout << "S = " << endl;
-		for (uint_t i = 0; i != S.size(); ++i)
-		    cout << S[i] << " , ";
-		cout << endl;
-		cout << "V = " << endl << V ;
-	}
-
-	uint_t SV_num = num_of_SV(S, 1e-16);
-	U.resize(U.GetRows(),SV_num);
-	S.resize(SV_num);
-	V.resize(V.GetRows(),SV_num);
-	left_gamma.data_  = reshape_U_after_SVD(U);
-	lambda            = S;
-	right_gamma.data_ = reshape_V_after_SVD(V);
+  uint_t SV_num = num_of_SV(S, 1e-16);
+  U.resize(U.GetRows(),SV_num);
+  S.resize(SV_num);
+  V.resize(V.GetRows(),SV_num);
+  left_gamma.data_  = reshape_U_after_SVD(U);
+  lambda            = S;
+  right_gamma.data_ = reshape_V_after_SVD(V);
 }
 
 //-------------------------------------------------------------------------
