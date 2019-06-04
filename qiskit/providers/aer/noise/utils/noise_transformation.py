@@ -71,8 +71,8 @@ def approximate_quantum_error(error, *,
 
     if not isinstance(error, QuantumError):
         error = QuantumError(error)
-    if error.number_of_qubits > 1:
-        raise NoiseError("Only 1-qubit noises can be converted, {}-qubit "
+    if error.number_of_qubits > 2:
+        raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
                          "noise found in model".format(error.number_of_qubits))
 
     error_kraus_operators = Kraus(error.to_quantumchannel()).data
@@ -82,7 +82,11 @@ def approximate_quantum_error(error, *,
         if operator_string not in transformer.named_operators.keys():
             raise RuntimeError(
                 "No information about noise type {}".format(operator_string))
-        operator_dict = transformer.named_operators[operator_string]
+        operator_lists = transformer.named_operators[operator_string]
+        if len(operator_lists) < error.number_of_qubits:
+            raise RuntimeError(
+                "No information about noise type {} for {} qubits".format(operator_string, error.number_of_qubits))
+        operator_dict = operator_lists[error.number_of_qubits-1]
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
@@ -212,24 +216,44 @@ def approximate_noise_model(model, *,
     approx_noise_model._basis_gates = model._basis_gates
     return approx_noise_model
 
+def pauli_operators():
+    pauli_1_qubit = {
+                    'X': [{'name': 'x', 'qubits': [0]}],
+                    'Y': [{'name': 'y', 'qubits': [0]}],
+                    'Z': [{'name': 'z', 'qubits': [0]}]
+                    }
+    pauli_2_qubit = {
+        'XI': [{'name': 'x', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
+        'YI': [{'name': 'y', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
+        'ZI': [{'name': 'z', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
+        'IX': [{'name': 'id', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+        'IY': [{'name': 'id', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+        'IZ': [{'name': 'id', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
+        'XX': [{'name': 'x', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+        'YY': [{'name': 'y', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+        'ZZ': [{'name': 'z', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
+        'XY': [{'name': 'x', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+        'XZ': [{'name': 'x', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
+        'YX': [{'name': 'y', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+        'YZ': [{'name': 'y', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
+        'ZX': [{'name': 'z', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
+        'ZY': [{'name': 'z', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+    }
+    return [pauli_1_qubit, pauli_2_qubit]
 
 class NoiseTransformer:
     """Transforms one quantum channel to another based on a specified criteria."""
 
     def __init__(self):
         self.named_operators = {
-            'pauli': {
-                'X': [{'name': 'x', 'qubits': [0]}],
-                'Y': [{'name': 'y', 'qubits': [0]}],
-                'Z': [{'name': 'z', 'qubits': [0]}]
-            },
-            'reset': {
+            'pauli': pauli_operators(),
+            'reset': [{
                 'p': [{'name': 'reset', 'qubits': [0]}],  # reset to |0>
                 'q': [{'name': 'reset', 'qubits': [0]},
                       {'name': 'x', 'qubits': [0]}]  # reset to |1>
-            },
-            'clifford': dict([(j, single_qubit_clifford_instructions(j))
-                              for j in range(1, 24)])
+            }],
+            'clifford': [dict([(j, single_qubit_clifford_instructions(j))
+                              for j in range(1, 24)])]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True
@@ -317,11 +341,13 @@ class NoiseTransformer:
     def prepare_channel_operator_list(ops_list):
         # convert to sympy matrices and verify that each singleton is
         # in a tuple; also add identity matrix
-        result = [[sympy.eye(2)]]
+        result = []
         for ops in ops_list:
             if not isinstance(ops, tuple) and not isinstance(ops, list):
                 ops = [ops]
             result.append([sympy.Matrix(op) for op in ops])
+        n = result[0][0].shape[0]  # grab the dimensions from the first element
+        result = [[sympy.eye(n)]] + result
         return result
 
     def prepare_honesty_constraint(self, transform_channel_operators_list):
@@ -386,7 +412,7 @@ class NoiseTransformer:
         symbolic_operators = [
             op for ops in symbolic_operators_list for op in ops
         ]
-        # channel_matrix_representation() peforms the required linear
+        # channel_matrix_representation() performs the required linear
         # algebra to find the representing matrices.
         operators_channel = self.channel_matrix_representation(
             symbolic_operators).subs(symbols[0], 1 - exp)
@@ -407,14 +433,16 @@ class NoiseTransformer:
 
     def channel_matrix_representation(self, operators):
         # We convert the operators to a matrix by applying the channel to
-        # the four basis elements of the 2x2 matrix space representing
+        # the basis elements of the matrix space representing
         # density operators; this is standard linear algebra
-        standard_base = [
-            sympy.Matrix([[1, 0], [0, 0]]),
-            sympy.Matrix([[0, 1], [0, 0]]),
-            sympy.Matrix([[0, 0], [1, 0]]),
-            sympy.Matrix([[0, 0], [0, 1]])
-        ]
+        shape = operators[0].shape
+        standard_base = []
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                basis_element_ij = sympy.zeros(*shape)
+                basis_element_ij[(i,j)] = 1
+                standard_base.append(basis_element_ij)
+
         return (sympy.Matrix([
             self.flatten_matrix(
                 self.compute_channel_operation(rho, operators))

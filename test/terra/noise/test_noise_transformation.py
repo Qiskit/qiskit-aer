@@ -234,6 +234,21 @@ class TestNoiseTransformer(unittest.TestCase):
         results_2 = approximate_quantum_error(error, operator_string="Pauli")
         self.assertErrorsAlmostEqual(results_1, results_2)
 
+    def test_paulis_1_and_2_qubits(self):
+        probs = [0.5, 0.3, 0.2]
+        paulis_1q = ['X', 'Y', 'Z']
+        paulis_2q = ['XI', 'YI', 'ZI']
+
+        error_1q = pauli_error(zip(paulis_1q, probs))
+        error_2q = pauli_error(zip(paulis_2q, probs))
+
+        results_1q = approximate_quantum_error(error_1q, operator_string="pauli")
+        results_2q = approximate_quantum_error(error_2q, operator_string="pauli")
+
+        self.assertErrorsAlmostEqual(error_1q, results_1q)
+        self.assertErrorsAlmostEqual(error_2q, results_2q, places = 2)
+
+
     def test_errors(self):
         gamma = 0.23
         error = amplitude_damping_error(gamma)
