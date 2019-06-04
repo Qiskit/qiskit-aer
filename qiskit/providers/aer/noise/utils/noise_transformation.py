@@ -241,17 +241,38 @@ def pauli_operators():
     }
     return [pauli_1_qubit, pauli_2_qubit]
 
+def reset_operators():
+    reset_0_to_0 = [{'name': 'reset', 'qubits': [0]}]
+    reset_0_to_1 = [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]
+    reset_1_to_0 = [{'name': 'reset', 'qubits': [1]}]
+    reset_1_to_1 = [{'name': 'reset', 'qubits': [1]}, {'name': 'x', 'qubits': [1]}]
+    id_0 = [{'name': 'id', 'qubits': [0]}]
+    id_1 = [{'name': 'id', 'qubits': [1]}]
+
+    reset_1_qubit = {
+        'p': reset_0_to_0,
+        'q': reset_0_to_1
+    }
+
+    reset_2_qubit = {
+        'p0': reset_0_to_0 + id_1,
+        'q0': reset_0_to_1 + id_1,
+        'p1': reset_1_to_0 + id_0,
+        'q1': reset_1_to_1 + id_0,
+        'p0_p1': reset_0_to_0 + reset_1_to_0,
+        'p0_q1': reset_0_to_0 + reset_1_to_1,
+        'q0_p1': reset_0_to_1 + reset_1_to_0,
+        'q0_q1': reset_0_to_1 + reset_1_to_1,
+    }
+    return [reset_1_qubit, reset_2_qubit]
+
 class NoiseTransformer:
     """Transforms one quantum channel to another based on a specified criteria."""
 
     def __init__(self):
         self.named_operators = {
             'pauli': pauli_operators(),
-            'reset': [{
-                'p': [{'name': 'reset', 'qubits': [0]}],  # reset to |0>
-                'q': [{'name': 'reset', 'qubits': [0]},
-                      {'name': 'x', 'qubits': [0]}]  # reset to |1>
-            }],
+            'reset': reset_operators(),
             'clifford': [dict([(j, single_qubit_clifford_instructions(j))
                               for j in range(1, 24)])]
         }
