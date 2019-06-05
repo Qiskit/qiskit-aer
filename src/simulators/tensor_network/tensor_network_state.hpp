@@ -45,7 +45,7 @@ enum class Snapshots {
 // Tensor Network State subclass
 //=========================================================================
 
-using tensorstate_t = TensorNetworkState::MPS;
+using tensorstate_t = MPS;
 
 class State : public Base::State<tensorstate_t> {
 public:

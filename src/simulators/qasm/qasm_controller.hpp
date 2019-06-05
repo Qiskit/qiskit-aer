@@ -368,7 +368,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       return run_circuit_helper<TensorNetworkState::State>(circ,
 							   shots,
 							   rng_seed,
-        						   TensorNetworkState::State()); // no custom initial state
+        						   TensorNetworkState::MPS()); // no custom initial state
 
     default:
       throw std::runtime_error("QasmController:Invalid simulation method");
@@ -413,7 +413,7 @@ void QasmController::initialize_state(const Circuit &circ,
   if (initial_state.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {
-    //state.initialize_qreg(circ.num_qubits, initial_state);
+    state.initialize_qreg(circ.num_qubits, initial_state);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
 }
