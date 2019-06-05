@@ -143,9 +143,7 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
 	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
 
-	if(DEBUG) temp.print();
 	temp.apply_swap();
-	if(DEBUG) temp.print();
 	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
 	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
@@ -204,7 +202,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
 	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
 
-	if(DEBUG) temp.print();
 	switch (gate_type) {
 	case cx:
 	  temp.apply_cnot(swapped);
@@ -228,7 +225,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
     default:
 	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
 	}
-	if(DEBUG) temp.print();
 	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
 	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);

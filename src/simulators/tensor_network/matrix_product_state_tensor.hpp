@@ -409,24 +409,24 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   matrix<complex_t> U,V;
   rvector_t S(min(C.GetRows(), C.GetColumns()));
 
-  if(SHOW_SVD)
-    {
-      C.SetOutputStyle(Matrix);
-      U.SetOutputStyle(Matrix);
-      V.SetOutputStyle(Matrix);
-      cout << "C =" << endl << C ;
-    }
+#ifdef DEBUG
+  C.SetOutputStyle(Matrix);
+  U.SetOutputStyle(Matrix);
+  V.SetOutputStyle(Matrix);
+  cout << "Input matrix before SVD =" << endl << C ;
+#endif
   
   csvd_wrapper(C,U,S,V);
 
-  if(SHOW_SVD) {
-    cout << "U = " << endl << U ;
-    cout << "S = " << endl;
-    for (uint_t i = 0; i != S.size(); ++i)
-      cout << S[i] << " , ";
-    cout << endl;
-    cout << "V = " << endl << V ;
-  }
+#ifdef DEBUG
+  cout << "matrices after SVD:" <<endl;
+  cout << "U = " << endl << U ;
+  cout << "S = " << endl;
+  for (uint_t i = 0; i != S.size(); ++i)
+    cout << S[i] << " , ";
+  cout << endl;
+  cout << "V = " << endl << V ;
+#endif
 
   uint_t SV_num = num_of_SV(S, 1e-16);
   U.resize(U.GetRows(),SV_num);

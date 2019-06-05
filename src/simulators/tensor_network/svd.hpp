@@ -13,9 +13,6 @@
 #include "framework/utils.hpp"
 #include "framework/types.hpp"
 
-#define DEBUG false
-#define SHOW_SVD false
-
 using namespace std;
 // Data types
 using long_complex_t = std::complex<long double>;

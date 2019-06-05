@@ -567,12 +567,10 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
   }
-  if (DEBUG) {
+#ifdef DEBUG 
     cout <<"after apply_gate, TN is:"<<endl;
     qreg_.printTN();
-    cout << "state_vec = ";
-    qreg_.state_vec(0,qreg_.num_qubits()-1).print(true);
-  }
+#endif
 }
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
@@ -726,12 +724,7 @@ std::pair<uint_t, double>
 State::sample_measure_with_prob(const reg_t &qubits,
                                 RngEngine &rng) {
   rvector_t probs = measure_probs(qubits);
-  if (DEBUG) {
-    for (uint_t i=0; i<qubits.size(); i++) {
-      cout << probs[i] << " ";
-    }
-      cout << endl;
-  }
+
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);

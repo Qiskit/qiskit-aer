@@ -44,10 +44,8 @@ cmatrix_t reshape_before_SVD(vector<cmatrix_t> data)
 //	Turns 4 matrices A0,A1,A2,A3 to big matrix:
 //	A0 A1
 //	A2 A3
-//	if(DEBUG) cout << "started first&second concatenate" << endl;
 	cmatrix_t temp1 = AER::Utils::concatenate(data[0], data[1], 1),
 		  temp2 = AER::Utils::concatenate(data[2], data[3], 1);
-//	if(DEBUG) cout << "started third concatenate" << endl;
 	return AER::Utils::concatenate(temp1, temp2, 0);
 }
 vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t U)
@@ -187,7 +185,6 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	}
 	eps = eps * eta;
 
-	if(DEBUG) cout << "initializing U, V" << endl;
 //
 // Initialization of U and V.
 //
@@ -213,11 +210,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 	for( k = n-1; k >= 0; k--)
 	{
-		if(DEBUG) cout << "k = " << k << endl;
-//		int while_runs = 0;
 		while(true)
 		{
-			if(DEBUG) cout << "in while(true) " << endl;
 			bool jump = false;
 			for( l = k; l >= 0; l--)
 			{
@@ -297,17 +291,22 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 				long double large_f = 0;
 				if (f==0) {
-				  if (DEBUG) cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
+#ifdef DEBUG
+				  cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
+#endif
 				  long double large_x =   x * tiny_factor;
 				  long double large_g =   g * tiny_factor;
 				  long double large_cs = cs * tiny_factor;
 				  long double large_sn = sn * tiny_factor;
-				  if (DEBUG) cout << large_x * large_cs <<endl;;
-				  if (DEBUG) cout << large_g * large_sn <<endl;
 				  large_f = large_x * large_cs + large_g * large_sn;
-				  if (DEBUG) cout << "new f = " << large_f << endl;
-				}
 
+#ifdef DEBUG
+				  cout << large_x * large_cs <<endl;;
+				  cout << large_g * large_sn <<endl;
+				  cout << "new f = " << large_f << endl;
+
+#endif
+				}
 				g = g * cs - x * sn;
 				h = y * sn; // h == 0 because y==0
 				y = y * cs;
@@ -321,8 +320,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				}
 
 				bool tiny_w = false;
-//				if (DEBUG) cout.precision(32);
-//				if (DEBUG) cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
+#ifdef DEBUG
+				cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
+#endif
 				if (abs(h)  < 1e-13 && abs(f) < 1e-13 && large_f != 0) {
 				  tiny_w = true;
 				}
@@ -332,24 +332,21 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				w = sqrt( h * h + f * f );
 				if (w == 0 && !tiny_w) {
 
-				  if (DEBUG) {
-				    cout << "ERROR 2: w is exactly 0: h = " << h << " , f = " << f << endl;
+#ifdef DEBUG
+				    cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << endl;
 				    cout << " w = " << w << endl;
-				  }
+#endif
 				  return FAILURE;
 				}
 
 				S[i-1] = w;
 				if (tiny_w) {
-				  if (DEBUG) cout << "tiny" <<endl;
 				  cs = 1.0; // because h==0, so w = f
 				  sn = 0;
 				} else {
 				  cs = f / w;
 				  sn = h / w;
 				}
-//				cs = f / w;
-//				sn = h / w;
 
 				f = cs * g + sn * y;
 				x = cs * y - sn * g;
@@ -376,7 +373,6 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		}
 	}
 
-	if(DEBUG) cout << "Sorting the singular values" << endl;
 //
 //  Sort the singular values.
 //
@@ -478,47 +474,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	      }
 	if( ! equal )
 	{
-//		temp_A.SetOutputStyle(Matrix);
-//		diag_S.SetOutputStyle(Matrix);
-		cout << "error: wrong SVD calc: A != USV*" << endl;
-//		cout << "A = " << endl;
-//		cout << temp_A;
-//		cout << "U = " << endl;
-//		cout << U;
-//		cout << "S = " << endl;
-//		cout << diag_S;
-//		cout << "V* = " << endl;
-//		cout << AER::Utils::dagger(V);
-//		cout << "USV* = " << endl;
-//		cout << U*diag_S*(AER::Utils::dagger(V));
-//		cout << temp;
-//		assert(false);
+	  cout << "error: wrong SVD calc: A != USV*" << endl;
 	}
-
-	// Cut-off small elements
-//	double cut_off_threshold = 1e-15;
-//	if(DEBUG) cout << "Cut-off small elements" << endl;
-//	for (i=0; i < nrows; i++)
-//		for (j=0; j < nrows; j++)
-//		{
-//			if(std::abs(U(i, j).real()) < cut_off_threshold)
-//				U(i, j).real(0);
-//			if(std::abs(U(i, j).imag()) < cut_off_threshold)
-//				U(i, j).imag(0);
-//		}
-//	for (i=0; i < S.size(); i++)
-//	{
-//		if(S[i] < cut_off_threshold)
-//			S[i] = 0;
-//	}
-//	for (i=0; i < ncols; i++)
-//		for (j=0; j < ncols; j++)
-//		{
-//			if(std::abs(V(i, j).real()) < cut_off_threshold)
-//				V(i, j).real(0);
-//			if(std::abs(V(i, j).imag()) < cut_off_threshold)
-//				V(i, j).imag(0);
-//		}
 
 	// Transpose again if m < n
 	if(transposed)
@@ -530,30 +487,34 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
-	cmatrix_t coppied_A = A;
-	int times = 0;
-	if(DEBUG) cout << "1st try" << endl;
-	status current_status = csvd(A, U, S, V);
-	if (current_status == SUCCESS)
-	  return;
-	if(DEBUG) cout << "1st try success" << endl;
+  cmatrix_t copied_A = A;
+  int times = 0;
+#ifdef DEBUG
+  cout << "1st try" << endl;
+#endif
+  status current_status = csvd(A, U, S, V);
+  if (current_status == SUCCESS)
+    return;
 
-	while(times <= NUM_SVD_TRIES && current_status == FAILURE)
-	  {
-	    times++;
-	    coppied_A = coppied_A*mul_factor;
-	    A = coppied_A;
-	    if(DEBUG) cout << "another try" << endl;
-	    current_status = csvd(A, U, S, V);
-	  }
-	if(times == NUM_SVD_TRIES) {
-	  cout << "SVD failed" <<endl;
-	  assert(false);
-	}
+  while(times <= NUM_SVD_TRIES && current_status == FAILURE)
+    {
+      times++;
+      copied_A = copied_A*mul_factor;
+      A = copied_A;
 
-	//Divide by mul_factor every singular value after we multiplied matrix a
-	for(int k = 0; k < S.size(); k++)
-			S[k] /= pow(mul_factor, times);
+#ifdef DEBUG
+      cout << "SVD trial #" << times << endl;
+#endif
+
+      current_status = csvd(A, U, S, V);
+    }
+  if(times == NUM_SVD_TRIES) {
+    std::cerr << "SVD failed" << std::endl;
+  }
+  
+  //Divide by mul_factor every singular value after we multiplied matrix a
+  for(int k = 0; k < S.size(); k++)
+    S[k] /= pow(mul_factor, times);
 }
 
 
