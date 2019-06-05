@@ -12,6 +12,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
+#include <utility>
 
 #include "framework/utils.hpp"
 
@@ -23,13 +24,6 @@ namespace TensorNetworkState {
 
 uint_t reverse_bits(uint_t num, uint_t len);
 vector<uint_t> calc_new_indexes(vector<uint_t> indexes);
-
-template <class T>
-void myswap(T &a, T &b){
-	T temp = a;
-	a = b;
-	b = temp;
-}
 
 uint_t reverse_bits(uint_t num, uint_t len) {
   uint_t sum = 0;
@@ -60,11 +54,12 @@ void MPS::initialize(uint_t num_qubits)
   num_qubits_ = num_qubits;
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
-  for(uint_t i = 0; i < num_qubits_; i++)
+  for(uint_t i = 0; i < num_qubits_-1; i++) {
       q_reg_.push_back(MPS_Tensor(alpha,beta));
-  for(uint_t i = 0; i < num_qubits_-1; i++)
-      lambda_reg_.push_back(rvector_t {1.0}) ;
-
+      lambda_reg_.push_back(rvector_t {1.0});
+  }
+  // need to add one more Gamma tensor, because above loop only initialized up to n-1 
+  q_reg_.push_back(MPS_Tensor(alpha,beta));
 }
 
 void MPS::initialize(const MPS &other){
@@ -121,7 +116,7 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 {
 	if(index_A > index_B)
 	{
-		myswap<uint_t>(index_A, index_B);
+	  std::swap(index_A, index_B);
 	}
 	//for MPS
 	if(index_A + 1 < index_B)
@@ -195,8 +190,8 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	bool swapped = false;
 	if(index_A >  index_B)
 	{
-		myswap<uint_t>(index_A, index_B);
-		swapped = true;
+	  std::swap(index_A, index_B);
+	  swapped = true;
 	}
 
 	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
