@@ -244,7 +244,7 @@ class ReadoutError:
             if abs(sum(arr) - 1) > threshold:
                 raise NoiseError("Invalid probabilities: sum({})= {} "
                                  "is not 1.".format(vec, sum(arr)))
-            if arr[arr < 0]:
+            if arr[arr < 0].size > 0:
                 raise NoiseError(
                     "Invalid probabilities: {} "
                     "contains a negative probability.".format(vec))
