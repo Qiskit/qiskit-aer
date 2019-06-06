@@ -84,7 +84,7 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
         raise NoiseError('Duplicate qubits in remapping: {}'.format(inv_map))
 
     # Convert noise model to dict
-    nm_dict = noise_model.as_dict()
+    nm_dict = noise_model.to_dict()
 
     # Indexes of errors to keep
     new_errors = []

@@ -197,7 +197,7 @@ class QasmSimulator(AerBackend):
 
         if clifford_noise:
             if method != "stabilizer" and noise_model:
-                for error in noise_model.as_dict()['errors']:
+                for error in noise_model.to_dict()['errors']:
                     if error['type'] == 'qerror':
                         for circ in error["instructions"]:
                             for instr in circ:
