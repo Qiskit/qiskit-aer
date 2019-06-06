@@ -9,7 +9,6 @@
 #define _aer_tensor_state_hpp_
 
 #include "framework/json.hpp"
-#include "framework/types.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
 #include "matrix_product_state_tensor.hpp"
@@ -107,7 +106,7 @@ public:
   }
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
   {
-    cout << "apply_diagonalmatrix not supported yet" <<endl;
+    cout << "apply_diagonal_matrix not supported yet" <<endl;
   }
 
   //----------------------------------------------------------------
@@ -122,19 +121,17 @@ public:
   //----------------------------------------------------------------
   void change_position(uint_t src, uint_t dst);
   
-  cmatrix_t Density_matrix(const reg_t &qubits) const;
+  cmatrix_t density_matrix(const reg_t &qubits) const;
 
   //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
   double Expectation_value(const reg_t &qubits, const string &matrices) const;
   double Expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
   //----------------------------------------------------------------	
-  // function name: printTN
-  // Description: Prints the tensor network
-  // Parameters: none.
-  // Returns: none.
+  // function name: print
+  // Description: prints the MPS
   //----------------------------------------------------------------	
-  void printTN();
+   virtual ostream&  print(ostream& out) const;
 
   //----------------------------------------------------------------
   // function name: state_vec
@@ -204,6 +201,23 @@ protected:
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
 };
+ 
+inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
+  out << "[";
+  uint_t size = vec.size();
+  for (uint_t i = 0; i < size-1; ++i) {
+    out << vec[i];
+    out << ", ";
+  }
+  out << vec[size-1] << "]";
+  return out;
+}
+ 
+inline ostream&
+operator <<(std::ostream& out, const MPS& mps)
+{
+  return mps.print(out);
+}
 
 //-------------------------------------------------------------------------
 } // end namespace MPS

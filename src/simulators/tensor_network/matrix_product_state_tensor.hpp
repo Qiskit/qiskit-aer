@@ -40,7 +40,6 @@ uint_t num_of_SV(rvector_t S, double threshold);
 //				in S
 // Parameters: rvector_t S - vector of singular values from the
 //			   SVD decomposition
-//			   false to print as vector of matrices.
 // Returns: number of elements in S that are greater than 0
 //			(actually greater than threshold)
 //-------------------------------------------------------------
@@ -94,7 +93,7 @@ public:
     }
     return *this;
   }
-  void print(bool statevector = false);
+  virtual ostream& print(ostream& out) const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
@@ -146,26 +145,16 @@ private:
 
 //---------------------------------------------------------------
 // function name: print
-// Description: Add a new command to the history
-// Parameters: bool statevector: true to print as a state vector
-//			   false to print as vector of matrices.
-// Returns: none.
 //-------------------------------------------------------------
-void MPS_Tensor::print(bool statevector) {
-  if(statevector == false)
+ostream& MPS_Tensor::print(ostream& out) const{
+   out << "[";
     for(uint_t i = 0; i < data_.size(); i++)
       {
-	data_[i].SetOutputStyle(Matrix);
-	std::cout << "i = " << i << endl;
-	std::cout << data_[i];
-      } else {
-    std::cout << "[";
-    for(uint_t i = 0; i < data_.size(); i++)
-      {
-	std::cout << data_[i](0,0)<< " ";
+	out << data_[i](0,0)<< " ";
       }
-    std::cout << "]" << endl;
-  }
+    out << "]" << endl;
+
+    return out;
 }
   
 //----------------------------------------------------------------
@@ -410,9 +399,6 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   rvector_t S(min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
-  C.SetOutputStyle(Matrix);
-  U.SetOutputStyle(Matrix);
-  V.SetOutputStyle(Matrix);
   cout << "Input matrix before SVD =" << endl << C ;
 #endif
   

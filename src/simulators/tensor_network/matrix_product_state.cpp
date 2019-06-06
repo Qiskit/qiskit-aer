@@ -13,6 +13,7 @@
 #include "stdio.h"
 #include "string.h"
 #include <utility>
+#include <iostream>
 
 #include "framework/utils.hpp"
 
@@ -222,7 +223,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	  temp.apply_matrix(mat);
 	  break;
 
-    default:
+	default:
 	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
 	}
 	MPS_Tensor left_gamma,right_gamma;
@@ -247,7 +248,7 @@ void MPS::change_position(uint_t src, uint_t dst)
 			apply_swap(i,i-1);
 }
 
-cmatrix_t MPS::Density_matrix(const reg_t &qubits) const
+cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
   // ***** Assuming ascending sorted qubits register *****
   vector<uint_t> internalIndexes;
@@ -283,7 +284,7 @@ cmatrix_t MPS::Density_matrix(const reg_t &qubits) const
 double MPS::Expectation_value(const reg_t &qubits, const string &matrices) const
 {
   // ***** Assuming ascending sorted qubits register *****
-  cmatrix_t rho = Density_matrix(qubits);
+  cmatrix_t rho = density_matrix(qubits);
   string matrices_reverse = matrices;
   reverse(matrices_reverse.begin(), matrices_reverse.end());
   cmatrix_t M(1), temp;
@@ -311,7 +312,7 @@ double MPS::Expectation_value(const reg_t &qubits, const string &matrices) const
 double MPS::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
   // ***** Assuming ascending sorted qubits register *****
-  cmatrix_t rho = Density_matrix(qubits);
+  cmatrix_t rho = density_matrix(qubits);
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
@@ -321,19 +322,20 @@ double MPS::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
   return real(res);
 }
 
-void MPS::printTN()
+ostream& MPS::print(ostream& out) const
 {
 	for(uint_t i=0; i<num_qubits_; i++)
 	{
-	  cout << "Gamma [" << i << "] :" << endl;
-	  q_reg_[i].print();
+	  out << "Gamma [" << i << "] :" << endl;
+	  q_reg_[i].print(out);
 	  if(i < num_qubits_- 1)
 	    {
-	      cout << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << endl;
-	      cout << lambda_reg_[i] << endl;
+	      out << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << endl;
+	      out << lambda_reg_[i] << endl;
 	    }
 	}
-	cout << endl;
+	out << endl;
+	return out;
 }
 
 MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
@@ -358,6 +360,9 @@ void MPS::full_state_vector(cvector_t& statevector) const
   for (uint_t i = 0; i < length; i++) {
     statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
+#ifdef DEBUG
+  cout << *this;
+#endif
 }
 
 void MPS::probabilities_vector(rvector_t& probvector) const
@@ -383,7 +388,7 @@ reg_t MPS::sample_measure(std::vector<double> &rands)
      for (int_t i = 0; i < SHOTS; ++i) {
         double rand = rands[i];
         double p = .0;
-        int_t sample;
+        uint_t sample;
         for (sample = 0; sample < length; ++sample) {
           p += probvector[sample];
           if (rand < p)

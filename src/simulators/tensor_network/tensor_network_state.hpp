@@ -567,10 +567,6 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
   }
-#ifdef DEBUG 
-    cout <<"after apply_gate, TN is:"<<endl;
-    qreg_.printTN();
-#endif
 }
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
