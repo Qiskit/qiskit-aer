@@ -152,7 +152,7 @@ def approximate_noise_model(model, *,
             operator_string=operator_string,
             operator_dict=operator_dict,
             operator_list=operator_list)
-        error_dict = error.as_dict()
+        error_dict = error.to_dict()
         error_dict["operations"] = [operation]
         error_list.append(error_dict)
 
@@ -164,7 +164,7 @@ def approximate_noise_model(model, *,
                 operator_string=operator_string,
                 operator_dict=operator_dict,
                 operator_list=operator_list)
-            error_dict = error.as_dict()
+            error_dict = error.to_dict()
             error_dict["operations"] = [operation]
             error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
             error_list.append(error_dict)
@@ -178,7 +178,7 @@ def approximate_noise_model(model, *,
                     operator_string=operator_string,
                     operator_dict=operator_dict,
                     operator_list=operator_list)
-                error_dict = error.as_dict()
+                error_dict = error.to_dict()
                 error_dict["operations"] = [operation]
                 error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
                 error_dict["noise_qubits"] = [model._str2qubits(noise_str)]
@@ -191,7 +191,7 @@ def approximate_noise_model(model, *,
             operator_string=operator_string,
             operator_dict=operator_dict,
             operator_list=operator_list)
-        error_dict = error.as_dict()
+        error_dict = error.to_dict()
         error_list.append(error_dict)
 
     # Add local readout error
@@ -201,7 +201,7 @@ def approximate_noise_model(model, *,
             operator_string=operator_string,
             operator_dict=operator_dict,
             operator_list=operator_list)
-        error_dict = error.as_dict()
+        error_dict = error.to_dict()
         error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
         error_list.append(error_dict)
 

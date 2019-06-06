@@ -27,6 +27,7 @@ from .errorutils import kraus2instructions
 from .errorutils import circuit2superop
 from .errorutils import standard_instruction_channel
 from .errorutils import standard_instruction_operator
+from ...utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -284,6 +285,16 @@ class QuantumError:
                 position) + "of error outcomes {}".format(self.size))
 
     def as_dict(self):
+        """
+        DEPRECATED: Use to_dict()
+        Returns:
+            dict: The current error as a dictionary.
+        """
+        deprecation("QuantumError::as_dict() method is deprecated and will be removed after 0.3."
+                    "Use '.to_dict()' instead")
+        return self.to_dict()
+
+    def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
             "type": "qerror",

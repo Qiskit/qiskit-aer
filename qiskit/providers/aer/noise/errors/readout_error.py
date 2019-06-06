@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
 from .errorutils import qubits_from_mat
+from ...utils.helpers import deprecation
 
 
 class ReadoutError:
@@ -141,6 +142,16 @@ class ReadoutError:
         return False
 
     def as_dict(self):
+        """
+        DEPRECATED: Use to_dict()
+        Returns:
+            dict: The current error as a dictionary.
+        """
+        deprecation("ReadoutError::as_dict() method is deprecated and will be removed after 0.3."
+                    "Use '.to_dict()' instead")
+        return self.to_dict()
+
+    def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
             "type": "roerror",
