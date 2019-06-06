@@ -24,4 +24,3 @@ from .standard_errors import thermal_relaxation_error
 from .standard_errors import phase_amplitude_damping_error
 from .standard_errors import amplitude_damping_error
 from .standard_errors import phase_damping_error
-

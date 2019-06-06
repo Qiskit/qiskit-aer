@@ -77,6 +77,7 @@ class AerBackend(BaseBackend):
         super().__init__(configuration, provider=provider)
         self._controller = controller
 
+    # pylint: disable=arguments-differ
     def run(self, qobj, backend_options=None, noise_model=None, validate=True):
         """Run a qobj on the backend."""
         # Submit job

@@ -173,10 +173,10 @@ class NoiseModel:
         # the same basis_gates
         # the same noise_qubits
         # the same noise_instructions
-        if (not isinstance(other, NoiseModel)
-                or self.basis_gates != other.basis_gates
-                or self.noise_qubits != other.noise_qubits
-                or self.noise_instructions != other.noise_instructions):
+        if (not isinstance(other, NoiseModel) or
+                self.basis_gates != other.basis_gates or
+                self.noise_qubits != other.noise_qubits or
+                self.noise_instructions != other.noise_instructions):
             return False
         # Check default readout errors is equal
         if not self._readout_errors_equal(other):

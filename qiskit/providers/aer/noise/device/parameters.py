@@ -30,8 +30,8 @@ def gate_param_values(properties):
 
     Returns:
         list: A list of tuples (name, qubits, time, error). If gate
-        error or gate_time information is not available None will be
-        returned for value.
+              error or gate_time information is not available None
+              will be returned for value.
     """
     values = []
     for gate in properties.gates:
@@ -63,8 +63,8 @@ def gate_error_values(properties):
 
     Returns:
         list: A list of tuples (name, qubits, value). If gate
-        error information is not available None will be returned for
-        value.
+              error information is not available None will be returned for
+              value.
     """
     values = []
     for gate in properties.gates:
@@ -88,8 +88,8 @@ def gate_time_values(properties):
 
     Returns:
         list: A list of tuples (name, qubits, value). If gate
-        time information is not available None will be returned for
-        value.
+              time information is not available None will be returned for
+              value.
     """
     values = []
     for gate in properties.gates:
@@ -114,10 +114,11 @@ def readout_error_values(properties):
 
     Returns:
         list: A list of readout error values for qubits. If readout
-        error information is not available None will be returned for value.
+              error information is not available None will be returned
+              for value.
     """
     values = []
-    for qubit, qubit_props in enumerate(properties.qubits):
+    for qubit_props in properties.qubits:
         value = None  # default value
         params = _check_for_item(qubit_props, 'readout_error')
         if hasattr(params, 'value'):
@@ -142,7 +143,8 @@ def thermal_relaxation_values(properties):
         Numpy.inf will be used.
     """
     values = []
-    for qubit, qubit_props in enumerate(properties.qubits):
+    for qubit_props in properties.qubits:
+        # pylint: disable=invalid-name
         # Default values
         t1, t2, freq = inf, inf, inf
 
@@ -180,7 +182,7 @@ def thermal_relaxation_values(properties):
 def _check_for_item(lst, name):
     """Search list for item with given name."""
     filtered = [item for item in lst if item.name == name]
-    if len(filtered) == 0:
+    if not filtered:
         return None
     else:
         return filtered[0]

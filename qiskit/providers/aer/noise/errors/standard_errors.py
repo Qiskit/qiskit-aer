@@ -191,7 +191,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
             # Pauli strings go from qubit-0 on left to qubit-N on right
             # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
             # We also drop identity operators to reduce dimension of matrix multiplication
-            mat = 1
+            mat = np.identity(1)
             qubits = []
             if isinstance(pauli, Pauli):
                 pauli_str = pauli.to_label()
@@ -203,7 +203,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     qubits.append(qubit)
                 elif pstr != 'I':
                     raise NoiseError("Invalid Pauli string.")
-            if mat is 1:
+            if mat.size == 1:
                 prob_identity += prob
             else:
                 circ = make_unitary_instruction(
@@ -231,6 +231,7 @@ def _pauli_error_standard(noise_ops, num_qubits):
             return {'name': 'y'}
         if pauli == 'Z':
             return {'name': 'z'}
+        raise NoiseError("Invalid Pauli string.")
 
     prob_identity = 0.0
     pauli_circuits = []
@@ -344,6 +345,7 @@ def reset_error(prob0, prob1=0):
     return QuantumError(noise_ops)
 
 
+# pylint: disable=invalid-name
 def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     """
     Single-qubit thermal relaxation quantum error channel.
