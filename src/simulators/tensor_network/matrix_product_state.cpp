@@ -253,8 +253,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   // ***** Assuming ascending sorted qubits register *****
   vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
-    internalIndexes.push_back((uint_t)index);
-  //  std::sort(internalIndexes.begin(), internalIndexes.end()); -- Assuming sorted
+    internalIndexes.push_back(index);
 
   MPS temp_TN;
   temp_TN.initialize(*this);
