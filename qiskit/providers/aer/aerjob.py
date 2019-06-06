@@ -16,7 +16,6 @@
 
 from concurrent import futures
 import logging
-import sys
 import functools
 
 from qiskit.providers import BaseJob, JobStatus, JobError
