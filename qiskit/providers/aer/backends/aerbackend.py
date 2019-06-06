@@ -50,8 +50,8 @@ class AerJSONEncoder(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
-        if hasattr(obj, "as_dict"):
-            return obj.as_dict()
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
         return super().default(obj)
 
 
@@ -117,7 +117,7 @@ class AerBackend(BaseBackend):
         original_config = qobj.config
         # Convert to dictionary and add new parameters
         # from noise model and backend options
-        config = original_config.as_dict()
+        config = original_config.to_dict()
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val
