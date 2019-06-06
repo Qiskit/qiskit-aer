@@ -4,3 +4,5 @@ scikit-build
 cython
 asv
 cvxopt
+pylint
+pycodestyle

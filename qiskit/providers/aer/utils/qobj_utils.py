@@ -29,6 +29,9 @@ def append_instr(qobj, exp_index, instruction):
         qobj (Qobj): a Qobj object.
         exp_index (int): The index of the experiment in the qobj.
         instruction (QasmQobjInstruction): instruction to insert.
+
+    Returns:
+        qobj(Qobj): The Qobj object
     """
     qobj.experiments[exp_index].instructions.append(instruction)
     return qobj
@@ -40,8 +43,11 @@ def insert_instr(qobj, exp_index, item, pos):
     Args:
         qobj (Qobj): a Qobj object
         exp_index (int): The index of the experiment in the qobj.
-        instruction(QasmQobjInstruction): instruction to insert.
+        item (QasmQobjInstruction): instruction to insert.
         pos (int): the position to insert the item.
+
+    Returns:
+        qobj(Qobj): The Qobj object
     """
     qobj.experiments[exp_index].instructions.insert(pos, item)
     return qobj
@@ -116,7 +122,7 @@ def measure_instr(qubits, memory, registers=None):
     if len(qubits) != len(registers):
         raise ValueError("Number of qubits does not match number of registers")
     return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory,
-                           register=registers)
+                               register=registers)
 
 
 def reset_instr(qubits):
@@ -196,6 +202,12 @@ def insert_snapshots_after_barriers(qobj, snapshot):
     Args:
         qobj (Qobj): a qobj to insert snapshots into
         snapshot (QasmQobjInstruction): a snapshot instruction.
+
+    Returns:
+        qobj(Qobj): The Qobj object
+
+    Raises:
+        ValueError: if the name of the instruction is not an snapshot
 
     Additional Information:
     """

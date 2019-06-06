@@ -20,6 +20,7 @@ from qiskit.providers.aer import QasmSimulator
 from .tools import quantum_volume_circuit, mixed_unitary_noise_model, \
                    reset_noise_model, kraus_noise_model, no_noise
 
+
 class QuantumVolumeTimeSuite:
     """
     Benchmarking times for Quantum Volume with various noise configurations
