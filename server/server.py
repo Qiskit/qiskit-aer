@@ -157,5 +157,5 @@ def post_job():
         return jsonify(content), 404
 
 if __name__ == '__main__':
-    app.run(port=_port)
+    app.run(host='0.0.0.0', port=_port)
 
