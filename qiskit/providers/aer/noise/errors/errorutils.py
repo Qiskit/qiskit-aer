@@ -298,7 +298,7 @@ def standard_gate_unitary(name):
             np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex),
         ("cx", "CX", "cx_01"):
             np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
-        ("cx_10"):
+        ("cx_10",):
             np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
         ("cz", "CZ"):
             np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex),

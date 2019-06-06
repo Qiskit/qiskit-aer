@@ -756,8 +756,6 @@ class TestNoise(common.QiskitAerTestCase):
         error1 = pauli_error([['X', 1]], standard_gates=False)
         error2 = pauli_error([['X', 1]], standard_gates=True)
 
-        print("error1: {}\nerror2: {}".format(error1, error2))
-
         model1 = NoiseModel()
         model1.add_all_qubit_quantum_error(error1, ['u3'], False)
         model1.add_quantum_error(error1, ['u3'], [2], False)
