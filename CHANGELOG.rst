@@ -38,6 +38,7 @@ Added
 
 Changed
 -------
+- Deprecate the use of ".as_dict()" in favor of ".to_dict()" (#228)
 - Set simulator seed from "seed_simulator" in qobj (#210)
 
 Removed
