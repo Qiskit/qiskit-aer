@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 //#define DEBUG // Uncomment for verbose debugging output
@@ -12,16 +19,26 @@
 
 #include "version.hpp"
 // Simulator
-#include "simulators/qasm/qasm_controller_par.hpp"
-
-#ifdef QSIM_MPI
-#include <mpi.h>
-#endif
-
+#include "simulators/qasm/qasm_controller.hpp"
 
 /*******************************************************************************
  *
- * Main
+ * EXIT CODES:
+ * 
+ * 0: The Qobj was succesfully executed.
+ *    Returns full result JSON.
+ * 
+ * 1: Command line invalid or Qobj JSON cannot be loaded.
+ *    Returns JSON:
+ *    {"success": false, "status": "ERROR: Invalid input (error msg)"}
+ * 
+ * 2: Qobj failed to load or execute.
+ *    Returns JSON:
+ *    {"success": false, "status": "ERROR: Failed to execute qobj (error msg)"}
+ * 
+ * 3: At least one experiment in Qobj failed to execute successfully.
+ *    Returns parial result JSON with failed experiments returning:
+ *    "{"success": false, "status": "ERROR: error msg"}
  *
  ******************************************************************************/
 
@@ -68,32 +85,13 @@ inline void usage(const std::string& command, std::ostream &out){
   std::cerr << "    file        : qobj file\n";
 }
 
-extern void Init_CUDA(void);
-
-
-class NullStream : public std::streambuf
-{
-public:
-	int overflow(int c)
-	{
-		return c;
-	}
-};
-
-
-int main(int argc, char **argv){
-	int myrank=0,nprocs=1;
-#ifdef QSIM_MPI
-	MPI_Init(&argc,&argv);
-
-	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-	MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+#ifdef QASM_PARALLEL
+extern void Init_Parallel(int argc, char **argv);
 #endif
 
-	NullStream null_stream;
-	std::ostream &out = std::cout; // output stream
-	std::ostream null_out(&null_stream);
+int main(int argc, char **argv) {
 
+  std::ostream &out = std::cout; // output stream
   int indent = 4;
   json_t qobj;
   json_t config;
@@ -102,11 +100,10 @@ int main(int argc, char **argv){
     usage(std::string(argv[0]), out);
     return 1;
   }
-
-#ifdef AER_CUDA
-	Init_CUDA();
+#ifdef QASM_PARALLEL
+	Init_Parallel(argc,argv);
 #endif
-
+  
   // Parse command line options
   for(auto pos = 1ul; pos < static_cast<unsigned int>(argc); ++pos){
     auto option = parse_cmd_options(std::string(argv[pos]));
@@ -142,8 +139,10 @@ int main(int argc, char **argv){
 
   // Execute simulation
   try {
-	// Initialize simulator
-	AER::Simulator::QasmControllerPar sim;
+
+    // Initialize simulator
+    AER::Simulator::QasmController sim;
+
     // Check for config
     json_t config_all = qobj["config"];
     if (!config.empty())
@@ -151,19 +150,9 @@ int main(int argc, char **argv){
 
     sim.set_config(config_all);
     auto result = sim.execute(qobj);
+    out << result.dump(4) << std::endl;
 
-	if(myrank == 0){
-		out << result.dump(4) << std::endl;
-	}
-//	else{
-//		null_out << sim.execute(qobj).dump(4) << std::endl;
-//	}
-
-#ifdef QSIM_MPI
-      MPI_Finalize();
-#endif
-
-  	// Check if execution was succesful.
+    // Check if execution was succesful.
     bool success = false;
     std::string status = "";
     JSON::get_value(success, "success", result);
@@ -177,12 +166,8 @@ int main(int argc, char **argv){
     std::stringstream msg;
     msg << "Failed to execute qobj (" << e.what() << ")";
     failed(msg.str(), out, indent);
-
-#ifdef QSIM_MPI
-      MPI_Finalize();
-#endif
     return 2;
   }
 
-	return 0;
+  return 0;
 } // end main
