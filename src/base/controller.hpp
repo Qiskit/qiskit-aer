@@ -208,6 +208,9 @@ protected:
   // Controller config settings
   json_t config_;
 
+  // Validation threshold parameter
+  double validation_threshold_ = 1e-8;
+
   // Noise model
   Noise::NoiseModel noise_model_;
 
@@ -259,6 +262,9 @@ protected:
 void Controller::set_config(const json_t &config) {
   // Save config for passing to State and Data classes
   config_ = config;
+
+  // Get threhold parameter for general validation functions
+  JSON::get_value(validation_threshold_, "validation_threhsold", config);
 
   // Load noise model
   if (JSON::check_key("noise_model", config))

@@ -310,7 +310,7 @@ void QasmController::set_config(const json_t &config) {
     // Override simulator method to statevector
     simulation_method_ = Method::statevector;
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_statevector_, 1e-10)) {
+    if (!Utils::is_unit_vector(initial_statevector_, validation_threshold_)) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }

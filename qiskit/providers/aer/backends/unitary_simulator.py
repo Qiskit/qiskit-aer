@@ -17,7 +17,6 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
-import os
 from math import log2, sqrt
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
@@ -43,6 +42,10 @@ class UnitarySimulator(AerBackend):
 
         * "initial_unitary" (matrix_like): Sets a custom initial unitary
             matrix for the simulation instead of identity (Default: None).
+
+        * "validation_threshold" (double): Sets the threshold for checking
+            if initial unitary and target unitary are unitary matrices.
+            (Default: 1e-8).
 
         * "zero_threshold" (double): Sets the threshold for truncating
             small values to zero in the result data (Default: 1e-10).
@@ -97,10 +100,7 @@ class UnitarySimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
