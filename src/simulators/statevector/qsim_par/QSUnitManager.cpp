@@ -209,6 +209,9 @@ void QSUnitManager::Init(void)
 	if(buf){
 		useGPU = 0;
 	}
+	if(m_globalBits < 8){
+		useGPU = 0;
+	}
 
 	if(useGPU){
 		buf = getenv("QSIM_EXEC_ON_GPU");
