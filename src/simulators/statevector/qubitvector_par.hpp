@@ -1018,7 +1018,6 @@ reg_t QubitVectorPar<data_t>::sample_measure(const std::vector<double> &rnds) co
 	reg_t samples;
 	int i;
 
-	printf(" sample_measure \n");
 
 	samples.assign(SHOTS, 0);
 

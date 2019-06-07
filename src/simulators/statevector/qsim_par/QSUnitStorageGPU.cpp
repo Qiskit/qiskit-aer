@@ -34,49 +34,6 @@
 #include "QSUnitStorageGPU.h"
 
 
-void Init_CUDA(void)
-{
-	int idev,ndev;
-	int myrank = 0,nprocs = 1;
-	int ipp = 0, npp = 1;
-	char* buf;
-	int iDev,isDev,ieDev;
-
-#ifdef QSIM_MPI
-	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-	MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-#endif
-
-	buf = getenv("QSIM_PROC_PER_NODE");
-	if(buf){
-		npp = atoi(buf);
-	}
-	ipp = myrank % npp;
-
-	cudaGetDeviceCount(&ndev);
-	isDev = ipp *ndev / npp;
-	ieDev = (ipp+1) *ndev / npp;
-
-	for(idev=isDev;idev<ieDev;idev++){
-		void* pTmp;
-		cudaStream_t strm;
-
-		cudaSetDevice(idev);
-
-		size_t freeMem,totalMem;
-		cudaMemGetInfo(&freeMem,&totalMem);
-
-		cudaStreamCreateWithFlags(&strm, cudaStreamNonBlocking);
-		cudaStreamDestroy(strm);
-
-		cudaMalloc(&pTmp,sizeof(double)*1024);
-		cudaFree(pTmp);
-		cudaMallocHost(&pTmp,sizeof(double)*1024);
-		cudaFreeHost(pTmp);
-	}
-
-}
-
 int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
 {
 	size_t freeMem,totalMem;

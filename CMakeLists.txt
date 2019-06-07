@@ -10,15 +10,7 @@
 
 cmake_minimum_required(VERSION 3.6)
 file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
-
-if(AER_PARALLEL)
-  set(QASM_NAME "qasm_simulator_par")
-  set(QSIM_PAR_DEFS "-DQSIM_DOUBLE")
-else(AER_PARALLEL)
-  set(QASM_NAME "qasm_simulator")
-endif(AER_PARALLEL)
-
-project(${QASM_NAME} VERSION ${VERSION_NUM} LANGUAGES CXX C)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -42,7 +34,7 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/contrib/standalone/${QASM_NAME}.cpp")
+    "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
@@ -150,15 +142,6 @@ if(OPENMP_FOUND)
 	message("OpenMP found!")
 endif()
 
-if(AER_MPI)
-  find_package(MPI REQUIRED)
-
-  set(QSIM_PAR_DEFS "${QSIM_PAR_DEFS} -DQSIM_MPI")
-
-endif(AER_MPI)
-
-
-
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 find_package(Threads)
@@ -199,61 +182,42 @@ set(AER_LIBRARIES
 		Threads::Threads
 		${CMAKE_DL_LIBS})
 
+#
+# Enable GPU if CUDA is installed
+#
+set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+find_package(CUDA)
+if(CUDA_FOUND)
+	set(QSIM_PAR_DEFS "-DQSIM_COL_MAJOR -DQSIM_DOUBLE")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DQASM_PARALLEL ${QSIM_PAR_DEFS}")
 
-if(AER_PARALLEL)
-if(AER_DEBUG)
-  set(QSIM_PAR_DEFS "${QSIM_PAR_DEFS} -DQSIM_DEBUG")
-endif(AER_DEBUG)
-  add_subdirectory(src/simulators/statevector/qsim_par)
-
-# Set dependent libraries
-set(AER_LIBRARIES
+	add_subdirectory(src/simulators/statevector/qsim_par)
+	set(AER_LIBRARIES
 		${AER_LIBRARIES}
-	    qsim_par)
-
-if(AER_CUDA)
-find_package(CUDA REQUIRED)
-set(AER_LIBRARIES
-		${AER_LIBRARIES}
-	    qsim_par_cuda)
-
-  set(QSIM_PAR_DEFS "${QSIM_PAR_DEFS} -DAER_CUDA")
-
-endif(AER_CUDA)
-
-if(AER_MPI)
-set(AER_LIBRARIES
-		${AER_LIBRARIES}
-	    ${MPI_CXX_LIBRARIES})
-endif(AER_MPI)
-
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QSIM_PAR_DEFS}")
-
-endif(AER_PARALLEL)
+		${CUDA_LIBRARIES}
+		qsim_par
+		qsim_par_cuda)
+endif(CUDA_FOUND)
 
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
-	add_executable(${QASM_NAME} ${AER_SIMULATOR_CPP_MAIN})
-	set_target_properties(${QASM_NAME} PROPERTIES
+	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14)
-	set_target_properties(${QASM_NAME} PROPERTIES
+	set_target_properties(qasm_simulator PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	target_include_directories(${QASM_NAME} PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_link_libraries(${QASM_NAME} PRIVATE ${AER_LIBRARIES})
+	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
+	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+
 	# Linter
 	# This will add the linter as part of the compiling build target
-if(AER_PARALLEL)
-else(AER_PARALLEL)
-	add_linter(${QASM_NAME})
-endif(AER_PARALLEL)
+	add_linter(qasm_simulator)
 endif()
-
-
 
 # Tests
 if(BUILD_TESTS)

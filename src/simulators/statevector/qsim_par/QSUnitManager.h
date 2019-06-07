@@ -22,10 +22,6 @@
 #define _IBM_Q_SIMULATOR_UNIT_MANAGER_H_
 
 
-#ifdef QSIM_MPI
-#include <mpi.h>
-#endif
-
 
 #include "QSUnitStorage.h"
 #include "QSGate.h"
@@ -84,12 +80,6 @@ protected:
 	QSUint* m_pProcIndex;
 	QSUint* m_pProcMap;
 
-#ifdef QSIM_MPI
-	MPI_Request* m_pReqSend;
-	MPI_Request* m_pReqRecv;
-	MPI_File m_file;
-#endif
-
 	QSUint* m_pGuid_Pipe;
 	QSUint* m_pLocalMask_Pipe;
 	int* m_pPlaceExec_Pipe;
@@ -138,12 +128,6 @@ public:
 
 		m_pProcIndex = NULL;
 		m_pProcMap = NULL;
-
-#ifdef QSIM_MPI
-		m_pReqSend = NULL;
-		m_pReqRecv = NULL;
-		m_file = NULL;
-#endif
 
 		m_pGuid_Pipe = NULL;
 		m_pLocalMask_Pipe = NULL;
@@ -207,17 +191,6 @@ public:
 			delete[] m_pProcMap;
 		}
 		
-#ifdef QSIM_MPI
-		if(m_pReqSend){
-			delete[] m_pReqSend;
-		}
-		if(m_pReqRecv){
-			delete[] m_pReqRecv;
-		}
-		if(m_numGlobalFile > 0){
-			MPI_File_close(&m_file);
-		}
-#endif
 
 		if(m_pGuid_Pipe){
 			delete[] m_pGuid_Pipe;

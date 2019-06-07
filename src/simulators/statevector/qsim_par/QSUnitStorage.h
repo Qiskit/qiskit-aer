@@ -47,12 +47,14 @@ protected:
 	int m_unitPerPipe;
 	int m_pipeCount;
 	QSUnitStorage** m_pPlaces;
+	int m_procPerNode;
 public:
 	QSUnitStorage()
 	{
 		m_pAmp = NULL;
 		m_pIndex = NULL;
 		m_pPlaces = NULL;
+		m_procPerNode = 1;
 	}
 	QSUnitStorage(int iPlace,int bits)
 	{
@@ -69,6 +71,8 @@ public:
 		m_pipeCount = 0;
 
 		m_pPlaces = NULL;
+
+		m_procPerNode = 1;
 	}
 
 	virtual ~QSUnitStorage()
@@ -80,14 +84,19 @@ public:
 
 	void Init(int is);
 
+	void SetProcPerNode(int n)
+	{
+		m_procPerNode = n;
+	}
+
 	virtual int Allocate(QSUint numUnits,int numBuffers) = 0;
 	virtual void Release(void) = 0;
 
-	QSComplex* Unit(QSUint i)
+	virtual QSComplex* Unit(QSUint i)
 	{
 		return (m_pAmp + i*m_unitSize);
 	}
-	QSComplex* Buffer(int i)
+	virtual QSComplex* Buffer(int i)
 	{
 		return (m_pAmp + ((QSUint)i + (QSUint)m_pipeCount*(QSUint)m_unitPerPipe + m_numUnits)*m_unitSize);
 	}

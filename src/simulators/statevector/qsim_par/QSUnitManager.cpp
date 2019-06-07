@@ -23,10 +23,7 @@
 #include "QSUnitManager.h"
 
 #include "QSUnitStorageHost.h"
-
-#ifdef QSIM_MPI
-#include <mpi.h>
-#endif
+#include "QSUnitStorageFile.h"
 
 #ifdef QSIM_CUDA
 
@@ -47,6 +44,46 @@
 #include "QSGate_Y.h"
 #include "QSGate_Dot.h"
 #include "QSGate_MultiShot.h"
+
+
+
+void Init_Parallel(int argc, char **argv)
+{
+	int idev,ndev;
+	int myrank = 0,nprocs = 1;
+	int ipp = 0, npp = 1;
+	char* buf;
+	int iDev,isDev,ieDev;
+
+	buf = getenv("QSIM_PROC_PER_NODE");
+	if(buf){
+		npp = atoi(buf);
+	}
+	ipp = myrank % npp;
+
+	cudaGetDeviceCount(&ndev);
+	isDev = ipp *ndev / npp;
+	ieDev = (ipp+1) *ndev / npp;
+
+	for(idev=isDev;idev<ieDev;idev++){
+		void* pTmp;
+		cudaStream_t strm;
+
+		cudaSetDevice(idev);
+
+		size_t freeMem,totalMem;
+		cudaMemGetInfo(&freeMem,&totalMem);
+
+		cudaStreamCreateWithFlags(&strm, cudaStreamNonBlocking);
+		cudaStreamDestroy(strm);
+
+		cudaMalloc(&pTmp,sizeof(double)*1024);
+		cudaFree(pTmp);
+		cudaMallocHost(&pTmp,sizeof(double)*1024);
+		cudaFreeHost(pTmp);
+	}
+
+}
 
 
 static double mysecond()
@@ -71,24 +108,13 @@ void QSUnitManager::Init(void)
 	QSUint guidBase;
 	int testHybrid = 0,testMmap = 0;
 	double tStart,tEnd;
-#ifdef QSIM_MPI
-	MPI_Status st;
-#endif
 
 	struct sysinfo sinfo;
 
 	tStart = mysecond();
 
-#ifdef QSIM_MPI
-	MPI_Comm_size(MPI_COMM_WORLD,&m_nprocs);
-	MPI_Comm_rank(MPI_COMM_WORLD,&m_myrank);
-
-	m_pReqSend = new MPI_Request[QS_MAX_MATRIX_SIZE*m_numBuffers];
-	m_pReqRecv = new MPI_Request[m_numBuffers];
-#else
 	m_nprocs = 1;
 	m_myrank = 0;
-#endif
 
 	m_procBits = 0;
 	n = m_nprocs;
@@ -192,57 +218,63 @@ void QSUnitManager::Init(void)
 
 		cudaGetDeviceCount(&nDev);
 
-		isDev = m_iproc_per_node *nDev / m_nprocs_per_node;
-		ieDev = (m_iproc_per_node+1) *nDev / m_nprocs_per_node;
+		if(nDev > 0){
+			size_t freeMem,totalMem;
+			cudaSetDevice(0);
+			cudaMemGetInfo(&freeMem,&totalMem);
 
-		m_numGPU = ieDev - isDev;
+			isDev = m_iproc_per_node *nDev / m_nprocs_per_node;
+			ieDev = (m_iproc_per_node+1) *nDev / m_nprocs_per_node;
 
-//		for(iDev=isDev;iDev<ieDev;iDev++){
-//			size_t freeMem,totalMem;
-//			cudaSetDevice(iDev);
-//			cudaMemGetInfo(&freeMem,&totalMem);		//why this is needed?
-//		}
+			if((sizeof(QSComplex)*(m_numUnits << m_unitBits)) < totalMem){
+				m_numGPU = 1;
+			}
+			else{
+				m_numGPU = ieDev - isDev;
+			}
 
-		m_pUnits = new QSUnitStorage*[m_numGPU+2];
-		m_pCountPlace = new int[m_numGPU+2];
-		m_pNormBuf = new QSReal[m_numGPU+2];
+			m_pUnits = new QSUnitStorage*[m_numGPU+1];
+			m_pCountPlace = new int[m_numGPU+1];
+			m_pNormBuf = new QSReal[m_numGPU+1];
 
-		//allocate units on GPUs
+			//allocate units on GPUs
 #pragma omp parallel for private(iDev,nu)
-		for(iDev=0;iDev<m_numGPU;iDev++){
-			nu = ((iDev+1)*m_numUnits/m_numGPU) - (iDev*m_numUnits/m_numGPU);
-			m_pUnits[m_numPlaces + iDev] = new QSUnitStorageGPU(iDev,m_unitBits,isDev);
+			for(iDev=0;iDev<m_numGPU;iDev++){
+				nu = ((iDev+1)*m_numUnits/m_numGPU) - (iDev*m_numUnits/m_numGPU);
+				m_pUnits[m_numPlaces + iDev] = new QSUnitStorageGPU(iDev,m_unitBits,isDev);
+				m_pUnits[m_numPlaces + iDev]->SetProcPerNode(m_nprocs_per_node);
 
-			m_pUnits[m_numPlaces + iDev]->SetNumPlaces(m_numGPU + 2);	//temporary set numplaces + 2 for host + file
-			m_pUnits[m_numPlaces + iDev]->SetGlobalUnitIndex(m_globalUnitIndex);
+				m_pUnits[m_numPlaces + iDev]->SetNumPlaces(m_numGPU + 1);	//temporary set numplaces + 1 for host
+				m_pUnits[m_numPlaces + iDev]->SetGlobalUnitIndex(m_globalUnitIndex);
 
-			//to debug hybrid mode use below
-			if(testHybrid){
-				nu/=2;
+				//to debug hybrid mode use below
+				if(testHybrid){
+					nu/=2;
+				}
+
+				m_pUnits[m_numPlaces + iDev]->Allocate(nu,m_numBuffers);
+				m_pUnits[m_numPlaces + iDev]->Clear();
 			}
 
-			m_pUnits[m_numPlaces + iDev]->Allocate(nu,m_numBuffers);
-			m_pUnits[m_numPlaces + iDev]->Clear();
-		}
+			for(iDev=0;iDev<m_numGPU;iDev++){
+				m_pUnits[m_numPlaces]->Init(is);
+				ret = m_pUnits[m_numPlaces]->NumUnits();
 
-		for(iDev=0;iDev<m_numGPU;iDev++){
-			m_pUnits[m_numPlaces]->Init(is);
-			ret = m_pUnits[m_numPlaces]->NumUnits();
+				n -= ret;
 
-			n -= ret;
-
-			//set tables
+				//set tables
 #pragma omp parallel for
-			for(i=0;i<ret;i++){
-				m_pUnitTable[is+i] = i;
-				m_pPlaceTable[is+i] = m_numPlaces;
+				for(i=0;i<ret;i++){
+					m_pUnitTable[is+i] = i;
+					m_pPlaceTable[is+i] = m_numPlaces;
+				}
+				is += ret;
+				m_numPlaces++;
 			}
-			is += ret;
-			m_numPlaces++;
-		}
 
-		if(n == 0){
-			m_executeAllOnGPU = 1;
+			if(n == 0){
+				m_executeAllOnGPU = 1;
+			}
 		}
 	}
 	else{
@@ -254,37 +286,40 @@ void QSUnitManager::Init(void)
 	}
 #endif
 
-
-	sysinfo(&sinfo);
-
-	size = ((QSUint)(n + m_numBuffers) << m_unitBits) * sizeof(QSComplex);	//size to allocate units on host memory
-
-	m_numUnitsOnFile = 0;
-
 	//allocate units on Host
 	QSUnitStorageHost* pHost;
 	m_iPlaceHost = m_numPlaces;
 
-	pHost = new QSUnitStorageHost(m_iPlaceHost,m_unitBits);
+	buf = getenv("QSIM_USE_FILE");
+	if(buf != NULL){
+		QSUnitStorageFile* pHostFile;
+		char* filename = new char[strlen(buf) + 32];
+
+		pHost = pHostFile = new QSUnitStorageFile(m_iPlaceHost,m_unitBits);
+		sprintf(filename,"%s/qsunits_%d",buf,m_myrank);
+		pHostFile->SetFilename(filename);
+		delete[] filename;
+	}
+	else{
+		pHost = new QSUnitStorageHost(m_iPlaceHost,m_unitBits);
+	}
+	pHost->SetProcPerNode(m_nprocs_per_node);
+
 	m_pUnits[m_iPlaceHost] = pHost;
-	pHost->SetNumPlaces(m_numPlaces+2);
+	pHost->SetNumPlaces(m_numPlaces+1);
 	pHost->SetGlobalUnitIndex(m_globalUnitIndex);
-	pHost->Allocate(n - m_numUnitsOnFile,m_numBuffers);
+	pHost->Allocate(n,m_numBuffers);
 	pHost->Init(is);
-	if(n - m_numUnitsOnFile > 0){
+	if(n > 0){
 		pHost->Clear();
 #pragma omp parallel for
-		for(i=0;i<n - m_numUnitsOnFile;i++){
+		for(i=0;i<n;i++){
 			m_pUnitTable[is + i] = i;
 			m_pPlaceTable[is + i] = m_iPlaceHost;
 		}
-		is += n - m_numUnitsOnFile;
+		is += n;
 	}
 	m_numPlaces++;
-
-	m_numGlobalFile = 0;
-	m_pOffsetFile[0] = 0;
-	m_numGlobalFile = 0;
 
 	for(i=0;i<m_numPlaces;i++){
 		m_pUnits[i]->SetPlaces(m_pUnits);
@@ -305,9 +340,6 @@ void QSUnitManager::Init(void)
 			printf(" on Host\n");
 		}
 	}
-	if(m_numUnitsOnFile > 0){
-		printf("     On File   : %d units\n",m_numUnitsOnFile);
-	}
 	if(m_executeAllOnGPU){
 		printf("  gate calculation on GPU only\n");
 	}
@@ -320,6 +352,8 @@ void QSUnitManager::Init(void)
 #ifdef QSIM_DEBUG
 	printf("    Initialization time = %f sec\n",tEnd - tStart);
 #endif
+
+
 }
 
 
@@ -409,11 +443,6 @@ QSDouble QSUnitManager::Dot(int qubit)
 			ret += dotGate.ReduceAll(m_pUnits[i]);
 		}
 	}
-#endif
-
-#ifdef QSIM_MPI
-	double sum = ret;
-	MPI_Allreduce(&sum,&ret,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
 #endif
 
 #ifdef QSIM_DEBUG
@@ -689,9 +718,6 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 	QSUint uMask;
 	QSUint nuPlace;
 	int iFirstUnitGPU;
-#ifdef QSIM_MPI
-	MPI_Status st;
-#endif
 
 
 	nLarge = 0;
@@ -712,9 +738,6 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 	}
 	nPipe = m_pUnits[m_iPlaceHost]->PipeLength();
 
-#ifdef QSIM_MPI
-	MPI_Barrier(MPI_COMM_WORLD);
-#endif
 
 	if(nLarge == 0 || pGate->ExchangeNeeded() == 0){		//local calculations inside units, no data exchange needed
 #ifdef QSIM_CUDA
@@ -811,7 +834,7 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 			}
 		}
 	}
-	else if(m_numGlobalFile == 0 && m_isPowerOf2 && qubits[nqubits-1] < m_procBits){
+	else{
 		//on GPU
 #pragma omp parallel for private(myGuid,uMask,iPlaceExec,nuPlace,iFirstUnitGPU,i,k,iUnit,localMask,nLocal,guidBase,guid,luid,iPlace,pSrcBuf,pBuf,nTrans,iPipe)
 		for(iPlaceExec=0;iPlaceExec<m_numPlaces;iPlaceExec++){
@@ -956,367 +979,6 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 			m_pUnits[j]->WaitAll();
 		}
 	}
-	else{		//interaction between units
-		pUnitsPerPlace = m_pCountPlace;
-
-		iPipe = 0;		//pipe counter for MPI send/recv
-		iPipeWait = 0;
-
-		for(k=0;k<nPipe;k++){
-			m_flgSend_Pipe[k] = 0;
-			m_flgRecv_Pipe[k] = 0;
-		}
-
-		for(iPair=0;iPair<nPair;iPair++){
-			//calculate index
-			guidBase = 0;
-			i = iPair;
-			for(j=0;j<nLarge;j++){
-				guidBase += (i & (iAdd[j]-1));
-				i = (i - (i & (iAdd[j]-1))) << 1;
-			}
-			guidBase += i;
-
-			if(qubits_c[0] >= m_unitBits){		//currently only CX gate uses top control bit, for other gate set qubits_c[0] to -1
-				if(((guidBase >> (qubits_c[0] - m_unitBits)) & 1) != pGate->ControlMask()){
-					continue;	//not a controled unit, skip
-				}
-			}
-
-			m_flgSend_Pipe[iPipe] = 0;
-			m_flgRecv_Pipe[iPipe] = 0;
-
-			for(j=0;j<m_numPlaces;j++){
-				pUnitsPerPlace[j] = 0;
-			}
-
-			localMask = 0;
-			nDest = 0;
-			nFile = 0;
-			nLocal = 0;
-			nUnitOnFile = 0;
-			nProcFile = 0;
-			for(iUnit=0;iUnit<nUnit;iUnit++){
-				//get unit index
-				guid[iUnit] = guidBase;
-				for(k=0;k<nLarge;k++){
-					if((iUnit >> k) & 1){
-						guid[iUnit] += iAdd[k];
-					}
-				}
-
-				pRemoteBuf[iUnit] = m_pUnits[m_iPlaceHost]->Buffer(iUnit);
-
-				iproc[iUnit] = GetProcess(guid[iUnit]);
-				if(iproc[iUnit] == m_myrank){	//in this process
-					luid = guid[iUnit] - m_globalUnitIndex;
-					iPlace[iUnit] = (int)m_pPlaceTable[luid];
-
-					nLocal++;
-
-					localMask |= (1ull << iUnit);		//only units on this process is calculated
-
-					pUnitsPerPlace[iPlace[iUnit]]++;
-					pSrcBuf[iUnit] = GetUnitPtr(luid);
-					if(!m_pUnits[iPlace[iUnit]]->IsGPU()){		//use raw data for host
-						pRemoteBuf[iUnit] = pSrcBuf[iUnit];
-					}
-#ifdef QSIM_GDR
-					pRemoteBuf[iUnit] = pSrcBuf[iUnit];
-#endif
-				}
-				else{	//on other process
-					pSrcBuf[iUnit] = pRemoteBuf[iUnit];
-
-					iPlace[iUnit] = -1;
-
-					flg = 0;
-					for(k=0;k<nDest;k++){
-						if(iproc[iUnit] == destProcs[k]){
-							flg = 1;
-							break;
-						}
-					}
-					if(flg == 0){
-						destProcs[nDest] = iproc[iUnit];
-						nDest++;
-					}
-				}
-			}
-
-			if(localMask == 0){	//there is no unit to be calculated on this process
-				continue;
-			}
-
-			iPlaceExec = m_iPlaceHost;
-#ifdef QSIM_CUDA
-			//find place which has more units
-			for(j=0;j<m_numPlaces;j++){
-				if(pUnitsPerPlace[j] > pUnitsPerPlace[iPlaceExec]){
-					iPlaceExec = j;
-				}
-			}
-
-			if(m_pUnits[iPlaceExec]->IsGPU() == 0 && (m_executeAllOnGPU || pUnitsPerPlace[iPlaceExec] < nUnit)){	//execute on host only when all the units are on host
-				k = 0;
-				for(j=0;j<m_numPlaces;j++){
-					if(m_pUnits[j]->IsGPU()){
-						if(k == (iPair % m_numGPU)){
-							iPlaceExec = j;
-							break;
-						}
-						k++;
-					}
-				}
-			}
-#endif
-
-			nTrans = 0;
-			for(iUnit=0;iUnit<nUnit;iUnit++){
-				pBuf[iUnit] = pSrcBuf[iUnit];
-				if(iPlace[iUnit] != iPlaceExec){
-					pBuf[iUnit] = m_pUnits[iPlaceExec]->Buffer(iUnit);
-					nTrans++;
-				}
-			}
-
-			if(nTrans == 0){		//without data transfer
-				pGate->Execute(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,nLarge,localMask,0);
-
-				if(iPlaceExec != m_iPlaceHost){
-					m_pUnits[iPlaceExec]->AddPipe();
-				}
-			}
-			else if(nDest == 0){	//without communiction between processes
-				//sync
-				//m_pUnits[iPlaceExec]->WaitPipe(m_pUnits[iPlaceExec]->Pipe());
-
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					if(iPlace[iUnit] != iPlaceExec){
-						m_pUnits[iPlaceExec]->Put(iUnit,pSrcBuf[iUnit],iPlace[iUnit]);
-					}
-				}
-
-				pGate->Execute(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,nLarge,localMask,nTrans);
-
-				//copy back results to other places on local process
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					if(iPlace[iUnit] != iPlaceExec){
-						m_pUnits[iPlaceExec]->Get(iUnit,pSrcBuf[iUnit],iPlace[iUnit]);
-					}
-				}
-
-				m_pUnits[iPlaceExec]->AddPipe();
-			}
-			else{	//need data communications
-
-#ifdef QSIM_MPI
-				//receive from other process
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					if(iproc[iUnit] != m_myrank){
-						MPI_Irecv(pRemoteBuf[iUnit],m_unitSize*2,QS_MPI_REAL_TYPE,iproc[iUnit],guid[iUnit],MPI_COMM_WORLD,&m_pReqRecv[iUnit + iPipe*nUnit]);
-
-						m_flgRecv_Pipe[iPipe] |= (1ull << iUnit);
-					}
-#ifndef QSIM_GDR
-					else{
-						if(m_pUnits[iPlace[iUnit]]->IsGPU()){	//copy unit for other process
-							m_pUnits[iPlace[iUnit]]->ToHost(pRemoteBuf[iUnit],pSrcBuf[iUnit]);
-						}
-					}
-#endif
-				}
-
-				//send units to other processes
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					if(iPlace[iUnit] >= 0){
-#ifndef QSIM_GDR
-						if(m_pUnits[iPlace[iUnit]]->IsGPU()){
-							m_pUnits[iPlace[iUnit]]->WaitToHost();
-						}
-#endif
-						for(k=0;k<nDest;k++){
-							MPI_Isend(pRemoteBuf[iUnit],m_unitSize*2,QS_MPI_REAL_TYPE,destProcs[k],guid[iUnit],MPI_COMM_WORLD,&m_pReqSend[iUnit*nUnit+k + iPipe*nUnit*nUnit]);
-						}
-
-						m_flgSend_Pipe[iPipe] |= (1ull << iUnit);
-					}
-				}
-#endif
-
-				//save parameters
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					m_pGuid_Pipe[iPipe*nUnit + iUnit] = guid[iUnit];
-					m_pPlace_Pipe[iPipe*nUnit + iUnit] = iPlace[iUnit];
-					m_pSrc_Pipe[iPipe*nUnit + iUnit] = pSrcBuf[iUnit];
-				}
-				m_pLocalMask_Pipe[iPipe] = localMask;
-				m_pPlaceExec_Pipe[iPipe] = iPlaceExec;
-				m_nDest_Pipe[iPipe] = nDest;
-
-				m_pUnits[m_iPlaceHost]->AddPipe();
-				iPipe = m_pUnits[m_iPlaceHost]->Pipe();
-			}
-
-			if(m_flgSend_Pipe[iPipeWait] != 0 || m_flgRecv_Pipe[iPipeWait] != 0){
-				int endComm;
-#ifdef QSIM_MPI
-				//wait for recv
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					uMask = 1ull << iUnit;
-					if(m_flgRecv_Pipe[iPipeWait] & uMask){
-						if(iPipe == iPipeWait){
-							MPI_Wait(&m_pReqRecv[iUnit + iPipeWait*nUnit],&st);
-							endComm = 1;
-						}
-						else{
-							MPI_Test(&m_pReqRecv[iUnit + iPipeWait*nUnit],&endComm,&st);
-						}
-
-						if(endComm){
-							m_flgRecv_Pipe[iPipeWait] ^= uMask;
-						}
-					}
-				}
-				//wait for send
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					uMask = 1ull << iUnit;
-					if(m_flgSend_Pipe[iPipeWait] & uMask){
-						endComm = 0;
-						for(k=0;k<m_nDest_Pipe[iPipeWait];k++){
-							if(iPipe == iPipeWait){
-								MPI_Wait(&m_pReqSend[iUnit*nUnit+k + iPipeWait*nUnit*nUnit],&st);
-								endComm++;
-							}
-							else{
-								MPI_Test(&m_pReqSend[iUnit*nUnit+k+iPipeWait*nUnit*nUnit],&j,&st);
-								if(j){
-									endComm++;
-								}
-							}
-						}
-						if(endComm >= m_nDest_Pipe[iPipeWait]){
-							m_flgSend_Pipe[iPipeWait] ^= uMask;
-						}
-					}
-				}
-#endif
-				if(m_flgSend_Pipe[iPipeWait] == 0 && m_flgRecv_Pipe[iPipeWait] == 0){
-					iPlaceExec = m_pPlaceExec_Pipe[iPipeWait];
-
-					//sync
-					//m_pUnits[iPlaceExec]->WaitPipe(m_pUnits[iPlaceExec]->Pipe());
-
-					nTrans = 0;
-					for(iUnit=0;iUnit<nUnit;iUnit++){
-						pSrcBuf[iUnit] = m_pSrc_Pipe[iUnit + iPipeWait*nUnit];
-						pBuf[iUnit] = pSrcBuf[iUnit];
-						if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] != iPlaceExec && iPlaceExec != m_iPlaceHost){
-							pBuf[iUnit] = m_pUnits[iPlaceExec]->Buffer(iUnit);
-
-							nTrans++;
-							if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] >= 0){
-								m_pUnits[iPlaceExec]->Put(iUnit,pSrcBuf[iUnit],m_pPlace_Pipe[iUnit + iPipeWait*nUnit]);
-							}
-							else if(iPlaceExec != m_iPlaceHost){
-								m_pUnits[iPlaceExec]->Put(iUnit,pSrcBuf[iUnit],m_iPlaceHost);
-							}
-						}
-					}
-
-					//execution
-					pGate->Execute(m_pUnits[iPlaceExec],m_pGuid_Pipe + iPipeWait*nUnit,pBuf,qubits,qubits_c,nqubits,nLarge,m_pLocalMask_Pipe[iPipeWait],nTrans);
-
-					//copy back results to other places on local process
-					if(iPlaceExec != m_iPlaceHost){
-						for(iUnit=0;iUnit<nUnit;iUnit++){
-							if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] != iPlaceExec && m_pPlace_Pipe[iUnit + iPipeWait*nUnit] >= 0){
-								m_pUnits[iPlaceExec]->Get(iUnit,pSrcBuf[iUnit],m_pPlace_Pipe[iUnit + iPipeWait*nUnit]);
-							}
-						}
-					}
-
-					if(iPipe == iPipeWait){		//synchronize needed for end of ring buffer
-						//synchronize pipeline in case previous stream is still running
-						m_pUnits[iPlaceExec]->WaitPipe(m_pUnits[iPlaceExec]->Pipe());
-					}
-
-					if(iPlaceExec != m_iPlaceHost){
-						m_pUnits[iPlaceExec]->AddPipe();
-					}
-					iPipeWait = (iPipeWait + 1) % nPipe;
-				}
-			}
-		}
-
-		for(iPair=0;iPair<nPipe;iPair++){
-			if(m_flgSend_Pipe[iPipeWait] != 0 || m_flgRecv_Pipe[iPipeWait] != 0){
-#ifdef QSIM_MPI
-				//wait for recv
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					uMask = 1ull << iUnit;
-					if(m_flgRecv_Pipe[iPipeWait] & uMask){
-						MPI_Wait(&m_pReqRecv[iUnit + iPipeWait*nUnit],&st);
-						m_flgRecv_Pipe[iPipeWait] ^= uMask;
-					}
-				}
-				//wait for send
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					uMask = 1ull << iUnit;
-					if(m_flgSend_Pipe[iPipeWait] & uMask){
-						for(k=0;k<m_nDest_Pipe[iPipeWait];k++){
-							MPI_Wait(&m_pReqSend[iUnit*nUnit+k + iPipeWait*nUnit*nUnit],&st);
-						}
-						m_flgSend_Pipe[iPipeWait] ^= uMask;
-					}
-				}
-#endif
-				iPlaceExec = m_pPlaceExec_Pipe[iPipeWait];
-
-				//sync
-				//m_pUnits[iPlaceExec]->WaitPipe(m_pUnits[iPlaceExec]->Pipe());
-
-				nTrans = 0;
-				for(iUnit=0;iUnit<nUnit;iUnit++){
-					pSrcBuf[iUnit] = m_pSrc_Pipe[iUnit + iPipeWait*nUnit];
-					pBuf[iUnit] = pSrcBuf[iUnit];
-					if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] != iPlaceExec && iPlaceExec != m_iPlaceHost){
-						pBuf[iUnit] = m_pUnits[iPlaceExec]->Buffer(iUnit);
-						nTrans++;
-						if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] >= 0){
-							m_pUnits[iPlaceExec]->Put(iUnit,pSrcBuf[iUnit],m_pPlace_Pipe[iUnit + iPipeWait*nUnit]);
-						}
-						else{
-							m_pUnits[iPlaceExec]->Put(iUnit,pSrcBuf[iUnit],m_iPlaceHost);
-						}
-					}
-				}
-
-				//execution
-				pGate->Execute(m_pUnits[iPlaceExec],m_pGuid_Pipe + iPipeWait*nUnit,pBuf,qubits,qubits_c,nqubits,nLarge,m_pLocalMask_Pipe[iPipeWait],nTrans);
-
-				//copy back results to other places on local process
-				if(iPlaceExec != m_iPlaceHost){
-					for(iUnit=0;iUnit<nUnit;iUnit++){
-						if(m_pPlace_Pipe[iUnit + iPipeWait*nUnit] != iPlaceExec && m_pPlace_Pipe[iUnit + iPipeWait*nUnit] >= 0){
-							m_pUnits[iPlaceExec]->Get(iUnit,pSrcBuf[iUnit],m_pPlace_Pipe[iUnit + iPipeWait*nUnit]);
-						}
-					}
-				}
-				if(iPlaceExec != m_iPlaceHost){
-					m_pUnits[iPlaceExec]->AddPipe();
-				}
-			}
-			iPipeWait = (iPipeWait + 1) % nPipe;
-		}
-
-//#pragma omp parallel for private(j)
-		for(j=0;j<m_numPlaces;j++){
-			m_pUnits[j]->WaitAll();
-		}
-	}
-
-
 }
 
 
@@ -1351,18 +1013,6 @@ void QSUnitManager::Measure_FindPos(QSDouble* rs,QSUint* ret,int ns)
 	ranks = new int[ns];
 
 	pProcTotal[m_myrank] = msGate.Total();
-
-
-#ifdef QSIM_MPI
-	for(i=0;i<m_nprocs;i++){
-		MPI_Bcast(pProcTotal+i,1,MPI_UINT64_T,i,MPI_COMM_WORLD);
-	}
-
-	//copy random key value on process 0 to all processes
-//	MPI_Bcast(rs,64,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD);
-
-#endif
-
 
 	for(is=0;is<ns;is++){
 		t = 0.0;
@@ -1412,12 +1062,6 @@ void QSUnitManager::Measure_FindPos(QSDouble* rs,QSUint* ret,int ns)
 	}
 
 
-#ifdef QSIM_MPI
-	for(is=0;is<ns;is++){
-		MPI_Bcast(ret + is,1,MPI_UINT64_T,ranks[is],MPI_COMM_WORLD);
-	}
-#endif
-
 	delete[] pProcTotal;
 	delete[] ranks;
 }
@@ -1448,17 +1092,6 @@ void QSUnitManager::TimePrint(void)
 {
 	int i;
 	double total;
-#ifdef QSIM_MPI
-	double t[QS_NUM_GATES];
-	QSUint c[QS_NUM_GATES];
-	MPI_Allreduce(m_gateTime,t,QS_NUM_GATES,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-	MPI_Allreduce(m_gateCounts,c,QS_NUM_GATES,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-
-	for(i=0;i<QS_NUM_GATES;i++){
-		m_gateTime[i] = t[i] / (double)m_nprocs;
-		m_gateCounts[i] = c[i] / m_nprocs;
-	}
-#endif
 
 	total = 0;
 	for(i=0;i<QS_NUM_GATES;i++){

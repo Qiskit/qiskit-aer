@@ -24,6 +24,10 @@
 #include "base/state.hpp"
 #include "qubitvector.hpp"
 
+#ifdef QASM_PARALLEL
+#include "qubitvector_par.hpp"
+#endif
+
 
 namespace AER {
 namespace Statevector {
@@ -47,7 +51,11 @@ enum class Snapshots {
 // QubitVector State subclass
 //=========================================================================
 
+#ifdef QASM_PARALLEL
+template <class statevec_t = QV::QubitVectorPar<complex_t*>>
+#else
 template <class statevec_t = QV::QubitVector<complex_t*>>
+#endif
 class State : public Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;
