@@ -1,22 +1,10 @@
 # qiskit-aer-parallel
 
+Please use cmake to build GPU enabled version of Qiskit Aer, it automatically detects CUDA installed
+and it builds for GPU.
 
-To enable GPUs, 
-cmake AER_PARALLEL=true AER_CUDA=true
-
-To enable MPI,
-cmake AER_PARALLEL=true AER_MPI=true
-
-To enable MPI and GPUs,
-cmake AER_PARALLEL=true AER_MPI=true AER_CUDA=true
-
-
-
-
-To run with MPI, please set following environmental variable to tell number of processes per node.
-
-export QSIM_PROC_PER_NODE=2
-
+To enable GPUs when running simulator add 
+"config" : {"GPU" : true}
 
 
 
