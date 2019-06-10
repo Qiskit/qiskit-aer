@@ -23,6 +23,9 @@
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 
+#ifdef QASM_PARALLEL
+#include "simulators/statevector/qubitvector_par.hpp"
+#endif
 
 namespace AER {
 namespace Simulator {
@@ -241,6 +244,9 @@ protected:
 
   // Controller-level parameter for CH method
   bool extended_stabilizer_measure_sampling_ = false;
+
+  // Use GPUs or not
+  bool use_GPUs_ = false;
 };
 
 //=========================================================================
@@ -293,6 +299,8 @@ void QasmController::set_config(const json_t &config) {
   JSON::get_value(extended_stabilizer_measure_sampling_,
                   "extended_stabilizer_measure_sampling", config);
 
+  JSON::get_value(use_GPUs_,"GPU", config);
+
   // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
     // Raise error if method is set to stabilizer or ch
@@ -333,11 +341,24 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statevector simulation
-      return run_circuit_helper<Statevector::State<>>(
+#ifdef QASM_PARALLEL
+      if(use_GPUs_){
+        return run_circuit_helper<Statevector::State<QV::QubitVectorPar<complex_t*>>>(
                                                       circ,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_); // allow custom initial state
+      }
+  	  else{
+#endif
+        return run_circuit_helper<Statevector::State<>>(
+                                                      circ,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_); // allow custom initial state
+#ifdef QASM_PARALLEL
+  	  }
+#endif
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
