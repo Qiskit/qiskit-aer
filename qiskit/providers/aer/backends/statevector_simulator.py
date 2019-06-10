@@ -22,6 +22,7 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
+# pylint: disable=import-error
 from .statevector_controller_wrapper import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
@@ -111,20 +112,19 @@ class StatevectorSimulator(AerBackend):
         """
         name = self.name()
         if noise_model is not None:
-            logger.error("{} cannot be run with a noise.".format(name))
             raise AerError("{} does not support noise.".format(name))
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise AerError('Number of qubits ({}) '.format(n_qubits) +
-                           'is greater than maximum ({}) '.format(max_qubits) +
-                           'for "{}" '.format(name) +
-                           'with {} GB system memory.'.format(int(local_hardware_info()['memory'])))
+            raise AerError(
+                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
+                .format(n_qubits, max_qubits, name, int(local_hardware_info()['memory'])))
+
         if qobj.config.shots != 1:
-            logger.info('"%s" only supports 1 shot. Setting shots=1.',
-                        name)
+            logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
             qobj.config.shots = 1
+
         for experiment in qobj.experiments:
             exp_name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:

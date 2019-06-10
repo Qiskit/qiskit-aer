@@ -405,8 +405,10 @@ def _depol_error_value_two_qubit(error_param,
 
     if gate_time is None:
         gate_time = 0
-    if gate_time == 0 or (qubit0_t1 == inf and qubit0_t2 == inf
-                          and qubit1_t1 == inf and qubit1_t2 == inf):
+    if gate_time == 0 or (qubit0_t1 == inf and
+                          qubit0_t2 == inf and
+                          qubit1_t1 == inf and
+                          qubit1_t2 == inf):
         if error_param is not None and error_param > 0:
             return 4 * error_param / 3
         else:
