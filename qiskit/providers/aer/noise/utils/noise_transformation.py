@@ -223,21 +223,21 @@ def pauli_operators():
                     'Z': [{'name': 'z', 'qubits': [0]}]
                     }
     pauli_2_qubit = {
-        'XI': [{'name': 'x', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
-        'YI': [{'name': 'y', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
-        'ZI': [{'name': 'z', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],
-        'IX': [{'name': 'id', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
-        'IY': [{'name': 'id', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
-        'IZ': [{'name': 'id', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
-        'XX': [{'name': 'x', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
-        'YY': [{'name': 'y', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
-        'ZZ': [{'name': 'z', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
-        'XY': [{'name': 'x', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
-        'XZ': [{'name': 'x', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
-        'YX': [{'name': 'y', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
-        'YZ': [{'name': 'y', 'qubits': [0]}, {'name': 'z', 'qubits': [1]}],
-        'ZX': [{'name': 'z', 'qubits': [0]}, {'name': 'x', 'qubits': [1]}],
-        'ZY': [{'name': 'z', 'qubits': [0]}, {'name': 'y', 'qubits': [1]}],
+        'XI': [{'name': 'x', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'YI': [{'name': 'y', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'ZI': [{'name': 'z', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'IX': [{'name': 'id', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'IY': [{'name': 'id', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'IZ': [{'name': 'id', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'XX': [{'name': 'x', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'YY': [{'name': 'y', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'ZZ': [{'name': 'z', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'XY': [{'name': 'x', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'XZ': [{'name': 'x', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'YX': [{'name': 'y', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'YZ': [{'name': 'y', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'ZX': [{'name': 'z', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'ZY': [{'name': 'z', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
     }
     return [pauli_1_qubit, pauli_2_qubit]
 
