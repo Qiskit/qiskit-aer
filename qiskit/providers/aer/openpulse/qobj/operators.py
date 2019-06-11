@@ -65,7 +65,7 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
     return op.tensor(opers)
 
 
-def qubit_occ_oper(target_qubit, h_osc, h_qub, level=1):
+def qubit_occ_oper(target_qubit, h_osc, h_qub, level=0):
     """Builds the occupation number operator for a target qubit
     in a qubit oscillator system, where the oscillator are the first
     subsystems, and the qubit last.

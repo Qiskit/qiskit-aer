@@ -32,6 +32,7 @@ from openpulse.solver.rhs_utils import _op_generate_rhs, _op_func_load
 from openpulse.solver.data_config import op_data_config
 import openpulse.solver.settings as settings
 from openpulse.solver.unitary import unitary_evolution
+from openpulse.solver.monte_carlo import monte_carlo
 from qiskit.tools.parallel import parallel_map
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
@@ -53,12 +54,12 @@ def opsolve(op_system):
     if not op_system.ode_options.num_cpus:
         op_system.ode_options.num_cpus = qutip.settings.num_cpus
 
+    # build Hamiltonian data structures
+    op_data_config(op_system)
      # compile Cython RHS
     _op_generate_rhs(op_system)
     # Load cython function
     _op_func_load(op_system)
-    # build Hamiltonian data structures
-    op_data_config(op_system)
     # load monte carlo class
     mc = OP_mcwf(op_system)
     # Run the simulation
@@ -102,10 +103,10 @@ class OP_mcwf(object):
 
     def run(self):
 
+        map_kwargs = {'num_processes': self.op_system.ode_options.num_cpus}
+        
         # If no collapse terms, and only measurements at end
         # can do a single shot.
-        map_kwargs = {'num_processes': self.op_system.ode_options.num_cpus}
-
         if self.op_system.can_sample:
             results = parallel_map(unitary_evolution,
                                    self.op_system.experiments,
@@ -113,7 +114,27 @@ class OP_mcwf(object):
                                    self.op_system.ode_options
                                    ), **map_kwargs
                                   )
-        
+
+        # need to simulate each trajectory, so shots*len(experiments) times
+        # Do a for-loop over experiments, and do shots in parallel_map
+        else:
+            results = []
+            for exp in self.op_system.experiments:
+                rng = np.random.RandomState(exp['seed'])
+                seeds = rng.randint(np.iinfo(np.int32).max-1,
+                                    size=self.op_system.global_data['shots'])
+                exp_res = parallel_map(monte_carlo,
+                                    seeds,
+                                    task_args=(exp, self.op_system.global_data,
+                                    self.op_system.ode_options
+                                    ), **map_kwargs
+                                    )
+                unique = np.unique(exp_res, return_counts=True)
+                hex_dict = {}
+                for kk in range(unique[0].shape[0]):
+                    key = hex(unique[0][kk])
+                    hex_dict[key] = unique[1][kk]
+                results.append(hex_dict)
         
         _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
         return results

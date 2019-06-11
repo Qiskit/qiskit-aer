@@ -44,7 +44,7 @@ def digest_pulse_obj(qobj):
     # Look for config keys
     out.global_data['shots'] = 1024
     if 'shots' in config_keys:
-        out.global_data['shots'] = qobj['config']['shots']
+        out.global_data['shots'] = int(qobj['config']['shots'])
 
     out.global_data['seed'] = None
     if 'seed' in config_keys:
@@ -123,7 +123,9 @@ def digest_pulse_obj(qobj):
             noise.parse()
         
             out.noise = noise.compiled
-            out.can_sample = False
+            if any(out.noise):
+                out.can_sample = False
+                out.global_data['c_num'] = len(out.noise)
         else:
             out.noise = None
 

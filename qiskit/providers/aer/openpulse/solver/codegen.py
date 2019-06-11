@@ -40,7 +40,7 @@ class OPCodegen(object):
         self.op_system = op_system
         self.dt = op_system.dt
 
-        self.num_ham_terms = len(self.op_system.system)
+        self.num_ham_terms = self.op_system.global_data['num_h_terms']
         
         # Code generator properties
         self._file = None
@@ -157,6 +157,15 @@ class OPCodegen(object):
                 spmv_str = "spmvpy(&data{i}[0], &idx{i}[0], &ptr{i}[0], "+ \
                            "&vec[0], 1.0, &out[0], num_rows)"
                 func_vars.append(spmv_str.format(i=idx))
+        
+        # There is a noise term
+        if len(self.op_system.system) < self.num_ham_terms:
+            spmv_str = "spmvpy(&data{i}[0], &idx{i}[0], &ptr{i}[0], "+ \
+                           "&vec[0], 1.0, &out[0], num_rows)"
+            func_vars.append("")
+            func_vars.append("# Noise term")
+            func_vars.append(spmv_str.format(i=idx+1))
+
 
 
         return func_vars
