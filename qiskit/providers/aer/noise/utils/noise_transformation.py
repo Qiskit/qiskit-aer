@@ -100,8 +100,7 @@ def approximate_quantum_error(error, *,
         identity_prob = 1 - sum(probabilities)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
-                "Approximated channel operators probabilities sum to {}".
-                    format(1 - identity_prob))
+                f"Channel operators probabilities sum to {1 - identity_prob}")
         quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
         op_circuit_list = [
             transformer.operator_circuit(operator)
@@ -546,9 +545,10 @@ class NoiseTransformer:
             list: A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
             channel == x1*D1 + ... + xn*Dn + E
         """
-        return ([
-                    self.get_matrix_from_channel(channel, symbol) for symbol in symbols
-                ], self.get_const_matrix_from_channel(channel, symbols))
+        return (
+            [self.get_matrix_from_channel(channel, symbol) for symbol in symbols],
+            self.get_const_matrix_from_channel(channel, symbols)
+        )
 
     @staticmethod
     def get_matrix_from_channel(channel, symbol):
