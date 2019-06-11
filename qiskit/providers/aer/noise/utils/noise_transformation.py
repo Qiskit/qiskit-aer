@@ -590,17 +590,23 @@ class NoiseTransformer:
     def transform_by_given_channel(self, channel_matrices,
                                    const_channel_matrix):
         """
-        This method creates the quadratic programming instance for
-        minimizing the Hilbert-Schmidt norm of the matrix (A-B) obtained
+        This method creates objective function representing the
+        Hilbert-Schmidt norm of the matrix (A-B) obtained
         as the difference of the input noise channel and the output
         channel we wish to determine.
 
+        This function is represented by a matrix P and a vector q, such that
+        f(x) = 1/2(x*P*x)+q*x
+        where x is the vector we wish to minimize, where x represents
+        probabilities for the noise operators that construct the output channel
+
         Args:
-            channel_matrices (TODO): TODO
-            const_channel_matrix (TODO): TODD
+            channel_matrices (list): A list of 4x4 symbolic matrices
+            const_channel_matrix (matrix): a 4x4 constant matrix
 
         Returns:
-            quadratic_program: TODO
+            list: a list of the optimal probabilities for the channel matrices,
+            determined by the quadratic program solver
         """
         target_channel = SuperOp(Kraus(self.noise_kraus_operators))
         target_channel_matrix = target_channel._data.T
@@ -612,12 +618,14 @@ class NoiseTransformer:
 
     def compute_P(self, As):
         """
-        TODO
+        This method creates the matrix P in the
+        f(x) = 1/2(x*P*x)+q*x
+        representation of the objective function
         Args:
-            As (TODO): TODO
+            As (list): list of symbolic matrices repersenting the channel matrices
 
         Returns:
-            Array: TODO
+            matrix: The matrix P for the description of the quadaric program
         """
         vs = [numpy.array(A).flatten() for A in As]
         n = len(vs)
@@ -628,13 +636,15 @@ class NoiseTransformer:
 
     def compute_q(self, As, C):
         """
-        TODO
+        This method creates the vector q for the
+        f(x) = 1/2(x*P*x)+q*x
+        representation of the objective function
         Args:
-            As (TODO): TODO
-            C (TODO): TODO
+            As (list): list of symbolic matrices repersenting the quadratic program
+            C (matrix): matrix representing the the constant channel matrix
 
         Returns:
-            Array: TODO
+            list: The vector q for the description of the quadaric program
         """
         vs = [numpy.array(A).flatten() for A in As]
         vC = numpy.array(C).flatten()
@@ -646,13 +656,19 @@ class NoiseTransformer:
 
     def solve_quadratic_program(self, P, q):
         """
-        TODO
+        This function solved the quadratic program to minimize the objective function
+        f(x) = 1/2(x*P*x)+q*x
+        subject to the additional constraints
+        Gx <= h
+
+        Where P, q are given and G,h are computed to ensure that x represents
+        a probability vector and subject to honesty constraints if required
         Args:
-            P (TODO): TODO
-            q (TODO): TODO
+            P (matrix): A matrix representing the P component of the objective function
+            q (list): A vector representing the q component of the objective function
 
         Returns:
-            Array: TODO
+            list: The solution of the quadratic program (represents probabilites)
 
         Raises:
             ImportError: If cvxopt external module is not installed
