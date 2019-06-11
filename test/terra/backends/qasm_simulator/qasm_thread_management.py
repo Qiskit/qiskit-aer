@@ -311,3 +311,33 @@ class QasmThreadManagementTests:
                 multiprocessing.cpu_count(),
                 msg="parallel_state_update should be " + str(
                     multiprocessing.cpu_count()))
+
+
+    def test_qasm_auto_disable_shot_parallelization_with_max_parallel_shots(self):
+        """test disabling parallel shots because max_parallel_shots is 1"""
+        # Test circuit
+        shots = multiprocessing.cpu_count()
+        circuit = quantum_volume_circuit(16, 1, measure=True, seed=0)
+
+        backend_opts = self.BACKEND_OPTS.copy()
+        backend_opts['max_parallel_shots'] = 1
+        backend_opts['noise_model'] = self.dummy_noise_model()
+
+        result = execute(
+            circuit, self.SIMULATOR, shots=shots,
+            backend_options=backend_opts).result()
+        if result.metadata['omp_enabled']:
+            self.assertEqual(
+                result.metadata['parallel_experiments'],
+                1,
+                msg="parallel_experiments should be 1")
+            self.assertEqual(
+                result.to_dict()['results'][0]['metadata']['parallel_shots'],
+                1,
+                msg="parallel_shots must be 1")
+            self.assertEqual(
+                result.to_dict()['results'][0]['metadata']
+                ['parallel_state_update'],
+                multiprocessing.cpu_count(),
+                msg="parallel_state_update should be " + str(
+                    multiprocessing.cpu_count()))
