@@ -79,15 +79,14 @@ def approximate_quantum_error(error, *,
     error_kraus_operators = Kraus(error.to_quantumchannel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
+        no_info_error = "No information about noise type {}".format(operator_string)
         operator_string = operator_string.lower()
         if operator_string not in transformer.named_operators.keys():
-            raise RuntimeError(
-                f"No information about noise type {operator_string}")
+            raise RuntimeError(no_info_error)
         operator_lists = transformer.named_operators[operator_string]
         if len(operator_lists) < error.number_of_qubits:
             raise RuntimeError(
-                f"No information about noise type {operator_string} "
-                f"for {error.number_of_qubits} qubits")
+                no_info_error + " for {} qubits".format(error.number_of_qubits))
         operator_dict = operator_lists[error.number_of_qubits - 1]
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())
@@ -100,7 +99,7 @@ def approximate_quantum_error(error, *,
         identity_prob = 1 - sum(probabilities)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
-                f"Channel operators probabilities sum to {1 - identity_prob}")
+                "Channel probabilities sum to {}".format(1 - identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
         op_circuit_list = [
             transformer.operator_circuit(operator)
