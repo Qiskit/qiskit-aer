@@ -23,6 +23,7 @@ from qiskit.providers.aer.noise.utils import approximate_noise_model
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 
 try:
     import cvxopt
@@ -233,6 +234,56 @@ class TestNoiseTransformer(unittest.TestCase):
         results_1 = approximate_quantum_error(error, operator_string="pauli")
         results_2 = approximate_quantum_error(error, operator_string="Pauli")
         self.assertErrorsAlmostEqual(results_1, results_2)
+
+    def test_paulis_1_and_2_qubits(self):
+        probs = [0.5, 0.3, 0.2]
+        paulis_1q = ['X', 'Y', 'Z']
+        paulis_2q = ['XI', 'YI', 'ZI']
+
+        error_1q = pauli_error(zip(paulis_1q, probs))
+        error_2q = pauli_error(zip(paulis_2q, probs))
+
+        results_1q = approximate_quantum_error(error_1q, operator_string="pauli")
+        results_2q = approximate_quantum_error(error_2q, operator_string="pauli")
+
+        self.assertErrorsAlmostEqual(error_1q, results_1q)
+        self.assertErrorsAlmostEqual(error_2q, results_2q, places = 2)
+
+        paulis_2q = ['XY', 'ZZ', 'YI']
+        error_2q = pauli_error(zip(paulis_2q, probs))
+        results_2q = approximate_quantum_error(error_2q, operator_string="pauli")
+        self.assertErrorsAlmostEqual(error_2q, results_2q, places=2)
+
+    def test_reset_2_qubit(self):
+        # approximating amplitude damping using relaxation operators
+        gamma = 0.23
+        p = (gamma - numpy.sqrt(1 - gamma) + 1) / 2
+        q = 0
+        A0 = [[1, 0], [0, numpy.sqrt(1 - gamma)]]
+        A1 = [[0, numpy.sqrt(gamma)], [0, 0]]
+        error_1 = QuantumError([([{'name': 'kraus', 'qubits': [0], 'params': [A0, A1]},
+                                  {'name': 'id', 'qubits': [1]}
+                                  ], 1)])
+        error_2 = QuantumError([([{'name': 'kraus', 'qubits': [1], 'params': [A0, A1]},
+                                  {'name': 'id', 'qubits': [0]}
+                                  ], 1)])
+
+        expected_results_1 = QuantumError([
+            ([{'name': 'id', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}], 1-p),
+            ([{'name': 'reset', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],p),
+        ])
+        expected_results_2 = QuantumError([
+            ([{'name': 'id', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], 1 - p),
+            ([{'name': 'reset', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], p),
+        ])
+
+        results_1 = approximate_quantum_error(error_1, operator_string="reset")
+        results_2 = approximate_quantum_error(error_2, operator_string="reset")
+
+        self.assertErrorsAlmostEqual(results_1, expected_results_1)
+        self.assertErrorsAlmostEqual(results_2, expected_results_2)
+
+
 
     def test_errors(self):
         gamma = 0.23
