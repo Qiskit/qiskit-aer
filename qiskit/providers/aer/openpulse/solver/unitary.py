@@ -64,6 +64,11 @@ def unitary_evolution(exp, global_data, ode_options):
     code = compile(_inst, '<string>', 'exec')
     exec(code)
 
+    if not len(ODE._y):
+        ODE.t = 0.0
+        ODE._y = np.array([0.0], complex)
+    ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
+
     # Since all experiments are defined to start at zero time.
     ODE.set_initial_value(global_data['initial_state'], 0) 
     for kk in tlist[1:]:

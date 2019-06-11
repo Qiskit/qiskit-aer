@@ -59,6 +59,6 @@ def write_shots_memory(unsigned char[:, ::1] mem,
     cdef unsigned char temp
     for ii in range(nrows):
         for jj in range(nprobs):
-            temp = <unsigned char>(probs[jj] < rand_vals[nprobs*ii+jj])
+            temp = <unsigned char>(probs[jj] > rand_vals[nprobs*ii+jj])
             if temp:
                 mem[ii,mem_slots[jj]] = temp

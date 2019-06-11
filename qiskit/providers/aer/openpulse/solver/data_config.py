@@ -31,15 +31,17 @@ def op_data_config(op_system):
     op_system.global_data['c_num'] = 0
     if op_system.noise:
          op_system.global_data['c_num'] = len(op_system.noise)
+         op_system.global_data['num_h_terms'] += 1
 
     op_system.global_data['c_ops_data'] = []
     op_system.global_data['c_ops_ind'] = []
     op_system.global_data['c_ops_ptr'] = []
     op_system.global_data['n_ops_data'] = []
     op_system.global_data['n_ops_ind'] = []
-    op_system.global_data['n_ops_ind'] = []
+    op_system.global_data['n_ops_ptr'] = []
 
     # if there are any collapse operators
+    H_noise = 0
     for kk in range(op_system.global_data['c_num']):
         c_op = op_system.noise[kk]
         n_op = c_op.dag() * c_op
@@ -50,10 +52,13 @@ def op_data_config(op_system):
         # norm ops
         op_system.global_data['n_ops_data'].append(n_op.data.data)
         op_system.global_data['n_ops_ind'].append(n_op.data.indices)
-        op_system.global_data['n_ops_ind'].append(n_op.data.indptr)
+        op_system.global_data['n_ops_ptr'].append(n_op.data.indptr)
         # Norm ops added to time-independent part of 
         # Hamiltonian to decrease norm
-        H[0] -= 0.5j * n_op
+        H_noise -= 0.5j * n_op
+    
+    if H_noise:
+        H = H + [H_noise]
 
     # construct data sets
     op_system.global_data['h_ops_data'] = [-1.0j* hpart.data.data for hpart in H]
@@ -63,7 +68,7 @@ def op_data_config(op_system):
     # setup ode args string
     ode_var_str = ""
     # Hamiltonian data
-    for kk in range(num_h_terms):
+    for kk in range(op_system.global_data['num_h_terms']):
         h_str = "global_data['h_ops_data'][%s], " % kk
         h_str += "global_data['h_ops_ind'][%s], " % kk
         h_str += "global_data['h_ops_ptr'][%s], " % kk

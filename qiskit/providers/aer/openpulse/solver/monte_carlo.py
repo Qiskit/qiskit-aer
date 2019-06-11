@@ -18,46 +18,51 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 
+from math import log
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from openpulse.solver.zvode import qiskit_zvode
+from openpulse.cython.memory import write_memory
+from openpulse.cython.measure import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
-def monte_carlo(pid, ophandler, ode_options):
+def monte_carlo(seed, exp, global_data, ode_options):
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
     """
 
-    global _cy_rhs_func
+    cy_rhs_func  = global_data['rhs_func']
+    rng = np.random.RandomState(seed)
+    tlist = exp['tlist']
+    snapshots = []
+    # Init memory
+    memory = np.zeros((1, global_data['memory_slots']), dtype=np.uint8)
+    # Init register
+    register = np.zeros(global_data['n_registers'], dtype=np.uint8)
 
-    tlist = ophandler._data['tlist']
-    memory = [
-        [
-            0 for _l in range(ophandler.qobj_config['memory_slot_size'])
-        ] for _r in range(ophandler.qobj_config['memory_slots'])
-    ]
-    register = bytearray(ophandler.backend_config['n_registers'])
-
-    opt = ophandler._options
+    # Get number of acquire, snapshots, and conditionals
+    num_acq = len(exp['acquire'])
+    acq_idx = 0 
+    num_snap = len(exp['snapshot'])
+    snap_idx = 0 
+    num_cond = len(exp['cond'])
+    cond_idx = 0
 
     collapse_times = []
     collapse_operators = []
 
-    # SEED AND RNG AND GENERATE
-    prng = RandomState(ophandler._options.seeds[pid])
     # first rand is collapse norm, second is which operator
-    rand_vals = prng.rand(2)
+    rand_vals = rng.rand(2)
 
-    ODE = ode(_cy_rhs_func)
+    ODE = ode(cy_rhs_func)
 
-    _inst = 'ODE.set_f_params(%s)' % ophandler._data['string']
+    _inst = 'ODE.set_f_params(%s)' % global_data['string']
     code = compile(_inst, '<string>', 'exec')
     exec(code)
-    psi = ophandler._data['psi0']
 
     # initialize ODE solver for RHS
     ODE._integrator = qiskit_zvode(method=ode_options.method,
@@ -69,27 +74,27 @@ def monte_carlo(pid, ophandler, ode_options):
                                    min_step=ode_options.min_step,
                                    max_step=ode_options.max_step
                                   )
-
+    # Forces complex ODE solving
     if not len(ODE._y):
         ODE.t = 0.0
         ODE._y = np.array([0.0], complex)
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
+    
+    ODE.set_initial_value(global_data['initial_state'], 0) 
 
     # make array for collapse operator inds
-    cinds = np.arange(ophandler._data['c_num'])
-    n_dp = np.zeros(ophandler._data['c_num'], dtype=float)
+    cinds = np.arange(global_data['c_num'])
+    n_dp = np.zeros(global_data['c_num'], dtype=float)
 
-    kk_prev = 0
     # RUN ODE UNTIL EACH TIME IN TLIST
-    for kk in tlist:
-        ODE.set_initial_value(psi, kk_prev)
+    for stop_time in tlist:
         # ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
-        while ODE.t < kk:
+        while ODE.t < stop_time:
             t_prev = ODE.t
             y_prev = ODE.y
             norm2_prev = dznrm2(ODE._y) ** 2
-            # integrate up to kk, one step at a time.
-            ODE.integrate(kk, step=1)
+            # integrate up to stop_time, one step at a time.
+            ODE.integrate(stop_time, step=1)
             if not ODE.successful():
                 raise Exception("ZVODE step failed!")
             norm2_psi = dznrm2(ODE._y) ** 2
@@ -99,11 +104,11 @@ def monte_carlo(pid, ophandler, ode_options):
                 # ------------------------------------------------
                 ii = 0
                 t_final = ODE.t
-                while ii < ophandler._options.norm_steps:
+                while ii < ode_options.norm_steps:
                     ii += 1
                     t_guess = t_prev + \
-                        math.log(norm2_prev / rand_vals[0]) / \
-                        math.log(norm2_prev / norm2_psi) * (t_final - t_prev)
+                        log(norm2_prev / rand_vals[0]) / \
+                        log(norm2_prev / norm2_psi) * (t_final - t_prev)
                     ODE._y = y_prev
                     ODE.t = t_prev
                     ODE._integrator.call_args[3] = 1
@@ -113,7 +118,7 @@ def monte_carlo(pid, ophandler, ode_options):
                             "ZVODE failed after adjusting step size!")
                     norm2_guess = dznrm2(ODE._y)**2
                     if (abs(rand_vals[0] - norm2_guess) <
-                            ophandler._options.norm_tol * rand_vals[0]):
+                            ode_options.norm_tol * rand_vals[0]):
                         break
                     elif (norm2_guess < rand_vals[0]):
                         # t_guess is still > t_jump
@@ -124,7 +129,7 @@ def monte_carlo(pid, ophandler, ode_options):
                         t_prev = t_guess
                         y_prev = ODE.y
                         norm2_prev = norm2_guess
-                if ii > ophandler._options.norm_steps:
+                if ii > ode_options.norm_steps:
                     raise Exception("Norm tolerance not reached. " +
                                     "Increase accuracy of ODE solver or " +
                                     "Options.norm_steps.")
@@ -132,9 +137,9 @@ def monte_carlo(pid, ophandler, ode_options):
                 collapse_times.append(ODE.t)
                 # all constant collapse operators.
                 for i in range(n_dp.shape[0]):
-                    n_dp[i] = cy_expect_psi_csr(ophandler._data['n_ops_data'][i],
-                                                ophandler._data['n_ops_ind'][i],
-                                                ophandler._data['n_ops_ptr'][i],
+                    n_dp[i] = cy_expect_psi_csr(global_data['n_ops_data'][i],
+                                                global_data['n_ops_ind'][i],
+                                                global_data['n_ops_ptr'][i],
                                                 ODE._y, 1)
 
                 # determine which operator does collapse and store it
@@ -142,23 +147,29 @@ def monte_carlo(pid, ophandler, ode_options):
                 j = cinds[_p >= rand_vals[1]][0]
                 collapse_operators.append(j)
 
-                state = spmv_csr(ophandler._data['c_ops_data'][j],
-                                 ophandler._data['c_ops_ind'][j],
-                                 ophandler._data['c_ops_ptr'][j],
+                state = spmv_csr(global_data['c_ops_data'][j],
+                                 global_data['c_ops_ind'][j],
+                                 global_data['c_ops_ptr'][j],
                                  ODE._y)
 
                 state /= dznrm2(state)
                 ODE._y = state
                 ODE._integrator.call_args[3] = 1
-                rand_vals = prng.rand(2)
+                rand_vals = rng.rand(2)
 
         # after while loop (Do measurement or conditional)
-        # ----------------
+        # ------------------------------------------------
         out_psi = ODE._y / dznrm2(ODE._y)
+        for aind in range(acq_idx, num_acq):
+            if exp['acquire'][aind][0] == stop_time:
+                current_acq = exp['acquire'][aind]
+                qubits = current_acq[1]
+                memory_slots = current_acq[2]
+                probs = occ_probabilities(qubits, out_psi, global_data['measurement_ops'])
+                rand_vals = rng.rand(memory_slots.shape[0])
+                write_shots_memory(memory, memory_slots, probs, rand_vals)
+                int_mem = memory.dot(np.power(2.0,
+                         np.arange(memory.shape[1]-1,-1,-1))).astype(int)
+                acq_idx += 1
 
-        # measurement
-        psi = _proj_measurement(pid, ophandler, kk, out_psi, memory, register)
-
-        kk_prev = kk
-
-    return psi, memory
+    return int_mem
