@@ -82,12 +82,13 @@ def approximate_quantum_error(error, *,
         operator_string = operator_string.lower()
         if operator_string not in transformer.named_operators.keys():
             raise RuntimeError(
-                "No information about noise type {}".format(operator_string))
+                f"No information about noise type {operator_string}")
         operator_lists = transformer.named_operators[operator_string]
         if len(operator_lists) < error.number_of_qubits:
             raise RuntimeError(
-                "No information about noise type {} for {} qubits".format(operator_string, error.number_of_qubits))
-        operator_dict = operator_lists[error.number_of_qubits-1]
+                f"No information about noise type {operator_string} "
+                f"for {error.number_of_qubits} qubits")
+        operator_dict = operator_lists[error.number_of_qubits - 1]
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
@@ -100,7 +101,7 @@ def approximate_quantum_error(error, *,
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
                 "Approximated channel operators probabilities sum to {}".
-                format(1 - identity_prob))
+                    format(1 - identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
         op_circuit_list = [
             transformer.operator_circuit(operator)
@@ -217,12 +218,18 @@ def approximate_noise_model(model, *,
     approx_noise_model._basis_gates = model._basis_gates
     return approx_noise_model
 
+
 def pauli_operators():
+    """
+    Returns:
+        list: a list of Pauli operators for 1 and 2 qubits
+
+    """
     pauli_1_qubit = {
-                    'X': [{'name': 'x', 'qubits': [0]}],
-                    'Y': [{'name': 'y', 'qubits': [0]}],
-                    'Z': [{'name': 'z', 'qubits': [0]}]
-                    }
+        'X': [{'name': 'x', 'qubits': [0]}],
+        'Y': [{'name': 'y', 'qubits': [0]}],
+        'Z': [{'name': 'z', 'qubits': [0]}]
+    }
     pauli_2_qubit = {
         'XI': [{'name': 'x', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
         'YI': [{'name': 'y', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
@@ -242,7 +249,13 @@ def pauli_operators():
     }
     return [pauli_1_qubit, pauli_2_qubit]
 
+
 def reset_operators():
+    """
+    Returns:
+        list: a list of reset operators for 1 and 2 qubits
+
+    """
     reset_0_to_0 = [{'name': 'reset', 'qubits': [0]}]
     reset_0_to_1 = [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]
     reset_1_to_0 = [{'name': 'reset', 'qubits': [1]}]
@@ -266,6 +279,7 @@ def reset_operators():
         'q0_q1': reset_0_to_1 + reset_1_to_1,
     }
     return [reset_1_qubit, reset_2_qubit]
+
 
 class NoiseTransformer:
     """Transforms one quantum channel to another based on a specified criteria."""
@@ -400,7 +414,7 @@ class NoiseTransformer:
         self.fidelity_data = {
             'goal': goal,
             'coefficients':
-            coefficients[1:]  # coefficients[0] corresponds to I
+                coefficients[1:]  # coefficients[0] corresponds to I
         }
 
     # methods relevant to the transformation to quadratic programming instance
@@ -408,7 +422,7 @@ class NoiseTransformer:
     @staticmethod
     def fidelity(channel):
         """ Calculates channel fidelity """
-        return sum([numpy.abs(numpy.trace(E))**2 for E in channel])
+        return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
 
     # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
@@ -512,7 +526,7 @@ class NoiseTransformer:
         for i in range(shape[0]):
             for j in range(shape[1]):
                 basis_element_ij = sympy.zeros(*shape)
-                basis_element_ij[(i,j)] = 1
+                basis_element_ij[(i, j)] = 1
                 standard_base.append(basis_element_ij)
 
         return (sympy.Matrix([
@@ -533,8 +547,8 @@ class NoiseTransformer:
             channel == x1*D1 + ... + xn*Dn + E
         """
         return ([
-            self.get_matrix_from_channel(channel, symbol) for symbol in symbols
-        ], self.get_const_matrix_from_channel(channel, symbols))
+                    self.get_matrix_from_channel(channel, symbol) for symbol in symbols
+                ], self.get_const_matrix_from_channel(channel, symbols))
 
     @staticmethod
     def get_matrix_from_channel(channel, symbol):
