@@ -106,6 +106,12 @@ namespace Base {
  * - "max_memory_mb" (int): Sets the maximum size of memory for a store.
  *      If a state needs more, an error is thrown. If set to 0, the maximum
  *      will be automatically set to the system memory size [Default: 0].
+ * - "parallel_experiments" (int): Explicitly set number of circuits that
+ *      are executed in parallel [Default: -1].
+ * - "parallel_shots" (int): Explicitly set number of shots that are executed
+ *      in parallel for each circuit [Default: -1].
+ * - "parallel_state_update" (int): Explicitly set number of threads that
+ *      update states in a simulator in a circuit [Default: -1].
  *
  * Config settings from Data class:
  *
@@ -241,10 +247,14 @@ protected:
   int max_parallel_shots_;
   size_t max_memory_mb_;
 
+  // use explicit parallelization
+  bool explicit_parallelization;
+
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
   int parallel_shots_;
   int parallel_state_update_;
+
 };
 
 
@@ -284,6 +294,27 @@ void Controller::set_config(const json_t &config) {
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->set_config(config_);
 
+  if (JSON::check_key("parallel_experiments", config)) {
+    JSON::get_value(parallel_experiments_, "parallel_experiments", config);
+    explicit_parallelization = true;
+  }
+
+  if (JSON::check_key("parallel_shots", config)) {
+    JSON::get_value(parallel_shots_, "parallel_shots", config);
+    explicit_parallelization = true;
+  }
+
+  if (JSON::check_key("parallel_state_update", config)) {
+    JSON::get_value(parallel_state_update_, "parallel_state_update", config);
+    explicit_parallelization = true;
+  }
+
+  if (explicit_parallelization) {
+    parallel_experiments_ = std::max<int>( { parallel_experiments_, 1 });
+    parallel_shots_ = std::max<int>( { parallel_shots_, 1 });
+    parallel_state_update_ = std::max<int>( { parallel_state_update_, 1 });
+  }
+
   std::string path;
   JSON::get_value(path, "library_dir", config);
   // Fix for MacOS and OpenMP library double initialization crash.
@@ -305,6 +336,8 @@ void Controller::clear_parallelization() {
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
   parallel_state_update_ = 1;
+
+  explicit_parallelization = false;
 }
 
 void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits) {
@@ -507,8 +540,10 @@ json_t Controller::execute(const json_t &qobj_js) {
       max_parallel_threads_ = 1;
     #endif
 
-    // set parallelization for experiments
-    set_parallelization_experiments(qobj.circuits);
+    if (!explicit_parallelization) {
+      // set parallelization for experiments
+      set_parallelization_experiments(qobj.circuits);
+    }
 
   #ifdef _OPENMP
     result["metadata"]["omp_enabled"] = true;
@@ -575,8 +610,9 @@ json_t Controller::execute_circuit(Circuit &circ) {
   // for individual circuit failures.
   try {
     // set parallelization for this circuit
-    if (parallel_experiments_ == 1)
+    if (!explicit_parallelization && parallel_experiments_ == 1) {
       set_parallelization_circuit(circ);
+    }
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       result["data"] = run_circuit(circ, circ.shots, circ.seed);
