@@ -119,8 +119,6 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const tensorstate_t &state) override;
 
-  virtual void initialize_creg(uint_t num_memory, uint_t num_registers);
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
@@ -342,11 +340,7 @@ void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
 void State::initialize_omp() {
   qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
-    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in qubitvector
-}
-
-void State::initialize_creg(uint_t num_memory, uint_t num_registers) {
-  cout << "initialize_creg not supported yet" <<endl;
+    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
 }
 
 size_t State::required_memory_mb(uint_t num_qubits,
@@ -631,11 +625,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
 
-  if (qubits[0] > 0 || qubits[qubits.size()] < pow(2, qreg_.num_qubits())) {
-    cout << "sample_measure currently only supports the full set of qubits" << endl;
-    return all_samples;
-  }
-  
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
