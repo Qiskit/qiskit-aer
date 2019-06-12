@@ -20,7 +20,7 @@ import logging
 import pprint
 
 from test.terra import common
-from test.terra.reference import ref_simple_circuit, ref_1q_clifford, ref_2q_clifford
+from test.terra.reference import ref_1q_clifford, ref_2q_clifford
 
 from qiskit import *
 from qiskit.providers.aer import QasmSimulator
