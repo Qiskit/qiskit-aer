@@ -19,7 +19,7 @@ namespace TensorNetworkState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, cu, swap, su4 // two qubit
+  cx, cz, cu1, swap, su4 // two qubit
 };
 
 //=========================================================================
@@ -96,7 +96,7 @@ public:
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
-  void apply_cu(uint_t index_A, uint_t index_B, cmatrix_t mat);
+  void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
   void apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat);
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
   
@@ -132,6 +132,12 @@ public:
   // Description: prints the MPS
   //----------------------------------------------------------------	
    virtual ostream&  print(ostream& out) const;
+
+   //----------------------------------------------------------------
+   // function name: get_marices_size
+   // Description: returns the size of the inner matrices of the MPS
+   //----------------------------------------------------------------
+   vector<reg_t> get_marices_size() const;
 
   //----------------------------------------------------------------
   // function name: state_vec
