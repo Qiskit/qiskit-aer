@@ -121,7 +121,7 @@ public:
   void apply_u1(double lambda);
   void apply_u2(double phi, double lambda);
   void apply_u3(double theta, double phi, double lambda);
-  void apply_matrix(cmatrix_t &mat);
+  void apply_matrix(const cmatrix_t &mat);
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
@@ -244,7 +244,7 @@ void MPS_Tensor::apply_tdg()
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
 
-void MPS_Tensor::apply_matrix(cmatrix_t &mat)
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat)
 {
   cvector_t temp;
   for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)

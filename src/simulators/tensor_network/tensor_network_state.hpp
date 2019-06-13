@@ -294,7 +294,6 @@ const stringmap_t<Gates> State::gateset_({
   {"cz", Gates::cz},     // Controlled-Z gate
   {"cu1", Gates::cu1},     // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
-  {"su4", Gates::su4},   // general su4 matrix gate
   // Three-qubit gates
   // TODO: No Toffoli support?
   //{"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
@@ -557,7 +556,7 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::cu1:
       qreg_.apply_cu1(op.qubits[0], op.qubits[1],
-    		  	  	  	  std::real(op.params[0]));
+    		      std::real(op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -567,9 +566,17 @@ void State::apply_gate(const Operations::Op &op) {
 }
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (!qubits.empty() && mat.size() > 0) {
-    apply_matrix(qubits, Utils::vectorize_matrix(mat));
+  if (!qubits.empty() && qubits.size()==1 && mat.size() == 4) {
+    qreg_.apply_matrix(qubits[0], mat);
+    return;
   }
+  if (!qubits.empty() && qubits.size()==2 && mat.size() == 16) {
+    qreg_.apply_matrix(qubits[0], qubits[1], mat);
+    return;
+  }
+#ifdef DEBUG
+  cout << "Currently only support matrices applied to 1 or 2 qubits" << endl;
+#endif  
 }
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
@@ -580,16 +587,6 @@ void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
     qreg_.apply_matrix(qubits, vmat);
   }
 }
-
-void State::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  apply_matrix(reg_t({qubit}), Utils::Matrix::u3(theta, phi, lambda));
-}
-
-void State::apply_gate_phase(uint_t qubit, complex_t phase) {
-  cvector_t diag = {{1., phase}};
-  apply_matrix(reg_t({qubit}), diag);
-}
-
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling

@@ -97,13 +97,23 @@ public:
   void apply_swap(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat);
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
   
+  void apply_matrix(uint_t index, const cmatrix_t &mat) 
+  {
+    q_reg_[index].apply_matrix(mat);
+  }
+
+  void apply_matrix(uint_t index_A, uint_t index_B, const cmatrix_t &mat) 
+  {
+    apply_2_qubit_gate(index_A, index_B, su4, mat);
+  }
+
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
   {
-    cout << "apply_matrix not supported yet" <<endl;
+    cout << "apply_matrix for vector not supported yet" <<endl;
   }
+
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
   {
     cout << "apply_diagonal_matrix not supported yet" <<endl;

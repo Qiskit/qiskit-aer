@@ -109,10 +109,6 @@ void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
   cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
   apply_2_qubit_gate(index_A, index_B, cu1, u1_matrix);
 }
-void MPS::apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat)
-{
-  apply_2_qubit_gate(index_A, index_B, su4, mat);
-}
 
 void MPS::apply_swap(uint_t index_A, uint_t index_B)
 {
