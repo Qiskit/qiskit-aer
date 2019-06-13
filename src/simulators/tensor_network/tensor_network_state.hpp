@@ -292,8 +292,7 @@ const stringmap_t<Gates> State::gateset_({
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
   {"cz", Gates::cz},     // Controlled-Z gate
-  {"cu", Gates::cu},     // Controlled-U gate
-  {"cu1", Gates::cu},     // Controlled-U gate
+  {"cu1", Gates::cu1},     // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
   {"su4", Gates::su4},   // general su4 matrix gate
   // Three-qubit gates
@@ -555,6 +554,10 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::cz:
       qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cu1:
+      qreg_.apply_cu1(op.qubits[0], op.qubits[1],
+    		  	  	  	  std::real(op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset

@@ -94,6 +94,7 @@ public:
     return *this;
   }
   virtual ostream& print(ostream& out) const;
+  reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
@@ -156,6 +157,20 @@ ostream& MPS_Tensor::print(ostream& out) const{
 
     return out;
 }
+
+//**************************************************************
+// function name: get_size
+// Description: get size of the matrices of the tensor.
+// Parameters: none.
+// Returns: reg_t of size 2, for rows and columns.
+//**************************************************************
+reg_t MPS_Tensor::get_size() const
+{
+	reg_t result;
+	result.push_back(data_[0].GetRows());
+	result.push_back(data_[0].GetColumns());
+	return result;
+}
   
 //----------------------------------------------------------------
 // function name: get_data
@@ -195,20 +210,10 @@ void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   swap(data_[0],data_[1]);
 }
   void MPS_Tensor::apply_y()
   {
-    if (data_.size() != 2)
-      {
-	cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-	assert(false);
-      }
     data_[0] = data_[0] * complex_t(0, 1);
     data_[1] = data_[1] * complex_t(0, -1);
     swap(data_[0],data_[1]);
@@ -216,79 +221,43 @@ void MPS_Tensor::apply_x()
 
 void MPS_Tensor::apply_z()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   data_[1] = data_[1] * (-1.0);
 }
 
 void MPS_Tensor::apply_s()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   data_[1] = data_[1] * complex_t(0, 1);
 }
 
 void MPS_Tensor::apply_sdg()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   data_[1] = data_[1] * complex_t(0, -1);
 }
   
 void MPS_Tensor::apply_t()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
 }
 
 void MPS_Tensor::apply_tdg()
 {
-  if (data_.size() != 2)
-    {
-      cout << "ERROR: The tensor doesn't represent one qubit" << '\n';
-      assert(false);
-    }
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
 
 void MPS_Tensor::apply_matrix(cmatrix_t &mat)
 {
-  if (data_.size() != mat.GetRows())
-    {
-      cout << "ERROR: The matrix and tensor doesn't represent the same number of qubits" << '\n';
-      assert(false);
-    }
-
   cvector_t temp;
   for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)
     for (uint_t a2 = 0; a2 < data_[0].GetColumns(); a2++)
-      {
-	temp = get_data(a1,a2);
-	temp = mat * temp;
-	insert_data(a1,a2,temp);
-      }
+    {
+	  temp = get_data(a1,a2);
+	  temp = mat * temp;
+	  insert_data(a1,a2,temp);
+    }
 }
 
 void MPS_Tensor::apply_cnot(bool swapped)
 {
-  if (data_.size() != 4)
-    {
-      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-      assert(false);
-    }
   if(!swapped)
     swap(data_[2],data_[3]);
   else
@@ -297,21 +266,11 @@ void MPS_Tensor::apply_cnot(bool swapped)
 
 void MPS_Tensor::apply_swap()
 {
-  if (data_.size() != 4)
-    {
-      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-      assert(false);
-    }
   swap(data_[1],data_[2]);
 }
 
 void MPS_Tensor::apply_cz()
 {
-  if (data_.size() != 4)
-    {
-      cout << "ERROR: The tensor doesn't represent 2 qubits" << '\n';
-      assert(false);
-    }
   data_[3] = data_[3] * (-1.0);
 }
 

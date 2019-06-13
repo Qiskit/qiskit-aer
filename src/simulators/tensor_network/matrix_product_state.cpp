@@ -104,9 +104,10 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(index_A, index_B, cz, cmatrix_t(1));
 }
-void MPS::apply_cu(uint_t index_A, uint_t index_B, cmatrix_t mat)
+void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  apply_2_qubit_gate(index_A, index_B, cu, mat);
+  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
+  apply_2_qubit_gate(index_A, index_B, cu1, u1_matrix);
 }
 void MPS::apply_su4(uint_t index_A, uint_t index_B, cmatrix_t mat)
 {
@@ -210,7 +211,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	case cz:
 	  temp.apply_cz();
 	  break;
-	case cu:
+	case cu1:
 	{
 	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
 	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
@@ -335,6 +336,16 @@ ostream& MPS::print(ostream& out) const
 	}
 	out << endl;
 	return out;
+}
+
+vector<reg_t> MPS::get_marices_size() const
+{
+	vector<reg_t> result;
+	for(uint_t i=0; i<num_qubits_; i++)
+	{
+		result.push_back(q_reg_[i].get_size());
+	}
+	return result;
 }
 
 MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
