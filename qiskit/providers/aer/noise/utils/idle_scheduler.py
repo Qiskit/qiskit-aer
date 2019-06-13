@@ -22,7 +22,7 @@ from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard.iden import IdGate
 
 
-def schedule_idle_gates(circuit, op_times={}, default_op_time=1):
+def schedule_idle_gates(circuit, op_times=None, default_op_time=1):
     """
     This function gets a circuit and returns a new one with the idle
     gates in place; each idle gate is labeled "id_<name>" where <name> is the name of
@@ -44,7 +44,10 @@ def schedule_idle_gates(circuit, op_times={}, default_op_time=1):
 class IdleScheduler():
     """Adds idle gates to given circuits"""
     def __init__(self, op_times, default_op_time):
-        self.op_times = op_times
+        if op_times is None:
+            self.op_times = {}
+        else:
+            self.op_times = op_times
         self.default_op_time = default_op_time
         self.circuit = None
         self.idle_times = None
@@ -88,7 +91,7 @@ class IdleScheduler():
 
         id_time = self.op_times.get('id', self.default_op_time)
         for qubit in self.circuit.qubits:
-            while (self.idle_times[qubit] >= id_time):
+            while self.idle_times[qubit] >= id_time:
                 id_gate = IdGate(label="id_{}".format(max_op_name))
                 layer['graph'].apply_operation_back(id_gate, [qubit], [])
                 self.idle_times[qubit] -= id_time
