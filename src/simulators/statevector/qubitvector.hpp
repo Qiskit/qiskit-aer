@@ -1901,10 +1901,10 @@ cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_
 
     // 1. identify low and high delta
     auto low = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
+                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[0]));
 
     auto high = std::distance(dst_sorted_qubits.begin(),
-                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[1]));
+                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[1]));
 
     auto low_delta = BITS[low];
     auto high_delta = BITS[high];
