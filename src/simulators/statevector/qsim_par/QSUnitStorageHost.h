@@ -46,14 +46,14 @@ public:
 		Release();
 	}
 
-	int Allocate(QSUint numUnits,int numBuffers);
+	int Allocate(QSUint numUnits,int nPipe,int numBuffers);
 
 	void Release(void);
 
 	void SetValue(QSDoubleComplex c,QSUint uid,int pos);
 	void Clear(void);
 	void ClearUnit(QSUint iUnit);
-
+	void Copy(QSComplex* pV,QSUint iUnit);
 
 	void Wait(void)
 	{

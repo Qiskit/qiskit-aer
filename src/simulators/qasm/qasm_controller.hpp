@@ -195,7 +195,7 @@ protected:
                                  State_t &state,
                                  const Initstate_t &initial_state,
                                  OutputData &data,
-                                 RngEngine &rng) const;
+                                 RngEngine &rng, uint_t rng_seed) const;
 
   // Execute n-shots of a circuit with noise by sampling a new noisy
   // instance of the circuit for each shot.
@@ -205,7 +205,7 @@ protected:
                               State_t &state,
                               const Initstate_t &initial_state,
                               OutputData &data,
-                              RngEngine &rng) const;
+                              RngEngine &rng, uint_t rng_seed) const;
 
   //----------------------------------------------------------------
   // Measure sampling optimization
@@ -481,7 +481,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Rng engine
   RngEngine rng;
-  rng.set_seed(rng_seed);
+//  rng.set_seed(rng_seed);
 
   // Output data container
   OutputData data;
@@ -491,9 +491,9 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Check if there is noise for the implementation
   if (noise_model_.ideal()) {
-    run_circuit_without_noise(circ, shots, state, initial_state, data, rng);
+    run_circuit_without_noise(circ, shots, state, initial_state, data, rng,rng_seed);
   } else {
-    run_circuit_with_noise(circ, shots, state, initial_state, data, rng);
+    run_circuit_with_noise(circ, shots, state, initial_state, data, rng,rng_seed);
   }
   return data;
 }
@@ -517,9 +517,10 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             State_t &state,
                                             const Initstate_t &initial_state,
                                             OutputData &data,
-                                            RngEngine &rng) const {
+                                            RngEngine &rng, uint_t rng_seed) const {
   // Sample a new noise circuit and optimize for each shot
-  while(shots-- > 0) {
+  for(int i=0;i<shots;i++){
+    rng.set_seed(rng_seed + i);
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
       noise_circ = optimize_circuit(noise_circ, state, data);
@@ -535,7 +536,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                State_t &state,
                                                const Initstate_t &initial_state,
                                                OutputData &data,
-                                               RngEngine &rng) const {
+                                               RngEngine &rng, uint_t rng_seed) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
   if (circ.num_qubits > circuit_opt_ideal_threshold_) {
@@ -547,14 +548,17 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   if (check.first == false) {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
-    while(shots-- > 0) {
+  	for(int i=0;i<shots;i++){
+  	  rng.set_seed(rng_seed + i);
       run_single_shot(opt_circ, state, initial_state, data, rng);
     }
   } else {
     // Implement measure sampler
     auto pos = check.second; // Position of first measurement op
 
-    // Run circuit instructions before first measure
+  	rng.set_seed(rng_seed);
+
+  	// Run circuit instructions before first measure
     std::vector<Operations::Op> ops(opt_circ.ops.begin(), opt_circ.ops.begin() + pos);
     initialize_state(opt_circ, state, initial_state);
     state.apply_ops(ops, data, rng);

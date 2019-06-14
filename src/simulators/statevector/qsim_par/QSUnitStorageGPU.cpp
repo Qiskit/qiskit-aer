@@ -34,11 +34,12 @@
 #include "QSUnitStorageGPU.h"
 
 
-int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
+int QSUnitStorageGPU::Allocate(QSUint numUnits,int nPipe,int numBuffers)
 {
 	size_t freeMem,totalMem;
 	int i;
 	int ndev;
+	long long nu;
 
 	cudaGetDeviceCount(&ndev);
 
@@ -51,19 +52,21 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
 	cudaStreamCreateWithFlags(&m_strm, cudaStreamNonBlocking);
 	cudaStreamCreateWithFlags(&m_strmToHost, cudaStreamNonBlocking);
 
-	m_flagTrans = new QSUint[numBuffers];
-	for(i=0;i<numBuffers;i++){
-		m_flagTrans[i] = 0;
-	}
-	m_pStrmPipe = new cudaStream_t[numBuffers];
-	m_pStrmTrans = new cudaStream_t[numBuffers];
-	m_pEventIn = new cudaEvent_t[numBuffers];
-	m_pEventOut = new cudaEvent_t[numBuffers];
-	for(i=0;i<numBuffers;i++){
-		cudaStreamCreateWithFlags(&m_pStrmPipe[i], cudaStreamNonBlocking);
-		cudaStreamCreateWithFlags(&m_pStrmTrans[i], cudaStreamNonBlocking);
-		cudaEventCreateWithFlags(&m_pEventIn[i],cudaEventDisableTiming);
-		cudaEventCreateWithFlags(&m_pEventOut[i],cudaEventDisableTiming);
+	if(nPipe > 0){
+		m_flagTrans = new QSUint[nPipe];
+		for(i=0;i<nPipe;i++){
+			m_flagTrans[i] = 0;
+		}
+		m_pStrmPipe = new cudaStream_t[nPipe];
+		m_pStrmTrans = new cudaStream_t[nPipe];
+		m_pEventIn = new cudaEvent_t[nPipe];
+		m_pEventOut = new cudaEvent_t[nPipe];
+		for(i=0;i<nPipe;i++){
+			cudaStreamCreateWithFlags(&m_pStrmPipe[i], cudaStreamNonBlocking);
+			cudaStreamCreateWithFlags(&m_pStrmTrans[i], cudaStreamNonBlocking);
+			cudaEventCreateWithFlags(&m_pEventIn[i],cudaEventDisableTiming);
+			cudaEventCreateWithFlags(&m_pEventOut[i],cudaEventDisableTiming);
+		}
 	}
 
 	//Set p2p
@@ -73,23 +76,29 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
 	}
 
 	//allocate storage for matrix
-	int nPipeForMaxMat = (numBuffers)/QS_MAX_MATRIX_SIZE;
-//	cudaMalloc(&m_pMat,sizeof(QSDoubleComplex)*QS_MAX_MATRIX_SIZE*QS_MAX_MATRIX_SIZE);
+	int nPipeForMaxMat = (nPipe)/QS_MAX_MATRIX_SIZE;
+	cudaMalloc(&m_pMat,sizeof(QSDoubleComplex)*QS_MAX_MATRIX_SIZE*QS_MAX_MATRIX_SIZE);
 //	cudaMalloc(&m_pBufPtr,sizeof(QSComplex*)*QS_MAX_MATRIX_SIZE*(nPipeForMaxMat+1));
-//	cudaMalloc(&m_pBitsPtr,sizeof(int)*QS_MAX_MATRIX_SIZE);
+	cudaMalloc(&m_pBitsPtr,sizeof(int)*QS_MAX_MATRIX_SIZE);
 
 	//use Unified Memory to point buffers
 	cudaMallocManaged(&m_pBufPtr,sizeof(QSComplex*)*QS_MAX_MATRIX_SIZE*(nPipeForMaxMat+1));
-	
+
 	//allocate units + buffers
+	nu = numUnits;
 	cudaMemGetInfo(&freeMem,&totalMem);
 	if( ((uint64_t)(numUnits + numBuffers) << m_unitBits)*sizeof(QSComplex) >= freeMem ){
-		numUnits = ((uint64_t)(freeMem/sizeof(QSComplex)) >> m_unitBits) - (uint64_t)numBuffers - 1;
+		nu = ((long)(freeMem/sizeof(QSComplex)) >> m_unitBits) - (long)numBuffers - 1;
 	}
 
 #ifdef QSIM_DEBUG
-	printf(" [%d] units = %d, mem = %lld/%lld\n",m_devID,numUnits,freeMem,totalMem);
+	printf(" [%d] units = %lld, mem = %lld/%lld\n",m_devID,nu,freeMem,totalMem);
 #endif
+
+	if(nu <= 0){
+		return 0;
+	}
+	numUnits = nu;
 
 	while(cudaMalloc(&m_pAmp,(uint64_t)(sizeof(QSComplex)*(numUnits + numBuffers)) << m_unitBits) != cudaSuccess){
 		numUnits -= 1;
@@ -100,6 +109,7 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
 	}
 	m_numUnits = numUnits;
 	m_numBuffer = numBuffers;
+	m_nMaxPipe = nPipe;
 	m_numStorage = numUnits + numBuffers;
 
 //	cudaMemsetAsync(m_pAmp,0,sizeof(QSComplex)*(m_numStorage)*m_unitSize,m_strm);
@@ -114,6 +124,7 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int numBuffers)
 void QSUnitStorageGPU::Release(void)
 {
 	int i;
+
 	if(m_pAmp){
 		cudaFree(m_pAmp);
 		m_pAmp = NULL;
@@ -124,32 +135,34 @@ void QSUnitStorageGPU::Release(void)
 		m_pNormBuf = NULL;
 	}
 
-	if(m_pStrmPipe){
-		for(i=0;i<m_numBuffer;i++){
-			cudaStreamDestroy(m_pStrmPipe[i]);
-			cudaStreamDestroy(m_pStrmTrans[i]);
-			cudaEventDestroy(m_pEventIn[i]);
-			cudaEventDestroy(m_pEventOut[i]);
+	if(m_nMaxPipe > 0){
+		if(m_pStrmPipe){
+			for(i=0;i<m_nMaxPipe;i++){
+				cudaStreamDestroy(m_pStrmPipe[i]);
+				cudaStreamDestroy(m_pStrmTrans[i]);
+				cudaEventDestroy(m_pEventIn[i]);
+				cudaEventDestroy(m_pEventOut[i]);
+			}
+			delete[] m_pStrmPipe;
+			delete[] m_pStrmTrans;
+			delete[] m_pEventIn;
+			delete[] m_pEventOut;
+			m_pStrmPipe = NULL;
 		}
-		delete[] m_pStrmPipe;
-		delete[] m_pStrmTrans;
-		delete[] m_pEventIn;
-		delete[] m_pEventOut;
-		m_pStrmPipe = NULL;
 	}
 
-//	if(m_pMat){
-//		cudaFree(m_pMat);
-//		m_pMat = NULL;
-//	}
+	if(m_pMat){
+		cudaFree(m_pMat);
+		m_pMat = NULL;
+	}
 	if(m_pBufPtr){
 		cudaFree(m_pBufPtr);
 		m_pBufPtr = NULL;
 	}
-//	if(m_pBitsPtr){
-//		cudaFree(m_pBitsPtr);
-//		m_pBitsPtr = NULL;
-//	}
+	if(m_pBitsPtr){
+		cudaFree(m_pBitsPtr);
+		m_pBitsPtr = NULL;
+	}
 
 	if(m_flagTrans){
 		delete[] m_flagTrans;
@@ -191,6 +204,11 @@ void QSUnitStorageGPU::ClearUnit(QSUint iUnit)
 	cudaStreamSynchronize(m_pStrmTrans[0]);
 }
 
+void QSUnitStorageGPU::Copy(QSComplex* pV,QSUint iUnit)
+{
+	cudaSetDevice(m_devID);
+	cudaMemcpyAsync(m_pAmp + iUnit*m_unitSize,pV,sizeof(QSComplex)*m_unitSize,cudaMemcpyHostToDevice,m_strm);
+}
 
 void QSUnitStorageGPU::ToHost(QSComplex* pDest,QSComplex* pSrc)
 {
@@ -273,13 +291,13 @@ void QSUnitStorageGPU::GetOnPipe(int iBuf,QSComplex* pDest,int iPlace)
 
 void QSUnitStorageGPU::WaitPut(int iBuf)
 {
-	cudaSetDevice(m_devID);
+//	cudaSetDevice(m_devID);
 	cudaStreamSynchronize(m_pStrmTrans[iBuf + m_pipeCount*m_unitPerPipe]);
 }
 
 void QSUnitStorageGPU::WaitGet(int iBuf)
 {
-	cudaSetDevice(m_devID);
+//	cudaSetDevice(m_devID);
 	cudaStreamSynchronize(m_pStrmTrans[iBuf + m_pipeCount*m_unitPerPipe]);
 
 	m_flagTrans[m_pipeCount] ^= (1ull << iBuf);
@@ -303,7 +321,7 @@ void QSUnitStorageGPU::WaitPipe(int iPipe)
 	int i;
 	QSUint flag = 0;
 
-	cudaSetDevice(m_devID);
+//	cudaSetDevice(m_devID);
 
 	cudaStreamSynchronize(m_pStrmPipe[iPipe]);
 	for(i=0;i<m_unitPerPipe;i++){
@@ -317,7 +335,7 @@ void QSUnitStorageGPU::WaitPipe(int iPipe)
 void QSUnitStorageGPU::WaitAll(void)
 {
 	int i,j;
-	cudaSetDevice(m_devID);
+//	cudaSetDevice(m_devID);
 
 	for(i=0;i<m_nPipe;i++){
 		cudaStreamSynchronize(m_pStrmPipe[i]);

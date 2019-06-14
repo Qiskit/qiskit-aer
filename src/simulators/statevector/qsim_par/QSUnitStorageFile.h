@@ -65,7 +65,7 @@ public:
 
 	void SetFilename(char* filename);
 
-	int Allocate(QSUint numUnits,int numBuffers);
+	int Allocate(QSUint numUnits,int nPipe,int numBuffers);
 
 	void Release(void);
 

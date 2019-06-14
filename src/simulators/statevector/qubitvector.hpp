@@ -222,16 +222,16 @@ public:
   //-----------------------------------------------------------------------
 
   // Initializes the current vector so that all qubits are in the |0> state.
-  void initialize();
+  virtual void initialize();
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t &data);
+  virtual void initialize_from_vector(const cvector_t &data);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
-  void initialize_from_data(const data_t &data, const size_t num_states);
+  virtual void initialize_from_data(const data_t &data, const size_t num_states);
 
   //-----------------------------------------------------------------------
   // Apply Matrices

@@ -584,12 +584,18 @@ json_t Controller::execute_circuit(Circuit &circ) {
     } else {
       // Calculate shots per thread
       std::vector<unsigned int> subshots;
+      std::vector<unsigned int> subshots_seed(parallel_shots_,0);
       for (int j = 0; j < parallel_shots_; ++j) {
         subshots.push_back(circ.shots / parallel_shots_);
       }
       // If shots is not perfectly divisible by threads, assign the remaineder
       for (int j=0; j < int(circ.shots % parallel_shots_); ++j) {
         subshots[j] += 1;
+      }
+      //set seed for each thread
+      subshots_seed[0] = circ.seed;
+      for (int j = 1; j < parallel_shots_; ++j) {
+      	subshots_seed[j] = subshots_seed[j-1] + subshots[j-1];
       }
 
       // Vector to store parallel thread output data
@@ -598,7 +604,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
-          data[i] = run_circuit(circ, subshots[i], circ.seed + i);
+          data[i] = run_circuit(circ, subshots[i], subshots_seed[i]);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }

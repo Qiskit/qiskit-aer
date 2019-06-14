@@ -32,7 +32,7 @@
 __global__ void QSGate_Y_InUnit_cuda_kernel(QSVec2* pAmp,int qubit)
 {
 	QSUint i,k,k1,k2,kb,mask,add;
-	QSVec2 vs0,vs1;
+	QSVec2 vs0,vs1,vd0,vd1;
 
 	i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -46,15 +46,20 @@ __global__ void QSGate_Y_InUnit_cuda_kernel(QSVec2* pAmp,int qubit)
 	vs0 = pAmp[k];
 	vs1 = pAmp[kb];
 
-	pAmp[k] = vs1;
-	pAmp[kb] = vs0;
+	vd0.x =  vs1.y;
+	vd0.y = -vs1.x;
+	vd1.x = -vs0.y;
+	vd1.y =  vs0.x;
+
+	pAmp[k] = vd0;
+	pAmp[kb] = vd1;
 }
 
 
 __global__ void QSGate_Y_InUnit_shfl_cuda_kernel(QSVec2* pAmp,int qubit)
 {
 	QSUint i,iPair,lmask;
-	QSVec2 vs0,vs1;
+	QSVec2 vs0,vd;
 
 	i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -63,17 +68,24 @@ __global__ void QSGate_Y_InUnit_shfl_cuda_kernel(QSVec2* pAmp,int qubit)
 
 	vs0 = pAmp[i];
 
-	vs1.x = __shfl_xor_sync(0xffffffff,vs0.x,lmask,32);
-	vs1.y = __shfl_xor_sync(0xffffffff,vs0.y,lmask,32);
+	vd.y = __shfl_xor_sync(0xffffffff,vs0.x,lmask,32);
+	vd.x = __shfl_xor_sync(0xffffffff,vs0.y,lmask,32);
 
-	pAmp[i] = vs1;
+	if((i & lmask) != 0){
+		vd.x = -vd.x;
+	}
+	else{
+		vd.y = -vd.y;
+	}
+
+	pAmp[i] = vd;
 }
 
 __global__ void QSGate_Y_InUnit_shm_cuda_kernel(QSVec2* pAmp,int qubit)
 {
 	extern __shared__ QSVec2 buf[];
 	QSUint i,iPair,lmask;
-	QSVec2 vs0,vs1;
+	QSVec2 vs0,vd;
 
 	i = threadIdx.x;
 
@@ -86,15 +98,25 @@ __global__ void QSGate_Y_InUnit_shm_cuda_kernel(QSVec2* pAmp,int qubit)
 	buf[threadIdx.x] = vs0;
 	__syncthreads();
 
-	vs1 = buf[iPair];
-	pAmp[i] = vs1;
+	vs0 = buf[iPair];
+
+	if((i & lmask) != 0){
+		vd.x = -vs0.y;
+		vd.y =  vs0.x;
+	}
+	else{
+		vd.x =  vs0.y;
+		vd.y = -vs0.x;
+	}
+
+	pAmp[i] = vd;
 }
 
 
 __global__ void QSGate_Y_cuda_kernel(QSVec2* pBuf0,QSVec2* pBuf1,QSUint localMask)
 {
 	QSUint i;
-	QSVec2 vs0,vs1;
+	QSVec2 vs0,vs1,vd0,vd1;
 
 	i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -102,10 +124,14 @@ __global__ void QSGate_Y_cuda_kernel(QSVec2* pBuf0,QSVec2* pBuf1,QSUint localMas
 	vs1 = pBuf1[i];
 
 	if(localMask & 1){
-		pBuf0[i] = vs1;
+		vd0.x =  vs1.y;
+		vd0.y = -vs1.x;
+		pBuf0[i] = vd0;
 	}
 	if(localMask & 2){
-		pBuf1[i] = vs0;
+		vd1.x = -vs0.y;
+		vd1.y =  vs0.x;
+		pBuf1[i] = vd1;
 	}
 }
 

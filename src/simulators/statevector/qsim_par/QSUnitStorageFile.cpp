@@ -48,39 +48,46 @@ void QSUnitStorageFile::SetFilename(char* filename)
 
 
 
-int QSUnitStorageFile::Allocate(QSUint numUnits,int numBuffers)
+int QSUnitStorageFile::Allocate(QSUint numUnits,int nPipe,int numBuffers)
 {
 	struct sysinfo sinfo;
 	QSUint availableMem;
 
 	m_numUnits = (QSUint)numUnits;
 	m_numBuffer = numBuffers;
+	m_nMaxPipe = nPipe;
 	m_numStorage = (QSUint)numUnits + (QSUint)numBuffers;
 
-	sysinfo(&sinfo);
-
-	//65% of total memory
-	availableMem = sinfo.totalram*sinfo.mem_unit/m_procPerNode;
-	availableMem = availableMem*65/100;
-
+	m_numUnitsOnMem = 0;
 	m_numUnitsOnFile = 0;
-	if((((QSUint)(numUnits + numBuffers) << m_unitBits) * sizeof(QSComplex)) >= availableMem){
+	m_pAmp = NULL;
+	m_pAmpFile = NULL;
 
-		m_numUnitsOnFile = numUnits - ( (availableMem/sizeof(QSComplex)) >> m_unitBits ) + numBuffers;
-	}
-	m_numUnitsOnMem = m_numUnits - m_numUnitsOnFile;
+	if(m_numStorage > 0){
+		sysinfo(&sinfo);
+
+		//65% of total memory
+		availableMem = sinfo.totalram*sinfo.mem_unit/m_procPerNode;
+		availableMem = availableMem*65/100;
+
+		if((((QSUint)(numUnits + numBuffers) << m_unitBits) * sizeof(QSComplex)) >= availableMem){
+
+			m_numUnitsOnFile = numUnits - ( (availableMem/sizeof(QSComplex)) >> m_unitBits ) + numBuffers;
+		}
+		m_numUnitsOnMem = m_numUnits - m_numUnitsOnFile;
 
 #ifdef QSIM_DEBUG
-	printf(" available = %ld, %ld units on host memory, %ld units on file , %s\n",availableMem,m_numUnitsOnMem,m_numUnitsOnFile,m_filename);
+		printf(" available = %ld, %ld units on host memory, %ld units on file , %s\n",availableMem,m_numUnitsOnMem,m_numUnitsOnFile,m_filename);
 #endif
 
 #ifdef QSIM_CUDA_
-	if(cudaMallocHost(&m_pAmp,(sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits) != cudaSuccess){
-		m_pAmp = (QSComplex*)malloc((sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits);
-	}
+		if(cudaMallocHost(&m_pAmp,(sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits) != cudaSuccess){
+			m_pAmp = (QSComplex*)malloc((sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits);
+		}
 #else
-	m_pAmp = (QSComplex*)malloc((sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits);
+		m_pAmp = (QSComplex*)malloc((sizeof(QSComplex)*(m_numUnitsOnMem + m_numBuffer)) << m_unitBits);
 #endif
+	}
 
 	if(m_numUnitsOnFile > 0){
 		//allocate rest of units on file
@@ -130,33 +137,39 @@ void QSUnitStorageFile::SetValue(QSDoubleComplex c,QSUint uid,int pos)
 	QSReal* pR;
 	double* pC = (double*)&c;
 
-	if(uid < m_numUnitsOnMem){
-		pR = (QSReal*)(m_pAmp + uid*m_unitSize + pos);
+	if(m_numStorage > 0){
+		if(uid < m_numUnitsOnMem){
+			pR = (QSReal*)(m_pAmp + uid*m_unitSize + pos);
+		}
+		else{
+			pR = (QSReal*)(m_pAmpFile + (uid - m_numUnitsOnMem)*m_unitSize + pos);
+		}
+		pR[0] = (QSReal)pC[0];
+		pR[1] = (QSReal)pC[1];
 	}
-	else{
-		pR = (QSReal*)(m_pAmpFile + (uid - m_numUnitsOnMem)*m_unitSize + pos);
-	}
-	pR[0] = (QSReal)pC[0];
-	pR[1] = (QSReal)pC[1];
 }
 
 
 void QSUnitStorageFile::Clear(void)
 {
-	memset(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnitsOnMem);
-	if(m_pAmpFile){
-		memset(m_pAmpFile,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnitsOnFile);
+	if(m_numStorage > 0){
+		memset(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnitsOnMem);
+		if(m_pAmpFile){
+			memset(m_pAmpFile,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnitsOnFile);
+		}
 	}
 }
 
 
 void QSUnitStorageFile::ClearUnit(QSUint iUnit)
 {
-	if(iUnit < m_numUnitsOnMem){
-		memset(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
-	}
-	else{
-		memset(m_pAmpFile + (iUnit - m_numUnitsOnMem)*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
+	if(m_numStorage > 0){
+		if(iUnit < m_numUnitsOnMem){
+			memset(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
+		}
+		else{
+			memset(m_pAmpFile + (iUnit - m_numUnitsOnMem)*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
+		}
 	}
 }
 

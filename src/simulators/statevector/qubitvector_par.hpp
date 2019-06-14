@@ -102,11 +102,11 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-//  void initialize_from_vector(const cvector_t &data);
+  void initialize_from_vector(const cvector_t &data);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
-//  void initialize_from_data(const data_t &data, const size_t num_states);
+  void initialize_from_data(const data_t &data, const size_t num_states);
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -254,16 +254,23 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-QubitVectorPar<data_t>::QubitVectorPar(size_t num_qubits) : QubitVector<data_t>(num_qubits) {
-	;
+QubitVectorPar<data_t>::QubitVectorPar(size_t num_qubits) : QubitVector<data_t>(num_qubits)
+{
+	m_pUnits = NULL;
 }
 
 template <typename data_t>
-QubitVectorPar<data_t>::QubitVectorPar() : QubitVectorPar(0) {}
+QubitVectorPar<data_t>::QubitVectorPar() : QubitVectorPar(0)
+{
+	m_pUnits = NULL;
+}
 
 template <typename data_t>
-QubitVectorPar<data_t>::~QubitVectorPar() {
-
+QubitVectorPar<data_t>::~QubitVectorPar()
+{
+	if(m_pUnits){
+		delete m_pUnits;
+	}
 }
 
 
@@ -297,17 +304,24 @@ void QubitVectorPar<data_t>::set_num_qubits(size_t num_qubits) {
   QubitVector<data_t>::data_ = reinterpret_cast<complex_t*>(malloc(sizeof(complex_t)));	//dummy
 
 	if(num_qubits > 0){
+		if(m_pUnits){
+			//reuse statevectors if number of qubit is the same
+			if(m_pUnits->Qubit() != num_qubits){
+				delete m_pUnits;
+				m_pUnits = NULL;
+			}
+		}
+
 #ifdef QSIM_MPI
 		MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 		MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 #endif
 
-		//actual data
-		m_pUnits = new QSUnitManager(num_qubits);
-		m_pUnits->Init();
-
-		QSDoubleComplex c = 1.0;
-		m_pUnits->SetValue(c,0);
+		if(m_pUnits == NULL){
+			//actual data
+			m_pUnits = new QSUnitManager(num_qubits);
+			m_pUnits->Init();
+		}
 	}
 }
 
@@ -316,12 +330,42 @@ void QubitVectorPar<data_t>::set_num_qubits(size_t num_qubits) {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void QubitVectorPar<data_t>::initialize() {
-	zero();
-//  data_[0] = 1.;
-	QSDoubleComplex c = 1.0;
-	m_pUnits->SetValue(c,0);
+void QubitVectorPar<data_t>::initialize()
+{
+	if(m_pUnits){
+		QSDoubleComplex c = 1.0;
+		m_pUnits->Clear();
+		m_pUnits->SetValue(c,0);
+	}
 }
+
+template <typename data_t>
+void QubitVectorPar<data_t>::initialize_from_vector(const cvector_t &statevec)
+{
+	if (QubitVector<data_t>::data_size_ != statevec.size()) {
+		std::string error = "QubitVector::initialize input vector is incorrect length (" + 
+			std::to_string(QubitVector<data_t>::data_size_) + "!=" +
+			std::to_string(statevec.size()) + ")";
+		throw std::runtime_error(error);
+	}
+	if(m_pUnits){
+		m_pUnits->Copy((QSComplex*)&statevec[0]);
+	}
+}
+
+template <typename data_t>
+void QubitVectorPar<data_t>::initialize_from_data(const data_t &statevec, const size_t num_states)
+{
+	if (QubitVector<data_t>::data_size_ != num_states) {
+		std::string error = "QubitVector::initialize input vector is incorrect length (" +
+			std::to_string(QubitVector<data_t>::data_size_) + "!=" + std::to_string(num_states) + ")";
+		throw std::runtime_error(error);
+	}
+	if(m_pUnits){
+		m_pUnits->Copy((QSComplex*)&statevec[0]);
+	}
+}
+
 
 /*******************************************************************************
  *
@@ -501,7 +545,6 @@ void QubitVectorPar<data_t>::apply_mcx(const reg_t &qubits) {
 	// Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
 
-//	printf(" apply_mcx : %d NOT SUPPORTED \n",N);
 	if(N == 1){		//X
 		m_pUnits->X(qubits[0]);
 	}
@@ -554,7 +597,6 @@ void QubitVectorPar<data_t>::apply_mcy(const reg_t &qubits) {
   const size_t pos1 = MASKS[N];
   const complex_t I(0., 1.);
 
-//	printf(" apply_mcy : %d NOT SUPPORTED\n",N);
 	if(N == 1){		//Y
 		m_pUnits->Y(qubits[0]);
 	}
@@ -608,7 +650,10 @@ template <typename data_t>
 void QubitVectorPar<data_t>::apply_mcz(const reg_t &qubits) {
   const size_t N = qubits.size();
 
-	printf(" apply_mcz : %d NOT SUPPORTED\n",N);
+	if(N == 1){		//Z
+		m_pUnits->Z(qubits[0]);
+	}
+
 /*
   switch (N) {
     case 1: {
@@ -688,7 +733,6 @@ void QubitVectorPar<data_t>::apply_mcswap(const reg_t &qubits) {
 template <typename data_t>
 void QubitVectorPar<data_t>::apply_mcu(const reg_t &qubits,const cvector_t &mat){
 	const size_t N = qubits.size();
-//	printf(" apply_mcu : %d NOT SUPPORTED\n",N);
 
 	if(N == 1){
 		if(mat[1] == 0.0 && mat[2] == 0.0){
@@ -977,8 +1021,6 @@ rvector_t QubitVectorPar<data_t>::probabilities(const reg_t &qubits) const {
 
 	const size_t N = qubits.size();
 	rvector_t probs((1ull << N), 0.);
-
-	printf(" probabilities %d \n",N);
 
 	if(N == 1){
 		probs[0] = m_pUnits->Dot(qubits[0]);

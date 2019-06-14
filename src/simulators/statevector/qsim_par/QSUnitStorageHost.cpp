@@ -31,10 +31,14 @@
 
 
 
-int QSUnitStorageHost::Allocate(QSUint numUnits,int numBuffers)
+int QSUnitStorageHost::Allocate(QSUint numUnits,int nPipe,int numBuffers)
 {
+	if(numBuffers == 0){
+		numBuffers = 1;
+	}
 	m_numUnits = (QSUint)numUnits;
 	m_numBuffer = numBuffers;
+	m_nMaxPipe = nPipe;
 	m_numStorage = (QSUint)numUnits + (QSUint)numBuffers;
 
 #ifdef QSIM_CUDA
@@ -70,20 +74,34 @@ void QSUnitStorageHost::SetValue(QSDoubleComplex c,QSUint uid,int pos)
 	QSReal* pR;
 	double* pC = (double*)&c;
 
-	pR = (QSReal*)(m_pAmp + uid*m_unitSize + pos);
-	pR[0] = (QSReal)pC[0];
-	pR[1] = (QSReal)pC[1];
+	if(m_pAmp != NULL){
+		pR = (QSReal*)(m_pAmp + uid*m_unitSize + pos);
+		pR[0] = (QSReal)pC[0];
+		pR[1] = (QSReal)pC[1];
+	}
 }
 
 
 void QSUnitStorageHost::Clear(void)
 {
-	memset(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnits);
+	if(m_pAmp != NULL){
+		memset(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnits);
+	}
 }
 
 
 void QSUnitStorageHost::ClearUnit(QSUint iUnit)
 {
-	memset(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
+	if(m_pAmp != NULL){
+		memset(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize);
+	}
 }
+
+void QSUnitStorageHost::Copy(QSComplex* pV,QSUint iUnit)
+{
+	if(m_pAmp != NULL){
+		memcpy(m_pAmp + iUnit*m_unitSize,pV,sizeof(QSComplex)*m_unitSize);
+	}
+}
+
 

@@ -20,6 +20,7 @@ add_library(qsim_par
     QSGate_CX.cpp
     QSGate_X.cpp
     QSGate_Y.cpp
+    QSGate_Z.cpp
     QSGate_Dot.cpp
     QSGate_MatMult.cpp
     QSGate_MultiShot.cpp
@@ -31,6 +32,7 @@ cuda_add_library(qsim_par_cuda
     QSGate_CX_CUDA.cu
     QSGate_X_CUDA.cu
     QSGate_Y_CUDA.cu
+    QSGate_Z_CUDA.cu
     QSGate_Dot_CUDA.cu
     QSGate_MatMult_CUDA.cu
     QSGate_MultiShot_CUDA.cu

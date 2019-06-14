@@ -17,10 +17,6 @@
 #include "QSUnitStorageGPU.h"
 
 
-__constant__ double2 diagMat[QS_MAX_MATRIX_SIZE];
-__constant__ int qsm_qubits_diag[QS_MAX_FUSION];
-
-
 #define LoadMatrix(r,m) \
 	r.x = (QSRealC)m.x; \
 	r.y = (QSRealC)m.y
@@ -167,8 +163,8 @@ void QSGate_DiagMult::CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits)
 	pUnit->SetDevice();
 	strm = (cudaStream_t)pUnit->GetStream();
 
-	cudaMemcpyToSymbolAsync(diagMat,m_pMat,sizeof(double2)*matSize,0,cudaMemcpyHostToDevice,strm);
-	cudaMemcpyToSymbolAsync(qsm_qubits_diag,qubits,sizeof(int)*nqubits,0,cudaMemcpyHostToDevice,strm);
+	cudaMemcpyAsync(pUnit->GetMatrixPointer(),m_pMat,sizeof(double2)*matSize*matSize,cudaMemcpyHostToDevice,strm);
+	cudaMemcpyAsync(pUnit->GetQubitsPointer(),qubits,sizeof(int)*nqubits,cudaMemcpyHostToDevice,strm);
 
 	cudaStreamSynchronize(strm);
 }

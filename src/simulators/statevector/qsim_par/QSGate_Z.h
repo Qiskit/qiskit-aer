@@ -13,40 +13,41 @@
 
 	IBM Q Simulator
 
-	Y gate
+	Z gate
 
 	2019 IBM Research - Tokyo
 --------------------------------------------------------------------------------------*/
 
-#ifndef _IBM_Q_SIMULATOR_GATE_Y_H_
-#define _IBM_Q_SIMULATOR_GATE_Y_H_
+#ifndef _IBM_Q_SIMULATOR_GATE_Z_H_
+#define _IBM_Q_SIMULATOR_GATE_Z_H_
 
 #include "QSGate.h"
 
+
 /*
-0 -i
-i 0
+1 0
+0 -1
 */
 
 
-class QSGate_Y : public QSGate
+class QSGate_Z : public QSGate
 {
 protected:
 
 public:
-	QSGate_Y()
+	QSGate_Z()
 	{
 
 	}
 
-	virtual ~QSGate_Y()
+	virtual ~QSGate_Z()
 	{
 	}
 
 	//return 1 if data exchange is required for the gate operation
 	int ExchangeNeeded(void)
 	{
-		return 1;
+		return 0;
 	}
 
 	//implementation of kernel for gate operation
@@ -56,5 +57,5 @@ public:
 };
 
 
-#endif	//_IBM_Q_SIMULATOR_GATE_Y_H_
+#endif	//_IBM_Q_SIMULATOR_GATE_Z_H_
 

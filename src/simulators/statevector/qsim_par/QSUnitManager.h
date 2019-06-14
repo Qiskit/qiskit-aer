@@ -213,6 +213,10 @@ public:
 
 	void Init(void);
 
+	int Qubit(void)
+	{
+		return m_globalBits;
+	}
 
 	QSUnitStorage* Storage(int i)
 	{
@@ -226,6 +230,8 @@ public:
 
 	void SetValue(QSDoubleComplex c,QSUint gid);
 	void Clear(void);
+
+	void Copy(QSComplex* pV);
 
 	int GetProcess(QSUint ui);
 
@@ -257,6 +263,7 @@ public:
 
 	void X(int qubit);
 	void Y(int qubit);
+	void Z(int qubit);
 
 	void Measure_FindPos(QSDouble* rs,QSUint* ret,int ns);
 

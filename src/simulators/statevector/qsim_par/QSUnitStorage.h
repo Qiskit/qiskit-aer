@@ -43,6 +43,7 @@ protected:
 	int m_placeID;
 	QSUint m_globalUnitIndex;
 	int m_numPlaces;
+	int m_nMaxPipe;
 	int m_nPipe;
 	int m_unitPerPipe;
 	int m_pipeCount;
@@ -89,7 +90,7 @@ public:
 		m_procPerNode = n;
 	}
 
-	virtual int Allocate(QSUint numUnits,int numBuffers) = 0;
+	virtual int Allocate(QSUint numUnits,int nPipe,int numBuffers) = 0;
 	virtual void Release(void) = 0;
 
 	virtual QSComplex* Unit(QSUint i)
@@ -137,7 +138,7 @@ public:
 	void InitPipe(int nu)
 	{
 		m_unitPerPipe = nu;
-		m_nPipe = m_numBuffer / nu;
+		m_nPipe = m_nMaxPipe / nu;
 		m_pipeCount = 0;
 	}
 	int Pipe(void)
@@ -166,6 +167,7 @@ public:
 	virtual void SetValue(QSDoubleComplex c,QSUint uid,int pos) = 0;
 	virtual void Clear(void) = 0;
 	virtual void ClearUnit(QSUint iUnit) = 0;
+	virtual void Copy(QSComplex* pV,QSUint iUnit) = 0;
 
 
 	virtual void Wait(void) = 0;
@@ -196,9 +198,15 @@ public:
 	virtual int canCompute(void) = 0;
 
 	//buffers to put parameters for gate operations (used for parameters for GPU)
-//	virtual QSDoubleComplex* GetMatrixPointer(void) = 0;
+	virtual QSDoubleComplex* GetMatrixPointer(void)
+	{
+		return NULL;
+	}
 	virtual QSComplex** GetBufferPointer(int matSize) = 0;
-//	virtual int* GetQubitsPointer(void) = 0;
+	virtual int* GetQubitsPointer(void)
+	{
+		return NULL;
+	}
 	virtual void* GetStream(void) = 0;
 	virtual void* GetStreamPipe(void) = 0;
 	virtual double* GetNormPointer(void) = 0;

@@ -36,12 +36,14 @@
 
 #include <sys/time.h>
 
+#include <omp.h>
 
 #include "QSGate_MatMult.h"
 #include "QSGate_DiagMult.h"
 #include "QSGate_CX.h"
 #include "QSGate_X.h"
 #include "QSGate_Y.h"
+#include "QSGate_Z.h"
 #include "QSGate_Dot.h"
 #include "QSGate_MultiShot.h"
 
@@ -108,6 +110,7 @@ void QSUnitManager::Init(void)
 	QSUint guidBase;
 	int testHybrid = 0,testMmap = 0;
 	double tStart,tEnd;
+	int nPipe;
 
 	struct sysinfo sinfo;
 
@@ -189,16 +192,18 @@ void QSUnitManager::Init(void)
 	m_pUnitTable = new QSUint[m_numUnits];
 	m_pPlaceTable = new int8_t[m_numUnits];
 
-	m_pGuid_Pipe = new QSUint[m_numBuffers];
-	m_pLocalMask_Pipe = new QSUint[m_numBuffers];
-	m_pPlaceExec_Pipe = new int[m_numBuffers];
-	m_pPlace_Pipe = new int[m_numBuffers];
-	m_nTrans_Pipe = new int[m_numBuffers];
-	m_nDest_Pipe = new int[m_numBuffers];
-	m_pBuf_Pipe = new QSComplex*[m_numBuffers];
-	m_pSrc_Pipe = new QSComplex*[m_numBuffers];
-	m_flgSend_Pipe = new QSUint[m_numBuffers];
-	m_flgRecv_Pipe = new QSUint[m_numBuffers];
+	nPipe = m_numBuffers;
+
+	m_pGuid_Pipe = new QSUint[nPipe];
+	m_pLocalMask_Pipe = new QSUint[nPipe];
+	m_pPlaceExec_Pipe = new int[nPipe];
+	m_pPlace_Pipe = new int[nPipe];
+	m_nTrans_Pipe = new int[nPipe];
+	m_nDest_Pipe = new int[nPipe];
+	m_pBuf_Pipe = new QSComplex*[nPipe];
+	m_pSrc_Pipe = new QSComplex*[nPipe];
+	m_flgSend_Pipe = new QSUint[nPipe];
+	m_flgRecv_Pipe = new QSUint[nPipe];
 
 	m_numPlaces = 0;
 	n = m_numUnits;
@@ -223,17 +228,24 @@ void QSUnitManager::Init(void)
 
 		if(nDev > 0){
 			size_t freeMem,totalMem;
+			QSUint localSize;
 			cudaSetDevice(0);
 			cudaMemGetInfo(&freeMem,&totalMem);
 
 			isDev = m_iproc_per_node *nDev / m_nprocs_per_node;
 			ieDev = (m_iproc_per_node+1) *nDev / m_nprocs_per_node;
 
-			if((sizeof(QSComplex)*(m_numUnits << m_unitBits)) < totalMem){
+			localSize = (sizeof(QSComplex)*(m_numUnits << m_unitBits));
+			if(localSize < totalMem){
 				m_numGPU = 1;
 			}
 			else{
 				m_numGPU = ieDev - isDev;
+			}
+
+			if(m_numGPU == 1 && m_nprocs == 1){
+				//buffers are not needed
+				m_numBuffers = 0;
 			}
 
 			m_pUnits = new QSUnitStorage*[m_numGPU+1];
@@ -241,22 +253,51 @@ void QSUnitManager::Init(void)
 			m_pNormBuf = new QSReal[m_numGPU+1];
 
 			//allocate units on GPUs
-#pragma omp parallel for private(iDev,nu)
-			for(iDev=0;iDev<m_numGPU;iDev++){
-				nu = ((iDev+1)*m_numUnits/m_numGPU) - (iDev*m_numUnits/m_numGPU);
-				m_pUnits[m_numPlaces + iDev] = new QSUnitStorageGPU(iDev,m_unitBits,isDev);
-				m_pUnits[m_numPlaces + iDev]->SetProcPerNode(m_nprocs_per_node);
+			if(m_numGPU == 1 && ieDev - isDev > 1){
+				int nid = omp_get_thread_num();
+				int ndev = ieDev - isDev;
+				iDev = 0;
+				ret = 0;
+				while(iDev < ndev){
+					QSUnitStorageGPU* pQSG;
+					pQSG = new QSUnitStorageGPU((isDev + ((iDev + nid)%ndev)),m_unitBits,0);
+					pQSG->SetProcPerNode(m_nprocs_per_node);
+					pQSG->SetNumPlaces(m_numGPU + 1);	//temporary set numplaces + 1 for host
+					pQSG->SetGlobalUnitIndex(m_globalUnitIndex);
 
-				m_pUnits[m_numPlaces + iDev]->SetNumPlaces(m_numGPU + 1);	//temporary set numplaces + 1 for host
-				m_pUnits[m_numPlaces + iDev]->SetGlobalUnitIndex(m_globalUnitIndex);
-
-				//to debug hybrid mode use below
-				if(testHybrid){
-					nu/=2;
+					ret = pQSG->Allocate(m_numUnits,nPipe,m_numBuffers);
+					if(ret < m_numUnits){
+						delete pQSG;
+					}
+					else{
+						m_pUnits[m_numPlaces] = pQSG;
+						break;
+					}
+					iDev++;
 				}
+				if(ret == 0){
+					m_numGPU = 0;
+				}
+			}
+			else{
+//#pragma omp parallel for private(iDev,nu)
+				for(iDev=0;iDev<m_numGPU;iDev++){
+					QSUnitStorageGPU* pQSG;
+					nu = ((iDev+1)*m_numUnits/m_numGPU) - (iDev*m_numUnits/m_numGPU);
+					pQSG = new QSUnitStorageGPU(iDev,m_unitBits,isDev);
+					m_pUnits[m_numPlaces + iDev] = pQSG;
+					m_pUnits[m_numPlaces + iDev]->SetProcPerNode(m_nprocs_per_node);
 
-				m_pUnits[m_numPlaces + iDev]->Allocate(nu,m_numBuffers);
-				m_pUnits[m_numPlaces + iDev]->Clear();
+					m_pUnits[m_numPlaces + iDev]->SetNumPlaces(m_numGPU + 1);	//temporary set numplaces + 1 for host
+					m_pUnits[m_numPlaces + iDev]->SetGlobalUnitIndex(m_globalUnitIndex);
+
+					//to debug hybrid mode use below
+					if(testHybrid){
+						nu/=2;
+					}
+
+					ret = m_pUnits[m_numPlaces + iDev]->Allocate(nu,nPipe,m_numBuffers);
+				}
 			}
 
 			for(iDev=0;iDev<m_numGPU;iDev++){
@@ -266,7 +307,7 @@ void QSUnitManager::Init(void)
 				n -= ret;
 
 				//set tables
-#pragma omp parallel for
+//#pragma omp parallel for
 				for(i=0;i<ret;i++){
 					m_pUnitTable[is+i] = i;
 					m_pPlaceTable[is+i] = m_numPlaces;
@@ -282,9 +323,9 @@ void QSUnitManager::Init(void)
 	}
 	else{
 #endif
-		m_pUnits = new QSUnitStorage*[2];
-		m_pCountPlace = new int[2];
-		m_pNormBuf = new QSReal[2];
+		m_pUnits = new QSUnitStorage*[1];
+		m_pCountPlace = new int[1];
+		m_pNormBuf = new QSReal[1];
 #ifdef QSIM_CUDA
 	}
 #endif
@@ -311,10 +352,9 @@ void QSUnitManager::Init(void)
 	m_pUnits[m_iPlaceHost] = pHost;
 	pHost->SetNumPlaces(m_numPlaces+1);
 	pHost->SetGlobalUnitIndex(m_globalUnitIndex);
-	pHost->Allocate(n,m_numBuffers);
+	pHost->Allocate(n,nPipe,m_numBuffers);
 	pHost->Init(is);
 	if(n > 0){
-		pHost->Clear();
 #pragma omp parallel for
 		for(i=0;i<n;i++){
 			m_pUnitTable[is + i] = i;
@@ -385,6 +425,22 @@ void QSUnitManager::Clear(void)
 	}
 }
 
+void QSUnitManager::Copy(QSComplex* pV)
+{
+	QSUint i,iUnit;
+	int iPlace;
+
+	for(i=0;i<m_numUnits;i++){
+		iUnit = m_pUnitTable[i];
+		iPlace = m_pPlaceTable[i];
+
+		m_pUnits[iPlace]->Copy(pV + ((m_globalUnitIndex + i) << m_unitBits),iUnit);
+	}
+
+	for(i=0;i<m_numPlaces;i++){
+		m_pUnits[i]->Wait();
+	}
+}
 
 
 int QSUnitManager::GetProcess(QSUint ui)
@@ -425,7 +481,7 @@ QSDouble QSUnitManager::Dot(int qubit)
 #ifdef QSIM_CUDA
 
 	//Init buffers
-#pragma omp parallel for
+//#pragma omp parallel for
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
 			dotGate.InitBuffer(m_pUnits[i]);
@@ -440,7 +496,7 @@ QSDouble QSUnitManager::Dot(int qubit)
 #ifdef QSIM_CUDA
 
 	//reduce buffers
-#pragma omp parallel for reduction(+:ret)
+//#pragma omp parallel for reduction(+:ret)
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
 			ret += dotGate.ReduceAll(m_pUnits[i]);
@@ -686,6 +742,18 @@ void QSUnitManager::Y(int qubit)
 	ExecuteGate(&yGate,&qubit,qubits_c,1);
 }
 
+/*-------------------------------------------------------------
+	Z gate
+--------------------------------------------------------------*/
+void QSUnitManager::Z(int qubit)
+{
+	QSGate_Z zGate;
+	int qubits_c[QS_MAX_MATRIX_SIZE];	//dummy
+
+	qubits_c[0] = -1;
+
+	ExecuteGate(&zGate,&qubit,qubits_c,1);
+}
 
 /*-------------------------------------------------------------
 	gate handler
@@ -721,7 +789,6 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 	QSUint uMask;
 	QSUint nuPlace;
 	int iFirstUnitGPU;
-
 
 	nLarge = 0;
 	for(i=0;i<nqubits;i++){
@@ -766,63 +833,63 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 #endif
 
 		//on host
-		if(m_executeAllOnGPU){
-			nUnit = m_pUnits[m_iPlaceHost]->NumUnits();
-
+		nUnit = m_pUnits[m_iPlaceHost]->NumUnits();
+		if(nUnit > 0){
+			if(m_executeAllOnGPU){
 #pragma omp parallel for private(isu,ieu,i,j,pBuf,pSrcBuf,guid,iPipe,iDev,iPlaceExec)
-			for(iDev=0;iDev<m_numGPU;iDev++){
-				isu = (iDev)*nUnit/(m_numGPU);
-				ieu = (iDev+1)*nUnit/(m_numGPU);
-				j = 0;
-				for(i=0;i<m_numPlaces;i++){
-					if(m_pUnits[i]->IsGPU()){
-						if(j == iDev){
-							iPlaceExec = i;
-							break;
+				for(iDev=0;iDev<m_numGPU;iDev++){
+					isu = (iDev)*nUnit/(m_numGPU);
+					ieu = (iDev+1)*nUnit/(m_numGPU);
+					j = 0;
+					for(i=0;i<m_numPlaces;i++){
+						if(m_pUnits[i]->IsGPU()){
+							if(j == iDev){
+								iPlaceExec = i;
+								break;
+							}
+							j++;
 						}
-						j++;
+					}
+
+					for(i=isu;i<ieu;i++){
+						guid[0] = m_pUnits[m_iPlaceHost]->GetGlobalUnitIndex(i);
+						if(qubits_c[0] >= m_unitBits){		//currently only top control bit is used, set qubits_c[0] to -1 if not used
+							if(((guid[0] >> (qubits_c[0] - m_unitBits)) & 1) != pGate->ControlMask()){
+								continue;
+							}
+						}
+						pBuf[0] = m_pUnits[iPlaceExec]->Buffer(0);
+						pSrcBuf[0] = m_pUnits[m_iPlaceHost]->Unit(i);
+
+						iPipe = m_pUnits[iPlaceExec]->Pipe();	//to keep current pipe
+
+						//synchronize pipeline in case previous stream is still running
+						m_pUnits[iPlaceExec]->WaitPipe(iPipe);
+
+						//copy to GPU
+						m_pUnits[iPlaceExec]->Put(0,pSrcBuf[0],m_iPlaceHost);
+						//execute on GPU
+						pGate->ExecuteOnGPU(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,0,(1 << (nqubits+1))-1,1);
+						//copy back to host
+						m_pUnits[iPlaceExec]->Get(0,pSrcBuf[0],m_iPlaceHost);
+
+						m_pUnits[iPlaceExec]->AddPipe();
 					}
 				}
-
-				for(i=isu;i<ieu;i++){
-					guid[0] = m_pUnits[m_iPlaceHost]->GetGlobalUnitIndex(i);
+			}
+			else{
+				iPlaceExec = m_iPlaceHost;
+				for(i=0;i<nUnit;i++){
+					guid[0] = m_pUnits[iPlaceExec]->GetGlobalUnitIndex(i);
 					if(qubits_c[0] >= m_unitBits){		//currently only top control bit is used, set qubits_c[0] to -1 if not used
 						if(((guid[0] >> (qubits_c[0] - m_unitBits)) & 1) != pGate->ControlMask()){
 							continue;
 						}
 					}
-					pBuf[0] = m_pUnits[iPlaceExec]->Buffer(0);
-					pSrcBuf[0] = m_pUnits[m_iPlaceHost]->Unit(i);
 
-					iPipe = m_pUnits[iPlaceExec]->Pipe();	//to keep current pipe
-
-					//synchronize pipeline in case previous stream is still running
-					m_pUnits[iPlaceExec]->WaitPipe(iPipe);
-
-					//copy to GPU
-					m_pUnits[iPlaceExec]->Put(0,pSrcBuf[0],m_iPlaceHost);
-					//execute on GPU
-					pGate->ExecuteOnGPU(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,0,(1 << (nqubits+1))-1,1);
-					//copy back to host
-					m_pUnits[iPlaceExec]->Get(0,pSrcBuf[0],m_iPlaceHost);
-
-					m_pUnits[iPlaceExec]->AddPipe();
+					pBuf[0] = m_pUnits[iPlaceExec]->Unit(i);
+					pGate->ExecuteOnHost(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,0,(1 << (nqubits+1))-1,0);
 				}
-			}
-		}
-		else{
-			iPlaceExec = m_iPlaceHost;
-			nUnit = m_pUnits[iPlaceExec]->NumUnits();
-			for(i=0;i<nUnit;i++){
-				guid[0] = m_pUnits[iPlaceExec]->GetGlobalUnitIndex(i);
-				if(qubits_c[0] >= m_unitBits){		//currently only top control bit is used, set qubits_c[0] to -1 if not used
-					if(((guid[0] >> (qubits_c[0] - m_unitBits)) & 1) != pGate->ControlMask()){
-						continue;
-					}
-				}
-
-				pBuf[0] = m_pUnits[iPlaceExec]->Unit(i);
-				pGate->ExecuteOnHost(m_pUnits[iPlaceExec],guid,pBuf,qubits,qubits_c,nqubits,0,(1 << (nqubits+1))-1,0);
 			}
 		}
 

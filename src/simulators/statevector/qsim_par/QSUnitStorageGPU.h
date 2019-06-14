@@ -66,9 +66,9 @@ protected:
 	cudaStream_t m_strmToHost;
 	cudaEvent_t* m_pEventIn;
 	cudaEvent_t* m_pEventOut;
-//	QSDoubleComplex* m_pMat;
+	QSDoubleComplex* m_pMat;
 	QSComplex** m_pBufPtr;
-//	int* m_pBitsPtr;
+	int* m_pBitsPtr;
 	QSUint* m_flagTrans;
 public:
 	QSUnitStorageGPU()
@@ -78,7 +78,7 @@ public:
 		m_pStrmTrans = NULL;
 		m_pEventIn = NULL;
 		m_pEventOut = NULL;
-//		m_pMat = NULL;
+		m_pMat = NULL;
 		m_pBufPtr = NULL;
 //		m_pBitsPtr = NULL;
 		m_devIDoffset = 0;
@@ -92,7 +92,7 @@ public:
 		m_pStrmTrans = NULL;
 		m_pEventIn = NULL;
 		m_pEventOut = NULL;
-//		m_pMat = NULL;
+		m_pMat = NULL;
 		m_pBufPtr = NULL;
 //		m_pBitsPtr = NULL;
 		m_devIDoffset = iOffset;
@@ -105,13 +105,14 @@ public:
 		Release();
 	}
 
-	int Allocate(QSUint numUnits,int numBuffers);
+	int Allocate(QSUint numUnits,int nPipe,int numBuffers);
 
 	void Release(void);
 
 	void SetValue(QSDoubleComplex c,QSUint uid,int pos);
 	void Clear(void);
 	void ClearUnit(QSUint iUnit);
+	void Copy(QSComplex* pV,QSUint iUnit);
 
 	void Wait(void)
 	{
@@ -137,6 +138,11 @@ public:
 	int TestGet(int iPlace);
 
 	void SetDevice(void);
+
+	void SetDeviceID(int id)
+	{
+		m_devID = id;
+	}
 	int GetDeviceID(void)
 	{
 		return m_devID;
@@ -152,18 +158,18 @@ public:
 	}
 
 
-//	QSDoubleComplex* GetMatrixPointer(void)
-//	{
-//		return m_pMat;
-//	}
+	QSDoubleComplex* GetMatrixPointer(void)
+	{
+		return m_pMat;
+	}
 	QSComplex** GetBufferPointer(int matSize)
 	{
 		return (m_pBufPtr + m_pipeCount*matSize);
 	}
-//	int* GetQubitsPointer(void)
-//	{
-//		return m_pBitsPtr;
-//	}
+	int* GetQubitsPointer(void)
+	{
+		return m_pBitsPtr;
+	}
 	void* GetStream(void)
 	{
 		return m_strm;

@@ -13,14 +13,14 @@
 
 	IBM Q Simulator
 
-	Y gate
+	Z gate
 
 	2019 IBM Research - Tokyo
 --------------------------------------------------------------------------------------*/
 
-#include "QSGate_Y.h"
+#include "QSGate_Z.h"
 
-void QSGate_Y::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppBuf,int* qubits,int* qubits_c,int nqubits,int nqubitsLarge,QSUint localMask,int nTrans)
+void QSGate_Z::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppBuf,int* qubits,int* qubits_c,int nqubits,int nqubitsLarge,QSUint localMask,int nTrans)
 {
 	QSUint i,k,k1,k2,kb,mask,kbadd,n;
 	QSRealC psr0,psi0,psr1,psi1;
@@ -39,33 +39,24 @@ void QSGate_Y::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppBu
 			k = k1 + k2;
 			kb = k + kbadd;
 
-			psr0 = (QSRealC)pBuf0[k*2];
-			psi0 = (QSRealC)pBuf0[k*2+1];
 			psr1 = (QSRealC)pBuf0[kb*2];
 			psi1 = (QSRealC)pBuf0[kb*2+1];
 
-			pBuf0[k*2  ] = psi1;
-			pBuf0[k*2+1] =-psr1;
-			pBuf0[kb*2  ] =-psi0;
-			pBuf0[kb*2+1] = psr0;
+			pBuf0[kb*2  ] = -psr1;
+			pBuf0[kb*2+1] = -psi1;
 		}
 	}
 	else{
-		QSReal* pBuf0 = (QSReal*)ppBuf[0];
 		QSReal* pBuf1 = (QSReal*)ppBuf[1];
 
 		n = 1ull << (pUnit->UnitBits());
 #pragma omp parallel for private(psr0,psi0,psr1,psi1)
 		for(i=0;i<n;i++){
-			psr0 = (QSRealC)pBuf0[i*2];
-			psi0 = (QSRealC)pBuf0[i*2+1];
 			psr1 = (QSRealC)pBuf1[i*2];
 			psi1 = (QSRealC)pBuf1[i*2+1];
 
-			pBuf0[i*2  ] = psi1;
-			pBuf0[i*2+1] =-psr1;
-			pBuf1[i*2  ] =-psi0;
-			pBuf1[i*2+1] = psr0;
+			pBuf1[i*2  ] = -psr1;
+			pBuf1[i*2+1] = -psi1;
 		}
 	}
 }
