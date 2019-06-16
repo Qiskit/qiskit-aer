@@ -111,13 +111,10 @@ public:
 
   void apply_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
   {
-    cout << "apply_matrix for vector not supported yet" <<endl;
+    apply_diagonal_matrix(qubits, vmat);
   }
 
-  void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) 
-  {
-    cout << "apply_diagonal_matrix not supported yet" <<endl;
-  }
+  void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat); 
 
   //----------------------------------------------------------------
   // function name: change_position

@@ -179,8 +179,6 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	{
 		S[k] = b[k];
 		t[k] = c[k];
-//		cout << "S[" << k << "] = " << S[k] << endl;
-//		cout << "t[" << k << "] = " << t[k] << endl;
 		eps = max( eps, S[k] + t[k] );
 	}
 	eps = eps * eta;
@@ -278,11 +276,11 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				h = sn * g;
 				g = cs * g;
 				w = sqrt( h * h + f * f );
-//				cout << "h = "<<h << " f = "<<f<<endl;
 				if (w == 0) {
+#ifdef DEBUG
 				  cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << endl;
 				  cout << " w = " << w << endl;
-//				  assert(false);
+#endif
 				}
 				t[i-1] = w;
 				cs = f / w;
@@ -470,11 +468,12 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	      if (std::real(std::abs(temp_A(i, j) - temp(i, j))) > THRESHOLD)
 	      {
 	    	  equal = false;
-	      	  cout << "diff = " << (std::real(std::abs(temp_A(i, j) - temp(i, j)))) << endl;
 	      }
 	if( ! equal )
 	{
-	  cout << "error: wrong SVD calc: A != USV*" << endl;
+	  std::stringstream ss;
+	  ss << "error: wrong SVD calc: A != USV*";
+	  throw std::runtime_error(ss.str());
 	}
 
 	// Transpose again if m < n
@@ -509,7 +508,9 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
       current_status = csvd(A, U, S, V);
     }
   if(times == NUM_SVD_TRIES) {
-    std::cerr << "SVD failed" << std::endl;
+    std::stringstream ss;
+    ss << "SVD failed";
+    throw std::runtime_error(ss.str());
   }
   
   //Divide by mul_factor every singular value after we multiplied matrix a

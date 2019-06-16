@@ -332,7 +332,9 @@ void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
   }
   initialize_omp();
   //qreg_.initialize((uint_t)num_qubits, state);
-  cout << "initialize with state not supported yet" <<endl;
+#ifdef DEBUG
+  cout << "initialize with state not supported yet";
+#endif
 }
 
 void State::initialize_omp() {
@@ -575,11 +577,14 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
     return;
   }
 #ifdef DEBUG
-  cout << "Currently only support matrices applied to 1 or 2 qubits" << endl;
+  cout << "Currently only support matrices applied to 1 or 2 qubits";
 #endif  
 }
 
-void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+  void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+#ifdef DEBUG
+  cout << "apply_matrix not supported yet";
+#endif  
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     qreg_.apply_diagonal_matrix(qubits, vmat);
@@ -721,7 +726,7 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const double meas_prob) {
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
-
+  std::cerr << "measure_reset_update not supported yet" <<endl;
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
