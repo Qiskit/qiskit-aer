@@ -28,6 +28,7 @@ from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
+from ..aerremotejob import AerRemoteJob
 from ..aererror import AerError
 
 # Logger
@@ -58,7 +59,7 @@ class AerJSONEncoder(json.JSONEncoder):
 class AerBackend(BaseBackend):
     """Qiskit Aer Backend class."""
 
-    def __init__(self, controller, configuration, provider=None):
+    def __init__(self, controller, configuration, provider=None, remote_simulator=None):
         """Aer class for backends.
 
         This method should initialize the module and its configuration, and
@@ -69,6 +70,7 @@ class AerBackend(BaseBackend):
             controller (function): Aer cython controller to be executed
             configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
+            remote_simulator (RemoteSimulator) : remote simulator for a distributed environment
 
         Raises:
             FileNotFoundError if backend executable is not available.
@@ -76,14 +78,20 @@ class AerBackend(BaseBackend):
         """
         super().__init__(configuration, provider=provider)
         self._controller = controller
+        self._remote_simulator = remote_simulator
 
     def run(self, qobj, backend_options=None, noise_model=None, validate=True):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj,
-                         backend_options, noise_model, validate)
-        aer_job.submit()
+        if self._remote_simulator:
+            aer_job = AerRemoteJob(self, self._remote_simulator, job_id, qobj, noise_model)
+            aer_job.submit()
+        else:
+            aer_job = AerJob(self, job_id, self._run_job, qobj,
+                            backend_options, noise_model, validate)
+            aer_job.submit()
+
         return aer_job
 
     def status(self):
