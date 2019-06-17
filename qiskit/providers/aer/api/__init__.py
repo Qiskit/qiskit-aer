@@ -7,5 +7,5 @@
 
 """On-Premise Simulator API connector."""
 
-from .aercloudconnector import ApiError, BadBackendError, RegisterSizeError
-from .aercloudconnector import AerCloudConnector
+from .httpconnector import ApiError, BadBackendError, RegisterSizeError
+from .httpconnector import HttpConnector

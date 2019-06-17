@@ -24,6 +24,7 @@ if platform.system() == "Darwin":
 # pylint: disable=wrong-import-position
 from .aerprovider import AerProvider
 from .aerjob import AerJob
+from .aerremotejob import AerRemoteJob
 from .aererror import AerError
 from .backends import *
 from . import noise

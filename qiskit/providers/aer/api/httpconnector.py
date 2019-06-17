@@ -1,9 +1,16 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name, bad-continuation
 
 import json
 import logging
@@ -15,7 +22,6 @@ import requests
 
 logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
-
 
 class _Request(object):
     """
@@ -148,9 +154,9 @@ class _Request(object):
         logger.warning("Got a 400 code JSON response to %s", url)
         return False
 
-class AerCloudConnector(object):
+class HttpConnector(object):
     """
-    Connector for Aer Cloud (On-premise Simulator)
+    Connector for Retemo Node via Rest API
     """
     def __init__(self, url=None):
         self._url = url

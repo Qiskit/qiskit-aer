@@ -20,7 +20,7 @@ from qiskit.providers.providerutils import filter_backends
 from .backends.qasm_simulator import QasmSimulator
 from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
-
+from .backends.remote_simulator import RemoteSimulator
 
 class AerProvider(BaseProvider):
     """Provider for Qiskit Aer backends."""
@@ -34,6 +34,10 @@ class AerProvider(BaseProvider):
                           UnitarySimulator(provider=self)]
 
     def get_backend(self, name=None, **kwargs):
+        # If set http_hosts option, create Remote Simulator 
+        if kwargs is not None and "http_hosts" in kwargs:
+            self._backends.append(RemoteSimulator(provider=self, remote_nodes=kwargs["http_hosts"]))
+
         return super().get_backend(name=name, **kwargs)
 
     def backends(self, name=None, filters=None, **kwargs):
