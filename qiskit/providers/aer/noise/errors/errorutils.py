@@ -41,6 +41,7 @@ def standard_gates_instructions(instructions):
     return output_instructions
 
 
+# pylint: disable=too-many-return-statements
 def standard_gate_instruction(instruction, ignore_phase=True):
     """Convert a unitary matrix instruction into a standard gate instruction.
 
@@ -241,7 +242,8 @@ def single_qubit_clifford_matrix(j):
     return mat
 
 
-def single_qubit_clifford_instructions(j, qubit=0):
+# pylint: disable=invalid-name
+def single_qubit_clifford_instructions(index, qubit=0):
     """Return a list of qobj instructions for a single qubit cliffords.
 
     The instructions are returned in a basis set consisting of
@@ -250,7 +252,7 @@ def single_qubit_clifford_instructions(j, qubit=0):
     decomposition.
 
     Args:
-        j (int): Clifford index 0, ..., 23.
+        index (int): Clifford index 0, ..., 23.
         qubit (int): the qubit to apply the Clifford to.
 
     Returns:
@@ -260,73 +262,69 @@ def single_qubit_clifford_instructions(j, qubit=0):
         NoiseError: If index is out of range [0, 23] or qubit invalid.
     """
 
-    if not isinstance(j, int) or j < 0 or j > 23:
+    if not isinstance(index, int) or index < 0 or index > 23:
         raise NoiseError(
-            "Index {} must be in the range [0, ..., 23]".format(j))
+            "Index {} must be in the range [0, ..., 23]".format(index))
     if not isinstance(qubit, int) or qubit < 0:
         raise NoiseError("qubit position must be positive integer.")
 
     instructions = []
-    for gate in single_qubit_clifford_gates(j):
+    for gate in single_qubit_clifford_gates(index):
         instructions.append({"name": gate, "qubits": [qubit]})
     return instructions
 
 
 def standard_gate_unitary(name):
     """Return the unitary matrix for a standard gate."""
-    if name in ["id", "I"]:
-        return np.eye(2, dtype=complex)
-    if name in ["x", "X"]:
-        return np.array([[0, 1], [1, 0]], dtype=complex)
-    if name in ["y", "Y"]:
-        return np.array([[0, -1j], [1j, 0]], dtype=complex)
-    if name in ["z", "Z"]:
-        return np.array([[1, 0], [0, -1]], dtype=complex)
-    if name in ["h", "H"]:
-        return np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
-    if name in ["s", "S"]:
-        return np.array([[1, 0], [0, 1j]], dtype=complex)
-    if name in ["sdg", "Sdg"]:
-        return np.array([[1, 0], [0, -1j]], dtype=complex)
-    if name in ["t", "T"]:
-        return np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
-    if name in ["tdg", "Tdg"]:
-        return np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex)
-    if name in ["cx", "CX", "cx_01"]:
-        return np.array(
-            [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]],
-            dtype=complex)
-    if name == "cx_10":
-        return np.array(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
-            dtype=complex)
-    if name in ["cz", "CZ"]:
-        return np.array(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]],
-            dtype=complex)
-    if name in ["swap", "SWAP"]:
-        return np.array(
-            [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
-            dtype=complex)
-    if name in ["ccx", "CCX", "ccx_012", "ccx_102"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]],
-                        dtype=complex)
-    if name in ["ccx_021", "ccx_201"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 0]],
-                        dtype=complex)
-    if name in ["ccx_120", "ccx_210"]:
-        return np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
-                        dtype=complex)
-    return None
+
+    unitary_matrices = {
+        ("id", "I"):
+            np.eye(2, dtype=complex),
+        ("x", "X"):
+            np.array([[0, 1], [1, 0]], dtype=complex),
+        ("y", "Y"):
+            np.array([[0, -1j], [1j, 0]], dtype=complex),
+        ("z", "Z"):
+            np.array([[1, 0], [0, -1]], dtype=complex),
+        ("h", "H"):
+            np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
+        ("s", "S"):
+            np.array([[1, 0], [0, 1j]], dtype=complex),
+        ("sdg", "Sdg"):
+            np.array([[1, 0], [0, -1j]], dtype=complex),
+        ("t", "T"):
+            np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex),
+        ("tdg", "Tdg"):
+            np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex),
+        ("cx", "CX", "cx_01"):
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        ("cx_10",):
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        ("cz", "CZ"):
+            np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex),
+        ("swap", "SWAP"):
+            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=complex),
+        ("ccx", "CCX", "ccx_012", "ccx_102"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]],
+                     dtype=complex),
+        ("ccx_021", "ccx_201"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 0]],
+                     dtype=complex),
+        ("ccx_120", "ccx_210"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
+                     dtype=complex)
+    }
+
+    return next((value for key, value in unitary_matrices.items() if name in key), None)
 
 
 def reset_superop(num_qubits):
@@ -454,8 +452,10 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
     """
     if not is_unitary_matrix(mat):
         raise NoiseError("Input matrix is not unitary.")
-    elif isinstance(qubits, int):
+
+    if isinstance(qubits, int):
         qubits = [qubits]
+
     instruction = {"name": "unitary", "qubits": qubits, "params": [mat]}
     if standard_gates:
         return standard_gate_instruction(instruction)
