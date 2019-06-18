@@ -18,6 +18,14 @@ from qiskit.providers.aer.noise.utils import schedule_idle_gates
 import unittest
 
 class TestIdleScheduler(unittest.TestCase):
+    def assertCircuitsEqual(self, lhs, rhs):
+        #Note: this only compares gate names, not additional parameters
+        #this is an ad-hoc comparision for the test we perform here
+        for lhs_data, rhs_data in zip(lhs.data, rhs.data):
+            self.assertEqual(lhs_data[0], rhs_data[0])
+            self.assertEqual(lhs_data[1], rhs_data[1])
+            self.assertEqual(lhs_data[2], rhs_data[2])
+
     def test_small_circuit(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -27,10 +35,10 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
         target_circuit.iden(qr[1])
-        target_circuit.y(qr[2])
+        target_circuit.z(qr[2])
 
         result_circuit = schedule_idle_gates(circuit)
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_double_x_time(self):
         qr = QuantumRegister(3, 'qr')
@@ -46,7 +54,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'x': 2})
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_double_id_time(self):
         qr = QuantumRegister(3, 'qr')
@@ -59,7 +67,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'id': 2})
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_double_id_and_x_time(self):
         qr = QuantumRegister(3, 'qr')
@@ -73,7 +81,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'id': 2, 'x':2})
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_double_id_and_x_time_double_length(self):
         qr = QuantumRegister(3, 'qr')
@@ -93,7 +101,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'id': 2, 'x': 2})
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_barrier_circuit(self):
         qr = QuantumRegister(3, 'qr')
@@ -113,7 +121,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.iden(qr[2])
 
         result_circuit = schedule_idle_gates(circuit)
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_nondefault_time(self):
         qr = QuantumRegister(3, 'qr')
@@ -127,7 +135,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, default_op_time=0.3153)
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_nondefault_time_and_different_x_y(self):
         qr = QuantumRegister(3, 'qr')
@@ -143,4 +151,4 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, default_op_time=0.3153, op_times={'x': 0.974, 'y': 0.734})
-        self.assertEqual(target_circuit.qasm(), result_circuit.qasm())
+        self.assertCircuitsEqual(target_circuit, result_circuit)
