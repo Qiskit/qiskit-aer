@@ -25,6 +25,7 @@
 
 #include "simulators/statevector/qubitvector.hpp"
 #include "simulators/statevector/qsim_par/QSUnitManager.h"
+#include "simulators/statevector/qsim_par/QSUnitManagerSerial.h"
 
 
 namespace QV {
@@ -318,8 +319,17 @@ void QubitVectorPar<data_t>::set_num_qubits(size_t num_qubits) {
 #endif
 
 		if(m_pUnits == NULL){
-			//actual data
-			m_pUnits = new QSUnitManager(num_qubits);
+			int ndev;
+			QSUint memSize;
+
+			QSUnitManager_GetGPUMemorySize(&ndev,&memSize);
+
+			if(ndev > 0 && memSize > ((QSUint)sizeof(QSComplex) << num_qubits)){
+				m_pUnits = new QSUnitManagerSerial(num_qubits);
+			}
+			else{
+				m_pUnits = new QSUnitManager(num_qubits);
+			}
 			m_pUnits->Init();
 		}
 	}

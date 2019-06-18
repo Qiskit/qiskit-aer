@@ -70,10 +70,10 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int nPipe,int numBuffers)
 	}
 
 	//Set p2p
-	for(i=0;i<ndev;i++){
-		if(i != m_devID)
-			cudaDeviceEnablePeerAccess(i,0);
-	}
+//	for(i=0;i<ndev;i++){
+//		if(i != m_devID)
+//			cudaDeviceEnablePeerAccess(i,0);
+//	}
 
 	//allocate storage for matrix
 	int nPipeForMaxMat = (nPipe)/QS_MAX_MATRIX_SIZE;
@@ -95,26 +95,22 @@ int QSUnitStorageGPU::Allocate(QSUint numUnits,int nPipe,int numBuffers)
 	printf(" [%d] units = %lld, mem = %lld/%lld\n",m_devID,nu,freeMem,totalMem);
 #endif
 
-	if(nu <= 0){
-		return 0;
-	}
 	numUnits = nu;
-
-	while(cudaMalloc(&m_pAmp,(uint64_t)(sizeof(QSComplex)*(numUnits + numBuffers)) << m_unitBits) != cudaSuccess){
-		numUnits -= 1;
-		if(numUnits <= 0){
-			printf(" Allocating buffer on GPU fails\n");
-			break;
+	if(nu > 0){
+		while(cudaMalloc(&m_pAmp,(uint64_t)(sizeof(QSComplex)*(numUnits + numBuffers)) << m_unitBits) != cudaSuccess){
+			numUnits -= 1;
+			if(numUnits <= 0){
+				printf(" Allocating buffer on GPU fails\n");
+				break;
+			}
 		}
 	}
+
+
 	m_numUnits = numUnits;
 	m_numBuffer = numBuffers;
 	m_nMaxPipe = nPipe;
 	m_numStorage = numUnits + numBuffers;
-
-//	cudaMemsetAsync(m_pAmp,0,sizeof(QSComplex)*(m_numStorage)*m_unitSize,m_strm);
-//	cudaStreamSynchronize(m_strm);
-
 
 	return m_numUnits;
 }
@@ -192,16 +188,16 @@ void QSUnitStorageGPU::SetValue(QSDoubleComplex c,QSUint uid,int pos)
 void QSUnitStorageGPU::Clear(void)
 {
 	cudaSetDevice(m_devID);
-	cudaMemsetAsync(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnits,m_pStrmTrans[0]);
-	cudaStreamSynchronize(m_pStrmTrans[0]);
+	cudaMemsetAsync(m_pAmp,0,sizeof(QSComplex)*m_unitSize*(QSUint)m_numUnits,m_strm);
+	cudaStreamSynchronize(m_strm);
 }
 
 
 void QSUnitStorageGPU::ClearUnit(QSUint iUnit)
 {
 	cudaSetDevice(m_devID);
-	cudaMemsetAsync(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize,m_pStrmTrans[0]);
-	cudaStreamSynchronize(m_pStrmTrans[0]);
+	cudaMemsetAsync(m_pAmp + iUnit*m_unitSize,0,sizeof(QSComplex)*m_unitSize,m_strm);
+	cudaStreamSynchronize(m_strm);
 }
 
 void QSUnitStorageGPU::Copy(QSComplex* pV,QSUint iUnit)
@@ -291,13 +287,13 @@ void QSUnitStorageGPU::GetOnPipe(int iBuf,QSComplex* pDest,int iPlace)
 
 void QSUnitStorageGPU::WaitPut(int iBuf)
 {
-//	cudaSetDevice(m_devID);
+	cudaSetDevice(m_devID);
 	cudaStreamSynchronize(m_pStrmTrans[iBuf + m_pipeCount*m_unitPerPipe]);
 }
 
 void QSUnitStorageGPU::WaitGet(int iBuf)
 {
-//	cudaSetDevice(m_devID);
+	cudaSetDevice(m_devID);
 	cudaStreamSynchronize(m_pStrmTrans[iBuf + m_pipeCount*m_unitPerPipe]);
 
 	m_flagTrans[m_pipeCount] ^= (1ull << iBuf);
@@ -319,25 +315,26 @@ int QSUnitStorageGPU::TestGet(int iPlace)
 void QSUnitStorageGPU::WaitPipe(int iPipe)
 {
 	int i;
-	QSUint flag = 0;
 
-//	cudaSetDevice(m_devID);
+	cudaSetDevice(m_devID);
 
 	cudaStreamSynchronize(m_pStrmPipe[iPipe]);
-	for(i=0;i<m_unitPerPipe;i++){
-		if((m_flagTrans[iPipe] >> i) & 1){
-			cudaStreamSynchronize(m_pStrmTrans[i + iPipe*m_unitPerPipe]);
+	if(m_flagTrans[iPipe] != 0){
+		for(i=0;i<m_unitPerPipe;i++){
+			if((m_flagTrans[iPipe] >> i) & 1){
+				cudaStreamSynchronize(m_pStrmTrans[i + iPipe*m_unitPerPipe]);
+			}
 		}
+		m_flagTrans[iPipe] = 0;
 	}
-	m_flagTrans[iPipe] = 0;
 }
 
 void QSUnitStorageGPU::WaitAll(void)
 {
 	int i,j;
-//	cudaSetDevice(m_devID);
+	cudaSetDevice(m_devID);
 
-	for(i=0;i<m_nPipe;i++){
+	for(i=0;i<=m_maxCount;i++){
 		cudaStreamSynchronize(m_pStrmPipe[i]);
 		if(m_flagTrans[i] != 0){
 			for(j=0;j<m_unitPerPipe;j++){
@@ -354,6 +351,7 @@ void QSUnitStorageGPU::WaitAll(void)
 void QSUnitStorageGPU::SynchronizeInput(void)
 {
 	int i;
+//	cudaSetDevice(m_devID);
 
 	if(m_flagTrans[m_pipeCount] != 0){
 		for(i=0;i<m_unitPerPipe;i++){
@@ -368,6 +366,7 @@ void QSUnitStorageGPU::SynchronizeInput(void)
 void QSUnitStorageGPU::SynchronizeOutput(void)
 {
 	int i;
+//	cudaSetDevice(m_devID);
 
 	if(m_flagTrans[m_pipeCount] != 0){
 		for(i=0;i<m_unitPerPipe;i++){

@@ -440,6 +440,10 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
   }
 }
 
+#ifdef QASM_PARALLEL
+extern void QSUnitManager_GetGPUMemorySize(int* pNdev,uint64_t* pMemSize);
+#endif
+
 void QasmController::set_parallelization_circuit(const Circuit& circ) {
 
   if (max_parallel_threads_ < max_parallel_shots_)
@@ -447,6 +451,22 @@ void QasmController::set_parallelization_circuit(const Circuit& circ) {
 
   switch (simulation_method(circ)) {
     case Method::statevector: {
+#ifdef QASM_PARALLEL
+	int ndev;
+	uint64_t size;
+	::QSUnitManager_GetGPUMemorySize(&ndev,&size);
+	if(ndev > 0){
+		if(size <= (16ull << circ.num_qubits)){
+			max_parallel_shots_ = 1;
+			parallel_shots_ = 1;
+		}
+		else{
+			max_parallel_shots_ = ndev;
+			parallel_shots_ = ndev;
+		}
+	}
+#endif
+
       if (noise_model_.ideal() && check_measure_sampling_opt(circ).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;

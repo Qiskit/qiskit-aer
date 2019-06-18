@@ -192,6 +192,122 @@ __global__ void QSGate_MatMult_InUnit_2x2_shm_cuda_kernel(QSVec2* pAmp,double2* 
 }
 
 
+__global__ void QSGate_MatMult_InUnit_2x2M_cuda_kernel(QSVec2* pAmp,double2 M00,double2 M01,double2 M10,double2 M11,int qubit)
+{
+	QSUint i,k,k1,k2,kb,mask,add;
+	QSVec2 vs0,vs1,vd0,vd1;
+	QSVec2C m00,m01,m10,m11;
+	double2 md;
+
+	i = threadIdx.x + blockIdx.x * blockDim.x;
+
+	m00.x = (QSRealC)M00.x;
+	m00.y = (QSRealC)M00.y;
+	m01.x = (QSRealC)M01.x;
+	m01.y = (QSRealC)M01.y;
+	m10.x = (QSRealC)M10.x;
+	m10.y = (QSRealC)M10.y;
+	m11.x = (QSRealC)M11.x;
+	m11.y = (QSRealC)M11.y;
+
+	add = 1ull << qubit;
+	mask = add - 1;
+	k2 = i & mask;
+	k1 = (i - k2) << 1;
+	k = k1 + k2;
+	kb = k + add;
+
+	vs0 = pAmp[k];
+	vs1 = pAmp[kb];
+
+	vd0.x = (QSRealDev)(m00.x * (QSRealC)vs0.x - m00.y * (QSRealC)vs0.y + m01.x * (QSRealC)vs1.x - m01.y * (QSRealC)vs1.y);
+	vd0.y = (QSRealDev)(m00.x * (QSRealC)vs0.y + m00.y * (QSRealC)vs0.x + m01.x * (QSRealC)vs1.y + m01.y * (QSRealC)vs1.x);
+	vd1.x = (QSRealDev)(m10.x * (QSRealC)vs0.x - m10.y * (QSRealC)vs0.y + m11.x * (QSRealC)vs1.x - m11.y * (QSRealC)vs1.y);
+	vd1.y = (QSRealDev)(m10.x * (QSRealC)vs0.y + m10.y * (QSRealC)vs0.x + m11.x * (QSRealC)vs1.y + m11.y * (QSRealC)vs1.x);
+
+	pAmp[k] = vd0;
+	pAmp[kb] = vd1;
+}
+
+
+
+__global__ void QSGate_MatMult_InUnit_2x2M_shfl_cuda_kernel(QSVec2* pAmp,double2 M00,double2 M01,double2 M10,double2 M11,int qubit)
+{
+	QSUint i,iPair,lmask;
+	QSVec2 vs0,vs1,vd;
+	QSVec2C m0,m1;
+	double2 md;
+
+	i = threadIdx.x + blockIdx.x * blockDim.x;
+
+	lmask = 1ull << qubit;
+	iPair = i ^ lmask;
+
+	if(i < iPair){
+		m0.x = (QSRealC)M00.x;
+		m0.y = (QSRealC)M00.y;
+		m1.x = (QSRealC)M01.x;
+		m1.y = (QSRealC)M01.y;
+	}
+	else{
+		m1.x = (QSRealC)M10.x;
+		m1.y = (QSRealC)M10.y;
+		m0.x = (QSRealC)M11.x;
+		m0.y = (QSRealC)M11.y;
+	}
+
+	vs0 = pAmp[i];
+
+	vs1.x = __shfl_xor_sync(0xffffffff,vs0.x,lmask,32);
+	vs1.y = __shfl_xor_sync(0xffffffff,vs0.y,lmask,32);
+
+	vd.x = (QSRealDev)(m0.x * (QSRealC)vs0.x - m0.y * (QSRealC)vs0.y + m1.x * (QSRealC)vs1.x - m1.y * (QSRealC)vs1.y);
+	vd.y = (QSRealDev)(m0.x * (QSRealC)vs0.y + m0.y * (QSRealC)vs0.x + m1.x * (QSRealC)vs1.y + m1.y * (QSRealC)vs1.x);
+
+	pAmp[i] = vd;
+}
+
+__global__ void QSGate_MatMult_InUnit_2x2M_shm_cuda_kernel(QSVec2* pAmp,double2 M00,double2 M01,double2 M10,double2 M11,int qubit)
+{
+	extern __shared__ QSVec2 buf[];
+	QSUint i,iPair,lmask;
+	QSVec2 vs0,vs1,vd;
+	QSVec2C m0,m1;
+	double2 md;
+
+	i = threadIdx.x;
+
+	lmask = 1ull << qubit;
+	iPair = i ^ lmask;
+
+	if(i < iPair){
+		m0.x = (QSRealC)M00.x;
+		m0.y = (QSRealC)M00.y;
+		m1.x = (QSRealC)M01.x;
+		m1.y = (QSRealC)M01.y;
+	}
+	else{
+		m1.x = (QSRealC)M10.x;
+		m1.y = (QSRealC)M10.y;
+		m0.x = (QSRealC)M11.x;
+		m0.y = (QSRealC)M11.y;
+	}
+
+	i +=  + blockIdx.x * blockDim.x;
+
+	vs0 = pAmp[i];
+	buf[threadIdx.x] = vs0;
+	__syncthreads();
+
+	vs1 = buf[iPair];
+
+	vd.x = (QSRealDev)(m0.x * (QSRealC)vs0.x - m0.y * (QSRealC)vs0.y + m1.x * (QSRealC)vs1.x - m1.y * (QSRealC)vs1.y);
+	vd.y = (QSRealDev)(m0.x * (QSRealC)vs0.y + m0.y * (QSRealC)vs0.x + m1.x * (QSRealC)vs1.y + m1.y * (QSRealC)vs1.x);
+
+	pAmp[i] = vd;
+}
+
+
 
 __global__ void QSGate_MatMult_InUnit_4x4_cuda_kernel(QSVec2* pAmp,double2* pMat,int qubit_0,int qubit_1)
 {
@@ -465,6 +581,40 @@ __global__ void QSGate_MatMult_2x2_cuda_kernel(QSVec2* pBuf0,QSVec2* pBuf1,doubl
 	if(localMask & 2){
 		MatrixLoad(m10,md,pMat,0,1,2);
 		MatrixLoad(m11,md,pMat,1,1,2);
+
+		vd1.x = (QSRealDev)(m10.x * (QSRealC)vs0.x - m10.y * (QSRealC)vs0.y + m11.x * (QSRealC)vs1.x - m11.y * (QSRealC)vs1.y);
+		vd1.y = (QSRealDev)(m10.x * (QSRealC)vs0.y + m10.y * (QSRealC)vs0.x + m11.x * (QSRealC)vs1.y + m11.y * (QSRealC)vs1.x);
+		pBuf1[i] = vd1;
+	}
+}
+
+__global__ void QSGate_MatMult_2x2M_cuda_kernel(QSVec2* pBuf0,QSVec2* pBuf1,double2 M00,double2 M01,double2 M10,double2 M11,QSUint localMask)
+{
+	QSUint i;
+	QSVec2 vs0,vs1,vd0,vd1;
+	QSVec2C m00,m01,m10,m11;
+	double2 md;
+
+	i = threadIdx.x + blockIdx.x * blockDim.x;
+
+	vs0 = pBuf0[i];
+	vs1 = pBuf1[i];
+
+	if(localMask & 1){
+		m00.x = (QSRealC)M00.x;
+		m00.y = (QSRealC)M00.y;
+		m01.x = (QSRealC)M01.x;
+		m01.y = (QSRealC)M01.y;
+
+		vd0.x = (QSRealDev)(m00.x * (QSRealC)vs0.x - m00.y * (QSRealC)vs0.y + m01.x * (QSRealC)vs1.x - m01.y * (QSRealC)vs1.y);
+		vd0.y = (QSRealDev)(m00.x * (QSRealC)vs0.y + m00.y * (QSRealC)vs0.x + m01.x * (QSRealC)vs1.y + m01.y * (QSRealC)vs1.x);
+		pBuf0[i] = vd0;
+	}
+	if(localMask & 2){
+		m10.x = (QSRealC)M10.x;
+		m10.y = (QSRealC)M10.y;
+		m11.x = (QSRealC)M11.x;
+		m11.y = (QSRealC)M11.y;
 
 		vd1.x = (QSRealDev)(m10.x * (QSRealC)vs0.x - m10.y * (QSRealC)vs0.y + m11.x * (QSRealC)vs1.x - m11.y * (QSRealC)vs1.y);
 		vd1.y = (QSRealDev)(m10.x * (QSRealC)vs0.y + m10.y * (QSRealC)vs0.x + m11.x * (QSRealC)vs1.y + m11.y * (QSRealC)vs1.x);
@@ -750,21 +900,33 @@ void QSGate_MatMult::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex**
 
 	//multiply matrix
 	if(nqubits == 1){
+		double2 m00,m01,m10,m11;
+
+		m00 = *(double2*)m_Mat;
+#ifdef QSIM_COL_MAJOR
+		m01 = *(double2*)(m_Mat + 2);
+		m10 = *(double2*)(m_Mat + 1);
+#else
+		m01 = *(double2*)(m_Mat + 1);
+		m10 = *(double2*)(m_Mat + 2);
+#endif
+		m11 = *(double2*)(m_Mat + 3);
+
 		if(nqubitsLarge == 0){		//inside unit
 			if(qubits[0] < 5){
 				CUDA_FitThreads(nt,ng,(na << 1));
-				QSGate_MatMult_InUnit_2x2_shfl_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],pMat_dev,qubits[0]);
+				QSGate_MatMult_InUnit_2x2M_shfl_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],m00,m01,m10,m11,qubits[0]);
 			}
 			else if(qubits[0] < 10){
 				CUDA_FitThreads(nt,ng,(na << 1));
-				QSGate_MatMult_InUnit_2x2_shm_cuda_kernel<<<ng,nt,sizeof(QSVec2)*1024,strm>>>((QSVec2*)ppBuf[0],pMat_dev,qubits[0]);
+				QSGate_MatMult_InUnit_2x2M_shm_cuda_kernel<<<ng,nt,sizeof(QSVec2)*1024,strm>>>((QSVec2*)ppBuf[0],m00,m01,m10,m11,qubits[0]);
 			}
 			else{
-				QSGate_MatMult_InUnit_2x2_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],pMat_dev,qubits[0]);
+				QSGate_MatMult_InUnit_2x2M_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],m00,m01,m10,m11,qubits[0]);
 			}
 		}
 		else{
-			QSGate_MatMult_2x2_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],(QSVec2*)ppBuf[1],pMat_dev,localMask);
+			QSGate_MatMult_2x2M_cuda_kernel<<<ng,nt,0,strm>>>((QSVec2*)ppBuf[0],(QSVec2*)ppBuf[1],m00,m01,m10,m11,localMask);
 		}
 	}
 	else if(nqubits == 2){
@@ -878,22 +1040,27 @@ void QSGate_MatMult::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex**
 		pUnit->SynchronizeOutput();
 	}
 
+
 }
 
-void QSGate_MatMult::CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits)
+void QSGate_MatMult::CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits,int wait)
 {
 	cudaStream_t strm;
 	int matSize;
 
-	matSize = 1 << nqubits;
+	if(nqubits > 1){
+		matSize = 1 << nqubits;
 
-	pUnit->SetDevice();
-	strm = (cudaStream_t)pUnit->GetStream();
+		pUnit->SetDevice();
+		strm = (cudaStream_t)pUnit->GetStreamPipe();
 
-	cudaMemcpyAsync(pUnit->GetMatrixPointer(),m_pMat,sizeof(double2)*matSize*matSize,cudaMemcpyHostToDevice,strm);
-	cudaMemcpyAsync(pUnit->GetQubitsPointer(),qubits,sizeof(int)*nqubits,cudaMemcpyHostToDevice,strm);
+		cudaMemcpyAsync(pUnit->GetMatrixPointer(),m_Mat,sizeof(double2)*matSize*matSize,cudaMemcpyHostToDevice,strm);
+		cudaMemcpyAsync(pUnit->GetQubitsPointer(),qubits,sizeof(int)*nqubits,cudaMemcpyHostToDevice,strm);
 
-	cudaStreamSynchronize(strm);
+		if(wait)
+			cudaStreamSynchronize(strm);
+	}
+
 }
 
 

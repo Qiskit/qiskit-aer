@@ -222,16 +222,16 @@ public:
   //-----------------------------------------------------------------------
 
   // Initializes the current vector so that all qubits are in the |0> state.
-  virtual void initialize();
+  void initialize();
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  virtual void initialize_from_vector(const cvector_t &data);
+  void initialize_from_vector(const cvector_t &data);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
-  virtual void initialize_from_data(const data_t &data, const size_t num_states);
+  void initialize_from_data(const data_t &data, const size_t num_states);
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -1901,10 +1901,10 @@ cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_
 
     // 1. identify low and high delta
     auto low = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
+                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[0]));
 
     auto high = std::distance(dst_sorted_qubits.begin(),
-                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[1]));
+                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[1]));
 
     auto low_delta = BITS[low];
     auto high_delta = BITS[high];

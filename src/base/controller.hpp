@@ -348,10 +348,10 @@ void Controller::set_parallelization_circuit(const Circuit& circ) {
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
 
   if (circ_memory_mb == 0)
-    parallel_shots_ = max_parallel_threads_;
+    parallel_shots_ = max_parallel_shots_;
   else
     parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
-                                       max_parallel_threads_,
+                                       max_parallel_shots_,
                                        static_cast<int>(circ.shots) });
 
   if (max_parallel_shots_ < 1) { // no nested parallelization if max_parallel_shots is not configured

@@ -134,14 +134,14 @@ void QSGate_DiagMult::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex
 
 	if(nqubits == 1){
 		if(qubits[0] < pUnit->UnitBits()){		//inside unit
-			QSGate_DiagMult_2x2_InUnit((QSDouble*)m_pMat,(QSReal*)ppBuf[0],qubits[0],ncols);
+			QSGate_DiagMult_2x2_InUnit((QSDouble*)m_Mat,(QSReal*)ppBuf[0],qubits[0],ncols);
 		}
 		else{
 			if(((pGuid[0] >> (qubits[0] - pUnit->UnitBits())) & 1ull) == 0){
-				QSGate_DiagMult_2x2((QSDouble*)(m_pMat),(QSReal*)ppBuf[0],ncols);
+				QSGate_DiagMult_2x2((QSDouble*)(m_Mat),(QSReal*)ppBuf[0],ncols);
 			}
 			else{
-				QSGate_DiagMult_2x2((QSDouble*)(m_pMat+1),(QSReal*)ppBuf[0],ncols);
+				QSGate_DiagMult_2x2((QSDouble*)(m_Mat+1),(QSReal*)ppBuf[0],ncols);
 			}
 		}
 	}
@@ -156,7 +156,7 @@ void QSGate_DiagMult::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex
 			k = (j >> (nqubits - nqubitsLarge));
 			mask |= ( ((localMask >> k) & 1ull) << j );
 		}
-		QSGate_DiagMult_NxN((QSDouble*)m_pMat,ppBuf,qubits,nqubits,mask,ncols,nqubitsLarge);
+		QSGate_DiagMult_NxN((QSDouble*)m_Mat,ppBuf,qubits,nqubits,mask,ncols,nqubitsLarge);
 	}
 }
 

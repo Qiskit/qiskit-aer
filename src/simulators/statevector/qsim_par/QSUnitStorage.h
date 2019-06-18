@@ -47,6 +47,7 @@ protected:
 	int m_nPipe;
 	int m_unitPerPipe;
 	int m_pipeCount;
+	int m_maxCount;
 	QSUnitStorage** m_pPlaces;
 	int m_procPerNode;
 public:
@@ -140,6 +141,7 @@ public:
 		m_unitPerPipe = nu;
 		m_nPipe = m_nMaxPipe / nu;
 		m_pipeCount = 0;
+		m_maxCount = 0;
 	}
 	int Pipe(void)
 	{
@@ -152,6 +154,9 @@ public:
 	void AddPipe(void)
 	{
 		m_pipeCount = ((m_pipeCount + 1) % m_nPipe);
+		if(m_pipeCount > m_maxCount){
+			m_maxCount = m_pipeCount;
+		}
 	}
 
 	QSUint GetGlobalUnitIndex(int iUnit)

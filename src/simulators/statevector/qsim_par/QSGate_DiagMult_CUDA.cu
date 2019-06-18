@@ -113,7 +113,7 @@ void QSGate_DiagMult::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex*
 	matSize = 1 << nqubits;
 //	na = 1ull << (pUnit->UnitBits() - (nqubits - nqubitsLarge));
 
-	pUnit->SetDevice();
+//	pUnit->SetDevice();
 
 	pBuf_dev = pUnit->GetBufferPointer(matSize);
 	strm = (cudaStream_t)pUnit->GetStreamPipe();
@@ -126,10 +126,10 @@ void QSGate_DiagMult::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex*
 	//multiply matrix
 	if(nqubits == 1){
 		double2 mat0,mat1;
-		mat0.x = ((double*)m_pMat)[0];
-		mat0.y = ((double*)m_pMat)[1];
-		mat1.x = ((double*)m_pMat)[2];
-		mat1.y = ((double*)m_pMat)[3];
+		mat0.x = ((double*)m_Mat)[0];
+		mat0.y = ((double*)m_Mat)[1];
+		mat1.x = ((double*)m_Mat)[2];
+		mat1.y = ((double*)m_Mat)[3];
 
 		na = 1ull << pUnit->UnitBits();
 		CUDA_FitThreads(nt,ng,na);
@@ -153,20 +153,23 @@ void QSGate_DiagMult::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex*
 
 }
 
-void QSGate_DiagMult::CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits)
+void QSGate_DiagMult::CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits,int wait)
 {
 	cudaStream_t strm;
 	int matSize;
 
-	matSize = 1 << nqubits;
+	if(nqubits > 1){
+		matSize = 1 << nqubits;
 
-	pUnit->SetDevice();
-	strm = (cudaStream_t)pUnit->GetStream();
+//		pUnit->SetDevice();
+		strm = (cudaStream_t)pUnit->GetStreamPipe();
 
-	cudaMemcpyAsync(pUnit->GetMatrixPointer(),m_pMat,sizeof(double2)*matSize*matSize,cudaMemcpyHostToDevice,strm);
-	cudaMemcpyAsync(pUnit->GetQubitsPointer(),qubits,sizeof(int)*nqubits,cudaMemcpyHostToDevice,strm);
+		cudaMemcpyAsync(pUnit->GetMatrixPointer(),m_Mat,sizeof(double2)*matSize*matSize,cudaMemcpyHostToDevice,strm);
+		cudaMemcpyAsync(pUnit->GetQubitsPointer(),qubits,sizeof(int)*nqubits,cudaMemcpyHostToDevice,strm);
 
-	cudaStreamSynchronize(strm);
+		if(wait)
+			cudaStreamSynchronize(strm);
+	}
 }
 
 

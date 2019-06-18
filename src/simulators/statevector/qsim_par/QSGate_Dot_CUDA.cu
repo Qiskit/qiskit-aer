@@ -13,7 +13,7 @@
 
 	IBM Q Simulator
 
-	U1 gate
+	measure dot
 
 	2019 IBM Research - Tokyo
 --------------------------------------------------------------------------------------*/
@@ -143,9 +143,9 @@ void QSGate_Dot::InitBuffer(QSUnitStorage* pUnit)
 	cudaStream_t strm;
 	double* pDot;
 
-	pUnit->SetDevice();
+//	pUnit->SetDevice();
 
-	strm = (cudaStream_t)pUnit->GetStream();
+	strm = (cudaStream_t)pUnit->GetStreamPipe();
 
 	pDot = pUnit->GetNormPointer();
 
@@ -163,9 +163,9 @@ double QSGate_Dot::ReduceAll(QSUnitStorage* pUnit)
 	double* pDot;
 	double dot[16];
 
-	pUnit->SetDevice();
+//s	pUnit->SetDevice();
 
-	strm = (cudaStream_t)pUnit->GetStream();
+	strm = (cudaStream_t)pUnit->GetStreamPipe();
 
 	pDot = pUnit->GetNormPointer();
 
@@ -193,14 +193,9 @@ void QSGate_Dot::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppB
 	double* pDot;
 	int qubit = qubits[0];
 
-	pUnit->SetDevice();
+//	pUnit->SetDevice();
 
-	if(nTrans > 0){
-		strm = (cudaStream_t)pUnit->GetStreamPipe();
-	}
-	else{
-		strm = (cudaStream_t)pUnit->GetStream();
-	}
+	strm = (cudaStream_t)pUnit->GetStreamPipe();
 
 	pDot = pUnit->GetNormPointer();
 
@@ -232,8 +227,6 @@ void QSGate_Dot::ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppB
 	if(nTrans > 0){
 		pUnit->SynchronizeOutput();
 	}
-
-	cudaStreamSynchronize(strm);
 }
 
 

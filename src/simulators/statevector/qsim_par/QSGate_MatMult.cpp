@@ -694,22 +694,22 @@ void QSGate_MatMult::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex*
 	ncols = 1ull << (pUnit->UnitBits() - (nqubits - nqubitsLarge));
 	if(nqubits == 1){
 		if(nqubitsLarge == 0){
-			QSGate_MatMult_2x2((QSDouble*)m_pMat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],qubits[0],3,ncols);
+			QSGate_MatMult_2x2((QSDouble*)m_Mat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],qubits[0],3,ncols);
 		}
 		else{
-			QSGate_MatMult_2x2((QSDouble*)m_pMat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],qubits[0],localMask,ncols);
+			QSGate_MatMult_2x2((QSDouble*)m_Mat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],qubits[0],localMask,ncols);
 		}
 	}
 	else if(nqubits == 2){
 		if(nqubitsLarge == 0){
-			QSGate_MatMult_4x4((QSDouble*)m_pMat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],qubits[0],qubits[1],15,ncols,nqubitsLarge);
+			QSGate_MatMult_4x4((QSDouble*)m_Mat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],qubits[0],qubits[1],15,ncols,nqubitsLarge);
 		}
 		else if(nqubitsLarge == 1){
 			localMask = ((localMask & 1) << 1) | (localMask & 1) | ((localMask & 2) << 1) | ((localMask & 2) << 2);
-			QSGate_MatMult_4x4((QSDouble*)m_pMat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],(QSReal*)ppBuf[1],qubits[0],qubits[1],localMask,ncols,nqubitsLarge);
+			QSGate_MatMult_4x4((QSDouble*)m_Mat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],(QSReal*)ppBuf[1],qubits[0],qubits[1],localMask,ncols,nqubitsLarge);
 		}
 		else{
-			QSGate_MatMult_4x4((QSDouble*)m_pMat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],(QSReal*)ppBuf[2],(QSReal*)ppBuf[3],qubits[0],qubits[1],localMask,ncols,nqubitsLarge);
+			QSGate_MatMult_4x4((QSDouble*)m_Mat,(QSReal*)ppBuf[0],(QSReal*)ppBuf[1],(QSReal*)ppBuf[2],(QSReal*)ppBuf[3],qubits[0],qubits[1],localMask,ncols,nqubitsLarge);
 		}
 	}
 //	else if(nqubits == 3){
@@ -726,7 +726,7 @@ void QSGate_MatMult::ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex*
 			k = (j >> (nqubits - nqubitsLarge));
 			mask |= ( ((localMask >> k) & 1ull) << j );
 		}
-		QSGate_MatMult_NxN((QSDouble*)m_pMat,ppBuf,qubits,nqubits,mask,ncols,nqubitsLarge);
+		QSGate_MatMult_NxN((QSDouble*)m_Mat,ppBuf,qubits,nqubits,mask,ncols,nqubitsLarge);
 	}
 
 }

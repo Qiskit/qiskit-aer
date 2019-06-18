@@ -83,9 +83,39 @@ void Init_Parallel(int argc, char **argv)
 		cudaFree(pTmp);
 		cudaMallocHost(&pTmp,sizeof(double)*1024);
 		cudaFreeHost(pTmp);
+
+		//Set p2p
+		for(int i=isDev;i<ieDev;i++){
+			if(i != idev)
+				cudaDeviceEnablePeerAccess(i,0);
+		}
 	}
 
 }
+
+void QSUnitManager_GetGPUMemorySize(int* pNdev,QSUint* pMemSize)
+{
+	int nDev = 0;
+	QSUint size = 0;
+
+#ifdef QSIM_CUDA
+	size_t freeMem,totalMem;
+
+	cudaGetDeviceCount(&nDev);
+	if(nDev > 0){
+		cudaSetDevice(0);
+		cudaMemGetInfo(&freeMem,&totalMem);
+
+		size = totalMem;
+	}
+#endif
+
+	if(pNdev != NULL)
+		*pNdev = nDev;
+	if(pMemSize != NULL)
+		*pMemSize = size;
+}
+
 
 
 static double mysecond()
@@ -229,11 +259,12 @@ void QSUnitManager::Init(void)
 		if(nDev > 0){
 			size_t freeMem,totalMem;
 			QSUint localSize;
-			cudaSetDevice(0);
-			cudaMemGetInfo(&freeMem,&totalMem);
 
 			isDev = m_iproc_per_node *nDev / m_nprocs_per_node;
 			ieDev = (m_iproc_per_node+1) *nDev / m_nprocs_per_node;
+
+			cudaSetDevice(isDev);
+			cudaMemGetInfo(&freeMem,&totalMem);
 
 			localSize = (sizeof(QSComplex)*(m_numUnits << m_unitBits));
 			if(localSize < totalMem){
@@ -519,7 +550,7 @@ void QSUnitManager::Measure(int qubit,int flg,QSDouble norm)
 	double mat[4];
 	int qubits_c[QS_MAX_MATRIX_SIZE];	//dummy
 	int i;
-	QSGate_DiagMult matMultGate((QSDoubleComplex*)mat);
+	QSGate_DiagMult matMultGate;
 
 	if(flg == 0){
 		mat[0] = norm;
@@ -536,13 +567,15 @@ void QSUnitManager::Measure(int qubit,int flg,QSDouble norm)
 
 	qubits_c[0] = -1;
 
+	matMultGate.SetMatrix((QSDoubleComplex*)mat,2);
+
 #ifdef QSIM_CUDA
 
 	//copy matrix and qubits on GPUs
 #pragma omp parallel for
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
-			matMultGate.CopyMatrix(m_pUnits[i],&qubit,1);
+			matMultGate.CopyMatrix(m_pUnits[i],&qubit,1,1);
 		}
 	}
 #endif
@@ -557,14 +590,15 @@ void QSUnitManager::Measure(int qubit,int flg,QSDouble norm)
 --------------------------------------------------------------*/
 void QSUnitManager::MatMult(QSDoubleComplex* pM,int* qubits,int nqubits)
 {
-	QSGate_MatMult matMultGate(pM);
+	QSGate_MatMult matMultGate;
 	int qubits_c[QS_MAX_MATRIX_SIZE];	//dummy
 	int i,matSize;
-	QSDoubleComplex mt[32*32];
 
 	qubits_c[0] = -1;
 
 	matSize = 1 << nqubits;
+
+	matMultGate.SetMatrix(pM,matSize);
 
 
 #ifdef QSIM_CUDA
@@ -573,7 +607,7 @@ void QSUnitManager::MatMult(QSDoubleComplex* pM,int* qubits,int nqubits)
 #pragma omp parallel for
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
-			matMultGate.CopyMatrix(m_pUnits[i],qubits,nqubits);
+			matMultGate.CopyMatrix(m_pUnits[i],qubits,nqubits,1);
 		}
 	}
 #endif
@@ -588,9 +622,11 @@ void QSUnitManager::MatMult(QSDoubleComplex* pM,int* qubits,int nqubits)
 --------------------------------------------------------------*/
 void QSUnitManager::MatMultDiagonal(QSDoubleComplex* pM,int* qubits,int nqubits)
 {
-	QSGate_DiagMult matMultGate(pM);
+	QSGate_DiagMult matMultGate;
 	int qubits_c[QS_MAX_MATRIX_SIZE];	//dummy
 	int i,matSize;
+
+	matMultGate.SetMatrix(pM,(1 << nqubits));
 
 	qubits_c[0] = -1;
 
@@ -600,7 +636,7 @@ void QSUnitManager::MatMultDiagonal(QSDoubleComplex* pM,int* qubits,int nqubits)
 #pragma omp parallel for
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
-			matMultGate.CopyMatrix(m_pUnits[i],qubits,nqubits);
+			matMultGate.CopyMatrix(m_pUnits[i],qubits,nqubits,1);
 		}
 	}
 #endif
@@ -694,7 +730,8 @@ void QSUnitManager::U1(int qubit,QSDouble* pPhase)
 	mat[1] = 0.0;
 	mat[2] = pPhase[0];
 	mat[3] = pPhase[1];
-	QSGate_DiagMult matMultGate((QSDoubleComplex*)mat);
+	QSGate_DiagMult matMultGate;
+	matMultGate.SetMatrix((QSDoubleComplex*)mat,2);
 
 	int qubits_c[QS_MAX_MATRIX_SIZE];	//dummy
 	int i;
@@ -707,7 +744,7 @@ void QSUnitManager::U1(int qubit,QSDouble* pPhase)
 #pragma omp parallel for
 	for(i=0;i<m_numPlaces;i++){
 		if(m_pUnits[i]->IsGPU()){
-			matMultGate.CopyMatrix(m_pUnits[i],&qubit,1);
+			matMultGate.CopyMatrix(m_pUnits[i],&qubit,1,1);
 		}
 	}
 #endif
@@ -813,7 +850,7 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 #ifdef QSIM_CUDA
 
 		//on GPU
-#pragma omp parallel for private(nUnit,i,j,pBuf,guid)
+//#pragma omp parallel for private(nUnit,i,j,pBuf,guid)
 		for(iPlaceExec=0;iPlaceExec<m_numPlaces;iPlaceExec++){
 			if(m_pUnits[iPlaceExec]->IsGPU()){
 				nUnit = m_pUnits[iPlaceExec]->NumUnits();
@@ -893,16 +930,18 @@ void QSUnitManager::ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqub
 			}
 		}
 
-		if(m_executeAllOnGPU && m_pUnits[m_iPlaceHost]->NumUnits() > 0){
+//		if(m_executeAllOnGPU && m_pUnits[m_iPlaceHost]->NumUnits() > 0){
 			for(j=0;j<m_numPlaces;j++){
 				m_pUnits[j]->WaitAll();
 			}
-		}
+/*		}
 		else{
 			for(j=0;j<m_numPlaces;j++){
-				m_pUnits[j]->WaitPipe(m_pUnits[j]->Pipe());
+				if(m_pUnits[j]->NumUnits() > 1){
+					m_pUnits[j]->WaitPipe(m_pUnits[j]->Pipe());
+				}
 			}
-		}
+		}*/
 	}
 	else{
 		//on GPU
@@ -1116,16 +1155,8 @@ void QSUnitManager::Measure_FindPos(QSDouble* rs,QSUint* ret,int ns)
 			iPlace = (int)m_pPlaceTable[iUnit];
 			msGate.SetKey(rs[is] - t);
 
-			if(m_pUnits[iPlace]->IsGPU()){	//search on Host, copy unit from GPU
-				pBuf = m_pUnits[m_iPlaceHost]->Buffer(0);
-				m_pUnits[iPlace]->ToHost(pBuf,GetUnitPtr(iUnit));
-				m_pUnits[iPlace]->WaitToHost();
-			}
-			else{
-				pBuf = GetUnitPtr(iUnit);
-			}
-
-			msGate.ExecuteOnHost(m_pUnits[m_iPlaceHost],&guid,&pBuf,&qubit,&qubit,1,0,1,0);
+			pBuf = GetUnitPtr(iUnit);
+			msGate.Execute(m_pUnits[iPlace],&guid,&pBuf,&qubit,&qubit,1,0,1,0);
 
 			ret[is] = ((m_pUnits[iPlace]->GetGlobalUnitIndexBase() + iUnit) << m_unitBits) + msGate.Pos();
 		}

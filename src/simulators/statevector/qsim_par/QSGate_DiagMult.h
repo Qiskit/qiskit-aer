@@ -28,24 +28,20 @@
 class QSGate_DiagMult : public QSGate
 {
 protected:
-	QSDoubleComplex* m_pMat;
+	QSDoubleComplex m_Mat[QS_MAX_MATRIX_SIZE];
 public:
 	QSGate_DiagMult()
 	{
-		m_pMat = NULL;
-	}
-	QSGate_DiagMult(QSDoubleComplex* pM)
-	{
-		m_pMat = pM;
+		;
 	}
 
 	virtual ~QSGate_DiagMult()
 	{
 	}
 
-	void SetMatrix(QSDoubleComplex* pM)
+	void SetMatrix(QSDoubleComplex* pM,int size)
 	{
-		m_pMat = pM;
+		::memcpy(m_Mat,pM,sizeof(QSDoubleComplex)*size);
 	}
 
 	//return 1 if data exchange is required for the gate operation
@@ -58,7 +54,7 @@ public:
 	void ExecuteOnGPU(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppBuf,int* qubits,int* qubits_c,int nqubits,int nqubitsLarge,QSUint localmask,int nTrans);
 	void ExecuteOnHost(QSUnitStorage* pUnit,QSUint* pGuid,QSComplex** ppBuf,int* qubits,int* qubits_c,int nqubits,int nqubitsLarge,QSUint localmask,int nTrans);
 
-	void CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits);
+	void CopyMatrix(QSUnitStorage* pUnit,int* qubits,int nqubits,int wait);
 
 };
 

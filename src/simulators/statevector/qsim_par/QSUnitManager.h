@@ -211,7 +211,7 @@ public:
 		m_numBuffers = n;
 	}
 
-	void Init(void);
+	virtual void Init(void);
 
 	int Qubit(void)
 	{
@@ -223,15 +223,15 @@ public:
 		return m_pUnits[i];
 	}
 
-	QSComplex* GetUnitPtr(QSUint i)
+	virtual QSComplex* GetUnitPtr(QSUint i)
 	{
 		return m_pUnits[m_pPlaceTable[i]]->Unit(m_pUnitTable[i]);
 	}
 
-	void SetValue(QSDoubleComplex c,QSUint gid);
-	void Clear(void);
+	virtual void SetValue(QSDoubleComplex c,QSUint gid);
+	virtual void Clear(void);
 
-	void Copy(QSComplex* pV);
+	virtual void Copy(QSComplex* pV);
 
 	int GetProcess(QSUint ui);
 
@@ -249,26 +249,26 @@ public:
 	//operations
 	//-------------
 
-	QSDouble Dot(int qubit);
+	virtual QSDouble Dot(int qubit);
 
-	void Measure(int qubit,int flg,QSDouble norm);
+	virtual void Measure(int qubit,int flg,QSDouble norm);
 
-	void MatMult(QSDoubleComplex* pM,int* qubits,int n);
+	virtual void MatMult(QSDoubleComplex* pM,int* qubits,int n);
 
-	void MatMultDiagonal(QSDoubleComplex* pM,int* qubits,int n);
+	virtual void MatMultDiagonal(QSDoubleComplex* pM,int* qubits,int n);
 
-	void CX(int qubit_t,int qubit_c);
+	virtual void CX(int qubit_t,int qubit_c);
 
-	void U1(int qubit,QSDouble* pPhase);
+	virtual void U1(int qubit,QSDouble* pPhase);
 
-	void X(int qubit);
-	void Y(int qubit);
-	void Z(int qubit);
+	virtual void X(int qubit);
+	virtual void Y(int qubit);
+	virtual void Z(int qubit);
 
-	void Measure_FindPos(QSDouble* rs,QSUint* ret,int ns);
+	virtual void Measure_FindPos(QSDouble* rs,QSUint* ret,int ns);
 
 protected:
-	void ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqubits);
+	virtual void ExecuteGate(QSGate* pGate,int* qubits,int* qubits_c,int nqubits);
 
 
 	void SortProcs(int* pProcs,int n);
@@ -278,15 +278,7 @@ protected:
 };
 
 
-
-
-
-
-
-
-
-
-
+extern void QSUnitManager_GetGPUMemorySize(int* pNdev,QSUint* pMemSize);
 
 
 

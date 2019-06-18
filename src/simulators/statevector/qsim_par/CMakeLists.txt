@@ -5,7 +5,6 @@
 	endif(AER_DEBUG)
 
     set(CMAKE_CXX_FLAGS "-O3 -fopenmp ${QSIM_PAR_DEFS} -I/usr/local/cuda/include")
-#    set(CUDA_NVCC_FLAGS -gencode; arch=compute_70,code=sm_70; -use_fast_math; -ccbin /usr/bin/g++;)
     set(CUDA_NVCC_FLAGS -use_fast_math; -ccbin /usr/bin/g++; -Xcompiler -fopenmp;)
     CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS 6.0 7.0)
     LIST(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
@@ -13,6 +12,7 @@
 add_library(qsim_par
   STATIC
     QSUnitManager.cpp
+    QSUnitManagerSerial.cpp
     QSUnitStorage.cpp
     QSUnitStorageHost.cpp
     QSUnitStorageFile.cpp
