@@ -13,17 +13,12 @@
 """
 QasmSimulator Integration Tests
 """
-
-from test.benchmark.tools import quantum_volume_circuit
+from test.terra.reference import ref_2q_clifford
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
-
-from test.terra.reference import ref_1q_clifford
-from test.terra.reference import ref_2q_clifford
-
 
 class QasmFusionTests:
     """QasmSimulator fusion tests."""
@@ -31,6 +26,7 @@ class QasmFusionTests:
     SIMULATOR = QasmSimulator()
 
     def create_statevector_circuit(self):
+        """ Creates a simple circuit for running in the statevector """
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         circuit = QuantumCircuit(qr, cr)
@@ -48,6 +44,7 @@ class QasmFusionTests:
         return circuit
 
     def noise_model(self):
+        """ Creates a new noise model for testing purposes """
         readout_error = [0.01, 0.1]
         depolarizing = {'u3': (1, 0.001), 'cx': (2, 0.02)}
         noise = NoiseModel()

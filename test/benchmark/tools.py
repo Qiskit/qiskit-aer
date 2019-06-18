@@ -24,6 +24,7 @@ from qiskit.providers.aer.noise.errors import depolarizing_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors import thermal_relaxation_error
 
+
 class NoiseWithDescription:
     """ This is just a wrapper for adding a descriptive text to the noise model
     so ASV can print this text in its reports
@@ -31,10 +32,13 @@ class NoiseWithDescription:
     def __init__(self, noise_model, description):
         self._noise_model = noise_model
         self._description = description
+
     def __repr__(self):
         return self._description
+
     def __call__(self):
         return self._noise_model
+
 
 def _add_measurements(circuit, qr):
     cr = ClassicalRegister(qr.size)
