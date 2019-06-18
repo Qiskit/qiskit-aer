@@ -122,6 +122,29 @@ def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
     # Transpile to force it into u1,u2,u3,cx basis gates
     return transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'])
 
+def qft_circuit(num_qubits, measure=True):
+    """Create a qft circuit.
+
+    Args:
+        num_qubits (int): number of qubits
+        measure (bool): include measurement in circuit.
+
+    Returns:
+        QftCircuit: A qft circuit.
+    """
+    # Create quantum/classical registers of size n
+    qr = QuantumRegister(num_qubits)
+    circuit = QuantumCircuit(qr)
+    
+    for i in range(num_qubits):
+        for j in range(i):
+            circuit.cu1(math.pi/float(2**(i-j)), qr[i], qr[j])
+        circuit.h(qr[i])
+
+    if measure is True:
+        circuit = _add_measurements(circuit, qr)
+    # Transpile to force it into u1,u2,u3,cx basis gates
+    return transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'])
 
 def simple_u3_circuit(num_qubits, measure=True):
     """Creates a simple circuit composed by u3 gates, with measurements or not
