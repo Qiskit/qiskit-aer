@@ -15,16 +15,12 @@ IdleScheduler class tests
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.providers.aer.noise.utils import schedule_idle_gates
+from qiskit.converters import circuit_to_dag
 import unittest
 
 class TestIdleScheduler(unittest.TestCase):
     def assertCircuitsEqual(self, lhs, rhs):
-        #Note: this only compares gate names, not additional parameters
-        #this is an ad-hoc comparision for the test we perform here
-        for lhs_data, rhs_data in zip(lhs.data, rhs.data):
-            self.assertEqual(lhs_data[0], rhs_data[0])
-            self.assertEqual(lhs_data[1], rhs_data[1])
-            self.assertEqual(lhs_data[2], rhs_data[2])
+        self.assertEqual(circuit_to_dag(lhs), circuit_to_dag(rhs))
 
     def test_small_circuit(self):
         qr = QuantumRegister(3, 'qr')
@@ -35,7 +31,7 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
         target_circuit.iden(qr[1])
-        target_circuit.z(qr[2])
+        target_circuit.y(qr[2])
 
         result_circuit = schedule_idle_gates(circuit)
         self.assertCircuitsEqual(target_circuit, result_circuit)
