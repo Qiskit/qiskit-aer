@@ -25,6 +25,7 @@ DEFAULT_CONFIGURATION = {
     'local': False,
     'max_shots': 8192,
     'max_experiments': 1024,
+    'GPU': True,
     'basis_gates': ['u1', 'u2', 'u3', 'cx'],
     'gates': [
         {

@@ -15,20 +15,17 @@
 """This module implements the remote node used for AerBackend objects."""
 
 import logging
-import json
 
 from marshmallow import ValidationError
+from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.jobstatus import JobStatus
 from ..aererror import AerError
 from ..version import __version__
 from ..api import HttpConnector
-from ..aererror import AerError
-from .aerbackend import AerBackend
-from qiskit.providers.models import BackendConfiguration
-from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit.result import Result
 
 
 logger = logging.getLogger(__name__)
+
 
 class RemoteNode():
     """
@@ -45,8 +42,7 @@ class RemoteNode():
         self._url = url
         self._status = None
 
-
-        if method is "http":
+        if method == "http":
             self._api = HttpConnector(self._url)
 
         _raw_config = self._api.available_backends()
@@ -55,12 +51,10 @@ class RemoteNode():
         try:
             config = BackendConfiguration.from_dict(raw_config)
         except ValidationError as ex:
-            logger.warning(
-                'Remote backend "%s" could not be instantiated due to an '
-                'invalid config: %s',
-                raw_config.get('backend_name',
-                raw_config.get('name', 'unknown')),
-                ex)
+            logger.warning('Remote backend "%s" could not be instantiated due to an '
+                           'invalid config: %s',
+                           raw_config.get('backend_name',
+                                          raw_config.get('name', 'unknown')), ex)
 
         self._backend_name = config.backend_name
         self._config = config
@@ -68,12 +62,16 @@ class RemoteNode():
 
     def get_status_job(self, job_id):
         """
-        Get job status from the node
+        Get job status from the node.
 
         Args:
             job_id (string) : Job ID
-        Returns
-            job_status (string) : Dict data of job status
+
+        Returns:
+            dict: job status
+
+        Raises:
+            AerError : No receive job status from the node
         """
         try:
             job_status = self._api.get_status_job(job_id)
@@ -89,7 +87,7 @@ class RemoteNode():
         Args:
             job_id (string) : Job ID
         Returns:
-            result (string) : dict data of job result
+            dict: job result
         Raises:
             AerError : Not receive the result from the node
         """
@@ -107,7 +105,7 @@ class RemoteNode():
         Args:
             qobj (Qobj) : Submittion qobj
         Returns:
-            subimit_info (dict) : submission info
+            dict: submission info
         Raises:
             AerError : Can not submit qobj to remote node
         """
@@ -124,7 +122,6 @@ class RemoteNode():
         # Transition to the `ERROR` final state.
         if 'error' in submit_info:
             self._status = JobStatus.ERROR
-            self._api_error_msg = str(submit_info['error'])
             return submit_info
 
         # Submission success.

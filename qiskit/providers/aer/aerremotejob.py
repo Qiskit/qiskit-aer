@@ -23,12 +23,12 @@ import datetime
 from qiskit.providers import BaseJob, JobError, JobTimeoutError
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result import Result
-from qiskit.qobj import validate_qobj_against_schema
-from qiskit.providers.ibmq.utils import update_qobj_config
+from qiskit.qobj import QasmQobjConfig, validate_qobj_against_schema
 
 from .api import ApiError
 
 logger = logging.getLogger(__name__)
+
 
 class AerNodeStatus():
     """
@@ -46,6 +46,7 @@ class AerNodeStatus():
         self._job_id = job_id
         self._status = status
         self._remote_node = node
+
 
 class AerRemoteJob(BaseJob):
     """
@@ -73,32 +74,31 @@ class AerRemoteJob(BaseJob):
         self._status = JobStatus.INITIALIZING
         self._future = None
         self._node_status = []
-
         self._noise = False
+        self._future_captured_exception = None
+
         if qobj is not None:
             if noise_model:
-                qobj = update_qobj_config(qobj, None, noise_model)
+                config = qobj.config.to_dict()
+                config["noise_model"] = noise_model.to_dict()
+                config["run_config"] = {}
+                qobj.config = QasmQobjConfig.from_dict(config)
                 self._noise = True
 
             validate_qobj_against_schema(qobj)
-            self._qobj_payload = qobj.as_dict()
+            self._qobj_payload = qobj.to_dict()
         else:
             self._qobj_payload = {}
 
         self._creation_date = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
 
-    def result(self, timeout=None, wait=5):
+    def result(self):
         """Return the result from the job.
-
-        Args:
-           timeout (int): number of seconds to wait for job
-           wait (int): time between queries to On-premise server
-
         Returns:
             qiskit.Result: Result object
         """
 
-        job_response = self._wait_for_result(timeout=timeout, wait=wait)
+        job_response = self._wait_for_result(timeout=None, wait=5)
         return Result.from_dict(job_response['qObjectResult'])
 
     def status(self):
@@ -190,14 +190,13 @@ class AerRemoteJob(BaseJob):
             # Capture and keep it for raising it when calling status().
             self._future_captured_exception = err
             return None
-        
+
         for submit_info in submit_info_list:
 
             # Error in the job after submission:
             # Transition to the `ERROR` final state.
             if 'error' in submit_info:
                 self._status = JobStatus.ERROR
-                self._api_error_msg = str(submit_info['error'])
                 return submit_info
 
             # Submission success.

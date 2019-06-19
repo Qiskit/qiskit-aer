@@ -1,3 +1,4 @@
+
 # Worker Server
 
 ## How to install
@@ -31,25 +32,18 @@ thread_num = <The Number of Permits to Execute Simulations>
 ![Flow](https://github.com/hitomitak/qiskit-aer/blob/distribute/server/Flow.png)
 
 ## How to use
-1. Install ibmq provider
+1. Uninstall qiskit-aer
 ```
-# pip install qiskit-ibmq-provider
+# pip uninstall qiskit-aer
 ```
 
 2. Re-install qiksit-aer from source ( https://github.com/Qiskit/qiskit-aer/blob/master/.github/CONTRIBUTING.md )
 
-3. Add `from qiskit.providers.aercloud import AerCloud` to `__init__.py` file
-```
-# vim <Python Installation Dir>/pythonx.x/site-packages/qiskit/__init__.py
-
-from qiskit.providers.aercloud import AerCloud 
-```
-
-4. Call AerCloud.get_backend with "qasm_simulator"
+4. Call Aer.get_backend with "http_host" or "GPU" options
 
 ```
-from qiskit import execute, AerCloud
+from qiskit import execute, Aer
 
-bkend = AerCloud.get_backend("qasm_simulator", http_hosts=["http://localhost:5000"])
+bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"], GPU=True)
 job = execute([circ], backend=bkend, shots=10, noise_model=noise_model)
 ```

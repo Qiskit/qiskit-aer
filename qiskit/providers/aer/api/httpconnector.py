@@ -12,6 +12,8 @@
 
 # pylint: disable=invalid-name, bad-continuation
 
+"""This module implements http connector to the remote node."""
+
 import json
 import logging
 import re
@@ -22,6 +24,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
+
 
 class _Request(object):
     """
@@ -108,6 +111,7 @@ class _Request(object):
 
         Raises:
             ApiError: response isn't formatted properly.
+            RegisterSizeError: device size is not enough for send data.
         """
 
         url = parse.urlparse(response.url).path
@@ -125,8 +129,8 @@ class _Request(object):
             else:
                 mobj = self._max_qubit_error_re.match(response.text)
                 if mobj:
-                    raise RegisterSizeError(
-                    'device register size must be <= {}'.format(mobj.group(1)))
+                    raise RegisterSizeError('device register size must be <= {}'
+                                            .format(mobj.group(1)))
                 return True
         try:
             if str(response.headers['content-type']).startswith("text/html;"):
@@ -153,6 +157,7 @@ class _Request(object):
 
         logger.warning("Got a 400 code JSON response to %s", url)
         return False
+
 
 class HttpConnector(object):
     """
@@ -279,7 +284,7 @@ class HttpConnector(object):
 
 class ApiError(Exception):
     """
-    API Error 
+    API Error
     """
     def __init__(self, usr_msg=None, dev_msg=None):
         """

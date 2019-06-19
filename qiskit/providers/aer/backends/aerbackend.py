@@ -90,7 +90,7 @@ class AerBackend(BaseBackend):
             aer_job.submit()
         else:
             aer_job = AerJob(self, job_id, self._run_job, qobj,
-                            backend_options, noise_model, validate)
+                             backend_options, noise_model, validate)
             aer_job.submit()
 
         return aer_job

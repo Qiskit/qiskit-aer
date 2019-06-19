@@ -17,29 +17,25 @@
 This module is used for connecting to Remote Simulator
 """
 import logging
-import datetime
 import random
-import json
 import copy
 
+from collections import Counter
+from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.jobstatus import JobStatus
 from .aerbackend import AerBackend
 from .remote_node import RemoteNode
-from ..aererror import AerError
 from ..version import __version__
 from ..aererror import AerError
-from collections import Counter
-from qiskit.providers.ibmq.utils import update_qobj_config
-from qiskit.providers.models import BackendConfiguration
-from qiskit.qobj import validate_qobj_against_schema
-from qiskit.providers.jobstatus import JobStatus
 
 logger = logging.getLogger(__name__)
+
 
 class RemoteSimulator(AerBackend):
     """ RemoteSimulator class """
 
     def __init__(self, configuration=None, provider=None,
-                 kwargs=None, remote_nodes=None):
+                 kwargs=None):
         """RemoteSimulator for a distributed environment.
         This module is a pseudo simulator for qiskit aer.:
 
@@ -47,7 +43,6 @@ class RemoteSimulator(AerBackend):
             configuration (BackendConfiguration): backend configuration.
             provider (AerProvider): provider responsible for this backend.
             kwargs (string) : Options for the simulator.
-            remote_nodes (string) : List of URL for the remote nodes.
 
         Raises:
             AerError: If Job submission error occurs or No return results
@@ -55,7 +50,14 @@ class RemoteSimulator(AerBackend):
 
         self._config = configuration
         self._provider = provider
-        self._host_list = remote_nodes
+        self._gpu = False
+
+        if "http_hosts" in kwargs:
+            self._host_list = kwargs["http_hosts"]
+
+        if "GPU" in kwargs:
+            self._gpu = kwargs["GPU"]
+
         self._nodelist = []
 
         if self._host_list:
@@ -64,7 +66,7 @@ class RemoteSimulator(AerBackend):
         super().__init__(None, self._config, self._provider, self)
 
     def run_job(self, qobj, noise):
-        """ Submit Job to the remote nodes. 
+        """ Submit Job to the remote nodes.
         If there is no seed in qobj, Set seed.
 
         Args:
@@ -72,22 +74,25 @@ class RemoteSimulator(AerBackend):
             noise (boolean) : Noise simulation or not
 
         Returns:
-            submit_info_list (dict): List of Submission information from nodes
+            dict: List of Submission information from nodes
         """
         submit_info_list = []
         shots = 0
 
         shots = qobj["config"]["shots"]
 
-        # with noise, copy qobj and submit to the nodes
+        if self._gpu:
+            # with noise, copy qobj and submit to the nodes
+            qobj["config"]["GPU"] = True
+
         if noise and shots > 1 and len(self._nodelist) > 1:
             qobj_config = qobj["config"]
             seed = random.randint(1, 65536)
 
-            if not "seed" in qobj_config:
+            if "seed" not in qobj_config:
                 qobj["config"]["seed"] = seed
 
-            if not "seed_simulator" in qobj_config:
+            if "seed_simulator" not in qobj_config:
                 qobj["config"]["seed_simulator"] = seed
 
             qobj_list = self._gen_qobj_for_map(qobj, shots, len(self._nodelist))
@@ -110,7 +115,7 @@ class RemoteSimulator(AerBackend):
             job_id (string): Job ID
             node_status (AerNodeStatus): List of each node status
         Returns:
-            result_qobj (Qobj) : Result
+            Qobj: Result
         Raises:
             AerError: Not receive results
         """
@@ -153,7 +158,7 @@ class RemoteSimulator(AerBackend):
             node_status (AerNodeStatus): List of each node status
 
         Returns:
-            retrun_data (dict) : Job Status
+            dict: Job Status
         """
         node_job_status = []
         for node in node_status:
@@ -162,27 +167,23 @@ class RemoteSimulator(AerBackend):
                 node_job_status.append(status)
 
         status = "COMPLETED"
-        for node_status in node_job_status:
-            if node_status["status"] != "COMPLETED":
+        for each_node_status in node_job_status:
+            if each_node_status["status"] != "COMPLETED":
                 status = "RUNNING"
 
-        return_data = {"id" : job_id, "status" : status, "node_status" : node_job_status}
+        return_data = {"id": job_id, "status": status, "node_status": node_job_status}
         return return_data
 
     def _job_submit(self, node, qobj):
         """
         Submit job to each node.
 
-        Raises:
-            AerError: Job sumission error
+        Returns:
+            dict: submission info
         """
-        try:
-            submit_info = {}
-            submit_info["node"] = node
-            submit_info["info"] = node.execute_job(qobj)
-        except Exception as err:
-            AerError("Job Submission Error, ", str(err))
-            return None
+        submit_info = {}
+        submit_info["node"] = node
+        submit_info["info"] = node.execute_job(qobj)
         return submit_info
 
     def _gen_qobj_for_map(self, qobj, shots, node_num):
@@ -229,7 +230,7 @@ class RemoteSimulator(AerBackend):
         for i in range(1, len(shots)):
             shots[0] = [x + y for (x, y) in zip(shots[0], shots[i])]
             for l in range(len(count_data[0])):
-                count_data[0][l] = dict(Counter(count_data[0][l]) +  Counter(count_data[i][l]))
+                count_data[0][l] = dict(Counter(count_data[0][l]) + Counter(count_data[i][l]))
 
         for i in range(len(shots[0])):
             _each_result = first_qobj_result["results"]
@@ -255,7 +256,7 @@ class RemoteSimulator(AerBackend):
     def _generate_config(self):
         """
         Generate configuration from each node.
-        Max shots, n_qubit, max_experiments is set to the smallest value. 
+        Max shots, n_qubit, max_experiments is set to the smallest value.
         """
         remote_config_list = []
 
@@ -275,19 +276,19 @@ class RemoteSimulator(AerBackend):
         max_experiments = 0
 
         for config in remote_config_list:
-            if config["conditional"] == False:
+            if config["conditional"] is False:
                 conditional = False
 
             if n_qubits > config["n_qubits"]:
                 n_qubits = config["n_qubits"]
 
-            if config["open_pulse"] == False:
+            if config["open_pulse"] is False:
                 open_pulse = False
 
-            if config["memory"] == False:
+            if config["memory"] is False:
                 memory = False
 
-            if config["allow_q_object"] == False:
+            if config["allow_q_object"] is False:
                 allow_q_object = False
 
             max_shots = max_shots + config["max_shots"]
@@ -302,4 +303,3 @@ class RemoteSimulator(AerBackend):
         base_config["max_experiments"] = max_experiments
 
         return BackendConfiguration.from_dict(base_config)
-

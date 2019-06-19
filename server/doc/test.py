@@ -14,7 +14,7 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, BasicAer, IBMQ, AerCloud
+from qiskit import execute, BasicAer, IBMQ, Aer
 from qiskit.providers.ibmq import least_busy
 
 
@@ -85,7 +85,7 @@ PROXIES = {'urls': {
 # Second version: real device
 #IBMQ.enable_account('dummy', url="http://localhost:5000")
 #bkend = IBMQ.get_backend("ibmq_qasm_simulator")
-bkend = AerCloud.get_backend("qasm_simulator", http_hosts=["http://localhost:5000"])
+bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"], GPU=True)
 job = execute([qft3, qft4, qft5], backend=bkend, shots=1024)
 result = job.result()
 print(result)
