@@ -16,6 +16,7 @@ based on a given noise model. The resulting circuit cannot be ran on a quantum c
 but can be handled correctly by simulators
 """
 
+
 def add_errors(circuit, noise_model):
     """
         This function gets a circuit and a noise model and returns a new circuit
@@ -26,7 +27,8 @@ def add_errors(circuit, noise_model):
         Returns:
             QuantumCircuit: The new circuit with the added Kraus gates
         """
-    error_dict = dict([(name, qubit_dict) for (name, qubit_dict) in noise_model._default_quantum_errors.items()])
+    errors = noise_model._default_quantum_errors.items()
+    error_dict = {name: qubit_dict for (name, qubit_dict) in errors}
     result_circuit = circuit.copy(name=circuit.name + '_with_errors')
     result_circuit.data = []
     for inst, qargs, cargs in circuit.data:
