@@ -6,3 +6,4 @@ asv
 cvxopt
 pylint
 pycodestyle
+requests

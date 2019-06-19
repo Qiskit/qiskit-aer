@@ -251,8 +251,6 @@ class RemoteSimulator(AerBackend):
         self._config = self._generate_config()
         self._backend_name = self._config.backend_name
 
-        return
-
     def _generate_config(self):
         """
         Generate configuration from each node.

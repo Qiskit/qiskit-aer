@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
-class _Request(object):
+class Request:
     """
     The Request class to manage the methods
     """
@@ -116,6 +116,7 @@ class _Request(object):
 
         url = parse.urlparse(response.url).path
 
+        # pylint:disable=E1101
         if response.status_code != requests.codes.ok:
             logger.warning('Got a %s code response to %s: %s',
                            response.status_code,
@@ -126,12 +127,13 @@ class _Request(object):
                     response.status_code,
                     url,
                     response.text))
-            else:
-                mobj = self._max_qubit_error_re.match(response.text)
-                if mobj:
-                    raise RegisterSizeError('device register size must be <= {}'
-                                            .format(mobj.group(1)))
+
+            mobj = self._max_qubit_error_re.match(response.text)
+            if not mobj:
                 return True
+
+            raise RegisterSizeError('device register size must be <= {}'
+                                    .format(mobj.group(1)))
         try:
             if str(response.headers['content-type']).startswith("text/html;"):
                 self.result = response.text
@@ -159,13 +161,13 @@ class _Request(object):
         return False
 
 
-class HttpConnector(object):
+class HttpConnector:
     """
-    Connector for Retemo Node via Rest API
+    Connector for Remote Node via Rest API
     """
     def __init__(self, url=None):
         self._url = url
-        self.req = _Request(self._url)
+        self.req = Request(self._url)
         self.config = None
 
     def _check_backend(self, backend):

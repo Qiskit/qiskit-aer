@@ -242,7 +242,7 @@ class AerRemoteJob(BaseJob):
     def _wait_for_submission(self, timeout=60):
         """Waits for the request to return a job ID"""
 
-        if len(self._node_status) is 0:
+        if not self._node_status:
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
             try:
