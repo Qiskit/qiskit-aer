@@ -55,9 +55,6 @@ class RemoteSimulator(AerBackend):
         if "http_hosts" in kwargs:
             self._host_list = kwargs["http_hosts"]
 
-        if "GPU" in kwargs:
-            self._gpu = kwargs["GPU"]
-
         self._nodelist = []
 
         if self._host_list:
@@ -77,13 +74,7 @@ class RemoteSimulator(AerBackend):
             dict: List of Submission information from nodes
         """
         submit_info_list = []
-        shots = 0
-
         shots = qobj["config"]["shots"]
-
-        if self._gpu:
-            # with noise, copy qobj and submit to the nodes
-            qobj["config"]["GPU"] = True
 
         if noise and shots > 1 and len(self._nodelist) > 1:
             qobj_config = qobj["config"]

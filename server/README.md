@@ -39,11 +39,12 @@ thread_num = <The Number of Permits to Execute Simulations>
 
 2. Re-install qiksit-aer from source ( https://github.com/Qiskit/qiskit-aer/blob/master/.github/CONTRIBUTING.md )
 
-4. Call Aer.get_backend with "http_host" or "GPU" options
+4. Call Aer.get_backend with "http_host" 
 
+5. If you want to enable GPU calculation, please add "GPU" options to execute function
 ```
 from qiskit import execute, Aer
 
-bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"], GPU=True)
-job = execute([circ], backend=bkend, shots=10, noise_model=noise_model)
+bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"])
+job = execute([circ], backend=bkend, shots=10, noise_model=noise_model, run_config={"GPU":True})
 ```

@@ -57,7 +57,7 @@ class AerRemoteJob(BaseJob):
     """
     _executor = futures.ThreadPoolExecutor()
 
-    def __init__(self, backend, simulator, job_id, qobj=None, noise_model=None):
+    def __init__(self, backend, simulator, job_id, qobj=None, noise_model=None, run_config=None):
         """
         Args:
             backend(AerBackend) : Backend for this job
@@ -65,6 +65,7 @@ class AerRemoteJob(BaseJob):
             job_id (string) : Job ID
             qobj (Qobj) : Submission qobj
             noise_model (Qobj) : Noise Model
+            run_config (dict): run configuration
         """
         super().__init__(backend, job_id)
         self._simulator = simulator
@@ -76,14 +77,23 @@ class AerRemoteJob(BaseJob):
         self._node_status = []
         self._noise = False
         self._future_captured_exception = None
+        self._gpu_enable = False
+
+        if "GPU" in run_config:
+            self._gpu_enable = run_config["GPU"]
 
         if qobj is not None:
+            config = qobj.config.to_dict()
             if noise_model:
-                config = qobj.config.to_dict()
                 config["noise_model"] = noise_model.to_dict()
                 config["run_config"] = {}
                 qobj.config = QasmQobjConfig.from_dict(config)
                 self._noise = True
+
+            if self._gpu_enable:
+                # with noise, copy qobj and submit to the nodes
+                config["GPU"] = True
+                qobj.config = QasmQobjConfig.from_dict(config)
 
             validate_qobj_against_schema(qobj)
             self._qobj_payload = qobj.to_dict()

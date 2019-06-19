@@ -81,12 +81,13 @@ class AerBackend(BaseBackend):
         self._remote_simulator = remote_simulator
 
     # pylint: disable=arguments-differ
-    def run(self, qobj, backend_options=None, noise_model=None, validate=True):
+    def run(self, qobj, backend_options=None, noise_model=None, validate=True, run_config=None):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
         if self._remote_simulator:
-            aer_job = AerRemoteJob(self, self._remote_simulator, job_id, qobj, noise_model)
+            aer_job = AerRemoteJob(self, self._remote_simulator,
+                                   job_id, qobj, noise_model, run_config)
             aer_job.submit()
         else:
             aer_job = AerJob(self, job_id, self._run_job, qobj,
