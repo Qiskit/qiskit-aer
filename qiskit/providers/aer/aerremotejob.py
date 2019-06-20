@@ -79,7 +79,7 @@ class AerRemoteJob(BaseJob):
         self._future_captured_exception = None
         self._gpu_enable = False
 
-        if "GPU" in run_config:
+        if run_config is not None and "GPU" in run_config:
             self._gpu_enable = run_config["GPU"]
 
         if qobj is not None:
