@@ -265,18 +265,23 @@ def _device_depolarizing_error(qubits,
     # with dim = 2 ** N for an N-qubit gate error.
 
     error = None
+    num_qubits = len(qubits)
     if not thermal_relaxation:
         # Model gate error entirely as depolarizing error
-        p_depol = _depol_error_value_one_qubit(error_param)
+        if error_param is not None and error_param > 0:
+            dim = 2 ** num_qubits
+            p_depol = dim * error_param / (dim - 1)
+        else:
+            p_depol = 0
     else:
         # Model gate error as thermal relaxation and depolarizing
         # error.
         # Get depolarizing probability
-        if len(qubits) == 1:
+        if num_qubits == 1:
             t1, t2, _ = relax_params[qubits[0]]
             p_depol = _depol_error_value_one_qubit(
                 error_param, gate_time, t1=t1, t2=t2)
-        elif len(qubits) == 2:
+        elif num_qubits == 2:
             q0_t1, q0_t2, _ = relax_params[qubits[0]]
             q1_t1, q1_t2, _ = relax_params[qubits[1]]
             p_depol = _depol_error_value_two_qubit(
@@ -292,7 +297,7 @@ def _device_depolarizing_error(qubits,
                              "thermal_relaxation=True.")
     if p_depol > 0:
         error = depolarizing_error(
-            p_depol, len(qubits), standard_gates=standard_gates)
+            p_depol, num_qubits, standard_gates=standard_gates)
     return error
 
 
