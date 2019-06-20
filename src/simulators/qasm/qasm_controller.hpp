@@ -23,6 +23,7 @@
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/tensor_network/tensor_network_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 
 
 namespace AER {
