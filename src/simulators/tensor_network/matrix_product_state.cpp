@@ -31,7 +31,7 @@ uint_t reverse_bits(uint_t num, uint_t len) {
   //  std::assert(num < pow(2, len));
   for (uint_t i=0; i<len; ++i) {
     if ((num & 0x1) == 1) {
-      sum += pow(2, len-1-i);
+      sum += 1ULL << len-1-i;   // adding pow(2, len-1-i)
     }
     num = num>>1;
     if (num == 0) {
@@ -281,8 +281,13 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
-  for(uint_t i = 0; i < size; i++) {
-    for(uint_t j = 0; j < size; j++) {
+  #ifdef _WIN32
+     #pragma omp for
+  #else
+     #pragma omp for collapse(2)
+  #endif
+  for(int_t i = 0; i < size; i++) {
+    for(int_t j = 0; j < size; j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conj(psi.get_data(j))) );
     }
   }
@@ -374,8 +379,13 @@ MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
 void MPS::full_state_vector(cvector_t& statevector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
-  uint_t length = pow(2, num_qubits_);
-  for (uint_t i = 0; i < length; i++) {
+  uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
+  #ifdef _WIN32
+     #pragma omp for
+  #else
+     #pragma omp for collapse(1)
+  #endif
+  for (int_t i = 0; i < length; i++) {
     statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
 #ifdef DEBUG
@@ -386,9 +396,14 @@ void MPS::full_state_vector(cvector_t& statevector) const
 void MPS::probabilities_vector(rvector_t& probvector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
-  uint_t length = pow(2, num_qubits_);
+  uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
   complex_t data = 0;
-  for (uint_t i = 0; i < length; i++) {
+  #ifdef _WIN32
+     #pragma omp for
+  #else
+     #pragma omp for collapse(1)
+  #endif
+  for (int_t i = 0; i < length; i++) {
     data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
     probvector.push_back(std::norm(data));
   }
