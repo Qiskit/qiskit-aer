@@ -31,7 +31,7 @@ uint_t reverse_bits(uint_t num, uint_t len) {
   //  std::assert(num < pow(2, len));
   for (uint_t i=0; i<len; ++i) {
     if ((num & 0x1) == 1) {
-      sum += 1ULL << len-1-i;   // adding pow(2, len-1-i)
+      sum += 1ULL << (len-1-i);   // adding pow(2, len-1-i)
     }
     num = num>>1;
     if (num == 0) {
@@ -286,8 +286,8 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   #else
      #pragma omp for collapse(2)
   #endif
-  for(int_t i = 0; i < size; i++) {
-    for(int_t j = 0; j < size; j++) {
+  for(int_t i = 0; i < static_cast<int_t>(size); i++) {
+    for(int_t j = 0; j < static_cast<int_t>(size); j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conj(psi.get_data(j))) );
     }
   }
@@ -385,7 +385,7 @@ void MPS::full_state_vector(cvector_t& statevector) const
   #else
      #pragma omp for collapse(1)
   #endif
-  for (int_t i = 0; i < length; i++) {
+  for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
 #ifdef DEBUG
@@ -403,7 +403,7 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   #else
      #pragma omp for collapse(1)
   #endif
-  for (int_t i = 0; i < length; i++) {
+  for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
     probvector.push_back(std::norm(data));
   }
