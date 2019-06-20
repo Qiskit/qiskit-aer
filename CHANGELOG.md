@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+-   New simulation method for qasm simulator: tensor_network (\#56)
 
 Changed
 -------
