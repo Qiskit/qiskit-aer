@@ -29,8 +29,10 @@ Removed
 
 Fixed
 -----
--   Fixed 2-qubit depolarizing only error rate calculation in
-    \"basic_device_noise_model\" (\#243)
+-   Change maximum parameter for depolarizing_error to allow for error channel
+    with no identity component. (\#243)
+-   Fixed 2-qubit depolarizing-only error parameter calculation in
+    basic_device_noise_model (\#243)
 
 [0.2.1](https://github.com/Qiskit/qiskit-aer/compare/0.2.0...0.2.1) - 2019-05-20
 ================================================================================

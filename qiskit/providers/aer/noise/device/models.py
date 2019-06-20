@@ -266,25 +266,34 @@ def _device_depolarizing_error(qubits,
 
     error = None
     num_qubits = len(qubits)
+    dim = 2 ** num_qubits
+
+    # If the device reports an error_param greater than the maximum
+    # allowed for a depolarzing error model:
+    #   error_param <= dim / (dim + 1)
+    # we truncated the depolarizing error probability to the maximum value
+    if error_param is not None:
+        error_param = min(error_param, dim / (dim + 1))
+
     if not thermal_relaxation:
         # Model gate error entirely as depolarizing error
         if error_param is not None and error_param > 0:
             dim = 2 ** num_qubits
-            p_depol = dim * error_param / (dim - 1)
+            depol_param = dim * error_param / (dim - 1)
         else:
-            p_depol = 0
+            depol_param = 0
     else:
         # Model gate error as thermal relaxation and depolarizing
         # error.
         # Get depolarizing probability
         if num_qubits == 1:
             t1, t2, _ = relax_params[qubits[0]]
-            p_depol = _depol_error_value_one_qubit(
+            depol_param = _depol_error_value_one_qubit(
                 error_param, gate_time, t1=t1, t2=t2)
         elif num_qubits == 2:
             q0_t1, q0_t2, _ = relax_params[qubits[0]]
             q1_t1, q1_t2, _ = relax_params[qubits[1]]
-            p_depol = _depol_error_value_two_qubit(
+            depol_param = _depol_error_value_two_qubit(
                 error_param,
                 gate_time,
                 qubit0_t1=q0_t1,
@@ -295,9 +304,9 @@ def _device_depolarizing_error(qubits,
             raise NoiseError("Device noise model only supports "
                              "1 and 2-qubit gates when using "
                              "thermal_relaxation=True.")
-    if p_depol > 0:
+    if depol_param > 0:
         error = depolarizing_error(
-            p_depol, num_qubits, standard_gates=standard_gates)
+            depol_param, num_qubits, standard_gates=standard_gates)
     return error
 
 
@@ -348,7 +357,7 @@ def _excited_population(freq, temperature):
 
 
 def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
-    """Return 2-qubit depolarizing channel probability for device model"""
+    """Return 2-qubit depolarizing channel parameter for device model"""
     # Check trivial case where there is no gate error
     if error_param is None:
         return None
@@ -372,7 +381,7 @@ def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
         else:
             return 0
 
-    # Otherwise we calculate the depolarizing error probability to account
+    # Otherwise we calculate the depolarizing error parameter to account
     # for the difference between the relaxation error and gate error
     if t1 == inf:
         par1 = 1
@@ -382,8 +391,8 @@ def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
         par2 = 1
     else:
         par2 = exp(-gate_time / t2)
-    p_depol = 1 + 3 * (2 * error_param - 1) / (par1 + 2 * par2)
-    return p_depol
+    depol_param = 1 + 3 * (2 * error_param - 1) / (par1 + 2 * par2)
+    return depol_param
 
 
 def _depol_error_value_two_qubit(error_param,
@@ -392,7 +401,7 @@ def _depol_error_value_two_qubit(error_param,
                                  qubit0_t2=inf,
                                  qubit1_t1=inf,
                                  qubit1_t2=inf):
-    """Return 2-qubit depolarizing channel probability for device model"""
+    """Return 2-qubit depolarizing channel parameter for device model"""
     # Check trivial case where there is no gate error
     if error_param is None:
         return None
@@ -440,5 +449,5 @@ def _depol_error_value_two_qubit(error_param,
     denom = (
         q0_par1 + q1_par1 + q0_par1 * q1_par1 + 4 * q0_par2 * q1_par2 +
         2 * (q0_par2 + q1_par2) + 2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
-    p_depol = 1 + 5 * (4 * error_param - 3) / denom
-    return p_depol
+    depol_param = 1 + 5 * (4 * error_param - 3) / denom
+    return depol_param
