@@ -85,7 +85,7 @@ PROXIES = {'urls': {
 # Second version: real device
 #IBMQ.enable_account('dummy', url="http://localhost:5000")
 #bkend = IBMQ.get_backend("ibmq_qasm_simulator")
-bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"])
+bkend = Aer.get_backend("remote_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"])
 job = execute([qft3, qft4, qft5], backend=bkend, shots=1024, run_config={"GPU":True})
 result = job.result()
 print(result)

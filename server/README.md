@@ -45,6 +45,6 @@ thread_num = <The Number of Permits to Execute Simulations>
 ```
 from qiskit import execute, Aer
 
-bkend = Aer.get_backend("qasm_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"])
+bkend = Aer.get_backend("remote_simulator", http_hosts=["http://localhost:5000", "http://localhost:5001"])
 job = execute([circ], backend=bkend, shots=10, noise_model=noise_model, run_config={"GPU":True})
 ```
