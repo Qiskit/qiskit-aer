@@ -86,13 +86,14 @@ class AerRemoteJob(BaseJob):
             config = qobj.config.to_dict()
             if noise_model:
                 config["noise_model"] = noise_model.to_dict()
-                config["run_config"] = {}
+                del config["run_config"]
                 qobj.config = QasmQobjConfig.from_dict(config)
                 self._noise = True
 
             if self._gpu_enable:
                 # with noise, copy qobj and submit to the nodes
                 config["GPU"] = True
+                del config["run_config"]
                 qobj.config = QasmQobjConfig.from_dict(config)
 
             validate_qobj_against_schema(qobj)
