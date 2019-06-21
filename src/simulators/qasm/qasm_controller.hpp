@@ -654,16 +654,26 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             const Method method,
                                             OutputData &data,
                                             RngEngine &rng) const {
-  // TODO: noise sampling for density matrix method
-  // Sample a new noise circuit and optimize for each shot
-  while(shots-- > 0) {
-    Circuit noise_circ = noise.sample_noise(circ, rng);
-    if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
-      Noise::NoiseModel dummy;
-      optimize_circuit(noise_circ, dummy, state, data);
+  if (method == Method::density_matrix) {
+    // Special case for density matrix simulation
+    // We insert noise directly into circuit as superoperators
+    Noise::NoiseModel noise_cpy = noise;
+    noise_cpy.activate_superop_method();
+    Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
+    // Run the without_noise routine on the circuit with noise superops
+    // already inserted
+    run_circuit_without_noise(noise_circ, shots, state, initial_state, method, data, rng);
+  } else {
+    // Sample a new noise circuit and optimize for each shot
+    while(shots-- > 0) {
+      Circuit noise_circ = noise.sample_noise(circ, rng);
+      if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
+        Noise::NoiseModel dummy;
+        optimize_circuit(noise_circ, dummy, state, data);
+      }
+      run_single_shot(noise_circ, state, initial_state, data, rng);
     }
-    run_single_shot(noise_circ, state, initial_state, data, rng);
-  }            
+  }                   
 }
 
 
