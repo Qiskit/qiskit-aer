@@ -268,13 +268,6 @@ def _device_depolarizing_error(qubits,
     num_qubits = len(qubits)
     dim = 2 ** num_qubits
 
-    # If the device reports an error_param greater than the maximum
-    # allowed for a depolarzing error model:
-    #   error_param <= dim / (dim + 1)
-    # we truncated the depolarizing error probability to the maximum value
-    if error_param is not None:
-        error_param = min(error_param, dim / (dim + 1))
-
     if not thermal_relaxation:
         # Model gate error entirely as depolarizing error
         if error_param is not None and error_param > 0:
@@ -305,6 +298,12 @@ def _device_depolarizing_error(qubits,
                              "1 and 2-qubit gates when using "
                              "thermal_relaxation=True.")
     if depol_param > 0:
+        # If the device reports an error_param greater than the maximum
+        # allowed for a depolarzing error model we will get a non-physical
+        # depolarizing parameter.
+        # In this case we truncate it to 1 so that the error channel is a
+        # completely depolarizing channel E(rho) = id / d
+        depol_param = min(depol_param, 1.0)
         error = depolarizing_error(
             depol_param, num_qubits, standard_gates=standard_gates)
     return error
