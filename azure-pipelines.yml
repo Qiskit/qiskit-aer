@@ -28,12 +28,12 @@ steps:
       conda install --yes --name qiskit-aer python=%PYTHON_VERSION% -c conda-forge openblas
     displayName: Install Anaconda Packages
   - script: |
-    call activate qiskit-aer
-    python -m pip install --disable-pip-version-check pip==18
-    pip install cython
-    pip install git+https://github.com/Qiskit/qiskit-terra.git
-    pip install --ignore-installed -r requirements-dev.txt
-    python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-    pip install --find-links=dist\ qiskit_aer
-    python -m unittest discover -s test/terra -v
-  displayName: 'Install dependencies and Run Tests'
+      call activate qiskit-aer
+      python -m pip install --disable-pip-version-check pip==18
+      pip install cython
+      pip install git+https://github.com/Qiskit/qiskit-terra.git
+      pip install --ignore-installed -r requirements-dev.txt
+      python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+      pip install --find-links=dist\ qiskit_aer
+      python -m unittest discover -s test/terra -v
+    displayName: 'Install dependencies and Run Tests'
