@@ -37,7 +37,6 @@ def _op_func_load(op_system):
     Args:
         op_system (OPSystem): An OpenPulse system object.
     """
-    global _cy_rhs_func
     code = compile('from ' + op_system.global_data['rhs_file_name'] +
                    ' import cy_td_ode_rhs', '<string>', 'exec')
     exec(code, globals())
