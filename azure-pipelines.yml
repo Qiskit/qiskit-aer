@@ -27,7 +27,7 @@ steps:
       call activate qiskit-aer
       conda install --yes --name qiskit-aer python=%PYTHON_VERSION% -c conda-forge openblas
     displayName: Install Anaconda Packages
-- script: |
+  - script: |
     call activate qiskit-aer
     python -m pip install --disable-pip-version-check pip==18
     pip install cython
