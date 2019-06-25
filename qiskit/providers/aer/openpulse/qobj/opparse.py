@@ -41,15 +41,15 @@ ham_elements = OrderedDict(
 class HamiltonianParser:
     """ Generate QuTip hamiltonian object from string
     """
-    def __init__(self, hamiltonian, dim_osc, dim_qub):
+    def __init__(self, h_str, dim_osc, dim_qub):
         """ Create new quantum operator generator
 
         Parameters:
-            hamiltonian (list): list of Hamiltonian string
-            dim_osc (list): dimension of oscillator subspace
-            dim_qub (list): dimension of qubit subspace
+            h_str (list): list of Hamiltonian string
+            dim_osc (dict): dimension of oscillator subspace
+            dim_qub (dict): dimension of qubit subspace
         """
-        self.hamiltonian = hamiltonian
+        self.h_str = h_str
         self.dim_osc = dim_osc
         self.dim_qub = dim_qub
         self.__td_hams = []
@@ -72,7 +72,7 @@ class HamiltonianParser:
         self._expand_sum()
 
         # convert to reverse Polish notation
-        for ham in self.hamiltonian:
+        for ham in self.h_str:
             if len(re.findall(r"\|\|", ham)) > 1:
                 raise Exception("Multiple time-dependent terms in %s" % ham)
             p_td = re.search(r"(?P<opr>[\S]+)\|\|(?P<ch>[\S]+)", ham)
@@ -102,7 +102,7 @@ class HamiltonianParser:
         sum_str = re.compile(r"_SUM\[(?P<itr>[a-z]),(?P<l>[a-z\d{}+-]+),(?P<u>[a-z\d{}+-]+),")
         brk_str = re.compile(r"]")
 
-        ham_list = copy.copy(self.hamiltonian)
+        ham_list = copy.copy(self.h_str)
         ham_out = []
 
         while any(ham_list):
@@ -144,7 +144,7 @@ class HamiltonianParser:
                                           trg_s, ham[p_brks[ii].end():]]))
                 ham_list.extend(_temp)
 
-        self.hamiltonian = ham_out
+        self.h_str = ham_out
 
         return ham_out
 
@@ -279,18 +279,21 @@ class HamiltonianParser:
 
 class NoiseParser:
     """ Generate QuTip noise object from dictionary
-    Qubit noise is given in the format of list of dictionary:
-
-        "qubit": [
-            {"Sm": 0.006}
-        ]
-
-    and oscillator noise is given in the nested list of (n_th, coupling):
-
-        "oscillator": [
-            [0.001, 0.05]
-        ]
-
+    Qubit noise is given in the format of nested dictionary:
+        "qubit": {
+            "0": {
+                "Sm": 0.006
+            }
+        }
+    and oscillator noise is given in the format of nested dictionary:
+        "oscillator": {
+            "n_th": {
+                "0": 0.001
+            },
+            "coupling": {
+                "0": 0.05
+            }
+        }
     these configurations are combined in the same dictionary
     """
     def __init__(self, noise_dict, dim_osc, dim_qub):
@@ -298,11 +301,11 @@ class NoiseParser:
 
         Parameters:
             noise_dict (dict): dictionary of noise configuration
-            dim_osc (list): dimension of oscillator subspace
-            dim_qub (list): dimension of qubit subspace
+            dim_osc (dict): dimension of oscillator subspace
+            dim_qub (dict): dimension of qubit subspace
         """
-        self.noise_osc = noise_dict.get('oscillator', [])
-        self.noise_qub = noise_dict.get('qubit', [])
+        self.noise_osc = noise_dict.get('oscillator', {'n_th': {}, 'coupling': {}})
+        self.noise_qub = noise_dict.get('qubit', {})
         self.dim_osc = dim_osc
         self.dim_qub = dim_qub
         self.__c_list = []
@@ -317,7 +320,7 @@ class NoiseParser:
         """ Parse and generate quantum class object
         """
         # Qubit noise
-        for index, config in enumerate(self.noise_qub):
+        for index, config in self.noise_qub.items():
             for opname, coef in config.items():
                 # TODO: support noise in multi-dimensional system
                 # TODO: support noise with math operation
@@ -327,16 +330,19 @@ class NoiseParser:
                     raise Exception('Unsupported noise operator %s is given' % opname)
                 self.__c_list.append(np.sqrt(coef) * opr)
         # Oscillator noise
-        ndic = [nconf[0] for nconf in self.noise_osc]
-        cdic = [nconf[1] for nconf in self.noise_osc]
-        for ii, (n_coef, c_coef) in enumerate(zip(ndic, cdic)):
-            if c_coef > 0:
-                opr = gen_oper('A', int(ii), self.dim_osc, self.dim_qub)
-                if n_coef:
-                    self.__c_list.append(np.sqrt(c_coef * (1 + n_coef)) * opr)
-                    self.__c_list.append(np.sqrt(c_coef * n_coef) * opr.dag())
-                else:
-                    self.__c_list.append(np.sqrt(c_coef) * opr)
+        ndic = self.noise_osc['n_th']
+        cdic = self.noise_osc['coupling']
+        for (n_ii, n_coef), (c_ii, c_coef) in zip(ndic.items(), cdic.items()):
+            if n_ii == c_ii:
+                if c_coef > 0:
+                    opr = gen_oper('A', int(n_ii), self.dim_osc, self.dim_qub)
+                    if n_coef:
+                        self.__c_list.append(np.sqrt(c_coef * (1 + n_coef)) * opr)
+                        self.__c_list.append(np.sqrt(c_coef * n_coef) * opr.dag())
+                    else:
+                        self.__c_list.append(np.sqrt(c_coef) * opr)
+            else:
+                raise Exception('Invalid oscillator index in noise dictionary.')
 
 
 def math_priority(o1, o2):
