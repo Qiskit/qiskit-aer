@@ -11,17 +11,3 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-
-import distutils.sysconfig
-import numpy as np
-from .qutip_lite import pyxbuilder as pbldr
-
-# Remove -Wstrict-prototypes from cflags
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
-# Setup pyximport
-pbldr.install(setup_args={'include_dirs': [np.get_include()]})
-del pbldr
