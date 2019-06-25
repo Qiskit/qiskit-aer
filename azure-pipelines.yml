@@ -25,6 +25,10 @@ steps:
     displayName: Create Anaconda environment
   - script: |
       call activate qiskit-aer
+      conda install --yes --quiet --name qiskit-aer python=%PYTHON_VERSION% numpy
+    displayName: Install Anaconda packages
+  - script: |
+      call activate qiskit-aer
       python -m pip install --disable-pip-version-check pip==18
       pip install cython
       pip install git+https://github.com/Qiskit/qiskit-terra.git
