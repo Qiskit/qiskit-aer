@@ -22,9 +22,6 @@
 #include "framework/types.hpp"
 #include "framework/rng.hpp"
 #include "framework/circuit.hpp"
-#include "noise/abstract_error.hpp"
-
-// For JSON parsing of specific error types
 #include "noise/quantum_error.hpp"
 #include "noise/readout_error.hpp"
 
