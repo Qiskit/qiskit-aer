@@ -24,8 +24,9 @@ steps:
   - script: conda create --yes --quiet --name qiskit-aer
     displayName: Create Anaconda environment
   - script: |
-    call activate qiskit-aer
-    conda install --yes --quiet --name qiskit-aer python=%PYTHON_VERSION% -c conda-forge openblas
+      call activate qiskit-aer
+      conda install --yes --name qiskit-aer python=%PYTHON_VERSION% -c conda-forge openblas
+    displayName: Install Anaconda Packages
 - script: |
     call activate qiskit-aer
     python -m pip install --disable-pip-version-check pip==18
