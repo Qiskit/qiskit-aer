@@ -377,6 +377,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
           case Operations::OpType::snapshot:
             apply_snapshot(op, data, rng);
             break;
+          case Operations::OpType::nop:
+            break;
           default:
             throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
                                          op.name + "\'.");
