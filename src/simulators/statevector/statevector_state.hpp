@@ -168,7 +168,7 @@ protected:
   virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
+  void apply_matrix(const Operations::Op &op);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
@@ -445,7 +445,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         apply_snapshot(op, data);
         break;
       case Operations::OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
+        apply_matrix(op);
         break;
       case Operations::OpType::multiplexer:
         apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
@@ -706,17 +706,17 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
 
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (qubits.empty() == false && mat.size() > 0) {
-    apply_matrix(qubits, Utils::vectorize_matrix(mat));
-  }
-}
-
-template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
   if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
     BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_matrix(const Operations::Op &op) {
+  if (op.qubits.empty() == false && op.mats[0].size() > 0) {
+    BaseState::qreg_.apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
   }
 }
 

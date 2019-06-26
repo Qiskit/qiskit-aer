@@ -241,6 +241,10 @@ public:
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
   void apply_matrix(const uint_t qubit, const cvector_t &mat);
 
+  // Apply a 2-qubits matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized 2-qubit matrix.
+  void apply_matrix(const uint_t qubit0, const uint_t qubit1, const cvector_t &mat);
+
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t &mat);
@@ -523,21 +527,6 @@ protected:
   complex_t apply_reduction_lambda(Lambda&& func,
                                    const list_t &qubits,
                                    const param_t &params) const;
-
-  // Permute an N-qubit vectorized matrix to match a reordering of qubits
-  cvector_t sort_matrix(const reg_t &src,
-                        const reg_t &sorted,
-                        const cvector_t &mat) const;
-
-  // Swap cols and rows of vectorized matrix
-  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
-                          cvector_t &mat, uint_t dim) const;
-
-  // Extend a matrix for qubits (src_qubits) to a matrix for more qubits (dst_sorted_qubits)
-  // qubits in dst_sorted_qubits must contains all the qubits in src_qubits
-  cvector_t expand_matrix(const reg_t& src_qubits,
-                          const reg_t& dst_sorted_qubits,
-                          const cvector_t& vmat) const;
 };
 
 /*******************************************************************************
@@ -1098,20 +1087,7 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
       apply_matrix(qubits[0], mat);
       return;
     case 2: {
-      // Lambda function for 2-qubit matrix multiplication
-      auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-        std::array<complex_t, 4> cache;
-        for (size_t i = 0; i < 4; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 4; i++)
-          for (size_t j = 0; j < 4; j++)
-            data_[inds[i]] += _mat[i + 4 * j] * cache[j];
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), mat);
+      apply_matrix(qubits[0], qubits[1], mat);
       return;
     }
     case 3: {
@@ -1733,150 +1709,102 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
   }
 }
 
-//------------------------------------------------------------------------------
-// Gate-swap optimized helper functions
-//------------------------------------------------------------------------------
 template <typename data_t>
-void QubitVector<data_t>::swap_cols_and_rows(const uint_t idx1,
-                                             const uint_t idx2,
-                                             cvector_t &mat,
-                                             uint_t dim) const {
+void QubitVector<data_t>::apply_matrix(const uint_t qubit0,
+                                       const uint_t qubit1,
+                                       const cvector_t& mat) {
 
-  uint_t mask1 = BITS[idx1];
-  uint_t mask2 = BITS[idx2];
-
-  for (uint_t first = 0; first < dim; ++first) {
-    if ((first & mask1) && !(first & mask2)) {
-      uint_t second = (first ^ mask1) | mask2;
-
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[first * dim + i];
-        mat[first * dim + i] = mat[second * dim +  i];
-        mat[second * dim +  i] = cache;
-      }
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[i * dim + first];
-        mat[i * dim + first] = mat[i * dim + second];
-        mat[i * dim + second] = cache;
-      }
-    }
-  }
-}
-
-template <typename data_t>
-cvector_t QubitVector<data_t>::sort_matrix(const reg_t& src,
-                                           const reg_t& sorted,
-                                           const cvector_t &mat) const {
-
-  const uint_t N = src.size();
-  const uint_t DIM = BITS[N];
-  auto ret = mat;
-  auto current = src;
-
-  while (current != sorted) {
-    uint_t from;
-    uint_t to;
-    for (from = 0; from < current.size(); ++from)
-      if (current[from] != sorted[from])
-        break;
-    if (from == current.size())
-      break;
-    for (to = from + 1; to < current.size(); ++to)
-      if (current[from] == sorted[to])
-        break;
-    if (to == current.size()) {
-      throw std::runtime_error("QubitVector<data_t>::sort_matrix we should not reach here");
-    }
-    swap_cols_and_rows(from, to, ret, DIM);
-    std::swap(current[from], current[to]);
-  }
-
-  return ret;
-}
-
-template <typename data_t>
-cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted_qubits, const cvector_t& vmat) const {
-
-  const auto dst_dim = BITS[dst_sorted_qubits.size()];
-  const auto dst_vmat_size = dst_dim * dst_dim;
-  const auto src_dim = BITS[src_qubits.size()];
-
-  // generate a matrix for op
-  cvector_t u(dst_vmat_size, .0);
-  std::vector<bool> filled(dst_dim, false);
-
-  if (src_qubits.size() == 1) { //1-qubit operation
-    // 1. identify delta
-    const auto index = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
-
-    const auto delta = BITS[index];
-
-    // 2. find vmat(0, 0) position in U
-    for (uint_t i = 0; i < dst_dim; ++i) {
-
-      if (filled[i])
-        continue;
-
-      //  3. allocate op.u to u based on u(i, i) and delta
-      u[i           + (i + 0)     * dst_dim] = vmat[0 + 0  * src_dim];
-      u[i           + (i + delta) * dst_dim] = vmat[0 + 1  * src_dim];
-      u[(i + delta) + (i + 0)     * dst_dim] = vmat[1 + 0  * src_dim];
-      u[(i + delta) + (i + delta) * dst_dim] = vmat[1 + 1  * src_dim];
-      filled[i] = filled[i + delta] = true;
-    }
-  } else if (src_qubits.size() == 2) { //2-qubit operation
-
-    reg_t sorted_src_qubits = src_qubits;
-    std::sort(sorted_src_qubits.begin(), sorted_src_qubits.end());
-    const cvector_t sorted_vmat = sort_matrix(src_qubits, sorted_src_qubits, vmat);
-
-    // 1. identify low and high delta
-    auto low = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[0]));
-
-    auto high = std::distance(dst_sorted_qubits.begin(),
-                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[1]));
-
-    auto low_delta = BITS[low];
-    auto high_delta = BITS[high];
-
-    // 2. find op.u(0, 0) position in U
-    for (uint_t i = 0; i < dst_dim; ++i) {
-      if (filled[i])
-        continue;
-
-      //  3. allocate vmat to u based on u(i, i) and delta
-      u[i                             + (i + 0)                      * dst_dim] = sorted_vmat[0 + 0 * src_dim];
-      u[i                             + (i + low_delta)              * dst_dim] = sorted_vmat[0 + 1 * src_dim];
-      u[i                             + (i + high_delta)             * dst_dim] = sorted_vmat[0 + 2 * src_dim];
-      u[i                             + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[0 + 3 * src_dim];
-      u[(i + low_delta)               + (i + 0)                      * dst_dim] = sorted_vmat[1 + 0 * src_dim];
-      u[(i + low_delta)               + (i + low_delta)              * dst_dim] = sorted_vmat[1 + 1 * src_dim];
-      u[(i + low_delta)               + (i + high_delta)             * dst_dim] = sorted_vmat[1 + 2 * src_dim];
-      u[(i + low_delta)               + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[1 + 3 * src_dim];
-      u[(i + high_delta)              + (i + 0)                      * dst_dim] = sorted_vmat[2 + 0 * src_dim];
-      u[(i + high_delta)              + (i + low_delta)              * dst_dim] = sorted_vmat[2 + 1 * src_dim];
-      u[(i + high_delta)              + (i + high_delta)             * dst_dim] = sorted_vmat[2 + 2 * src_dim];
-      u[(i + high_delta)              + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[2 + 3 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + 0)                      * dst_dim] = sorted_vmat[3 + 0 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + low_delta)              * dst_dim] = sorted_vmat[3 + 1 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + high_delta)             * dst_dim] = sorted_vmat[3 + 2 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[3 + 3 * src_dim];
-
-      filled[i] = true;
-      filled[i + low_delta] = true;
-      filled[i + high_delta] = true;
-      filled[i + low_delta + high_delta] = true;
-    }
-    //TODO: } else if (src_qubits.size() == 3) {
+  if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
+   && mat[1] == 0.0 && mat[5] == 0.0 && mat[9]  == 0.0
+   && mat[2] == 0.0 && mat[6] == 0.0                   && mat[14] == 0.0
+   && mat[3] == 0.0 && mat[7] == 1.0 && mat[11] == 0.0 && mat[15] == 0.0
+   ) {
+    // Lambda function for 2-qubit u1-cx matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 1; i < 4; i++)
+        cache[i] = data_[inds[i]];
+      data_[inds[1]] = _mat[13] * cache[3];
+      data_[inds[2]] = _mat[10] * cache[2];
+      data_[inds[3]] = cache[1];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
+  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
+          && mat[1] == 0.0                  && mat[9]  == 0.0 && mat[13] == 0.0
+          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 0.0
+          && mat[3] == 0.0 && mat[7] == 0.0 && mat[11] == 1.0 && mat[15] == 0.0
+  ) {
+    // Lambda function for 2-qubit u1-cx matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 1; i < 4; i++)
+        cache[i] = data_[inds[i]];
+      data_[inds[1]] = _mat[5] * cache[1];
+      data_[inds[2]] = _mat[14] * cache[3];
+      data_[inds[3]] = cache[2];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
+  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
+          && mat[1] == 0.0 && mat[5] == 0.0 && mat[9]  == 0.0
+          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 1.0 && mat[14] == 0.0
+          && mat[3] == 0.0                  && mat[11] == 0.0 && mat[15] == 0.0
+  ) {
+    // Lambda function for 2-qubit u1-cx matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 1; i < 4; i++)
+      cache[i] = data_[inds[i]];
+      data_[inds[1]] = _mat[13] * cache[3];
+      data_[inds[2]] = cache[2];
+      data_[inds[3]] = _mat[7] * cache[1];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
+  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
+          && mat[1] == 0.0 && mat[5] == 1.0 && mat[9]  == 0.0 && mat[13] == 0.0
+          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 0.0
+          && mat[3] == 0.0 && mat[7] == 0.0                   && mat[15] == 0.0
+  ) {
+    // Lambda function for 2-qubit u1-cx matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 1; i < 4; i++)
+      cache[i] = data_[inds[i]];
+      data_[inds[1]] = cache[1];
+      data_[inds[2]] = _mat[14] * cache[3];
+      data_[inds[3]] = _mat[11] * cache[2];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
+  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
+          && mat[1] == 0.0                  && mat[9]  == 0.0 && mat[13] == 0.0
+          && mat[2] == 0.0 && mat[6] == 0.0                   && mat[14] == 0.0
+          && mat[3] == 0.0 && mat[7] == 0.0 && mat[11] == 0.0
+  ) {
+    // Lambda function for 2-qubit u1-u1 matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 1; i < 4; i++)
+        cache[i] = data_[inds[i]];
+      data_[inds[1]] = _mat[5] * cache[1];
+      data_[inds[2]] = _mat[10] * cache[2];
+      data_[inds[3]] = _mat[15] * cache[3];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
   } else {
-    std::stringstream ss;
-    ss << "Fusion::illegal qubit number:" << src_qubits.size();
-    throw std::runtime_error(ss.str());
+    // Lambda function for 2-qubit matrix multiplication
+    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+      std::array<complex_t, 4> cache;
+      for (size_t i = 0; i < 4; i++) {
+        const auto ii = inds[i];
+        cache[i] = data_[ii];
+        data_[ii] = 0.;
+      }
+      data_[inds[0]] = _mat[0] * cache[0] + _mat[4] * cache[1] + _mat[8] * cache[2] + _mat[12] * cache[3];
+      data_[inds[1]] = _mat[1] * cache[0] + _mat[5] * cache[1] + _mat[9] * cache[2] + _mat[13] * cache[3];
+      data_[inds[2]] = _mat[2] * cache[0] + _mat[6] * cache[1] + _mat[10] * cache[2] + _mat[14] * cache[3];
+      data_[inds[3]] = _mat[3] * cache[0] + _mat[7] * cache[1] + _mat[11] * cache[2] + _mat[15] * cache[3];
+    };
+    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
   }
-
-  return u;
 }
 /*******************************************************************************
  *

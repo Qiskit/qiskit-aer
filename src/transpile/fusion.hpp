@@ -29,7 +29,7 @@ using reg_t = std::vector<uint_t>;
 
 class Fusion : public CircuitOptimization {
 public:
-  Fusion(uint_t max_qubit = 5, uint_t threshold = 16, double cost_factor = 2.5);
+  Fusion(uint_t max_qubit = 5, uint_t threshold = 16, double cost_factor = 1.8);
 
   void set_config(const json_t &config) override;
 
@@ -68,16 +68,16 @@ public:
 
   cmatrix_t matrix(const op_t& op) const;
 
-//#ifdef DEBUG
+#ifdef DEBUG
   void dump(const Circuit& circuit) const;
-//#endif
+#endif
 
   const static std::vector<std::string> supported_gates;
 
 private:
   uint_t max_qubit_;
   uint_t threshold_;
-  const double cost_factor_;
+  double cost_factor_;
   bool verbose_;
   bool active_;
 };
@@ -128,6 +128,8 @@ void Fusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_threshold", config_))
     JSON::get_value(threshold_, "fusion_threshold", config_);
 
+  if (JSON::check_key("fusion_cost_factor", config_))
+    JSON::get_value(cost_factor_, "fusion_cost_factor", config_);
 }
 
 
@@ -488,6 +490,10 @@ cmatrix_t Fusion::sort_matrix(const reg_t &src,
 double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
+//  reg_t fusion_qubits;
+//  for (uint_t i = from; i <= until; ++i)
+//    add_fusion_qubits(fusion_qubits, ops[i]);
+//  return pow(cost_factor_, (double) fusion_qubits.size());
   size_t num_ops = 0;
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i) {
