@@ -41,7 +41,11 @@ public:
 
   bool can_apply_fusion(const op_t& op) const;
 
-  oplist_t aggregate(const oplist_t& buffer) const;
+  double get_cost(const op_t& op) const;
+
+  bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
+
+  op_t generate_fusion_operation(const std::vector<op_t>& fusioned_ops) const;
 
   void swap_cols_and_rows(const uint_t idx1,
                           const uint_t idx2,
@@ -52,6 +56,10 @@ public:
                         const reg_t &sorted,
                         const cmatrix_t &mat) const;
 
+  cmatrix_t expand_matrix(const reg_t& src_qubits,
+                          const reg_t& dst_sorted_qubits,
+                          const cmatrix_t& mat) const;
+
   double estimate_cost(const oplist_t& ops,
                        const uint_t from,
                        const uint_t until) const;
@@ -60,9 +68,9 @@ public:
 
   cmatrix_t matrix(const op_t& op) const;
 
-#ifdef DEBUG
+//#ifdef DEBUG
   void dump(const Circuit& circuit) const;
-#endif
+//#endif
 
   const static std::vector<std::string> supported_gates;
 
@@ -149,56 +157,40 @@ void Fusion::optimize_circuit(Circuit& circ,
                               OutputData &data) const {
 
   if (circ.num_qubits < threshold_
-      || !active_
-      || allowed_opset.optypes.find(optype_t::matrix_sequence) == allowed_opset.optypes.end())
+      || !active_)
     return;
 
-  bool ret = false;
+  bool applied = false;
 
-  oplist_t optimized_ops;
-
-  optimized_ops.clear();
-  oplist_t buffer;
-
-  for (const op_t op: circ.ops) {
-    if (can_ignore(op))
+  uint_t fusion_start = 0;
+  for (uint_t op_idx = 0; op_idx < circ.ops.size(); ++op_idx) {
+    if (can_ignore(circ.ops[op_idx]))
       continue;
-    if (!can_apply_fusion(op)) {
-      if (!buffer.empty()) {
-        ret = true;
-        oplist_t optimized_buffer = aggregate(buffer);
-        optimized_ops.insert(optimized_ops.end(), optimized_buffer.begin(), optimized_buffer.end());
-        buffer.clear();
-      }
-      optimized_ops.push_back(op);
-    } else {
-      buffer.push_back(op);
+    if (!can_apply_fusion(circ.ops[op_idx])) {
+      if (fusion_start != op_idx)
+        if(aggregate_operations(circ.ops, fusion_start, op_idx))
+          applied = true;
+      fusion_start = op_idx + 1;
     }
   }
 
-  if (!buffer.empty()) {
-    oplist_t optimized_buffer = aggregate(buffer);
-    optimized_ops.insert(optimized_ops.end(), optimized_buffer.begin(), optimized_buffer.end());
-    ret = true;
-  }
+  if (fusion_start != circ.ops.size()
+      && aggregate_operations(circ.ops, fusion_start, circ.ops.size()))
+      applied = true;
 
-  if (ret) {
-    circ.ops = optimized_ops;
-    if (verbose_) {
-      data.add_additional_data("metadata",
-                               json_t::object({{"fusion_verbose", optimized_ops}}));
-    }
-  }
-
+  if (applied && verbose_)
+    data.add_additional_data("metadata",
+                             json_t::object({{"fusion_verbose", circ.ops}}));
 
 #ifdef DEBUG
-  dump(optimized_ops);
+  dump(circ.ops);
 #endif
 }
 
 bool Fusion::can_ignore(const op_t& op) const {
   switch (op.type) {
   case optype_t::barrier:
+  case optype_t::nop:
     return true;
   case optype_t::gate:
     return op.name == "id" || op.name == "u0";
@@ -228,83 +220,208 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
   }
 }
 
-oplist_t Fusion::aggregate(const oplist_t& original) const {
+double Fusion::get_cost(const op_t& op) const {
+  if (can_ignore(op))
+    return .0;
+  else
+    return cost_factor_;
+}
+
+bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
   std::vector<double> costs;
   // fusion_to[i]: best path to i-th in original.ops
   std::vector<int> fusion_to;
 
-  int applied_total = 0;
+  // set costs and fusion_to of fusion_start
+  fusion_to.push_back(fusion_start);
+  costs.push_back(get_cost(ops[fusion_start]));
+
+  bool applied = false;
   // calculate the minimal path to each operation in the circuit
-  for (size_t i = 0; i < original.size(); ++i) {
-    bool applied = false;
-
-    // first, fusion from i-th to i-th
+  for (int i = fusion_start + 1; i < fusion_end; ++i) {
+    // init with fusion from i-th to i-th
     fusion_to.push_back(i);
+    costs.push_back(costs[i - fusion_start - 1] + get_cost(ops[i]));
 
-    // calculate the initial cost from i-th to i-th
-    if (i == 0) {
-      // if this is the first op, no fusion
-      costs.push_back(cost_factor_);
-      continue;
-    }
-    // otherwise, i-th cost is calculated from (i-1)-th cost
-    costs.push_back(costs[i - 1] + cost_factor_);
-
-    for (uint_t num_fusion = 2; num_fusion <= max_qubit_; ++num_fusion) {
+    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_qubit_); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
       reg_t fusion_qubits;
-      add_fusion_qubits(fusion_qubits, original[i]);
+      add_fusion_qubits(fusion_qubits, ops[i]);
 
-      for (int j = i - 1; j >= 0; --j) {
-        add_fusion_qubits(fusion_qubits, original[j]);
+      for (int j = i - 1; j >= fusion_start; --j) {
+        add_fusion_qubits(fusion_qubits, ops[j]);
 
-        if (fusion_qubits.size() > num_fusion) // exceed the limit of fusion
+        if (static_cast<int> (fusion_qubits.size()) > num_fusion) // exceed the limit of fusion
           break;
 
         // calculate a new cost of (i-th) by adding
-        double estimated_cost = estimate_cost(original, (uint_t) j, i) // fusion gate from j-th to i-th, and
-            + (j == 0 ? 0.0 : costs[j - 1]); // cost of (j-1)-th
+        double estimated_cost = estimate_cost(ops, (uint_t) j, i) // fusion gate from j-th to i-th, and
+            + (j == 0 ? 0.0 : costs[j - 1 - fusion_start]); // cost of (j-1)-th
 
         // update cost
-        if (estimated_cost < costs[i]) {
-          costs[i] = estimated_cost;
-          fusion_to[i] = j;
+        if (estimated_cost <= costs[i - fusion_start]) {
+          costs[i - fusion_start] = estimated_cost;
+          fusion_to[i - fusion_start] = j;
           applied = true;
         }
       }
     }
-    if (applied)
-      ++applied_total;
   }
 
-  if (applied_total / static_cast<double> (original.size()) < 0.25)
-    return original;
+  if (!applied)
+    return false;
 
   // generate a new circuit with the minimal path to the last operation in the circuit
-  oplist_t optimized;
+  for (int i = fusion_end - 1; i >= fusion_start;) {
 
-  for (int i = original.size() - 1; i >= 0;) {
-    int to = fusion_to[i];
+    int to = fusion_to[i - fusion_start];
 
-    if (to == i) {
-      optimized.push_back(original[i]);
-    } else {
-      std::vector<reg_t> regs;
-      std::vector<cmatrix_t> mats;
+    if (to != i) {
+      std::vector<op_t> fusioned_ops;
       for (int j = to; j <= i; ++j) {
-        regs.push_back(original[j].qubits);
-        mats.push_back(matrix(original[j]));
+        if (ops[j].type == optype_t::nop)
+          continue;
+        fusioned_ops.push_back(ops[j]);
+        ops[j] = Operations::make_nop();
       }
-      optimized.push_back(Operations::make_matrix_sequence(regs, mats));
+      if (!fusioned_ops.empty())
+        ops[i] = generate_fusion_operation(fusioned_ops);
     }
     i = to - 1;
   }
 
-  std::reverse(optimized.begin(), optimized.end());
+  return true;
+}
 
-  return optimized;
+op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops) const {
+
+  std::vector<reg_t> regs;
+  std::vector<cmatrix_t> mats;
+
+  for (const op_t& fusioned_op: fusioned_ops) {
+    regs.push_back(fusioned_op.qubits);
+    mats.push_back(matrix(fusioned_op));
+  }
+
+  reg_t sorted_qubits;
+  for (const reg_t& reg: regs)
+    for (const uint_t qubit: reg)
+      if (std::find(sorted_qubits.begin(), sorted_qubits.end(), qubit) == sorted_qubits.end())
+        sorted_qubits.push_back(qubit);
+
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
+
+  std::vector<cmatrix_t> sorted_mats;
+
+  for (size_t i = 0; i < regs.size(); ++i) {
+    const reg_t& reg = regs[i];
+    const cmatrix_t& mat = mats[i];
+    sorted_mats.push_back(expand_matrix(reg, sorted_qubits, mat));
+  }
+
+  auto U = sorted_mats[0];
+  const auto dim = 1ULL << sorted_qubits.size();
+
+  for (size_t m = 1; m < sorted_mats.size(); m++) {
+
+    cmatrix_t u_tmp(U.GetRows(), U.GetColumns());
+    Utils::initialize_matrix(u_tmp, complex_t(.0));
+    const cmatrix_t& u = sorted_mats[m];
+
+    for (size_t i = 0; i < dim; ++i)
+      for (size_t j = 0; j < dim; ++j)
+        for (size_t k = 0; k < dim; ++k)
+          u_tmp(i, j) += u(i, k) * U(k, j);
+
+    U = u_tmp;
+  }
+
+  return Operations::make_fusion(sorted_qubits, U, fusioned_ops);
+}
+
+cmatrix_t Fusion::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted_qubits, const cmatrix_t& mat) const {
+
+  const auto dst_dim = 1ULL << dst_sorted_qubits.size();
+
+  // generate a matrix for op
+  cmatrix_t u(dst_dim, dst_dim);
+  Utils::initialize_matrix(u, complex_t(.0));
+  std::vector<bool> filled(dst_dim, false);
+
+  if (src_qubits.size() == 1) { //1-qubit operation
+    // 1. identify delta
+    const auto index = std::distance(dst_sorted_qubits.begin(),
+                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
+
+    const auto delta = 1ULL << index;
+
+    // 2. find vmat(0, 0) position in U
+    for (uint_t i = 0; i < dst_dim; ++i) {
+
+      if (filled[i])
+        continue;
+
+      //  3. allocate op.u to u based on u(i, i) and delta
+      u(i          , (i + 0)    ) = mat(0, 0);
+      u(i          , (i + delta)) = mat(0, 1);
+      u((i + delta), (i + 0)    ) = mat(1, 0);
+      u((i + delta), (i + delta)) = mat(1, 1);
+      filled[i] = filled[i + delta] = true;
+    }
+  } else if (src_qubits.size() == 2) { //2-qubit operation
+
+    reg_t sorted_src_qubits = src_qubits;
+    std::sort(sorted_src_qubits.begin(), sorted_src_qubits.end());
+    const cmatrix_t sorted_mat = sort_matrix(src_qubits, sorted_src_qubits, mat);
+
+    // 1. identify low and high delta
+    auto low = std::distance(dst_sorted_qubits.begin(),
+                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[0]));
+
+    auto high = std::distance(dst_sorted_qubits.begin(),
+                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), sorted_src_qubits[1]));
+
+    auto low_delta = 1UL << low;
+    auto high_delta = 1UL << high;
+
+    // 2. find op.u(0, 0) position in U
+    for (uint_t i = 0; i < dst_dim; ++i) {
+      if (filled[i])
+        continue;
+
+      //  3. allocate vmat to u based on u(i, i) and delta
+      u(i                           , (i + 0)                     ) = sorted_mat(0, 0);
+      u(i                           , (i + low_delta)             ) = sorted_mat(0, 1);
+      u(i                           , (i + high_delta)            ) = sorted_mat(0, 2);
+      u(i                           , (i + low_delta + high_delta)) = sorted_mat(0, 3);
+      u((i + low_delta)             , (i + 0)                     ) = sorted_mat(1, 0);
+      u((i + low_delta)             , (i + low_delta)             ) = sorted_mat(1, 1);
+      u((i + low_delta)             , (i + high_delta)            ) = sorted_mat(1, 2);
+      u((i + low_delta)             , (i + low_delta + high_delta)) = sorted_mat(1, 3);
+      u((i + high_delta)            , (i + 0)                     ) = sorted_mat(2, 0);
+      u((i + high_delta)            , (i + low_delta)             ) = sorted_mat(2, 1);
+      u((i + high_delta)            , (i + high_delta)            ) = sorted_mat(2, 2);
+      u((i + high_delta)            , (i + low_delta + high_delta)) = sorted_mat(2, 3);
+      u((i + low_delta + high_delta), (i + 0)                     ) = sorted_mat(3, 0);
+      u((i + low_delta + high_delta), (i + low_delta)             ) = sorted_mat(3, 1);
+      u((i + low_delta + high_delta), (i + high_delta)            ) = sorted_mat(3, 2);
+      u((i + low_delta + high_delta), (i + low_delta + high_delta)) = sorted_mat(3, 3);
+
+      filled[i] = true;
+      filled[i + low_delta] = true;
+      filled[i + high_delta] = true;
+      filled[i + low_delta + high_delta] = true;
+    }
+    //TODO: } else if (src_qubits.size() == 3) {
+  } else {
+    std::stringstream ss;
+    ss << "Fusion::illegal qubit number:" << src_qubits.size();
+    throw std::runtime_error(ss.str());
+  }
+
+  return u;
 }
 
 //------------------------------------------------------------------------------
@@ -371,10 +488,18 @@ cmatrix_t Fusion::sort_matrix(const reg_t &src,
 double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
+  size_t num_ops = 0;
   reg_t fusion_qubits;
-  for (uint_t i = from; i <= until; ++i)
-    add_fusion_qubits(fusion_qubits, ops[i]);
-  return pow(cost_factor_, (double) fusion_qubits.size());
+  for (uint_t i = from; i <= until; ++i) {
+    if (!can_ignore(ops[i])) {
+      ++num_ops;
+      add_fusion_qubits(fusion_qubits, ops[i]);
+    }
+  }
+  if (num_ops == 2)
+    return cost_factor_;
+  else
+    return pow(cost_factor_, (double) fusion_qubits.size());
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
@@ -432,7 +557,9 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
   } else if (op.type == optype_t::matrix) {
     return op.mats[0];
   } else {
-    throw std::runtime_error("Fusion: unexpected operation type");
+    std::stringstream msg;
+    msg << "Fusion: unexpected operation type:" << op.type;
+    throw std::runtime_error(msg.str());
   }
 }
 

@@ -74,7 +74,6 @@ public:
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
       Operations::OpType::matrix,
-      Operations::OpType::matrix_sequence,
       Operations::OpType::multiplexer,
       Operations::OpType::kraus
     });
@@ -180,9 +179,6 @@ protected:
   // Apply stacked (flat) version of multiplexer matrix to target qubits (using control qubits to select matrix instance)
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat);
 
-
-  // Apply multiple gate operations
-  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats);
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits,
@@ -419,10 +415,12 @@ template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  OutputData &data,
                                  RngEngine &rng) {
+
   // Simple loop over vector of input operations
   for (const auto & op: ops) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::nop:
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
@@ -449,9 +447,6 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
         break;
-      case Operations::OpType::matrix_sequence:
-        apply_matrix_sequence(op.regs, op.mats);
-	break;
       case Operations::OpType::multiplexer:
         apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
         break;
@@ -733,21 +728,6 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
   } else {
     BaseState::qreg_.apply_matrix(qubits, vmat);
   }
-}
-
-
-
-template <class statevec_t>
-void State<statevec_t>::apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats) {
-
-  if (regs.empty())
-    return;
-
-  std::vector<cvector_t> vmats;
-  for (const cmatrix_t& mat: mats)
-    vmats.push_back(Utils::vectorize_matrix(mat));
-
-  BaseState::qreg_.apply_matrix_sequence(regs, vmats);
 }
 
 

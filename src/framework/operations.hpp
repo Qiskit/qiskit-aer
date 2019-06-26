@@ -36,7 +36,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
+  matrix, multiplexer, kraus, roerror, noise_switch, initialize, nop
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -62,9 +62,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::matrix:
     stream << "matrix";
     break;
-  case OpType::matrix_sequence:
-    stream << "matrix_sequence";
-    break;
   case OpType::multiplexer:
     stream << "multiplexer";
     break;
@@ -79,6 +76,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::initialize:
     stream << "initialize";
+    break;
+  case OpType::nop:
+    stream << "nop";
     break;
   default:
     stream << "unknown";
@@ -117,6 +117,13 @@ struct Op {
   // Mat and Kraus
   std::vector<cmatrix_t> mats;
 
+  // Fusion
+  std::vector<OpType> fusioned_types;
+  std::vector<std::string> fusioned_names;
+  std::vector<reg_t> fusioned_qubits;
+  std::vector<std::vector<complex_t>> fusioned_params;
+  std::vector<std::vector<cmatrix_t>> fusioned_mats;
+
   // Readout error
   std::vector<rvector_t> probs;
 
@@ -136,6 +143,20 @@ inline std::ostream& operator<<(std::ostream& s, const Op& op) {
   for (size_t qubit: op.qubits) {
     if (!first) s << ",";
     s << qubit;
+    first = false;
+  }
+  s << "],[";
+  first = true;
+  for (reg_t reg: op.regs) {
+    if (!first) s << ",";
+    s << "[";
+    bool first0 = true;
+    for (size_t qubit: reg) {
+      if (!first0) s << ",";
+      s << qubit;
+      first0 = false;
+    }
+    s << "]";
     first = false;
   }
   s << "]";
@@ -390,14 +411,23 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string la
   return op;
 }
 
-inline Op make_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t> &mats, std::string label = "") {
+inline Op make_fusion(const reg_t &qubits, const cmatrix_t &mat, const std::vector<Op>& fusioned_ops, std::string label = "") {
   Op op;
-  op.type = OpType::matrix_sequence;
-  op.name = "matrix_sequence";
-  op.regs = regs;
-  op.mats = mats;
+  op.type = OpType::matrix;
+  op.name = "fusion";
+  op.qubits = qubits;
+  op.mats = {mat};
   if (label != "")
     op.string_params = {label};
+
+  for (const Op& fusioned_op: fusioned_ops) {
+    op.fusioned_types.push_back(fusioned_op.type);
+    op.fusioned_names.push_back(fusioned_op.name);
+    op.fusioned_qubits.push_back(fusioned_op.qubits);
+    op.fusioned_params.push_back(fusioned_op.params);
+    op.fusioned_mats.push_back(fusioned_op.mats);
+  }
+
   return op;
 }
 
@@ -507,6 +537,13 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
   op.name = "roerror";
   op.memory = memory;
   op.probs = probs;
+  return op;
+}
+
+inline Op make_nop() {
+  Op op;
+  op.type = OpType::nop;
+  op.name = "nop";
   return op;
 }
 
