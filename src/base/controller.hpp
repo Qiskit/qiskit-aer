@@ -98,20 +98,14 @@ namespace Base {
  *      be used across all levels of parallelization. Set to 0 for maximum
  *      available. [Default : 0]
  * - "max_parallel_experiments" (int): Set number of circuits that may be
- *      executed in parallel. Set to 0 to use the number of max parallel
- *      threads [Default: 1]
+ *      executed in parallel. Set to 0 to automatically select a number of
+ *      parallel threads. [Default: 0]
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
- *      in parallel for each circuit. Set to 0 to use the number of max
- *      parallel threads [Default: 1].
+ *      in parallel for each circuit. Set to 0 to automatically select a
+ *      number of parallel threads. [Default: 0].
  * - "max_memory_mb" (int): Sets the maximum size of memory for a store.
  *      If a state needs more, an error is thrown. If set to 0, the maximum
  *      will be automatically set to the system memory size [Default: 0].
- * - "parallel_experiments" (int): Explicitly set number of circuits that
- *      are executed in parallel [Default: -1].
- * - "parallel_shots" (int): Explicitly set number of shots that are executed
- *      in parallel for each circuit [Default: -1].
- * - "parallel_state_update" (int): Explicitly set number of threads that
- *      update states in a simulator in a circuit [Default: -1].
  *
  * Config settings from Data class:
  *
@@ -248,7 +242,7 @@ protected:
   size_t max_memory_mb_;
 
   // use explicit parallelization
-  bool explicit_parallelization;
+  bool explicit_parallelization_;
 
   // Parameters for parallelization management for experiments
   int parallel_experiments_;
@@ -275,15 +269,14 @@ void Controller::set_config(const json_t &config) {
     noise_model_ = Noise::NoiseModel(config["noise_model"]);
 
   // Load OpenMP maximum thread settings
-  JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
-  JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
-  JSON::get_value(max_parallel_experiments_, "max_parallel_experiments", config);
+  if (JSON::check_key("max_parallel_threads", config))
+    JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
 
-  // Prevent using both parallel circuits and parallel shots
-  // with preference given to parallel circuit execution
-  if (max_parallel_experiments_ > 1)
-    max_parallel_shots_ = 1;
-
+  // Load configurations for parallelization
+  if (JSON::check_key("max_parallel_experiments", config))
+    JSON::get_value(max_parallel_experiments_, "max_parallel_experiments", config);
+  if (JSON::check_key("max_parallel_shots", config))
+    JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   } else {
@@ -294,22 +287,25 @@ void Controller::set_config(const json_t &config) {
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
     opt->set_config(config_);
 
-  if (JSON::check_key("parallel_experiments", config)) {
-    JSON::get_value(parallel_experiments_, "parallel_experiments", config);
-    explicit_parallelization = true;
+  // for debugging
+  if (JSON::check_key("_parallel_experiments", config)) {
+    JSON::get_value(parallel_experiments_, "_parallel_experiments", config);
+    explicit_parallelization_ = true;
   }
 
-  if (JSON::check_key("parallel_shots", config)) {
-    JSON::get_value(parallel_shots_, "parallel_shots", config);
-    explicit_parallelization = true;
+  // for debugging
+  if (JSON::check_key("_parallel_shots", config)) {
+    JSON::get_value(parallel_shots_, "_parallel_shots", config);
+    explicit_parallelization_ = true;
   }
 
-  if (JSON::check_key("parallel_state_update", config)) {
-    JSON::get_value(parallel_state_update_, "parallel_state_update", config);
-    explicit_parallelization = true;
+  // for debugging
+  if (JSON::check_key("_parallel_state_update", config)) {
+    JSON::get_value(parallel_state_update_, "_parallel_state_update", config);
+    explicit_parallelization_ = true;
   }
 
-  if (explicit_parallelization) {
+  if (explicit_parallelization_) {
     parallel_experiments_ = std::max<int>( { parallel_experiments_, 1 });
     parallel_shots_ = std::max<int>( { parallel_shots_, 1 });
     parallel_state_update_ = std::max<int>( { parallel_state_update_, 1 });
@@ -330,14 +326,14 @@ void Controller::clear_config() {
 
 void Controller::clear_parallelization() {
   max_parallel_threads_ = 0;
-  max_parallel_experiments_ = 1;
-  max_parallel_shots_ = 1;
+  max_parallel_experiments_ = 0;
+  max_parallel_shots_ = 0;
 
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
   parallel_state_update_ = 1;
 
-  explicit_parallelization = false;
+  explicit_parallelization_ = false;
 }
 
 void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits) {
@@ -367,6 +363,7 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
                                              max_parallel_experiments_,
                                              max_parallel_threads_,
                                              static_cast<int>(circuits.size()) });
+    max_parallel_shots_ = 1;
   }
 }
 
@@ -380,22 +377,26 @@ void Controller::set_parallelization_circuit(const Circuit& circ) {
   if (max_memory_mb_ < circ_memory_mb)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
 
-  if (circ_memory_mb == 0)
+  if (circ_memory_mb == 0) {
     parallel_shots_ = max_parallel_threads_;
-  else
+    parallel_state_update_ = 1;
+  } else if (max_parallel_shots_ > 0) {
     parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
                                        max_parallel_shots_,
                                        static_cast<int>(circ.shots) });
-
-  if (max_parallel_shots_ < 1) { // no nested parallelization if max_parallel_shots is not configured
+    parallel_state_update_ = max_parallel_threads_ / parallel_shots_;
+  } else {
+    // try to use all the threads for shot-level parallelization
+    // no nested parallelization if max_parallel_shots is not configured
+    parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
+                                       max_parallel_threads_,
+                                       static_cast<int>(circ.shots) });
     if (parallel_shots_ == max_parallel_threads_) {
       parallel_state_update_ = 1;
     } else {
       parallel_shots_ = 1;
       parallel_state_update_ = max_parallel_threads_;
     }
-  } else {
-    parallel_state_update_ = max_parallel_threads_ / parallel_shots_;
   }
 }
 
@@ -540,7 +541,7 @@ json_t Controller::execute(const json_t &qobj_js) {
       max_parallel_threads_ = 1;
     #endif
 
-    if (!explicit_parallelization) {
+    if (!explicit_parallelization_) {
       // set parallelization for experiments
       set_parallelization_experiments(qobj.circuits);
     }
@@ -610,7 +611,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
   // for individual circuit failures.
   try {
     // set parallelization for this circuit
-    if (!explicit_parallelization && parallel_experiments_ == 1) {
+    if (!explicit_parallelization_ && parallel_experiments_ == 1) {
       set_parallelization_circuit(circ);
     }
     // Single shot thread execution
