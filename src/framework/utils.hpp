@@ -78,6 +78,129 @@ public:
     return (label_map_.find(name) != label_map_.end());
   }
 
+private:
+  // Lookup table that returns a pointer to the static data member
+  const static stringmap_t<const cmatrix_t*> label_map_;
+};
+
+//------------------------------------------------------------------------------
+// Static Vectorized Matrices
+//------------------------------------------------------------------------------
+class VMatrix {
+public:
+  // Single-qubit gates
+  const static cvector_t I;     // name: "id"
+  const static cvector_t X;     // name: "x"
+  const static cvector_t Y;     // name: "y"
+  const static cvector_t Z;     // name: "z"
+  const static cvector_t H;     // name: "h"
+  const static cvector_t S;     // name: "s"
+  const static cvector_t SDG;   // name: "sdg"
+  const static cvector_t T;     // name: "t"
+  const static cvector_t TDG;   // name: "tdg"
+  const static cvector_t X90;   // name: "x90"
+
+  // Two-qubit gates
+  const static cvector_t CX;    // name: "cx"
+  const static cvector_t CZ;    // name: "cz"
+  const static cvector_t SWAP;  // name: "swap"
+  const static cvector_t CR;    // TODO
+  const static cvector_t CR90;  // TODO
+
+  // Identity Matrix
+  static cvector_t identity(size_t dim);
+
+  // Single-qubit waltz gates
+  static cvector_t u1(double lam);
+  static cvector_t u2(double phi, double lam);
+  static cvector_t u3(double theta, double phi, double lam);
+
+  // Complex arguments are implemented by taking std::real
+  // of the input
+  static cvector_t u1(complex_t lam) {return u1(std::real(lam));}
+  static cvector_t u2(complex_t phi, complex_t lam) {
+    return u2(std::real(phi), std::real(lam));
+  }
+  static cvector_t u3(complex_t theta, complex_t phi, complex_t lam) {
+    return u3(std::real(theta), std::real(phi), std::real(lam));
+  };
+
+  // Return the matrix for a named matrix string
+  // Allowed names correspond to all the const static single-qubit
+  // and two-qubit gate members
+  static const cvector_t from_name(const std::string &name) {
+    return *label_map_.at(name);
+  }
+
+  // Check if the input name string is allowed
+  static bool allowed_name(const std::string &name) {
+    return (label_map_.find(name) != label_map_.end());
+  }
+
+
+private:
+  // Lookup table that returns a pointer to the static data member
+  const static stringmap_t<const cvector_t*> label_map_;
+};
+
+
+//------------------------------------------------------------------------------
+// Static Superoperator Matrices
+//------------------------------------------------------------------------------
+
+class SMatrix {
+public:
+  // Single-qubit gates
+  const static cmatrix_t I;     // name: "id"
+  const static cmatrix_t X;     // name: "x"
+  const static cmatrix_t Y;     // name: "y"
+  const static cmatrix_t Z;     // name: "z"
+  const static cmatrix_t H;     // name: "h"
+  const static cmatrix_t S;     // name: "s"
+  const static cmatrix_t SDG;   // name: "sdg"
+  const static cmatrix_t T;     // name: "t"
+  const static cmatrix_t TDG;   // name: "tdg"
+  const static cmatrix_t X90;   // name: "x90"
+
+  // Two-qubit gates
+  const static cmatrix_t CX;    // name: "cx"
+  const static cmatrix_t CZ;    // name: "cz"
+  const static cmatrix_t SWAP;  // name: "swap"
+
+  // Identity Matrix
+  static cmatrix_t identity(size_t dim);
+
+  // Single-qubit waltz gates
+  static cmatrix_t u1(double lam);
+  static cmatrix_t u2(double phi, double lam);
+  static cmatrix_t u3(double theta, double phi, double lam);
+
+  // Complex arguments are implemented by taking std::real
+  // of the input
+  static cmatrix_t u1(complex_t lam) {return u1(std::real(lam));}
+  static cmatrix_t u2(complex_t phi, complex_t lam) {
+    return u2(std::real(phi), std::real(lam));
+  }
+  static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
+    return u3(std::real(theta), std::real(phi), std::real(lam));
+  };
+
+  // Return superoperator matrix for reset instruction
+  // on specified dim statespace.
+  // The returned matrix is (dim * dim, dim * dim).
+  static cmatrix_t reset(size_t dim);
+
+  // Return the matrix for a named matrix string
+  // Allowed names correspond to all the const static single-qubit
+  // and two-qubit gate members
+  static const cmatrix_t from_name(const std::string &name) {
+    return *label_map_.at(name);
+  }
+
+  // Check if the input name string is allowed
+  static bool allowed_name(const std::string &name) {
+    return (label_map_.find(name) != label_map_.end());
+  }
 
 private:
   // Lookup table that returns a pointer to the static data member
@@ -131,6 +254,7 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
+template <class T> matrix<T> unitary_superop(const matrix<T> &mat);
 
 // concatenate
 // Returns a matrix that is the concatenation of two matrices A, B
@@ -152,7 +276,6 @@ template <class T> matrix<T> elementwise_multiplication(const matrix<T> &A, cons
 template <class T> T sum(const matrix<T> &A);
 
 // Matrix comparison
-
 template <class T>
 bool is_square(const matrix<T> &mat);
 
@@ -392,65 +515,6 @@ cmatrix_t Matrix::u3(double theta, double phi, double lambda) {
   return mat;
 }
 
-//------------------------------------------------------------------------------
-// Static Vectorized Matrices
-//------------------------------------------------------------------------------
-class VMatrix {
-public:
-  // Single-qubit gates
-  const static cvector_t I;     // name: "id"
-  const static cvector_t X;     // name: "x"
-  const static cvector_t Y;     // name: "y"
-  const static cvector_t Z;     // name: "z"
-  const static cvector_t H;     // name: "h"
-  const static cvector_t S;     // name: "s"
-  const static cvector_t SDG;   // name: "sdg"
-  const static cvector_t T;     // name: "t"
-  const static cvector_t TDG;   // name: "tdg"
-  const static cvector_t X90;   // name: "x90"
-
-  // Two-qubit gates
-  const static cvector_t CX;    // name: "cx"
-  const static cvector_t CZ;    // name: "cz"
-  const static cvector_t SWAP;  // name: "swap"
-  const static cvector_t CR;    // TODO
-  const static cvector_t CR90;  // TODO
-
-  // Identity Matrix
-  static cvector_t identity(size_t dim);
-
-  // Single-qubit waltz gates
-  static cvector_t u1(double lam);
-  static cvector_t u2(double phi, double lam);
-  static cvector_t u3(double theta, double phi, double lam);
-
-  // Complex arguments are implemented by taking std::real
-  // of the input
-  static cvector_t u1(complex_t lam) {return u1(std::real(lam));}
-  static cvector_t u2(complex_t phi, complex_t lam) {
-    return u2(std::real(phi), std::real(lam));
-  }
-  static cvector_t u3(complex_t theta, complex_t phi, complex_t lam) {
-    return u3(std::real(theta), std::real(phi), std::real(lam));
-  };
-
-  // Return the matrix for a named matrix string
-  // Allowed names correspond to all the const static single-qubit
-  // and two-qubit gate members
-  static const cvector_t from_name(const std::string &name) {
-    return *label_map_.at(name);
-  }
-
-  // Check if the input name string is allowed
-  static bool allowed_name(const std::string &name) {
-    return (label_map_.find(name) != label_map_.end());
-  }
-
-
-private:
-  // Lookup table that returns a pointer to the static data member
-  const static stringmap_t<const cvector_t*> label_map_;
-};
 
 //==============================================================================
 // Implementations: Static Matrices
@@ -529,6 +593,81 @@ cvector_t VMatrix::u3(double theta, double phi, double lambda) {
   mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(theta / 2.);
   return mat;
 }
+
+//==============================================================================
+// Implementations: Static Matrices
+//==============================================================================
+
+const cmatrix_t SMatrix::I = unitary_superop(Matrix::I);
+
+const cmatrix_t SMatrix::X = unitary_superop(Matrix::X);
+
+const cmatrix_t SMatrix::Y = unitary_superop(Matrix::Y);
+
+const cmatrix_t SMatrix::Z = unitary_superop(Matrix::Z);
+
+const cmatrix_t SMatrix::S = unitary_superop(Matrix::S);
+
+const cmatrix_t SMatrix::SDG = unitary_superop(Matrix::SDG);
+
+const cmatrix_t SMatrix::T = unitary_superop(Matrix::T);
+
+const cmatrix_t SMatrix::TDG = unitary_superop(Matrix::TDG);
+
+const cmatrix_t SMatrix::H = unitary_superop(Matrix::H);
+
+const cmatrix_t SMatrix::X90 = unitary_superop(Matrix::X90);
+
+const cmatrix_t SMatrix::CX = unitary_superop(Matrix::CX);
+
+const cmatrix_t SMatrix::CZ = unitary_superop(Matrix::CZ);
+
+const cmatrix_t SMatrix::SWAP = unitary_superop(Matrix::SWAP);
+
+// Lookup table
+const stringmap_t<const cmatrix_t*> SMatrix::label_map_ = {
+  {"id", &SMatrix::I}, {"x", &SMatrix::X}, {"y", &SMatrix::Y}, {"z", &SMatrix::Z},
+  {"h", &SMatrix::H}, {"s", &SMatrix::S}, {"sdg", &SMatrix::SDG},
+  {"t", &SMatrix::T}, {"tdg", &SMatrix::TDG}, {"x90", &SMatrix::X90},
+  {"cx", &SMatrix::CX}, {"cz", &SMatrix::CZ}, {"swap", &SMatrix::SWAP}
+};
+
+cmatrix_t SMatrix::identity(size_t dim) {
+  return Matrix::identity(dim * dim);
+}
+
+
+cmatrix_t SMatrix::u1(double lambda) {
+  cmatrix_t mat(4, 4);
+  mat(0, 0) = {1., 0.};
+  mat(1, 1) = std::exp(complex_t(0., lambda));
+  mat(2, 2) = std::exp(complex_t(0., -lambda));
+  mat(3, 3) = {1., 0.};
+  return mat;
+}
+
+
+cmatrix_t SMatrix::u2(double phi, double lambda) {
+  return tensor_product(Matrix::u2(-phi, -lambda),
+                        Matrix::u2(phi, lambda));
+}
+
+
+cmatrix_t SMatrix::u3(double theta, double phi, double lambda) {
+  return tensor_product(Matrix::u3(theta, -phi, -lambda),
+                        Matrix::u3(theta, phi, lambda));
+}
+
+
+cmatrix_t SMatrix::reset(size_t dim) {
+  cmatrix_t mat(dim * dim, dim * dim);
+  for (size_t j=0; j < dim; j++) {
+    mat(0, j * (dim + 1)) = 1.;
+  }
+  return mat;
+}
+
+
 //==============================================================================
 // Implementations: Matrix functions
 //==============================================================================
@@ -793,6 +932,10 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
     }
   }
   return temp;
+}
+
+template <class T> matrix<T> unitary_superop(const matrix<T> &mat) {
+  return tensor_product(conjugate(mat), mat);
 }
 
 template <class T>
