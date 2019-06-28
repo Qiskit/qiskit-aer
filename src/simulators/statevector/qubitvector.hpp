@@ -1074,7 +1074,7 @@ complex_t QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t &mat) {
-  
+
   const size_t N = qubits.size();
   // Error checking
   #ifdef DEBUG

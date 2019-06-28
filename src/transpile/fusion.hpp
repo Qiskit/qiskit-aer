@@ -60,6 +60,10 @@ public:
                           const reg_t& dst_sorted_qubits,
                           const cmatrix_t& mat) const;
 
+  bool only_u1(const oplist_t& ops,
+               const uint_t from,
+               const uint_t until) const;
+
   double estimate_cost(const oplist_t& ops,
                        const uint_t from,
                        const uint_t until) const;
@@ -487,25 +491,53 @@ cmatrix_t Fusion::sort_matrix(const reg_t &src,
   return ret;
 }
 
+bool Fusion::only_u1(const std::vector<op_t>& ops,
+                     const uint_t from,
+                     const uint_t until) const {
+
+  for (uint_t i = from; i <= until; ++i) {
+    if (ops[i].name == "u1")
+      continue;
+    if ((i - 1) >= from && (i + 2) <= until
+        && ops[i - 1].name == "u1"
+        && ops[i    ].name == "cx"
+        && ops[i + 1].name == "u1"
+        && ops[i + 2].name == "cx"
+        && ops[i - 1].qubits[0] == ops[i    ].qubits[1]
+        && ops[i    ].qubits[1] == ops[i + 1].qubits[0]
+        && ops[i + 1].qubits[0] == ops[i + 2].qubits[1]
+        && ops[i    ].qubits[0] == ops[i + 2].qubits[0] )
+    {
+      i += 2;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
-//  reg_t fusion_qubits;
-//  for (uint_t i = from; i <= until; ++i)
-//    add_fusion_qubits(fusion_qubits, ops[i]);
-//  return pow(cost_factor_, (double) fusion_qubits.size());
-  size_t num_ops = 0;
-  reg_t fusion_qubits;
-  for (uint_t i = from; i <= until; ++i) {
-    if (!can_ignore(ops[i])) {
-      ++num_ops;
-      add_fusion_qubits(fusion_qubits, ops[i]);
-    }
-  }
-  if (num_ops == 2)
+  if (only_u1(ops, from, until))
     return cost_factor_;
-  else
-    return pow(cost_factor_, (double) fusion_qubits.size());
+
+  reg_t fusion_qubits;
+  for (uint_t i = from; i <= until; ++i)
+    add_fusion_qubits(fusion_qubits, ops[i]);
+  return pow(cost_factor_, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+//  size_t num_ops = 0;
+//  reg_t fusion_qubits;
+//  for (uint_t i = from; i <= until; ++i) {
+//    if (!can_ignore(ops[i])) {
+//      ++num_ops;
+//      add_fusion_qubits(fusion_qubits, ops[i]);
+//    }
+//  }
+//  if (num_ops == 2)
+//    return cost_factor_;
+//  else
+//    return pow(cost_factor_, (double) fusion_qubits.size());
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {

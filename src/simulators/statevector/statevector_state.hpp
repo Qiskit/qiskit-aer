@@ -716,7 +716,11 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg
 template <class statevec_t>
 void State<statevec_t>::apply_matrix(const Operations::Op &op) {
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
-    BaseState::qreg_.apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+    if (Utils::is_diagonal(op.mats[0], .0)) {
+      BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::vectorize_diagonal_matrix(op.mats[0]));
+    } else {
+      BaseState::qreg_.apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+    }
   }
 }
 
