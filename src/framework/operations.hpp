@@ -117,15 +117,6 @@ struct Op {
   // Mat and Kraus
   std::vector<cmatrix_t> mats;
 
-#ifdef DEBUG
-  // Fusion
-  std::vector<OpType> fusioned_types;
-  std::vector<std::string> fusioned_names;
-  std::vector<reg_t> fusioned_qubits;
-  std::vector<std::vector<complex_t>> fusioned_params;
-  std::vector<std::vector<cmatrix_t>> fusioned_mats;
-#endif
-
   // Readout error
   std::vector<rvector_t> probs;
 
@@ -162,18 +153,6 @@ inline std::ostream& operator<<(std::ostream& s, const Op& op) {
     first = false;
   }
   s << "]";
-#ifdef DEBUG
-  if (!op.fusioned_names.empty()) {
-    s << ",[";
-    first = true;
-    for (std::string fusioned_name: op.fusioned_names) {
-      if (!first)
-        s << ",";
-      s << fusioned_name;
-      first = false;
-    }
-  }
-#endif
   return s;
 }
 
@@ -434,16 +413,6 @@ inline Op make_fusion(const reg_t &qubits, const cmatrix_t &mat, const std::vect
   if (label != "")
     op.string_params = {label};
 
-#ifdef DEBUG
-  for (const Op& fusioned_op: fusioned_ops) {
-    op.fusioned_types.push_back(fusioned_op.type);
-    op.fusioned_names.push_back(fusioned_op.name);
-    op.fusioned_qubits.push_back(fusioned_op.qubits);
-    op.fusioned_params.push_back(fusioned_op.params);
-    op.fusioned_mats.push_back(fusioned_op.mats);
-  }
-#endif
-
   return op;
 }
 
@@ -656,10 +625,6 @@ json_t op_to_json(const Op &op) {
     ret["register"] = op.registers;
   if (!op.mats.empty())
     ret["mats"] = op.mats;
-#ifdef DEBUG
-  if (!op.fusioned_names.empty())
-    ret["fusion"] = op.fusioned_names;
-#endif
   return ret;
 }
 

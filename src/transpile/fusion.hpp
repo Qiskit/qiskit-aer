@@ -29,14 +29,24 @@ using reg_t = std::vector<uint_t>;
 
 class Fusion : public CircuitOptimization {
 public:
+  // constructor
   Fusion(uint_t max_qubit = 5, uint_t threshold = 16, double cost_factor = 1.8);
 
+  /*
+   * Fusion optimization uses following configuration options
+   *   - fusion_verbose (bool): if true, output generated gates in metadata (default: false)
+   *   - fusion_enable (bool): if true, activate fusion optimization (default: false)
+   *   - fusion_max_qubit (int): maximum number of qubits for a operation (default: 5)
+   *   - fusion_threshold (int): a threshold to activate fusion optimization when fusion_enable is true (default: 16)
+   *   - fusion_cost_factor (double): a cost function to estimate an aggregate gate (default: 1.8)
+  */
   void set_config(const json_t &config) override;
 
   void optimize_circuit(Circuit& circ,
                         const opset_t &opset,
                         OutputData &data) const override;
 
+private:
   bool can_ignore(const op_t& op) const;
 
   bool can_apply_fusion(const op_t& op) const;
@@ -173,14 +183,12 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (can_ignore(circ.ops[op_idx]))
       continue;
     if (!can_apply_fusion(circ.ops[op_idx])) {
-      if (fusion_start != op_idx)
-        if(aggregate_operations(circ.ops, fusion_start, op_idx))
-          applied = true;
+      applied |= fusion_start != op_idx && aggregate_operations(circ.ops, fusion_start, op_idx);
       fusion_start = op_idx + 1;
     }
   }
 
-  if (fusion_start != circ.ops.size()
+  if (fusion_start < circ.ops.size()
       && aggregate_operations(circ.ops, fusion_start, circ.ops.size()))
       applied = true;
 
@@ -333,7 +341,6 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops) co
   for (size_t m = 1; m < sorted_mats.size(); m++) {
 
     cmatrix_t u_tmp(U.GetRows(), U.GetColumns());
-    Utils::initialize_matrix(u_tmp, complex_t(.0));
     const cmatrix_t& u = sorted_mats[m];
 
     for (size_t i = 0; i < dim; ++i)
@@ -353,7 +360,6 @@ cmatrix_t Fusion::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted
 
   // generate a matrix for op
   cmatrix_t u(dst_dim, dst_dim);
-  Utils::initialize_matrix(u, complex_t(.0));
   std::vector<bool> filled(dst_dim, false);
 
   if (src_qubits.size() == 1) { //1-qubit operation
@@ -422,9 +428,7 @@ cmatrix_t Fusion::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted
     }
     //TODO: } else if (src_qubits.size() == 3) {
   } else {
-    std::stringstream ss;
-    ss << "Fusion::illegal qubit number:" << src_qubits.size();
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error("Fusion::illegal qubit number: " + std::to_string(src_qubits.size()));
   }
 
   return u;
@@ -498,7 +502,7 @@ bool Fusion::only_u1(const std::vector<op_t>& ops,
   for (uint_t i = from; i <= until; ++i) {
     if (ops[i].name == "u1")
       continue;
-    if ((i - 1) >= from && (i + 2) <= until
+    if (from < i && (i + 2) <= until
         && ops[i - 1].name == "u1"
         && ops[i    ].name == "cx"
         && ops[i + 1].name == "u1"

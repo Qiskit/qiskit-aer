@@ -88,8 +88,6 @@ private:
 // Matrix Functions
 //------------------------------------------------------------------------------
 
-// Initialization
-template<class T> void initialize_matrix(const matrix<T>& mat, T v);
 // Vector conversion
 template<class T> matrix<T> make_matrix(const std::vector<std::vector<T>> &mat);
 template<class T> matrix<T> devectorize_matrix(const std::vector<T> &vec);
@@ -487,15 +485,6 @@ cvector_t VMatrix::u3(double theta, double phi, double lambda) {
 //==============================================================================
 // Implementations: Matrix functions
 //==============================================================================
-
-template<class T>
-void initialize_matrix(const matrix<T>& mat, T v) {
-  std::vector<T> vec;
-  for (size_t col=0; col < mat.GetRows(); col++)
-    for (size_t row=0; row < mat.GetColumns(); row++) {
-      mat(row, col) = v;
-    }
-}
 
 template<class T>
 matrix<T> devectorize_matrix(const std::vector<T>& vec) {
