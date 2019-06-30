@@ -110,8 +110,17 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 
-// Matrix concatenate and split.
+// concatenate
+// Returns a matrix that is the concatenation of two matrices A, B
+// The matrices must have the same dimensions
+// If axis == 0, place rows of B after rows of A (vertical extension)
+// If axis == 1, place columns of B after columns of A (horizontal extension)
 template <class T> matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis);
+
+// split
+// Splits A into 2 matrices B and C equal in dimensions
+// If axis == 0, split A by rows. A must have an even number of rows.
+// If axis == 1, split A by columns. A must have an even number of columns.
 template <class T> void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis);
 
 //Elementwise matrix multiplication
@@ -709,9 +718,6 @@ matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B) {
 
 template <class T>
 matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
-  // Works out a concatenate of two matrices A, B
-  // To add B as new rows axis == 0 (vertical)
-  // To add A as new cols axis == 1 (horizontal)
   if (axis != 0 && axis!= 1) {
     throw std::invalid_argument("Utils::concatenate: axis must be 0 or 1");
   }
@@ -740,9 +746,6 @@ matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
 
 template <class T>
 void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
-  // Works out a split of matrix A to two matrices B, C, with the same dimensions
-  // To split by rows, axis == 0 (Only when A rows divide by 2)
-  // To split by cols, axis == 1 (Only when A cols divide by 2)
   if (axis != 0 && axis != 1) {
     throw std::invalid_argument("Utils::split: axis must be 0 or 1");
   }
