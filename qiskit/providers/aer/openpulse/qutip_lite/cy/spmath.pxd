@@ -1,6 +1,8 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, The QuTiP Project.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,3 +32,28 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+from qutip.cy.sparse_structs cimport CSR_Matrix
+
+cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B,
+                    CSR_Matrix * C, double complex alpha)
+
+cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
+                        double complex * Bdata, int * Bind, int * Bptr,
+                        double complex alpha,
+                        CSR_Matrix * C,
+                        int nrows, int ncols) nogil
+
+cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+
+
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+
+cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
+                          double complex * dataB, int * indsB, int * indptrB,
+                          CSR_Matrix * out,
+                          int rowsA, int rowsB, int colsB) nogil
+
+cdef void _zcsr_transpose(CSR_Matrix * A, CSR_Matrix * B)
+
+cdef void _zcsr_adjoint(CSR_Matrix * A, CSR_Matrix * B)

@@ -1,6 +1,8 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, The QuTiP Project.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,3 +32,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+from qutip.cy.sparse_structs cimport CSR_Matrix
+
+cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out,
+                                unsigned int nrows, unsigned int ncols)
