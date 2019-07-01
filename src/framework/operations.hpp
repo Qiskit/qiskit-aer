@@ -771,7 +771,8 @@ Op json_to_op_roerror(const json_t &js) {
   op.name = "roerror";
   JSON::get_value(op.memory, "memory", js);
   JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "probabilities", js);
+  JSON::get_value(op.probs, "probabilities", js); // DEPRECIATED: Remove in 0.4
+  JSON::get_value(op.probs, "params", js);
   return op;
 }
 
