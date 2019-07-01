@@ -72,18 +72,22 @@ def approximate_quantum_error(error, *,
 
     if not isinstance(error, QuantumError):
         error = QuantumError(error)
-    if error.number_of_qubits > 1:
-        raise NoiseError("Only 1-qubit noises can be converted, {}-qubit "
+    if error.number_of_qubits > 2:
+        raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
                          "noise found in model".format(error.number_of_qubits))
 
     error_kraus_operators = Kraus(error.to_quantumchannel()).data
     transformer = NoiseTransformer()
     if operator_string is not None:
+        no_info_error = "No information about noise type {}".format(operator_string)
         operator_string = operator_string.lower()
         if operator_string not in transformer.named_operators.keys():
+            raise RuntimeError(no_info_error)
+        operator_lists = transformer.named_operators[operator_string]
+        if len(operator_lists) < error.number_of_qubits:
             raise RuntimeError(
-                "No information about noise type {}".format(operator_string))
-        operator_dict = transformer.named_operators[operator_string]
+                no_info_error + " for {} qubits".format(error.number_of_qubits))
+        operator_dict = operator_lists[error.number_of_qubits - 1]
     if operator_dict is not None:
         names, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
@@ -95,8 +99,7 @@ def approximate_quantum_error(error, *,
         identity_prob = 1 - sum(probabilities)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
-                "Approximated channel operators probabilities sum to {}".
-                format(1 - identity_prob))
+                "Channel probabilities sum to {}".format(1 - identity_prob))
         quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
         op_circuit_list = [
             transformer.operator_circuit(operator)
@@ -214,22 +217,76 @@ def approximate_noise_model(model, *,
     return approx_noise_model
 
 
+def pauli_operators():
+    """
+    Returns:
+        list: a list of Pauli operators for 1 and 2 qubits
+
+    """
+    pauli_1_qubit = {
+        'X': [{'name': 'x', 'qubits': [0]}],
+        'Y': [{'name': 'y', 'qubits': [0]}],
+        'Z': [{'name': 'z', 'qubits': [0]}]
+    }
+    pauli_2_qubit = {
+        'XI': [{'name': 'x', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'YI': [{'name': 'y', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'ZI': [{'name': 'z', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}],
+        'IX': [{'name': 'id', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'IY': [{'name': 'id', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'IZ': [{'name': 'id', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'XX': [{'name': 'x', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'YY': [{'name': 'y', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'ZZ': [{'name': 'z', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'XY': [{'name': 'x', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+        'XZ': [{'name': 'x', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'YX': [{'name': 'y', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'YZ': [{'name': 'y', 'qubits': [1]}, {'name': 'z', 'qubits': [0]}],
+        'ZX': [{'name': 'z', 'qubits': [1]}, {'name': 'x', 'qubits': [0]}],
+        'ZY': [{'name': 'z', 'qubits': [1]}, {'name': 'y', 'qubits': [0]}],
+    }
+    return [pauli_1_qubit, pauli_2_qubit]
+
+
+def reset_operators():
+    """
+    Returns:
+        list: a list of reset operators for 1 and 2 qubits
+
+    """
+    reset_0_to_0 = [{'name': 'reset', 'qubits': [0]}]
+    reset_0_to_1 = [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]
+    reset_1_to_0 = [{'name': 'reset', 'qubits': [1]}]
+    reset_1_to_1 = [{'name': 'reset', 'qubits': [1]}, {'name': 'x', 'qubits': [1]}]
+    id_0 = [{'name': 'id', 'qubits': [0]}]
+    id_1 = [{'name': 'id', 'qubits': [1]}]
+
+    reset_1_qubit = {
+        'p': reset_0_to_0,
+        'q': reset_0_to_1
+    }
+
+    reset_2_qubit = {
+        'p0': reset_0_to_0 + id_1,
+        'q0': reset_0_to_1 + id_1,
+        'p1': reset_1_to_0 + id_0,
+        'q1': reset_1_to_1 + id_0,
+        'p0_p1': reset_0_to_0 + reset_1_to_0,
+        'p0_q1': reset_0_to_0 + reset_1_to_1,
+        'q0_p1': reset_0_to_1 + reset_1_to_0,
+        'q0_q1': reset_0_to_1 + reset_1_to_1,
+    }
+    return [reset_1_qubit, reset_2_qubit]
+
+
 class NoiseTransformer:
     """Transforms one quantum channel to another based on a specified criteria."""
 
     def __init__(self):
         self.named_operators = {
-            'pauli': {
-                'X': [{'name': 'x', 'qubits': [0]}],
-                'Y': [{'name': 'y', 'qubits': [0]}],
-                'Z': [{'name': 'z', 'qubits': [0]}]
-            },
-            'reset': {
-                'p': [{'name': 'reset', 'qubits': [0]}],  # reset to |0>
-                'q': [{'name': 'reset', 'qubits': [0]},
-                      {'name': 'x', 'qubits': [0]}]  # reset to |1>
-            },
-            'clifford': {j: single_qubit_clifford_instructions(j) for j in range(1, 24)}
+            'pauli': pauli_operators(),
+            'reset': reset_operators(),
+            'clifford': [{j: single_qubit_clifford_instructions(j) for j in range(24)}]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True
@@ -327,11 +384,13 @@ class NoiseTransformer:
         """
         # convert to sympy matrices and verify that each singleton is
         # in a tuple; also add identity matrix
-        result = [[sympy.eye(2)]]
+        result = []
         for ops in ops_list:
             if not isinstance(ops, tuple) and not isinstance(ops, list):
                 ops = [ops]
             result.append([sympy.Matrix(op) for op in ops])
+        n = result[0][0].shape[0]  # grab the dimensions from the first element
+        result = [[sympy.eye(n)]] + result
         return result
 
     # pylint: disable=invalid-name
@@ -353,7 +412,7 @@ class NoiseTransformer:
         self.fidelity_data = {
             'goal': goal,
             'coefficients':
-            coefficients[1:]  # coefficients[0] corresponds to I
+                coefficients[1:]  # coefficients[0] corresponds to I
         }
 
     # methods relevant to the transformation to quadratic programming instance
@@ -361,7 +420,7 @@ class NoiseTransformer:
     @staticmethod
     def fidelity(channel):
         """ Calculates channel fidelity """
-        return sum([numpy.abs(numpy.trace(E))**2 for E in channel])
+        return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
 
     # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
@@ -411,7 +470,7 @@ class NoiseTransformer:
         symbolic_operators = [
             op for ops in symbolic_operators_list for op in ops
         ]
-        # channel_matrix_representation() peforms the required linear
+        # channel_matrix_representation() performs the required linear
         # algebra to find the representing matrices.
         operators_channel = self.channel_matrix_representation(
             symbolic_operators).subs(symbols[0], 1 - exp)
@@ -449,23 +508,25 @@ class NoiseTransformer:
 
     def channel_matrix_representation(self, operators):
         """
-        We convert the operators to a matrix by applying the channel to
-        the four basis elements of the 2x2 matrix space representing
-        density operators; this is standard linear algebra
+                We convert the operators to a matrix by applying the channel to
+                the four basis elements of the 2x2 matrix space representing
+                density operators; this is standard linear algebra
 
-        Args:
-            operators (list): The list of operators to transform into a Matrix
+                Args:
+                    operators (list): The list of operators to transform into a Matrix
 
-        Returns:
-            sympy.Matrix: The matrx representation of the operators
-        """
+                Returns:
+                    sympy.Matrix: The matrx representation of the operators
+                """
 
-        standard_base = [
-            sympy.Matrix([[1, 0], [0, 0]]),
-            sympy.Matrix([[0, 1], [0, 0]]),
-            sympy.Matrix([[0, 0], [1, 0]]),
-            sympy.Matrix([[0, 0], [0, 1]])
-        ]
+        shape = operators[0].shape
+        standard_base = []
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                basis_element_ij = sympy.zeros(*shape)
+                basis_element_ij[(i, j)] = 1
+                standard_base.append(basis_element_ij)
+
         return (sympy.Matrix([
             self.flatten_matrix(
                 self.compute_channel_operation(rho, operators))
@@ -483,9 +544,10 @@ class NoiseTransformer:
             list: A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
             channel == x1*D1 + ... + xn*Dn + E
         """
-        return ([
-            self.get_matrix_from_channel(channel, symbol) for symbol in symbols
-        ], self.get_const_matrix_from_channel(channel, symbols))
+        return (
+            [self.get_matrix_from_channel(channel, symbol) for symbol in symbols],
+            self.get_const_matrix_from_channel(channel, symbols)
+        )
 
     @staticmethod
     def get_matrix_from_channel(channel, symbol):
@@ -541,17 +603,23 @@ class NoiseTransformer:
     def transform_by_given_channel(self, channel_matrices,
                                    const_channel_matrix):
         """
-        This method creates the quadratic programming instance for
-        minimizing the Hilbert-Schmidt norm of the matrix (A-B) obtained
+        This method creates objective function representing the
+        Hilbert-Schmidt norm of the matrix (A-B) obtained
         as the difference of the input noise channel and the output
         channel we wish to determine.
 
+        This function is represented by a matrix P and a vector q, such that
+        f(x) = 1/2(x*P*x)+q*x
+        where x is the vector we wish to minimize, where x represents
+        probabilities for the noise operators that construct the output channel
+
         Args:
-            channel_matrices (TODO): TODO
-            const_channel_matrix (TODO): TODD
+            channel_matrices (list): A list of 4x4 symbolic matrices
+            const_channel_matrix (matrix): a 4x4 constant matrix
 
         Returns:
-            quadratic_program: TODO
+            list: a list of the optimal probabilities for the channel matrices,
+            determined by the quadratic program solver
         """
         target_channel = SuperOp(Kraus(self.noise_kraus_operators))
         target_channel_matrix = target_channel._data.T
@@ -563,12 +631,14 @@ class NoiseTransformer:
 
     def compute_P(self, As):
         """
-        TODO
+        This method creates the matrix P in the
+        f(x) = 1/2(x*P*x)+q*x
+        representation of the objective function
         Args:
-            As (TODO): TODO
+            As (list): list of symbolic matrices repersenting the channel matrices
 
         Returns:
-            Array: TODO
+            matrix: The matrix P for the description of the quadaric program
         """
         vs = [numpy.array(A).flatten() for A in As]
         n = len(vs)
@@ -579,13 +649,15 @@ class NoiseTransformer:
 
     def compute_q(self, As, C):
         """
-        TODO
+        This method creates the vector q for the
+        f(x) = 1/2(x*P*x)+q*x
+        representation of the objective function
         Args:
-            As (TODO): TODO
-            C (TODO): TODO
+            As (list): list of symbolic matrices repersenting the quadratic program
+            C (matrix): matrix representing the the constant channel matrix
 
         Returns:
-            Array: TODO
+            list: The vector q for the description of the quadaric program
         """
         vs = [numpy.array(A).flatten() for A in As]
         vC = numpy.array(C).flatten()
@@ -597,13 +669,19 @@ class NoiseTransformer:
 
     def solve_quadratic_program(self, P, q):
         """
-        TODO
+        This function solved the quadratic program to minimize the objective function
+        f(x) = 1/2(x*P*x)+q*x
+        subject to the additional constraints
+        Gx <= h
+
+        Where P, q are given and G,h are computed to ensure that x represents
+        a probability vector and subject to honesty constraints if required
         Args:
-            P (TODO): TODO
-            q (TODO): TODO
+            P (matrix): A matrix representing the P component of the objective function
+            q (list): A vector representing the q component of the objective function
 
         Returns:
-            Array: TODO
+            list: The solution of the quadratic program (represents probabilites)
 
         Raises:
             ImportError: If cvxopt external module is not installed
