@@ -322,7 +322,7 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcz:
       // Includes Z, CZ, CCZ, etc
-      BaseState::qreg_.apply_mcz(op.qubits);
+      BaseState::qreg_.apply_mcphase(op.qubits, -1);
       break;
     case Gates::id:
       break;
@@ -363,7 +363,7 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcu1:
       // Includes u1, cu1, etc
-      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      BaseState::qreg_.apply_mcphase(op.qubits, std::exp(complex_t(0, 1) * op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset

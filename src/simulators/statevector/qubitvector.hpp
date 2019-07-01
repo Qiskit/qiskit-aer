@@ -276,15 +276,17 @@ public:
   // If N=2 this implements an optimized CY gate
   // If N=3 this implements an optimized CCY gate
   void apply_mcy(const reg_t &qubits);
-
-  // Apply a general multi-controlled Z-gate
-  // If N=1 this implements an optimized Z gate
-  // If N=2 this implements an optimized CZ gate
-  // If N=3 this implements an optimized CCZ gate
-  void apply_mcz(const reg_t &qubits);
   
+  // Apply a general multi-controlled single-qubit phase gate
+  // with diagonal [1, ..., 1, phase]
+  // If N=1 this implements an optimized single-qubit phase gate
+  // If N=2 this implements an optimized CPhase gate
+  // If N=3 this implements an optimized CCPhase gate
+  // if phase = -1 this is a Z, CZ, CCZ gate
+  void apply_mcphase(const reg_t &qubits, const complex_t phase);
+
   // Apply a general multi-controlled single-qubit unitary gate
-  // If N=1 this implements an optimized single-qubit gate
+  // If N=1 this implements an optimized single-qubit U gate
   // If N=2 this implements an optimized CU gate
   // If N=3 this implements an optimized CCU gate
   void apply_mcu(const reg_t &qubits, const cvector_t &mat);
@@ -1416,46 +1418,6 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
 }
 
 template <typename data_t>
-void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
-  const size_t N = qubits.size();
-
-  switch (N) {
-    case 1: {
-      // Lambda function for Z gate
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        data_[inds[1]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-      return;
-    }
-    case 2: {
-      // Lambda function for CZ gate
-      auto lambda = [&](const areg_t<4> &inds)->void {
-        data_[inds[3]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-      return;
-    }
-    case 3: {
-      // Lambda function for CCZ gate
-      auto lambda = [&](const areg_t<8> &inds)->void {
-         data_[inds[7]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-      return;
-    }
-    default: {
-      // Lambda function for general multi-controlled X gate
-      auto lambda = [&](const indexes_t &inds)->void {
-         data_[inds[MASKS[N]]] *= -1.;
-      };
-      apply_lambda(lambda, qubits);
-    }
-  } // end switch
-}
-
-
-template <typename data_t>
 void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
   // Calculate the swap positions for the last two qubits.
   // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP gate.
@@ -1491,6 +1453,44 @@ void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
 }
 
 template <typename data_t>
+void QubitVector<data_t>::apply_mcphase(const reg_t &qubits, const complex_t phase) {
+  const size_t N = qubits.size();
+  switch (N) {
+    case 1: {
+      // Lambda function for arbitrary Phase gate with diagonal [1, phase]
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[1]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
+      return;
+    }
+    case 2: {
+      // Lambda function for CPhase gate with diagonal [1, 1, 1, phase]
+      auto lambda = [&](const areg_t<4> &inds)->void {
+        data_[inds[3]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
+      return;
+    }
+    case 3: {
+      auto lambda = [&](const areg_t<8> &inds)->void {
+         data_[inds[7]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
+      return;
+    }
+    default: {
+      // Lambda function for general multi-controlled Phase gate
+      // with diagonal [1, ..., 1, phase]
+      auto lambda = [&](const indexes_t &inds)->void {
+         data_[inds[MASKS[N]]] *= phase;
+      };
+      apply_lambda(lambda, qubits);
+    }
+  } // end switch
+}
+
+template <typename data_t>
 void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
                                     const cvector_t &mat) {
   // Calculate the permutation positions for the last qubit.
@@ -1502,6 +1502,12 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
   // diagonal matrix lambda function
   // TODO: this should be changed to not check doubles with ==
   if (mat[1] == 0.0 && mat[2] == 0.0) {
+    // Check if actually a phase gate
+    if (mat[0] == 1.0) {
+      apply_mcphase(qubits, mat[3]);
+      return;
+    }
+    // Otherwise apply general diagonal gate
     const cvector_t diag = {{mat[0], mat[3]}};
     // Diagonal version
     switch (N) {

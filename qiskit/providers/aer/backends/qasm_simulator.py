@@ -157,7 +157,7 @@ class QasmSimulator(AerBackend):
         'description': 'A C++ simulator with realistic noise for qobj files',
         'coupling_map': None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            'u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'ccx', 'swap', 'multiplexer', 'snapshot', 'unitary', 'reset',
             'initialize', 'kraus', 'roerror'
         ],
