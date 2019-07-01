@@ -20,9 +20,12 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
 INCLUDE_DIRS = [np.get_include()]
-# Add Cython extensions here
-cython_exts = ['channel_value', 'measure', 
-               'memory', 'utils']
+# Add Cython OP extensions here
+cython_op_exts = ['channel_value', 'measure', 'memory', 'utils']
+
+# Add Cython QuTiP extensions here
+cython_qutip_exts = ['graph_utils', 'math', 'ptrace', 'sparse_utils',
+                     'spconvert', 'spmatfuncs', 'spmath']
 
 # Extra link args
 _link_flags = []
@@ -45,10 +48,20 @@ if "CFLAGS" in cfg_vars:
 
 
 EXT_MODULES = []
-# Add Cython files from qutip/cy
-for ext in cython_exts:
-    _mod = Extension(ext,
-                     sources=[ext+'.pyx'],
+# Add Cython files from cy
+for ext in cython_op_exts:
+    _mod = Extension("cy."+ext,
+                     sources=['cy/'+ext+'.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
+    EXT_MODULES.append(_mod)
+
+# Add Cython files from qutip_lite/cy
+for ext in cython_qutip_exts:
+    _mod = Extension("qutip_lite.cy."+ext,
+                     sources=['qutip_lite/cy/'+ext+'.pyx'],
                      include_dirs=[np.get_include()],
                      extra_compile_args=_compiler_flags,
                      extra_link_args=_link_flags,
