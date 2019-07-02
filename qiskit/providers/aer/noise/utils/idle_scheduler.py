@@ -63,7 +63,8 @@ class IdleScheduler():
         new_dag = DAGCircuit()
         self.idle_times = {qubit: 0 for qubit in self.circuit.qubits}
         dag = circuit_to_dag(circuit)
-        layers = list(dag.layers())
+        # layers = list(dag.layers())
+        layers = [circuit_to_dag(dag_to_circuit(l['graph'])) for l in dag.layers()] #hack to prevent nondeterminism
         for layer in layers:
             new_layer_graph = self.add_identities_to_layer(layer)
             new_dag.extend_back(new_layer_graph)
@@ -78,11 +79,11 @@ class IdleScheduler():
         """
         max_op_time, max_op_name = max(
             [(self.op_times.get(node.name, self.default_op_time), node.name)
-             for node in layer['graph'].op_nodes()])
+             for node in layer.op_nodes()])
         for qubit in self.idle_times.keys():
             self.idle_times[qubit] += max_op_time
 
-        for node in layer['graph'].op_nodes():
+        for node in layer.op_nodes():
             for qubit in node.qargs:
                 if node.op.name == 'barrier':  # special case
                     self.idle_times[qubit] = 0
@@ -93,7 +94,7 @@ class IdleScheduler():
         for qubit in self.circuit.qubits:
             while self.idle_times[qubit] >= id_time:
                 id_gate = IdGate(label="id_{}".format(max_op_name))
-                layer['graph'].apply_operation_back(id_gate, [qubit], [])
+                layer.apply_operation_back(id_gate, [qubit], [])
                 self.idle_times[qubit] -= id_time
 
-        return layer['graph']
+        return layer

@@ -22,6 +22,22 @@ class TestIdleScheduler(unittest.TestCase):
     def assertCircuitsEqual(self, lhs, rhs):
         self.assertEqual(circuit_to_dag(lhs), circuit_to_dag(rhs))
 
+    def test_circuits_equal(self):
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.y(qr[2])
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.iden(qr[1])
+        target_circuit.y(qr[2])
+
+        circuit1 = schedule_idle_gates(circuit, op_times={'id': 2, 'x': 2})
+        circuit2 = schedule_idle_gates(circuit, op_times={'id': 2, 'x': 2})
+
+        self.assertCircuitsEqual(circuit1, circuit2)
+
     def test_small_circuit(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -46,10 +62,11 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.x(qr[0])
         target_circuit.iden(qr[1])
         target_circuit.iden(qr[1])
-        target_circuit.iden(qr[2])
         target_circuit.y(qr[2])
+        target_circuit.iden(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'x': 2})
+
         self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_small_circuit_double_id_time(self):
@@ -93,10 +110,11 @@ class TestIdleScheduler(unittest.TestCase):
         target_circuit.iden(qr[1])
         target_circuit.iden(qr[1])
         target_circuit.y(qr[2])
-        target_circuit.iden(qr[2])
         target_circuit.y(qr[2])
+        target_circuit.iden(qr[2])
 
         result_circuit = schedule_idle_gates(circuit, op_times={'id': 2, 'x': 2})
+
         self.assertCircuitsEqual(target_circuit, result_circuit)
 
     def test_barrier_circuit(self):
