@@ -337,7 +337,6 @@ double MPS::Expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
 ostream& MPS::print(ostream& out) const
 {
-    cout<<"Yotam Print"<<endl;
 	for(uint_t i=0; i<num_qubits_; i++)
 	{
 	  out << "Gamma [" << i << "] :" << endl;
