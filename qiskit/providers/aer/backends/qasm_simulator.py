@@ -159,7 +159,7 @@ class QasmSimulator(AerBackend):
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'ccx', 'swap', 'multiplexer', 'snapshot', 'unitary', 'reset',
-            'initialize', 'kraus'
+            'initialize', 'kraus', 'roerror'
         ],
         'gates': [{
             'name': 'TODO',
@@ -185,7 +185,7 @@ class QasmSimulator(AerBackend):
         """
         clifford_instructions = [
             "id", "x", "y", "z", "h", "s", "sdg", "CX", "cx", "cz", "swap",
-            "barrier", "reset", "measure"
+            "barrier", "reset", "measure", 'roerror'
         ]
         unsupported_ch_instructions = ["u2", "u3"]
         # Check if noise model is Clifford:
