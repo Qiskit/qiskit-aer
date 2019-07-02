@@ -420,7 +420,6 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
   for (const auto & op: ops) {
     switch (op.type) {
       case Operations::OpType::barrier:
-      case Operations::OpType::nop:
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);

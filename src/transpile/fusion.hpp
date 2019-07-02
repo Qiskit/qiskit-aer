@@ -192,9 +192,24 @@ void Fusion::optimize_circuit(Circuit& circ,
       && aggregate_operations(circ.ops, fusion_start, circ.ops.size()))
       applied = true;
 
-  if (applied && verbose_)
-    data.add_additional_data("metadata",
-                             json_t::object({{"fusion_verbose", circ.ops}}));
+  if (applied) {
+
+    size_t idx = 0;
+    for (size_t i = 0; i < circ.ops.size(); ++i) {
+      if (circ.ops[i].name != "nop") {
+        if (i != idx)
+          circ.ops[idx] = circ.ops[i];
+        ++idx;
+      }
+    }
+
+    if (idx != circ.ops.size())
+      circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
+
+    if (verbose_)
+      data.add_additional_data("metadata",
+                               json_t::object({{"fusion_verbose", circ.ops}}));
+  }
 
 #ifdef DEBUG
   dump(circ.ops);
@@ -204,7 +219,6 @@ void Fusion::optimize_circuit(Circuit& circ,
 bool Fusion::can_ignore(const op_t& op) const {
   switch (op.type) {
   case optype_t::barrier:
-  case optype_t::nop:
     return true;
   case optype_t::gate:
     return op.name == "id" || op.name == "u0";
@@ -295,10 +309,8 @@ bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const i
     if (to != i) {
       std::vector<op_t> fusioned_ops;
       for (int j = to; j <= i; ++j) {
-        if (ops[j].type == optype_t::nop)
-          continue;
         fusioned_ops.push_back(ops[j]);
-        ops[j] = Operations::make_nop();
+        ops[j].name = "nop";
       }
       if (!fusioned_ops.empty())
         ops[i] = generate_fusion_operation(fusioned_ops);

@@ -36,7 +36,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, multiplexer, kraus, roerror, noise_switch, initialize, nop
+  matrix, multiplexer, kraus, roerror, noise_switch, initialize
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -76,9 +76,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::initialize:
     stream << "initialize";
-    break;
-  case OpType::nop:
-    stream << "nop";
     break;
   default:
     stream << "unknown";
@@ -522,13 +519,6 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
   op.name = "roerror";
   op.memory = memory;
   op.probs = probs;
-  return op;
-}
-
-inline Op make_nop() {
-  Op op;
-  op.type = OpType::nop;
-  op.name = "nop";
   return op;
 }
 

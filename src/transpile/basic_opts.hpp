@@ -38,9 +38,17 @@ void ReduceBarrier::optimize_circuit(Circuit& circ,
                                  const opset_t &allowed_opset,
                                  OutputData &data) const {
 
-  for (size_t i = 0; i < circ.ops.size(); ++i)
-    if (circ.ops[i].type == optype_t::barrier)
-      circ.ops[i] = Operations::make_nop();
+  size_t idx = 0;
+  for (size_t i = 0; i < circ.ops.size(); ++i) {
+    if (circ.ops[i].type != optype_t::barrier) {
+      if (idx != i)
+        circ.ops[idx] = circ.ops[i];
+      ++idx;
+    }
+  }
+
+  if (idx != circ.ops.size())
+    circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 }
 
 class Debug : public CircuitOptimization {
