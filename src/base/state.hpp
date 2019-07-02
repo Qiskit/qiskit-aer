@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_base_state_hpp_
@@ -87,7 +94,7 @@ public:
 
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized State.
-  virtual uint_t required_memory_mb(uint_t num_qubits,
+  virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) = 0;
 
   //-----------------------------------------------------------------------
@@ -177,8 +184,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_available_threads(int n) {threads_ = n;}
-  inline int get_available_threads() const {return threads_;}
+  inline void set_parallalization(int n) {threads_ = n;}
 
   //-----------------------------------------------------------------------
   // Data accessors
@@ -222,6 +228,7 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
 }
 
 
+
 template <class state_t>
 bool State<state_t>::validate_opset(const Operations::OpSet &opset) const {
   return opset.validate(allowed_ops(),
@@ -248,7 +255,7 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   // We can't print OpTypes so we add a note if there are invalid
   // instructions other than gates or snapshots
   if (bad_instr && (!bad_gates && !bad_snaps))
-    ss << " invalid non gate or snapshot instructions";
+    ss << " invalid non gate or snapshot instructions: opset={" << opset << "}";
   return ss.str();
 }
 
@@ -309,8 +316,6 @@ void State<state_t>::add_creg_to_data(OutputData &data) const {
     data.add_register_singleshot(creg_.register_hex());
   }
 }
-
-
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------
