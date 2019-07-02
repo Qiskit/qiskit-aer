@@ -29,6 +29,7 @@
 #include "matrix_product_state.hpp"
 #include "matrix_product_state.cpp"
 
+
 namespace AER {
 namespace TensorNetworkState { 
 
@@ -565,6 +566,7 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
   }
+
 }
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
