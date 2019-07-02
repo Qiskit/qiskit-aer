@@ -24,8 +24,8 @@ from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from openpulse.solver.zvode import qiskit_zvode
-from openpulse.cython.memory import write_memory
-from openpulse.cython.measure import occ_probabilities, write_shots_memory
+from openpulse.cy.memory import write_memory
+from openpulse.cy.measure import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 

@@ -20,7 +20,7 @@ from openpulse.solver.options import OPoptions
 from openpulse.qobj.opparse import HamiltonianParser, NoiseParser
 from openpulse.qobj.operators import init_fock_state, qubit_occ_oper
 # pylint: disable=no-name-in-module,import-error
-from openpulse.cython.utils import oplist_to_array
+from openpulse.cy.utils import oplist_to_array
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.

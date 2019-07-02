@@ -207,7 +207,7 @@ def cython_preamble():
 #cython: language_level=3
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -229,7 +229,7 @@ from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.math cimport erf
 from libc.math cimport pi
 
-from openpulse.cython.channel_value cimport channel_value
+from openpulse.cy.channel_value cimport channel_value
 
 include """+_include_string+"""
 """]

@@ -15,7 +15,7 @@
 
 import distutils.sysconfig
 import numpy as np
-from .qutip_lite import pyxbuilder as pbldr
+from .qutip_lite.cy import pyxbuilder as pbldr
 
 # Remove -Wstrict-prototypes from cflags
 cfg_vars = distutils.sysconfig.get_config_vars()
