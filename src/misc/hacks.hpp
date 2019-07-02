@@ -1,19 +1,30 @@
+/**
+ * This code is part of Qiskit.
+ *
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
+ */
+
 #ifndef _aer_misc_hacks_hpp_
 #define _aer_misc_hacks_hpp_
 
+// We only need this hack for MacOS builds,
+// on Linux and Windows everything works fine
 #ifdef __APPLE__
-    #include <mach-o/dyld.h>
-    #include <mach-o/nlist.h>
-#endif
+#include <mach-o/dyld.h>
+#include <mach-o/nlist.h>
 #include <sys/types.h>
 #include <dlfcn.h>
 #include <iostream>
 #include <vector>
 #include <functional>
-
-// We only need this hack for MacOS builds,
-// on Linux and Windows everything works fine
-#ifdef __APPLE__
 
 #if defined(__clang__)
     #include "clang_omp_symbols.hpp"

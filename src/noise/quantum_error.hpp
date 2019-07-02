@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_noise_quantum_error_hpp_
@@ -226,7 +233,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   reg_t error_qubits(num_qubits);
   std::iota(error_qubits.begin(), error_qubits.end(), 0);
   for (size_t j=1; j < probs.size(); j++) {
-    auto op = Operations::make_mat(error_qubits, unitaries[j - 1]);
+    auto op = Operations::make_unitary(error_qubits, unitaries[j - 1]);
     circuits.push_back({op});
   }
 

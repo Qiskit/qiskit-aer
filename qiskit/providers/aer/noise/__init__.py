@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Noise module for Qiskit Aer.
 
@@ -62,8 +67,18 @@ canonical types of quantum errors:
    Amplitude damping error
    Phase damping error
    Combined phase and amplitude damping error
+
+Noise Utilities
+--------------
+The `noise.utils` module contains utilities for noise models and errors including:
+   `remap_noise_model` for remapping the qubits specified in a NoiseModel.
+   `approximate_quantum_error` for approximating a general quantum error via
+   a provided set of errors (e.g. approximating amplitude damping via reset errors).
+   `approximate_noise_model` for approximating all the errors in a nose model using
+   the same provided set of errors.
 """
 
 from .noise_model import NoiseModel
 from . import errors
 from . import device
+from . import utils
