@@ -39,6 +39,7 @@ Fixed
 
 Added
 -----
+-   Added `to_instruction` method to `ReadoutError` (\#257).
 
 Changed
 -------
