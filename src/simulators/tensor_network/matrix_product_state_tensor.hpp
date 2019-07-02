@@ -9,6 +9,7 @@
 #define _tensor_tensor_hpp_
 
 #define SQR_HALF sqrt(0.5)
+#define NUMBER_OF_PRINTED_DIGITS 3
 
 #include <cstdio>
 #include <iostream>
@@ -55,6 +56,7 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	  cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
+
 //============================================================================
 // MPS_Tensor class
 //============================================================================
@@ -146,13 +148,34 @@ private:
 
 //---------------------------------------------------------------
 // function name: print
+// Description: Prints the Tensor. All the submatrcies are aligned by rows.
 //-------------------------------------------------------------
 ostream& MPS_Tensor::print(ostream& out) const{
-   out << "[";
-    for(uint_t i = 0; i < data_.size(); i++)
-      {
-	out << data_[i](0,0)<< " ";
-      }
+    
+    complex_t value;
+    
+    out << "[" << endl;
+    if (data_.size() > 0){
+        //Printing the matrcies row by row (i.e., not matrix by matrix)
+        
+        for (uint_t row = 0; row < data_[0].GetRows(); row++){
+            for(uint_t i = 0; i < data_.size(); i++)
+            {
+                out << " |";
+                
+                for (uint_t column = 0; column < data_[0].GetColumns(); column++){
+                    
+                    value = data_[i](row, column);
+                    
+                    out << "(" << std::fixed << std::setprecision(NUMBER_OF_PRINTED_DIGITS) << value.real() << ", ";
+                    out << std::fixed  << std::setprecision(NUMBER_OF_PRINTED_DIGITS) << value.imag() << ")," ;
+                }    
+                out << "| ,";
+            }
+            out << endl;
+        }        
+    }
+    
     out << "]" << endl;
 
     return out;
