@@ -148,7 +148,7 @@ private:
 
 //---------------------------------------------------------------
 // function name: print
-// Description: Prints the Tensor. All the submatrcies are aligned by rows.
+// Description: Prints the Tensor. All the submatrices are aligned by rows.
 //-------------------------------------------------------------
 ostream& MPS_Tensor::print(ostream& out) const{
     
@@ -156,7 +156,7 @@ ostream& MPS_Tensor::print(ostream& out) const{
     
     out << "[" << endl;
     if (data_.size() > 0){
-        //Printing the matrcies row by row (i.e., not matrix by matrix)
+        //Printing the matrices row by row (i.e., not matrix by matrix)
         
         for (uint_t row = 0; row < data_[0].GetRows(); row++){
             for(uint_t i = 0; i < data_.size(); i++)
