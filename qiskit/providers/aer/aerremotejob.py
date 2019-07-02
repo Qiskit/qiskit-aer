@@ -55,7 +55,7 @@ class AerRemoteJob(BaseJob):
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ThreadPoolExecutor(max_workers=5)
 
     def __init__(self, backend, simulator, job_id, qobj=None, noise_model=None, run_config=None):
         """
