@@ -34,12 +34,14 @@ Fixed
     with no identity component. (\#243)
 -   Fixed 2-qubit depolarizing-only error parameter calculation in
     basic_device_noise_model (\#243)
+-   Set maximum workers to ThreadPoolExecutor in AerJob to limit thread creation (\#259)
 
 [0.2.1](https://github.com/Qiskit/qiskit-aer/compare/0.2.0...0.2.1) - 2019-05-20
 ================================================================================
 
 Added
 -----
+-   Added `to_instruction` method to `ReadoutError` (\#257).
 
 Changed
 -------
