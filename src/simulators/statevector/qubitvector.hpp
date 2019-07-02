@@ -1599,25 +1599,62 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t& mat) {
-  // Check if matrix is actually diagonal and if so use 
-  // apply_diagonal_matrix
-  // TODO: this should be changed to not check doubles with ==
+  // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const cvector_t diag = {{mat[0], mat[3]}};
     apply_diagonal_matrix(qubit, diag);
     return;
   }
+  
+  // Convert qubit to array register for lambda functions
+  areg_t<1> qubits({{qubit}});
 
-  // Lambda function for single-qubit matrix multiplication
-  auto lambda = [&](const areg_t<2> &inds,
-                    const cvector_t &_mat)->void {
-    const auto pos0 = inds[0];
-    const auto pos1 = inds[1];
-    const auto cache = data_[pos0];
-    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
-    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+  // Check if anti-diagonal matrix and if so use optimized lambda
+  if(mat[0] == 0.0 && mat[3] == 0.0) {
+    if (mat[1] == 1.0 && mat[2] == 1.0) {
+      // X-matrix
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        std::swap(data_[inds[0]], data_[inds[1]]);
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    if (mat[2] == 0.0) {
+      // Non-unitary projector
+      // possibly used in measure/reset/kraus update
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[1]] = mat[1] * data_[inds[0]];
+        data_[inds[0]] = 0.0;
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    if (mat[1] == 0.0) {
+      // Non-unitary projector
+      // possibly used in measure/reset/kraus update
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[0]] = mat[2] * data_[inds[1]];
+        data_[inds[1]] = 0.0;
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    // else we have a general anti-diagonal matrix
+    auto lambda = [&](const areg_t<2> &inds)->void {
+      const complex_t cache = data_[inds[0]];
+      data_[inds[0]] = mat[2] * data_[inds[1]];
+      data_[inds[1]] = mat[1] * cache;
+    };
+    apply_lambda(lambda, qubits);
+    return;
+  }
+  // Otherwise general single-qubit matrix multiplication
+  auto lambda = [&](const areg_t<2> &inds)->void {
+    const auto cache = data_[inds[0]];
+    data_[inds[0]] = mat[0] * cache + mat[2] * data_[inds[1]];
+    data_[inds[1]] = mat[1] * cache + mat[3] * data_[inds[1]];
   };
-  apply_lambda(lambda, areg_t<1>({{qubit}}), mat);
+  apply_lambda(lambda, qubits);
 }
 
 template <typename data_t>
