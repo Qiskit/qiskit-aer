@@ -20,6 +20,9 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+-   Added multi-controlled phase gate to `QubitVector` and changed
+    multi-controlled Z and multi-controlled u1 gates to use this method (\# 258)
+-   Added optimized anti-diagonal single-qubit gates to QubitVector (\# 258)
 
 Changed
 -------
