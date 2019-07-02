@@ -63,8 +63,8 @@ class IdleScheduler():
         new_dag = DAGCircuit()
         self.idle_times = {qubit: 0 for qubit in self.circuit.qubits}
         dag = circuit_to_dag(circuit)
-        # layers = list(dag.layers())
-        layers = [circuit_to_dag(dag_to_circuit(l['graph'])) for l in dag.layers()] #hack to prevent nondeterminism
+        # convert to circuit and back as hack to prevent nondeterminism in DAGCircuit
+        layers = [circuit_to_dag(dag_to_circuit(l['graph'])) for l in dag.layers()]
         for layer in layers:
             new_layer_graph = self.add_identities_to_layer(layer)
             new_dag.extend_back(new_layer_graph)
