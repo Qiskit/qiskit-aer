@@ -27,8 +27,9 @@ steps:
       call activate qiskit-aer-$(Build.BuildNumber)
       conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
     displayName: Install Anaconda packages
-  - script: |
-      call activate qiskit-aer-$(Build.BuildNumber)
+  - bash: |
+      set -e
+      source activate qiskit-aer-$(Build.BuildNumber)
       git clean -fdX
       python -m pip install --disable-pip-version-check pip==18
       pip install cython
@@ -36,8 +37,9 @@ steps:
       pip install --ignore-installed -r requirements-dev.txt
       python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
     displayName: 'Install Dependencies and Build Aer'
-  - script: |
-      call activate qiskit-aer-$(Build.BuildNumber)
+  - bash: |
+      set -e
+      source activate qiskit-aer-$(Build.BuildNumber)
       pip install dist\qiskit_aer*.whl
       python -m unittest discover -s test/terra -v
     displayName: 'Install Aer and Run Tests'
