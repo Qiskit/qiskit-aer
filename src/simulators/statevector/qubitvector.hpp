@@ -1607,7 +1607,7 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
   }
   
   // Convert qubit to array register for lambda functions
-  areg_t<1> qubits({{qubit}});
+  areg_t<1> qubits = {{qubit}};
 
   // Check if anti-diagonal matrix and if so use optimized lambda
   if(mat[0] == 0.0 && mat[3] == 0.0) {
