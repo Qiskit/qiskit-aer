@@ -176,6 +176,24 @@ class TestReadoutError(common.QiskitAerTestCase):
         error2 = ReadoutError(np.array([[0.9, 0.1], [0.5, 0.5]]))
         self.assertEqual(error1, error2)
 
+    def test_to_instruction(self):
+        """Test conversion of ReadoutError to Instruction."""
+        # 1-qubit case
+        probs1 = [[0.8, 0.2], [0.5, 0.5]]
+        instr1 = ReadoutError(probs1).to_instruction()
+        self.assertEqual(instr1.name, "roerror")
+        self.assertEqual(instr1.num_clbits, 1)
+        self.assertEqual(instr1.num_qubits, 0)
+        self.assertTrue(np.allclose(instr1.params, probs1))
+
+        # 2-qubit case
+        probs2 = np.kron(probs1, probs1)
+        instr2 = ReadoutError(probs2).to_instruction()
+        self.assertEqual(instr2.name, "roerror")
+        self.assertEqual(instr2.num_clbits, 2)
+        self.assertEqual(instr2.num_qubits, 0)
+        self.assertTrue(np.allclose(instr2.params, probs2))
+
 
 if __name__ == '__main__':
     unittest.main()
