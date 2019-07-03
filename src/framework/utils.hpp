@@ -92,6 +92,7 @@ private:
 template<class T> matrix<T> make_matrix(const std::vector<std::vector<T>> &mat);
 template<class T> matrix<T> devectorize_matrix(const std::vector<T> &vec);
 template<class T> std::vector<T> vectorize_matrix(const matrix<T> &mat);
+template<class T> std::vector<T> vectorize_diagonal_matrix(const matrix<T>& mat);
 
 // Transformations
 template <class T> matrix<T> transpose(const matrix<T> &A);
@@ -496,7 +497,6 @@ matrix<T> devectorize_matrix(const std::vector<T>& vec) {
   return mat;
 }
 
-
 template<class T>
 std::vector<T> vectorize_matrix(const matrix<T>& mat) {
   std::vector<T> vec;
@@ -510,6 +510,15 @@ std::vector<T> vectorize_matrix(const matrix<T>& mat) {
   return vec;
 }
 
+template<class T>
+std::vector<T> vectorize_diagonal_matrix(const matrix<T>& mat) {
+  std::vector<T> vec;
+  size_t size = std::min(mat.GetRows(), mat.GetColumns());
+  vec.resize(size, 0.);
+  for (size_t i=0; i < size; i++)
+    vec[i] = mat(i, i);
+  return vec;
+}
 
 template <class T>
 matrix<T> make_matrix(const std::vector<std::vector<T>> & mat) {
