@@ -36,8 +36,8 @@ steps:
       pip install --ignore-installed -r requirements-dev.txt
       python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
     displayName: 'Install Dependencies and Build Aer'
-  - bash: |
+  - script: |
       call activate qiskit-aer-$(Build.BuildNumber)
-      pip install 'dist\qiskit_aer*.whl'
+      pip install dist\qiskit_aer*.whl
       python -m unittest discover -s test/terra -v
     displayName: 'Install Aer and Run Tests'
