@@ -241,10 +241,6 @@ public:
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
   void apply_matrix(const uint_t qubit, const cvector_t &mat);
 
-  // Apply a 2-qubits matrix to the state vector.
-  // The matrix is input as vector of the column-major vectorized 2-qubit matrix.
-  void apply_matrix(const uint_t qubit0, const uint_t qubit1, const cvector_t &mat);
-
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t &mat);
@@ -1087,7 +1083,20 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
       apply_matrix(qubits[0], mat);
       return;
     case 2: {
-      apply_matrix(qubits[0], qubits[1], mat);
+      // Lambda function for 2-qubit matrix multiplication
+      auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
+        std::array<complex_t, 4> cache;
+        for (size_t i = 0; i < 4; i++) {
+          const auto ii = inds[i];
+          cache[i] = data_[ii];
+          data_[ii] = 0.;
+        }
+        // update state vector
+        for (size_t i = 0; i < 4; i++)
+          for (size_t j = 0; j < 4; j++)
+            data_[inds[i]] += _mat[i + 4 * j] * cache[j];
+      };
+      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), mat);
       return;
     }
     case 3: {
@@ -1709,103 +1718,6 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
   }
 }
 
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix(const uint_t qubit0,
-                                       const uint_t qubit1,
-                                       const cvector_t& mat) {
-
-  if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
-   && mat[1] == 0.0 && mat[5] == 0.0 && mat[9]  == 0.0
-   && mat[2] == 0.0 && mat[6] == 0.0                   && mat[14] == 0.0
-   && mat[3] == 0.0 && mat[7] == 1.0 && mat[11] == 0.0 && mat[15] == 0.0
-   ) {
-    // Lambda function for 2-qubit u1-cx matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 1; i < 4; i++)
-        cache[i] = data_[inds[i]];
-      data_[inds[1]] = _mat[13] * cache[3];
-      data_[inds[2]] = _mat[10] * cache[2];
-      data_[inds[3]] = cache[1];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
-          && mat[1] == 0.0                  && mat[9]  == 0.0 && mat[13] == 0.0
-          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 0.0
-          && mat[3] == 0.0 && mat[7] == 0.0 && mat[11] == 1.0 && mat[15] == 0.0
-  ) {
-    // Lambda function for 2-qubit u1-cx matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 1; i < 4; i++)
-        cache[i] = data_[inds[i]];
-      data_[inds[1]] = _mat[5] * cache[1];
-      data_[inds[2]] = _mat[14] * cache[3];
-      data_[inds[3]] = cache[2];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
-          && mat[1] == 0.0 && mat[5] == 0.0 && mat[9]  == 0.0
-          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 1.0 && mat[14] == 0.0
-          && mat[3] == 0.0                  && mat[11] == 0.0 && mat[15] == 0.0
-  ) {
-    // Lambda function for 2-qubit u1-cx matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 1; i < 4; i++)
-      cache[i] = data_[inds[i]];
-      data_[inds[1]] = _mat[13] * cache[3];
-      data_[inds[2]] = cache[2];
-      data_[inds[3]] = _mat[7] * cache[1];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
-          && mat[1] == 0.0 && mat[5] == 1.0 && mat[9]  == 0.0 && mat[13] == 0.0
-          && mat[2] == 0.0 && mat[6] == 0.0 && mat[10] == 0.0
-          && mat[3] == 0.0 && mat[7] == 0.0                   && mat[15] == 0.0
-  ) {
-    // Lambda function for 2-qubit u1-cx matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 1; i < 4; i++)
-      cache[i] = data_[inds[i]];
-      data_[inds[1]] = cache[1];
-      data_[inds[2]] = _mat[14] * cache[3];
-      data_[inds[3]] = _mat[11] * cache[2];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  } else if (mat[0] == 1.0 && mat[4] == 0.0 && mat[8]  == 0.0 && mat[12] == 0.0
-          && mat[1] == 0.0                  && mat[9]  == 0.0 && mat[13] == 0.0
-          && mat[2] == 0.0 && mat[6] == 0.0                   && mat[14] == 0.0
-          && mat[3] == 0.0 && mat[7] == 0.0 && mat[11] == 0.0
-  ) {
-    // Lambda function for 2-qubit u1-u1 matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 1; i < 4; i++)
-        cache[i] = data_[inds[i]];
-      data_[inds[1]] = _mat[5] * cache[1];
-      data_[inds[2]] = _mat[10] * cache[2];
-      data_[inds[3]] = _mat[15] * cache[3];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  } else {
-    // Lambda function for 2-qubit matrix multiplication
-    auto lambda = [&](const areg_t<4> &inds, const cvector_t &_mat)->void {
-      std::array<complex_t, 4> cache;
-      for (size_t i = 0; i < 4; i++) {
-        const auto ii = inds[i];
-        cache[i] = data_[ii];
-        data_[ii] = 0.;
-      }
-      data_[inds[0]] = _mat[0] * cache[0] + _mat[4] * cache[1] + _mat[8] * cache[2] + _mat[12] * cache[3];
-      data_[inds[1]] = _mat[1] * cache[0] + _mat[5] * cache[1] + _mat[9] * cache[2] + _mat[13] * cache[3];
-      data_[inds[2]] = _mat[2] * cache[0] + _mat[6] * cache[1] + _mat[10] * cache[2] + _mat[14] * cache[3];
-      data_[inds[3]] = _mat[3] * cache[0] + _mat[7] * cache[1] + _mat[11] * cache[2] + _mat[15] * cache[3];
-    };
-    apply_lambda(lambda, areg_t<2>( { { qubit0, qubit1 } }), mat);
-  }
-}
 /*******************************************************************************
  *
  * NORMS
