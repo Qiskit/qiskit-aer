@@ -14,6 +14,7 @@
 import os
 import sys
 import math
+import time
 import numpy as np
 from numpy.random import RandomState, randint
 from scipy.integrate import ode
@@ -118,8 +119,9 @@ class OP_mcwf(object):
         # need to simulate each trajectory, so shots*len(experiments) times
         # Do a for-loop over experiments, and do shots in parallel_map
         else:
-            results = []
+            all_results = []
             for exp in self.op_system.experiments:
+                start = time.time()
                 rng = np.random.RandomState(exp['seed'])
                 seeds = rng.randint(np.iinfo(np.int32).max-1,
                                     size=self.op_system.global_data['shots'])
@@ -134,10 +136,21 @@ class OP_mcwf(object):
                 for kk in range(unique[0].shape[0]):
                     key = hex(unique[0][kk])
                     hex_dict[key] = unique[1][kk]
-                results.append(hex_dict)
+                end = time.time()
+                results = {'name': exp['name'],
+                           'seed_simulator': exp['seed'],
+                           'shots': self.op_system.global_data['shots'],
+                           'status': 'DONE',
+                           'success': True,
+                           'time_taken': (end - start),
+                           'header': {}}
+                
+                results['data'] =  {'counts': hex_dict}
+                
+                all_results.append(results)
         
         _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
-        return results
+        return all_results
 
 
 # Measurement
