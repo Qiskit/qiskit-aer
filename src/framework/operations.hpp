@@ -36,7 +36,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, matrix_sequence, multiplexer, kraus, roerror, noise_switch, initialize
+  matrix, multiplexer, kraus, roerror, noise_switch, initialize
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -61,9 +61,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::matrix:
     stream << "matrix";
-    break;
-  case OpType::matrix_sequence:
-    stream << "matrix_sequence";
     break;
   case OpType::multiplexer:
     stream << "multiplexer";
@@ -136,6 +133,20 @@ inline std::ostream& operator<<(std::ostream& s, const Op& op) {
   for (size_t qubit: op.qubits) {
     if (!first) s << ",";
     s << qubit;
+    first = false;
+  }
+  s << "],[";
+  first = true;
+  for (reg_t reg: op.regs) {
+    if (!first) s << ",";
+    s << "[";
+    bool first0 = true;
+    for (size_t qubit: reg) {
+      if (!first0) s << ",";
+      s << qubit;
+      first0 = false;
+    }
+    s << "]";
     first = false;
   }
   s << "]";
@@ -390,14 +401,15 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string la
   return op;
 }
 
-inline Op make_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t> &mats, std::string label = "") {
+inline Op make_fusion(const reg_t &qubits, const cmatrix_t &mat, const std::vector<Op>& fusioned_ops, std::string label = "") {
   Op op;
-  op.type = OpType::matrix_sequence;
-  op.name = "matrix_sequence";
-  op.regs = regs;
-  op.mats = mats;
+  op.type = OpType::matrix;
+  op.name = "fusion";
+  op.qubits = qubits;
+  op.mats = {mat};
   if (label != "")
     op.string_params = {label};
+
   return op;
 }
 
