@@ -35,9 +35,9 @@ steps:
       pip install git+https://github.com/Qiskit/qiskit-terra.git
       pip install --ignore-installed -r requirements-dev.txt
       python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-      pip install dist\qiskit_aer*
-    displayName: 'Install dependencies and build Aer'
-  - script: |
+    displayName: 'Install Dependencies and Build Aer'
+  - bash: |
       call activate qiskit-aer-$(Build.BuildNumber)
+      pip install 'dist\qiskit_aer*.whl'
       python -m unittest discover -s test/terra -v
-    displayName: 'Run Tests'
+    displayName: 'Install Aer and Run Tests'
