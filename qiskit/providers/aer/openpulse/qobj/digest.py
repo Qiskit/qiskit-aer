@@ -282,6 +282,7 @@ def build_pulse_arrays(qobj):
 def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt):
     max_time = 0
     structs = {}
+    structs['name'] = experiment['header']['name']
     structs['channels'] = OrderedDict()
     for chan_name in ham_chans:
         structs['channels'][chan_name] = [[], []]
