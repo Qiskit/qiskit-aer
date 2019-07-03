@@ -21,14 +21,15 @@ strategy:
 steps:
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: Add conda to PATH
-  - script: conda create --yes --quiet --name qiskit-aer
+  - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
     displayName: Create Anaconda environment
   - script: |
-      call activate qiskit-aer
-      conda install --yes --quiet --name qiskit-aer python=%PYTHON_VERSION% numpy
+      call activate qiskit-aer-$(Build.BuildNumber)
+      conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
     displayName: Install Anaconda packages
   - script: |
-      call activate qiskit-aer
+      call activate qiskit-aer-$(Build.BuildNumber)
+      git clean -fdX
       python -m pip install --disable-pip-version-check pip==18
       pip install cython
       pip install git+https://github.com/Qiskit/qiskit-terra.git
