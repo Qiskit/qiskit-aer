@@ -102,7 +102,7 @@ struct Op {
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
 
-  // DEPRECATED: old style conditionals (will be removed when Terra supports new style)
+  // DEPRECATED: Old style conditionals (remove in 0.3)
   bool old_conditional = false;     // is gate old style conditional gate
   std::string old_conditional_mask; // hex string for conditional mask
   std::string old_conditional_val;  // hex string for conditional value
@@ -646,7 +646,7 @@ Op json_to_op_gate(const json_t &js) {
       op.conditional_reg = js["conditional"];
       op.conditional = true;
     } else {
-      // DEPRECIATED: old style conditional
+      // DEPRECATED: old style conditional (remove in 0.3)
       JSON::get_value(op.old_conditional_mask, "mask", js["conditional"]);
       JSON::get_value(op.old_conditional_val, "val", js["conditional"]);
       op.old_conditional = true;
@@ -783,7 +783,8 @@ Op json_to_op_roerror(const json_t &js) {
   op.name = "roerror";
   JSON::get_value(op.memory, "memory", js);
   JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "probabilities", js);
+  JSON::get_value(op.probs, "probabilities", js); // DEPRECATED: Remove in 0.4
+  JSON::get_value(op.probs, "params", js);
   return op;
 }
 
