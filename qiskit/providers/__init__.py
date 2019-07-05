@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-#!python
-#cython: language_level = 3
-#distutils: language = c++
 
 # This code is part of Qiskit.
 #
@@ -14,11 +11,3 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-cdef complex chan_value(double t,
-                        unsigned int chan_num,
-                        double[::1] chan_pulse_times,
-                        complex[::1] pulse_array,
-                        unsigned int[::1] pulse_ints,
-                        double[::1] fc_array,
-                        unsigned char[::1] register)

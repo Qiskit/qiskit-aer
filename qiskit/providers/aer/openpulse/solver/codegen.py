@@ -19,9 +19,8 @@
 
 import os
 import sys
-import numpy as np
 import qutip as qt
-import openpulse.solver.settings as op_set
+import qiskit.providers.aer.openpulse.solver.settings as op_set
 
 _cython_path = os.path.abspath(qt.cy.__file__).replace('__init__.py', '')
 _cython_path = _cython_path.replace("\\", "/")
@@ -131,7 +130,7 @@ class OPCodegen(object):
 
         channel_lines.append("# Compute complex channel values at time `t`")
         for chan, idx in self.op_system.channels.items():
-            chan_str = "%s = channel_value(t, %s, " %(chan, idx) + \
+            chan_str = "%s = chan_value(t, %s, " %(chan, idx) + \
                        "%s_pulses,  pulse_array, pulse_indices, " % chan + \
                        "%s_fc, register)" % chan
             channel_lines.append(chan_str)
@@ -229,7 +228,7 @@ from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.math cimport erf
 from libc.math cimport pi
 
-from openpulse.cy.channel_value cimport channel_value
+from qiskit.providers.aer.openpulse.cy.channel_value cimport chan_value
 
 include """+_include_string+"""
 """]

@@ -11,30 +11,24 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-import os
-import sys
-import math
+
+"""The main OpenPulse solver routine.
+"""
+
 import time
 import numpy as np
 from numpy.random import RandomState, randint
-from scipy.integrate import ode
-import scipy.sparse as sp
-from scipy.integrate._ode import zvode
 from scipy.linalg.blas import get_blas_funcs
 from collections import OrderedDict
-import qutip as qt
-from qutip.qobj import Qobj
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.utilities import _cython_build_cleanup
-from openpulse.qobj.operators import apply_projector
-import qutip.settings
-from openpulse.solver.codegen import OPCodegen
-from openpulse.solver.rhs_utils import _op_generate_rhs, _op_func_load
-from openpulse.solver.data_config import op_data_config
-import openpulse.solver.settings as settings
-from openpulse.solver.unitary import unitary_evolution
-from openpulse.solver.monte_carlo import monte_carlo
-from qiskit.tools.parallel import parallel_map
+from ..qobj.operators import apply_projector
+from .codegen import OPCodegen
+from .rhs_utils import _op_generate_rhs, _op_func_load
+from .data_config import op_data_config
+from .unitary import unitary_evolution
+from .monte_carlo import monte_carlo
+from qiskit.tools.parallel import parallel_map, CPU_COUNT
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -51,9 +45,9 @@ def opsolve(op_system):
     if not op_system.initial_state.isket:
         raise Exception("Initial state must be a state vector.")
 
-    # set num_cpus to the value given in qutip.settings if none in Options
+    # set num_cpus to the value given in settings if none in Options
     if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = qutip.settings.num_cpus
+        op_system.ode_options.num_cpus = CPU_COUNT
 
     # build Hamiltonian data structures
     op_data_config(op_system)
@@ -62,9 +56,9 @@ def opsolve(op_system):
     # Load cython function
     _op_func_load(op_system)
     # load monte carlo class
-    mc = OP_mcwf(op_system)
+    montecarlo = OP_mcwf(op_system)
     # Run the simulation
-    out = mc.run()
+    out = montecarlo.run()
     # Results are stored in ophandler.result
     return out
 
@@ -112,8 +106,9 @@ class OP_mcwf(object):
             results = parallel_map(unitary_evolution,
                                    self.op_system.experiments,
                                    task_args=(self.op_system.global_data,
-                                   self.op_system.ode_options
-                                   ), **map_kwargs
+                                              self.op_system.ode_options
+                                             ),
+                                   **map_kwargs
                                   )
 
         # need to simulate each trajectory, so shots*len(experiments) times
@@ -126,16 +121,17 @@ class OP_mcwf(object):
                 seeds = rng.randint(np.iinfo(np.int32).max-1,
                                     size=self.op_system.global_data['shots'])
                 exp_res = parallel_map(monte_carlo,
-                                    seeds,
-                                    task_args=(exp, self.op_system.global_data,
-                                    self.op_system.ode_options
-                                    ), **map_kwargs
-                                    )
+                                       seeds,
+                                       task_args=(exp, self.op_system.global_data,
+                                                  self.op_system.ode_options
+                                                 ),
+                                       **map_kwargs
+                                      )
                 unique = np.unique(exp_res, return_counts=True)
                 hex_dict = {}
-                for kk in range(unique[0].shape[0]):
-                    key = hex(unique[0][kk])
-                    hex_dict[key] = unique[1][kk]
+                for idx in range(unique[0].shape[0]):
+                    key = hex(unique[0][idx])
+                    hex_dict[key] = unique[1][idx]
                 end = time.time()
                 results = {'name': exp['name'],
                            'seed_simulator': exp['seed'],
@@ -144,8 +140,8 @@ class OP_mcwf(object):
                            'success': True,
                            'time_taken': (end - start),
                            'header': {}}
-                
-                results['data'] =  {'counts': hex_dict}
+
+                results['data'] = {'counts': hex_dict}
                 
                 all_results.append(results)
         
@@ -200,10 +196,3 @@ def _proj_measurement(pid, ophandler, tt, state, memory, register=None):
         psi_proj = state
 
     return psi_proj
-
-
-# -----------------------------------------------------------------------------
-# single-trajectory for monte carlo
-# -----------------------------------------------------------------------------
-
-
