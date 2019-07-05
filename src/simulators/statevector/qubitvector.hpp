@@ -1190,61 +1190,29 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
-  const size_t N = qubits.size();
+  const int_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
   check_vector(diag, N);
   #endif
 
-  switch (N) {
-    case 1:
-      apply_diagonal_matrix(qubits[0], diag);
-      return;
-    case 2: {
-      // Lambda function for 2-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<4> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 4; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), diag);
-      return;
+  if (N == 1) {
+    apply_diagonal_matrix(qubits[0], diag);
+    return;
+  }
+
+  auto lambda = [&](const areg_t<2> &inds, const cvector_t &_diag)->void {
+    for (int_t i = 0; i < 2; ++i) {
+      const int_t k = inds[i];
+      int_t iv = 0;
+      for (int_t j = 0; j < N; j++)
+        if ((k & (1ULL << qubits[j])) != 0)
+          iv += (1 << j);
+      if (diag[iv] != 1.0)
+        data_[k] *= diag[iv];
     }
-    case 3: {
-      // Lambda function for 3-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<8> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 8; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), diag);
-      return;
-    }
-    case 4: {
-      // Lambda function for 4-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<16> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 16; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), diag);
-      return;
-    }
-    default: {
-      const uint_t DIM = BITS[N];
-      // Lambda function for N-qubit diagional  matrix multiplication
-      auto lambda = [&](const indexes_t &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < DIM; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, qubits, diag);
-    }
-  } // end switch
+  };
+  apply_lambda(lambda, areg_t<1>({{qubits[0]}}), diag);
 }
 
 template <typename data_t>
