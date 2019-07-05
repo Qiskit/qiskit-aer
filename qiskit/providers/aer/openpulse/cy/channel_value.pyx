@@ -39,13 +39,13 @@ cdef inline int get_arr_idx(double t, double start, double stop, int len_arr):
     return <int>floor(((t-start)/(stop-start)*len_arr))
 
 @cython.boundscheck(False)
-cdef complex channel_value(double t,
-                           unsigned int chan_num,
-                           double[::1] chan_pulse_times,
-                           complex[::1] pulse_array,
-                           unsigned int[::1] pulse_ints,
-                           double[::1] fc_array,
-                           unsigned char[::1] register):
+cdef complex chan_value(double t,
+                        unsigned int chan_num,
+                        double[::1] chan_pulse_times,
+                        complex[::1] pulse_array,
+                        unsigned int[::1] pulse_ints,
+                        double[::1] fc_array,
+                        unsigned char[::1] register):
     """Computes the value of a given channel at time `t`.
 
     Args:

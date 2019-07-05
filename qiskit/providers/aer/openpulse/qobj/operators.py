@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 import numpy as np
 import scipy.linalg as la
-from openpulse.qobj import op_qobj as op
+from ..qobj import op_qobj as op
 
 
 def gen_oper(opname, index, h_osc, h_qub, states=None):

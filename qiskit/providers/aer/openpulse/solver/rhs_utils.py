@@ -13,8 +13,8 @@
 # that they have been altered from the originals.
 
 import os
-from openpulse.solver.codegen import OPCodegen
-import openpulse.solver.settings as op_set
+from qiskit.providers.aer.openpulse.solver.codegen import OPCodegen
+import qiskit.providers.aer.openpulse.solver.settings as op_set
 
 
 def _op_generate_rhs(op_system):

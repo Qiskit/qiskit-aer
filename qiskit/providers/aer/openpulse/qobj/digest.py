@@ -12,15 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import numpy as np
 from collections import OrderedDict
+import numpy as np
 from qiskit.qiskiterror import QiskitError
-from openpulse.qobj.op_system import OPSystem
-from openpulse.solver.options import OPoptions
-from openpulse.qobj.opparse import HamiltonianParser, NoiseParser
-from openpulse.qobj.operators import init_fock_state, qubit_occ_oper
+from .op_system import OPSystem
+from .opparse import HamiltonianParser, NoiseParser
+from .operators import init_fock_state, qubit_occ_oper
+from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
-from openpulse.cy.utils import oplist_to_array
+from ..cy.utils import oplist_to_array
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.

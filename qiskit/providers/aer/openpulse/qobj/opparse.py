@@ -17,8 +17,8 @@ import re
 import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
-from openpulse.qobj.operators import gen_oper
-from openpulse.qobj import op_qobj as op
+from .op_qobj import get_func
+from .operators import gen_oper
 
 
 Token = namedtuple('Token', ('type', 'name'))
@@ -267,7 +267,7 @@ class HamiltonianParser:
                 elif token.name == '/':
                     stack.append(op1 / op2)
             elif token.type in ['Func', 'Ext']:
-                stack.append(op.get_func(token.name, stack.pop(-1)))
+                stack.append(get_func(token.name, stack.pop(-1)))
             else:
                 raise Exception('Invalid token %s is found' % token.name)
 
