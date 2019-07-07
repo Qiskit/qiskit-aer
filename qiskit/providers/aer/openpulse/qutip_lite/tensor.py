@@ -1,3 +1,17 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -39,7 +53,6 @@ __all__ = [
 ]
 
 import numpy as np
-import scipy.sparse as sp
 from qutip.cy.spmath import zcsr_kron
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
@@ -113,8 +126,8 @@ shape = [4, 4], type = oper, isHerm = True
             out.data = q.data
             out.dims = q.dims
         else:
-            out.data  = zcsr_kron(out.data, q.data)
-            
+            out.data = zcsr_kron(out.data, q.data)
+
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm
@@ -262,10 +275,10 @@ def _tensor_contract_single(arr, i, j):
     if arr.shape[i] != arr.shape[j]:
         raise ValueError("Cannot contract over indices of different length.")
     idxs = np.arange(arr.shape[i])
-    sl = tuple(slice(None, None, None)
-               if idx not in (i, j) else idxs for idx in range(arr.ndim))
+    sltuple = tuple(slice(None, None, None)
+                    if idx not in (i, j) else idxs for idx in range(arr.ndim))
     contract_at = i if j == i + 1 else 0
-    return np.sum(arr[sl], axis=contract_at)
+    return np.sum(arr[sltuple], axis=contract_at)
 
 
 def _tensor_contract_dense(arr, *pairs):
@@ -384,4 +397,5 @@ def tensor_contract(qobj, *pairs):
     # Return back as a qobj.
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
 
-import qutip.states
+# pylint: disable=wrong-import-position
+import states
