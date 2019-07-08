@@ -76,6 +76,8 @@ public:
     return(num_qubits_ == 0);
   }
 
+  bool operator==(const MPS other) const; 
+    
   //----------------------------------------------------------------	
   // function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes. 
@@ -131,8 +133,8 @@ public:
   cmatrix_t density_matrix(const reg_t &qubits) const;
 
   //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
-  double Expectation_value(const reg_t &qubits, const string &matrices) const;
-  double Expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+  double expectation_value(const reg_t &qubits, const string &matrices) const;
+  double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
   //----------------------------------------------------------------	
   // function name: print
@@ -141,10 +143,10 @@ public:
    virtual ostream&  print(ostream& out) const;
 
    //----------------------------------------------------------------
-   // function name: get_marices_size
+   // function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
-   vector<reg_t> get_marices_size() const;
+   vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
   // function name: state_vec
@@ -157,7 +159,7 @@ public:
   // Parameters: none.
   // Returns: none.
   //----------------------------------------------------------------	
-  MPS_Tensor state_vec(uint_t first_index, uint_t last_index) const;
+  MPS_Tensor state_vec(uint_t first_index, uint_t last_index) const; 
   void full_state_vector(cvector_t &state_vector) const;
   void probabilities_vector(rvector_t& probvector) const;
 
@@ -200,6 +202,17 @@ public:
   }
   
   reg_t sample_measure(std::vector<double> &rnds);
+
+  //----------------------------------------------------------------
+  // function name: initialize_from_statevector
+  // Description: This function receives as input a state_vector and 
+  //      initializes the internal structures of the MPS according to its
+  //      state.
+  // Parameters: number of qubits, state_vector to initialize from
+  // Returns: none.
+  //----------------------------------------------------------------
+
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
   
 protected:
   uint_t num_qubits_;

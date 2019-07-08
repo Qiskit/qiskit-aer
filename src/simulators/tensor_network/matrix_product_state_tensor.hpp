@@ -33,30 +33,6 @@ using cvector_t = std::vector<complex_t>;
 using rvector_t = std::vector<double>;
 using cmatrix_t = matrix<complex_t>;
 
-uint_t num_of_SV(rvector_t S, double threshold);
-
-//-------------------------------------------------------------
-// function name: num_of_SV
-// Description: Computes the number of none-zero singular values
-//				in S
-// Parameters: rvector_t S - vector of singular values from the
-//			   SVD decomposition
-// Returns: number of elements in S that are greater than 0
-//			(actually greater than threshold)
-//-------------------------------------------------------------
-uint_t num_of_SV(rvector_t S, double threshold)
-{
-	uint_t sum = 0;
-	for(uint_t i = 0; i < S.size(); ++i)
-	{
-	  if(std::norm(S[i]) > threshold)
-		sum++;
-	}
-	if (sum == 0)
-	  cout << "SV_Num == 0"<< '\n';
-	return sum;
-}
-
 //============================================================================
 // MPS_Tensor class
 //============================================================================
@@ -76,7 +52,8 @@ public:
   // Constructors of MPS_Tensor class
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
-    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
+    //    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
+    cmatrix_t A = cmatrix_t(1), B = cmatrix_t(1);
     A(0,0) = alpha;
     B(0,0) = beta;
     data_.push_back(A);
@@ -85,6 +62,14 @@ public:
   MPS_Tensor(const MPS_Tensor& rhs){
     data_ = rhs.data_;
   }
+
+  MPS_Tensor(const cmatrix_t& data0, const cmatrix_t& data1){
+    if (!data_.empty())
+      data_.clear();
+    data_.push_back(data0);
+    data_.push_back(data1);
+  }
+
   // Destructor
   virtual ~MPS_Tensor(){}
   
@@ -102,6 +87,9 @@ public:
     return data_[i];
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
+
+  bool operator==(const MPS_Tensor& other) const;
+    
 
   //------------------------------------------------------------------
   // function name: get_dim
@@ -150,8 +138,7 @@ private:
 // function name: print
 // Description: Prints the Tensor. All the submatrices are aligned by rows.
 //-------------------------------------------------------------
-ostream& MPS_Tensor::print(ostream& out) const{
-    
+ostream& MPS_Tensor::print(ostream& out) const {   
     complex_t value;
     
     out << "[" << endl;
@@ -175,7 +162,6 @@ ostream& MPS_Tensor::print(ostream& out) const{
             out << endl;
         }        
     }
-    
     out << "]" << endl;
 
     return out;
@@ -194,7 +180,18 @@ reg_t MPS_Tensor::get_size() const
 	result.push_back(data_[0].GetColumns());
 	return result;
 }
-  
+ 
+bool MPS_Tensor::operator==(const MPS_Tensor& other) const{
+  if (data_.size() != other.data_.size())
+    return false;
+  for (uint_t i=0; i<data_.size(); i++) {
+    if (!AER::Utils::is_equal(data_[i], other.data_[i], THRESHOLD)) {
+      cout << "MPS_tensor not equal cause of " << i<< "my=" << endl << data_[i]<<", other =" << other.data_[i] <<endl;
+      return false;
+    }
+  }
+  return true;
+} 
 //----------------------------------------------------------------
 // function name: get_data
 // Description: Get the data in some axis of the MPS_Tensor
@@ -376,8 +373,12 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &l
 //---------------------------------------------------------------
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
-  matrix<complex_t> C = reshape_before_SVD(temp.data_);
+  matrix<complex_t> C;
+  C.SetOutputStyle(Matrix);
+  C = reshape_before_SVD(temp.data_);
   matrix<complex_t> U,V;
+  U.SetOutputStyle(Matrix);
+  V.SetOutputStyle(Matrix);
   rvector_t S(min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
@@ -386,16 +387,8 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   
   csvd_wrapper(C,U,S,V);
 
-#ifdef DEBUG
-  cout << "matrices after SVD:" <<endl;
-  cout << "U = " << endl << U ;
-  cout << "S = " << endl;
-  for (uint_t i = 0; i != S.size(); ++i)
-    cout << S[i] << " , ";
-  cout << endl;
-  cout << "V = " << endl << V ;
-#endif
 
+  //reduce_zeros(U, S, V);
   uint_t SV_num = num_of_SV(S, 1e-16);
   U.resize(U.GetRows(),SV_num);
   S.resize(SV_num);

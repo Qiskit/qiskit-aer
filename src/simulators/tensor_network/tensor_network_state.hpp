@@ -120,6 +120,8 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const tensorstate_t &state) override;
 
+  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector); 
+
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
@@ -338,6 +340,20 @@ void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
 #endif
 }
 
+void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
+  // Check dimension of state
+  if (qreg_.num_qubits() != num_qubits) {
+    throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
+  }
+  initialize_omp();
+
+  // internal bit ordering is the opposite of ordering in Qasm, so must
+  // reverse order before starting
+  cvector_t mps_format_state_vector = reverse_all_bits(statevector, num_qubits);
+
+  qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
+}
+
 void State::initialize_omp() {
   qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
@@ -420,6 +436,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
                                     op.name + "\'.");
     }
+
   }
 }
 
@@ -445,7 +462,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     pauli_matrices += param.second;
   }
-  expval = qreg_.Expectation_value(op.qubits, pauli_matrices);
+  expval = qreg_.expectation_value(op.qubits, pauli_matrices);
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
   //expval += coeff * std::real(BaseState::qreg_.inner_product());
@@ -470,7 +487,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
       const reg_t &qubits = pair.first;
       const cmatrix_t &mat = pair.second;
       double expval = 0;
-      expval = qreg_.Expectation_value(qubits, mat);
+      expval = qreg_.expectation_value(qubits, mat);
     // Pauli expectation values should always be real for a valid state
     // so we truncate the imaginary part
     //expval += coeff * std::real(BaseState::qreg_.inner_product());
@@ -482,10 +499,38 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 void State::snapshot_state(const Operations::Op &op,
 			   OutputData &data,
 			   std::string name) {
-  TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+  //TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   cvector_t statevector;
+  MPS temp_copy;
+  temp_copy.initialize(qreg_);
   qreg_.full_state_vector(statevector);
+
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+
+  initialize_qreg(qreg_.num_qubits(), statevector);
+  //cout << "Final TN:  " << endl << "= " << qreg_ <<endl;
+  cvector_t init_vec;
+  qreg_.full_state_vector(init_vec);
+
+  bool equal = true;
+  for (uint i=0; i<statevector.size(); i++)
+    if (abs(init_vec[i] - statevector[i]) > THRESHOLD) {
+      equal = false;
+      cout <<"different on " << i<<endl;
+      break;
+    }
+  if (equal)
+    cout << "vectors are equal" <<endl;
+  else
+    cout << "vectors are NOT equal" <<endl;
+
+  /*
+  if (qreg_ == temp_copy)
+    cout << "MPS before and after are equal" <<endl;
+  else
+    cout << "MPS before and after are NOT equal" <<endl;
+  cout << "correct tensor = "  << "= " << temp_copy <<endl;
+  */
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,

@@ -15,6 +15,7 @@
 #include <complex>
 #include <cassert>
 #include "svd.hpp"
+#include "framework/utils.hpp"
 
 #define mul_factor 1e2
 #define tiny_factor 1e30
@@ -22,7 +23,7 @@
 #define NUM_SVD_TRIES 15
 
 using namespace std;
-using namespace AER;
+namespace AER {
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
 
@@ -59,6 +60,35 @@ vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 	vector<cmatrix_t> Res(2);
 	AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1] ,1);
 	return Res;
+}
+
+//-------------------------------------------------------------
+// function name: num_of_SV
+// Description: Computes the number of none-zero singular values
+//				in S
+// Parameters: rvector_t S - vector of singular values from the
+//			   SVD decomposition
+// Returns: number of elements in S that are greater than 0
+//			(actually greater than threshold)
+//-------------------------------------------------------------
+uint_t num_of_SV(rvector_t S, double threshold)
+{
+	uint_t sum = 0;
+	for(uint_t i = 0; i < S.size(); ++i)
+	{
+	  if(std::norm(S[i]) > threshold)
+		sum++;
+	}
+	if (sum == 0)
+	  cout << "SV_Num == 0"<< '\n';
+	return sum;
+}
+
+void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) { 
+  uint_t SV_num = num_of_SV(S, 1e-16);
+  U.resize(U.GetRows(), SV_num);
+  S.resize(SV_num);
+  V.resize(V.GetRows(), SV_num);
 }
 
 // added cut-off at the end
@@ -492,8 +522,9 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   cout << "1st try" << endl;
 #endif
   status current_status = csvd(A, U, S, V);
-  if (current_status == SUCCESS)
-    return;
+  if (current_status == SUCCESS) {
+      return;
+  }
 
   while(times <= NUM_SVD_TRIES && current_status == FAILURE)
     {
@@ -516,7 +547,8 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   //Divide by mul_factor every singular value after we multiplied matrix a
   for(int k = 0; k < S.size(); k++)
     S[k] /= pow(mul_factor, times);
+
 }
 
-
+} // namespace AER
 
