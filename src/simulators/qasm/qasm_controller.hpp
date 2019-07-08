@@ -257,7 +257,7 @@ protected:
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
-  add_circuit_optimization(Transpile::ReduceNop());
+  add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::Fusion());
   add_circuit_optimization(Transpile::TruncateQubits());
 }
@@ -525,7 +525,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
-      noise_circ = optimize_circuit(noise_circ, state, data);
+      optimize_circuit(noise_circ, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
@@ -542,7 +542,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Optimize circuit for state type
   Circuit opt_circ = circ;
   if (circ.num_qubits > circuit_opt_ideal_threshold_) {
-    opt_circ = optimize_circuit(opt_circ, state, data);
+    optimize_circuit(opt_circ, state, data);
   }
 
   // Check if measure sampler and optimization are valid

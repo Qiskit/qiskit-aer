@@ -194,7 +194,7 @@ protected:
 
   // Generate an equivalent circuit with input_circ as output_circ.
   template <class state_t>
-  Circuit optimize_circuit(const Circuit &input_circ,
+  void optimize_circuit(Circuit &input_circ,
                            state_t& state,
                            OutputData &data) const;
 
@@ -476,20 +476,18 @@ bool Controller::validate_memory_requirements(state_t &state,
 // Circuit optimization
 //-------------------------------------------------------------------------
 template <class state_t>
-Circuit Controller::optimize_circuit(const Circuit &input_circ,
+void Controller::optimize_circuit(Circuit &input_circ,
                                      state_t& state,
                                      OutputData &data) const {
 
-  Circuit working_circ = input_circ;
   Operations::OpSet allowed_opset;
   allowed_opset.optypes = state.allowed_ops();
   allowed_opset.gates = state.allowed_gates();
   allowed_opset.snapshots = state.allowed_snapshots();
 
-  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
-    opt->optimize_circuit(working_circ, allowed_opset, data);
-
-  return working_circ;
+  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_) {
+    opt->optimize_circuit(input_circ, allowed_opset, data);
+  }
 }
 
 //-------------------------------------------------------------------------
