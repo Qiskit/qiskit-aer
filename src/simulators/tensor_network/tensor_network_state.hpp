@@ -499,38 +499,10 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 void State::snapshot_state(const Operations::Op &op,
 			   OutputData &data,
 			   std::string name) {
-  //TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   cvector_t statevector;
-  MPS temp_copy;
-  temp_copy.initialize(qreg_);
   qreg_.full_state_vector(statevector);
 
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
-
-  initialize_qreg(qreg_.num_qubits(), statevector);
-  //cout << "Final TN:  " << endl << "= " << qreg_ <<endl;
-  cvector_t init_vec;
-  qreg_.full_state_vector(init_vec);
-
-  bool equal = true;
-  for (uint i=0; i<statevector.size(); i++)
-    if (abs(init_vec[i] - statevector[i]) > THRESHOLD) {
-      equal = false;
-      cout <<"different on " << i<<endl;
-      break;
-    }
-  if (equal)
-    cout << "vectors are equal" <<endl;
-  else
-    cout << "vectors are NOT equal" <<endl;
-
-  /*
-  if (qreg_ == temp_copy)
-    cout << "MPS before and after are equal" <<endl;
-  else
-    cout << "MPS before and after are NOT equal" <<endl;
-  cout << "correct tensor = "  << "= " << temp_copy <<endl;
-  */
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
