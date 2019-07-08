@@ -67,7 +67,7 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
             "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
@@ -187,9 +187,10 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"u2", Gates::mcu2},  // single-X90 pulse waltz gate
   {"u3", Gates::mcu3},  // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::mcx},  // Controlled-X gate (CNOT)
-  {"cy", Gates::mcy},  // Controlled-Z gate
-  {"cz", Gates::mcz},  // Controlled-Z gate
+  {"cx", Gates::mcx},   // Controlled-X gate (CNOT)
+  {"cy", Gates::mcy},   // Controlled-Z gate
+  {"cz", Gates::mcz},   // Controlled-Z gate
+  {"cu1", Gates::mcu1}, // Controlled-u1 gate
   {"swap", Gates::mcswap}, // SWAP gate
   // Three-qubit gates
   {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
