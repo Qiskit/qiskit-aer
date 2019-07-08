@@ -187,7 +187,7 @@ class QasmSimulator(AerBackend):
             "id", "x", "y", "z", "h", "s", "sdg", "CX", "cx", "cz", "swap",
             "barrier", "reset", "measure", 'roerror'
         ]
-        unsupported_ch_instructions = ["u2", "u3"]
+        unsupported_ch_instructions = ["u2", "u3", "cu1"]
         # Check if noise model is Clifford:
         method = "automatic"
         if backend_options and "method" in backend_options:
