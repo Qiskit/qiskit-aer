@@ -76,8 +76,6 @@ public:
     return(num_qubits_ == 0);
   }
 
-  bool operator==(const MPS other) const; 
-    
   //----------------------------------------------------------------	
   // function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes. 

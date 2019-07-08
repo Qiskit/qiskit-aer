@@ -88,9 +88,6 @@ public:
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
-  bool operator==(const MPS_Tensor& other) const;
-    
-
   //------------------------------------------------------------------
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
@@ -181,17 +178,6 @@ reg_t MPS_Tensor::get_size() const
 	return result;
 }
  
-bool MPS_Tensor::operator==(const MPS_Tensor& other) const{
-  if (data_.size() != other.data_.size())
-    return false;
-  for (uint_t i=0; i<data_.size(); i++) {
-    if (!AER::Utils::is_equal(data_[i], other.data_[i], THRESHOLD)) {
-      cout << "MPS_tensor not equal cause of " << i<< "my=" << endl << data_[i]<<", other =" << other.data_[i] <<endl;
-      return false;
-    }
-  }
-  return true;
-} 
 //----------------------------------------------------------------
 // function name: get_data
 // Description: Get the data in some axis of the MPS_Tensor
@@ -374,25 +360,27 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &l
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
   matrix<complex_t> C;
-  C.SetOutputStyle(Matrix);
   C = reshape_before_SVD(temp.data_);
   matrix<complex_t> U,V;
-  U.SetOutputStyle(Matrix);
-  V.SetOutputStyle(Matrix);
   rvector_t S(min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
   cout << "Input matrix before SVD =" << endl << C ;
 #endif
   
-  csvd_wrapper(C,U,S,V);
+  csvd_wrapper(C, U, S, V);
+  reduce_zeros(U, S, V);
 
+#ifdef DEBUG
+  cout << "matrices after SVD:" <<endl;
+  cout << "U = " << endl << U ;
+  cout << "S = " << endl;
+  for (uint_t i = 0; i != S.size(); ++i)
+    cout << S[i] << " , ";
+  cout << endl;
+  cout << "V* = " << endl << V ;
+#endif
 
-  //reduce_zeros(U, S, V);
-  uint_t SV_num = num_of_SV(S, 1e-16);
-  U.resize(U.GetRows(),SV_num);
-  S.resize(SV_num);
-  V.resize(V.GetRows(),SV_num);
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
   right_gamma.data_ = reshape_V_after_SVD(V);
