@@ -574,7 +574,7 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   auto start_meas = start;
   // Check all remaining operations are measurements
   while (start != circ.ops.end()) {
-    if (start->type != Operations::OpType::measure) {
+    if (start->type != Operations::OpType::measure && start->conditional) {
       return std::make_pair(false, 0);
     }
     ++start;
