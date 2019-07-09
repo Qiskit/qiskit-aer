@@ -135,7 +135,7 @@ def qft_circuit(num_qubits, measure=True):
     # Create quantum/classical registers of size n
     qr = QuantumRegister(num_qubits)
     circuit = QuantumCircuit(qr)
-    
+
     for i in range(num_qubits):
         for j in range(i):
             circuit.cu1(math.pi/float(2**(i-j)), qr[i], qr[j])
@@ -187,4 +187,29 @@ def simple_cnot_circuit(num_qubits, measure=True):
 
     if measure:
         circuit = _add_measurements(circuit, qr)
+    return circuit
+
+
+# pylint: disable=invalid-name
+def quantum_fourier_transform_circuit(num_qubits):
+    """Create quantum fourier transform circuit.
+
+    Args:
+        num_qubits (int): Number of qubits
+
+    Returns:
+        QuantumCircuit: QFT circuit
+    """
+    qreg = QuantumRegister(num_qubits)
+    creg = ClassicalRegister(num_qubits)
+
+    circuit = QuantumCircuit(qreg, creg, name="qft")
+
+    n = len(qreg)
+
+    for i in range(n):
+        for j in range(i):
+            circuit.cu1(math.pi/float(2**(i-j)), qreg[i], qreg[j])
+        circuit.h(qreg[i])
+    circuit.measure(qreg, creg)
     return circuit
