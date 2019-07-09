@@ -88,7 +88,7 @@ class UnitarySimulator(AerBackend):
         'description': 'A Python simulator for computing the unitary'
                        'matrix for experiments in qobj files',
         'coupling_map': None,
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'multiplexer', 'snapshot', 'unitary'],
         'gates': [

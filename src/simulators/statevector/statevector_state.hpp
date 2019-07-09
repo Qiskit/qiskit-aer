@@ -81,9 +81,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3", "mcswap"};
+            "mcx", "mcz", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -285,23 +285,24 @@ template <class statevec_t>
 const stringmap_t<Gates> State<statevec_t>::gateset_({
   // Single qubit gates
   {"id", Gates::id},     // Pauli-Identity gate
-  {"x", Gates::mcx},       // Pauli-X gate
-  {"y", Gates::mcy},       // Pauli-Y gate
-  {"z", Gates::mcz},       // Pauli-Z gate
+  {"x", Gates::mcx},     // Pauli-X gate
+  {"y", Gates::mcy},     // Pauli-Y gate
+  {"z", Gates::mcz},     // Pauli-Z gate
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u1", Gates::mcu1},     // zero-X90 pulse waltz gate
-  {"u2", Gates::mcu2},     // single-X90 pulse waltz gate
-  {"u3", Gates::mcu3},     // two X90 pulse waltz gate
+  {"u1", Gates::mcu1},   // zero-X90 pulse waltz gate
+  {"u2", Gates::mcu2},   // single-X90 pulse waltz gate
+  {"u3", Gates::mcu3},   // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::mcx},     // Controlled-X gate (CNOT)
-  {"cy", Gates::mcy},     // Controlled-Y gate
-  {"cz", Gates::mcz},     // Controlled-Z gate
-  {"swap", Gates::mcswap}, // SWAP gate
+  {"cx", Gates::mcx},        // Controlled-X gate (CNOT)
+  {"cy", Gates::mcy},        // Controlled-Y gate
+  {"cz", Gates::mcz},        // Controlled-Z gate
+  {"cu1", Gates::mcu1},      // Controlled-u1 gate
+  {"swap", Gates::mcswap},   // SWAP gate
   {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
   // Multi-qubit controlled gates
   {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
@@ -561,7 +562,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
           BaseState::qreg_.apply_mcy({op.qubits[pos]});
           break;
         case 'Z':
-          BaseState::qreg_.apply_mcz({op.qubits[pos]});
+          BaseState::qreg_.apply_mcphase({op.qubits[pos]}, -1);
           break;
         default: {
           std::stringstream msg;
@@ -652,7 +653,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcz:
       // Includes Z, CZ, CCZ, etc
-      BaseState::qreg_.apply_mcz(op.qubits);
+      BaseState::qreg_.apply_mcphase(op.qubits, -1);
       break;
     case Gates::id:
       break;
@@ -693,9 +694,8 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcu1:
       // Includes u1, cu1, etc
-      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      BaseState::qreg_.apply_mcphase(op.qubits, std::exp(complex_t(0, 1) * op.params[0]));
       break;
-
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +
@@ -716,7 +716,7 @@ template <class statevec_t>
 void State<statevec_t>::apply_matrix(const Operations::Op &op) {
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
-      BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::vectorize_diagonal_matrix(op.mats[0]));
+      BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
     } else {
       BaseState::qreg_.apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
     }

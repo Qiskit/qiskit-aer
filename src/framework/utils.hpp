@@ -88,20 +88,34 @@ private:
 // Matrix Functions
 //------------------------------------------------------------------------------
 
-// Vector conversion
+// Construct a matrix from a vector of matrix-row vectors
 template<class T> matrix<T> make_matrix(const std::vector<std::vector<T>> &mat);
-template<class T> matrix<T> devectorize_matrix(const std::vector<T> &vec);
-template<class T> std::vector<T> vectorize_matrix(const matrix<T> &mat);
-template<class T> std::vector<T> vectorize_diagonal_matrix(const matrix<T>& mat);
 
-// Transformations
+// Reshape a length column-major vectorized matrix into a square matrix
+template<class T> matrix<T> devectorize_matrix(const std::vector<T> &vec);
+
+// Vectorize a matrix by stacking matrix columns (column-major vectorization)
+template<class T> std::vector<T> vectorize_matrix(const matrix<T> &mat);
+
+// Return the transpose a matrix
 template <class T> matrix<T> transpose(const matrix<T> &A);
+
+// Return the adjoing (Hermitian-conjugate) of a matrix
 template <class T>
 matrix<std::complex<T>> dagger(const matrix<std::complex<T>> &A);
+
+// Return the complex conjugate of a matrix
 template <class T>
 matrix<std::complex<T>> conjugate(const matrix<std::complex<T>> &A);
+
+// Given a list of matrices for a multiplexer stacks and packs them 0/1/2/...
+// into a single 2^control x (2^target x 2^target) cmatrix_t) 
+// Equivalent to a 2^qubits x 2^target "flat" matrix
 template<class T>
 matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat);
+
+// Return a vector containing the diagonal of a matrix
+template<class T> std::vector<T> matrix_diagonal(const matrix<T>& mat);
 
 // Tracing
 template <class T> T trace(const matrix<T> &A);
@@ -510,16 +524,6 @@ std::vector<T> vectorize_matrix(const matrix<T>& mat) {
   return vec;
 }
 
-template<class T>
-std::vector<T> vectorize_diagonal_matrix(const matrix<T>& mat) {
-  std::vector<T> vec;
-  size_t size = std::min(mat.GetRows(), mat.GetColumns());
-  vec.resize(size, 0.);
-  for (size_t i=0; i < size; i++)
-    vec[i] = mat(i, i);
-  return vec;
-}
-
 template <class T>
 matrix<T> make_matrix(const std::vector<std::vector<T>> & mat) {
   size_t nrows = mat.size();
@@ -574,8 +578,6 @@ matrix<std::complex<T>> conj(const matrix<std::complex<T>> &A) {
   return temp;
 }
 
-// Given a list of matrices for a multiplexer, stacks and packs them 0/1/2/... into a single 2^control x (2^target x 2^target) cmatrix_t) 
-// Equivalent to a 2^qubits x 2^target "flat" matrix
 template <class T>
 matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat){
         size_t size_of_controls = mmat[0].GetRows(); // or GetColumns, as these matrices are (should be) square
@@ -605,6 +607,15 @@ matrix<T> stacked_matrix(const std::vector<matrix<T>> &mmat){
 	return stacked_matrix;
 }
 
+template<class T>
+std::vector<T> matrix_diagonal(const matrix<T>& mat) {
+  std::vector<T> vec;
+  size_t size = std::min(mat.GetRows(), mat.GetColumns());
+  vec.resize(size, 0.);
+  for (size_t i=0; i < size; i++)
+    vec[i] = mat(i, i);
+  return vec;
+}
 
 template <class T>
 T trace(const matrix<T> &A) {
