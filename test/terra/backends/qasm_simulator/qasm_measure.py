@@ -129,15 +129,3 @@ class QasmMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-
-    def test_measure_conditional(self):
-        """Test QasmSimulator measure with conditions"""
-        shots = 2000
-        qobj = ref_measure.measure_conditional()
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_conditional(shots)
-        result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)

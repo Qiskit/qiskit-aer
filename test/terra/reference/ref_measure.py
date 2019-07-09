@@ -308,33 +308,3 @@ def measure_counts_qobj_nondeterministic(shots, hex_counts=True):
         targets.append({'000': shots / 4, '001': shots / 4,
                         '010': shots / 4, '011': shots / 4})
     return targets
-
-
-# ==========================================================================
-# Conditional measure
-# ==========================================================================
-
-def measure_conditional():
-    """"Measure test circuits with conditions."""
-
-    circuits = []
-    qr = QuantumRegister(1)
-    cr = ClassicalRegister(1)
-
-    # Measure |++> state (sampled)
-    circuit = QuantumCircuit(qr, cr)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.measure(qr, cr).c_if(cr, 1)
-
-    return circuits
-
-def measure_counts_qobj_conditional(shots, hex_counts=True):
-    """Measure test circuits reference counts."""
-
-    targets = []
-    if hex_counts:
-        targets.append({'0x0': shots})    
-    else:
-        targets.append({'0': shots})    
-    return targets
