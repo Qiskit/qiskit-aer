@@ -510,7 +510,11 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
 
   cmatrix_t statevector_as_matrix(1, state_vector.size());
 
-  // later add parallelization here
+  #ifdef _WIN32
+     #pragma omp for
+  #else
+     #pragma omp for collapse(1)
+  #endif
   for (int_t i=0; i<(int_t)state_vector.size(); i++) {
     statevector_as_matrix(0, i) = state_vector[i];
   }
