@@ -81,6 +81,7 @@ public:
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,
+      Operations::OpType::initialize,	
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
@@ -154,6 +155,14 @@ protected:
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
+
+  // Initialize the specified qubits to a given state |psi>
+  // by creating the MPS state with the new state |psi>.
+  // |psi> is given in params
+  // Currently only supports intialization of all qubits
+  void apply_initialize(const reg_t &qubits,
+			const cvector_t &params,
+			RngEngine &rng);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function, then "measure"
@@ -410,6 +419,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
         break;
+      case Operations::OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
+        break;
       case Operations::OpType::measure:
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
@@ -616,6 +628,30 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
 // Implementation: Reset and Measurement Sampling
 //=========================================================================
 
+void State::apply_initialize(const reg_t &qubits,
+			     const cvector_t &params,
+			     RngEngine &rng) {
+   if (qubits.size() == BaseState::qreg_.num_qubits()) {
+     // If qubits is all ordered qubits in the statevector
+     // we can just initialize the whole state directly
+     auto sorted_qubits = qubits;
+     std::sort(sorted_qubits.begin(), sorted_qubits.end());
+     if (qubits == sorted_qubits) {
+       initialize_qreg(qubits.size(), params);
+       return;
+     }
+   }
+    // partial initialization not supported yet
+   std::stringstream msg;
+   msg << "MPS_State: Partial initialization not supported yet.";
+   throw std::invalid_argument(msg.str());
+
+   // Apply reset to qubits
+   //   apply_reset(qubits, rng);
+   // Apply initialize_component
+   //   BaseState::qreg_.initialize_component(qubits, params);
+}
+
 void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
@@ -636,7 +672,6 @@ void State::apply_measure(const reg_t &qubits,
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   BaseState::creg_.store_measure(outcome, cmemory, cregister);
-  
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
