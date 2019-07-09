@@ -42,8 +42,8 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-#include "misc/hacks.hpp"
 #endif
+#include "misc/hacks.hpp"
 
 namespace AER {
 
