@@ -245,11 +245,6 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t &mat);
 
-  // Apply a N-qubit matrix constructed from composition of 1 and 2 qubit matrices.
-  // The sets of qubits and matrices are passed as vectors, where each individual matrix
-  // is input as a column-major vectorized matrix.
-  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cvector_t> &mats);
-
   // Apply a stacked set of 2^control_count target_count--qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cvector_t &mat);
@@ -281,15 +276,17 @@ public:
   // If N=2 this implements an optimized CY gate
   // If N=3 this implements an optimized CCY gate
   void apply_mcy(const reg_t &qubits);
-
-  // Apply a general multi-controlled Z-gate
-  // If N=1 this implements an optimized Z gate
-  // If N=2 this implements an optimized CZ gate
-  // If N=3 this implements an optimized CCZ gate
-  void apply_mcz(const reg_t &qubits);
   
+  // Apply a general multi-controlled single-qubit phase gate
+  // with diagonal [1, ..., 1, phase]
+  // If N=1 this implements an optimized single-qubit phase gate
+  // If N=2 this implements an optimized CPhase gate
+  // If N=3 this implements an optimized CCPhase gate
+  // if phase = -1 this is a Z, CZ, CCZ gate
+  void apply_mcphase(const reg_t &qubits, const complex_t phase);
+
   // Apply a general multi-controlled single-qubit unitary gate
-  // If N=1 this implements an optimized single-qubit gate
+  // If N=1 this implements an optimized single-qubit U gate
   // If N=2 this implements an optimized CU gate
   // If N=3 this implements an optimized CCU gate
   void apply_mcu(const reg_t &qubits, const cvector_t &mat);
@@ -528,21 +525,6 @@ protected:
   complex_t apply_reduction_lambda(Lambda&& func,
                                    const list_t &qubits,
                                    const param_t &params) const;
-
-  // Permute an N-qubit vectorized matrix to match a reordering of qubits
-  cvector_t sort_matrix(const reg_t &src,
-                        const reg_t &sorted,
-                        const cvector_t &mat) const;
-
-  // Swap cols and rows of vectorized matrix
-  void swap_cols_and_rows(const uint_t idx1, const uint_t idx2,
-                          cvector_t &mat, uint_t dim) const;
-
-  // Extend a matrix for qubits (src_qubits) to a matrix for more qubits (dst_sorted_qubits)
-  // qubits in dst_sorted_qubits must contains all the qubits in src_qubits
-  cvector_t expand_matrix(const reg_t& src_qubits,
-                          const reg_t& dst_sorted_qubits,
-                          const cvector_t& vmat) const;
 };
 
 /*******************************************************************************
@@ -1090,7 +1072,7 @@ complex_t QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t &mat) {
-  
+
   const size_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
@@ -1174,69 +1156,6 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
 }
 
 template <typename data_t>
-void QubitVector<data_t>::apply_matrix_sequence(const std::vector<reg_t> &regs,
-                                         const std::vector<cvector_t> &mats) {
-  if (mats.size() == 0)
-    return;
-
-
-#ifdef DEBUG
-  if (regs.size() != mats.size());
-    throw std::runtime_error("QubitVector<data_t>::apply_matrix_sequence allows same size of qubitss and mats.");
-#endif
-
-  bool at_most_two = true;
-  // check 1 or 2 qubits
-  for (const reg_t& reg: regs) {
-    if (reg.size() > 2) {
-      at_most_two = false;
-      break;
-    }
-  }
-
-  if (!at_most_two) {
-    for (size_t i = 0; i < regs.size(); ++i)
-      apply_matrix(regs[i], mats[i]);
-    return;
-  }
-
-
-  reg_t sorted_qubits;
-  for (const reg_t& reg: regs)
-    for (const uint_t qubit: reg)
-      if (std::find(sorted_qubits.begin(), sorted_qubits.end(), qubit) == sorted_qubits.end())
-        sorted_qubits.push_back(qubit);
-
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
-
-  std::vector<cvector_t> sorted_mats;
-
-  for (size_t i = 0; i < regs.size(); ++i) {
-    const reg_t& reg = regs[i];
-    const cvector_t& mat = mats[i];
-    sorted_mats.push_back(expand_matrix(reg, sorted_qubits, mat));
-  }
-
-  auto U = sorted_mats[0];
-  const auto dim = BITS[sorted_qubits.size()];
-
-  for (size_t m = 1; m < sorted_mats.size(); m++) {
-
-    cvector_t u_tmp(U.size(), 0.);
-    const cvector_t& u = sorted_mats[m];
-
-    for (size_t i = 0; i < dim; ++i)
-      for (size_t j = 0; j < dim; ++j)
-        for (size_t k = 0; k < dim; ++k)
-          u_tmp[i + j * dim] += u[i + k * dim] * U[k + j * dim];
-
-    U = u_tmp;
-  }
-
-  apply_matrix(sorted_qubits, U);
-}
-
-template <typename data_t>
 void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 		const reg_t &target_qubits,
 		const cvector_t &mat) {
@@ -1273,61 +1192,29 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t &diag) {
-  const size_t N = qubits.size();
+  const int_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
   check_vector(diag, N);
   #endif
 
-  switch (N) {
-    case 1:
-      apply_diagonal_matrix(qubits[0], diag);
-      return;
-    case 2: {
-      // Lambda function for 2-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<4> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 4; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), diag);
-      return;
+  if (N == 1) {
+    apply_diagonal_matrix(qubits[0], diag);
+    return;
+  }
+
+  auto lambda = [&](const areg_t<2> &inds, const cvector_t &_diag)->void {
+    for (int_t i = 0; i < 2; ++i) {
+      const int_t k = inds[i];
+      int_t iv = 0;
+      for (int_t j = 0; j < N; j++)
+        if ((k & (1ULL << qubits[j])) != 0)
+          iv += (1 << j);
+      if (diag[iv] != 1.0)
+        data_[k] *= diag[iv];
     }
-    case 3: {
-      // Lambda function for 3-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<8> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 8; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), diag);
-      return;
-    }
-    case 4: {
-      // Lambda function for 4-qubit diagional matrix multiplication
-      auto lambda = [&](const areg_t<16> &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < 16; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), diag);
-      return;
-    }
-    default: {
-      const uint_t DIM = BITS[N];
-      // Lambda function for N-qubit diagional  matrix multiplication
-      auto lambda = [&](const indexes_t &inds,
-                        const cvector_t &_mat)->void {
-        for (size_t i = 0; i < DIM; i++) {
-          data_[inds[i]] *= _mat[i];
-        }
-      };
-      apply_lambda(lambda, qubits, diag);
-    }
-  } // end switch
+  };
+  apply_lambda(lambda, areg_t<1>({{qubits[0]}}), diag);
 }
 
 template <typename data_t>
@@ -1499,46 +1386,6 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
 }
 
 template <typename data_t>
-void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
-  const size_t N = qubits.size();
-
-  switch (N) {
-    case 1: {
-      // Lambda function for Z gate
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        data_[inds[1]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-      return;
-    }
-    case 2: {
-      // Lambda function for CZ gate
-      auto lambda = [&](const areg_t<4> &inds)->void {
-        data_[inds[3]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-      return;
-    }
-    case 3: {
-      // Lambda function for CCZ gate
-      auto lambda = [&](const areg_t<8> &inds)->void {
-         data_[inds[7]] *= -1.;
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-      return;
-    }
-    default: {
-      // Lambda function for general multi-controlled X gate
-      auto lambda = [&](const indexes_t &inds)->void {
-         data_[inds[MASKS[N]]] *= -1.;
-      };
-      apply_lambda(lambda, qubits);
-    }
-  } // end switch
-}
-
-
-template <typename data_t>
 void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
   // Calculate the swap positions for the last two qubits.
   // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP gate.
@@ -1574,6 +1421,44 @@ void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
 }
 
 template <typename data_t>
+void QubitVector<data_t>::apply_mcphase(const reg_t &qubits, const complex_t phase) {
+  const size_t N = qubits.size();
+  switch (N) {
+    case 1: {
+      // Lambda function for arbitrary Phase gate with diagonal [1, phase]
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[1]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
+      return;
+    }
+    case 2: {
+      // Lambda function for CPhase gate with diagonal [1, 1, 1, phase]
+      auto lambda = [&](const areg_t<4> &inds)->void {
+        data_[inds[3]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
+      return;
+    }
+    case 3: {
+      auto lambda = [&](const areg_t<8> &inds)->void {
+         data_[inds[7]] *= phase;
+      };
+      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
+      return;
+    }
+    default: {
+      // Lambda function for general multi-controlled Phase gate
+      // with diagonal [1, ..., 1, phase]
+      auto lambda = [&](const indexes_t &inds)->void {
+         data_[inds[MASKS[N]]] *= phase;
+      };
+      apply_lambda(lambda, qubits);
+    }
+  } // end switch
+}
+
+template <typename data_t>
 void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
                                     const cvector_t &mat) {
   // Calculate the permutation positions for the last qubit.
@@ -1585,6 +1470,12 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
   // diagonal matrix lambda function
   // TODO: this should be changed to not check doubles with ==
   if (mat[1] == 0.0 && mat[2] == 0.0) {
+    // Check if actually a phase gate
+    if (mat[0] == 1.0) {
+      apply_mcphase(qubits, mat[3]);
+      return;
+    }
+    // Otherwise apply general diagonal gate
     const cvector_t diag = {{mat[0], mat[3]}};
     // Diagonal version
     switch (N) {
@@ -1597,8 +1488,8 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
         // Lambda function for CU gate
         auto lambda = [&](const areg_t<4> &inds,
                           const cvector_t &_diag)->void {
-          data_[pos0] = _diag[0] * data_[pos0];
-          data_[pos1] = _diag[1] * data_[pos1];
+          data_[inds[pos0]] = _diag[0] * data_[inds[pos0]];
+          data_[inds[pos1]] = _diag[1] * data_[inds[pos1]];
         };
         apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), diag);
         return;
@@ -1607,8 +1498,8 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
         // Lambda function for CCU gate
         auto lambda = [&](const areg_t<8> &inds,
                           const cvector_t &_diag)->void {
-          data_[pos0] = _diag[0] * data_[pos0];
-          data_[pos1] = _diag[1] * data_[pos1];
+          data_[inds[pos0]] = _diag[0] * data_[inds[pos0]];
+          data_[inds[pos1]] = _diag[1] * data_[inds[pos1]];
         };
         apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), diag);
         return;
@@ -1617,8 +1508,8 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
         // Lambda function for general multi-controlled U gate
         auto lambda = [&](const indexes_t &inds,
                           const cvector_t &_diag)->void {
-          data_[pos0] = _diag[0] * data_[pos0];
-          data_[pos1] = _diag[1] * data_[pos1];
+          data_[inds[pos0]] = _diag[0] * data_[inds[pos0]];
+          data_[inds[pos1]] = _diag[1] * data_[inds[pos1]];
         };
         apply_lambda(lambda, qubits, diag);
         return;
@@ -1637,9 +1528,9 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
       // Lambda function for CU gate
       auto lambda = [&](const areg_t<4> &inds,
                         const cvector_t &_mat)->void {
-      const auto cache = data_[pos0];
-      data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
-      data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+      const auto cache = data_[inds[pos0]];
+      data_[inds[pos0]] = _mat[0] * data_[inds[pos0]] + _mat[2] * data_[inds[pos1]];
+      data_[inds[pos1]] = _mat[1] * cache + _mat[3] * data_[inds[pos1]];
       };
       apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), mat);
       return;
@@ -1648,9 +1539,9 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
       // Lambda function for CCU gate
       auto lambda = [&](const areg_t<8> &inds,
                         const cvector_t &_mat)->void {
-      const auto cache = data_[pos0];
-      data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
-      data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+      const auto cache = data_[inds[pos0]];
+      data_[inds[pos0]] = _mat[0] * data_[inds[pos0]] + _mat[2] * data_[inds[pos1]];
+      data_[inds[pos1]] = _mat[1] * cache + _mat[3] * data_[inds[pos1]];
       };
       apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), mat);
       return;
@@ -1659,9 +1550,9 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
       // Lambda function for general multi-controlled U gate
       auto lambda = [&](const indexes_t &inds,
                         const cvector_t &_mat)->void {
-      const auto cache = data_[pos0];
-      data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
-      data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+      const auto cache = data_[inds[pos0]];
+      data_[inds[pos0]] = _mat[0] * data_[inds[pos0]] + _mat[2] * data_[inds[pos1]];
+      data_[inds[pos1]] = _mat[1] * cache + _mat[3] * data_[inds[pos1]];
       };
       apply_lambda(lambda, qubits, mat);
       return;
@@ -1676,25 +1567,62 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t& mat) {
-  // Check if matrix is actually diagonal and if so use 
-  // apply_diagonal_matrix
-  // TODO: this should be changed to not check doubles with ==
+  // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const cvector_t diag = {{mat[0], mat[3]}};
     apply_diagonal_matrix(qubit, diag);
     return;
   }
+  
+  // Convert qubit to array register for lambda functions
+  areg_t<1> qubits = {{qubit}};
 
-  // Lambda function for single-qubit matrix multiplication
-  auto lambda = [&](const areg_t<2> &inds,
-                    const cvector_t &_mat)->void {
-    const auto pos0 = inds[0];
-    const auto pos1 = inds[1];
-    const auto cache = data_[pos0];
-    data_[pos0] = _mat[0] * data_[pos0] + _mat[2] * data_[pos1];
-    data_[pos1] = _mat[1] * cache + _mat[3] * data_[pos1];
+  // Check if anti-diagonal matrix and if so use optimized lambda
+  if(mat[0] == 0.0 && mat[3] == 0.0) {
+    if (mat[1] == 1.0 && mat[2] == 1.0) {
+      // X-matrix
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        std::swap(data_[inds[0]], data_[inds[1]]);
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    if (mat[2] == 0.0) {
+      // Non-unitary projector
+      // possibly used in measure/reset/kraus update
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[1]] = mat[1] * data_[inds[0]];
+        data_[inds[0]] = 0.0;
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    if (mat[1] == 0.0) {
+      // Non-unitary projector
+      // possibly used in measure/reset/kraus update
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[0]] = mat[2] * data_[inds[1]];
+        data_[inds[1]] = 0.0;
+      };
+      apply_lambda(lambda, qubits);
+      return;
+    }
+    // else we have a general anti-diagonal matrix
+    auto lambda = [&](const areg_t<2> &inds)->void {
+      const complex_t cache = data_[inds[0]];
+      data_[inds[0]] = mat[2] * data_[inds[1]];
+      data_[inds[1]] = mat[1] * cache;
+    };
+    apply_lambda(lambda, qubits);
+    return;
+  }
+  // Otherwise general single-qubit matrix multiplication
+  auto lambda = [&](const areg_t<2> &inds)->void {
+    const auto cache = data_[inds[0]];
+    data_[inds[0]] = mat[0] * cache + mat[2] * data_[inds[1]];
+    data_[inds[1]] = mat[1] * cache + mat[3] * data_[inds[1]];
   };
-  apply_lambda(lambda, areg_t<1>({{qubit}}), mat);
+  apply_lambda(lambda, qubits);
 }
 
 template <typename data_t>
@@ -1801,151 +1729,6 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
   }
 }
 
-//------------------------------------------------------------------------------
-// Gate-swap optimized helper functions
-//------------------------------------------------------------------------------
-template <typename data_t>
-void QubitVector<data_t>::swap_cols_and_rows(const uint_t idx1,
-                                             const uint_t idx2,
-                                             cvector_t &mat,
-                                             uint_t dim) const {
-
-  uint_t mask1 = BITS[idx1];
-  uint_t mask2 = BITS[idx2];
-
-  for (uint_t first = 0; first < dim; ++first) {
-    if ((first & mask1) && !(first & mask2)) {
-      uint_t second = (first ^ mask1) | mask2;
-
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[first * dim + i];
-        mat[first * dim + i] = mat[second * dim +  i];
-        mat[second * dim +  i] = cache;
-      }
-      for (uint_t i = 0; i < dim; ++i) {
-        complex_t cache = mat[i * dim + first];
-        mat[i * dim + first] = mat[i * dim + second];
-        mat[i * dim + second] = cache;
-      }
-    }
-  }
-}
-
-template <typename data_t>
-cvector_t QubitVector<data_t>::sort_matrix(const reg_t& src,
-                                           const reg_t& sorted,
-                                           const cvector_t &mat) const {
-
-  const uint_t N = src.size();
-  const uint_t DIM = BITS[N];
-  auto ret = mat;
-  auto current = src;
-
-  while (current != sorted) {
-    uint_t from;
-    uint_t to;
-    for (from = 0; from < current.size(); ++from)
-      if (current[from] != sorted[from])
-        break;
-    if (from == current.size())
-      break;
-    for (to = from + 1; to < current.size(); ++to)
-      if (current[from] == sorted[to])
-        break;
-    if (to == current.size()) {
-      throw std::runtime_error("QubitVector<data_t>::sort_matrix we should not reach here");
-    }
-    swap_cols_and_rows(from, to, ret, DIM);
-    std::swap(current[from], current[to]);
-  }
-
-  return ret;
-}
-
-template <typename data_t>
-cvector_t QubitVector<data_t>::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted_qubits, const cvector_t& vmat) const {
-
-  const auto dst_dim = BITS[dst_sorted_qubits.size()];
-  const auto dst_vmat_size = dst_dim * dst_dim;
-  const auto src_dim = BITS[src_qubits.size()];
-
-  // generate a matrix for op
-  cvector_t u(dst_vmat_size, .0);
-  std::vector<bool> filled(dst_dim, false);
-
-  if (src_qubits.size() == 1) { //1-qubit operation
-    // 1. identify delta
-    const auto index = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
-
-    const auto delta = BITS[index];
-
-    // 2. find vmat(0, 0) position in U
-    for (uint_t i = 0; i < dst_dim; ++i) {
-
-      if (filled[i])
-        continue;
-
-      //  3. allocate op.u to u based on u(i, i) and delta
-      u[i           + (i + 0)     * dst_dim] = vmat[0 + 0  * src_dim];
-      u[i           + (i + delta) * dst_dim] = vmat[0 + 1  * src_dim];
-      u[(i + delta) + (i + 0)     * dst_dim] = vmat[1 + 0  * src_dim];
-      u[(i + delta) + (i + delta) * dst_dim] = vmat[1 + 1  * src_dim];
-      filled[i] = filled[i + delta] = true;
-    }
-  } else if (src_qubits.size() == 2) { //2-qubit operation
-
-    reg_t sorted_src_qubits = src_qubits;
-    std::sort(sorted_src_qubits.begin(), sorted_src_qubits.end());
-    const cvector_t sorted_vmat = sort_matrix(src_qubits, sorted_src_qubits, vmat);
-
-    // 1. identify low and high delta
-    auto low = std::distance(dst_sorted_qubits.begin(),
-                               std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[0]));
-
-    auto high = std::distance(dst_sorted_qubits.begin(),
-                                std::find(dst_sorted_qubits.begin(), dst_sorted_qubits.end(), src_qubits[1]));
-
-    auto low_delta = BITS[low];
-    auto high_delta = BITS[high];
-
-    // 2. find op.u(0, 0) position in U
-    for (uint_t i = 0; i < dst_dim; ++i) {
-      if (filled[i])
-        continue;
-
-      //  3. allocate vmat to u based on u(i, i) and delta
-      u[i                             + (i + 0)                      * dst_dim] = sorted_vmat[0 + 0 * src_dim];
-      u[i                             + (i + low_delta)              * dst_dim] = sorted_vmat[0 + 1 * src_dim];
-      u[i                             + (i + high_delta)             * dst_dim] = sorted_vmat[0 + 2 * src_dim];
-      u[i                             + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[0 + 3 * src_dim];
-      u[(i + low_delta)               + (i + 0)                      * dst_dim] = sorted_vmat[1 + 0 * src_dim];
-      u[(i + low_delta)               + (i + low_delta)              * dst_dim] = sorted_vmat[1 + 1 * src_dim];
-      u[(i + low_delta)               + (i + high_delta)             * dst_dim] = sorted_vmat[1 + 2 * src_dim];
-      u[(i + low_delta)               + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[1 + 3 * src_dim];
-      u[(i + high_delta)              + (i + 0)                      * dst_dim] = sorted_vmat[2 + 0 * src_dim];
-      u[(i + high_delta)              + (i + low_delta)              * dst_dim] = sorted_vmat[2 + 1 * src_dim];
-      u[(i + high_delta)              + (i + high_delta)             * dst_dim] = sorted_vmat[2 + 2 * src_dim];
-      u[(i + high_delta)              + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[2 + 3 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + 0)                      * dst_dim] = sorted_vmat[3 + 0 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + low_delta)              * dst_dim] = sorted_vmat[3 + 1 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + high_delta)             * dst_dim] = sorted_vmat[3 + 2 * src_dim];
-      u[(i + low_delta + high_delta)  + (i + low_delta + high_delta) * dst_dim] = sorted_vmat[3 + 3 * src_dim];
-
-      filled[i] = true;
-      filled[i + low_delta] = true;
-      filled[i + high_delta] = true;
-      filled[i + low_delta + high_delta] = true;
-    }
-    //TODO: } else if (src_qubits.size() == 3) {
-  } else {
-    std::stringstream ss;
-    ss << "Fusion::illegal qubit number:" << src_qubits.size();
-    throw std::runtime_error(ss.str());
-  }
-
-  return u;
-}
 /*******************************************************************************
  *
  * NORMS

@@ -27,6 +27,7 @@ from .errorutils import kraus2instructions
 from .errorutils import circuit2superop
 from .errorutils import standard_instruction_channel
 from .errorutils import standard_instruction_operator
+from ...utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ class QuantumError:
              module.
     """
 
+    # pylint: disable=invalid-name
     ATOL = ATOL_DEFAULT
     RTOL = RTOL_DEFAULT
     MAX_TOL = 1e-4
@@ -283,6 +285,16 @@ class QuantumError:
                 position) + "of error outcomes {}".format(self.size))
 
     def as_dict(self):
+        """
+        DEPRECATED: Use to_dict()
+        Returns:
+            dict: The current error as a dictionary.
+        """
+        deprecation("QuantumError::as_dict() method is deprecated and will be removed after 0.3."
+                    "Use '.to_dict()' instead")
+        return self.to_dict()
+
+    def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
             "type": "qerror",
@@ -343,10 +355,10 @@ class QuantumError:
                     last_instr = combined_circuit[-1]
                     last_name = last_instr['name']
                     name = instr['name']
-                    can_combine = (last_name in ['id', 'kraus', 'unitary']
-                                   or name in ['id', 'kraus', 'unitary'])
-                    if (can_combine and self._check_instr(last_name)
-                            and self._check_instr(name)):
+                    can_combine = (last_name in ['id', 'kraus', 'unitary'] or
+                                   name in ['id', 'kraus', 'unitary'])
+                    if (can_combine and self._check_instr(last_name) and
+                            self._check_instr(name)):
                         combined_circuit[-1] = self._compose_instr(
                             last_instr, instr, self.number_of_qubits)
                     else:
@@ -474,10 +486,10 @@ class QuantumError:
                     last_instr = combined_circuit[-1]
                     last_name = last_instr['name']
                     name = instr['name']
-                    can_combine = (last_name in ['id', 'kraus', 'unitary']
-                                   or name in ['id', 'kraus', 'unitary'])
-                    if (can_combine and self._check_instr(last_name)
-                            and self._check_instr(name)):
+                    can_combine = (last_name in ['id', 'kraus', 'unitary'] or
+                                   name in ['id', 'kraus', 'unitary'])
+                    if (can_combine and self._check_instr(last_name) and
+                            self._check_instr(name)):
                         combined_circuit[-1] = self._tensor_instr(
                             last_instr, instr)
                     else:
@@ -517,12 +529,12 @@ class QuantumError:
                     # remove from lists
                     kraus_instr.pop(i)
                     prob_i = kraus_probs.pop(i)
-                    p = prob + prob_i
-                    kraus = (prob / p) * Kraus(
-                        instr['params']) + (prob_i / p) * Kraus(item['params'])
+                    sum_prob = prob + prob_i
+                    kraus = (prob / sum_prob) * Kraus(
+                        instr['params']) + (prob_i / sum_prob) * Kraus(item['params'])
                     # update instruction
                     instr['param'] = kraus.data
-                    prob = p
+                    prob = sum_prob
             # append combined instruction to circuits
             new_circuits.append([instr])
             new_probs.append(prob)

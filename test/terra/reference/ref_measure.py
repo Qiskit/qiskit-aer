@@ -119,7 +119,6 @@ def measure_statevector_deterministic():
     targets.append(array([0, 0, 0, 1]))
     return targets
 
-
 # ==========================================================================
 # Non-Deterministic output
 # ==========================================================================

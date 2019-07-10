@@ -23,6 +23,7 @@ from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
+from ..utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -173,10 +174,10 @@ class NoiseModel:
         # the same basis_gates
         # the same noise_qubits
         # the same noise_instructions
-        if (not isinstance(other, NoiseModel)
-                or self.basis_gates != other.basis_gates
-                or self.noise_qubits != other.noise_qubits
-                or self.noise_instructions != other.noise_instructions):
+        if (not isinstance(other, NoiseModel) or
+                self.basis_gates != other.basis_gates or
+                self.noise_qubits != other.noise_qubits or
+                self.noise_instructions != other.noise_instructions):
             return False
         # Check default readout errors is equal
         if not self._readout_errors_equal(other):
@@ -423,7 +424,7 @@ class NoiseModel:
             qs_str = self._qubits2str(qubits)
             nqs_str = self._qubits2str(noise_qubits)
             if qs_str in gate_qubit_dict:
-                noise_qubit_dict = gate_qubit_dict[nqs_str]
+                noise_qubit_dict = gate_qubit_dict[qs_str]
                 if nqs_str in noise_qubit_dict:
                     new_error = noise_qubit_dict[nqs_str].compose(error)
                     noise_qubit_dict[nqs_str] = new_error
@@ -551,6 +552,22 @@ class NoiseModel:
 
     def as_dict(self, serializable=False):
         """
+        DEPRECATED: Use to_dict()
+        Returns a dictionary for noise model.
+
+        Args:
+            serializable (bool): if `True`, return a dict containing only types
+                that can be serializable by the stdlib `json` module.
+
+        Returns:
+            dict: a dictionary for a noise model.
+        """
+        deprecation("NoiseModel::as_dict() method is deprecated and will be removed after 0.3."
+                    "Use '.to_dict()' instead")
+        self.to_dict(serializable)
+
+    def to_dict(self, serializable=False):
+        """
         Return dictionary for noise model.
 
         Args:
@@ -564,14 +581,14 @@ class NoiseModel:
 
         # Add default quantum errors
         for name, error in self._default_quantum_errors.items():
-            error_dict = error.as_dict()
+            error_dict = error.to_dict()
             error_dict["operations"] = [name]
             error_list.append(error_dict)
 
         # Add specific qubit errors
         for name, qubit_dict in self._local_quantum_errors.items():
             for qubits_str, error in qubit_dict.items():
-                error_dict = error.as_dict()
+                error_dict = error.to_dict()
                 error_dict["operations"] = [name]
                 error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
                 error_list.append(error_dict)
@@ -580,7 +597,7 @@ class NoiseModel:
         for name, qubit_dict in self._nonlocal_quantum_errors.items():
             for qubits_str, noise_qubit_dict in qubit_dict.items():
                 for noise_qubits_str, error in noise_qubit_dict.items():
-                    error_dict = error.as_dict()
+                    error_dict = error.to_dict()
                     error_dict["operations"] = [name]
                     error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
                     error_dict["noise_qubits"] = [
@@ -590,12 +607,12 @@ class NoiseModel:
 
         # Add default readout error
         if self._default_readout_error is not None:
-            error_dict = self._default_readout_error.as_dict()
+            error_dict = self._default_readout_error.to_dict()
             error_list.append(error_dict)
 
         # Add local readout error
         for qubits_str, error in self._local_readout_errors.items():
-            error_dict = error.as_dict()
+            error_dict = error.to_dict()
             error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
             error_list.append(error_dict)
 

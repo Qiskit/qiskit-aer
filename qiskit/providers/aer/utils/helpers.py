@@ -10,7 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utilities"""
+"""
+A bunch of usefull helper functions
+"""
 
-from . import qobj_utils
-from . import helpers
+from warnings import warn
+
+
+def deprecation(message):
+    """ Shows a deprecation message to the user """
+    warn(message, DeprecationWarning, stacklevel=2)
