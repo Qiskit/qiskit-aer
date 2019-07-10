@@ -16,7 +16,6 @@
 
 from concurrent import futures
 import logging
-import sys
 import functools
 
 from qiskit.providers import BaseJob, JobStatus, JobError
@@ -51,7 +50,7 @@ class AerJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ThreadPoolExecutor(max_workers=1)
 
     def __init__(self, backend, job_id, fn, qobj, *args):
         super().__init__(backend, job_id)

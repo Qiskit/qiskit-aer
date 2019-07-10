@@ -78,19 +78,18 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
   if (new_mapping.size() == circ.num_qubits)
     return;
 
-  std::vector<Operations::Op> new_ops;
-  for (const Operations::Op& old_op: circ.ops) {
-    auto op = old_op;
+  for (Operations::Op& op: circ.ops) {
     // Remap qubits
-    op.qubits = remap_qubits(op.qubits, new_mapping);
+    reg_t new_qubits = remap_qubits(op.qubits, new_mapping);
     // Remap regs
-    for (reg_t &reg : op.regs) {
-      reg = remap_qubits(reg, new_mapping);
-    }
-    new_ops.push_back(op);
+    std::vector<reg_t> new_regs;
+    for (reg_t &reg : op.regs)
+      new_regs.push_back(remap_qubits(reg, new_mapping));
+
+    op.qubits = new_qubits;
+    op.regs = new_regs;
   }
 
-  circ.ops = new_ops;
   circ.num_qubits = new_mapping.size();
 
   if (verbose_) {
@@ -104,9 +103,13 @@ reg_t TruncateQubits::generate_mapping(const Circuit& circ) const {
   size_t not_used = circ.num_qubits + 1;
   reg_t mapping = reg_t(circ.num_qubits, not_used);
 
-  for (const Operations::Op& op: circ.ops)
+  for (const Operations::Op& op: circ.ops) {
     for (size_t qubit: op.qubits)
       mapping[qubit] = qubit;
+    for (const reg_t &reg: op.regs)
+      for (size_t qubit: reg)
+        mapping[qubit] = qubit;
+  }
 
   mapping.erase(std::remove(mapping.begin(), mapping.end(), not_used),
                 mapping.end());

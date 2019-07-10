@@ -191,7 +191,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
             # Pauli strings go from qubit-0 on left to qubit-N on right
             # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
             # We also drop identity operators to reduce dimension of matrix multiplication
-            mat = 1
+            mat = np.identity(1)
             qubits = []
             if isinstance(pauli, Pauli):
                 pauli_str = pauli.to_label()
@@ -203,7 +203,7 @@ def _pauli_error_unitary(noise_ops, num_qubits):
                     qubits.append(qubit)
                 elif pstr != 'I':
                     raise NoiseError("Invalid Pauli string.")
-            if mat is 1:
+            if mat.size == 1:
                 prob_identity += prob
             else:
                 circ = make_unitary_instruction(
@@ -231,6 +231,7 @@ def _pauli_error_standard(noise_ops, num_qubits):
             return {'name': 'y'}
         if pauli == 'Z':
             return {'name': 'z'}
+        raise NoiseError("Invalid Pauli string.")
 
     prob_identity = 0.0
     pauli_circuits = []
@@ -266,12 +267,12 @@ def _pauli_error_standard(noise_ops, num_qubits):
     return error
 
 
-def depolarizing_error(prob, num_qubits, standard_gates=True):
+def depolarizing_error(param, num_qubits, standard_gates=True):
     """
     Depolarizing quantum error channel.
 
     Args:
-        prob (double): completely depolarizing channel error probability.
+        param (double): depolarizing error parameter.
         num_qubits (int): the number of qubits for the error channel.
         standard_gates (bool): if True return the operators as standard qobj
                                Pauli gate instructions. If false return as
@@ -283,21 +284,32 @@ def depolarizing_error(prob, num_qubits, standard_gates=True):
 
     Raises:
         NoiseError: If noise parameters are invalid.
-    """
 
-    if prob < 0 or prob > 1:
-        raise NoiseError(
-            "Depolarizing probability must be in between 0 and 1.")
+    Additional Information:
+        The depolarizing channel is defined as:
+            E(ρ) = (1 - λ) ρ + λ * (I / 2 ** n)
+            with 0 <= λ <= 4 ** n / (4 ** n - 1)
+        where λ is the depolarizing error param and n is the number of
+        qubits.
+        If λ = 0 this is the identity channel E(ρ) = ρ
+        If λ = 1 this is a completely depolarizing channel E(ρ) = I / 2 ** n
+        if λ = 4 ** n / (4 ** n - 1) this is a uniform Pauli error channel
+            E(ρ) = sum_j P_j ρ P_j / (4 ** n - 1) for all P_j != I.
+    """
     if not isinstance(num_qubits, int) or num_qubits < 1:
         raise NoiseError("num_qubits must be a positive integer.")
+    # Check that the depolarizing parameter gives a valid CPTP
+    num_terms = 4**num_qubits
+    max_param = num_terms / (num_terms - 1)
+    if param < 0 or param > max_param:
+        raise NoiseError("Depolarizing parameter must be in between 0 "
+                         "and {}.".format(max_param))
 
     # Rescale completely depolarizing channel error probs
     # with the identity component removed
-    num_terms = 4**num_qubits  # terms in completely depolarizing channel
-    prob_error = prob / num_terms
-    prob_iden = 1 - (
-        num_terms - 1) * prob_error  # subtract off non-identity terms
-    probs = [prob_iden] + (num_terms - 1) * [prob_error]
+    prob_iden = 1 - param / max_param
+    prob_pauli = param / num_terms
+    probs = [prob_iden] + (num_terms - 1) * [prob_pauli]
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
     paulis = [
@@ -344,6 +356,7 @@ def reset_error(prob0, prob1=0):
     return QuantumError(noise_ops)
 
 
+# pylint: disable=invalid-name
 def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     """
     Single-qubit thermal relaxation quantum error channel.

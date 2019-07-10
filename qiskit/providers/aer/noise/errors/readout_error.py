@@ -18,18 +18,19 @@ import copy
 import numpy as np
 from numpy.linalg import norm
 
-from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.circuit import Instruction
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
 from .errorutils import qubits_from_mat
+from ...utils.helpers import deprecation
 
 
 class ReadoutError:
     """
     Readout error class for Qiskit Aer noise model.
     """
-
+    # pylint: disable=invalid-name
     ATOL = ATOL_DEFAULT
     RTOL = RTOL_DEFAULT
     MAX_TOL = 1e-4
@@ -141,7 +142,21 @@ class ReadoutError:
             return True
         return False
 
+    def to_instruction(self):
+        """Convet the ReadoutError to a circuit Instruction."""
+        return Instruction("roerror", 0, self.number_of_qubits, self._probabilities)
+
     def as_dict(self):
+        """
+        DEPRECATED: Use to_dict()
+        Returns:
+            dict: The current error as a dictionary.
+        """
+        deprecation("ReadoutError::as_dict() method is deprecated and will be removed after 0.3."
+                    "Use '.to_dict()' instead")
+        return self.to_dict()
+
+    def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
             "type": "roerror",
@@ -226,7 +241,9 @@ class ReadoutError:
     @staticmethod
     def _check_probabilities(probabilities, threshold):
         """Check probabilities are valid."""
-        if len(probabilities) == 0:
+        # probabilities parameter can be a list or a numpy.ndarray
+        if (isinstance(probabilities, list) and not probabilities) or \
+           (isinstance(probabilities, np.ndarray) and probabilities.size == 0):
             raise NoiseError("Input probabilities: empty.")
         num_outcomes = len(probabilities[0])
         num_qubits = int(np.log2(num_outcomes))
@@ -243,7 +260,7 @@ class ReadoutError:
             if abs(sum(arr) - 1) > threshold:
                 raise NoiseError("Invalid probabilities: sum({})= {} "
                                  "is not 1.".format(vec, sum(arr)))
-            if len(arr[arr < 0]) > 0:
+            if arr[arr < 0].size > 0:
                 raise NoiseError(
                     "Invalid probabilities: {} "
                     "contains a negative probability.".format(vec))

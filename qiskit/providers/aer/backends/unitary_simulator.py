@@ -24,6 +24,7 @@ from qiskit.providers.models import BackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
+# pylint: disable=import-error
 from .unitary_controller_wrapper import unitary_controller_execute
 from ..version import __version__
 
@@ -84,10 +85,10 @@ class UnitarySimulator(AerBackend):
         'open_pulse': False,
         'memory': False,
         'max_shots': 1,
-        'description': 'A Python simulator for computing the unitary' +
+        'description': 'A Python simulator for computing the unitary'
                        'matrix for experiments in qobj files',
         'coupling_map': None,
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'multiplexer', 'snapshot', 'unitary'],
         'gates': [
@@ -116,16 +117,14 @@ class UnitarySimulator(AerBackend):
         """
         name = self.name()
         if noise_model is not None:
-            logger.error("{} cannot be run with a noise.".format(name))
             raise AerError("{} does not support noise.".format(name))
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise AerError('Number of qubits ({}) '.format(n_qubits) +
-                           'is greater than maximum ({}) '.format(max_qubits) +
-                           'for "{}" '.format(name) +
-                           'with {} GB system memory.'.format(int(local_hardware_info()['memory'])))
+            raise AerError(
+                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
+                .format(n_qubits, max_qubits, name, int(local_hardware_info()['memory'])))
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
                         name)
@@ -139,6 +138,6 @@ class UnitarySimulator(AerBackend):
                 experiment.config.shots = 1
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
-                    raise AerError('Unsupported "%s" instruction "%s" ' +
-                                   'in circuit "%s" ', name,
-                                   operation.name, exp_name)
+                    raise AerError(
+                        'Unsupported {} instruction {} in circuit {}'
+                        .format(name, operation.name, exp_name))
