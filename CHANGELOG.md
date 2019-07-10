@@ -52,6 +52,8 @@ Added
 Changed
 -------
 
+-   When loading qobj check if all instructions are conditional and raise an
+    exception if an unsupported instruction is conditional (\#271)
 -   Deprecate the use of \".as\_dict()\" in favor of \".to\_dict()\"
     (\#228)
 -   Set simulator seed from \"seed\_simulator\" in qobj (\#210)
