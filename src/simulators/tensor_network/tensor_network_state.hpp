@@ -600,11 +600,11 @@ void State::apply_gate(const Operations::Op &op) {
 
 void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (!qubits.empty() && qubits.size()==1 && mat.size() == 4) {
-    qreg_.apply_matrix(qubits[0], mat);
+    qreg_.apply_matrix(qubits, mat);
     return;
   }
   if (!qubits.empty() && qubits.size()==2 && mat.size() == 16) {
-    qreg_.apply_matrix(qubits[0], qubits[1], mat);
+    qreg_.apply_matrix(qubits, mat);
     return;
   }
 #ifdef DEBUG
@@ -613,9 +613,6 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
 }
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
-#ifdef DEBUG
-  cout << "apply_matrix not supported yet";
-#endif  
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     qreg_.apply_diagonal_matrix(qubits, vmat);
@@ -656,22 +653,12 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-
-//	  double threshold = 1e-10;
-//	  vector<uint_t> indexes {0,2};
-//	  string matrices = "XYZ" ;
-//	  cout << "Expectation value on XYZ qubits 0-2 = " << endl ;
-//	  cout << qreg_.Expectation_value(indexes,matrices) << endl;
-//
-//	  result = qreg_.state_vec(0,qreg_.num_qubits()-1);
-//	  result.print(true);
-
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits, rng);
   // Implement measurement update
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
-  BaseState::creg_.store_measure(outcome, cmemory, cregister);
+  creg_.store_measure(outcome, cmemory, cregister);
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
@@ -780,7 +767,6 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const double meas_prob) {
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
-  std::cerr << "measure_reset_update not supported yet" <<endl;
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome

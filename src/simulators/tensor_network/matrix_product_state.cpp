@@ -301,6 +301,20 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	q_reg_[index_B] = right_gamma;
 }
 
+void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
+{
+  switch (qubits.size()) {
+  case 1: 
+    q_reg_[qubits[0]].apply_matrix(mat);
+    break;
+  case 2:
+    apply_2_qubit_gate(qubits[0], qubits[1], su4, mat);
+    break;
+  default:
+    throw std::invalid_argument("currently support apply_matrix for 1 or 2 qubits only");
+  }
+}
+
 void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) {
   //temporarily support by converting the vector to a full matrix whose diagonal is vmat
   uint_t dim = vmat.size();
@@ -310,7 +324,7 @@ void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat)
       diag_mat(i, i) = ( i==j ? vmat[i] : 0.0);
     }
   }
-  apply_matrix(qubits[0], qubits[1], diag_mat);
+  apply_matrix(qubits, diag_mat);
 }
 
 void MPS::change_position(uint_t src, uint_t dst)
