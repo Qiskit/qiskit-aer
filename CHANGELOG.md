@@ -33,6 +33,7 @@ Removed
 
 Fixed
 -----
+-   Bug in measure sampling conditional checking with conditional instructions (\#280)
 
 
 [0.2.2](https://github.com/Qiskit/qiskit-aer/compare/0.2.1...0.2.2) - 2019-07-10
