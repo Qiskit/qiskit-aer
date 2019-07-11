@@ -173,10 +173,35 @@ def reset_statevector_nondeterministic():
 
 
 # ==========================================================================
+# Repeated Resets
+# ==========================================================================
+
+def reset_circuits_repeated():
+    """Test circuit for repeated measure reset"""
+    qr = QuantumRegister(1)
+    cr = ClassicalRegister(2)
+    qc = QuantumCircuit(qr, cr)
+    qc.x(qr[0])
+    qc.measure(qr[0], cr[0])
+    qc.reset(qr[0])
+    qc.measure(qr[0], cr[1])
+    qc.reset(qr[0])
+    return [qc]
+
+
+def reset_counts_repeated(shots, hex_counts=True):
+    """Sampling optimization counts"""
+    if hex_counts:
+        return [{'0x1': shots}]
+    else:
+        return [{'01': shots}]
+
+
+# ==========================================================================
 # Sampling optimization
 # ==========================================================================
 
-def reset_sampling_optimization():
+def reset_circuits_sampling_optimization():
     """Test sampling optimization"""
     qr = QuantumRegister(2)
     cr = ClassicalRegister(2)
@@ -191,9 +216,10 @@ def reset_sampling_optimization():
 
     return [qc]
 
+
 def reset_counts_sampling_optimization(shots, hex_counts=True):
     """Sampling optimization counts"""
     if hex_counts:
         return [{'0x0': shots/2, '0x2': shots/2}]
     else:
-        return [{'0x00': shots/2, '0x10': shots/2}]
+        return [{'00': shots/2, '10': shots/2}]
