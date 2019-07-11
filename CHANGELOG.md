@@ -15,8 +15,29 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.1...HEAD)
+
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...HEAD)
 =======================================================================
+
+Added
+-----
+
+
+Changed
+-------
+
+
+Removed
+-------
+
+
+Fixed
+-----
+-   Bug in measure sampling conditional checking with conditional instructions (\#280)
+
+
+[0.2.2](https://github.com/Qiskit/qiskit-aer/compare/0.2.1...0.2.2) - 2019-07-10
+================================================================================
 
 Added
 -----
