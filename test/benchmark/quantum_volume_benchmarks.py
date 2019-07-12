@@ -55,7 +55,8 @@ class QuantumVolumeTimeSuite:
                 # We want always the same seed, as we want always the same circuits
                 # for the same value pairs of qubits,depth
                 circ = quantum_volume_circuit(num_qubits, depth, seed=1)
-                circ = transpile(circ, basis_gates=['u3', 'cx'])
+                circ = transpile(circ, basis_gates=['u1', 'u2', 'u3', 'cx'],
+                                 optimization_level=0, seed_transpiler=1)
                 qobj = assemble(circ, self.backend, shots=1)
                 self.qv_circuits.append(qobj)
         self.param_names = ["Quantum Volume", "Noise Model"]
