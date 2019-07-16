@@ -248,6 +248,9 @@ protected:
 
 void Controller::set_config(const json_t &config) {
 
+  // Load validation threshold
+  JSON::get_value(validation_threshold_, "validation_threshold", config);
+
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
     JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
