@@ -598,7 +598,8 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   while(shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
-      optimize_circuit(noise_circ, state, data);
+      Noise::NoiseModel dummy;
+      optimize_circuit(noise_circ, dummy, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
@@ -616,7 +617,8 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Optimize circuit for state type
   Circuit opt_circ = circ;
   if (circ.num_qubits > circuit_opt_ideal_threshold_) {
-    optimize_circuit(opt_circ, state, data);
+    Noise::NoiseModel dummy;
+    optimize_circuit(opt_circ, dummy, state, data);
   }
 
   // Check if measure sampler and optimization are valid

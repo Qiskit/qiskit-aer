@@ -196,7 +196,8 @@ protected:
 
   // Generate an equivalent circuit with input_circ as output_circ.
   template <class state_t>
-  void optimize_circuit(Circuit &input_circ,
+  void optimize_circuit(Circuit &circ,
+                        Noise::NoiseModel& noise,
                         state_t& state,
                         OutputData &data) const;
 
@@ -286,7 +287,7 @@ void Controller::set_config(const json_t &config) {
   }
 
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
-    opt->set_config(config_);
+    opt->set_config(config);
 
   // for debugging
   if (JSON::check_key("_parallel_experiments", config)) {
@@ -479,7 +480,8 @@ bool Controller::validate_memory_requirements(state_t &state,
 // Circuit optimization
 //-------------------------------------------------------------------------
 template <class state_t>
-void Controller::optimize_circuit(Circuit &input_circ,
+void Controller::optimize_circuit(Circuit &circ,
+                                  Noise::NoiseModel& noise,
                                   state_t& state,
                                   OutputData &data) const {
 
@@ -489,7 +491,7 @@ void Controller::optimize_circuit(Circuit &input_circ,
   allowed_opset.snapshots = state.allowed_snapshots();
 
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_) {
-    opt->optimize_circuit(input_circ, allowed_opset, data);
+    opt->optimize_circuit(circ, noise, allowed_opset, data);
   }
 }
 
@@ -618,6 +620,8 @@ json_t Controller::execute_circuit(Circuit &circ,
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
+    // TODO: Apply initial circuit optimizations here
+
     // set parallelization for this circuit
     if (!explicit_parallelization_ && parallel_experiments_ == 1) {
       set_parallelization_circuit(circ, noise);

@@ -43,6 +43,7 @@ public:
   void set_config(const json_t &config) override;
 
   void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
                         const opset_t &opset,
                         OutputData &data) const override;
 
@@ -169,6 +170,7 @@ void Fusion::dump(const Circuit& circuit) const {
 #endif
 
 void Fusion::optimize_circuit(Circuit& circ,
+                              Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               OutputData &data) const {
 
