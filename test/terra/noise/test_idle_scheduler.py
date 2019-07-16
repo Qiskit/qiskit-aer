@@ -15,7 +15,6 @@ IdleScheduler class tests
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.providers.aer.noise.utils import schedule_idle_gates
-from qiskit.converters import circuit_to_dag
 import unittest
 
 class TestIdleScheduler(unittest.TestCase):
@@ -162,3 +161,30 @@ class TestIdleScheduler(unittest.TestCase):
 
         result_circuit = schedule_idle_gates(circuit, default_op_time=0.3153, op_times={'x': 0.974, 'y': 0.734})
         self.assertEqual(target_circuit, result_circuit)
+
+    def test_labels(self):
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.barrier()
+        circuit.y(qr[0])
+        circuit.barrier()
+        circuit.h(qr[0])
+        circuit.barrier()
+
+        result_circuit = schedule_idle_gates(circuit)
+        labels = [gate[0].label for gate in result_circuit if gate[0].name == 'id']
+        target_labels = ['id_x', 'id_y', 'id_h']
+        self.assertEqual(target_labels, labels)
+
+        result_circuit = schedule_idle_gates(circuit, labels="uniform_id_label")
+        labels = [gate[0].label for gate in result_circuit if gate[0].name == 'id']
+        target_labels = ['uniform_id_label', 'uniform_id_label', 'uniform_id_label']
+        self.assertEqual(target_labels, labels)
+
+        result_circuit = schedule_idle_gates(circuit, labels={'x': 'id_label_for_x', 'y': 'y_id_label', 'h': '123'})
+        labels = [gate[0].label for gate in result_circuit if gate[0].name == 'id']
+        target_labels = ['id_label_for_x', 'y_id_label', '123']
+        self.assertEqual(target_labels, labels)
+
+
