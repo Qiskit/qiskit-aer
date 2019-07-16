@@ -69,7 +69,8 @@ public:
 
 protected:
 
-  size_t required_memory_mb(const Circuit& circ) const override;
+  size_t required_memory_mb(const Circuit& circ,
+                            const Noise::NoiseModel& noise) const override;
 
 private:
 
@@ -80,6 +81,7 @@ private:
   // This simulator will only return a single shot, regardless of the
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
   
@@ -114,7 +116,8 @@ void UnitaryController::clear_config() {
   initial_unitary_ = cmatrix_t();
 }
 
-size_t UnitaryController::required_memory_mb(const Circuit& circ) const {
+size_t UnitaryController::required_memory_mb(const Circuit& circ,
+                                             const Noise::NoiseModel& noise) const {
   QubitUnitary::State<> state;
   return state.required_memory_mb(circ.num_qubits, circ.ops);
 }
@@ -124,13 +127,14 @@ size_t UnitaryController::required_memory_mb(const Circuit& circ) const {
 //-------------------------------------------------------------------------
 
 OutputData UnitaryController::run_circuit(const Circuit &circ,
+                                          const Noise::NoiseModel& noise,
                                           uint_t shots,
                                           uint_t rng_seed) const {
   // Initialize state
   QubitUnitary::State<> state;
   
   // Validate circuit and throw exception if invalid operations exist
-  validate_state(state, circ, noise_model_, true);
+  validate_state(state, circ, noise, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_unitary_.empty()) {

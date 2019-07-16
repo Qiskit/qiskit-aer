@@ -37,8 +37,8 @@
 #include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
-#include "transpile/circuitopt.hpp"
 #include "noise/noise_model.hpp"
+#include "transpile/circuitopt.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -157,12 +157,14 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
-  virtual json_t execute_circuit(Circuit &circ);
+  virtual json_t execute_circuit(Circuit &circ,
+                                 Noise::NoiseModel &noise);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel &noise,
                                  uint_t shots,
                                  uint_t rng_seed) const = 0;
 
@@ -195,8 +197,8 @@ protected:
   // Generate an equivalent circuit with input_circ as output_circ.
   template <class state_t>
   void optimize_circuit(Circuit &input_circ,
-                           state_t& state,
-                           OutputData &data) const;
+                        state_t& state,
+                        OutputData &data) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -207,9 +209,6 @@ protected:
 
   // Controller config settings
   json_t config_;
-
-  // Noise model
-  Noise::NoiseModel noise_model_;
 
   // Circuit optimization
   std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
@@ -225,13 +224,16 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  virtual void set_parallelization_experiments(const std::vector<Circuit>& circuits);
+  virtual void set_parallelization_experiments(const std::vector<Circuit>& circuits,
+                                               const Noise::NoiseModel& noise);
 
   // Set parallelization for a circuit
-  virtual void set_parallelization_circuit(const Circuit& circuit);
+  virtual void set_parallelization_circuit(const Circuit& circuit,
+                                           const Noise::NoiseModel& noise);
 
   // Return an estimate of the required memory for a circuit.
-  virtual size_t required_memory_mb(const Circuit& circuit) const = 0;
+  virtual size_t required_memory_mb(const Circuit& circuit,
+                                    const Noise::NoiseModel& noise) const = 0;
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -266,13 +268,6 @@ protected:
 void Controller::set_config(const json_t &config) {
   // Save config for passing to State and Data classes
   config_ = config;
-
-  // Load noise model
-  if (JSON::check_key("noise_model", config))
-    noise_model_ = Noise::NoiseModel(config["noise_model"]);
-
-  // Load validation threshold
-  JSON::get_value(validation_threshold_, "validation_threshold", config);
 
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
@@ -326,7 +321,6 @@ void Controller::set_config(const json_t &config) {
 
 void Controller::clear_config() {
   config_ = json_t();
-  noise_model_ = Noise::NoiseModel();
   clear_parallelization();
   validation_threshold_ = 1e-8;
 }
@@ -343,14 +337,15 @@ void Controller::clear_parallelization() {
   explicit_parallelization_ = false;
 }
 
-void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits) {
+void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits,
+                                                 const Noise::NoiseModel& noise) {
 
   if (max_parallel_experiments_ <= 0)
     return;
   // if memory allows, execute experiments in parallel
   std::vector<size_t> required_memory_mb_list;
   for (const Circuit &circ : circuits) {
-    required_memory_mb_list.push_back(required_memory_mb(circ));
+    required_memory_mb_list.push_back(required_memory_mb(circ, noise));
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
   int total_memory = 0;
@@ -373,12 +368,13 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
   }
 }
 
-void Controller::set_parallelization_circuit(const Circuit& circ) {
+void Controller::set_parallelization_circuit(const Circuit& circ,
+                                             const Noise::NoiseModel& noise) {
 
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
 
-  int circ_memory_mb = required_memory_mb(circ);
+  int circ_memory_mb = required_memory_mb(circ, noise);
 
   if (max_memory_mb_ < circ_memory_mb)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
@@ -484,8 +480,8 @@ bool Controller::validate_memory_requirements(state_t &state,
 //-------------------------------------------------------------------------
 template <class state_t>
 void Controller::optimize_circuit(Circuit &input_circ,
-                                     state_t& state,
-                                     OutputData &data) const {
+                                  state_t& state,
+                                  OutputData &data) const {
 
   Operations::OpSet allowed_opset;
   allowed_opset.optypes = state.allowed_ops();
@@ -518,8 +514,14 @@ json_t Controller::execute(const json_t &qobj_js) {
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
   Qobj qobj;
+  Noise::NoiseModel noise_model;
   try {
     qobj.load_qobj_from_json(qobj_js);
+    // Check for config
+    if (JSON::get_value(config_, "config", qobj_js)) {
+      // Load noise model
+      JSON::get_value(noise_model, "noise_model", config_);
+    }
   }
   catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -546,7 +548,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 
     if (!explicit_parallelization_) {
       // set parallelization for experiments
-      set_parallelization_experiments(qobj.circuits);
+      set_parallelization_experiments(qobj.circuits, noise_model);
     }
 
   #ifdef _OPENMP
@@ -568,12 +570,16 @@ json_t Controller::execute(const json_t &qobj_js) {
       // Parallel circuit execution
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < num_circuits; ++j) {
-        result["results"][j] = execute_circuit(qobj.circuits[j]);
+        // Make a copy of the noise model for each circuit execution
+        auto circ_noise_model = noise_model;
+        result["results"][j] = execute_circuit(qobj.circuits[j], circ_noise_model);
       }
     } else {
       // Serial circuit execution
       for (int j = 0; j < num_circuits; ++j) {
-        result["results"][j] = execute_circuit(qobj.circuits[j]);
+        // Make a copy of the noise model for each circuit execution
+        auto circ_noise_model = noise_model;
+        result["results"][j] = execute_circuit(qobj.circuits[j], circ_noise_model);
       }
     }
 
@@ -600,7 +606,8 @@ json_t Controller::execute(const json_t &qobj_js) {
 }
 
 
-json_t Controller::execute_circuit(Circuit &circ) {
+json_t Controller::execute_circuit(Circuit &circ,
+                                   Noise::NoiseModel& noise) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
@@ -613,11 +620,11 @@ json_t Controller::execute_circuit(Circuit &circ) {
   try {
     // set parallelization for this circuit
     if (!explicit_parallelization_ && parallel_experiments_ == 1) {
-      set_parallelization_circuit(circ);
+      set_parallelization_circuit(circ, noise);
     }
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      result["data"] = run_circuit(circ, circ.shots, circ.seed);
+      result["data"] = run_circuit(circ, noise, circ.shots, circ.seed);
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -636,7 +643,7 @@ json_t Controller::execute_circuit(Circuit &circ) {
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
-          data[i] = run_circuit(circ, subshots[i], circ.seed + i);
+          data[i] = run_circuit(circ, noise, subshots[i], circ.seed + i);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }

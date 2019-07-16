@@ -76,7 +76,8 @@ public:
 
 protected:
 
-  virtual size_t required_memory_mb(const Circuit& circuit) const override;
+  virtual size_t required_memory_mb(const Circuit& circuit,
+                                    const Noise::NoiseModel& noise) const override;
 
 private:
 
@@ -87,6 +88,7 @@ private:
   // This simulator will only return a single shot, regardless of the
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
 
@@ -122,7 +124,8 @@ void StatevectorController::clear_config() {
   initial_state_ = cvector_t();
 }
 
-size_t StatevectorController::required_memory_mb(const Circuit& circ) const {
+size_t StatevectorController::required_memory_mb(const Circuit& circ,
+                                                 const Noise::NoiseModel& noise) const {
   Statevector::State<> state;
   return state.required_memory_mb(circ.num_qubits, circ.ops);
 }
@@ -132,13 +135,14 @@ size_t StatevectorController::required_memory_mb(const Circuit& circ) const {
 //-------------------------------------------------------------------------
 
 OutputData StatevectorController::run_circuit(const Circuit &circ,
+                                              const Noise::NoiseModel& noise,
                                               uint_t shots,
                                               uint_t rng_seed) const {
   // Initialize  state
   Statevector::State<> state;
 
   // Validate circuit and throw exception if invalid operations exist
-  validate_state(state, circ, noise_model_, true);
+  validate_state(state, circ, noise, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
