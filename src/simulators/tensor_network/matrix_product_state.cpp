@@ -69,11 +69,7 @@ cvector_t reverse_all_bits(const cvector_t& statevector, uint_t num_qubits)
 {
   uint_t length = statevector.size();   // length = pow(2, num_qubits_)
   cvector_t output_vector(length);
-  #ifdef _WIN32
-     #pragma omp for
-  #else
-     #pragma omp for collapse(1)
-  #endif
+  #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     output_vector[i] = statevector[reverse_bits(i, num_qubits)];
   }
@@ -364,9 +360,9 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32
-     #pragma omp for
+     #pragma omp parallel for
   #else
-     #pragma omp for collapse(2)
+     #pragma omp parallel for collapse(2)
   #endif
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
@@ -463,11 +459,7 @@ void MPS::full_state_vector(cvector_t& statevector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
-  #ifdef _WIN32
-     #pragma omp for
-  #else
-     #pragma omp for collapse(1)
-  #endif
+  #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
@@ -481,11 +473,6 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
   complex_t data = 0;
-  #ifdef _WIN32
-     #pragma omp for
-  #else
-     #pragma omp for collapse(1)
-  #endif
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
     probvector.push_back(std::norm(data));
@@ -523,12 +510,7 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
   num_qubits_ = 0;
 
   cmatrix_t statevector_as_matrix(1, state_vector.size());
-
-  #ifdef _WIN32
-     #pragma omp for
-  #else
-     #pragma omp for collapse(1)
-  #endif
+  #pragma omp parallel for
   for (int_t i=0; i<(int_t)state_vector.size(); i++) {
     statevector_as_matrix(0, i) = state_vector[i];
   }
