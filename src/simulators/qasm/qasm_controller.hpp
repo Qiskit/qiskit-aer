@@ -152,6 +152,7 @@ protected:
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel& noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
 
@@ -185,6 +186,7 @@ protected:
   template <class State_t, class Initstate_t>
   OutputData run_circuit_helper(const Circuit &circ,
                                 const Noise::NoiseModel &noise,
+                                const json_t &config,
                                 uint_t shots,
                                 uint_t rng_seed,
                                 const Initstate_t &initial_state,
@@ -367,6 +369,7 @@ void QasmController::clear_config() {
 
 OutputData QasmController::run_circuit(const Circuit &circ,
                                        const Noise::NoiseModel& noise,
+                                       const json_t &config,
                                        uint_t shots,
                                        uint_t rng_seed) const {
   // Validate circuit for simulation method
@@ -386,6 +389,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
                                                       circ,
                                                       noise,
+                                                      config,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_,
@@ -396,6 +400,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       // TODO: Stabilizer doesn't yet support custom state initialization
       return run_circuit_helper<Stabilizer::State>(circ,
                                                    noise,
+                                                   config,
                                                    shots,
                                                    rng_seed,
                                                    Clifford::Clifford(),
@@ -403,6 +408,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
     case Method::extended_stabilizer:
       return run_circuit_helper<ExtendedStabilizer::State>(circ,
                                                            noise,
+                                                           config,
                                                            shots,
                                                            rng_seed,
                                                            CHSimulator::Runner(),
@@ -412,6 +418,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
       // TODO: Tensor network doesn't yet support custom state initialization
       return run_circuit_helper<TensorNetworkState::State>(circ,
                                                            noise,
+                                                           config,
                                                            shots,
                                                            rng_seed,
                                                            TensorNetworkState::MPS(),
@@ -540,6 +547,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
 template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
                                               const Noise::NoiseModel &noise,
+                                              const json_t &config,
                                               uint_t shots,
                                               uint_t rng_seed,
                                               const Initstate_t &initial_state,
@@ -551,7 +559,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   validate_memory_requirements(state, circ, true);
 
   // Set state config
-  state.set_config(Base::Controller::config_);
+  state.set_config(config);
   state.set_parallalization(parallel_state_update_);
 
   // Rng engine
@@ -560,7 +568,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::config_);
+  data.set_config(config);
   data.add_additional_data("metadata",
                            json_t::object({{"method", state.name()}}));
 

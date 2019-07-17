@@ -82,6 +82,7 @@ private:
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel& noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
   
@@ -128,6 +129,7 @@ size_t UnitaryController::required_memory_mb(const Circuit& circ,
 
 OutputData UnitaryController::run_circuit(const Circuit &circ,
                                           const Noise::NoiseModel& noise,
+                                          const json_t &config,
                                           uint_t shots,
                                           uint_t rng_seed) const {
   // Initialize state
@@ -154,7 +156,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
   }
 
   // Set state config
-  state.set_config(Base::Controller::config_);
+  state.set_config(config);
   state.set_parallalization(parallel_state_update_);
 
   // Rng engine (not actually needed for unitary controller)
@@ -163,7 +165,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::config_);
+  data.set_config(config);
 
   // Run single shot collecting measure data or snapshots
   if (initial_unitary_.empty())

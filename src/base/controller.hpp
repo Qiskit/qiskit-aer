@@ -57,10 +57,15 @@ template <class controller_t>
 std::string controller_execute(const std::string &qobj_str) {
   controller_t controller;
   auto qobj_js = json_t::parse(qobj_str);
-  // Check for config
+
+  // Fix for MacOS and OpenMP library double initialization crash.
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
   if (JSON::check_key("config", qobj_js)) {
-    controller.set_config(qobj_js["config"]);
+    std::string path;
+    JSON::get_value(path, "library_dir", qobj_js["config"]);
+    Hacks::maybe_load_openmp(path);
   }
+
   return controller.execute(qobj_js).dump(-1);
 }
 
@@ -158,13 +163,15 @@ protected:
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
   virtual json_t execute_circuit(Circuit &circ,
-                                 Noise::NoiseModel &noise);
+                                 Noise::NoiseModel &noise,
+                                 const json_t &config);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel &noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const = 0;
 
@@ -207,9 +214,6 @@ protected:
 
   // Timer type
   using myclock_t = std::chrono::high_resolution_clock;
-
-  // Controller config settings
-  json_t config_;
 
   // Circuit optimization
   std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
@@ -267,8 +271,6 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
-  // Save config for passing to State and Data classes
-  config_ = config;
 
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
@@ -281,9 +283,6 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
-  } else {
-    auto system_memory_mb = get_system_memory_mb();
-    max_memory_mb_ = system_memory_mb / 2;
   }
 
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
@@ -312,16 +311,9 @@ void Controller::set_config(const json_t &config) {
     parallel_shots_ = std::max<int>( { parallel_shots_, 1 });
     parallel_state_update_ = std::max<int>( { parallel_state_update_, 1 });
   }
-
-  std::string path;
-  JSON::get_value(path, "library_dir", config);
-  // Fix for MacOS and OpenMP library double initialization crash.
-  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  Hacks::maybe_load_openmp(path);
 }
 
 void Controller::clear_config() {
-  config_ = json_t();
   clear_parallelization();
   validation_threshold_ = 1e-8;
 }
@@ -336,6 +328,7 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
 
   explicit_parallelization_ = false;
+  max_memory_mb_ = get_system_memory_mb() / 2;
 }
 
 void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits,
@@ -517,12 +510,15 @@ json_t Controller::execute(const json_t &qobj_js) {
   // a valid JSON output containing the error message.
   Qobj qobj;
   Noise::NoiseModel noise_model;
+  json_t config;
   try {
     qobj.load_qobj_from_json(qobj_js);
     // Check for config
-    if (JSON::get_value(config_, "config", qobj_js)) {
+    if (JSON::get_value(config, "config", qobj_js)) {
+      // Set config
+      set_config(config);
       // Load noise model
-      JSON::get_value(noise_model, "noise_model", config_);
+      JSON::get_value(noise_model, "noise_model", config);
     }
   }
   catch (std::exception &e) {
@@ -574,14 +570,18 @@ json_t Controller::execute(const json_t &qobj_js) {
       for (int j = 0; j < num_circuits; ++j) {
         // Make a copy of the noise model for each circuit execution
         auto circ_noise_model = noise_model;
-        result["results"][j] = execute_circuit(qobj.circuits[j], circ_noise_model);
+        result["results"][j] = execute_circuit(qobj.circuits[j],
+                                               circ_noise_model,
+                                               config);
       }
     } else {
       // Serial circuit execution
       for (int j = 0; j < num_circuits; ++j) {
         // Make a copy of the noise model for each circuit execution
         auto circ_noise_model = noise_model;
-        result["results"][j] = execute_circuit(qobj.circuits[j], circ_noise_model);
+        result["results"][j] = execute_circuit(qobj.circuits[j],
+                                               circ_noise_model,
+                                               config);
       }
     }
 
@@ -609,7 +609,8 @@ json_t Controller::execute(const json_t &qobj_js) {
 
 
 json_t Controller::execute_circuit(Circuit &circ,
-                                   Noise::NoiseModel& noise) {
+                                   Noise::NoiseModel& noise,
+                                   const json_t &config) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
@@ -628,7 +629,7 @@ json_t Controller::execute_circuit(Circuit &circ,
     }
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      result["data"] = run_circuit(circ, noise, circ.shots, circ.seed);
+      result["data"] = run_circuit(circ, noise, config, circ.shots, circ.seed);
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -647,7 +648,7 @@ json_t Controller::execute_circuit(Circuit &circ,
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
-          data[i] = run_circuit(circ, noise, subshots[i], circ.seed + i);
+          data[i] = run_circuit(circ, noise, config, subshots[i], circ.seed + i);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
