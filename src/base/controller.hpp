@@ -340,13 +340,12 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
 
   if (max_parallel_experiments_ <= 0)
     return;
-
   // if memory allows, execute experiments in parallel
   std::vector<size_t> required_memory_mb_list;
-  for (const Circuit &circ : circuits)
+  for (const Circuit &circ : circuits) {
     required_memory_mb_list.push_back(required_memory_mb(circ));
+  }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
-
   int total_memory = 0;
   parallel_experiments_ = 0;
   for (int required_memory_mb : required_memory_mb_list) {
@@ -496,7 +495,6 @@ void Controller::optimize_circuit(Circuit &input_circ,
 //-------------------------------------------------------------------------
 
 json_t Controller::execute(const json_t &qobj_js) {
-
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
@@ -551,14 +549,12 @@ json_t Controller::execute(const json_t &qobj_js) {
   #endif
     result["metadata"]["parallel_experiments"] = parallel_experiments_;
     result["metadata"]["max_memory_mb"] = max_memory_mb_;
-
     const int num_circuits = qobj.circuits.size();
 
   #ifdef _OPENMP
     if (parallel_shots_ > 1 || parallel_state_update_ > 1)
       omp_set_nested(1);
   #endif
-
     // Initialize container to store parallel circuit output
     result["results"] = std::vector<json_t>(num_circuits);
     if (parallel_experiments_ > 1) {
