@@ -70,6 +70,7 @@ class IdleScheduler():
         # convert to circuit and back as hack to prevent nondeterminism in DAGCircuit
         layers = [circuit_to_dag(dag_to_circuit(l['graph'])) for l in dag.layers()]
         for layer in layers:
+            # print("idle times before node {}: {}".format(node.name, self.idle_times.values()))
             new_layer_graph = self.add_identities_to_layer(layer)
             new_dag.extend_back(new_layer_graph)
         return dag_to_circuit(new_dag)
@@ -89,7 +90,7 @@ class IdleScheduler():
 
         for node in layer.op_nodes():
             for qubit in node.qargs:
-                if node.op.name == 'barrier':  # special case
+                if node.op.name in ['barrier', 'snapshot']:  # special cases
                     self.idle_times[qubit] = 0
                 else:
                     self.idle_times[qubit] -= self.op_times.get(node.name, self.default_op_time)

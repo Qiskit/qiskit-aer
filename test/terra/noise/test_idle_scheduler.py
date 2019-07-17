@@ -15,6 +15,8 @@ IdleScheduler class tests
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.providers.aer.noise.utils import schedule_idle_gates
+# this import appears to be unused, but is actually needed to get snapshot instruction
+import qiskit.extensions.simulator  # pylint: disable=unused-import
 import unittest
 
 class TestIdleScheduler(unittest.TestCase):
@@ -132,6 +134,44 @@ class TestIdleScheduler(unittest.TestCase):
         result_circuit = schedule_idle_gates(circuit)
         self.assertEqual(target_circuit, result_circuit)
 
+    def test_barrier_circuit_reset(self):
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+        circuit.barrier()  # should reset the accumulated 0.5 time by the y gate
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.y(qr[1])
+        target_circuit.barrier()
+        target_circuit.x(qr[0])
+        target_circuit.y(qr[1])
+
+        result_circuit = schedule_idle_gates(circuit, op_times={'y': 0.5})
+        self.assertEqual(target_circuit, result_circuit)
+
+    def test_snapshot_circuit(self):
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+        circuit.snapshot('0') #should reset the accumulated 0.5 time by the y gate
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.y(qr[1])
+        target_circuit.snapshot('0')
+        target_circuit.x(qr[0])
+        target_circuit.y(qr[1])
+
+        result_circuit = schedule_idle_gates(circuit, op_times={'y': 0.5})
+        self.assertEqual(target_circuit, result_circuit)
+
     def test_small_circuit_nondefault_time(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -187,4 +227,25 @@ class TestIdleScheduler(unittest.TestCase):
         target_labels = ['id_label_for_x', 'y_id_label', '123']
         self.assertEqual(target_labels, labels)
 
+if __name__ == '__main__':
+     unittest.main()
 
+    # qr = QuantumRegister(2, 'qr')
+    # circuit = QuantumCircuit(qr)
+    # circuit.x(qr[0])
+    # circuit.y(qr[1])
+    # # circuit.snapshot('0')
+    # circuit.x(qr[0])
+    # circuit.y(qr[1])
+    #
+    # target_circuit = QuantumCircuit(qr)
+    # target_circuit.x(qr[0])
+    # target_circuit.y(qr[1])
+    # # target_circuit.snapshot('0')
+    # target_circuit.x(qr[0])
+    # target_circuit.y(qr[1])
+    # target_circuit.iden(qr[1])
+    #
+    #
+    # result_circuit = schedule_idle_gates(circuit, op_times={'x': 2})
+    #
