@@ -63,9 +63,4 @@ class TestNoiseInserter(unittest.TestCase):
         self.assertEqual(target_circuit, result_circuit)
 
 if __name__ == '__main__':
-    qr = QuantumRegister(1, 'qr')
-    circuit = QuantumCircuit(qr)
-    error = pauli_error([('X', 0.25), ('I', 0.75)])
-    circuit.append(error.to_instruction(), [qr[0]])
-    circuit == circuit
-    #unittest.main()
+    unittest.main()
