@@ -105,6 +105,12 @@ class IdleScheduler():
         return layer
 
     def id_gate_label(self, op_name):
+        """Given an op name, returns the label for id gates created by that op
+            Args:
+               op_name (string): The name of the op causing the creation of id gates
+            Returns:
+               string: the expected label, based on self.id_gate_labels
+        """
         label = "id_{}".format(op_name)
         if self.id_gate_labels is not None:
             if isinstance(self.id_gate_labels, str):
