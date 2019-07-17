@@ -31,7 +31,7 @@ namespace QV {
 // convention left-matrix multiplication on qubit-n is equal to multiplication
 // of the vectorized 2*N qubit vector also on qubit-n.
 
-template <class data_t = complex_t*>
+template <class data_t = double>
 class UnitaryMatrix : public QubitVector<data_t> {
 
 public:
@@ -102,7 +102,7 @@ template <class data_t>
 json_t UnitaryMatrix<data_t>::json() const {
   const int_t nrows = rows_;
   // Initialize empty matrix
-  const json_t ZERO = complex_t(0.0, 0.0);
+  const json_t ZERO = complex_t<double>(0.0, 0.0);
   json_t js = json_t(nrows, json_t(nrows, ZERO));
   
   if (BaseVector::json_chop_threshold_ > 0) {
