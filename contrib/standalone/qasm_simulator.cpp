@@ -133,15 +133,24 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
 
-    // Initialize simulator
-    AER::Simulator::QasmController sim;
-
-    // Check for config
-    json_t config_all = qobj["config"];
+    // Check for command line config
+    // and if present add to qobj config
+    json_t& config_all = qobj["config"];
     if (!config.empty())
       config_all.update(config.begin(), config.end());
 
-    sim.set_config(config_all);
+    // Check for OpenMP path for MacOS OpenMP double
+    // initialization crash hack
+    // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+    // If we don't do this we get a segment-fault on execution
+    if (JSON::check_key("config", qobj)) {
+      std::string path;
+      JSON::get_value(path, "library_dir", qobj["config"]);
+      AER::Hacks::maybe_load_openmp(path);
+    }
+
+    // Initialize simulator
+    AER::Simulator::QasmController sim;
     auto result = sim.execute(qobj);
     out << result.dump(4) << std::endl;
 
