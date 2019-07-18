@@ -17,7 +17,8 @@ but can be handled correctly by simulators
 """
 import qiskit.compiler
 
-def add_errors(circuit, noise_model, transpile = False):
+
+def add_errors(circuit, noise_model, transpile=False):
     """
         This function gets a circuit and a noise model and returns a new circuit
         with the errors from the noise model inserted as Kraus gates in the new circuit
