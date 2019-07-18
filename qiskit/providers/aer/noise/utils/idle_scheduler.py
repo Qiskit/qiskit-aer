@@ -130,13 +130,13 @@ class IdleScheduler():
 
         if isinstance(op_times, list):
             for op_time in op_times:
-                if len(op_time) == 2: # (name, time)
+                if len(op_time) == 2:  # (name, time)
                     self.op_times[op_time[0]] = op_time[1]
-                if len(op_time) == 3: # (name, qubits, time)
+                if len(op_time) == 3:  # (name, qubits, time)
                     if op_time[1] is None:
                         self.op_times[op_time[0]] = op_time[2]
                     else:
-                        self.op_times[(op_time[0],tuple(op_time[1]))] = op_time[2]
+                        self.op_times[(op_time[0], tuple(op_time[1]))] = op_time[2]
 
     def get_op_time(self, op_data):
         """Gets the op time for the specified operator
