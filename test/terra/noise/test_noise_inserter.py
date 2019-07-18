@@ -17,6 +17,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.providers.aer.noise.utils import add_errors
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.qasm import pi
 import unittest
 
 class TestNoiseInserter(unittest.TestCase):
@@ -60,6 +61,29 @@ class TestNoiseInserter(unittest.TestCase):
 
         result_circuit = add_errors(circuit, noise_model)
 
+        self.assertEqual(target_circuit, result_circuit)
+
+    def test_transpiling(self):
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.y(qr[1])
+        circuit.z(qr[2])
+
+        error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
+        error_y = pauli_error([('X', 0.35), ('Z', 0.65)])
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error_x, 'x')
+        noise_model.add_all_qubit_quantum_error(error_y, 'u1')
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.append(error_x.to_instruction(), [qr[0]])
+        target_circuit.u3(pi, pi / 2, pi / 2, qr[1])
+        target_circuit.u1(pi, qr[2])
+        target_circuit.append(error_y.to_instruction(), [qr[2]])
+
+        result_circuit = add_errors(circuit, noise_model, transpile=True)
         self.assertEqual(target_circuit, result_circuit)
 
 if __name__ == '__main__':

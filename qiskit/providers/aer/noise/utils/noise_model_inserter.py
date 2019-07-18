@@ -15,9 +15,9 @@ The goal of this module is to add QuantumError gates (Kraus gates) to a circuit
 based on a given noise model. The resulting circuit cannot be ran on a quantum computer
 but can be handled correctly by simulators
 """
+import qiskit.compiler
 
-
-def add_errors(circuit, noise_model):
+def add_errors(circuit, noise_model, transpile = False):
     """
         This function gets a circuit and a noise model and returns a new circuit
         with the errors from the noise model inserted as Kraus gates in the new circuit
@@ -29,9 +29,13 @@ def add_errors(circuit, noise_model):
         """
     errors = noise_model._default_quantum_errors.items()
     error_dict = {name: qubit_dict for (name, qubit_dict) in errors}
-    result_circuit = circuit.copy(name=circuit.name + '_with_errors')
+    if transpile:
+        transpiled_circuit = qiskit.compiler.transpile(circuit, basis_gates=noise_model.basis_gates)
+    else:
+        transpiled_circuit = circuit
+    result_circuit = circuit.copy(name=transpiled_circuit.name + '_with_errors')
     result_circuit.data = []
-    for inst, qargs, cargs in circuit.data:
+    for inst, qargs, cargs in transpiled_circuit.data:
         result_circuit.data.append((inst, qargs, cargs))
         if inst.name in error_dict.keys():
             error = error_dict[inst.name]
