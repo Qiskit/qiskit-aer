@@ -413,6 +413,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
+    cout << "in apply op, op = " << op <<endl;
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
@@ -515,6 +516,7 @@ void State::snapshot_state(const Operations::Op &op,
   qreg_.full_state_vector(statevector);
 
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+  cout << "added snapshot" <<endl;
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -653,12 +655,11 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-  // Actual measurement outcome
-  const auto meas = sample_measure_with_prob(qubits, rng);
-  // Implement measurement update
-  measure_reset_update(qubits, meas.first, meas.first, meas.second);
-  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
+  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  //  measure_reset_update(qubits, meas.first, meas.first, meas.second);
+  //  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   creg_.store_measure(outcome, cmemory, cregister);
+  cout << "finishing apply_measure" <<endl;
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {

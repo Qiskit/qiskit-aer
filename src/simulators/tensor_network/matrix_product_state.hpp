@@ -22,6 +22,8 @@ enum Gates {
   cx, cz, cu1, swap, su4 // two qubit
 };
 
+enum Direction {RIGHT, LEFT};
+
 //=========================================================================
 // MPS class
 //=========================================================================
@@ -191,7 +193,22 @@ public:
     return 0;
   }
   
+  //----------------------------------------------------------------
+  // function name: update_qubit_and_neighbor
+  // Description: This function is used by apply_measure to propagate
+  // the effects of measurement from the measured qubit to all other
+  // qubits
+  //----------------------------------------------------------------
+  void update_qubit_and_neighbor(uint_t index, 
+				 Direction direction,
+				 const cmatrix_t &mul_matrix);
   reg_t sample_measure(std::vector<double> &rnds);
+
+  reg_t apply_measure(const reg_t &qubits, 
+		      RngEngine &rng);
+
+  uint_t apply_measure(uint_t qubit, 
+		      RngEngine &rng);
 
   //----------------------------------------------------------------
   // function name: initialize_from_statevector
