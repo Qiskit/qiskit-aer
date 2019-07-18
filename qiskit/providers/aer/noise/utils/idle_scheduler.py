@@ -89,10 +89,10 @@ class IdleScheduler():
                 if node.op.name in ['barrier', 'snapshot']:  # special cases
                     self.idle_times[qubit] = 0
                 else:
-                    self.idle_times[qubit] -= self.op_times.get(node.name, self.default_op_time)
+                    self.idle_times[qubit] -= self.get_op_time((node.name, node.qargs))
 
-        id_time = self.op_times.get('id', self.default_op_time)
         for qubit in self.circuit.qubits:
+            id_time = self.get_op_time(('id', [qubit]))
             while self.idle_times[qubit] >= id_time:
                 id_gate = IdGate(label=self.id_gate_label(max_op_name))
                 layer.apply_operation_back(id_gate, [qubit], [])
@@ -146,10 +146,8 @@ class IdleScheduler():
             Returns:
                float: the time for the specified op
         """
-
         if len(op_data) == 2:
             op_data = (op_data[0], tuple(op_data[1]))
-
         if op_data in self.op_times:
             return self.op_times[op_data]
 
