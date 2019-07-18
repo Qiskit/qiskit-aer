@@ -47,10 +47,7 @@ def schedule_idle_gates(circuit, op_times=None, default_op_time=1, labels=None):
 class IdleScheduler():
     """Adds idle gates to given circuits"""
     def __init__(self, op_times, default_op_time, id_gate_labels=None):
-        if op_times is None:
-            self.op_times = {}
-        else:
-            self.op_times = op_times
+        self.set_op_times(op_times)
         self.default_op_time = default_op_time
         self.id_gate_labels = id_gate_labels
         self.circuit = None
@@ -70,7 +67,6 @@ class IdleScheduler():
         # convert to circuit and back as hack to prevent nondeterminism in DAGCircuit
         layers = [circuit_to_dag(dag_to_circuit(l['graph'])) for l in dag.layers()]
         for layer in layers:
-            # print("idle times before node {}: {}".format(node.name, self.idle_times.values()))
             new_layer_graph = self.add_identities_to_layer(layer)
             new_dag.extend_back(new_layer_graph)
         return dag_to_circuit(new_dag)
@@ -83,8 +79,8 @@ class IdleScheduler():
                dict: The modified layer
         """
         max_op_time, max_op_name = max(
-            [(self.op_times.get(node.name, self.default_op_time), node.name)
-             for node in layer.op_nodes()])
+            [(self.get_op_time((node.name, node.qargs)), node.name) for node in layer.op_nodes()]
+        )
         for qubit in self.idle_times.keys():
             self.idle_times[qubit] += max_op_time
 
@@ -118,3 +114,46 @@ class IdleScheduler():
             if isinstance(self.id_gate_labels, dict) and op_name in self.id_gate_labels:
                 label = self.id_gate_labels[op_name]
         return label
+
+    def set_op_times(self, op_times):
+        """Sets the op_times data field according to input
+            Args:
+               op_times (None or dict or list): The op times specification
+                None results in using self.default_op_times for all gates
+       """
+        self.op_times = {}
+        if op_times is None:
+            return
+
+        if isinstance(op_times, dict):
+            self.op_times = op_times
+
+        if isinstance(op_times, list):
+            for op_time in op_times:
+                if len(op_time) == 2: # (name, time)
+                    self.op_times[op_time[0]] = op_time[1]
+                if len(op_time) == 3: # (name, qubits, time)
+                    if op_time[1] is None:
+                        self.op_times[op_time[0]] = op_time[2]
+                    else:
+                        self.op_times[(op_time[0],tuple(op_time[1]))] = op_time[2]
+
+    def get_op_time(self, op_data):
+        """Gets the op time for the specified operator
+            Args:
+               op_data (String or tuple): The op data specification
+               Can either be a name string (e.g. 'x') or a pair of name and qubits list
+            Returns:
+               float: the time for the specified op
+        """
+
+        if len(op_data) == 2:
+            op_data = (op_data[0], tuple(op_data[1]))
+
+        if op_data in self.op_times:
+            return self.op_times[op_data]
+
+        if len(op_data) == 2 and op_data[0] in self.op_times:
+            return self.op_times[op_data[0]]
+
+        return self.default_op_time
