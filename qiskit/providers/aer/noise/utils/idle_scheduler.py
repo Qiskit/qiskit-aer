@@ -81,6 +81,7 @@ class IdleScheduler():
         max_op_time, max_op_name = max(
             [(self.get_op_time((node.name, node.qargs)), node.name) for node in layer.op_nodes()]
         )
+
         for qubit in self.idle_times.keys():
             self.idle_times[qubit] += max_op_time
 
