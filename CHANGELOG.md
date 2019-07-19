@@ -33,7 +33,8 @@ Removed
 
 Fixed
 -----
-
+-   Changed conditional check in State classes so they can in principle support
+    conditional non-gate instructions (\#)
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
 ===============================================================================
