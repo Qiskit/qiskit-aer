@@ -23,6 +23,7 @@ Added
 -   New simulation method for qasm simulator: tensor_network (\#56)
 -   Added superop qobj instruction and superoperator matrix utils (\# 289)
 -   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
+-   Add "validation_threshold" config parameter to Aer backends (\# 290)
 
 Changed
 -------
