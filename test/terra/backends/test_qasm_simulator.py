@@ -20,7 +20,8 @@ from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
@@ -42,7 +43,8 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmMeasureTests,
                         QasmResetTests,
                         QasmInitializeTests,
-                        QasmConditionalTests,
+                        QasmConditionalGateTests,
+                        QasmConditionalUnitaryTests,
                         QasmCliffordTests,
                         QasmCliffordTestsWaltzBasis,
                         QasmCliffordTestsMinimalBasis,
