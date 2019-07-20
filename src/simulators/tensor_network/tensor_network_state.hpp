@@ -413,42 +413,42 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
-    switch (op.type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits, rng);
-        break;
-      case Operations::OpType::initialize:
-        apply_initialize(op.qubits, op.params, rng);
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::gate:
-        //if (BaseState::creg_.check_conditional(op))
+    if(BaseState::creg_.check_conditional(op)) {
+      switch (op.type) {
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits, rng);
+          break;
+        case Operations::OpType::initialize:
+          apply_initialize(op.qubits, op.params, rng);
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::gate:
           apply_gate(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
-        break;
-      case Operations::OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
-        break;
-      case Operations::OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng);
-        break;
-      default:
-        throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
-                                    op.name + "\'.");
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, data);
+          break;
+        case Operations::OpType::matrix:
+          apply_matrix(op.qubits, op.mats[0]);
+          break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats, rng);
+          break;
+        default:
+          throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
+                                      op.name + "\'.");
+      }
     }
-
   }
 }
 
