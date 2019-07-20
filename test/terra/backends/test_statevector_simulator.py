@@ -118,7 +118,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     def test_conditional_unitary_1bit(self):
         """Test conditional unitaries on 1-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False,
-                                                              unitary=True)
+                                                              conditional_type='unitary')
         targets = ref_conditionals.conditional_statevector_1bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
@@ -137,7 +137,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     def test_conditional_unitary_2bit(self):
         """Test conditional unitary on 2-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False,
-                                                              unitary=True)
+                                                              conditional_type='unitary')
         targets = ref_conditionals.conditional_statevector_2bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
