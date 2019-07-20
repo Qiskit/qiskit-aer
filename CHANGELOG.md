@@ -22,6 +22,7 @@ Added
 -----
 -   New simulation method for qasm simulator: tensor_network (\#56)
 -   Added superop qobj instruction and superoperator matrix utils (\# 289)
+-   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
 
 Changed
 -------
@@ -33,8 +34,6 @@ Removed
 
 Fixed
 -----
--   Changed conditional check in State classes so they can in principle support
-    conditional non-gate instructions (\#)
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
 ===============================================================================
