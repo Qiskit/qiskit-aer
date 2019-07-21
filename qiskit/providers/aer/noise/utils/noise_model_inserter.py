@@ -25,6 +25,7 @@ def add_errors(circuit, noise_model, transpile=False):
         Args:
             circuit (QuantumCircuit): The circuit to add the errors to
             noise_model (NoiseModel):  The noise model containing the errors to add
+            transpile (Boolean): Should the circuit be transpiled into the noise model basis gates
         Returns:
             QuantumCircuit: The new circuit with the added Kraus gates
         """
