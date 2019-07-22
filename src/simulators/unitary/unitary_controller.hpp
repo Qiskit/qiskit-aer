@@ -104,7 +104,7 @@ void UnitaryController::set_config(const json_t &config) {
   //Add custom initial unitary
   if (JSON::get_value(initial_unitary_, "initial_unitary", config) ) {
     // Check initial state is unitary
-    if (!Utils::is_unitary(initial_unitary_, 1e-10))
+    if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
       throw std::runtime_error("UnitaryController: initial_unitary is not unitary");
   }
 }

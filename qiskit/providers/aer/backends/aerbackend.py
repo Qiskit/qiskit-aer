@@ -17,6 +17,7 @@ Qiskit Aer qasm simulator backend.
 import json
 import logging
 import datetime
+import os
 import time
 import uuid
 from numpy import ndarray
@@ -32,6 +33,10 @@ from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
+
+# Location where we put external libraries that will be loaded at runtime
+# by the simulator extension
+LIBRARY_DIR = os.path.dirname(__file__)
 
 
 class AerJSONEncoder(json.JSONEncoder):
@@ -129,7 +134,7 @@ class AerBackend(BaseBackend):
             config["noise_model"] = noise_model
 
         # Add runtime config
-        config['library_dir'] = self.configuration().library_dir
+        config['library_dir'] = LIBRARY_DIR
         qobj.config = QasmQobjConfig.from_dict(config)
         # Get the JSON serialized string
         output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
