@@ -21,7 +21,8 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 Added
 -----
 -   New simulation method for qasm simulator: tensor_network (\#56)
-
+-   Added superop qobj instruction and superoperator matrix utils (\# 289)
+-   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
 
 Changed
 -------
