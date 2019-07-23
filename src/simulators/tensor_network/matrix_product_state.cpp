@@ -98,8 +98,8 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   #else
      #pragma omp parallel for collapse(2)
   #endif
-  for(uint_t row = 0; row < num_rows; row++) {
-      for(uint_t col = 0; col < num_cols; col++) {
+  for(int_t row = 0; row < num_rows; row++) {
+      for(int_t col = 0; col < num_cols; col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
       }
   }
