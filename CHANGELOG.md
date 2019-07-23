@@ -34,6 +34,7 @@ Removed
 
 Fixed
 -----
+- Bug in handling parallelization in matrix_product_state.cpp
 
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
