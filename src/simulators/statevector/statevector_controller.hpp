@@ -112,7 +112,7 @@ void StatevectorController::set_config(const json_t &config) {
   //Add custom initial state
   if (JSON::get_value(initial_state_, "initial_statevector", config)) {
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_state_, 1e-10))
+    if (!Utils::is_unit_vector(initial_state_, validation_threshold_))
       throw std::runtime_error("StatevectorController: initial_statevector is not a unit vector");
   }
 }

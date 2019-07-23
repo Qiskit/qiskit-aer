@@ -214,6 +214,9 @@ protected:
   // Circuit optimization
   std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
 
+  // Validation threshold for validating states and operators
+  double validation_threshold_ = 1e-8;
+
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
@@ -267,6 +270,9 @@ void Controller::set_config(const json_t &config) {
   // Load noise model
   if (JSON::check_key("noise_model", config))
     noise_model_ = Noise::NoiseModel(config["noise_model"]);
+
+  // Load validation threshold
+  JSON::get_value(validation_threshold_, "validation_threshold", config);
 
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
@@ -322,6 +328,7 @@ void Controller::clear_config() {
   config_ = json_t();
   noise_model_ = Noise::NoiseModel();
   clear_parallelization();
+  validation_threshold_ = 1e-8;
 }
 
 void Controller::clear_parallelization() {
