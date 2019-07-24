@@ -92,8 +92,14 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   if (lambda == rvector_t {1.0}) return mat;
   cmatrix_t res_mat(mat);
   uint_t num_rows = mat.GetRows(), num_cols = mat.GetColumns();
-  for(uint_t row = 0; row < num_rows; row++) {
-      for(uint_t col = 0; col < num_cols; col++) {
+
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(2)
+  #endif
+  for(int_t row = 0; row < num_rows; row++) {
+      for(int_t col = 0; col < num_cols; col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
       }
   }
@@ -366,7 +372,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   #endif
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
-      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conj(psi.get_data(j))) );
+      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(j))) );
     }
   }
   return rho;
@@ -459,9 +465,10 @@ void MPS::full_state_vector(cvector_t& statevector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
+  statevector.resize(length);
   #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
+    statevector[i] = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
   }
 #ifdef DEBUG
   cout << *this;
@@ -473,9 +480,10 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
   complex_t data = 0;
+  probvector.resize(length);
+  #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
-    probvector.push_back(std::norm(data));
+    probvector[i] = std::norm(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
 }
 
