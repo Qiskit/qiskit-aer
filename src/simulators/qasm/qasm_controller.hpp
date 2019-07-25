@@ -137,6 +137,12 @@ protected:
     tensor_network
   };
 
+  // Simulation precision
+  enum class Precision {
+    double_precision,
+    single_precision
+  };
+
   //-----------------------------------------------------------------------
   // Base class abstract method override
   //-----------------------------------------------------------------------
@@ -233,8 +239,11 @@ protected:
   //-----------------------------------------------------------------------
   size_t required_memory_mb(const Circuit& circ) const override;
 
-    // Simulation method
+  // Simulation method
   Method simulation_method_ = Method::automatic;
+
+  // Simulation precision
+  Precision simulation_precision_ = Precision::double_precision;
 
   // Qubit threshold for running circuit optimizations
   uint_t circuit_opt_ideal_threshold_ = 5;
@@ -293,6 +302,16 @@ void QasmController::set_config(const json_t &config) {
     }
   }
 
+  std::string precision;
+  if (JSON::get_value(precision, "precision", config)) {
+    if (precision == "double") {
+      simulation_precision_ = Precision::double_precision;
+    } else if (precision == "single") {
+      simulation_precision_ = Precision::single_precision;
+    }
+  }
+
+
   // Check for circuit optimization threshold
   JSON::get_value(circuit_opt_ideal_threshold_,
                   "optimize_ideal_threshold", config);
@@ -343,12 +362,22 @@ OutputData QasmController::run_circuit(const Circuit &circ,
 
   switch (simulation_method(circ)) {
     case Method::statevector:
-      // Statevector simulation
-      return run_circuit_helper<Statevector::State<>>(
-                                                      circ,
-                                                      shots,
-                                                      rng_seed,
-                                                      initial_statevector_); // allow custom initial state
+
+      if (simulation_precision_ == Precision::double_precision) {
+        // Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+                                                        circ,
+                                                        shots,
+                                                        rng_seed,
+                                                        initial_statevector_); // allow custom initial state
+      } else {
+        // Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+                                                        circ,
+                                                        shots,
+                                                        rng_seed,
+                                                        initial_statevector_); // allow custom initial state
+      }
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
