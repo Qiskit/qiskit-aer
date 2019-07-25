@@ -30,13 +30,15 @@ using reg_t = std::vector<uint_t>;
 class ReduceBarrier : public CircuitOptimization {
 public:
   void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
                         const opset_t &opset,
                         OutputData &data) const override;
 };
 
 void ReduceBarrier::optimize_circuit(Circuit& circ,
-                                 const opset_t &allowed_opset,
-                                 OutputData &data) const {
+                                     Noise::NoiseModel& noise,
+                                     const opset_t &allowed_opset,
+                                     OutputData &data) const {
 
   size_t idx = 0;
   for (size_t i = 0; i < circ.ops.size(); ++i) {
@@ -54,11 +56,13 @@ void ReduceBarrier::optimize_circuit(Circuit& circ,
 class Debug : public CircuitOptimization {
 public:
   void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
                         const opset_t &opset,
                         OutputData &data) const override;
 };
 
 void Debug::optimize_circuit(Circuit& circ,
+                             Noise::NoiseModel& noise,
                              const opset_t &allowed_opset,
                              OutputData &data) const {
 

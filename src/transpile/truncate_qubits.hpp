@@ -26,7 +26,9 @@ public:
   void set_config(const json_t &config) override;
 
   // truncate unnecessary qubits
+  // TODO: truncate noise model as well
   void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
                         const Operations::OpSet &opset,
                         OutputData &data) const override;
 
@@ -67,6 +69,7 @@ void TruncateQubits::set_config(const json_t &config) {
 }
 
 void TruncateQubits::optimize_circuit(Circuit& circ,
+                                      Noise::NoiseModel& noise,
                                       const Operations::OpSet &allowed_opset,
                                       OutputData &data) const {
 

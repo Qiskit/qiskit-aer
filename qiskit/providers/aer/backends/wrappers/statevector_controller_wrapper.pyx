@@ -20,7 +20,7 @@ cdef extern from "simulators/statevector/statevector_controller.hpp" namespace "
     cdef cppclass StatevectorController:
         StatevectorController() except +
 
-cdef extern from "base/controller.hpp" namespace "AER":
+cdef extern from "simulators/controller_execute.hpp" namespace "AER":
     cdef string controller_execute[StatevectorController](string &qobj) except +
 
 
