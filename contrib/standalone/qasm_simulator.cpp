@@ -139,16 +139,6 @@ int main(int argc, char **argv) {
     if (!config.empty())
       config_all.update(config.begin(), config.end());
 
-    // Check for OpenMP path for MacOS OpenMP double
-    // initialization crash hack
-    // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-    // If we don't do this we get a segment-fault on execution
-    if (JSON::check_key("config", qobj)) {
-      std::string path;
-      JSON::get_value(path, "library_dir", qobj["config"]);
-      AER::Hacks::maybe_load_openmp(path);
-    }
-
     // Initialize simulator
     AER::Simulator::QasmController sim;
     auto result = sim.execute(qobj);
