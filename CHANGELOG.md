@@ -37,6 +37,8 @@ Fixed
 -----
 - Bug in handling parallelization in matrix_product_state.cpp (PR \#292)
 
+- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR \#294)
+
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
 ===============================================================================

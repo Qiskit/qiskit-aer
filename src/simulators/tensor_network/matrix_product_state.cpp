@@ -479,7 +479,6 @@ void MPS::probabilities_vector(rvector_t& probvector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
-  complex_t data = 0;
   probvector.resize(length);
   #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
