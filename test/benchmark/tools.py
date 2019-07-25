@@ -18,11 +18,11 @@ from itertools import repeat
 from numpy import random
 from scipy import linalg
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import transpile
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import depolarizing_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors import thermal_relaxation_error
+
 
 class NoiseWithDescription:
     """ This is just a wrapper for adding a descriptive text to the noise model
@@ -31,11 +31,15 @@ class NoiseWithDescription:
     def __init__(self, noise_model, description):
         self._noise_model = noise_model
         self._description = description
+
     def __repr__(self):
         return self._description
+
     def __call__(self):
         return self._noise_model
 
+
+# pylint: disable=no-member
 def _add_measurements(circuit, qr):
     cr = ClassicalRegister(qr.size)
     meas = QuantumCircuit(qr, cr)
@@ -108,6 +112,7 @@ def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
         # Decompose each SU(4) into CNOT + SU(2) and add to Ci
         for k in range(math.floor(num_qubits / 2)):
             # Generate random SU(4) matrix
+            # pylint: disable=invalid-name
             X = (rng.randn(4, 4) + 1j * rng.randn(4, 4))
             SU4, _ = linalg.qr(X)  # Q is a unitary matrix
             SU4 /= pow(linalg.det(SU4), 1 / 4)  # make Q a special unitary
@@ -115,8 +120,31 @@ def quantum_volume_circuit(num_qubits, depth, measure=True, seed=None):
             circuit.unitary(SU4, qubits)
     if measure is True:
         circuit = _add_measurements(circuit, qr)
-    # Transpile to force it into u1,u2,u3,cx basis gates
-    return transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'])
+    return circuit
+
+
+def qft_circuit(num_qubits, measure=True):
+    """Create a qft circuit.
+
+    Args:
+        num_qubits (int): number of qubits
+        measure (bool): include measurement in circuit.
+
+    Returns:
+        QftCircuit: A qft circuit.
+    """
+    # Create quantum/classical registers of size n
+    qr = QuantumRegister(num_qubits)
+    circuit = QuantumCircuit(qr)
+
+    for i in range(num_qubits):
+        for j in range(i):
+            circuit.cu1(math.pi/float(2**(i-j)), qr[i], qr[j])
+        circuit.h(qr[i])
+
+    if measure is True:
+        circuit = _add_measurements(circuit, qr)
+    return circuit
 
 
 def simple_u3_circuit(num_qubits, measure=True):
@@ -141,8 +169,8 @@ def simple_u3_circuit(num_qubits, measure=True):
 
 
 def simple_cnot_circuit(num_qubits, measure=True):
-    """Creates a simple circuit composed by cnot gates, with measurements or not
-    at the end of each qubit.
+    """Creates a simple circuit composed by cnot gates, with measurements or
+    not at the end of each qubit.
 
     Args:
         num_qubits (int): Number of qubits
@@ -160,4 +188,29 @@ def simple_cnot_circuit(num_qubits, measure=True):
 
     if measure:
         circuit = _add_measurements(circuit, qr)
+    return circuit
+
+
+# pylint: disable=invalid-name
+def quantum_fourier_transform_circuit(num_qubits):
+    """Create quantum fourier transform circuit.
+
+    Args:
+        num_qubits (int): Number of qubits
+
+    Returns:
+        QuantumCircuit: QFT circuit
+    """
+    qreg = QuantumRegister(num_qubits)
+    creg = ClassicalRegister(num_qubits)
+
+    circuit = QuantumCircuit(qreg, creg, name="qft")
+
+    n = len(qreg)
+
+    for i in range(n):
+        for j in range(i):
+            circuit.cu1(math.pi/float(2**(i-j)), qreg[i], qreg[j])
+        circuit.h(qreg[i])
+    circuit.measure(qreg, creg)
     return circuit

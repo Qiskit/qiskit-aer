@@ -84,7 +84,7 @@ stage_osx: &stage_osx
 
 # Define the order of the stages.
 stages:
-  # - lint
+  - lint
   - test
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
@@ -94,9 +94,13 @@ jobs:
     # "lint" stage
     ###########################################################################
     # C++ and Python linters
-    # TODO!
-    # - stage: lint
-
+    # TODO: C++ clang-tidy!
+    - stage: lint
+      name: Python Style and Linter
+      <<: *stage_linux
+      script:
+        - pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
+        - pylint -j 2 -rn qiskit/providers/aer
 
     # "test" stage
     ###########################################################################

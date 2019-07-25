@@ -74,7 +74,6 @@ public:
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
       Operations::OpType::matrix,
-      Operations::OpType::matrix_sequence,
       Operations::OpType::multiplexer,
       Operations::OpType::kraus
     });
@@ -82,9 +81,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3", "mcswap"};
+            "mcx", "mcz", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -169,7 +168,7 @@ protected:
   virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
+  void apply_matrix(const Operations::Op &op);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
@@ -180,9 +179,6 @@ protected:
   // Apply stacked (flat) version of multiplexer matrix to target qubits (using control qubits to select matrix instance)
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat);
 
-
-  // Apply multiple gate operations
-  void apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats);
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits,
@@ -289,23 +285,24 @@ template <class statevec_t>
 const stringmap_t<Gates> State<statevec_t>::gateset_({
   // Single qubit gates
   {"id", Gates::id},     // Pauli-Identity gate
-  {"x", Gates::mcx},       // Pauli-X gate
-  {"y", Gates::mcy},       // Pauli-Y gate
-  {"z", Gates::mcz},       // Pauli-Z gate
+  {"x", Gates::mcx},     // Pauli-X gate
+  {"y", Gates::mcy},     // Pauli-Y gate
+  {"z", Gates::mcz},     // Pauli-Z gate
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
-  {"u1", Gates::mcu1},     // zero-X90 pulse waltz gate
-  {"u2", Gates::mcu2},     // single-X90 pulse waltz gate
-  {"u3", Gates::mcu3},     // two X90 pulse waltz gate
+  {"u1", Gates::mcu1},   // zero-X90 pulse waltz gate
+  {"u2", Gates::mcu2},   // single-X90 pulse waltz gate
+  {"u3", Gates::mcu3},   // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::mcx},     // Controlled-X gate (CNOT)
-  {"cy", Gates::mcy},     // Controlled-Y gate
-  {"cz", Gates::mcz},     // Controlled-Z gate
-  {"swap", Gates::mcswap}, // SWAP gate
+  {"cx", Gates::mcx},        // Controlled-X gate (CNOT)
+  {"cy", Gates::mcy},        // Controlled-Y gate
+  {"cz", Gates::mcz},        // Controlled-Z gate
+  {"cu1", Gates::mcu1},      // Controlled-u1 gate
+  {"swap", Gates::mcswap},   // SWAP gate
   {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
   // Multi-qubit controlled gates
   {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
@@ -419,48 +416,47 @@ template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  OutputData &data,
                                  RngEngine &rng) {
+
   // Simple loop over vector of input operations
   for (const auto & op: ops) {
-    switch (op.type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits, rng);
-        break;
-      case Operations::OpType::initialize:
-        apply_initialize(op.qubits, op.params, rng);
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::gate:
-        if (BaseState::creg_.check_conditional(op))
+    if(BaseState::creg_.check_conditional(op)) {
+      switch (op.type) {
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits, rng);
+          break;
+        case Operations::OpType::initialize:
+          apply_initialize(op.qubits, op.params, rng);
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::gate:
           apply_gate(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
-        break;
-      case Operations::OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
-        break;
-      case Operations::OpType::matrix_sequence:
-        apply_matrix_sequence(op.regs, op.mats);
-	break;
-      case Operations::OpType::multiplexer:
-        apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
-        break;
-      case Operations::OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng);
-        break;
-      default:
-        throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
-                                    op.name + "\'.");
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, data);
+          break;
+        case Operations::OpType::matrix:
+          apply_matrix(op);
+          break;
+        case Operations::OpType::multiplexer:
+          apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
+          break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats, rng);
+          break;
+        default:
+          throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
+                                      op.name + "\'.");
+      }
     }
   }
 }
@@ -567,7 +563,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
           BaseState::qreg_.apply_mcy({op.qubits[pos]});
           break;
         case 'Z':
-          BaseState::qreg_.apply_mcz({op.qubits[pos]});
+          BaseState::qreg_.apply_mcphase({op.qubits[pos]}, -1);
           break;
         default: {
           std::stringstream msg;
@@ -658,7 +654,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcz:
       // Includes Z, CZ, CCZ, etc
-      BaseState::qreg_.apply_mcz(op.qubits);
+      BaseState::qreg_.apply_mcphase(op.qubits, -1);
       break;
     case Gates::id:
       break;
@@ -699,9 +695,8 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcu1:
       // Includes u1, cu1, etc
-      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      BaseState::qreg_.apply_mcphase(op.qubits, std::exp(complex_t(0, 1) * op.params[0]));
       break;
-
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +
@@ -711,17 +706,21 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
 
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (qubits.empty() == false && mat.size() > 0) {
-    apply_matrix(qubits, Utils::vectorize_matrix(mat));
-  }
-}
-
-template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
   if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
     BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_matrix(const Operations::Op &op) {
+  if (op.qubits.empty() == false && op.mats[0].size() > 0) {
+    if (Utils::is_diagonal(op.mats[0], .0)) {
+      BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
+    } else {
+      BaseState::qreg_.apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+    }
   }
 }
 
@@ -733,21 +732,6 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat)
   } else {
     BaseState::qreg_.apply_matrix(qubits, vmat);
   }
-}
-
-
-
-template <class statevec_t>
-void State<statevec_t>::apply_matrix_sequence(const std::vector<reg_t> &regs, const std::vector<cmatrix_t>& mats) {
-
-  if (regs.empty())
-    return;
-
-  std::vector<cvector_t> vmats;
-  for (const cmatrix_t& mat: mats)
-    vmats.push_back(Utils::vectorize_matrix(mat));
-
-  BaseState::qreg_.apply_matrix_sequence(regs, vmats);
 }
 
 

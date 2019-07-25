@@ -32,7 +32,6 @@ class QasmBasicsTests:
         result = mocked_backend.run(qobj).result()
         self.is_completed(result)
 
-
     def test_simulation_failed(self):
         """Test the we properly manage simulation failures."""
         mocked_backend = FakeFailureQasmSimulator(time_alive=0)
