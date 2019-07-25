@@ -352,35 +352,33 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
     {
       for (const auto op: non_stabilizer_circuit)
       {
-        switch (op.type)
-        {
-          case Operations::OpType::gate:
-            if(BaseState::creg_.check_conditional(op))
-            {
+        if(BaseState::creg_.check_conditional(op)) {
+          switch (op.type) {
+            case Operations::OpType::gate:
               apply_gate(op, rng);
-            }
-            break;
-          case Operations::OpType::reset:
-            apply_reset(op.qubits, rng);
-            break;
-          case Operations::OpType::barrier:
-            break;
-          case Operations::OpType::measure:
-            apply_measure(op.qubits, op.memory, op.registers, rng);
-            break;
-          case Operations::OpType::roerror:
-            BaseState::creg_.apply_roerror(op, rng);
-            break;
-          case Operations::OpType::bfunc:
-            BaseState::creg_.apply_bfunc(op);
-            break;
-          case Operations::OpType::snapshot:
-            apply_snapshot(op, data, rng);
-            break;
-          default:
-            throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
-                                         op.name + "\'.");
-            break;
+              break;
+            case Operations::OpType::reset:
+              apply_reset(op.qubits, rng);
+              break;
+            case Operations::OpType::barrier:
+              break;
+            case Operations::OpType::measure:
+              apply_measure(op.qubits, op.memory, op.registers, rng);
+              break;
+            case Operations::OpType::roerror:
+              BaseState::creg_.apply_roerror(op, rng);
+              break;
+            case Operations::OpType::bfunc:
+              BaseState::creg_.apply_bfunc(op);
+              break;
+            case Operations::OpType::snapshot:
+              apply_snapshot(op, data, rng);
+              break;
+            default:
+              throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
+                                          op.name + "\'.");
+              break;
+          }
         }
       }
     }

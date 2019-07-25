@@ -106,8 +106,8 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
-    def test_conditional_1bit(self):
-        """Test conditional operations on 1-bit conditional register."""
+    def test_conditional_gate_1bit(self):
+        """Test conditional gates on 1-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False)
         targets = ref_conditionals.conditional_statevector_1bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
@@ -115,9 +115,29 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-    def test_conditional_2bit(self):
-        """Test conditional operations on 2-bit conditional register."""
+    def test_conditional_unitary_1bit(self):
+        """Test conditional unitaries on 1-bit conditional register."""
+        circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False,
+                                                              conditional_type='unitary')
+        targets = ref_conditionals.conditional_statevector_1bit()
+        job = execute(circuits, StatevectorSimulator(), shots=1)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_statevector(result, circuits, targets)
+
+    def test_conditional_gate_2bit(self):
+        """Test conditional gates on 2-bit conditional register."""
         circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False)
+        targets = ref_conditionals.conditional_statevector_2bit()
+        job = execute(circuits, StatevectorSimulator(), shots=1)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_statevector(result, circuits, targets)
+
+    def test_conditional_unitary_2bit(self):
+        """Test conditional unitary on 2-bit conditional register."""
+        circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False,
+                                                              conditional_type='unitary')
         targets = ref_conditionals.conditional_statevector_2bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()

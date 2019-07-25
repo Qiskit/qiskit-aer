@@ -14,7 +14,6 @@ Qiskit Aer qasm simulator backend.
 """
 
 import logging
-import os
 from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
@@ -55,6 +54,9 @@ class QasmSimulator(AerBackend):
 
         * "zero_threshold" (double): Sets the threshold for truncating
             small values to zero in the result data (Default: 1e-10).
+
+        * "validation_threshold" (double): Sets the threshold for checking
+            if initial states are valid (Default: 1e-8).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -157,18 +159,15 @@ class QasmSimulator(AerBackend):
         'description': 'A C++ simulator with realistic noise for qobj files',
         'coupling_map': None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            'u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'ccx', 'swap', 'multiplexer', 'snapshot', 'unitary', 'reset',
-            'initialize', 'kraus'
+            'initialize', 'kraus', 'roerror'
         ],
         'gates': [{
             'name': 'TODO',
             'parameters': [],
             'qasm_def': 'TODO'
-        }],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        }]
     }
 
     def __init__(self, configuration=None, provider=None):
@@ -185,9 +184,9 @@ class QasmSimulator(AerBackend):
         """
         clifford_instructions = [
             "id", "x", "y", "z", "h", "s", "sdg", "CX", "cx", "cz", "swap",
-            "barrier", "reset", "measure"
+            "barrier", "reset", "measure", 'roerror'
         ]
-        unsupported_ch_instructions = ["u2", "u3"]
+        unsupported_ch_instructions = ["u2", "u3", "cu1"]
         # Check if noise model is Clifford:
         method = "automatic"
         if backend_options and "method" in backend_options:
