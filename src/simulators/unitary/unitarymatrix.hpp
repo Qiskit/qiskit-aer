@@ -64,7 +64,7 @@ public:
   AER::cmatrix_t matrix() const;
 
   // Return the trace of the unitary
-  complex_t trace() const;
+  complex_t<double> trace() const;
 
   // Return JSON serialization of UnitaryMatrix;
   json_t json() const;
@@ -253,7 +253,7 @@ void UnitaryMatrix<data_t>::set_num_qubits(size_t num_qubits) {
 }
 
 template <class data_t>
-complex_t UnitaryMatrix<data_t>::trace() const {
+complex_t<double> UnitaryMatrix<data_t>::trace() const {
   const int_t NROWS = rows_;
   const int_t DIAG = NROWS + 1;
   double val_re = 0.;
@@ -266,7 +266,7 @@ complex_t UnitaryMatrix<data_t>::trace() const {
     val_im += std::imag(BaseVector::data_[k * DIAG]);
   }
   }
-  return complex_t(val_re, val_im);
+  return complex_t<double>(val_re, val_im);
 }
 
 
