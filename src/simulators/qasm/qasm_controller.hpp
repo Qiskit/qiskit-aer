@@ -450,7 +450,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ) {
   switch (simulation_method(circ)) {
     case Method::statevector:
     case Method::tensor_network: {
-      if ((noise_model_.ideal() || noise_model_.only_readout_errors()) &&
+      if ((noise_model_.ideal() || !noise_model_.has_quantum_errors()) &&
           check_measure_sampling_opt(circ).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
@@ -494,8 +494,11 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
                            json_t::object({{"method", state.name()}}));
 
   // Check if there is noise for the implementation
-  if (noise_model_.ideal() || noise_model_.only_readout_errors()) {
+  if (noise_model_.ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, data, rng);
+  } else if (!noise_model_.has_quantum_errors()) {
+    run_circuit_without_noise(noise_model_.sample_noise(circ, rng),
+                              shots, state, initial_state, data, rng);
   } else {
     run_circuit_with_noise(circ, shots, state, initial_state, data, rng);
   }
@@ -566,6 +569,8 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
+    data.add_additional_data("metadata",
+                             json_t::object({{"measure", "sampling"}}));
   }  
 }
 
@@ -586,11 +591,12 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   while (start != circ.ops.end()) {
     const auto type = start->type;
     if (type == Operations::OpType::reset ||
-	type == Operations::OpType::initialize ||
+        type == Operations::OpType::initialize ||
         type == Operations::OpType::kraus) {
       return std::make_pair(false, 0);
     }
-    if (type == Operations::OpType::measure)
+    if (type == Operations::OpType::measure ||
+        type == Operations::OpType::roerror)
       break;
     ++start;
   }
@@ -598,9 +604,9 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   auto start_meas = start;
   // Check all remaining operations are measurements
   while (start != circ.ops.end()) {
-    if (start->type != Operations::OpType::measure ||
-        start->conditional ||
-        start->type == Operations::OpType::roerror) {
+    if ((start->type != Operations::OpType::measure
+         && start->type != Operations::OpType::roerror) ||
+        start->conditional) {
       return std::make_pair(false, 0);
     }
     ++start;

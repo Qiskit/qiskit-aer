@@ -72,8 +72,20 @@ public:
     return !(local_quantum_errors_ || nonlocal_quantum_errors_) && readout_errors_.empty();
   }
 
-  inline bool only_readout_errors() const {
-    return !ideal() && readout_errors_.empty();
+  inline bool has_readout_errors() const {
+    return !readout_errors_.empty();
+  }
+
+  inline bool has_quantum_errors() const {
+    return local_quantum_errors_ || nonlocal_quantum_errors_;
+  }
+
+  inline bool has_local_quantum_errors() const {
+    return local_quantum_errors_;
+  }
+
+  inline bool has_nonlocal_quantum_errors() const {
+    return nonlocal_quantum_errors_;
   }
 
   // Set which single qubit gates should use the X90 waltz error model
