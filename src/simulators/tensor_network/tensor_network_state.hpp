@@ -463,26 +463,17 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
 
-  //Cache the current quantum state
-  //BaseState::qreg_.checkpoint(); 
-  //bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-
   //Compute expval components
-  double expval = 0;
-  string pauli_matrices;
+  complex_t expval(0., 0.);
+  double one_expval = 0;
 
   for (const auto &param : op.params_expval_pauli) {
-    pauli_matrices += param.second;
+    complex_t coeff = param.first;
+    string pauli_matrices = param.second;
+    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
+    expval += coeff * one_expval;;
   }
-  expval = qreg_.expectation_value(op.qubits, pauli_matrices);
-    // Pauli expectation values should always be real for a valid state
-    // so we truncate the imaginary part
-  //expval += coeff * std::real(BaseState::qreg_.inner_product());
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
-  
-  //qreg_.revert(false);
-  // Revert to original state
-  //BaseState::qreg_.revert(false);
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
@@ -491,6 +482,8 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
+  complex_t expval(0., 0.);
+  double one_expval = 0;
 
   for (const auto &param : op.params_expval_matrix) {
     complex_t coeff = param.first;
@@ -498,11 +491,8 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
     for (const auto &pair: param.second) {
       const reg_t &qubits = pair.first;
       const cmatrix_t &mat = pair.second;
-      double expval = 0;
-      expval = qreg_.expectation_value(qubits, mat);
-    // Pauli expectation values should always be real for a valid state
-    // so we truncate the imaginary part
-    //expval += coeff * std::real(BaseState::qreg_.inner_product());
+      one_expval = qreg_.expectation_value(qubits, mat);
+      expval += coeff * one_expval;
       data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
     }
   }
