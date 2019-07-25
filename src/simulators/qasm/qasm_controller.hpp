@@ -380,6 +380,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
                                                       circ,
                                                       noise,
+                                                      config,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_,
