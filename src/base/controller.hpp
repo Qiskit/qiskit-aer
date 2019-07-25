@@ -337,9 +337,9 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
   if (max_parallel_experiments_ <= 0)
     return;
   // if memory allows, execute experiments in parallel
-  std::vector<size_t> required_memory_mb_list;
-  for (const Circuit &circ : circuits) {
-    required_memory_mb_list.push_back(required_memory_mb(circ, noise));
+  std::vector<size_t> required_memory_mb_list(circuits.size());
+  for (size_t j=0; j<circuits.size(); j++) {
+    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
   int total_memory = 0;
