@@ -119,20 +119,6 @@ public:
   // If no nonlocal error exists an empty set is returned.
   std::set<uint_t> nonlocal_noise_qubits(const std::string label, const reg_t &qubits) const;
 
-  // Return vector of qubit registers for all readout errors in noise model.
-  // The empty reg is used to an all-qubit readout error.
-  std::vector<reg_t> readout_error_keys() const;
-
-  // Return vector of key pairs for all non-local quantum errors in the noise
-  // model. Vector elements are tuples (label, qubits, noise_qubits) where
-  // label is the string label for the error instruction, qubits is the reg of
-  // qubits the instruction is applied to, and noise_qubits is the reg of
-  // qubits the error is applied to.
-  // The empty noise_qubit reg is used for local quantum errors.
-  // The empty qubit reg is used for all-qubit quantum errors.
-  using keytuple_t = std::tuple<std::string, reg_t, reg_t>;
-  std::vector<keytuple_t> quantum_error_keys() const;
-
   // Set threshold for applying u1 rotation angles.
   // an Op for u1(theta) will only be added if |theta| > 0 and |theta - 2*pi| > 0
   inline void set_u1_threshold(double threshold) {
@@ -794,54 +780,6 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 }
 
-
-std::vector<reg_t> NoiseModel::readout_error_keys() const {
-  // If ideal readout return an empty vector
-  if (ideal_readout())
-    return std::vector<reg_t>();
-
-  // Otherwise construct the vector
-  std::vector<reg_t> ret;
-  ret.reserve(readout_error_table_.size());
-  for (const auto& pair: readout_error_table_) {
-    ret.push_back(string2reg(pair.first));
-  }
-  return ret;
-}
-
-
-std::vector<NoiseModel::keytuple_t>
-NoiseModel::quantum_error_keys() const {
-  // If ideal readout return an empty vector
-  if (ideal_quantum())
-    return std::vector<keytuple_t>();
-
-  // Otherwise construct the vector
-  std::vector<keytuple_t> ret;
-  ret.reserve(local_quantum_error_table_.size() + nonlocal_quantum_error_table_.size());
-
-  // Add local quantum errors
-  for (const auto& outer_pair: local_quantum_error_table_) {
-    auto label = outer_pair.first;
-    for (const auto& inner_pair : outer_pair.second) {
-      auto qubits = string2reg(inner_pair.first);
-      ret.push_back(keytuple_t({label, qubits, reg_t()}));
-    }
-  }
-
-  // Add nonlocal quantum errors
-  for (const auto& outer_pair: nonlocal_quantum_error_table_) {
-    auto label = outer_pair.first;
-    for (const auto& middle_pair : outer_pair.second) {
-      const reg_t qubits = string2reg(middle_pair.first);
-      for (const auto& inner_pair : middle_pair.second) {
-        const reg_t noise_qubits = string2reg(inner_pair.first);
-        ret.push_back(keytuple_t({label, qubits, noise_qubits}));
-      } 
-    }
-  }
-  return ret;
-}
 
 //=========================================================================
 // JSON Conversion
