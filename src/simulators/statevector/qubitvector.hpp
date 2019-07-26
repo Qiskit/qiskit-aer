@@ -1672,7 +1672,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
     if (diag[1] == 1.0)
       return; // Identity
 
-    if (diag[1] == (0., -1.)) { // [[1, 0], [0, -i]]
+    if (diag[1] == std::complex<double>(0., -1.)) { // [[1, 0], [0, -i]]
       auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t<data_t> &_mat)->void {
         const auto k = inds[1];
@@ -1683,7 +1683,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
     }
-    if (diag[1] == (0., 1.)) {
+    if (diag[1] == std::complex<double>(0., 1.)) {
       // [[1, 0], [0, i]]
       auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t<data_t> &_mat)->void {
@@ -1714,7 +1714,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
     return;
   } else if (diag[1] == 1.0) {
     // [[z, 0], [0, 1]] matrix
-    if (diag[0] == (0., -1.)) {
+    if (diag[0] == std::complex<double>(0., -1.)) {
       // [[-i, 0], [0, 1]]
       auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t<data_t> &_mat)->void {
@@ -1726,7 +1726,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
     } 
-    if (diag[0] == (0., 1.)) {
+    if (diag[0] == std::complex<double>(0., 1.)) {
       // [[i, 0], [0, 1]]
       auto lambda = [&](const areg_t<2> &inds,
                         const cvector_t<data_t> &_mat)->void {
