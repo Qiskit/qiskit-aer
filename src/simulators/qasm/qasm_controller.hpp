@@ -18,7 +18,6 @@
 #include "base/controller.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/fusion.hpp"
-#include "transpile/truncate_qubits.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -284,7 +283,6 @@ protected:
 QasmController::QasmController() {
   add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::Fusion());
-  add_circuit_optimization(Transpile::TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
