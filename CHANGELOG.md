@@ -20,7 +20,10 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
-
+-   New simulation method for qasm simulator: tensor_network (\#56)
+-   Added superop qobj instruction and superoperator matrix utils (\# 289)
+-   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
+-   Add "validation_threshold" config parameter to Aer backends (\# 290)
 
 Changed
 -------
@@ -32,6 +35,9 @@ Removed
 
 Fixed
 -----
+- Bug in handling parallelization in matrix_product_state.cpp (PR \#292)
+
+- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR \#294)
 
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11

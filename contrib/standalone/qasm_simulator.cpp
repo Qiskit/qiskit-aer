@@ -133,15 +133,14 @@ int main(int argc, char **argv) {
   // Execute simulation
   try {
 
-    // Initialize simulator
-    AER::Simulator::QasmController sim;
-
-    // Check for config
-    json_t config_all = qobj["config"];
+    // Check for command line config
+    // and if present add to qobj config
+    json_t& config_all = qobj["config"];
     if (!config.empty())
       config_all.update(config.begin(), config.end());
 
-    sim.set_config(config_all);
+    // Initialize simulator
+    AER::Simulator::QasmController sim;
     auto result = sim.execute(qobj);
     out << result.dump(4) << std::endl;
 
