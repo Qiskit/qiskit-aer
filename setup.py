@@ -92,7 +92,7 @@ if "--with-openpulse" in sys.argv:
         _mod = Extension('qiskit.providers.aer.openpulse.qutip_lite.cy.'+ext,
                          sources=['qiskit/providers/aer/openpulse/qutip_lite/cy/'+ext+'.pyx',
                                   'qiskit/providers/aer/openpulse/qutip_lite/cy/src/zspmv.cpp'],
-                         include_dirs = [np.get_include()],
+                         include_dirs=[np.get_include()],
                          extra_compile_args=compiler_flags,
                          extra_link_args=link_flags,
                          language='c++')
