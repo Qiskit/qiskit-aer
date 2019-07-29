@@ -40,7 +40,7 @@ enum class Gates {
 // QubitUnitary State subclass
 //=========================================================================
 
-template <class data_t = complex_t*>
+template <class data_t = double>
 class State : public Base::State<QV::UnitaryMatrix<data_t>> {
 public:
   using BaseState = Base::State<QV::UnitaryMatrix<data_t>>;

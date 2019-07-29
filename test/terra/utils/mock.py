@@ -140,7 +140,8 @@ class FakeSuccessQasmSimulator(FakeBackend):
             open_pulse=False,
             memory=True,
             max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=None
         )
 
         super().__init__(configuration, time_alive=time_alive)
@@ -163,7 +164,8 @@ class FakeFailureQasmSimulator(FakeBackend):
             open_pulse=False,
             memory=True,
             max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=None
         )
 
         super().__init__(configuration, time_alive=time_alive)

@@ -20,7 +20,7 @@ cdef extern from "simulators/qasm/qasm_controller.hpp" namespace "AER::Simulator
     cdef cppclass QasmController:
         QasmController() except +
 
-cdef extern from "base/controller.hpp" namespace "AER":
+cdef extern from "simulators/controller_execute.hpp" namespace "AER":
     cdef string controller_execute[QasmController](string &qobj) except +
 
 
