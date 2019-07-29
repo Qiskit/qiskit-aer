@@ -33,7 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip.cy.sparse_structs cimport CSR_Matrix
+from qiskit.providers.aer.openpulse.qutip_lite.cy.sparse_structs cimport CSR_Matrix
 
 cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out,
                                 unsigned int nrows, unsigned int ncols)

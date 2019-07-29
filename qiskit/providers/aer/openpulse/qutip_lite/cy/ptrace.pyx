@@ -33,8 +33,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.cy.spconvert import zcsr_reshape
-from qutip.cy.spmath import zcsr_mult
+from qiskit.providers.aer.openpulse.qutip_lite.cy.spconvert import zcsr_reshape
+from qiskit.providers.aer.openpulse.qutip_lite.cy.spmath import zcsr_mult
 from qutip.fastsparse import fast_csr_matrix, csr2fast
 cimport numpy as cnp
 cimport cython
