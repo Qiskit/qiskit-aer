@@ -33,7 +33,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import qutip.settings as qset
 cimport numpy as cnp
 cimport cython
 from libcpp cimport bool
@@ -556,7 +555,7 @@ cdef void _zcsr_adjoint_core(double complex * data, int * ind, int * ptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def zcsr_isherm(object A not None, double tol = qset.atol):
+def zcsr_isherm(object A not None, double tol = 1e-12):
     """
     Determines if a given input sparse CSR matrix is Hermitian
     to within a specified floating-point tolerance.

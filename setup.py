@@ -20,7 +20,8 @@ except ImportError:
 from setuptools import find_packages
 
 requirements = [
-    "numpy>=1.13"
+    "numpy>=1.13",
+    "cython>=0.27.1",
 ]
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
@@ -55,6 +56,9 @@ if "--with-openpulse" in sys.argv:
     # Add Cython OP extensions here
     OP_EXTS = ['channel_value', 'measure', 'memory', 'utils']
 
+    Q_EXTS = ['spmatfuncs', 'sparse_utils', 'graph_utils',
+              'spmath', 'math', 'spconvert', 'ptrace']
+
     # Extra link args
     link_flags = []
     # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
@@ -79,6 +83,16 @@ if "--with-openpulse" in sys.argv:
         _mod = Extension("qiskit.providers.aer.openpulse.cy."+ext,
                          sources=['qiskit/providers/aer/openpulse/cy/'+ext+'.pyx'],
                          include_dirs=[np.get_include()],
+                         extra_compile_args=compiler_flags,
+                         extra_link_args=link_flags,
+                         language='c++')
+        EXT_MODULES.append(_mod)
+
+    for ext in Q_EXTS:
+        _mod = Extension('qiskit.providers.aer.openpulse.qutip_lite.cy.'+ext,
+                         sources=['qiskit/providers/aer/openpulse/qutip_lite/cy/'+ext+'.pyx',
+                                  'qiskit/providers/aer/openpulse/qutip_lite/cy/src/zspmv.cpp'],
+                         include_dirs = [np.get_include()],
                          extra_compile_args=compiler_flags,
                          extra_link_args=link_flags,
                          language='c++')

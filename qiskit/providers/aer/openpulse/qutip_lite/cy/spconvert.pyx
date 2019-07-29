@@ -33,7 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.fastsparse import fast_csr_matrix
+from qiskit.providers.aer.openpulse.qutip_lite.fastsparse import fast_csr_matrix
 cimport numpy as cnp
 cimport cython
 from libc.stdlib cimport div, malloc, free

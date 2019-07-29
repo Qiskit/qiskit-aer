@@ -34,12 +34,12 @@
 ###############################################################################
 import numpy as np
 from scipy.sparse import coo_matrix
-from qutip.fastsparse import fast_csr_matrix
+from qiskit.providers.aer.openpulse.qutip_lite.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
 from libcpp.algorithm cimport sort
 from libcpp.vector cimport vector
-from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
+from qiskit.providers.aer.openpulse.qutip_lite.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
 np.import_array()
 
 cdef extern from "numpy/arrayobject.h" nogil:
