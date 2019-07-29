@@ -100,8 +100,14 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   if (lambda == rvector_t {1.0}) return mat;
   cmatrix_t res_mat(mat);
   uint_t num_rows = mat.GetRows(), num_cols = mat.GetColumns();
-  for(uint_t row = 0; row < num_rows; row++) {
-      for(uint_t col = 0; col < num_cols; col++) {
+
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(2)
+  #endif
+  for(int_t row = 0; row < num_rows; row++) {
+      for(int_t col = 0; col < num_cols; col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
       }
   }
@@ -110,7 +116,6 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 
 cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
   vector<cmatrix_t> res(2);
-  //cmatrix_t temp = AER::Utils::dagger(input_matrix);
   AER::Utils::split(input_matrix, res[0], res[1], 1);
   cmatrix_t reshaped_matrix = AER::Utils::concatenate(res[0], res[1], 0);
   return reshaped_matrix;
@@ -277,11 +282,13 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	case cz:
 	  temp.apply_cz();
 	  break;
+	case id:
+	  break;
 	case cu1:
 	{
 	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
 	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
-			  	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
+		    temp2 = AER::Utils::concatenate(Zeros, mat, 1);
 	  cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
 	  temp.apply_matrix(cu);
 	  break;
@@ -302,27 +309,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	lambda_reg_[index_A] = lambda;
 	q_reg_[index_B] = right_gamma;
 }
-
-void MPS::update_qubit_and_neighbor(uint_t index, 
-				    Direction direction,
-				    const cmatrix_t &mul_matrix) {
-  reg_t qubits_to_update;
-  cmatrix_t proj_matrix;
-
-  if (direction == RIGHT) {
-    qubits_to_update.push_back(index);
-    qubits_to_update.push_back(index+1);
-    proj_matrix = AER::Utils::tensor_product(mul_matrix, AER::Utils::Matrix::I);
-  } else {
-    qubits_to_update.push_back(index-1);
-    qubits_to_update.push_back(index);
-    proj_matrix = AER::Utils::tensor_product(AER::Utils::Matrix::I, mul_matrix);
-  }
-  proj_matrix.SetOutputStyle(Matrix);
-
-  apply_matrix(qubits_to_update, proj_matrix);  
-}
-
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
 {
@@ -396,7 +382,6 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conj(psi.get_data(j))) );
     }
   }
-  rho.SetOutputStyle(Matrix);
   return rho;
 }
 
@@ -420,8 +405,6 @@ double MPS::expectation_value(const reg_t &qubits, const string &matrices) const
 	  temp = AER::Utils::Matrix::I;
     M = AER::Utils::tensor_product(M, temp);
   }
-  M.SetOutputStyle(Matrix);
-  cout << " M = " <<endl<<M <<endl;
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
   for (uint_t i = 0; i < M.GetRows(); i++)
@@ -432,8 +415,6 @@ double MPS::expectation_value(const reg_t &qubits, const string &matrices) const
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
-  cmatrix_t MM;
-  MM.SetOutputStyle(Matrix);
   // ***** Assuming ascending sorted qubits register *****
   cmatrix_t rho = density_matrix(qubits);
 
@@ -484,11 +465,6 @@ MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
 	}
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
-
-	if (last_index - first_index + 1 == num_qubits_) {
-	  cout <<"internal state vector = " <<endl;
-	  temp.print(cout);
-	}
 	return temp;
 }
 
@@ -496,11 +472,11 @@ void MPS::full_state_vector(cvector_t& statevector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
-
+  statevector.resize(length);
+  #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    statevector.push_back(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
+    statevector[i] = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
   }
-
 #ifdef DEBUG
   cout << *this;
 #endif
@@ -510,10 +486,10 @@ void MPS::probabilities_vector(rvector_t& probvector) const
 {
   MPS_Tensor mps_vec = state_vec(0, num_qubits_-1);
   uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
-  complex_t data = 0;
+  probvector.resize(length);
+  #pragma omp parallel for
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    data = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
-    probvector.push_back(std::norm(data));
+    probvector[i] = std::norm(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
   }
 }
 
@@ -542,9 +518,6 @@ reg_t MPS::sample_measure(std::vector<double> &rands)
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
-  cout << "in new apply_measure" <<endl;
-  cout << "initial TN is:" <<endl;
-  print(cout);
   reg_t qubits_to_update;
   reg_t outcome_vector;
   outcome_vector.resize(qubits.size());
@@ -556,91 +529,47 @@ reg_t MPS::apply_measure(const reg_t &qubits,
 
 uint_t MPS::apply_measure(uint_t qubit, 
 			 RngEngine &rng) {
-  cout << "*** measuring "<<qubit <<" ***" <<endl;
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
-  // step 1 - measure qubit 0 by Z
+  // step 1 - measure qubit 0 in Z basis
   double exp_val = expectation_value(qubits_to_update, AER::Utils::Matrix::Z);
   
-  // step 3 - compute probability
-  double prob = (1 + exp_val ) / 2;
-  cout << "prob = " << prob <<endl;
+  // step 2 - compute probability for 0 or 1 result
+  double prob0 = (1 + exp_val ) / 2;
+  double prob1 = 1 - prob0;
 
-  // step 4 - randomly choose a measurement value for qubit 0
+  // step 3 - randomly choose a measurement value for qubit 0
   double rnd = rng.rand(0, 1);
   uint measurement;
   cmatrix_t measurement_matrix(4);
   
-  if (rnd < prob) {
+  if (rnd < prob0) {
     measurement = 0;
     measurement_matrix = zero_measure;
-    cout << "chose 0"<<endl;
+    measurement_matrix = measurement_matrix * (1 / sqrt(prob0));
   } else {
     measurement = 1;
     measurement_matrix = one_measure;
-    cout << "chose 1"<<endl;
+    measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
 
-  // if measured qubit is not entangled with any other qubit, set
-  // it to measured value and return
-  if (lambda_reg_[qubit].size() == 1 && 
-      (qubit == 0 || lambda_reg_[qubit-1].size() == 1)) {
-    complex_t alpha = 1.0f;
-    complex_t beta = 0.0f;
-    if (measurement == 1) {
-      alpha = 1.0f;   
-      beta = 0.0f;
-    }
-    MPS_Tensor new_data(alpha, beta);
-    q_reg_[qubit] = new_data;
-    cout << "final TN is:" <<endl;
-    print(cout);
-    return measurement;
-  }
-    
+  apply_matrix(qubits_to_update, measurement_matrix);
 
-  if (abs(prob - 0) > THRESHOLD) {
-    cout << "sqrt = " << 1/sqrt(prob) <<endl;
-    measurement_matrix = measurement_matrix * (1 / sqrt(prob));
-  } // else keep measurement_matrix as is
-  measurement_matrix.SetOutputStyle(Matrix);
-  cout << "measurement_matrix" << endl;
-  cout << measurement_matrix <<endl;
- 
-  //step 5
-  // create 4x4 matrix and apply to qubits i and i+1
-  if (lambda_reg_[qubit].size() > 1 && qubit < num_qubits_ - 1) {
-    update_qubit_and_neighbor(qubit, RIGHT, measurement_matrix);
-  }
-  cout << "after update to the right, TN is:" <<endl;
-  print(cout);
-
-  // create 4x4 matrix to apply to qubits i-1 and i
-  if (lambda_reg_[qubit-1].size() > 1 && qubit > 0) {
-    update_qubit_and_neighbor(qubit, LEFT, measurement_matrix);
-  }
-  //  cout << "after update to the left, TN is:" <<endl;
-  //  print(cout);
-  // step 6 - this is only for optimization and may be skipped
-  // propagate the changes to all qubits to the right
-  for (uint_t i=qubit+1; i<num_qubits_-1; i++) {
+  // step 4 - propagate the changes to all qubits to the right
+  for (uint_t i=qubit; i<num_qubits_-1; i++) {
     if (lambda_reg_[i].size() == 1) 
-      break;   // no need to propage if no entanglement
-    update_qubit_and_neighbor(i, RIGHT, AER::Utils::Matrix::I);
+      break;   // no need to propagate if no entanglement
+    apply_2_qubit_gate(i, i+1, id, cmatrix_t(1));
   }
-  cout << "after propagate to the right, TN is:" <<endl;
-  print(cout);
 
-  // propagate the changes to all qubits to the left
+  // and propagate the changes to all qubits to the left
   for (int_t i=qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
-      break;   // no need to propage if no entanglement
-    update_qubit_and_neighbor(i, LEFT, AER::Utils::Matrix::I);
+      break;   // no need to propagate if no entanglement
+    apply_2_qubit_gate(i-1, i, id, cmatrix_t(1));
   }
     
-  cout << "final TN is:" <<endl;
-  print(cout);
   return measurement;
 }
 

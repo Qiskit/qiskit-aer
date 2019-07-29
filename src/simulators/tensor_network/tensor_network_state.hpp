@@ -413,43 +413,42 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
-    cout << "in apply op, op = " << op <<endl;
-    switch (op.type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits, rng);
-        break;
-      case Operations::OpType::initialize:
-        apply_initialize(op.qubits, op.params, rng);
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::gate:
-        //if (BaseState::creg_.check_conditional(op))
+    if(BaseState::creg_.check_conditional(op)) {
+      switch (op.type) {
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits, rng);
+          break;
+        case Operations::OpType::initialize:
+          apply_initialize(op.qubits, op.params, rng);
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::gate:
           apply_gate(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
-        break;
-      case Operations::OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
-        break;
-      case Operations::OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng);
-        break;
-      default:
-        throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
-                                    op.name + "\'.");
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, data);
+          break;
+        case Operations::OpType::matrix:
+          apply_matrix(op.qubits, op.mats[0]);
+          break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats, rng);
+          break;
+        default:
+          throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
+                                      op.name + "\'.");
+      }
     }
-
   }
 }
 
@@ -464,26 +463,17 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
 
-  //Cache the current quantum state
-  //BaseState::qreg_.checkpoint(); 
-  //bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-
   //Compute expval components
-  double expval = 0;
-  string pauli_matrices;
+  complex_t expval(0., 0.);
+  double one_expval = 0;
 
   for (const auto &param : op.params_expval_pauli) {
-    pauli_matrices += param.second;
+    complex_t coeff = param.first;
+    string pauli_matrices = param.second;
+    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
+    expval += coeff * one_expval;;
   }
-  expval = qreg_.expectation_value(op.qubits, pauli_matrices);
-    // Pauli expectation values should always be real for a valid state
-    // so we truncate the imaginary part
-  //expval += coeff * std::real(BaseState::qreg_.inner_product());
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
-  
-  //qreg_.revert(false);
-  // Revert to original state
-  //BaseState::qreg_.revert(false);
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
@@ -492,6 +482,8 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
+  complex_t expval(0., 0.);
+  double one_expval = 0;
 
   for (const auto &param : op.params_expval_matrix) {
     complex_t coeff = param.first;
@@ -499,11 +491,8 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
     for (const auto &pair: param.second) {
       const reg_t &qubits = pair.first;
       const cmatrix_t &mat = pair.second;
-      double expval = 0;
-      expval = qreg_.expectation_value(qubits, mat);
-    // Pauli expectation values should always be real for a valid state
-    // so we truncate the imaginary part
-    //expval += coeff * std::real(BaseState::qreg_.inner_product());
+      one_expval = qreg_.expectation_value(qubits, mat);
+      expval += coeff * one_expval;
       data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
     }
   }
@@ -516,7 +505,6 @@ void State::snapshot_state(const Operations::Op &op,
   qreg_.full_state_vector(statevector);
 
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
-  cout << "added snapshot" <<endl;
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -655,11 +643,11 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
+
   reg_t outcome = qreg_.apply_measure(qubits, rng);
   //  measure_reset_update(qubits, meas.first, meas.first, meas.second);
   //  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   creg_.store_measure(outcome, cmemory, cregister);
-  cout << "finishing apply_measure" <<endl;
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
@@ -669,25 +657,16 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
+  
+  MPS temp;
   std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
+  all_samples.resize(shots);
+  reg_t single_result;
 
-  // Generate flat register for storing
-  std::vector<double> rnds;
-  rnds.reserve(shots);
-  for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
-
-  reg_t allbit_samples = qreg_.sample_measure(rnds);
-
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(sample);
+  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+    temp.initialize(qreg_);
+    single_result = temp.apply_measure(qubits, rng);
+    all_samples[i] = single_result;
   }
   
   return all_samples;
