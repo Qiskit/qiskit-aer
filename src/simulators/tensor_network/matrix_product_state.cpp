@@ -541,7 +541,7 @@ uint_t MPS::apply_measure(uint_t qubit,
 
   // step 3 - randomly choose a measurement value for qubit 0
   double rnd = rng.rand(0, 1);
-  uint measurement;
+  uint_t measurement;
   cmatrix_t measurement_matrix(4);
   
   if (rnd < prob0) {
