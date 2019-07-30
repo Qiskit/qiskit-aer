@@ -493,29 +493,6 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   }
 }
 
-// for now supporting only the fully vector (all qubits)
-reg_t MPS::sample_measure(std::vector<double> &rands) 
-{
-  rvector_t probvector;
-  probabilities_vector(probvector);
-  const int_t SHOTS = rands.size();
-  reg_t samples = {0};
-  uint_t length = probvector.size();
-  samples.assign(SHOTS, 0);
-     for (int_t i = 0; i < SHOTS; ++i) {
-        double rand = rands[i];
-        double p = .0;
-        uint_t sample;
-        for (sample = 0; sample < length; ++sample) {
-          p += probvector[sample];
-          if (rand < p)
-            break; 
-        }
-        samples[i] = sample;
-      }
-     return samples;
-}
-
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
   reg_t qubits_to_update;
