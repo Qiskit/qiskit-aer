@@ -20,7 +20,6 @@ from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
 from .qasm_controller_wrapper import qasm_controller_execute
-from ..aererror import AerError
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
