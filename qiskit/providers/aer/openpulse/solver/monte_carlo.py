@@ -22,7 +22,7 @@ from math import log
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
+from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from qiskit.providers.aer.openpulse.solver.zvode import qiskit_zvode
 from qiskit.providers.aer.openpulse.cy.memory import write_memory
 from qiskit.providers.aer.openpulse.cy.measure import (occ_probabilities,

@@ -14,17 +14,17 @@
 # pylint: disable=invalid-name
 
 import numpy as np
-import qutip as qt
-
-from qutip.cy.spmatfuncs import (spmv_csr, cy_expect_psi_csr)
-from qutip.fastsparse import fast_csr_matrix
-
+import qiskit.providers.aer.openpulse.qutip_lite.operators as ops
+import qiskit.providers.aer.openpulse.qutip_lite.states as st
+import qiskit.providers.aer.openpulse.qutip_lite.tensor as ten
+from ..qutip_lite.qobj import Qobj
+from ..qutip_lite.cy.spmatfuncs import (spmv_csr, cy_expect_psi_csr)
 
 def sigmax(dim=2):
     """Qiskit wrapper of sigma-X operator.
     """
     if dim == 2:
-        return qt.sigmax()
+        return ops.sigmax()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -33,7 +33,7 @@ def sigmay(dim=2):
     """Qiskit wrapper of sigma-Y operator.
     """
     if dim == 2:
-        return qt.sigmay()
+        return ops.sigmay()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -42,7 +42,7 @@ def sigmaz(dim=2):
     """Qiskit wrapper of sigma-Z operator.
     """
     if dim == 2:
-        return qt.sigmaz()
+        return ops.sigmaz()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -50,37 +50,37 @@ def sigmaz(dim=2):
 def sigmap(dim=2):
     """Qiskit wrapper of sigma-plus operator.
     """
-    return qt.create(dim)
+    return ops.create(dim)
 
 
 def sigmam(dim=2):
     """Qiskit wrapper of sigma-minus operator.
     """
-    return qt.destroy(dim)
+    return ops.destroy(dim)
 
 
 def create(dim):
     """Qiskit wrapper of creation operator.
     """
-    return qt.create(dim)
+    return ops.create(dim)
 
 
 def destroy(dim):
     """Qiskit wrapper of annihilation operator.
     """
-    return qt.destroy(dim)
+    return ops.destroy(dim)
 
 
 def num(dim):
     """Qiskit wrapper of number operator.
     """
-    return qt.num(dim)
+    return ops.num(dim)
 
 
 def qeye(dim):
     """Qiskit wrapper of identity operator.
     """
-    return qt.qeye(dim)
+    return ops.qeye(dim)
 
 
 def project(dim, states):
@@ -88,7 +88,7 @@ def project(dim, states):
     """
     ket, bra = states
     if ket in range(dim) and bra in range(dim):
-        return qt.basis(dim, ket) * qt.basis(dim, bra).dag()
+        return st.basis(dim, ket) * st.basis(dim, bra).dag()
     else:
         raise Exception('States are specified on the outside of Hilbert space %s', states)
 
@@ -96,13 +96,13 @@ def project(dim, states):
 def tensor(list_qobj):
     """ Qiskit wrapper of tensor product
     """
-    return qt.tensor(list_qobj)
+    return ten.tensor(list_qobj)
 
 
 def conj(val):
     """ Qiskit wrapper of conjugate
     """
-    if isinstance(val, qt.qobj.Qobj):
+    if isinstance(val, Qobj):
         return val.conj()
     else:
         return np.conj(val)
@@ -111,7 +111,7 @@ def conj(val):
 def sin(val):
     """ Qiskit wrapper of sine function
     """
-    if isinstance(val, qt.qobj.Qobj):
+    if isinstance(val, Qobj):
         return val.sinm()
     else:
         return np.sin(val)
@@ -120,7 +120,7 @@ def sin(val):
 def cos(val):
     """ Qiskit wrapper of cosine function
     """
-    if isinstance(val, qt.qobj.Qobj):
+    if isinstance(val, Qobj):
         return val.cosm()
     else:
         return np.cos(val)
@@ -129,7 +129,7 @@ def cos(val):
 def exp(val):
     """ Qiskit wrapper of exponential function
     """
-    if isinstance(val, qt.qobj.Qobj):
+    if isinstance(val, Qobj):
         return val.expm()
     else:
         return np.exp(val)
@@ -138,7 +138,7 @@ def exp(val):
 def sqrt(val):
     """ Qiskit wrapper of square root
     """
-    if isinstance(val, qt.qobj.Qobj):
+    if isinstance(val, Qobj):
         return val.sqrtm()
     else:
         return np.sqrt(val)
@@ -159,13 +159,13 @@ def dammy(qobj):
 def basis(level, pos):
     """ Qiskit wrapper of basis
     """
-    return qt.basis(level, pos)
+    return st.basis(level, pos)
 
 
 def fock_dm(level, eigv):
     """ Qiskit wrapper of fock_dm
     """
-    return qt.fock_dm(level, eigv)
+    return st.fock_dm(level, eigv)
 
 
 def opr_prob(opr, state_vec):
