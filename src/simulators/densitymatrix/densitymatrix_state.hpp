@@ -39,6 +39,7 @@ enum class Gates {
 enum class Snapshots {
   cmemory, cregister, densitymatrix,
   probs, probs_var
+  /* TODO: The following expectation value snapshots still need to be implemented */
   //,expval_pauli, expval_pauli_var,
   //expval_matrix, expval_matrix_var
 };
@@ -87,10 +88,7 @@ public:
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
     return {"density_matrix", "memory", "register",
-            "probabilities", "probabilities_with_variance"
-            //,"expectation_value_pauli", "expectation_value_pauli_with_variance",
-            // "expectation_value_matrix", "expectation_value_matrix_with_variance"
-            };
+            "probabilities", "probabilities_with_variance"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -237,6 +235,8 @@ protected:
   //-----------------------------------------------------------------------
 
   // OpenMP qubit threshold
+  // NOTE: This is twice the number of qubits in the DensityMatrix since it
+  // refers to the equivalent qubit number in the underlying QubitVector class
   int omp_qubit_threshold_ = 14;
 
   // Threshold for chopping small values to zero in JSON
@@ -354,7 +354,7 @@ void State<densmat_t>::initialize_omp() {
 
 template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(uint_t num_qubits,
-                                             const std::vector<Operations::Op> &ops) {
+                                            const std::vector<Operations::Op> &ops) {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning

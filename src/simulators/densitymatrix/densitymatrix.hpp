@@ -167,8 +167,9 @@ void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &stat
                                                       statevec);
     std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
   } else {
-    std::string error = "DensityMatrix::initialize input vector is incorrect length";
-    throw std::runtime_error(error);
+    throw std::runtime_error("DensityMatrix::initialize input vector is incorrect length. Expected: " +
+                             std::to_string(BaseVector::data_size_) + " Received: " +
+                             std::to_string(statevec.size()));
   }
 }
 
