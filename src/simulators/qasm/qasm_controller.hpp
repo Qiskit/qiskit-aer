@@ -18,7 +18,6 @@
 #include "base/controller.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/fusion.hpp"
-#include "transpile/truncate_qubits.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -284,7 +283,6 @@ protected:
 QasmController::QasmController() {
   add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::Fusion());
-  add_circuit_optimization(Transpile::TruncateQubits());
 }
 
 //-------------------------------------------------------------------------
@@ -568,7 +566,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   switch (simulation_method(circ, noise_model, false)) {
     case Method::statevector:
     case Method::tensor_network: {
-      if (noise_model.ideal() && check_measure_sampling_opt(circ, Method::statevector).first) {
+      if (noise_model.is_ideal() && check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
         return;
@@ -613,7 +611,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
                            json_t::object({{"method", state.name()}}));
 
   // Check if there is noise for the implementation
-  if (noise.ideal()) {
+  if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
   } else {
     run_circuit_with_noise(circ, noise, shots, state, initial_state, method, data, rng);

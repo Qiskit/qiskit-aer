@@ -281,7 +281,17 @@ OutputData& OutputData::combine(OutputData &data) {
   // Note that this will override any fields that have the same value
   for (auto it = data.additional_data_.begin();
        it != data.additional_data_.end(); ++it) {
-    additional_data_[it.key()] = it.value();
+    // Check if key exists
+    if (additional_data_.find(it.key()) == additional_data_.end()) {
+      // If it doesn't add the data
+      additional_data_[it.key()] = it.value();
+    } else {
+      // If it does we append the data.
+      // Note that this will overwrite any subkeys with same name
+      for (auto it2 = it.value().begin(); it2 != it.value().end(); it2++) {
+        additional_data_[it.key()][it2.key()] = it2.value();
+      }
+    }
   }
 
   // Clear any remaining data from other container
