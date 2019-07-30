@@ -14,7 +14,7 @@ noise_model_inserter module tests
 """
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.providers.aer.noise.utils import add_errors
+from qiskit.providers.aer.noise.utils import insert_noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.qasm import pi
@@ -35,7 +35,7 @@ class TestNoiseInserter(unittest.TestCase):
 
         noise_model = NoiseModel() #empty
 
-        result_circuit = add_errors(circuit, noise_model)
+        result_circuit = insert_noise(circuit, noise_model)
 
         self.assertEqual(target_circuit, result_circuit)
 
@@ -59,7 +59,7 @@ class TestNoiseInserter(unittest.TestCase):
         target_circuit.append(error_y.to_instruction(), [qr[1]])
         target_circuit.z(qr[2])
 
-        result_circuit = add_errors(circuit, noise_model)
+        result_circuit = insert_noise(circuit, noise_model)
 
         self.assertEqual(target_circuit, result_circuit)
 
@@ -83,8 +83,42 @@ class TestNoiseInserter(unittest.TestCase):
         target_circuit.u1(pi, qr[2])
         target_circuit.append(error_y.to_instruction(), [qr[2]])
 
-        result_circuit = add_errors(circuit, noise_model, transpile=True)
+        result_circuit = insert_noise(circuit, noise_model, transpile=True)
         self.assertEqual(target_circuit, result_circuit)
+
+    def test_multiple_inputs(self):
+        qr = QuantumRegister(1, 'qr')
+        circuit1 = QuantumCircuit(qr)
+        circuit1.x(qr[0])
+
+        circuit2 = QuantumCircuit(qr)
+        circuit2.y(qr[0])
+
+        circuits_list = [circuit1, circuit2]
+        circuits_tuple = (circuit1, circuit2)
+
+        noise_model = NoiseModel()
+        error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
+        error_y = pauli_error([('X', 0.35), ('Z', 0.65)])
+        noise_model.add_all_qubit_quantum_error(error_x, 'x')
+        noise_model.add_all_qubit_quantum_error(error_y, 'y')
+
+        target_circuit1 = QuantumCircuit(qr)
+        target_circuit1.x(qr[0])
+        target_circuit1.append(error_x.to_instruction(), [qr[0]])
+
+        target_circuit2 = QuantumCircuit(qr)
+        target_circuit2.y(qr[0])
+        target_circuit2.append(error_y.to_instruction(), [qr[0]])
+
+        target_circuits = [target_circuit1, target_circuit2]
+        result_circuits = insert_noise(circuits_list, noise_model)
+        self.assertEqual(target_circuits, result_circuits)
+
+        target_circuits = [target_circuit1, target_circuit2]
+        result_circuits = insert_noise(circuits_tuple, noise_model)
+        self.assertEqual(target_circuits, result_circuits)
+
 
 if __name__ == '__main__':
     unittest.main()
