@@ -39,12 +39,13 @@ class QasmSimulator(AerBackend):
         ------------------------
         * "method" (str): Set the simulation method. Allowed values are:
             * "statevector": Uses a dense statevector simulation.
-            * "stabilizer": uses a Clifford stabilizer state simulator that
+            * "stabilizer": Uses a Clifford stabilizer state simulator that
             is only valid for Clifford circuits and noise models.
             * "extended_stabilizer": Uses an approximate simulator that
             decomposes circuits into stabilizer state terms, the number of
             which grows with the number of non-Clifford gates.
-            * "automatic": automatically run on stabilizer simulator if
+            * "tensor network": Uses a Matrix Product State (MPS) simulator.
+            * "automatic": Automatically run on stabilizer simulator if
             the circuit and noise model supports it. If there is enough
             available memory, uses the statevector method. Otherwise, uses
             the extended_stabilizer method (Default: "automatic").
@@ -230,6 +231,10 @@ class QasmSimulator(AerBackend):
                 logger.warning(
                     'No measurements in circuit "%s": '
                     'count data will return all zeros.', name)
+
+            if method == 'tensor_network':
+                return
+
             # Check qubits for statevector simulation
             if not clifford and method != "extended_stabilizer":
                 n_qubits = experiment.config.n_qubits
