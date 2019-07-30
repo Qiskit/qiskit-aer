@@ -81,7 +81,7 @@ class TestReadoutError(common.QiskitAerTestCase):
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 1)
         self.assertEqual(roerror.probabilities.tolist(), probs)
-        self.assertEqual(roerror.as_dict(), roerror_dict)
+        self.assertEqual(roerror.to_dict(), roerror_dict)
 
     def test_2qubit(self):
         """Test 2-qubit readout error"""
@@ -96,7 +96,7 @@ class TestReadoutError(common.QiskitAerTestCase):
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 2)
         self.assertEqual(roerror.probabilities.tolist(), probs)
-        self.assertEqual(roerror.as_dict(), roerror_dict)
+        self.assertEqual(roerror.to_dict(), roerror_dict)
 
     def test_tensor(self):
         """Test tensor of two readout errors."""
@@ -114,7 +114,7 @@ class TestReadoutError(common.QiskitAerTestCase):
 
         self.assertEqual(error.number_of_qubits, 2)
         self.assertEqual(error.probabilities.tolist(), probs)
-        self.assertEqual(error.as_dict(), error_dict)
+        self.assertEqual(error.to_dict(), error_dict)
 
     def test_expand(self):
         """Test expand of two readout errors."""
@@ -132,7 +132,7 @@ class TestReadoutError(common.QiskitAerTestCase):
 
         self.assertEqual(error.number_of_qubits, 2)
         self.assertEqual(error.probabilities.tolist(), probs)
-        self.assertEqual(error.as_dict(), error_dict)
+        self.assertEqual(error.to_dict(), error_dict)
 
     def test_compose(self):
         """Test compose of two readout errors."""
@@ -150,7 +150,7 @@ class TestReadoutError(common.QiskitAerTestCase):
 
         self.assertEqual(error.number_of_qubits, 1)
         self.assertEqual(error.probabilities.tolist(), probs)
-        self.assertEqual(error.as_dict(), error_dict)
+        self.assertEqual(error.to_dict(), error_dict)
 
     def test_compose_front(self):
         """Test front compose of two readout errors."""
@@ -168,7 +168,7 @@ class TestReadoutError(common.QiskitAerTestCase):
 
         self.assertEqual(error.number_of_qubits, 1)
         self.assertEqual(error.probabilities.tolist(), probs)
-        self.assertEqual(error.as_dict(), error_dict)
+        self.assertEqual(error.to_dict(), error_dict)
 
     def test_equal(self):
         """Test two readout errors are equal"""
