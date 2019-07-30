@@ -57,10 +57,21 @@ class QasmResetTests:
     def test_reset_sampling_opt(self):
         """Test sampling optimization"""
         shots = 2000
-        circuits = ref_reset.reset_sampling_optimization()
+        circuits = ref_reset.reset_circuits_sampling_optimization()
         targets = ref_reset.reset_counts_sampling_optimization(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_repeated_resets(self):
+        """Test repeated reset operations"""
+        shots = 100
+        circuits = ref_reset.reset_circuits_repeated()
+        targets = ref_reset.reset_counts_repeated(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
