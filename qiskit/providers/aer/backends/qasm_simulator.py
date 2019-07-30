@@ -230,29 +230,3 @@ class QasmSimulator(AerBackend):
                 logger.warning(
                     'No measurements in circuit "%s": '
                     'count data will return all zeros.', name)
-            # Check qubits for statevector simulation
-            if not clifford and method != "extended_stabilizer":
-                n_qubits = experiment.config.n_qubits
-                max_qubits = self.configuration().n_qubits
-                if n_qubits > max_qubits:
-                    system_memory = int(local_hardware_info()['memory'])
-                    err_string = ('Number of qubits ({}) is greater than '
-                                  'maximum ({}) for "{}" (method=statevector) '
-                                  'with {} GB system memory')
-                    err_string = err_string.format(n_qubits, max_qubits,
-                                                   self.name(), system_memory)
-                    if method != "automatic":
-                        raise AerError(err_string + '.')
-
-                    if n_qubits > 63:
-                        raise AerError('{}, and has too many qubits to fall '
-                                       'back to the extended_stabilizer '
-                                       'method.'.format(err_string))
-                    if not ch_supported:
-                        raise AerError('{}, and contains instructions '
-                                       'not supported by the extended_etabilizer '
-                                       'method.'.format(err_string))
-                    logger.info(
-                        'The QasmSimulator will automatically '
-                        'switch to the Extended Stabilizer backend, based on '
-                        'the memory requirements.')

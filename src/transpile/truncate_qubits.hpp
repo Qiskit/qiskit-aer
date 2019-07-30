@@ -172,7 +172,7 @@ TruncateQubits::generate_mapping(const reg_t& active_qubits,
 
   // Now we need to complete the mapping by adding qubits not in the input space
   // This is required for remapping the noise model.
-  if (!noise.ideal()) {
+  if (!noise.is_ideal()) {
     uint_t unused_qubit = active_qubits.size();
     for (uint_t qubit=0; qubit<circ.num_qubits; qubit++) {
       if (mapping.find(qubit) == mapping.end()) {

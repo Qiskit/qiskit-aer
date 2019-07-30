@@ -403,7 +403,7 @@ bool Controller::validate_state(const state_t &state,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
   // First check if a noise model is valid a given state
-  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
+  bool noise_valid = noise.is_ideal() || state.validate_opset(noise.opset());
   bool circ_valid = state.validate_opset(circ.opset());
   if (noise_valid && circ_valid)
   {
@@ -645,8 +645,8 @@ json_t Controller::execute_circuit(Circuit &circ,
           throw std::runtime_error(error_msg);
 
       // Accumulate results across shots
-      for (uint_t j=0; j<par_data.size(); j++) {
-        data.combine(par_data[j]);
+      for (auto &datum : par_data) {
+        data.combine(datum);
       }
     }
     // Report success

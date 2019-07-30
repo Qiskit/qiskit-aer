@@ -59,7 +59,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return True if noise model contains readout errors
-  inline bool has_readout_erros() const {
+  inline bool has_readout_errors() const {
     return !readout_errors_.empty();
   }
 
@@ -79,7 +79,7 @@ public:
   }
 
   // Return true if the noise model is ideal
-  inline bool ideal() const {
+  inline bool is_ideal() const {
     return !has_readout_errors() && !has_quantum_errors();
   }
 
@@ -708,29 +708,31 @@ std::string NoiseModel::remap_string(const std::string key,
 void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping) {
 
   // If noise model is ideal we have no need to remap
-  if (ideal())
+  if (is_ideal())
     return;
 
   // We only need the mapping for qubits in the noise model.
   // We add qubits not specified in the mapping as trivial mapping to themselves
   // We also validate the mapping while building the full mapping
-  std::unordered_map<uint_t, uint_t> full_mapping;
-  std::set<uint_t> qubits_in;
-  std::set<uint_t> qubits_out;
+  std::unordered_map<uint_t, uint_t> full_mapping = mapping;
+  // Add noise qubits not specified in mapping
   for (const auto &qubit : noise_qubits_) {
-    qubits_in.insert(qubit);
-    if (mapping.find(qubit) == mapping.end()) {
+    if (full_mapping.find(qubit) == full_mapping.end()) {
       full_mapping[qubit] = qubit;
-      qubits_out.insert(qubit);
-    } else {
-      auto mapped_qubit = mapping.at(qubit);
-      full_mapping[qubit] = mapped_qubit;
-      qubits_out.insert(mapped_qubit);
     }
   }
+
   // Check mapping is valid
+  std::set<uint_t> qubits_in;
+  std::set<uint_t> qubits_out;
+  for (const auto& pair: full_mapping) {
+    qubits_in.insert(pair.first);
+    qubits_out.insert(pair.second);
+  }
   if (qubits_in != qubits_out) {
-    throw std::invalid_argument("NoiseModel: qubit remapping is invalid.");
+    std::stringstream msg;
+    msg << "NoiseModel: invalid qubit re-mapping " << full_mapping;
+    throw std::invalid_argument(msg.str());
   }
 
   // Remap readout error
