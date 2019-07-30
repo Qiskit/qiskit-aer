@@ -29,7 +29,7 @@ def insert_noise(circuits, noise_model, transpile=False):
         Returns:
             QuantumCircuit: The new circuit with the added Kraus gates
         """
-    is_circuits_list = isinstance(circuits, list) or isinstance(circuits, tuple)
+    is_circuits_list = isinstance(circuits, (list, tuple))
     circuits = circuits if is_circuits_list else [circuits]
     result_circuits = []
     errors = noise_model._default_quantum_errors.items()
