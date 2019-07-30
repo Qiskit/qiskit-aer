@@ -52,12 +52,12 @@ if "--with-openpulse" in sys.argv:
     from setuptools import Extension
     from Cython.Build import cythonize
     from Cython.Distutils import build_ext # pylint: disable=unused-import
+
     INCLUDE_DIRS = [np.get_include()]
     # Add Cython OP extensions here
     OP_EXTS = ['channel_value', 'measure', 'memory', 'utils']
-
-    Q_EXTS = ['spmatfuncs', 'sparse_utils', 'graph_utils',
-              'spmath', 'math', 'spconvert', 'ptrace']
+    # Add qutip_lite extensions here
+    Q_EXTS = ['spmatfuncs', 'sparse_utils', 'spmath', 'math', 'spconvert']
 
     # Extra link args
     link_flags = []

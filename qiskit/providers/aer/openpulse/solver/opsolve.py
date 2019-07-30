@@ -20,8 +20,8 @@ import numpy as np
 from numpy.random import RandomState, randint
 from scipy.linalg.blas import get_blas_funcs
 from collections import OrderedDict
-from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
-from qutip.cy.utilities import _cython_build_cleanup
+from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
+from ..qutip_lite.cy.utilities import _cython_build_cleanup
 from ..qobj.operators import apply_projector
 from .codegen import OPCodegen
 from .rhs_utils import _op_generate_rhs, _op_func_load

@@ -50,18 +50,10 @@ This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
 
-__all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
-           'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
-           'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling']
-
 import numpy as np
 import scipy
 import scipy.sparse as sp
-from qutip.qobj import Qobj
-from qutip.fastsparse import fast_csr_matrix, fast_identity
+from .fastsparse import fast_csr_matrix, fast_identity
 
 #
 # Spin operators
@@ -395,7 +387,7 @@ shape = [4, 4], type = oper, isHerm = False
     ind = np.arange(1,N, dtype=np.int32)
     ptr = np.arange(N+1, dtype=np.int32)
     ptr[-1] = N-1
-    return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
+    return Qobj(fast_csr_matrix((data, ind, ptr),shape=(N,N)), isherm=False)
 
 
 #
@@ -468,8 +460,6 @@ shape = [3, 3], type = oper, isHerm = True
      [ 0.  0.  1.]]
 
     """
-    if isinstance(N, list):
-        return tensor(*[identity(n) for n in N])
     N = int(N)
     if N < 0:
         raise ValueError("N must be integer N>=0")
@@ -772,36 +762,6 @@ shape = [4, 4], type = oper, isherm = False
         shape = []
     return Qobj(data, dims, list(shape))
 
-
-def phase(N, phi0=0):
-    """
-    Single-mode Pegg-Barnett phase operator.
-
-    Parameters
-    ----------
-    N : int
-        Number of basis states in Hilbert space.
-    phi0 : float
-        Reference phase.
-
-    Returns
-    -------
-    oper : qobj
-        Phase operator with respect to reference phase.
-
-    Notes
-    -----
-    The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
-
-    """
-    phim = phi0 + (2.0 * np.pi * np.arange(N)) / N  # discrete phase angles
-    n = np.arange(N).reshape((N, 1))
-    states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1.0j * n * kk)
-                       for kk in phim])
-    ops = np.array([np.outer(st, st.conj()) for st in states])
-    return Qobj(np.sum(ops, axis=0))
-
-
 def qzero(N):
     """
     Zero operator
@@ -819,106 +779,10 @@ def qzero(N):
         Zero operator Qobj.
 
     """
-
-    if isinstance(N, list):
-        return tensor(*[qzero(n) for n in N])
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
     return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
-
-
-def enr_destroy(dims, excitations):
-    """
-    Generate annilation operators for modes in a excitation-number-restricted
-    state space. For example, consider a system consisting of 4 modes, each
-    with 5 states. The total hilbert space size is 5**4 = 625. If we are
-    only interested in states that contain up to 2 excitations, we only need
-    to include states such as
-
-        (0, 0, 0, 0)
-        (0, 0, 0, 1)
-        (0, 0, 0, 2)
-        (0, 0, 1, 0)
-        (0, 0, 1, 1)
-        (0, 0, 2, 0)
-        ...
-
-    This function creates annihilation operators for the 4 modes that act
-    within this state space:
-
-        a1, a2, a3, a4 = enr_destroy([5, 5, 5, 5], excitations=2)
-
-    From this point onwards, the annihiltion operators a1, ..., a4 can be
-    used to setup a Hamiltonian, collapse operators and expectation-value
-    operators, etc., following the usual pattern.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    Returns
-    -------
-    a_ops : list of qobj
-        A list of annihilation operators for each mode in the composite
-        quantum system described by dims.
-    """
-    from qutip.states import enr_state_dictionaries
-
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-
-    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex)
-             for _ in range(len(dims))]
-
-    for n1, state1 in idx2state.items():
-        for n2, state2 in idx2state.items():
-            for idx, a in enumerate(a_ops):
-                s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
-                s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
-                if (state1[idx] == state2[idx] - 1) and (s1 == s2):
-                    a_ops[idx][n1, n2] = np.sqrt(state2[idx])
-
-    return [Qobj(a, dims=[dims, dims]) for a in a_ops]
-
-
-def enr_identity(dims, excitations):
-    """
-    Generate the identity operator for the excitation-number restricted
-    state space defined by the `dims` and `exciations` arguments. See the
-    docstring for enr_fock for a more detailed description of these arguments.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    state : list of integers
-        The state in the number basis representation.
-
-    Returns
-    -------
-    op : Qobj
-        A Qobj instance that represent the identity operator in the
-        exication-number-restricted state space defined by `dims` and
-        `exciations`.
-    """
-    from qutip.states import enr_state_dictionaries
-
-    nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    data = sp.eye(nstates, nstates, dtype=np.complex)
-    return Qobj(data, dims=[dims, dims])
-
 
 
 def charge(Nmax, Nmin=None, frac = 1):
@@ -983,9 +847,4 @@ def tunneling(N, m=1):
     T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
     return Qobj(T, isherm=True)
 
-
-
-# Break circular dependencies by a trailing import.
-# Note that we use a relative import here to deal with that
-# qutip.tensor is the *function* tensor, not the module.
-from qutip.tensor import tensor
+from .qobj import Qobj

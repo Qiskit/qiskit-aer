@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 import numpy as np
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from .op_system import OPSystem
 from .opparse import HamiltonianParser, NoiseParser
 from .operators import init_fock_state, qubit_occ_oper

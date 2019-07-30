@@ -36,6 +36,7 @@ class PulseSimulator(AerBackend):
         'backend_name': 'pulse_simulator',
         'backend_version': "0.0.1",
         'n_qubits': 20,
+        'coupling_map': None,
         'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
         'local': True,

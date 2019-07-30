@@ -19,10 +19,10 @@
 
 import os
 import sys
-import qutip as qt
+import qiskit.providers.aer.openpulse.qutip_lite.cy as cy
 import qiskit.providers.aer.openpulse.solver.settings as op_set
 
-_cython_path = os.path.abspath(qt.cy.__file__).replace('__init__.py', '')
+_cython_path = os.path.abspath(cy.__file__).replace('__init__.py', '')
 _cython_path = _cython_path.replace("\\", "/")
 _include_string = "'"+_cython_path+"complex_math.pxi'"
 
@@ -224,8 +224,8 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
 
-from qutip.cy.spmatfuncs cimport spmvpy
-from qutip.cy.math cimport erf
+from qiskit.providers.aer.openpulse.qutip_lite.cy.spmatfuncs cimport spmvpy
+from qiskit.providers.aer.openpulse.qutip_lite.cy.math cimport erf
 from libc.math cimport pi
 
 from qiskit.providers.aer.openpulse.cy.channel_value cimport chan_value

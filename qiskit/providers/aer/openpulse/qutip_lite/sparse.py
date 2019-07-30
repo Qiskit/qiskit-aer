@@ -44,6 +44,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+# pylint: disable=invalid-name
+
 """
 This module contains a collection of routines for operating on sparse
 matrices on the scipy.sparse formats, for use internally by other modules
@@ -59,20 +61,14 @@ import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
-_dznrm2 = get_blas_funcs("znrm2")
-from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
+from .cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth,
                                    _isdiag, zcsr_one_norm, zcsr_inf_norm)
-from qutip.fastsparse import fast_csr_matrix
-from qutip.cy.spconvert import (arr_coo2fast, zcsr_reshape)
-from qutip.settings import debug
+from .fastsparse import fast_csr_matrix
+from .cy.spconvert import (arr_coo2fast, zcsr_reshape)
 
-import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
 
-if debug:
-    import inspect
-
+_dznrm2 = get_blas_funcs("znrm2")
 
 def sp_fro_norm(data):
     """
