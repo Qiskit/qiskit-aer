@@ -58,29 +58,29 @@ public:
   // Checking if errors types are in noise model
   //-----------------------------------------------------------------------
 
-  // Return True if noise model contains no readout errors
-  inline bool ideal_readout() const {
-    return readout_errors_.empty();
+  // Return True if noise model contains readout errors
+  inline bool has_readout_erros() const {
+    return !readout_errors_.empty();
   }
 
-  // Return True if noise model contains no quantum errors
-  inline bool ideal_quantum() const {
-    return ideal_local_quantum() && ideal_nonlocal_quantum();
+  // Return True if noise model contains quantum errors
+  inline bool has_quantum_errors() const {
+    return local_quantum_errors_ || nonlocal_quantum_errors_;
   }
 
-  // Return True if noise model contains no nonlocal quantum errors
-  inline bool ideal_nonlocal_quantum() const {
-    return !nonlocal_quantum_errors_;
+  // Return True if noise model contains nonlocal quantum errors
+  inline bool has_nonlocal_quantum_errors() const {
+    return nonlocal_quantum_errors_;
   }
 
-  // Return True if noise model contains no local quantum errors
-  inline bool ideal_local_quantum() const {
-    return !local_quantum_errors_;
+  // Return True if noise model contains local quantum errors
+  inline bool has_local_quantum_errors() const {
+    return local_quantum_errors_;
   }
 
   // Return true if the noise model is ideal
   inline bool ideal() const {
-    return ideal_quantum() && ideal_readout();
+    return !has_readout_errors() && !has_quantum_errors();
   }
 
   //-----------------------------------------------------------------------
@@ -734,7 +734,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 
   // Remap readout error
-  if (!ideal_readout()) {
+  if (has_readout_errors()) {
     inner_table_t new_readout_error_table;
     for (const auto& pair : readout_error_table_) {
       new_readout_error_table[remap_string(pair.first, full_mapping)] = pair.second;
@@ -744,7 +744,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 
   // Remap local quantum error
-  if (!ideal_local_quantum()) {
+  if (has_local_quantum_errors()) {
     for (auto& outer_pair : local_quantum_error_table_) {
       // Get reference to the inner table we need to change the keys for
       auto& inner_table = outer_pair.second;
@@ -759,7 +759,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 
   // Remap nonlocal quantum error
-    if (!ideal_nonlocal_quantum()) {
+  if (has_nonlocal_quantum_errors()) {
     for (auto& pair : nonlocal_quantum_error_table_) {
       // Get reference to the middle table we need to change the keys for
       auto& outer_table = pair.second;
