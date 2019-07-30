@@ -159,7 +159,7 @@ class QasmQubitsTruncateTests:
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
                             backend_options=backend_options).result()
                             
-        self.assertTrue('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must work.")
+        self.assertTrue('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
            
     def test_no_truncate(self):
         """Test truncation with noise model option"""
@@ -178,7 +178,7 @@ class QasmQubitsTruncateTests:
                             coupling_map=[[1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]], # 4-qubit device
                             backend_options=backend_options).result()
                             
-        self.assertFalse('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must work.")
+        self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
 
     
     def test_truncate_disable(self):
@@ -199,5 +199,5 @@ class QasmQubitsTruncateTests:
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
                             backend_options=backend_options).result()
                             
-        self.assertFalse('truncate_verbose' in result.to_dict()['results'][0]['metadata'], msg="truncate_verbose must not work.")
+        self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must not work.")
      
