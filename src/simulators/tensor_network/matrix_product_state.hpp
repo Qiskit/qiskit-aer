@@ -22,7 +22,7 @@ enum Gates {
   cx, cz, cu1, swap, su4 // two qubit
 };
 
-enum Direction {RIGHT, LEFT};
+enum class Direction {RIGHT, LEFT};
 
 //=========================================================================
 // MPS class
