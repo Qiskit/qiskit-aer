@@ -31,8 +31,9 @@ enum class Gates {id, x, y, z, h, s, sdg, cx, cz, swap};
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  cmemory, cregister,
-  probs, probs_var // TODO
+  stabilizer, cmemory, cregister,
+  probs, probs_var
+  /* TODO: the following snapshots still need to be implemented */
   //expval_pauli, expval_pauli_var, //  TODO
 };
 
@@ -75,7 +76,7 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"memory", "register"};
+    return {"stabilizer", "memory", "register"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -201,6 +202,7 @@ const stringmap_t<Gates> State::gateset_({
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
+  {"stabilizer", Snapshots::stabilizer},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister},
   {"probabilities", Snapshots::probs},
@@ -419,6 +421,9 @@ void State::apply_snapshot(const Operations::Op &op,
     throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
   switch (it->second) {
+    case Snapshots::stabilizer:
+      BaseState::snapshot_state(op, data, "stabilizer");
+      break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
       break;
