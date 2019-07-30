@@ -23,6 +23,8 @@
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/tensor_network/tensor_network_state.hpp"
+#include "simulators/densitymatrix/densitymatrix_state.hpp"
+
 
 namespace AER {
 namespace Simulator {
@@ -132,6 +134,7 @@ protected:
   enum class Method {
     automatic,
     statevector,
+    density_matrix,
     stabilizer,
     extended_stabilizer,
     tensor_network
@@ -223,6 +226,7 @@ protected:
                               uint_t shots,
                               State_t &state,
                               const Initstate_t &initial_state,
+                              const Method method,
                               OutputData &data,
                               RngEngine &rng) const;
 
@@ -297,6 +301,9 @@ void QasmController::set_config(const json_t &config) {
   if (JSON::get_value(method, "method", config)) {
     if (method == "statevector") {
       simulation_method_ = Method::statevector;
+    }
+    else if (method == "density_matrix") {
+      simulation_method_ = Method::density_matrix;
     }
     else if (method == "stabilizer") {
       simulation_method_ = Method::stabilizer;
@@ -396,6 +403,28 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       initial_statevector_,
                                                       Method::statevector);
       }
+    case Method::density_matrix:
+      if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrix<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix);
+      } else {
+        // Single-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrix<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix);
+      }
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
@@ -430,6 +459,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   }
 }
 
+
 //-------------------------------------------------------------------------
 // Utility methods
 //-------------------------------------------------------------------------
@@ -440,6 +470,11 @@ QasmController::simulation_method(const Circuit &circ,
                                   bool validate) const {
   // Check simulation method and validate state
   switch(simulation_method_) {
+    case Method::density_matrix: {
+      if (validate)
+        validate_state(DensityMatrix::State<>(), circ, noise_model, true);
+      return Method::density_matrix;
+    }
     case Method::stabilizer: {
       if (validate)
         validate_state(Stabilizer::State(), circ, noise_model, true);
@@ -502,6 +537,10 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
       Statevector::State<> state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
+    case Method::density_matrix: {
+      DensityMatrix::State<> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
     case Method::stabilizer: {
       Stabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
@@ -516,7 +555,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
     }
     default:
       // We shouldn't get here, so throw an exception if we do
-      throw std::runtime_error("QasmController:Invalid simulation method");
+      throw std::runtime_error("QasmController: Invalid simulation method");
   }
 }
 
@@ -577,7 +616,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   if (noise.ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
   } else {
-    run_circuit_with_noise(circ, noise, shots, state, initial_state, data, rng);
+    run_circuit_with_noise(circ, noise, shots, state, initial_state, method, data, rng);
   }
   return data;
 }
@@ -601,8 +640,10 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             uint_t shots,
                                             State_t &state,
                                             const Initstate_t &initial_state,
+                                            const Method method,
                                             OutputData &data,
                                             RngEngine &rng) const {
+  // TODO: noise sampling for density matrix method
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
@@ -611,7 +652,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
       optimize_circuit(noise_circ, dummy, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
-  }                                   
+  }            
 }
 
 
@@ -670,10 +711,18 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;
-    if (type == Operations::OpType::reset ||
-	type == Operations::OpType::initialize ||
+    if (method != Method::density_matrix) {
+      if(type == Operations::OpType::reset ||
+        type == Operations::OpType::initialize ||
         type == Operations::OpType::kraus ||
-        type == Operations::OpType::roerror) {
+        type == Operations::OpType::superop) {
+        return std::make_pair(false, 0);
+      }
+    }
+    if (type == Operations::OpType::roerror) {
+      // TODO: Readout errors should be allowed with
+      // measurement sampling as long as they are
+      // all moved to occur after measurements.
       return std::make_pair(false, 0);
     }
     if (type == Operations::OpType::measure)
