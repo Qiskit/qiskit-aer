@@ -24,6 +24,9 @@ Added
 -   Added superop qobj instruction and superoperator matrix utils (\# 289)
 -   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
 -   Add "validation_threshold" config parameter to Aer backends (\# 290)
+-   Added support for apply_measure in tensor_network_state. Also changed 
+    sample_measure to use apply_measure (\#299)
+
 
 Changed
 -------
