@@ -23,7 +23,7 @@ def insert_noise(circuits, noise_model, transpile=False):
         This function gets a circuit and a noise model and returns a new circuit
         with the noises from the noise model inserted as Kraus gates in the new circuit
         Args:
-            circuit (QuantumCircuit or list[QuantumCircuit]): The circuits to add noises to
+            circuits (QuantumCircuit or list[QuantumCircuit]): The circuits to add noises to
             noise_model (NoiseModel):  The noise model containing the errors to add
             transpile (Boolean): Should the circuit be transpiled into the noise model basis gates
         Returns:
