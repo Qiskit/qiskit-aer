@@ -21,6 +21,8 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 Added
 -----
 
+- Noise model inserter module
+
 Changed
 -------
 
