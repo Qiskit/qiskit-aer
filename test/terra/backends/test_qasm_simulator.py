@@ -38,7 +38,7 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
 # Noise model simulation tests
-# TODO
+from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
@@ -66,6 +66,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmAlgorithmTestsWaltzBasis,
                         QasmAlgorithmTestsMinimalBasis,
                         QasmUnitaryGateTests,
+                        QasmReadoutNoiseTests,
                         QasmThreadManagementTests,
                         QasmFusionTests,
                         QasmQubitsTruncateTests,
