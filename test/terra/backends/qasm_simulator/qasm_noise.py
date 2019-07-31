@@ -14,6 +14,7 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_readout_noise
+from test.terra.reference import ref_pauli_noise
 
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
@@ -42,4 +43,62 @@ class QasmReadoutNoiseTests:
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
             self.is_completed(result)
-            self.compare_counts(result, [circuit], [target], delta=0.05*shots)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+
+class QasmPauliNoiseTests:
+    """QasmSimulator pauli error noise model tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    def test_pauli_gate_noise(self):
+        """Test simulation with Pauli gate error noise model."""
+        shots = 2000
+        circuits = ref_pauli_noise.pauli_gate_error_circuits()
+        noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
+        targets = ref_pauli_noise.pauli_gate_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models,
+                                                targets):
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj,
+                backend_options=self.BACKEND_OPTS,
+                noise_model=noise_model).result()
+            self.is_completed(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    def test_pauli_reset_noise(self):
+        """Test simulation with Pauli reset error noise model."""
+        shots = 2000
+        circuits = ref_pauli_noise.pauli_reset_error_circuits()
+        noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
+        targets = ref_pauli_noise.pauli_reset_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models,
+                                                targets):
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj,
+                backend_options=self.BACKEND_OPTS,
+                noise_model=noise_model).result()
+            self.is_completed(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    def test_pauli_measure_noise(self):
+        """Test simulation with Pauli measure error noise model."""
+        shots = 2000
+        circuits = ref_pauli_noise.pauli_measure_error_circuits()
+        noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
+        targets = ref_pauli_noise.pauli_measure_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models,
+                                                targets):
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj,
+                backend_options=self.BACKEND_OPTS,
+                noise_model=noise_model).result()
+            self.is_completed(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)

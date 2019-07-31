@@ -28,8 +28,10 @@ from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalG
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 # Noise model simulation tests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+
 
 
 class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
@@ -40,7 +42,8 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmConditionalGateTests,
                                   QasmCliffordTests,
                                   QasmAlgorithmTests,
-                                  QasmReadoutNoiseTests):
+                                  QasmReadoutNoiseTests,
+                                  QasmPauliNoiseTests):
     """QasmSimulator stabilizer method tests."""
 
     BACKEND_OPTS = {"method": "stabilizer"}
