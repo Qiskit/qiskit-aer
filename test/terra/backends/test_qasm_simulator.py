@@ -46,6 +46,7 @@ from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThread
 from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
 from test.terra.backends.qasm_simulator.qasm_basics import QasmBasicsTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 
 
 class TestQasmSimulator(common.QiskitAerTestCase,
@@ -72,6 +73,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmThreadManagementTests,
                         QasmFusionTests,
                         QasmQubitsTruncateTests,
+                        QasmResetNoiseTests,
                         QasmBasicsTests):
     """QasmSimulator automatic method tests."""
 

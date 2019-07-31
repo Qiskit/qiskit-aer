@@ -15,6 +15,7 @@ QasmSimulator Integration Tests
 
 from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_pauli_noise
+from test.terra.reference import ref_reset_noise
 
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
@@ -92,6 +93,30 @@ class QasmPauliNoiseTests:
         circuits = ref_pauli_noise.pauli_measure_error_circuits()
         noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
         targets = ref_pauli_noise.pauli_measure_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models,
+                                                targets):
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj,
+                backend_options=self.BACKEND_OPTS,
+                noise_model=noise_model).result()
+            self.is_completed(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+
+class QasmResetNoiseTests:
+    """QasmSimulator reset error noise model tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    def test_reset_gate_noise(self):
+        """Test simulation with reset gate error noise model."""
+        shots = 2000
+        circuits = ref_reset_noise.reset_gate_error_circuits()
+        noise_models = ref_reset_noise.reset_gate_error_noise_models()
+        targets = ref_reset_noise.reset_gate_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
