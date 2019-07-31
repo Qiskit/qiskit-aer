@@ -25,6 +25,8 @@ Added
 -   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
 -   Add "validation_threshold" config parameter to Aer backends (\# 290)
 
+- Noise model inserter module
+
 Changed
 -------
 
