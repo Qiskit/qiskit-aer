@@ -32,7 +32,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_extra import QasmExtraTests
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
 from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
@@ -56,7 +56,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmAlgorithmTests,
                         QasmAlgorithmTestsWaltzBasis,
                         QasmAlgorithmTestsMinimalBasis,
-                        QasmExtraTests,
+                        QasmUnitaryGateTests,
                         QasmThreadManagementTests,
                         QasmFusionTests,
                         QasmQubitsTruncateTests,
