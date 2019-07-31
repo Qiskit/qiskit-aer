@@ -41,6 +41,7 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 
 
 
@@ -64,7 +65,8 @@ class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
                                      QasmUnitaryGateTests,
                                      QasmReadoutNoiseTests,
                                      QasmPauliNoiseTests,
-                                     QasmResetNoiseTests):
+                                     QasmResetNoiseTests,
+                                     QasmKrausNoiseTests):
     """QasmSimulator density_matrix method tests."""
 
     BACKEND_OPTS = {"method": "density_matrix"}

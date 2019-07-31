@@ -42,6 +42,7 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -66,7 +67,8 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmUnitaryGateTests,
                                    QasmReadoutNoiseTests,
                                    QasmPauliNoiseTests,
-                                   QasmResetNoiseTests):
+                                   QasmResetNoiseTests,
+                                   QasmKrausNoiseTests):
     """QasmSimulator statevector method tests."""
 
     BACKEND_OPTS = {"method": "statevector"}
