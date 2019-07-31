@@ -31,7 +31,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_extra import QasmExtraTests
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 
 
 class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
@@ -50,7 +50,7 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmAlgorithmTests,
                                    QasmAlgorithmTestsWaltzBasis,
                                    QasmAlgorithmTestsMinimalBasis,
-                                   QasmExtraTests):
+                                   QasmUnitaryGateTests):
     """QasmSimulator statevector method tests."""
 
     BACKEND_OPTS = {"method": "statevector"}

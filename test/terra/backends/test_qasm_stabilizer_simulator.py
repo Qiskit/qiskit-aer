@@ -22,7 +22,6 @@ from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
-from test.terra.backends.qasm_simulator.qasm_extra import QasmExtraTests
 
 
 class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
@@ -31,8 +30,7 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmResetTests,
                                   QasmConditionalGateTests,
                                   QasmCliffordTests,
-                                  QasmAlgorithmTests,
-                                  QasmExtraTests):
+                                  QasmAlgorithmTests):
     """QasmSimulator stabilizer method tests."""
 
     BACKEND_OPTS = {"method": "stabilizer"}
