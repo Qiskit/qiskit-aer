@@ -562,11 +562,20 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
 
   if (max_parallel_threads_ < max_parallel_shots_)
     max_parallel_shots_ = max_parallel_threads_;
-
-  switch (simulation_method(circ, noise_model, false)) {
+  const auto method = simulation_method(circ, noise_model, false);
+  switch (method) {
     case Method::statevector:
     case Method::tensor_network: {
       if (noise_model.is_ideal() && check_measure_sampling_opt(circ, Method::statevector).first) {
+        parallel_shots_ = 1;
+        parallel_state_update_ = max_parallel_threads_;
+        return;
+      }
+      Base::Controller::set_parallelization_circuit(circ, noise_model);
+      break;
+    }
+    case Method::density_matrix: {
+      if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
         return;
@@ -609,7 +618,10 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   data.set_config(config);
   data.add_additional_data("metadata",
                            json_t::object({{"method", state.name()}}));
-
+  // Add measure sampling to metadata
+  // Note: this will set to `true` if sampling is enabled for the circuit
+  data.add_additional_data("metadata",
+                            json_t::object({{"measure_sampling", false}}));
   // Check if there is noise for the implementation
   if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
@@ -689,6 +701,9 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
+    // Add measure sampling metadata
+    data.add_additional_data("metadata",
+                             json_t::object({{"measure_sampling", true}}));
   }  
 }
 
@@ -785,7 +800,7 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
         register_map[op.registers[j]] = pos;
     }
   }
-
+  
   // Process samples
   // Convert opts to circuit so we can get the needed creg sizes
   // NB: this function could probably be moved somewhere else like Utils or Ops

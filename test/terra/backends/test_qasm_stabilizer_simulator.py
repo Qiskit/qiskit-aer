@@ -16,17 +16,26 @@ QasmSimulator Integration Tests
 
 import unittest
 from test.terra import common
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
-from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+
+# Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
+# Conditional instruction tests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+# Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
+# Noise model simulation tests
+# TODO
+# Other tests
+from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
 class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmMethodTests,
                                   QasmMeasureTests,
+                                  QasmMultiQubitMeasureTests,
                                   QasmResetTests,
                                   QasmConditionalGateTests,
                                   QasmCliffordTests,
