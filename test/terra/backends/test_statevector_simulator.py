@@ -790,22 +790,11 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
     # ---------------------------------------------------------------------
-    def test_unitary_gate_real(self):
-        """Test unitary qobj instruction with real matrices."""
-        qobj = ref_unitary_gate.unitary_gate_circuits_real_deterministic(final_measure=False)
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_unitary_gate.unitary_gate_statevector_real_deterministic()
-        job = StatevectorSimulator().run(qobj)
-        result = job.result()
-        self.is_completed(result)
-        self.compare_statevector(result, circuits, targets)
-
-    def test_unitary_gate_complex(self):
-        """Test unitary qobj instruction with complex matrices."""
-        qobj = ref_unitary_gate.unitary_gate_circuits_complex_deterministic(final_measure=False)
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_unitary_gate.unitary_gate_statevector_complex_deterministic()
-        job = StatevectorSimulator().run(qobj)
+    def test_unitary_gate(self):
+        """Test simulation with unitary gate circuit instructions."""
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=False)
+        targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
+        job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
