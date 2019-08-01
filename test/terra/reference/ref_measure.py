@@ -16,19 +16,11 @@ Test circuits and reference outputs for measure instruction.
 
 from numpy import array
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-
-# The following is temporarily needed for qobj compiling
-# to test multi-qubit measurements which must be implemeted
-# direclty by qobj instructions until terra assembler supports them
-from qiskit.compiler import assemble
-from qiskit.providers.aer.backends import QasmSimulator
-from qiskit.providers.aer.utils.qobj_utils import insert_instr
-from qiskit.providers.aer.utils.qobj_utils import measure_instr
-from qiskit.providers.aer.utils.qobj_utils import iden_instr
+from qiskit.circuit import Instruction
 
 
 # ==========================================================================
-# Deterministic output
+# Single-qubit measurements with deterministic output
 # ==========================================================================
 
 def measure_circuits_deterministic(allow_sampling=True):
@@ -120,7 +112,7 @@ def measure_statevector_deterministic():
     return targets
 
 # ==========================================================================
-# Non-Deterministic output
+# Single-qubit measurements with non-deterministic output
 # ==========================================================================
 
 def measure_circuits_nondeterministic(allow_sampling=True):
@@ -159,37 +151,28 @@ def measure_counts_nondeterministic(shots, hex_counts=True):
 
 
 # ==========================================================================
-# Multi-qubit qobj item deterministic output
+# Multi-qubit measurements with deterministic output
 # ==========================================================================
 
-def _dummy_qobj():
-    """Return a dummy qobj to insert experiments into"""
-    qr = QuantumRegister(1)
-    circuit = QuantumCircuit(qr)
-    circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    # remove experiment
-    qobj.experiments = []
-    return qobj
+def multiqubit_measure_circuits_deterministic(allow_sampling=True):
+    """Multi-qubit measure test circuits with deterministic count output."""
 
+    circuits = []
 
-def measure_circuits_qobj_deterministic(allow_sampling=True):
-    """Measure test circuits with deterministic count output."""
+    def measure_n(num_qubits):
+        """Multi-qubit measure instruction."""
+        return Instruction("measure", num_qubits, num_qubits, [])
 
-    # Dummy qobj
-    final_qobj = _dummy_qobj()
-
-    # 2-qubit measure |10>
     qr = QuantumRegister(2)
     cr = ClassicalRegister(2)
     circuit = QuantumCircuit(qr, cr)
     circuit.x(qr[1])
     circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    insert_instr(qobj, 0, measure_instr([0, 1], [0, 1]), -1)
+    circuit.append(measure_n(2), [0, 1], [0, 1])
     if not allow_sampling:
-        insert_instr(qobj, 0, iden_instr(0), -1)
-    final_qobj.experiments.append(qobj.experiments[0])
+        circuit.barrier(qr)
+        circuit.iden(qr)
+    circuits.append(circuit)
 
     # 3-qubit measure |101>
     qr = QuantumRegister(3)
@@ -198,11 +181,11 @@ def measure_circuits_qobj_deterministic(allow_sampling=True):
     circuit.x(qr[0])
     circuit.x(qr[2])
     circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    insert_instr(qobj, 0, measure_instr([0, 1, 2], [0, 1, 2]), -1)
+    circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     if not allow_sampling:
-        insert_instr(qobj, 0, iden_instr(0), -1)
-    final_qobj.experiments.append(qobj.experiments[0])
+        circuit.barrier(qr)
+        circuit.iden(qr)
+    circuits.append(circuit)
 
     # 4-qubit measure |1010>
     qr = QuantumRegister(4)
@@ -211,17 +194,17 @@ def measure_circuits_qobj_deterministic(allow_sampling=True):
     circuit.x(qr[1])
     circuit.x(qr[3])
     circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    insert_instr(qobj, 0, measure_instr([0, 1, 2, 3], [0, 1, 2, 3]), -1)
+    circuit.append(measure_n(4), [0, 1, 2, 3], [0, 1, 2, 3])
     if not allow_sampling:
-        insert_instr(qobj, 0, iden_instr(0), -1)
-    final_qobj.experiments.append(qobj.experiments[0])
+        circuit.barrier(qr)
+        circuit.iden(qr)
+    circuits.append(circuit)
 
-    return final_qobj
+    return circuits
 
 
-def measure_counts_qobj_deterministic(shots, hex_counts=True):
-    """Measure test circuits reference counts."""
+def multiqubit_measure_counts_deterministic(shots, hex_counts=True):
+    """Multi-qubit measure test circuits reference counts."""
 
     targets = []
     if hex_counts:
@@ -241,8 +224,8 @@ def measure_counts_qobj_deterministic(shots, hex_counts=True):
     return targets
 
 
-def measure_statevector_qobj_deterministic():
-    """Measure test circuits reference counts."""
+def multiqubit_measure_statevector_deterministic():
+    """Multi-qubit measure test circuits reference counts."""
 
     targets = []
     # 2-qubit measure |10>
@@ -254,11 +237,17 @@ def measure_statevector_qobj_deterministic():
     return targets
 
 
-def measure_circuits_qobj_nondeterministic(allow_sampling=True):
-    """Measure test circuits with deterministic count output."""
+# ==========================================================================
+# Multi-qubit measurements with non-deterministic output
+# ==========================================================================
 
-    # Dummy qobj
-    final_qobj = _dummy_qobj()
+def multiqubit_measure_circuits_nondeterministic(allow_sampling=True):
+    """Multi-qubit measure test circuits with non-deterministic count output."""
+    circuits = []
+
+    def measure_n(num_qubits):
+        """Multi-qubit measure instruction."""
+        return Instruction("measure", num_qubits, num_qubits, [])
 
     # 2-qubit measure |++>
     qr = QuantumRegister(2)
@@ -267,11 +256,11 @@ def measure_circuits_qobj_nondeterministic(allow_sampling=True):
     circuit.h(qr[0])
     circuit.h(qr[1])
     circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    insert_instr(qobj, 0, measure_instr([0, 1], [0, 1]), -1)
+    circuit.append(measure_n(2), [0, 1], [0, 1])
     if not allow_sampling:
-        insert_instr(qobj, 0, iden_instr(0), -1)
-    final_qobj.experiments.append(qobj.experiments[0])
+        circuit.barrier(qr)
+        circuit.iden(qr)
+    circuits.append(circuit)
 
     # 3-qubit measure |++0>
     qr = QuantumRegister(3)
@@ -280,17 +269,17 @@ def measure_circuits_qobj_nondeterministic(allow_sampling=True):
     circuit.h(qr[0])
     circuit.h(qr[1])
     circuit.barrier(qr)
-    qobj = assemble(circuit, QasmSimulator(), shots=1)
-    insert_instr(qobj, 0, measure_instr([0, 1, 2], [0, 1, 2]), -1)
+    circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     if not allow_sampling:
-        insert_instr(qobj, 0, iden_instr(0), -1)
-    final_qobj.experiments.append(qobj.experiments[0])
+        circuit.barrier(qr)
+        circuit.iden(qr)
+    circuits.append(circuit)
 
-    return final_qobj
+    return circuits
 
 
-def measure_counts_qobj_nondeterministic(shots, hex_counts=True):
-    """Measure test circuits reference counts."""
+def multiqubit_measure_counts_nondeterministic(shots, hex_counts=True):
+    """Multi-qubit measure test circuits reference counts."""
 
     targets = []
     if hex_counts:
