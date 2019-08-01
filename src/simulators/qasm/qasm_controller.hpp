@@ -566,7 +566,8 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   switch (method) {
     case Method::statevector:
     case Method::tensor_network: {
-      if (noise_model.is_ideal() && check_measure_sampling_opt(circ, Method::statevector).first) {
+      if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
+          check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
         return;
@@ -625,6 +626,9 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   // Check if there is noise for the implementation
   if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
+  } else if (!noise.has_quantum_errors()) {
+    run_circuit_without_noise(noise.sample_noise(circ, rng),
+                              shots, state, initial_state, method, data, rng);
   } else {
     run_circuit_with_noise(circ, noise, shots, state, initial_state, method, data, rng);
   }
@@ -732,13 +736,8 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
         return std::make_pair(false, 0);
       }
     }
-    if (type == Operations::OpType::roerror) {
-      // TODO: Readout errors should be allowed with
-      // measurement sampling as long as they are
-      // all moved to occur after measurements.
-      return std::make_pair(false, 0);
-    }
-    if (type == Operations::OpType::measure)
+    if (type == Operations::OpType::measure ||
+        type == Operations::OpType::roerror)
       break;
     ++start;
   }
@@ -746,7 +745,9 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
   auto start_meas = start;
   // Check all remaining operations are measurements
   while (start != circ.ops.end()) {
-    if (start->type != Operations::OpType::measure || start->conditional) {
+    if ((start->type != Operations::OpType::measure
+         && start->type != Operations::OpType::roerror) ||
+        start->conditional) {
       return std::make_pair(false, 0);
     }
     ++start;
@@ -759,18 +760,28 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
 
 
 template <class State_t>
-void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops,
+void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_roerror_ops,
                                      uint_t shots,
                                      State_t &state,
                                      OutputData &data,
                                      RngEngine &rng) const {
+
   // Check if meas_circ is empty, and if so return initial creg
-  if (meas_ops.empty()) {
+  if (meas_roerror_ops.empty()) {
     while (shots-- > 0) {
       state.add_creg_to_data(data);
     }
     return;
   }
+
+  std::vector<Operations::Op> meas_ops;
+  std::vector<Operations::Op> roerror_ops;
+  for (const Operations::Op& op: meas_roerror_ops)
+    if (op.type == Operations::OpType::roerror)
+      roerror_ops.push_back(op);
+    else /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(op);
+
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits; // measured qubits
   for (const auto &op : meas_ops) {
@@ -804,7 +815,7 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
   // Process samples
   // Convert opts to circuit so we can get the needed creg sizes
   // NB: this function could probably be moved somewhere else like Utils or Ops
-  Circuit meas_circ(meas_ops);
+  Circuit meas_circ(meas_roerror_ops);
   ClassicalRegister creg;
   while (!all_samples.empty()) {
     auto sample = all_samples.back();
@@ -814,14 +825,20 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
     for (const auto &pair : memory_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}), reg_t());
     }
-    auto memory = creg.memory_hex();
-    data.add_memory_count(memory);
-    data.add_memory_singleshot(memory);
-
     // process register bit measurements
     for (const auto &pair : register_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t(), reg_t({pair.first}));
     }
+
+    // process read out errors for memory and registers
+    for (const Operations::Op& roerror: roerror_ops) {
+      creg.apply_roerror(roerror, rng);
+    }
+
+    auto memory = creg.memory_hex();
+    data.add_memory_count(memory);
+    data.add_memory_singleshot(memory);
+
     data.add_register_singleshot(creg.register_hex());
 
     // pop off processed sample
