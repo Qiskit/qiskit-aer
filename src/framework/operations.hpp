@@ -932,11 +932,9 @@ Op json_to_op_snapshot(const json_t &js) {
   std::string snapshot_type;
   JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
   JSON::get_value(snapshot_type, "type", js);
-  if (snapshot_type == "expectation_value_pauli" ||
-      snapshot_type == "expectation_value_pauli_with_variance")
+  if (snapshot_type.find("expectation_value_pauli") != std::string::npos)
     return json_to_op_snapshot_pauli(js);
-  if (snapshot_type == "expectation_value_matrix" ||
-      snapshot_type == "expectation_value_matrix_with_variance")
+  if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   auto op = json_to_op_snapshot_default(js);
