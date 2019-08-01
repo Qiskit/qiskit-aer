@@ -76,6 +76,7 @@ public:
   // Assignment operator
   MPS_Tensor& operator=(const MPS_Tensor& rhs){
     if (this != &rhs){
+      data_.clear();
       data_ = rhs.data_;
     }
     return *this;
