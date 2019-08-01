@@ -185,7 +185,7 @@ def snapshot_statevector(self,
 
 QuantumCircuit.snapshot_statevector = snapshot_statevector
 
-'''
+
 class SnapshotStabilizer(Snapshot):
     def __init__(self, label, snapshot_type='stabilizer', num_qubits=0, num_clbits=0, params=None):
         super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
@@ -195,23 +195,12 @@ def snapshot_stabilizer(self,
              snapshot_type='stabilizer',
              qubits=None,
              params=None):
-    """Take a stabilizer snapshot of the internal simulator representation.
-    Works on all qubits, and prevents reordering (like barrier).
-    Args:
-        label (str): a snapshot label to report the result
-        snapshot_type (str): the type of the snapshot.
-        qubits (list or None): the qubits to apply snapshot to [Default: None].
-        params (list or None): the parameters for snapshot_type [Default: None].
-    Returns:
-        QuantumCircuit: with attached command
-    Raises:
-        ExtensionError: malformed command
-    """
+
     # Convert label to string for backwards compatibility
     if not isinstance(label, str):
         warnings.warn(
             "Snapshot label should be a string, "
-            "implicit conversion is depreciated.", DeprecationWarning)
+            "implicit conversion is deprecated.", DeprecationWarning)
         label = str(label)
     # If no qubits are specified we add all qubits so it acts as a barrier
     # This is needed for full register snapshots like statevector
@@ -239,7 +228,6 @@ def snapshot_stabilizer(self,
             params=params), qubits)
 
 QuantumCircuit.snapshot_stabilizer = snapshot_stabilizer
-'''
 
 class SnaphotDensityMatrix(Snapshot):
     def __init__(self, snapshot_type='density_matrix'):
@@ -255,10 +243,10 @@ def snapshot_density_matrix(self,
     if not isinstance(label, str):
         warnings.warn(
             "Snapshot label should be a string, "
-            "implicit conversion is depreciated.", DeprecationWarning)
+            "implicit conversion is deprecated.", DeprecationWarning)
         label = str(label)
     # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots like statevector
+    # This is needed for full register snapshots
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     if not qubits:
@@ -283,29 +271,3 @@ def snapshot_density_matrix(self,
             params=params), qubits)
 
 QuantumCircuit.snapshot_density_matrix = snapshot_density_matrix
-
-'''
-class SnapshotProbabilites(Snapshot):
-    pass
-
-def snapshot_probabilities(self,
-             label,
-             snapshot_type='probabilities',
-             qubits=None,
-             params=None):
-    pass
-
-#QuantumCircuit.snapshot_probabilities = snapshot_probabilities
-
-class SnapshotExpectationValues(Snapshot):
-    pass
-
-def snapshot_expectation_values(self,
-             label,
-             snapshot_type='expectation_values',
-             qubits=None,
-             params=None):
-    pass
-
-#QuantumCircuit.snapshot_expectation_values = snapshot_expectation_values
-'''
