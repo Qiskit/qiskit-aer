@@ -31,7 +31,7 @@ namespace QV {
 // convention left-matrix multiplication on qubit-n is equal to multiplication
 // of the vectorized 2*N qubit vector also on qubit-n.
 
-template <class data_t = complex_t*>
+template <class data_t = double>
 class UnitaryMatrix : public QubitVector<data_t> {
 
 public:
@@ -52,19 +52,19 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  inline void set_num_qubits(size_t num_qubits);
+  virtual void set_num_qubits(size_t num_qubits) override;
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}
 
   // Returns the number of qubits for the current vector
-  inline uint_t num_qubits() const { return num_qubits_;}
+  virtual uint_t num_qubits() const override { return num_qubits_;}
 
   // Returns a copy of the underlying data_t data as a complex vector
   AER::cmatrix_t matrix() const;
 
   // Return the trace of the unitary
-  complex_t trace() const;
+  std::complex<double> trace() const;
 
   // Return JSON serialization of UnitaryMatrix;
   json_t json() const;
@@ -130,7 +130,7 @@ template <class data_t>
 json_t UnitaryMatrix<data_t>::json() const {
   const int_t nrows = rows_;
   // Initialize empty matrix
-  const json_t ZERO = complex_t(0.0, 0.0);
+  const json_t ZERO = std::complex<double>(0.0, 0.0);
   json_t js = json_t(nrows, json_t(nrows, ZERO));
   
   if (BaseVector::json_chop_threshold_ > 0) {
@@ -253,7 +253,7 @@ void UnitaryMatrix<data_t>::set_num_qubits(size_t num_qubits) {
 }
 
 template <class data_t>
-complex_t UnitaryMatrix<data_t>::trace() const {
+std::complex<double> UnitaryMatrix<data_t>::trace() const {
   const int_t NROWS = rows_;
   const int_t DIAG = NROWS + 1;
   double val_re = 0.;
@@ -266,7 +266,7 @@ complex_t UnitaryMatrix<data_t>::trace() const {
     val_im += std::imag(BaseVector::data_[k * DIAG]);
   }
   }
-  return complex_t(val_re, val_im);
+  return std::complex<double>(val_re, val_im);
 }
 
 
