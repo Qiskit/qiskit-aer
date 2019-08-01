@@ -56,7 +56,7 @@ public:
   virtual void set_num_qubits(size_t num_qubits) override;
 
   // Returns the number of qubits for the superoperator
-  virtual uint_t num_qubits() const override { return num_qubits_;}
+  virtual uint_t num_qubits() const override {return num_qubits_;}
 
   // Initialize to the identity superoperator
   void initialize();
