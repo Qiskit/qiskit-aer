@@ -19,7 +19,7 @@ Qiskit Aer statevector simulator backend.
 import logging
 from math import log2
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
 from .statevector_controller_wrapper import statevector_controller_execute
@@ -99,7 +99,7 @@ class StatevectorSimulator(AerBackend):
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(statevector_controller_execute,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+                         QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
