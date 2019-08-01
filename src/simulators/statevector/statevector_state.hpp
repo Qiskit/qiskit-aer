@@ -39,9 +39,12 @@ enum class Gates {
 enum class Snapshots {
   statevector, cmemory, cregister,
   probs, probs_var,
-  expval_pauli, expval_pauli_var,
-  expval_matrix, expval_matrix_var
+  expval_pauli, expval_pauli_var, expval_pauli_shot,
+  expval_matrix, expval_matrix_var, expval_matrix_shot
 };
+
+// Enum class for different types of expectation values
+enum class SnapshotDataType {average, average_var, single_shot};
 
 //=========================================================================
 // QubitVector State subclass
@@ -90,8 +93,13 @@ public:
   virtual stringset_t allowed_snapshots() const override {
     return {"statevector", "memory", "register",
             "probabilities", "probabilities_with_variance",
-            "expectation_value_pauli", "expectation_value_pauli_with_variance",
-            "expectation_value_matrix", "expectation_value_matrix_with_variance"};
+            "expectation_value_pauli",
+            "expectation_value_pauli_with_variance",
+            "expectation_value_matrix_single_shot",
+            "expectation_value_matrix",
+            "expectation_value_matrix_with_variance",
+            "expectation_value_pauli_single_shot"
+            };
   }
 
   // Apply a sequence of operations by looping over list
@@ -224,17 +232,17 @@ protected:
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               OutputData &data,
-                              bool variance);
+                              SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
                              OutputData &data,
-                             bool variance);
+                             SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
                               OutputData &data,
-                              bool variance);
+                              SnapshotDataType type);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -325,6 +333,8 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"probabilities_with_variance", Snapshots::probs_var},
   {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
   {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
+  {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot},
+  {"expectation_value_matrix_single_shot", Snapshots::expval_matrix_shot},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -487,23 +497,29 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
       break;
     case Snapshots::probs: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, data, false);
+      snapshot_probabilities(op, data, SnapshotDataType::average);
     } break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(op, data, false);
+      snapshot_pauli_expval(op, data, SnapshotDataType::average);
     } break;
     case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, data, false);
+      snapshot_matrix_expval(op, data, SnapshotDataType::average);
     }  break;
     case Snapshots::probs_var: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, data, true);
+      snapshot_probabilities(op, data, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, data, true);
+      snapshot_pauli_expval(op, data, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, data, true);
+      snapshot_matrix_expval(op, data, SnapshotDataType::average_var);
+    }  break;
+    case Snapshots::expval_pauli_shot: {
+      snapshot_pauli_expval(op, data, SnapshotDataType::single_shot);
+    } break;
+    case Snapshots::expval_matrix_shot: {
+      snapshot_matrix_expval(op, data, SnapshotDataType::single_shot);
     }  break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
@@ -515,10 +531,11 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
 template <class statevec_t>
 void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
                                                OutputData &data,
-                                               bool variance) {
+                                               SnapshotDataType type) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
+  bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(), probs, variance);
 }
@@ -527,7 +544,7 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
 template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
                                               OutputData &data,
-                                              bool variance) {
+                                              SnapshotDataType type) {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -578,8 +595,19 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   }
   // add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, variance);
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, true);
+      break;
+    case SnapshotDataType::single_shot:
+      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+      break;
+  }
   // Revert to original state
   BaseState::qreg_.revert(false);
 }
@@ -587,7 +615,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
 template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
                                                OutputData &data,
-                                               bool variance) {
+                                               SnapshotDataType type) {
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -625,8 +653,19 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   }
   // add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, variance);
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, true);
+      break;
+    case SnapshotDataType::single_shot:
+      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+      break;
+  }
   // Revert to original state
   BaseState::qreg_.revert(false);
 }
