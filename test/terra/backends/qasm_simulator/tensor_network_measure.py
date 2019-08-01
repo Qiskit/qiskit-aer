@@ -16,8 +16,6 @@ functionality that has not been supported yet (specifically the 'iden'
 operation).
 """
 
-import unittest
-
 from test.terra.reference import ref_measure
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
@@ -27,7 +25,7 @@ class QasmTensorNetworkMeasureTests:
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
-    
+
     # ---------------------------------------------------------------------
     # Test measure
     # ---------------------------------------------------------------------
@@ -42,7 +40,11 @@ class QasmTensorNetworkMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0)
-
+        # Test sampling was enabled
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], True)
+            
     def test_measure_nondeterministic_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts with sampling"""
         shots = 2000
@@ -54,6 +56,10 @@ class QasmTensorNetworkMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        # Test sampling was enabled
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], True)
 
     # ---------------------------------------------------------------------
     # Test multi-qubit measure qobj instruction
@@ -61,13 +67,16 @@ class QasmTensorNetworkMeasureTests:
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
         shots = 2000
-        qobj = ref_measure.measure_circuits_qobj_nondeterministic(
+        circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
+        targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        # Test sampling was enabled
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], True)
 
