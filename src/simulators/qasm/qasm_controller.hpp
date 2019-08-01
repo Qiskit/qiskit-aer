@@ -566,7 +566,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   switch (method) {
     case Method::statevector:
     case Method::tensor_network: {
-      if ((noise_model_.ideal() || !noise_model_.has_quantum_errors()) &&
+      if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
@@ -624,16 +624,11 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   data.add_additional_data("metadata",
                             json_t::object({{"measure_sampling", false}}));
   // Check if there is noise for the implementation
-<<<<<<< HEAD
-  if (noise_model_.ideal()) {
-    run_circuit_without_noise(circ, shots, state, initial_state, data, rng);
-  } else if (!noise_model_.has_quantum_errors()) {
-    run_circuit_without_noise(noise_model_.sample_noise(circ, rng),
-                              shots, state, initial_state, data, rng);
-=======
   if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
->>>>>>> upstream/master
+  } else if (!noise.has_quantum_errors()) {
+    run_circuit_without_noise(noise.sample_noise(circ, rng),
+                              shots, state, initial_state, method, data, rng);
   } else {
     run_circuit_with_noise(circ, noise, shots, state, initial_state, method, data, rng);
   }
@@ -710,14 +705,9 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
-<<<<<<< HEAD
-    data.add_additional_data("metadata",
-                             json_t::object({{"measure", "sampling"}}));
-=======
     // Add measure sampling metadata
     data.add_additional_data("metadata",
                              json_t::object({{"measure_sampling", true}}));
->>>>>>> upstream/master
   }  
 }
 
@@ -738,11 +728,6 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;
-<<<<<<< HEAD
-    if (type == Operations::OpType::reset ||
-        type == Operations::OpType::initialize ||
-        type == Operations::OpType::kraus) {
-=======
     if (method != Method::density_matrix) {
       if(type == Operations::OpType::reset ||
         type == Operations::OpType::initialize ||
@@ -750,13 +735,6 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
         type == Operations::OpType::superop) {
         return std::make_pair(false, 0);
       }
-    }
-    if (type == Operations::OpType::roerror) {
-      // TODO: Readout errors should be allowed with
-      // measurement sampling as long as they are
-      // all moved to occur after measurements.
->>>>>>> upstream/master
-      return std::make_pair(false, 0);
     }
     if (type == Operations::OpType::measure ||
         type == Operations::OpType::roerror)

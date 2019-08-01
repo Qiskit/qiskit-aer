@@ -166,19 +166,6 @@ class QasmMultiQubitMeasureTests:
             self.assertIn("measure_sampling", res.metadata)
             self.assertEqual(res.metadata["measure_sampling"], False)
 
-    # ---------------------------------------------------------------------
-    # Test measure with noise model
-    # ---------------------------------------------------------------------
-    def sampling_enabled(self, result):
-        """Check sampling is enabled"""
-        for r in result.as_dict()['results']:
-            self.assertTrue('metadata' in r)
-            if 'measure' not in r['metadata']:
-                return False
-            if r['metadata']['measure'] != 'sampling':
-                return False
-        return True
-
     def test_measure_sampling_with_readouterror(self):
         """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
         readout_error = [0.01, 0.1]
@@ -197,7 +184,11 @@ class QasmMultiQubitMeasureTests:
             noise_model=noise_model, 
             backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        self.assertTrue(self.sampling_enabled(result))
+        
+        # Test sampling was disabled
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], True)
         
     def test_measure_sampling_with_quantum_noise(self):
         """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
@@ -221,7 +212,10 @@ class QasmMultiQubitMeasureTests:
             noise_model=noise_model, 
             backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        self.assertFalse(self.sampling_enabled(result))
+        
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], False)
         
         # Test sampling was disabled
         for res in result.results:
