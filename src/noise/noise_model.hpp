@@ -451,30 +451,33 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
       // If either are superoperators combine superoperators
       // else if either are unitaries combine unitaries
       // otherwise return the full list
-      if (noise_before[1].type == Operations::OpType::superop) {
-        auto& current = noise_before[1];
-        const auto mat = op2superop(noise_before[0]);
+      auto& first_op = noise_before[0];
+      auto& second_op = noise_before[1];
+
+      if (second_op.type == Operations::OpType::superop) {
+        auto& current = second_op;
+        const auto mat = op2superop(first_op);
         if (!mat.empty()) {
           current.mats[0] = current.mats[0] * mat;
           return NoiseOps({current});
         }
-      } else if (noise_before[0].type == Operations::OpType::superop) {
-        auto& current = noise_before[0];
-        const auto mat = op2superop(noise_before[1]);
+      } else if (first_op.type == Operations::OpType::superop) {
+        auto& current = first_op;
+        const auto mat = op2superop(second_op);
         if (!mat.empty()) {
           current.mats[0] = mat * current.mats[0];
           return NoiseOps({current});
         }
-      } else if (noise_before[1].type == Operations::OpType::matrix) { 
+      } else if (second_op.type == Operations::OpType::matrix) { 
         auto& current = noise_before[1];
-        const auto mat = op2unitary(noise_before[0]);
+        const auto mat = op2unitary(first_op);
         if (!mat.empty()) {
           current.mats[0] = current.mats[0] * mat;
           return NoiseOps({current});
         }
-      } else if (noise_before[1].type == Operations::OpType::matrix) {
-        auto& current = noise_before[0];
-        const auto mat = op2unitary(noise_before[1]);
+      } else if (first_op.type == Operations::OpType::matrix) {
+        auto& current = first_op;
+        const auto mat = op2unitary(second_op);
         if (!mat.empty()) {
           current.mats[0] = mat * current.mats[0];
           return NoiseOps({current});
@@ -723,18 +726,21 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
       NoiseOps ret;
       if (std::abs(lambda) > u1_threshold_
           && std::abs(lambda - 2 * M_PI) > u1_threshold_
-          && std::abs(lambda + 2 * M_PI) > u1_threshold_)
+          && std::abs(lambda + 2 * M_PI) > u1_threshold_) {
         ret.push_back(Operations::make_u1(qubit, lambda)); // add 1st U1
+      }
       auto sample = sample_noise_helper(x90, rng); // sample noise for 1st X90
       ret.insert(ret.end(), sample.begin(), sample.end()); // add 1st noisy X90
       if (std::abs(theta + M_PI) > u1_threshold_
-          && std::abs(theta - M_PI) > u1_threshold_)
+          && std::abs(theta - M_PI) > u1_threshold_) {
         ret.push_back(Operations::make_u1(qubit, theta + M_PI)); // add 2nd U1
+      }
       sample = sample_noise_helper(x90, rng); // sample noise for 2nd X90
       ret.insert(ret.end(), sample.begin(), sample.end()); // add 2nd noisy X90
       if (std::abs(phi + M_PI) > u1_threshold_
-          && std::abs(phi - M_PI) > u1_threshold_)
+          && std::abs(phi - M_PI) > u1_threshold_) {
         ret.push_back(Operations::make_u1(qubit, phi + M_PI)); // add 3rd U1
+      }
       return ret;
     }
   }
@@ -786,54 +792,66 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
 
 
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
-  cmatrix_t mat;
-  if  (op.type == Operations::OpType::superop) {
-    mat = op.mats[0];
-  } else if (op.type == Operations::OpType::kraus) {
-    const auto dim = op.mats[0].GetRows();
-    mat.initialize(dim * dim, dim * dim);
-    for (const auto& kraus : op.mats) {
-      mat += Utils::unitary_superop(kraus);
+  switch (op.type) {
+    case Operations::OpType::superop:
+      return op.mats[0];
+    case Operations::OpType::kraus: {
+      const auto dim = op.mats[0].GetRows();
+      cmatrix_t mat(dim * dim, dim * dim);
+      for (const auto& kraus : op.mats) {
+        mat += Utils::unitary_superop(kraus);
+      }
+      return mat;
     }
-  } else if (op.type == Operations::OpType::reset) {
-    mat = Utils::SMatrix::reset(1ULL << op.qubits.size());
-  } else if (op.type == Operations::OpType::matrix) {
-    mat = Utils::unitary_superop(op.mats[0]);
-  } else if (op.type == Operations::OpType::gate) {
-    // Check if a parameterized gate
-    if (op.name == "u1") {
-      mat = Utils::SMatrix::u1(op.params[0]);
-    } else if (op.name == "u2") {
-      mat= Utils::SMatrix::u2(op.params[0], op.params[1]);
-    } else if (op.name == "u3") {
-      mat = Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
-    } else if (Utils::SMatrix::allowed_name(op.name)) {
-      // Check if we can convert this gate to a standard superoperator matrix
-      mat = Utils::SMatrix::from_name(op.name);
+    case Operations::OpType::reset:
+      return Utils::SMatrix::reset(1ULL << op.qubits.size());
+    case  Operations::OpType::matrix:
+      return Utils::unitary_superop(op.mats[0]);
+    case Operations::OpType::gate: {
+      // Check if a parameterized gate
+      if (op.name == "u1") {
+        return Utils::SMatrix::u1(op.params[0]);
+      }
+      if (op.name == "u2") {
+        return Utils::SMatrix::u2(op.params[0], op.params[1]);
+      }
+      if (op.name == "u3") {
+        return Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
+      } 
+      if (Utils::SMatrix::allowed_name(op.name)) {
+        // Check if we can convert this gate to a standard superoperator matrix
+        return Utils::SMatrix::from_name(op.name);
+      }
     }
+    default:
+      return cmatrix_t();
   }
-  return mat;
 }
 
 
 cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
-  cmatrix_t mat;
-  if (op.type == Operations::OpType::matrix) {
-    mat = op.mats[0];
-  } else if (op.type == Operations::OpType::gate) {
+  switch (op.type) {
+  case Operations::OpType::matrix:
+    return op.mats[0];
+  case Operations::OpType::gate:  {
     // Check if a parameterized gate
     if (op.name == "u1") {
-      mat = Utils::SMatrix::u1(op.params[0]);
-    } else if (op.name == "u2") {
-      mat = Utils::SMatrix::u2(op.params[0], op.params[1]);
-    } else if (op.name == "u3") {
-      mat = Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
-    } else if (Utils::SMatrix::allowed_name(op.name)) {
+     return Utils::SMatrix::u1(op.params[0]);
+    }
+    if (op.name == "u2") {
+      return Utils::SMatrix::u2(op.params[0], op.params[1]);
+    }
+    if (op.name == "u3") {
+      return Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
+    }
+    if (Utils::SMatrix::allowed_name(op.name)) {
       // Check if we can convert this gate to a standard superoperator matrix
-      mat = Utils::SMatrix::from_name(op.name);
+      return Utils::SMatrix::from_name(op.name);
     }
   }
-  return mat;
+  default:
+    return cmatrix_t();
+  }
 }
 
 

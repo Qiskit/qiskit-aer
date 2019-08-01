@@ -145,10 +145,10 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
       auto r = rng.rand_int(probabilities_);
       // Check for invalid arguments
       if (r + 1 > circuits_.size()) {
-        std::stringstream msg;
-        msg << "QuantumError: probability outcome (" << r << ")";
-        msg << " is greater than number of circuits (" << circuits_.size() << ").";
-        throw std::invalid_argument(msg.str());
+        throw std::invalid_argument(
+          "QuantumError: probability outcome (" + std::to_string(r) + ")"
+          ") is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
+        );
       }
       NoiseOps noise_ops = circuits_[r];
       // Add qubits to noise op commands;
@@ -170,11 +170,11 @@ void QuantumError::set_threshold(double threshold) {
 void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
                                 const rvector_t &probs) {
   if (probs.size() != circuits.size()) {
-    std::stringstream msg;
-    msg << "QuantumError: invalid input, number of circuits (";
-    msg << circuits.size() << ")" << "and number of probabilities (";
-    msg << probs.size() << ") are not equal.";
-    throw std::invalid_argument(msg.str());
+    throw std::invalid_argument(
+      "QuantumError: invalid input, number of circuits (" +
+      std::to_string(circuits.size()) + ") and number of probabilities (" +
+      std::to_string(probs.size()) + ") are not equal."
+    );
   }
   // Check probability vector
   double total = 0.;
