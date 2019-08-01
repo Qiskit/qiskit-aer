@@ -510,7 +510,7 @@ uint_t MPS::apply_measure(uint_t qubit,
   qubits_to_update.push_back(qubit);
 
   // step 1 - measure qubit 0 in Z basis
-  double exp_val = expectation_value(qubits_to_update, AER::Utils::Matrix::Z);
+  double exp_val = expectation_value(qubits_to_update, "Z");
   
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;
