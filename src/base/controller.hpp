@@ -32,6 +32,10 @@
    #include <windows.h>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // Base Controller
 #include "framework/qobj.hpp"
 #include "framework/data.hpp"
@@ -39,10 +43,8 @@
 #include "framework/creg.hpp"
 #include "noise/noise_model.hpp"
 #include "transpile/circuitopt.hpp"
+#include "transpile/truncate_qubits.hpp"
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 namespace AER {
 namespace Base {
@@ -248,6 +250,9 @@ protected:
 
 void Controller::set_config(const json_t &config) {
 
+  // Load validation threshold
+  JSON::get_value(validation_threshold_, "validation_threshold", config);
+
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
     JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
@@ -398,7 +403,7 @@ bool Controller::validate_state(const state_t &state,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
   // First check if a noise model is valid a given state
-  bool noise_valid = noise.ideal() || state.validate_opset(noise.opset());
+  bool noise_valid = noise.is_ideal() || state.validate_opset(noise.opset());
   bool circ_valid = state.validate_opset(circ.opset());
   if (noise_valid && circ_valid)
   {
@@ -593,11 +598,15 @@ json_t Controller::execute_circuit(Circuit &circ,
 
   // Initialize circuit json return
   json_t result;
+  OutputData data;
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
-    // TODO: Apply initial circuit optimizations here
+    // Truncate unused qubits from circuit and noise model
+    Transpile::TruncateQubits truncate_pass;
+    truncate_pass.set_config(config);
+    truncate_pass.optimize_circuit(circ, noise, Operations::OpSet(), data);
 
     // set parallelization for this circuit
     if (!explicit_parallelization_ && parallel_experiments_ == 1) {
@@ -605,7 +614,8 @@ json_t Controller::execute_circuit(Circuit &circ,
     }
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      result["data"] = run_circuit(circ, noise, config, circ.shots, circ.seed);
+      auto tmp_data = run_circuit(circ, noise, config, circ.shots, circ.seed);
+      data.combine(tmp_data);
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -619,12 +629,12 @@ json_t Controller::execute_circuit(Circuit &circ,
       }
 
       // Vector to store parallel thread output data
-      std::vector<OutputData> data(parallel_shots_);
+      std::vector<OutputData> par_data(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
-          data[i] = run_circuit(circ, noise, config, subshots[i], circ.seed + i);
+          par_data[i] = run_circuit(circ, noise, config, subshots[i], circ.seed + i);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
@@ -635,13 +645,12 @@ json_t Controller::execute_circuit(Circuit &circ,
           throw std::runtime_error(error_msg);
 
       // Accumulate results across shots
-      for (uint_t j=1; j<data.size(); j++) {
-        data[0].combine(data[j]);
+      for (auto &datum : par_data) {
+        data.combine(datum);
       }
-      // Update output
-      result["data"] = data[0];
     }
     // Report success
+    result["data"] = data;
     result["success"] = true;
     result["status"] = std::string("DONE");
 

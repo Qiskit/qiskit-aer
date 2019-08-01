@@ -28,6 +28,8 @@ Added
     sample_measure to use apply_measure (\#299)
 
 
+- Noise model inserter module
+
 Changed
 -------
 

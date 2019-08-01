@@ -28,50 +28,48 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
-from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalSuperOpTests
 # Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
 # Noise model simulation tests
-
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
-# Other tests
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
-class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
-                                   QasmMethodTests,
-                                   QasmMeasureTests,
-                                   QasmMultiQubitMeasureTests,
-                                   QasmResetTests,
-                                   QasmConditionalGateTests,
-                                   QasmConditionalUnitaryTests,
-                                   QasmConditionalKrausTests,
-                                   QasmCliffordTests,
-                                   QasmCliffordTestsWaltzBasis,
-                                   QasmCliffordTestsMinimalBasis,
-                                   QasmNonCliffordTests,
-                                   QasmNonCliffordTestsWaltzBasis,
-                                   QasmNonCliffordTestsMinimalBasis,
-                                   QasmAlgorithmTests,
-                                   QasmAlgorithmTestsWaltzBasis,
-                                   QasmAlgorithmTestsMinimalBasis,
-                                   QasmUnitaryGateTests,
-                                   QasmReadoutNoiseTests,
-                                   QasmPauliNoiseTests,
-                                   QasmResetNoiseTests,
-                                   QasmKrausNoiseTests):
-    """QasmSimulator statevector method tests."""
 
-    BACKEND_OPTS = {"method": "statevector"}
+class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
+                                     QasmMeasureTests,
+                                     QasmMultiQubitMeasureTests,
+                                     QasmResetTests,
+                                     QasmConditionalGateTests,
+                                     QasmConditionalUnitaryTests,
+                                     QasmConditionalKrausTests,
+                                     QasmConditionalSuperOpTests,
+                                     QasmCliffordTests,
+                                     QasmCliffordTestsWaltzBasis,
+                                     QasmCliffordTestsMinimalBasis,
+                                     QasmNonCliffordTests,
+                                     QasmNonCliffordTestsWaltzBasis,
+                                     QasmNonCliffordTestsMinimalBasis,
+                                     QasmAlgorithmTests,
+                                     QasmAlgorithmTestsWaltzBasis,
+                                     QasmAlgorithmTestsMinimalBasis,
+                                     QasmUnitaryGateTests,
+                                     QasmReadoutNoiseTests,
+                                     QasmPauliNoiseTests,
+                                     QasmResetNoiseTests,
+                                     QasmKrausNoiseTests):
+    """QasmSimulator density_matrix method tests."""
+
+    BACKEND_OPTS = {"method": "density_matrix"}
 
 
 if __name__ == '__main__':

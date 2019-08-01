@@ -160,7 +160,7 @@ class TestQuantumError(common.QiskitAerTestCase):
         Ay = np.sqrt(0.25) * standard_gate_unitary('y')
         Az = np.sqrt(0.25) * standard_gate_unitary('z')
         error_dict = QuantumError([Ai, Ax, Ay, Az],
-                                  standard_gates=True).as_dict()
+                                  standard_gates=True).to_dict()
         self.assertEqual(error_dict['type'], 'qerror')
         self.assertAlmostEqual(
             np.linalg.norm(
@@ -178,7 +178,7 @@ class TestQuantumError(common.QiskitAerTestCase):
         Ay = np.sqrt(0.25) * standard_gate_unitary('y')
         Az = np.sqrt(0.25) * standard_gate_unitary('z')
         error_dict = QuantumError([Ai, Ax, Ay, Az],
-                                  standard_gates=False).as_dict()
+                                  standard_gates=False).to_dict()
         self.assertEqual(error_dict['type'], 'qerror')
         self.assertAlmostEqual(
             np.linalg.norm(
