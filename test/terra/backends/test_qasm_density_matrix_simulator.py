@@ -16,26 +16,34 @@ QasmSimulator Integration Tests
 
 import unittest
 from test.terra import common
-from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+
+# Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalSuperOpTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTests
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
+# Conditional instruction tests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalSuperOpTests
+# Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
+# Noise model simulation tests
+# TODO
 
 
 class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
                                      QasmMeasureTests,
+                                     QasmMultiQubitMeasureTests,
                                      QasmResetTests,
                                      QasmConditionalGateTests,
                                      QasmConditionalUnitaryTests,

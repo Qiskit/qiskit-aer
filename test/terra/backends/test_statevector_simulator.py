@@ -93,16 +93,6 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-    def test_measure_multi_qubit(self):
-        """Test StatevectorSimulator multi-qubit measure with deterministic counts"""
-        qobj = ref_measure.measure_circuits_qobj_deterministic(allow_sampling=True)
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_statevector_qobj_deterministic()
-        job = StatevectorSimulator().run(qobj)
-        result = job.result()
-        self.is_completed(result)
-        self.compare_statevector(result, circuits, targets)
-
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
