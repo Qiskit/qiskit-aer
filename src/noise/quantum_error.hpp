@@ -101,7 +101,6 @@ protected:
 
   // Probabilities, first entry is no-error (identity)
   rvector_t probabilities_;
-  //std::discrete_distribution<uint_t> probabilities_;
 
   // List of unitary error matrices
   std::vector<NoiseOps> circuits_;
