@@ -489,20 +489,32 @@ QasmController::simulation_method(const Circuit &circ,
       return Method::tensor_network;
     }
     case Method::automatic: {
-      // Check if Clifford circuit and noise model
+      // If circuit and noise model are Clifford run on Stabilizer simulator
       if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
         return Method::stabilizer;
       }
-      // Default method is statevector, unless the memory requirements are too large
-      Statevector::State<> sv_state;
-      if(!(validate_memory_requirements(sv_state, circ, false))) {
+      // For noisy simulations we enable the density matrix method if
+      // shots > 2 ** num_qubits. This is based on a rough estimate that
+      // a single shot of the density matrix simulator is approx 2 ** nq
+      // times slow than a single shot of statevector due the increased 
+      // dimension
+      if (noise_model.has_quantum_errors() && circ.shots > (1 << circ.num_qubits)) {
+        if (validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
+            validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
+            check_measure_sampling_opt(circ, Method::density_matrix).first
+            ) {
+          return Method::density_matrix;
+        }
+      }
+      // Finally we check if the statevector memory requirement for the
+      // current number of qubits. If it fits in available memory we
+      // default to the Statevector method. Otherwise we attempt to use
+      // the extended stabilizer simulator.
+      if(!(validate_memory_requirements(Statevector::State<>(), circ, false))) {
         if(validate_state(ExtendedStabilizer::State(), circ, noise_model, false)) {
           return Method::extended_stabilizer;
         } else {
-          std::stringstream msg;
-          msg << "QasmController: Circuit cannot be run on any available backend. max_memory_mb="
-              << max_memory_mb_ << "mb";
-          throw std::runtime_error(msg.str());
+          throw std::runtime_error( "QasmSimulator: Circuit cannot be run using available methods.");
         }
       }
       // If we didn't select extended stabilizer above proceed to the default switch clause
