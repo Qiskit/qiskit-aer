@@ -42,10 +42,12 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
-
+# Other tests
+from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
 class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
+                                     QasmMethodTests,
                                      QasmMeasureTests,
                                      QasmMultiQubitMeasureTests,
                                      QasmResetTests,
