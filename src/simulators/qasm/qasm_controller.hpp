@@ -18,6 +18,7 @@
 #include "base/controller.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/fusion.hpp"
+#include "transpile/delay_measure.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -35,9 +36,8 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- * 
  * - "optimize_ideal_threshold" (int): Qubit threshold for running circuit
- *   optimizations passes for an ideal circuit [Default: 5].
+ *   optimizations passes for an ideal circuit [Default: 0].
  * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
  *   optimizations passes for a noisy circuit [Default: 12].
  * 
@@ -261,7 +261,7 @@ protected:
   Precision simulation_precision_ = Precision::double_precision;
 
   // Qubit threshold for running circuit optimizations
-  uint_t circuit_opt_ideal_threshold_ = 5;
+  uint_t circuit_opt_ideal_threshold_ = 0;
   uint_t circuit_opt_noise_threshold_ = 12;
 
   // Initial statevector for Statevector simulation method
@@ -282,6 +282,7 @@ protected:
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
   add_circuit_optimization(Transpile::ReduceBarrier());
+  add_circuit_optimization(Transpile::DelayMeasure());
   add_circuit_optimization(Transpile::Fusion());
 }
 
@@ -503,18 +504,7 @@ QasmController::simulation_method(const Circuit &circ,
           validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
           validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
-        // Now we check that measure sampling can actually be used for the noisy
-        // circuit. This is because quantum noise on measure instructions
-        // curently breaks the measure sampling optimization for density matrix
-        // simulator.
-        // TODO: what we really need is a circuit optimization that pushes measurments
-        // to the end of the circuit and this will no longer be necessary here. 
-        Noise::NoiseModel noise_cpy = noise_model;
-        noise_cpy.activate_superop_method();
-        RngEngine rng;
-        Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
-        if (check_measure_sampling_opt(noise_circ, Method::density_matrix).first)
-          return Method::density_matrix;
+        return Method::density_matrix;
         }
       // Finally we check if the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
@@ -694,6 +684,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
+    noise_circ.shots = 1;
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
       Noise::NoiseModel dummy;
       optimize_circuit(noise_circ, dummy, state, data);
@@ -713,11 +704,10 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
-  if (circ.num_qubits > circuit_opt_ideal_threshold_) {
+  if (opt_circ.num_qubits > circuit_opt_ideal_threshold_) {
     Noise::NoiseModel dummy;
     optimize_circuit(opt_circ, dummy, state, data);
   }
-
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ, method);
   if (check.first == false) {
