@@ -23,6 +23,7 @@
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/tensor_network/tensor_network_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 
 
 namespace AER {
@@ -225,7 +226,6 @@ protected:
                               uint_t shots,
                               State_t &state,
                               const Initstate_t &initial_state,
-                              const Method method,
                               OutputData &data,
                               RngEngine &rng) const;
 
@@ -623,14 +623,27 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   // Note: this will set to `true` if sampling is enabled for the circuit
   data.add_additional_data("metadata",
                             json_t::object({{"measure_sampling", false}}));
-  // Check if there is noise for the implementation
+
+  // Choose execution method based on noise and method
   if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
-  } else if (!noise.has_quantum_errors()) {
-    run_circuit_without_noise(noise.sample_noise(circ, rng),
-                              shots, state, initial_state, method, data, rng);
+  }
+  else if (method == Method::density_matrix && noise.has_quantum_errors()) {
+    // We can sample the noise model using superoperator method
+    // and then execute the resulting circuit containing superoperators
+    Noise::NoiseModel noise_cpy = noise;
+    noise_cpy.activate_superop_method();
+    Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
+    run_circuit_without_noise(noise_circ, shots, state, initial_state, method, data, rng);
+  }
+  else if (noise.has_quantum_errors() == false) {
+    // We can insert the readout errors from the noise model and then
+    // execute the resulting circuit
+    Circuit noise_circ = noise.sample_noise(circ, rng);
+    run_circuit_without_noise(noise_circ, shots, state, initial_state, method, data, rng);
   } else {
-    run_circuit_with_noise(circ, noise, shots, state, initial_state, method, data, rng);
+    // Run sampling a noisy instance of the circuit for each shot
+    run_circuit_with_noise(circ, noise, shots, state, initial_state, data, rng);
   }
   return data;
 }
@@ -654,10 +667,8 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             uint_t shots,
                                             State_t &state,
                                             const Initstate_t &initial_state,
-                                            const Method method,
                                             OutputData &data,
                                             RngEngine &rng) const {
-  // TODO: noise sampling for density matrix method
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
@@ -666,7 +677,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
       optimize_circuit(noise_circ, dummy, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
-  }            
+  }     
 }
 
 
