@@ -26,13 +26,14 @@ Added
 -   Add "validation_threshold" config parameter to Aer backends (\# 290)
 -   Added support for apply_measure in tensor_network_state. Also changed 
     sample_measure to use apply_measure (\#299)
+-   Added density matrix simulation method to QasmSimulator (\# 295, \# 253)
 
 
-- Noise model inserter module
+- Noise model inserter module (\# 239)
 
 Changed
 -------
-
+-   Added density matrix method to automatic QasmSimulator methods (\# 316)
 
 Removed
 -------

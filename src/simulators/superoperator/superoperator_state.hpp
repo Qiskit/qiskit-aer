@@ -98,7 +98,8 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 4 * num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -251,7 +252,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class data_t>
 size_t State<data_t>::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) {
+                                 const std::vector<Operations::Op> &ops)
+                                 const {
   // An n-qubit unitary as 2^4n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
