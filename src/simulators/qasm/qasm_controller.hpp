@@ -494,8 +494,15 @@ QasmController::simulation_method(const Circuit &circ,
         return Method::stabilizer;
       }
       // Default method is statevector, unless the memory requirements are too large
-      Statevector::State<> sv_state;
-      if(!(validate_memory_requirements(sv_state, circ, false))) {
+      bool enough_memory = true;
+      if (simulation_precision_ == Precision::single_precision) {
+        Statevector::State<QV::QubitVector<float>> sv_state;
+        enough_memory = validate_memory_requirements(sv_state, circ, false);
+      } else {
+        Statevector::State<> sv_state;
+        enough_memory = validate_memory_requirements(sv_state, circ, false);
+      }
+      if(!enough_memory) {
         if(validate_state(ExtendedStabilizer::State(), circ, noise_model, false)) {
           return Method::extended_stabilizer;
         } else {
@@ -532,8 +539,13 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
                                           const Noise::NoiseModel& noise) const {
   switch (simulation_method(circ, noise, false)) {
     case Method::statevector: {
-      Statevector::State<> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      if (simulation_precision_ == Precision::single_precision) {
+        Statevector::State<QV::QubitVector<float>> state;
+        return state.required_memory_mb(circ.num_qubits, circ.ops);
+      } else {
+        Statevector::State<> state;
+        return state.required_memory_mb(circ.num_qubits, circ.ops);
+      }
     }
     case Method::density_matrix: {
       DensityMatrix::State<> state;
