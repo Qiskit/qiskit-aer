@@ -498,14 +498,24 @@ QasmController::simulation_method(const Circuit &circ,
       // a single shot of the density matrix simulator is approx 2 ** nq
       // times slow than a single shot of statevector due the increased 
       // dimension
-      if (noise_model.has_quantum_errors() && circ.shots > (1 << circ.num_qubits)) {
-        if (validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
-            validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
-            check_measure_sampling_opt(circ, Method::density_matrix).first
-            ) {
+      if (noise_model.has_quantum_errors() &&
+          circ.shots > (1 << circ.num_qubits) &&
+          validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
+          validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
+          check_measure_sampling_opt(circ, Method::density_matrix).first) {
+        // Now we check that measure sampling can actually be used for the noisy
+        // circuit. This is because quantum noise on measure instructions
+        // curently breaks the measure sampling optimization for density matrix
+        // simulator.
+        // TODO: what we really need is a circuit optimization that pushes measurments
+        // to the end of the circuit and this will no longer be necessary here. 
+        Noise::NoiseModel noise_cpy = noise_model;
+        noise_cpy.activate_superop_method();
+        RngEngine rng;
+        Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
+        if (check_measure_sampling_opt(noise_circ, Method::density_matrix).first)
           return Method::density_matrix;
         }
-      }
       // Finally we check if the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
@@ -517,8 +527,8 @@ QasmController::simulation_method(const Circuit &circ,
           throw std::runtime_error( "QasmSimulator: Circuit cannot be run using available methods.");
         }
       }
-      // If we didn't select extended stabilizer above proceed to the default switch clause
     }
+    // If we didn't select extended stabilizer above proceed to the default switch clause
     default: {
       // Default method is statevector
       if (validate)
