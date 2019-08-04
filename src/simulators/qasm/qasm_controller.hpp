@@ -137,7 +137,7 @@ protected:
     density_matrix,
     stabilizer,
     extended_stabilizer,
-    tensor_network
+    matrix_product_state
   };
 
   // Simulation precision
@@ -309,9 +309,9 @@ void QasmController::set_config(const json_t &config) {
     else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
     }
-    else if (method == "tensor_network") 
+    else if (method == "matrix_product_state") 
     {
-      simulation_method_ = Method::tensor_network;
+      simulation_method_ = Method::matrix_product_state;
     }
     else if (method != "automatic") {
       throw std::runtime_error(std::string("QasmController: Invalid simulation method (") +
@@ -442,15 +442,14 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                            CHSimulator::Runner(),
                                                            Method::extended_stabilizer);
 
-    case Method::tensor_network:
-      // TODO: Tensor network doesn't yet support custom state initialization
+    case Method::matrix_product_state:
       return run_circuit_helper<TensorNetworkState::State>(circ,
                                                            noise,
                                                            config,
                                                            shots,
                                                            rng_seed,
                                                            TensorNetworkState::MPS(),
-                                                           Method::tensor_network);
+                                                           Method::matrix_product_state);
 
     default:
       throw std::runtime_error("QasmController:Invalid simulation method");
@@ -483,10 +482,10 @@ QasmController::simulation_method(const Circuit &circ,
         validate_state(ExtendedStabilizer::State(), circ, noise_model, true);
       return Method::extended_stabilizer;
     }
-    case Method::tensor_network: {
+    case Method::matrix_product_state: {
       if (validate)
         validate_state(TensorNetworkState::State(), circ, noise_model, true);
-      return Method::tensor_network;
+      return Method::matrix_product_state;
     }
     case Method::automatic: {
       // If circuit and noise model are Clifford run on Stabilizer simulator
@@ -559,7 +558,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
       ExtendedStabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-    case Method::tensor_network: {
+    case Method::matrix_product_state: {
       TensorNetworkState::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
@@ -577,7 +576,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   const auto method = simulation_method(circ, noise_model, false);
   switch (method) {
     case Method::statevector:
-    case Method::tensor_network: {
+    case Method::matrix_product_state: {
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;

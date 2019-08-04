@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Tensor Network Integration Tests
+Matrix product state integration tests
 This set of tests runs all the circuits from test/terra/references/: ref_1q_clifford and ref_2q_clifford,
 with the exception of those with the multiplexer gate which is not supported yet.
 """
@@ -28,13 +28,13 @@ from qiskit.providers.aer import QasmSimulator
 
 logger = logging.getLogger(__name__)
 
-class QasmTensorNetworkMethodTests:
-    """QasmSimulator tensor_network method tests."""
+class QasmMatrixProductStateMethodTests:
+    """QasmSimulator matrix_product_state method tests."""
 
-    BACKEND_OPTS = {"method": "tensor_network"}
+    BACKEND_OPTS = {"method": "matrix_product_state"}
     
     def test_method_deterministic_without_sampling(self):
-        """TestTensorNetwork method with deterministic counts without sampling"""
+        """Test matrix product state method with deterministic counts without sampling"""
         deterministic_tests = [(ref_1q_clifford.h_gate_circuits_deterministic, ref_1q_clifford.h_gate_counts_deterministic),
              (ref_1q_clifford.x_gate_circuits_deterministic, ref_1q_clifford.x_gate_counts_deterministic),
              (ref_1q_clifford.z_gate_circuits_deterministic, ref_1q_clifford.z_gate_counts_deterministic),
