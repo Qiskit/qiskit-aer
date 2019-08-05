@@ -152,7 +152,7 @@ public:
   uint_t size() const {return data_size_;}
 
   // Returns required memory
-  size_t required_memory_mb(uint_t num_qubits);
+  size_t required_memory_mb(uint_t num_qubits) const;
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
@@ -800,7 +800,7 @@ void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
 }
 
 template <typename data_t>
-size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) {
+size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
