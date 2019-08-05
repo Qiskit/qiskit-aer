@@ -11,20 +11,20 @@
 # that they have been altered from the originals.
 
 """
-Tensor Network Integration Tests
+Matrix Product State Integration Tests
 """
 
 import unittest
 from test.terra import common
-from test.terra.backends.qasm_simulator.tensor_network_method import QasmTensorNetworkMethodTests
-from test.terra.backends.qasm_simulator.tensor_network_measure import QasmTensorNetworkMeasureTests
+from test.terra.backends.qasm_simulator.matrix_product_state_method import QasmMatrixProductStateMethodTests
+from test.terra.backends.qasm_simulator.matrix_product_state_measure import QasmMatrixProductStateMeasureTests
 
 
-class TestQasmTensorNetworkSimulator(common.QiskitAerTestCase,
-                                   QasmTensorNetworkMethodTests,
-                                   QasmTensorNetworkMeasureTests):
+class TestQasmMatrixProductStateSimulator(common.QiskitAerTestCase,
+                                   QasmMatrixProductStateMethodTests,
+                                   QasmMatrixProductStateMeasureTests):
 
-    BACKEND_OPTS = {"method": "tensor_network"}
+    BACKEND_OPTS = {"method": "matrix_product_state"}
 
 if __name__ == '__main__':
     unittest.main()
