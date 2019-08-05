@@ -34,32 +34,30 @@ class QasmMeasureTests:
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=True)
-        targets = ref_measure.measure_counts_deterministic(shots)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        target_counts = ref_measure.measure_counts_deterministic(shots)
+        target_memory = ref_measure.measure_memory_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0)
-        # Test sampling was enabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], True)
+        self.compare_counts(result, circuits, target_counts, delta=0)
+        self.compare_memory(result, circuits, target_memory)
+        self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_deterministic_without_sampling(self):
         """Test QasmSimulator measure with deterministic counts without sampling"""
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
             allow_sampling=False)
-        targets = ref_measure.measure_counts_deterministic(shots)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        target_counts = ref_measure.measure_counts_deterministic(shots)
+        target_memory = ref_measure.measure_memory_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0)
-        # Test sampling was disabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], False)
+        self.compare_counts(result, circuits, target_counts, delta=0)
+        self.compare_memory(result, circuits, target_memory)
+        self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     def test_measure_nondeterministic_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts with sampling"""
@@ -88,10 +86,7 @@ class QasmMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-        # Test sampling was disabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], False)
+        self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     def test_measure_sampling_with_readouterror(self):
         """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
@@ -110,11 +105,7 @@ class QasmMeasureTests:
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-
-        # Test sampling was enable
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], True)
+        self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_sampling_with_quantum_noise(self):
         """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
@@ -137,14 +128,8 @@ class QasmMeasureTests:
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-
-        method = self.BACKEND_OPTS.get("method")
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            if method == "density_matrix":
-                self.assertEqual(res.metadata["measure_sampling"], True)
-            else:
-                self.assertEqual(res.metadata["measure_sampling"], False)
+        sampling = (self.BACKEND_OPTS.get("method") == "density_matrix")
+        self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
 
 class QasmMultiQubitMeasureTests:
@@ -161,32 +146,29 @@ class QasmMultiQubitMeasureTests:
         shots = 100
         circuits = ref_measure.multiqubit_measure_circuits_deterministic(
             allow_sampling=True)
-        targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        target_counts = ref_measure.multiqubit_measure_counts_deterministic(shots)
+        target_memory = ref_measure.multiqubit_measure_memory_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0)
-        # Test sampling was enabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], True)
+        self.compare_counts(result, circuits, target_counts, delta=0)
+        self.compare_memory(result, circuits, target_memory)
+        self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_deterministic_multi_qubit_without_sampling(self):
         """Test QasmSimulator multi-qubit measure with deterministic counts without sampling"""
         shots = 100
         circuits = ref_measure.multiqubit_measure_circuits_deterministic(
             allow_sampling=False)
-        targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        target_counts = ref_measure.multiqubit_measure_counts_deterministic(shots)
+        target_memory = ref_measure.multiqubit_measure_memory_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
-        self.compare_counts(result, circuits, targets, delta=0)
-        # Test sampling was disabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], False)
+        self.compare_counts(result, circuits, target_counts, delta=0)
+        self.compare_memory(result, circuits, target_memory)
+        self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
@@ -199,10 +181,7 @@ class QasmMultiQubitMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-        # Test sampling was enabled
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], True)
+        self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
@@ -215,7 +194,4 @@ class QasmMultiQubitMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-
-        for res in result.results:
-            self.assertIn("measure_sampling", res.metadata)
-            self.assertEqual(res.metadata["measure_sampling"], False)
+        self.compare_result_metadata(result, circuits, "measure_sampling", False)
