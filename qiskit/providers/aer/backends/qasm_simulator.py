@@ -43,7 +43,7 @@ class QasmSimulator(AerBackend):
             * "extended_stabilizer": Uses an approximate simulator that
             decomposes circuits into stabilizer state terms, the number of
             which grows with the number of non-Clifford gates.
-            * "tensor network": Uses a Matrix Product State (MPS) simulator.
+            * "matrix_product_state": Uses a Matrix Product State (MPS) simulator.
             * "automatic": Automatically run on stabilizer simulator if
             the circuit and noise model supports it. If there is enough
             available memory, uses the statevector method. Otherwise, uses

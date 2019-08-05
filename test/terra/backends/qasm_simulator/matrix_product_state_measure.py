@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Tensor Network Integration Tests
+Matrix product state integration tests
 This set of tests is copied from qasm_measure.py, but without some
 functionality that has not been supported yet (specifically the 'iden'
 operation).
@@ -20,8 +20,8 @@ from test.terra.reference import ref_measure
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
-class QasmTensorNetworkMeasureTests:
-    """QasmSimulator tensor_network measure tests."""
+class QasmMatrixProductStateMeasureTests:
+    """QasmSimulator matrix_product_state measure tests."""
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
