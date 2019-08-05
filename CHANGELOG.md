@@ -45,6 +45,8 @@ Fixed
 
 - Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR \#294)
 
+- Change name of qasm simulation method from tensor_network to matrix_product_state (\#320)
+
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
 ===============================================================================

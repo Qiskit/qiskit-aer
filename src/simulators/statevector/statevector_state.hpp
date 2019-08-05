@@ -397,9 +397,7 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
-  size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
-  size_t mem_mb = 1ULL << shift_mb;
-  return mem_mb;
+  return BaseState::qreg_.required_memory_mb(num_qubits);
 }
 
 template <class statevec_t>
