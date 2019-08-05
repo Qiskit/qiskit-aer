@@ -87,7 +87,8 @@ public:
   virtual void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
 
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   virtual void set_config(const json_t &config) override;
 
@@ -785,7 +786,8 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
 }
 
 size_t State::required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops)
+                                 const std::vector<Operations::Op> &ops)
+                                 const
 {
   size_t required_chi = compute_chi(ops);
   // 5 vectors of num_qubits*8byte words

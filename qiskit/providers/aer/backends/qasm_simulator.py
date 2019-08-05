@@ -16,7 +16,7 @@ Qiskit Aer qasm simulator backend.
 import logging
 from math import log2
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
 from .qasm_controller_wrapper import qasm_controller_execute
@@ -43,7 +43,7 @@ class QasmSimulator(AerBackend):
             * "extended_stabilizer": Uses an approximate simulator that
             decomposes circuits into stabilizer state terms, the number of
             which grows with the number of non-Clifford gates.
-            * "tensor network": Uses a Matrix Product State (MPS) simulator.
+            * "matrix_product_state": Uses a Matrix Product State (MPS) simulator.
             * "automatic": Automatically run on stabilizer simulator if
             the circuit and noise model supports it. If there is enough
             available memory, uses the statevector method. Otherwise, uses
@@ -173,7 +173,7 @@ class QasmSimulator(AerBackend):
     def __init__(self, configuration=None, provider=None):
         super().__init__(
             qasm_controller_execute,
-            BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
             provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):

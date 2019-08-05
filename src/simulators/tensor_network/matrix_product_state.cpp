@@ -16,12 +16,20 @@
 #include <iostream>
 
 #include "framework/utils.hpp"
+#include "framework/matrix.hpp"
 
 #include "matrix_product_state.hpp"
 #include "matrix_product_state_tensor.hpp"
 
 namespace AER {
 namespace TensorNetworkState {
+
+static const cmatrix_t zero_measure = 
+      AER::Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}},
+	                                 {{0, 0}, {0, 0}}});
+static const cmatrix_t one_measure = 
+      AER::Utils::make_matrix<complex_t>({{{0, 0}, {0, 0}},
+			                 {{0, 0}, {1, 0}}});
 
 //------------------------------------------------------------------------
 // local function declarations
@@ -108,7 +116,6 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 
 cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
   vector<cmatrix_t> res(2);
-  //cmatrix_t temp = AER::Utils::dagger(input_matrix);
   AER::Utils::split(input_matrix, res[0], res[1], 1);
   cmatrix_t reshaped_matrix = AER::Utils::concatenate(res[0], res[1], 0);
   return reshaped_matrix;
@@ -267,8 +274,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
 	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
-	//	cout << "after contract, temp = " <<endl;
-	//	temp.print(cout);
 
 	switch (gate_type) {
 	case cx:
@@ -277,11 +282,13 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	case cz:
 	  temp.apply_cz();
 	  break;
+	case id:
+	  break;
 	case cu1:
 	{
 	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
 	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
-			  	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
+		    temp2 = AER::Utils::concatenate(Zeros, mat, 1);
 	  cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
 	  temp.apply_matrix(cu);
 	  break;
@@ -486,27 +493,61 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   }
 }
 
-// for now supporting only the fully vector (all qubits)
-reg_t MPS::sample_measure(std::vector<double> &rands) 
-{
-  rvector_t probvector;
-  probabilities_vector(probvector);
-  const int_t SHOTS = rands.size();
-  reg_t samples = {0};
-  uint_t length = probvector.size();
-  samples.assign(SHOTS, 0);
-     for (int_t i = 0; i < SHOTS; ++i) {
-        double rand = rands[i];
-        double p = .0;
-        uint_t sample;
-        for (sample = 0; sample < length; ++sample) {
-          p += probvector[sample];
-          if (rand < p)
-            break; 
-        }
-        samples[i] = sample;
-      }
-     return samples;
+reg_t MPS::apply_measure(const reg_t &qubits, 
+			 RngEngine &rng) {
+  reg_t qubits_to_update;
+  reg_t outcome_vector;
+  outcome_vector.resize(qubits.size());
+  for (uint_t i=0; i<qubits.size(); i++) {
+    outcome_vector[i] = apply_measure(qubits[i], rng);
+  }
+  return outcome_vector;
+}
+
+uint_t MPS::apply_measure(uint_t qubit, 
+			 RngEngine &rng) {
+  reg_t qubits_to_update;
+  qubits_to_update.push_back(qubit);
+
+  // step 1 - measure qubit 0 in Z basis
+  double exp_val = expectation_value(qubits_to_update, "Z");
+  
+  // step 2 - compute probability for 0 or 1 result
+  double prob0 = (1 + exp_val ) / 2;
+  double prob1 = 1 - prob0;
+
+  // step 3 - randomly choose a measurement value for qubit 0
+  double rnd = rng.rand(0, 1);
+  uint_t measurement;
+  cmatrix_t measurement_matrix(4);
+  
+  if (rnd < prob0) {
+    measurement = 0;
+    measurement_matrix = zero_measure;
+    measurement_matrix = measurement_matrix * (1 / sqrt(prob0));
+  } else {
+    measurement = 1;
+    measurement_matrix = one_measure;
+    measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
+  }
+
+  apply_matrix(qubits_to_update, measurement_matrix);
+
+  // step 4 - propagate the changes to all qubits to the right
+  for (uint_t i=qubit; i<num_qubits_-1; i++) {
+    if (lambda_reg_[i].size() == 1) 
+      break;   // no need to propagate if no entanglement
+    apply_2_qubit_gate(i, i+1, id, cmatrix_t(1));
+  }
+
+  // and propagate the changes to all qubits to the left
+  for (int_t i=qubit; i>0; i--) {
+    if (lambda_reg_[i-1].size() == 1) 
+      break;   // no need to propagate if no entanglement
+    apply_2_qubit_gate(i-1, i, id, cmatrix_t(1));
+  }
+    
+  return measurement;
 }
 
 void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_vector) {

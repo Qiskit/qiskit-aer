@@ -171,7 +171,7 @@ protected:
   // Otherwise return false. 
   // If throw_except is true an exception will be thrown directly.
   template <class state_t>
-  bool validate_memory_requirements(state_t &state,
+  bool validate_memory_requirements(const state_t &state,
                                     const Circuit &circ,
                                     bool throw_except = false) const;
 
@@ -430,9 +430,9 @@ bool Controller::validate_state(const state_t &state,
 }
 
 template <class state_t>
-bool Controller::validate_memory_requirements(state_t &state,
-                                  const Circuit &circ,
-                                  bool throw_except) const {
+bool Controller::validate_memory_requirements(const state_t &state,
+                                              const Circuit &circ,
+                                              bool throw_except) const {
   if (max_memory_mb_ == 0)
     return true;
 

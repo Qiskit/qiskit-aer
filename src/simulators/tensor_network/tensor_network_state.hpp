@@ -127,7 +127,8 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
     virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -370,7 +371,7 @@ void State::initialize_omp() {
 }
 
 size_t State::required_memory_mb(uint_t num_qubits,
-			      const std::vector<Operations::Op> &ops) {
+			      const std::vector<Operations::Op> &ops) const {
     // for each qubit we have a tensor structure. 
     // Initially, each tensor contains 2 matrices with a single complex double
     // Depending on the number of 2-qubit gates, 
@@ -643,11 +644,10 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-  // Actual measurement outcome
-  const auto meas = sample_measure_with_prob(qubits, rng);
-  // Implement measurement update
-  measure_reset_update(qubits, meas.first, meas.first, meas.second);
-  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
+
+  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  //  measure_reset_update(qubits, meas.first, meas.first, meas.second);
+  //  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -658,25 +658,16 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
+  
+  MPS temp;
   std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
+  all_samples.resize(shots);
+  reg_t single_result;
 
-  // Generate flat register for storing
-  std::vector<double> rnds;
-  rnds.reserve(shots);
-  for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
-
-  reg_t allbit_samples = qreg_.sample_measure(rnds);
-
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(sample);
+  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+    temp.initialize(qreg_);
+    single_result = temp.apply_measure(qubits, rng);
+    all_samples[i] = single_result;
   }
   
   return all_samples;

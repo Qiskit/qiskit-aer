@@ -108,7 +108,8 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -354,7 +355,8 @@ void State<densmat_t>::initialize_omp() {
 
 template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(uint_t num_qubits,
-                                            const std::vector<Operations::Op> &ops) {
+                                            const std::vector<Operations::Op> &ops)
+                                            const {
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning

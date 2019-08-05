@@ -16,6 +16,8 @@ QasmSimulator Integration Tests
 from test.terra.reference import ref_measure
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 
 
 class QasmMeasureTests:
@@ -91,6 +93,60 @@ class QasmMeasureTests:
             self.assertIn("measure_sampling", res.metadata)
             self.assertEqual(res.metadata["measure_sampling"], False)
 
+    def test_measure_sampling_with_readouterror(self):
+        """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
+        readout_error = [0.01, 0.1]
+        noise_model = NoiseModel()
+        readout = [[1.0 - readout_error[0], readout_error[0]],
+                   [readout_error[1], 1.0 - readout_error[1]]]
+        noise_model.add_all_qubit_readout_error(ReadoutError(readout))
+
+        shots = 1000
+        circuits = ref_measure.measure_circuits_deterministic(
+            allow_sampling=True)
+        targets = ref_measure.measure_counts_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, noise_model=noise_model,
+            backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+
+        # Test sampling was enable
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            self.assertEqual(res.metadata["measure_sampling"], True)
+
+    def test_measure_sampling_with_quantum_noise(self):
+        """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
+        readout_error = [0.01, 0.1]
+        noise_model = NoiseModel()
+        depolarizing = {'u3': (1, 0.001), 'cx': (2, 0.02)}
+        readout = [[1.0 - readout_error[0], readout_error[0]],
+                   [readout_error[1], 1.0 - readout_error[1]]]
+        noise_model.add_all_qubit_readout_error(ReadoutError(readout))
+        for gate, (num_qubits, gate_error) in depolarizing.items():
+            noise_model.add_all_qubit_quantum_error(
+                depolarizing_error(gate_error, num_qubits), gate)
+
+        shots = 1000
+        circuits = ref_measure.measure_circuits_deterministic(
+            allow_sampling=True)
+        targets = ref_measure.measure_counts_deterministic(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, noise_model=noise_model,
+            backend_options=self.BACKEND_OPTS).result()
+        self.is_completed(result)
+
+        method = self.BACKEND_OPTS.get("method")
+        for res in result.results:
+            self.assertIn("measure_sampling", res.metadata)
+            if method == "density_matrix":
+                self.assertEqual(res.metadata["measure_sampling"], True)
+            else:
+                self.assertEqual(res.metadata["measure_sampling"], False)
+
+
 class QasmMultiQubitMeasureTests:
     """QasmSimulator measure tests."""
 
@@ -159,7 +215,7 @@ class QasmMultiQubitMeasureTests:
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-        # Test sampling was disabled
+
         for res in result.results:
             self.assertIn("measure_sampling", res.metadata)
             self.assertEqual(res.metadata["measure_sampling"], False)
