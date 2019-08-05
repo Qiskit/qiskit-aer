@@ -97,6 +97,30 @@ def measure_counts_deterministic(shots, hex_counts=True):
     return targets
 
 
+def measure_memory_deterministic(shots, hex_counts=True):
+    """Measure test circuits reference memory."""
+    targets = []
+    if hex_counts:
+        # Measure |00> state
+        targets.append(shots * ['0x0'])
+        # Measure |01> state
+        targets.append(shots * ['0x1'])
+        # Measure |10> state
+        targets.append(shots * ['0x2'])
+        # Measure |11> state
+        targets.append(shots * ['0x3'])
+    else:
+        # Measure |00> state
+        targets.append(shots * ['00'])
+        # Measure |01> state
+        targets.append(shots * ['01'])
+        # Measure |10> state
+        targets.append(shots * ['10'])
+        # Measure |11> state
+        targets.append(shots * ['11'])
+    return targets
+
+
 def measure_statevector_deterministic():
     """Measure test circuits reference counts."""
 
@@ -221,6 +245,27 @@ def multiqubit_measure_counts_deterministic(shots, hex_counts=True):
         targets.append({'101': shots})
         # 4-qubit measure |1010>
         targets.append({'1010': shots})
+    return targets
+
+
+def multiqubit_measure_memory_deterministic(shots, hex_counts=True):
+    """Multi-qubit measure test circuits reference memory."""
+
+    targets = []
+    if hex_counts:
+        # 2-qubit measure |10>
+        targets.append(shots * ['0x2'])
+        # 3-qubit measure |101>
+        targets.append(shots * ['0x5'])
+        # 4-qubit measure |1010>
+        targets.append(shots * ['0xa'])
+    else:
+        # 2-qubit measure |10>
+        targets.append(shots * ['10'])
+        # 3-qubit measure |101>
+        targets.append(shots * ['101'])
+        # 4-qubit measure |1010>
+        targets.append(shots * ['1010'])
     return targets
 
 
