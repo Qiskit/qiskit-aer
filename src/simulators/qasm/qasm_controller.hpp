@@ -22,10 +22,12 @@
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/tensor_network/tensor_network_state.hpp"
 
-#ifdef QASM_PARALLEL
-#include "simulators/statevector/qubitvector_par.hpp"
+#ifdef QASM_THRUST
+#include "simulators/statevector/qubitvector_thrust.hpp"
 #endif
+
 
 namespace AER {
 namespace Simulator {
@@ -43,7 +45,7 @@ namespace Simulator {
  *   optimizations passes for a noisy circuit [Default: 12].
  * 
  * From Statevector::State class
- * 
+ *
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "zero_threshold" (double): Threshold for truncating small values to
@@ -132,7 +134,13 @@ protected:
   //-----------------------------------------------------------------------
 
   // Simulation methods for the Qasm Controller
-  enum class Method {automatic, statevector, stabilizer, extended_stabilizer};
+  enum class Method {
+    automatic,
+    statevector,
+    stabilizer,
+    extended_stabilizer,
+    tensor_network
+  };
 
   //-----------------------------------------------------------------------
   // Base class abstract method override
@@ -195,7 +203,7 @@ protected:
                                  State_t &state,
                                  const Initstate_t &initial_state,
                                  OutputData &data,
-                                 RngEngine &rng, uint_t rng_seed) const;
+                                 RngEngine &rng) const;
 
   // Execute n-shots of a circuit with noise by sampling a new noisy
   // instance of the circuit for each shot.
@@ -205,7 +213,7 @@ protected:
                               State_t &state,
                               const Initstate_t &initial_state,
                               OutputData &data,
-                              RngEngine &rng, uint_t rng_seed) const;
+                              RngEngine &rng) const;
 
   //----------------------------------------------------------------
   // Measure sampling optimization
@@ -220,7 +228,7 @@ protected:
                        OutputData &data,
                        RngEngine &rng) const;
 
-  // Check if measure sampling optimization if valid for the input circuit
+  // Check if measure sampling optimization is valid for the input circuit
   // if so return a pair {true, pos} where pos is the position of the
   // first measurement operation in the input circuit
   std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ) const;
@@ -247,6 +255,7 @@ protected:
 
   // Use GPUs or not
   bool use_GPUs_ = false;
+
 };
 
 //=========================================================================
@@ -257,7 +266,7 @@ protected:
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
-  add_circuit_optimization(Transpile::ReduceNop());
+  add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::Fusion());
   add_circuit_optimization(Transpile::TruncateQubits());
 }
@@ -282,6 +291,10 @@ void QasmController::set_config(const json_t &config) {
     }
     else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
+    }
+    else if (method == "tensor_network") 
+    {
+      simulation_method_ = Method::tensor_network;
     }
     else if (method != "automatic") {
       throw std::runtime_error(std::string("QasmController: Invalid simulation method (") +
@@ -318,7 +331,7 @@ void QasmController::set_config(const json_t &config) {
     // Override simulator method to statevector
     simulation_method_ = Method::statevector;
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_statevector_, 1e-10)) {
+    if (!Utils::is_unit_vector(initial_statevector_, validation_threshold_)) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
@@ -338,42 +351,51 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                        uint_t shots,
                                        uint_t rng_seed) const {
   // Execute according to simulation method
+
   switch (simulation_method(circ)) {
     case Method::statevector:
       // Statevector simulation
-#ifdef QASM_PARALLEL
+#ifdef QASM_THRUST
       if(use_GPUs_){
-        return run_circuit_helper<Statevector::State<QV::QubitVectorPar<complex_t*>>>(
+  		return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<complex_t*>>>(
                                                       circ,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_); // allow custom initial state
       }
-  	  else{
+  	else{
 #endif
-        return run_circuit_helper<Statevector::State<>>(
+  		return run_circuit_helper<Statevector::State<>>(
                                                       circ,
                                                       shots,
                                                       rng_seed,
                                                       initial_statevector_); // allow custom initial state
-#ifdef QASM_PARALLEL
-  	  }
+#ifdef QASM_THRUST
+  	}
 #endif
-    case Method::stabilizer:
+  	case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
       return run_circuit_helper<Stabilizer::State>(circ,
                                                    shots,
                                                    rng_seed,
                                                    Clifford::Clifford()); // no custom initial state
+
     case Method::extended_stabilizer:
       return run_circuit_helper<ExtendedStabilizer::State>(circ,
                                                            shots,
                                                            rng_seed,
                                                            CHSimulator::Runner());
+
+    case Method::tensor_network:
+      // TODO: Tensor network doesn't yet support custom state initialization
+      return run_circuit_helper<TensorNetworkState::State>(circ,
+							   shots,
+							   rng_seed,
+        						   TensorNetworkState::MPS()); // no custom initial state
+
     default:
-      // We shouldn't get here, so throw an exception if we do
-      throw std::runtime_error("QasmController: Invalid simulation method");
+      throw std::runtime_error("QasmController:Invalid simulation method");
   }
 }
 
@@ -434,15 +456,15 @@ size_t QasmController::required_memory_mb(const Circuit& circ) const {
       ExtendedStabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
+    case Method::tensor_network: {
+      TensorNetworkState::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
     default:
       // We shouldn't get here, so throw an exception if we do
       throw std::runtime_error("QasmController:Invalid simulation method");
   }
 }
-
-#ifdef QASM_PARALLEL
-extern void QSUnitManager_GetGPUMemorySize(int* pNdev,uint64_t* pMemSize);
-#endif
 
 void QasmController::set_parallelization_circuit(const Circuit& circ) {
 
@@ -450,23 +472,8 @@ void QasmController::set_parallelization_circuit(const Circuit& circ) {
     max_parallel_shots_ = max_parallel_threads_;
 
   switch (simulation_method(circ)) {
-    case Method::statevector: {
-#ifdef QASM_PARALLEL
-	int ndev;
-	uint64_t size;
-	::QSUnitManager_GetGPUMemorySize(&ndev,&size);
-	if(ndev > 0){
-		if(size <= (16ull << circ.num_qubits)){
-			max_parallel_shots_ = 1;
-			parallel_shots_ = 1;
-		}
-		else{
-			max_parallel_shots_ = ndev;
-			parallel_shots_ = ndev;
-		}
-	}
-#endif
-
+    case Method::statevector:
+    case Method::tensor_network: {
       if (noise_model_.ideal() && check_measure_sampling_opt(circ).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
@@ -501,7 +508,7 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Rng engine
   RngEngine rng;
-//  rng.set_seed(rng_seed);
+  rng.set_seed(rng_seed);
 
   // Output data container
   OutputData data;
@@ -511,9 +518,9 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Check if there is noise for the implementation
   if (noise_model_.ideal()) {
-    run_circuit_without_noise(circ, shots, state, initial_state, data, rng,rng_seed);
+    run_circuit_without_noise(circ, shots, state, initial_state, data, rng);
   } else {
-    run_circuit_with_noise(circ, shots, state, initial_state, data, rng,rng_seed);
+    run_circuit_with_noise(circ, shots, state, initial_state, data, rng);
   }
   return data;
 }
@@ -537,13 +544,12 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             State_t &state,
                                             const Initstate_t &initial_state,
                                             OutputData &data,
-                                            RngEngine &rng, uint_t rng_seed) const {
+                                            RngEngine &rng) const {
   // Sample a new noise circuit and optimize for each shot
-  for(int i=0;i<shots;i++){
-    rng.set_seed(rng_seed + i);
+  while(shots-- > 0) {
     Circuit noise_circ = noise_model_.sample_noise(circ, rng);
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
-      noise_circ = optimize_circuit(noise_circ, state, data);
+      optimize_circuit(noise_circ, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }                                   
@@ -556,11 +562,11 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                State_t &state,
                                                const Initstate_t &initial_state,
                                                OutputData &data,
-                                               RngEngine &rng, uint_t rng_seed) const {
+                                               RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
   if (circ.num_qubits > circuit_opt_ideal_threshold_) {
-    opt_circ = optimize_circuit(opt_circ, state, data);
+    optimize_circuit(opt_circ, state, data);
   }
 
   // Check if measure sampler and optimization are valid
@@ -568,17 +574,14 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   if (check.first == false) {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
-  	for(int i=0;i<shots;i++){
-  	  rng.set_seed(rng_seed + i);
+    while(shots-- > 0) {
       run_single_shot(opt_circ, state, initial_state, data, rng);
     }
   } else {
     // Implement measure sampler
     auto pos = check.second; // Position of first measurement op
 
-  	rng.set_seed(rng_seed);
-
-  	// Run circuit instructions before first measure
+    // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(opt_circ.ops.begin(), opt_circ.ops.begin() + pos);
     initialize_state(opt_circ, state, initial_state);
     state.apply_ops(ops, data, rng);
@@ -586,7 +589,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
-  }                                
+  }  
 }
 
 
@@ -619,7 +622,7 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   auto start_meas = start;
   // Check all remaining operations are measurements
   while (start != circ.ops.end()) {
-    if (start->type != Operations::OpType::measure) {
+    if (start->type != Operations::OpType::measure || start->conditional) {
       return std::make_pair(false, 0);
     }
     ++start;

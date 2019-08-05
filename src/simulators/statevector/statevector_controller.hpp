@@ -51,7 +51,7 @@ namespace Simulator {
  * - "max_parallel_experiments" (int): Set number of circuits that may be
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
@@ -112,7 +112,7 @@ void StatevectorController::set_config(const json_t &config) {
   //Add custom initial state
   if (JSON::get_value(initial_state_, "initial_statevector", config)) {
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_state_, 1e-10))
+    if (!Utils::is_unit_vector(initial_state_, validation_threshold_))
       throw std::runtime_error("StatevectorController: initial_statevector is not a unit vector");
   }
 }

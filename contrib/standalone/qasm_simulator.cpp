@@ -59,9 +59,9 @@ inline CmdArguments parse_cmd_options(const std::string& argv){
 
 inline void show_version(){
   std::cout << "Qiskit Aer: "
-  << MAJOR_VERSION << "."
-  << MINOR_VERSION << "."
-  << PATCH_VERSION << "\n";
+  << AER_MAJOR_VERSION << "."
+  << AER_MINOR_VERSION << "."
+  << AER_PATCH_VERSION << "\n";
 }
 
 inline void failed(const std::string &msg, std::ostream &o = std::cout,
@@ -85,10 +85,6 @@ inline void usage(const std::string& command, std::ostream &out){
   std::cerr << "    file        : qobj file\n";
 }
 
-#ifdef QASM_PARALLEL
-extern void Init_Parallel(int argc, char **argv);
-#endif
-
 int main(int argc, char **argv) {
 
   std::ostream &out = std::cout; // output stream
@@ -100,9 +96,6 @@ int main(int argc, char **argv) {
     usage(std::string(argv[0]), out);
     return 1;
   }
-#ifdef QASM_PARALLEL
-	Init_Parallel(argc,argv);
-#endif
   
   // Parse command line options
   for(auto pos = 1ul; pos < static_cast<unsigned int>(argc); ++pos){
