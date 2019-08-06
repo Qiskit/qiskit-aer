@@ -604,6 +604,7 @@ json_t Controller::execute_circuit(Circuit &circ,
   // Initialize circuit json return
   json_t result;
   OutputData data;
+  data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
