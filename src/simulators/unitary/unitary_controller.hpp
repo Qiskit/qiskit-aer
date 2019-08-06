@@ -56,7 +56,8 @@ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
-  
+  UnitaryController();
+
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
   // Allowed config options:
@@ -95,6 +96,11 @@ private:
 //=========================================================================
 // Implementation
 //=========================================================================
+
+UnitaryController::UnitaryController() : Base::Controller() {
+  // Disable qubit truncation by default
+  Base::Controller::truncate_qubits_ = false;
+}
 
 //-------------------------------------------------------------------------
 // Config
