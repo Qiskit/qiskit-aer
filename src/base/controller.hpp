@@ -237,6 +237,8 @@ protected:
   int parallel_shots_;
   int parallel_state_update_;
 
+  // Truncate qubits
+  bool truncate_qubits_ = true;
 };
 
 
@@ -252,6 +254,9 @@ void Controller::set_config(const json_t &config) {
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
+
+  // Load qubit truncation
+  JSON::get_value(truncate_qubits_, "truncate_enable", config);
 
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
@@ -604,10 +609,11 @@ json_t Controller::execute_circuit(Circuit &circ,
   // for individual circuit failures.
   try {
     // Truncate unused qubits from circuit and noise model
-    Transpile::TruncateQubits truncate_pass;
-    truncate_pass.set_config(config);
-    truncate_pass.optimize_circuit(circ, noise, Operations::OpSet(), data);
-
+    if (truncate_qubits_) {
+      Transpile::TruncateQubits truncate_pass;
+      truncate_pass.set_config(config);
+      truncate_pass.optimize_circuit(circ, noise, Operations::OpSet(), data);
+    }
     // set parallelization for this circuit
     if (!explicit_parallelization_ && parallel_experiments_ == 1) {
       set_parallelization_circuit(circ, noise);
