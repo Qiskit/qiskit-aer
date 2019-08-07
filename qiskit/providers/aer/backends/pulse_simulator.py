@@ -23,6 +23,7 @@ from qiskit.result import Result
 from qiskit.providers.models import BackendConfiguration
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
+from ..aererror import AerError
 from ..version import __version__
 from ..openpulse.qobj.digest import digest_pulse_obj
 from ..openpulse.solver.opsolve import opsolve
@@ -44,6 +45,7 @@ class PulseSimulator(AerBackend):
         'open_pulse': True,
         'memory': False,
         'max_shots': 50000,
+        'coupling_map': None,
         'description': 'A pulse-based Hamiltonian simulator',
         'gates': [],
         'basis_gates': []
@@ -86,3 +88,20 @@ class PulseSimulator(AerBackend):
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
+
+    def get_dressed_energies(self, qobj):
+        """Digest the pulse qobj and return the eigenenergies
+        of the Hamiltonian"""
+        openpulse_system = digest_pulse_obj(qobj.to_dict())
+        return openpulse_system.evals
+
+    def _validate(self, qobj, backend_options, noise_model):
+        """Validate the pulse object. Make sure a
+        config has been attached in the proper location"""
+
+        # Check to make sure a sim_config has been added
+        if not hasattr(qobj.config, 'sim_config'):
+            raise AerError('The pulse simulator qobj must have a sim_config '
+                           'entry to configure the simulator')
+
+        super()._validate(qobj, backend_options, noise_model)

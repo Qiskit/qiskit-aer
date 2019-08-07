@@ -14,9 +14,9 @@
 # pylint: disable=invalid-name
 
 import numpy as np
-import qiskit.providers.aer.openpulse.qutip_lite.operators as ops
-import qiskit.providers.aer.openpulse.qutip_lite.states as st
-import qiskit.providers.aer.openpulse.qutip_lite.tensor as ten
+from ..qutip_lite import operators as ops
+from ..qutip_lite import states as st
+from ..qutip_lite import tensor as ten
 from ..qutip_lite.qobj import Qobj
 from ..qutip_lite.cy.spmatfuncs import (spmv_csr, cy_expect_psi_csr)
 
@@ -161,6 +161,11 @@ def basis(level, pos):
     """
     return st.basis(level, pos)
 
+def state(state_vec):
+    """ Qiskit wrapper of qobj
+    """
+    return Qobj(state_vec)
+
 
 def fock_dm(level, eigv):
     """ Qiskit wrapper of fock_dm
@@ -199,7 +204,7 @@ def get_func(name, qobj):
 
 
 __operdict = {'X': sigmax, 'Y': sigmay, 'Z': sigmaz,
-              'Sp': sigmap, 'Sm': sigmam, 'I': qeye,
+              'Sp': create, 'Sm': destroy, 'I': qeye,
               'O': num, 'P': project, 'A': destroy,
               'C': create, 'N': num}
 

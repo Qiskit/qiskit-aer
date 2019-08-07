@@ -20,8 +20,7 @@
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from qiskit.providers.aer.openpulse.cy.measure import (occ_probabilities,
-                                                       write_shots_memory)
+from ..cy.measure import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -88,20 +87,11 @@ def unitary_evolution(exp, global_data, ode_options):
         # set channel and frame change indexing arrays
 
     # Do final measurement at end
+    psi_rot = np.exp(-1j*global_data['h_diag_elems']*ODE.t)
+    psi *= psi_rot
     qubits = exp['acquire'][0][1]
     memory_slots = exp['acquire'][0][2]
     probs = occ_probabilities(qubits, psi, global_data['measurement_ops'])
     rand_vals = rng.rand(memory_slots.shape[0]*shots)
     write_shots_memory(memory, memory_slots, probs, rand_vals)
-    int_mem = memory.dot(np.power(2.0,
-                                  np.arange(memory.shape[1]-1, -1, -1))).astype(int)
-    if global_data['memory']:
-        hex_mem = [hex(val) for val in int_mem]
-        return hex_mem
-    # Get hex counts dict
-    unique = np.unique(int_mem, return_counts=True)
-    hex_dict = {}
-    for kk in range(unique[0].shape[0]):
-        key = hex(unique[0][kk])
-        hex_dict[key] = unique[1][kk]
-    return hex_dict
+    return memory

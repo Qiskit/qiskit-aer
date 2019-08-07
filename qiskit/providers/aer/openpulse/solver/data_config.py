@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 import numpy as np
+pi = np.pi
 
 def op_data_config(op_system):
     """ Preps the data for the opsolver.
@@ -40,6 +41,8 @@ def op_data_config(op_system):
     op_system.global_data['n_ops_ind'] = []
     op_system.global_data['n_ops_ptr'] = []
 
+    op_system.global_data['h_diag_elems'] = op_system.h_diag
+
     # if there are any collapse operators
     H_noise = 0
     for kk in range(op_system.global_data['c_num']):
@@ -53,10 +56,10 @@ def op_data_config(op_system):
         op_system.global_data['n_ops_data'].append(n_op.data.data)
         op_system.global_data['n_ops_ind'].append(n_op.data.indices)
         op_system.global_data['n_ops_ptr'].append(n_op.data.indptr)
-        # Norm ops added to time-independent part of 
+        # Norm ops added to time-independent part of
         # Hamiltonian to decrease norm
         H_noise -= 0.5j * n_op
-    
+
     if H_noise:
         H = H + [H_noise]
 
@@ -67,19 +70,26 @@ def op_data_config(op_system):
 
     # setup ode args string
     ode_var_str = ""
+
+    #diagonal elements
+    ode_var_str += "global_data['h_diag_elems'], "
+
     # Hamiltonian data
     for kk in range(op_system.global_data['num_h_terms']):
         h_str = "global_data['h_ops_data'][%s], " % kk
         h_str += "global_data['h_ops_ind'][%s], " % kk
         h_str += "global_data['h_ops_ptr'][%s], " % kk
         ode_var_str += h_str
-    
+
     # Add pulse array and pulse indices
     ode_var_str += "global_data['pulse_array'], "
     ode_var_str += "global_data['pulse_indices'], "
 
     var_list = list(op_system.vars.keys())
     final_var = var_list[-1]
+
+    freq_list = list(op_system.freqs.keys())
+    final_freq = freq_list[-1]
 
     # Now add channel variables
     chan_list = list(op_system.channels.keys())
@@ -89,12 +99,19 @@ def op_data_config(op_system):
         ode_var_str += "exp['channels']['%s'][1]" % chan
         if chan != final_chan or var_list:
             ode_var_str+= ', '
-    
+
     #now do the variables
     for idx, var in enumerate(var_list):
         ode_var_str += "global_data['vars'][%s]" % idx
-        if var != final_var:
+        if var != final_var or freq_list:
              ode_var_str+= ', '
+
+    #now do the freq
+    for idx, freq in enumerate(freq_list):
+        ode_var_str += "global_data['freqs'][%s]" % idx
+        if freq != final_freq:
+             ode_var_str+= ', '
+
     # Add register
     ode_var_str += ", register"
     op_system.global_data['string'] = ode_var_str

@@ -22,6 +22,7 @@ from math import log
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
+
 from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from qiskit.providers.aer.openpulse.solver.zvode import qiskit_zvode
 from qiskit.providers.aer.openpulse.cy.memory import write_memory
@@ -47,9 +48,9 @@ def monte_carlo(seed, exp, global_data, ode_options):
 
     # Get number of acquire, snapshots, and conditionals
     num_acq = len(exp['acquire'])
-    acq_idx = 0 
+    acq_idx = 0
     num_snap = len(exp['snapshot'])
-    snap_idx = 0 
+    snap_idx = 0
     num_cond = len(exp['cond'])
     cond_idx = 0
 
@@ -80,8 +81,8 @@ def monte_carlo(seed, exp, global_data, ode_options):
         ODE.t = 0.0
         ODE._y = np.array([0.0], complex)
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-    
-    ODE.set_initial_value(global_data['initial_state'], 0) 
+
+    ODE.set_initial_value(global_data['initial_state'], 0)
 
     # make array for collapse operator inds
     cinds = np.arange(global_data['c_num'])
@@ -169,8 +170,6 @@ def monte_carlo(seed, exp, global_data, ode_options):
                 probs = occ_probabilities(qubits, out_psi, global_data['measurement_ops'])
                 rand_vals = rng.rand(memory_slots.shape[0])
                 write_shots_memory(memory, memory_slots, probs, rand_vals)
-                int_mem = memory.dot(np.power(2.0,
-                         np.arange(memory.shape[1]-1,-1,-1))).astype(int)
                 acq_idx += 1
 
-    return int_mem
+    return memory

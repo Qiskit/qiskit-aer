@@ -17,6 +17,7 @@
 
 cdef complex chan_value(double t,
                         unsigned int chan_num,
+                        double freq_ch,
                         double[::1] chan_pulse_times,
                         complex[::1] pulse_array,
                         unsigned int[::1] pulse_ints,
