@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2018, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -138,19 +138,23 @@ def snapshot(self,
 # Add to QuantumCircuit class
 QuantumCircuit.snapshot = snapshot
 
-
 class SnapshotStatevector(Snapshot):
     """ Simulator snapshot instruction for statevector snapshot type """
 
-    def __init__(self, label, snapshot_type='statevector', num_qubits=0, num_clbits=0, params=None):
+    def __init__(self,
+                 label,
+                 snapshot_type='statevector',
+                 num_qubits=0,
+                 num_clbits=0,
+                 params=None):
         super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
 
 
 def snapshot_statevector(self,
-             label,
-             snapshot_type='statevector',
-             qubits=None,
-             params=None):
+                         label,
+                         snapshot_type='statevector',
+                         qubits=None,
+                         params=None):
 
     # Convert label to string for backwards compatibility
     if not isinstance(label, str):
@@ -187,14 +191,19 @@ QuantumCircuit.snapshot_statevector = snapshot_statevector
 
 
 class SnapshotStabilizer(Snapshot):
-    def __init__(self, label, snapshot_type='stabilizer', num_qubits=0, num_clbits=0, params=None):
+    def __init__(self,
+                 label,
+                 snapshot_type='stabilizer',
+                 num_qubits=0,
+                 num_clbits=0,
+                 params=None):
         super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
 
 def snapshot_stabilizer(self,
-             label,
-             snapshot_type='stabilizer',
-             qubits=None,
-             params=None):
+                        label,
+                        snapshot_type='stabilizer',
+                        qubits=None,
+                        params=None):
 
     # Convert label to string for backwards compatibility
     if not isinstance(label, str):
@@ -230,14 +239,19 @@ def snapshot_stabilizer(self,
 QuantumCircuit.snapshot_stabilizer = snapshot_stabilizer
 
 class SnaphotDensityMatrix(Snapshot):
-    def __init__(self, snapshot_type='density_matrix'):
+    def __init__(self,
+                 label,
+                 snapshot_type='density_matrix',
+                 num_qubits=0,
+                 num_clbits=0,
+                 params=None):
         super().__init__(label, num_qubits, num_clbits, params)
 
 def snapshot_density_matrix(self,
-             label,
-             snapshot_type='density_matrix',
-             qubits=None,
-             params=None):
+                            label,
+                            snapshot_type='density_matrix',
+                            qubits=None,
+                            params=None):
 
     # Convert label to string for backwards compatibility
     if not isinstance(label, str):
@@ -264,10 +278,55 @@ def snapshot_density_matrix(self,
             else:
                 qubits.append(tuple_element)
     return self.append(
-        Snapshot(
+        SnapshotDensityMatrix(
             label,
             snapshot_type=snapshot_type,
             num_qubits=len(qubits),
             params=params), qubits)
 
 QuantumCircuit.snapshot_density_matrix = snapshot_density_matrix
+
+class SnapshotProbabilites(Snapshot):
+
+    def __init__(self,
+                 label,
+                 snapshot_type='probabilities',
+                 num_qubits,
+                 num_clbits=0,
+                 params=None):
+
+        super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
+
+def snapshot_probabilities(self,
+                           label,
+                           snapshot_type='probabilities',
+                           num_qubits,
+                           params=None):
+
+    return self.append(
+        SnapshotProbabilites(
+            label,
+            snapshot_type=snapshot_type,
+            num_qubits,
+            params=params), qubits)
+
+
+QuantumCircuit.snapshot_probabilities = snapshot_probabilities
+
+'''
+class SnapshotExpectationValue(Snapshot):
+
+    def __init__(self,
+                 label,
+                 snapshot_type='expectation_value',
+                 num_qubits=0,
+                 num_clbits=0,
+                 params=None):
+
+        super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
+
+def snapshot_expectation_value():
+    pass
+
+QuantumCircuit.snapshot_expectation_value = snapshot_expectation_value
+'''

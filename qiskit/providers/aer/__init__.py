@@ -27,7 +27,6 @@ from .aerjob import AerJob
 from .aererror import AerError
 from .backends import *
 from . import noise
-from . import aer_snapshots
 from . import utils
 from .version import __version__
 
