@@ -46,3 +46,9 @@ class OPSystem():
         self.can_sample = True
         # holds global data
         self.global_data = {}
+        # holds frequencies for the channels
+        self.freqs = {}
+        # diagonal elements of the hamiltonian
+        self.h_diag = None
+        # eigenvalues of the time-independent hamiltonian
+        self.evals = None

@@ -62,7 +62,7 @@ class HamiltonianParser:
         """
         return self.__tc_hams + self.__td_hams
 
-    def parse(self):
+    def parse(self, qubit_list=None):
         """ Parse and generate quantum class object
         """
         self.__td_hams = []
@@ -79,7 +79,9 @@ class HamiltonianParser:
 
             # find time-dependent term
             if p_td:
-                coef, token = self._tokenizer(p_td.group('opr'))
+                coef, token = self._tokenizer(p_td.group('opr'), qubit_list)
+                if token is None:
+                    continue
                 # combine coefficient to time-dependent term
                 if coef:
                     td = '*'.join([coef, p_td.group('ch')])
@@ -90,7 +92,9 @@ class HamiltonianParser:
 
                 self.__td_hams.append(_td)
             else:
-                coef, token = self._tokenizer(ham)
+                coef, token = self._tokenizer(ham, qubit_list)
+                if token is None:
+                    continue
                 token = self._shunting_yard(token)
                 _tc = self._token2qobj(token), coef
 
@@ -148,9 +152,11 @@ class HamiltonianParser:
 
         return ham_out
 
-    def _tokenizer(self, op_str):
+    def _tokenizer(self, op_str, qubit_list=None):
         """ Convert string to token and coefficient
+        Check if the index is in qubit_list
         """
+
         # generate token
         _op_str = copy.copy(op_str)
         token_list = []
@@ -165,6 +171,8 @@ class HamiltonianParser:
                         _name = p.group()
                         if p.group() not in self.__str2qopr.keys():
                             idx = int(p.group('idx'))
+                            if qubit_list is not None and idx not in qubit_list:
+                                return 0, None
                             name = p.group('opr')
                             opr = gen_oper(name, idx, self.dim_osc, self.dim_qub)
                             self.__str2qopr[p.group()] = opr

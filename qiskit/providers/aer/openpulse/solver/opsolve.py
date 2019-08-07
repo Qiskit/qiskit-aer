@@ -29,6 +29,8 @@ from .data_config import op_data_config
 from .unitary import unitary_evolution
 from .monte_carlo import monte_carlo
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
+from ..cy.measure import write_shots_memory
+
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -83,9 +85,9 @@ class OP_mcwf(object):
         if not op_system.can_sample:
             # preallocate ntraj arrays for state vectors, collapse times, and
             # which operator
-            self.collapse_times = [[] for kk in 
+            self.collapse_times = [[] for kk in
                 range(op_system.global_data['shots'])]
-            self.collapse_operators = [[] for kk in 
+            self.collapse_operators = [[] for kk in
                 range(op_system.global_data['shots'])]
         # setup seeds array
         if op_system.global_data['seed']:
@@ -99,11 +101,22 @@ class OP_mcwf(object):
     def run(self):
 
         map_kwargs = {'num_processes': self.op_system.ode_options.num_cpus}
-        
+
+
+        # exp_results from the solvers return the values of the measurement
+        # operators
+
         # If no collapse terms, and only measurements at end
         # can do a single shot.
+
+        # exp_results is a list of '0' and '1'
+        # where '0' occurs with probability 1-<M>
+        # and '1' occurs with probability <M>
+        # M is the measurement operator, which is a projector
+        # into one of the qubit states (usually |1>)
         if self.op_system.can_sample:
-            results = parallel_map(unitary_evolution,
+            start = time.time()
+            exp_results = parallel_map(unitary_evolution,
                                    self.op_system.experiments,
                                    task_args=(self.op_system.global_data,
                                               self.op_system.ode_options
@@ -111,10 +124,16 @@ class OP_mcwf(object):
                                    **map_kwargs
                                   )
 
+            end = time.time()
+            exp_times = (np.ones(len(self.op_system.experiments))*
+                         (end-start)/len(self.op_system.experiments))
+
+
         # need to simulate each trajectory, so shots*len(experiments) times
         # Do a for-loop over experiments, and do shots in parallel_map
         else:
-            all_results = []
+            exp_results = []
+            exp_times = []
             for exp in self.op_system.experiments:
                 start = time.time()
                 rng = np.random.RandomState(exp['seed'])
@@ -127,24 +146,88 @@ class OP_mcwf(object):
                                                  ),
                                        **map_kwargs
                                       )
-                unique = np.unique(exp_res, return_counts=True)
-                hex_dict = {}
-                for idx in range(unique[0].shape[0]):
-                    key = hex(unique[0][idx])
-                    hex_dict[key] = unique[1][idx]
-                end = time.time()
-                results = {'name': exp['name'],
-                           'seed_simulator': exp['seed'],
-                           'shots': self.op_system.global_data['shots'],
-                           'status': 'DONE',
-                           'success': True,
-                           'time_taken': (end - start),
-                           'header': {}}
 
-                results['data'] = {'counts': hex_dict}
-                
-                all_results.append(results)
-        
+                # exp_results is a list for each shot
+                # so transform back to an array of shots
+                exp_res2 = []
+                for exp_shot in exp_res:
+                    exp_res2.append(exp_shot[0].tolist())
+
+
+                end = time.time()
+                exp_times.append(end-start)
+                exp_results.append(np.array(exp_res2))
+
+
+        #format the data into the proper output
+        all_results = []
+        for idx_exp, exp in enumerate(self.op_system.experiments):
+
+
+            m_lev = self.op_system.global_data['meas_level']
+            m_ret = self.op_system.global_data['meas_return']
+
+            # populate the results dictionary
+            results = {'seed_simulator': exp['seed'],
+                       'shots': self.op_system.global_data['shots'],
+                       'status': 'DONE',
+                       'success': True,
+                       'time_taken': exp_times[idx_exp],
+                       'header': exp['header'],
+                       'meas_level': m_lev,
+                       'meas_return': m_ret,
+                       'data': {}}
+
+            memory = exp_results[idx_exp]
+
+            # meas_level 2 return the shots
+            if m_lev==2:
+
+                # convert the memory **array** into a n
+                # integer
+                # e.g. [1,0] -> 2
+                int_mem = memory.dot(np.power(2.0,
+                                          np.arange(memory.shape[1]-1, -1, -1))).astype(int)
+
+                # if the memory flag is set return each shot
+                if self.op_system.global_data['memory']:
+                    hex_mem = [hex(val) for val in int_mem]
+                    results['data']['memory'] = hex_mem
+
+                # Get hex counts dict
+                unique = np.unique(int_mem, return_counts=True)
+                hex_dict = {}
+                for kk in range(unique[0].shape[0]):
+                    key = hex(unique[0][kk])
+                    hex_dict[key] = unique[1][kk]
+
+                results['data']['counts'] = hex_dict
+
+            # meas_level 1 returns the <n>
+            elif m_lev==1:
+
+
+
+                if m_ret=='avg':
+
+                    memory = [np.mean(memory,0)]
+
+                # convert into the right [real, complex] pair form for json
+                # this should be cython?
+                results['data']['memory'] = []
+
+                for mem_shot in memory:
+                    results['data']['memory'].append([])
+                    for mem_slot in mem_shot:
+                        results['data']['memory'][-1].append(
+                                [np.real(mem_slot), np.imag(mem_slot)])
+
+                if m_ret=='avg':
+                    results['data']['memory'] = results['data']['memory'][0]
+
+
+            all_results.append(results)
+
         _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
         return all_results
 
