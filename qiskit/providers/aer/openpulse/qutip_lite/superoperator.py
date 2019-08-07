@@ -44,38 +44,33 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+# pylint: disable=invalid-name
 
-__all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
-           'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
-           'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
+"""
+Module for super operators.
+"""
 
-import scipy.sparse as sp
 import numpy as np
-from functools import partial
 from .qobj import Qobj
 from .fastsparse import fast_csr_matrix, fast_identity
 from .sparse import sp_reshape
-from .cy.spmath import zcsr_kron
+from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
 
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators. Like liouvillian, but with an
-    experimental implementation which avoids creating extra Qobj instances,
-    which can be advantageous for large systems.
+    and a ``list`` of collapse operators.
 
-    Parameters
-    ----------
-    H : Qobj or QobjEvo
-        System Hamiltonian.
+    Args:
+        H (qobj.Qobj): System Hamiltonian.
 
-    c_ops : array_like of Qobj or QobjEvo
-        A ``list`` or ``array`` of collapse operators.
+    c_ops (qobj.Qobj or array_like): A single collapse operator or an array.
 
-    Returns
-    -------
-    L : Qobj or QobjEvo
-        Liouvillian superoperator.
+    Returns:
+        qobj.Qobj: Liouvillian superoperator.
+
+    Raises:
+        ValueError: Chi must be list of len(c_ops).
 
     """
     if isinstance(c_ops, (Qobj)):
@@ -96,7 +91,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             raise TypeError("Invalid type for Hamiltonian.")
     else:
         # no hamiltonian given, pick system size from a collapse operator
-        if isinstance(c_ops, list) and len(c_ops) > 0:
+        if isinstance(c_ops, list) and any(c_ops) > 0:
             c = c_ops[0]
             if c.isoper:
                 op_dims = c.dims
@@ -114,7 +109,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     spI = fast_identity(op_shape[0])
 
-    td = False
     L = None
     if isinstance(H, Qobj):
         if H.isoper:
@@ -126,7 +120,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     else:
         data = fast_csr_matrix(shape=(sop_shape[0], sop_shape[1]))
 
-    td_c_ops = []
     for idx, c_op in enumerate(c_ops):
         c_ = c_op
 
@@ -153,36 +146,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         L.data = data
         L.superrep = 'super'
         return L
-
-
-def liouvillian_ref(H, c_ops=[]):
-    """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators.
-
-    Parameters
-    ----------
-    H : qobj
-        System Hamiltonian.
-
-    c_ops : array_like
-        A ``list`` or ``array`` of collapse operators.
-
-    Returns
-    -------
-    L : qobj
-        Liouvillian superoperator.
-    """
-
-    L = -1.0j * (spre(H) - spost(H)) if H else 0
-
-    for c in c_ops:
-        if c.issuper:
-            L += c
-        else:
-            cdc = c.dag() * c
-            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
-    return L
 
 
 def lindblad_dissipator(a, b=None, data_only=False, chi=None):
@@ -217,7 +180,6 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     else:
         D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
-   
     return D.data if data_only else D
 
 
@@ -354,9 +316,8 @@ def sprepost(A, B):
         Superoperator formed from input quantum objects.
     """
     dims = [[_drop_projected_dims(A.dims[0]),
-                _drop_projected_dims(B.dims[1])],
+             _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]),
-                _drop_projected_dims(B.dims[0])]]
+             _drop_projected_dims(B.dims[0])]]
     data = zcsr_kron(B.data.T, A.data)
     return Qobj(data, dims=dims, superrep='super')
-

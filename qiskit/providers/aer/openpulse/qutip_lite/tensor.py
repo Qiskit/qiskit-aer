@@ -48,45 +48,24 @@
 Module for the creation of composite quantum objects via the tensor product.
 """
 
-__all__ = [
-    'tensor', 'super_tensor', 'composite', 'tensor_swap', 'tensor_contract'
-]
-
 import numpy as np
-from .cy.spmath import zcsr_kron
+from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
 from .qobj import Qobj
-from .superoperator import operator_to_vector
-from .dimensions import (
-    flatten, enumerate_flat, unflatten, deep_remove,
-    dims_to_tensor_shape, dims_idxs_to_tensor_idxs)
 from ..qutip_lite.settings import auto_tidyup
 
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
 
-    Parameters
-    ----------
-    args : array_like
-        ``list`` or ``array`` of quantum objects for tensor product.
+    Args:
+        args (array_like): List or array of quantum objects for tensor product.
 
-    Returns
-    -------
-    obj : qobj
-        A composite quantum object.
+    Returns:
+        qobj.Qobj: A composite quantum object.
 
-    Examples
-    --------
-    >>> tensor([sigmax(), sigmax()])
-    Quantum object: dims = [[2, 2], [2, 2]], \
-shape = [4, 4], type = oper, isHerm = True
-    Qobj data =
-    [[ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
-     [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
-     [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-     [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
+    Raises:
+        TypeError: Requires at least one input argument.
     """
-
     if not args:
         raise TypeError("Requires at least one input argument")
 
@@ -109,7 +88,6 @@ shape = [4, 4], type = oper, isHerm = True
         raise TypeError("One of inputs is not a quantum object")
 
     out = Qobj()
-
     if qlist[0].issuper:
         out.superrep = qlist[0].superrep
         if not all([q.superrep == out.superrep for q in qlist]):
@@ -123,7 +101,6 @@ shape = [4, 4], type = oper, isHerm = True
             out.dims = q.dims
         else:
             out.data = zcsr_kron(out.data, q.data)
-
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm
@@ -132,5 +109,3 @@ shape = [4, 4], type = oper, isHerm = True
         out._isherm = None
 
     return out.tidyup() if auto_tidyup else out
-
-

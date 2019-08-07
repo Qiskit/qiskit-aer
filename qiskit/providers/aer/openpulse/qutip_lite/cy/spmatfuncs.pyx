@@ -520,8 +520,6 @@ def expect_csr_ket(object A, object B, int isherm):
     else:
         return expt
 
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra_ket=1):
