@@ -44,7 +44,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-# pylint: disable= invalid-name, redefined-outer-name
+# pylint: disable= invalid-name, redefined-outer-name, no-name-in-module
 
 """The Quantum Object (Qobj) class, for representing quantum states and
 operators, and related functions.
@@ -971,7 +971,6 @@ class Qobj(object):
 
         return Qobj(_out,dims=_dims)
 
-
     def tr(self):
         """Trace of a quantum object.
 
@@ -1175,8 +1174,6 @@ class Qobj(object):
              return -0.5j * ((1j * self).expm() - (-1j * self).expm())
         else:
             raise TypeError('Invalid operand for matrix square root')
-
-
 
     def unit(self, inplace=False,
             norm=None, sparse=False,
