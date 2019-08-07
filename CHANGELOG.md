@@ -27,7 +27,7 @@ Added
 -   Added support for apply_measure in tensor_network_state. Also changed 
     sample_measure to use apply_measure (\#299)
 -   Added density matrix simulation method to QasmSimulator (\# 295, \# 253)
-
+-   Adds delay measure circuit optimization (\# 317)
 
 - Noise model inserter module (\# 239)
 

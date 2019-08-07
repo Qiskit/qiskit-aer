@@ -18,6 +18,7 @@
 #include "base/controller.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/fusion.hpp"
+#include "transpile/delay_measure.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -35,9 +36,8 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- * 
  * - "optimize_ideal_threshold" (int): Qubit threshold for running circuit
- *   optimizations passes for an ideal circuit [Default: 5].
+ *   optimizations passes for an ideal circuit [Default: 0].
  * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
  *   optimizations passes for a noisy circuit [Default: 12].
  * 
@@ -261,7 +261,7 @@ protected:
   Precision simulation_precision_ = Precision::double_precision;
 
   // Qubit threshold for running circuit optimizations
-  uint_t circuit_opt_ideal_threshold_ = 5;
+  uint_t circuit_opt_ideal_threshold_ = 0;
   uint_t circuit_opt_noise_threshold_ = 12;
 
   // Initial statevector for Statevector simulation method
@@ -282,6 +282,7 @@ protected:
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
   add_circuit_optimization(Transpile::ReduceBarrier());
+  add_circuit_optimization(Transpile::DelayMeasure());
   add_circuit_optimization(Transpile::Fusion());
 }
 
@@ -497,14 +498,13 @@ QasmController::simulation_method(const Circuit &circ,
       // a single shot of the density matrix simulator is approx 2 ** nq
       // times slow than a single shot of statevector due the increased 
       // dimension
-      if (noise_model.has_quantum_errors() && circ.shots > (1 << circ.num_qubits)) {
-        if (validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
-            validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
-            check_measure_sampling_opt(circ, Method::density_matrix).first
-            ) {
-          return Method::density_matrix;
+      if (noise_model.has_quantum_errors() &&
+          circ.shots > (1 << circ.num_qubits) &&
+          validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
+          validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
+          check_measure_sampling_opt(circ, Method::density_matrix).first) {
+        return Method::density_matrix;
         }
-      }
       // Finally we check if the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
@@ -524,8 +524,8 @@ QasmController::simulation_method(const Circuit &circ,
           throw std::runtime_error( "QasmSimulator: Circuit cannot be run using available methods.");
         }
       }
-      // If we didn't select extended stabilizer above proceed to the default switch clause
     }
+    // If we didn't select extended stabilizer above proceed to the default switch clause
     default: {
       // Default method is statevector
       if (validate)
@@ -696,6 +696,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
+    noise_circ.shots = 1;
     if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
       Noise::NoiseModel dummy;
       optimize_circuit(noise_circ, dummy, state, data);
@@ -715,11 +716,10 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
-  if (circ.num_qubits > circuit_opt_ideal_threshold_) {
+  if (opt_circ.num_qubits > circuit_opt_ideal_threshold_) {
     Noise::NoiseModel dummy;
     optimize_circuit(opt_circ, dummy, state, data);
   }
-
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ, method);
   if (check.first == false) {

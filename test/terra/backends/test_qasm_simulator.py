@@ -44,6 +44,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
 from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
+from test.terra.backends.qasm_simulator.qasm_delay_measure import QasmDelayMeasureTests
 from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
 from test.terra.backends.qasm_simulator.qasm_basics import QasmBasicsTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
