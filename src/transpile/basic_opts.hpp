@@ -27,24 +27,28 @@ using oplist_t = std::vector<op_t>;
 using opset_t = Operations::OpSet;
 using reg_t = std::vector<uint_t>;
 
-class ReduceNop : public CircuitOptimization {
+class ReduceBarrier : public CircuitOptimization {
 public:
   void optimize_circuit(Circuit& circ,
                         const opset_t &opset,
                         OutputData &data) const override;
 };
 
-void ReduceNop::optimize_circuit(Circuit& circ,
+void ReduceBarrier::optimize_circuit(Circuit& circ,
                                  const opset_t &allowed_opset,
                                  OutputData &data) const {
 
-  oplist_t::iterator it = circ.ops.begin();
-  while (it != circ.ops.end()) {
-    if (it->type == optype_t::barrier)
-      it = circ.ops.erase(it);
-    else
-      ++it;
+  size_t idx = 0;
+  for (size_t i = 0; i < circ.ops.size(); ++i) {
+    if (circ.ops[i].type != optype_t::barrier) {
+      if (idx != i)
+        circ.ops[idx] = circ.ops[i];
+      ++idx;
+    }
   }
+
+  if (idx != circ.ops.size())
+    circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 }
 
 class Debug : public CircuitOptimization {

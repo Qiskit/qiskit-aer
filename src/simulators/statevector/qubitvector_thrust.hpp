@@ -32,6 +32,8 @@
 
 #include <thrust/execution_policy.h>
 
+#include <thrust/functional.h>
+
 
 #include <algorithm>
 #include <array>
@@ -72,6 +74,9 @@ double mysecond()
 #define QS_GATE_MEASURE					4
 
 #endif
+
+#define QASM_DEFAULT_MATRIX_BITS		8
+
 
 namespace QV {
 
@@ -227,20 +232,11 @@ public:
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
 
-  	void matMult_2x2(thrust::complex<double>* pVec,int qubit,thrust::complex<double>* pMat);
-  	void matMult_4x4(thrust::complex<double>* pVec,int qubit0,int qubit1,thrust::complex<double>* pMat);
-  	void matMult_8x8(thrust::complex<double>* pVec,int qubit0,int qubit1,int qubit2,thrust::complex<double>* pMat);
-  	void matMult_16x16(thrust::complex<double>* pVec,int qubit0,int qubit1,int qubit2,int qubit3,thrust::complex<double>* pMat);
-  	void matMult_NxN(thrust::complex<double>* pVec,uint_t* qubits,int nqubits,thrust::complex<double>* pMat);
-  	void diagMult_2x2(thrust::complex<double>* pVec,int qubit,thrust::complex<double>* pMat);
-  	void diagMult_NxN(thrust::complex<double>* pVec,uint_t* qubits,int nqubits,thrust::complex<double>* pMat);
-  	void CX(thrust::complex<double>* pVec,int qubit_c,int qubit_t);
-  	void CY(thrust::complex<double>* pVec,int qubit_c,int qubit_t);
-  	void X(thrust::complex<double>* pVec,int qubit);
-  	void Y(thrust::complex<double>* pVec,int qubit);
-  	void phase_1(thrust::complex<double>* pVec,int qubit,thrust::complex<double> p);
+  	template <typename UnaryFunction>
+	void apply_lambda(UnaryFunction func,uint_t n);
 
-  	double dot_q(thrust::complex<double>* pVec,int qubit) const;
+  	template <typename UnaryFunction>
+	double apply_sum_lambda(UnaryFunction func,uint_t n) const;
 
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
@@ -403,7 +399,12 @@ protected:
 
 	int m_iDev;
 	int m_nDev;
+	int m_nDevParallel;
+	int m_useATS;
 
+	thrust::complex<double>* m_pMatDev;
+	uint_t* m_pUintBuf;
+	int m_matBits;
 #ifdef QASM_TIMING
 	mutable uint_t m_gateCounts[QS_NUM_GATES];
 	mutable double m_gateTime[QS_NUM_GATES];
@@ -513,11 +514,17 @@ void QubitVectorThrust<data_t>::check_checkpoint() const {
 
 template <typename data_t>
 QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0), data_(nullptr), checkpoint_(0){
+	m_pMatDev = NULL;
+	m_useATS = 0;
   set_num_qubits(num_qubits);
 }
 
 template <typename data_t>
-QubitVectorThrust<data_t>::QubitVectorThrust() : QubitVectorThrust(0) {}
+QubitVectorThrust<data_t>::QubitVectorThrust() : QubitVectorThrust(0) 
+{
+	m_useATS = 0;
+	m_pMatDev = NULL;
+}
 
 template <typename data_t>
 QubitVectorThrust<data_t>::~QubitVectorThrust() {
@@ -527,8 +534,16 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
 #endif
 
 	if (data_){
-		//free(data_);
-		cudaFree(data_);
+		if(m_useATS){
+			free(data_);
+		}
+		else{
+			cudaFree(data_);
+		}
+	}
+	if(m_pMatDev){
+		cudaFree(m_pMatDev);
+		cudaFree(m_pUintBuf);
 	}
 
   if (checkpoint_)
@@ -657,7 +672,23 @@ void QubitVectorThrust<data_t>::zero()
 	uint_t n = data_size_;
 	thrust::complex<double>* pVec = (thrust::complex<double>*)&data_[0];
 
-	thrust::fill(thrust::device, pVec, pVec+n, 0.0);
+	if(m_nDevParallel == 1){
+		thrust::fill(thrust::device, pVec, pVec+n, 0.0);
+	}
+	else{
+		int iDev;
+
+#pragma omp parallel for
+		for(iDev=0;iDev<m_nDevParallel;iDev++){
+			uint_t is,ie;
+
+			is = n * iDev / m_nDevParallel;
+			ie = n * (iDev+1) / m_nDevParallel;
+
+			cudaSetDevice(iDev);
+			thrust::fill(thrust::device, pVec + is, pVec + ie, 0.0);
+		}
+	}
 }
 
 template <typename data_t>
@@ -675,19 +706,41 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
   // Free any currently assigned memory
   if (data_) {
     if (prev_num_qubits != num_qubits_) {
-      //free(data_);
-    	cudaFree(data_);
+    	if(m_useATS){
+    		free(data_);
+    	}
+    	else{
+	    	cudaFree(data_);
+    	}
       data_ = nullptr;
     }
   }
 
 
 	int tid,nid;
+	char* str;
+
 	nid = omp_get_num_threads();
 	tid = omp_get_thread_num();
 	cudaGetDeviceCount(&m_nDev);
-	m_iDev = tid % m_nDev;
-	cudaSetDevice(m_iDev);
+
+	m_iDev = 0;
+	if(nid > 1){
+		m_iDev = tid % m_nDev;
+		cudaSetDevice(m_iDev);
+		m_nDevParallel = 1;
+	}
+	else{
+		m_nDevParallel = 1;
+		str = getenv("QASM_MULTI_GPU");
+		if(str != NULL){
+			size_t freeMem,totalMem;
+
+			cudaMemGetInfo(&freeMem,&totalMem);
+
+			m_nDevParallel = m_nDev;
+		}
+	}
 
   // Allocate memory for new vector
 	if (data_ == nullptr){
@@ -697,15 +750,40 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 		TimeReset();
 		TimeStart(QS_GATE_INIT);
 #endif
-		//using Unified Memory for debug/develoment
-		cudaMallocManaged(&pData,sizeof(complex_t) * data_size_);
-		//posix_memalign(&pData,128,sizeof(complex_t) * data_size_);
+		str = getenv("QASM_USE_ATS");
+		if(str != NULL){
+			posix_memalign(&pData,128,sizeof(complex_t) * data_size_);
+			m_useATS = 1;
+		}
+		else{
+			cudaMallocManaged(&pData,sizeof(complex_t) * data_size_);
+			m_useATS = 0;
+		}
 		data_ = reinterpret_cast<complex_t*>(pData);
 
-		cudaMemPrefetchAsync(pData,sizeof(complex_t) * data_size_,m_iDev);
+		if(m_nDevParallel > 1){
+			/*
+			int iDev;
+#pragma omp parallel for
+			for(iDev=0;iDev < m_nDev;iDev++){
+				uint_t is,ie;
+				cudaStream_t strm;
+				is = data_size_ * iDev / m_nDev;
+				ie = data_size_ * (iDev+1) / m_nDev;
+				cudaStreamCreateWithFlags(&strm, cudaStreamNonBlocking);
+				cudaMemPrefetchAsync((complex_t*)pData + is,sizeof(complex_t) * (ie - is),iDev,strm);
+				cudaStreamSynchronize(strm);
+				cudaStreamDestroy(strm);
+			}
+			*/
+		}
+		else{
+			cudaMemPrefetchAsync(pData,sizeof(complex_t) * data_size_,m_iDev);
+		}
 
 #ifdef QASM_DEBUG
 	printf(" ==== Thrust qubit vector initialization ==== \n");
+	printf("    TEST : threads %d/%d , dev %d/%d\n",tid,nid,m_iDev,m_nDev);
 #endif
 
 #ifdef QASM_TIMING
@@ -713,6 +791,15 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 #endif
 	}
 
+
+	//buffer for matrix
+	if(m_pMatDev == NULL){
+		uint_t matSize;
+		m_matBits = QASM_DEFAULT_MATRIX_BITS;
+		matSize = 1ull << m_matBits;
+		cudaMallocManaged(&m_pMatDev,sizeof(complex_t) * matSize*matSize);
+		cudaMallocManaged(&m_pUintBuf,sizeof(uint_t) * matSize * 2);
+	}
 }
 
 
@@ -834,177 +921,31 @@ void QubitVectorThrust<data_t>::set_json_chop_threshold(double threshold) {
  * MATRIX MULTIPLICATION
  *
  ******************************************************************************/
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
-                                       const cvector_t &mat) 
+struct matMult2x2_lambda : public unary_function<uint_t,void>
 {
-	const size_t N = qubits.size();
+	thrust::complex<double>* pVec;
+	thrust::complex<double> m0,m1,m2,m3;
+	int qubit;
+	uint_t add;
+	uint_t mask;
 
-#ifdef QASM_TIMING
-	TimeStart(QS_GATE_MULT);
-#endif
-	if(N == 1){
-		matMult_2x2((thrust::complex<double>*)&data_[0],qubits[0],(thrust::complex<double>*)&mat[0]);
-	}
-	else if(N == 2){
-		matMult_4x4((thrust::complex<double>*)&data_[0],qubits[0],qubits[1],(thrust::complex<double>*)&mat[0]);
-	}
-	else if(N == 3){
-		matMult_8x8((thrust::complex<double>*)&data_[0],qubits[0],qubits[1],qubits[2],(thrust::complex<double>*)&mat[0]);
-	}
-	else if(N == 4){
-		matMult_16x16((thrust::complex<double>*)&data_[0],qubits[0],qubits[1],qubits[2],qubits[3],(thrust::complex<double>*)&mat[0]);
-	}
-	else{
-		matMult_NxN((thrust::complex<double>*)&data_[0],(uint_t*)&qubits[0],N,(thrust::complex<double>*)&mat[0]);
-	}
-
-#ifdef QASM_TIMING
-	TimeEnd(QS_GATE_MULT);
-#endif
-}
-
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
-		const reg_t &target_qubits,
-		const cvector_t &mat)
-{
-	printf(" apply_multiplexer NOT SUPPORTED : %d, %d \n",control_qubits.size(),target_qubits.size());
-			/*
-  // General implementation
-  const size_t control_count = control_qubits.size();
-  const size_t target_count  = target_qubits.size();
-  const uint_t DIM = BITS[(target_count+control_count)];
-  const uint_t columns = BITS[target_count];
-  const uint_t blocks = BITS[control_count];
-  // Lambda function for stacked matrix multiplication
-  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat)->void {
-    auto cache = std::make_unique<complex_t[]>(DIM);
-    for (uint_t i = 0; i < DIM; i++) {
-      const auto ii = inds[i];
-      cache[i] = data_[ii];
-      data_[ii] = 0.;
-    }
-    // update state vector
-    for (uint_t b = 0; b < blocks; b++)
-      for (uint_t i = 0; i < columns; i++)
-        for (uint_t j = 0; j < columns; j++)
+	matMult2x2_lambda(thrust::complex<double>* pV,thrust::complex<double>* pMat,int q)
 	{
-	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
-	}
-  };
-  
-  // Use the lambda function
-  auto qubits = target_qubits;
-  for (const auto &q : control_qubits) {qubits.push_back(q);}
-  apply_lambda(lambda, qubits, mat);
-	*/
-}
+		pVec = pV;
+		qubit = q;
+		m0 = pMat[0];
+		m1 = pMat[1];
+		m2 = pMat[2];
+		m3 = pMat[3];
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
-                                                const cvector_t &diag) 
-{
-	const int_t N = qubits.size();
-
-#ifdef QASM_TIMING
-	TimeStart(QS_GATE_DIAG);
-#endif
-	if(N == 1){
-		diagMult_2x2((thrust::complex<double>*)&data_[0],qubits[0],(thrust::complex<double>*)&diag[0]);
-	}
-	else{
-		diagMult_NxN((thrust::complex<double>*)&data_[0],(uint_t*)&qubits[0],N,(thrust::complex<double>*)&diag[0]);
+		add = 1ull << qubit;
+		mask = add - 1;
 	}
 
-#ifdef QASM_TIMING
-	TimeEnd(QS_GATE_DIAG);
-#endif
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
-                                                   const std::vector<std::pair<uint_t, uint_t>> &pairs) {
-  const size_t N = qubits.size();
-	printf(" apply_permutation_matrix : %d , %d   NOT SUPPORTED\n",N,qubits[0]);
-/*
-  // Error checking
-  #ifdef DEBUG
-  check_vector(diag, N);
-  #endif
-
-  switch (N) {
-    case 1: {
-      // Lambda function for permutation matrix
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        for (const auto& p : pairs) {
-          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
-        }
-      };
-      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-      return;
-    }
-    case 2: {
-      // Lambda function for permutation matrix
-      auto lambda = [&](const areg_t<4> &inds)->void {
-        for (const auto& p : pairs) {
-          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
-        }
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-      return;
-    }
-    case 3: {
-      // Lambda function for permutation matrix
-      auto lambda = [&](const areg_t<8> &inds)->void {
-        for (const auto& p : pairs) {
-          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
-        }
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-      return;
-    }
-    case 4: {
-      // Lambda function for permutation matrix
-      auto lambda = [&](const areg_t<16> &inds)->void {
-        for (const auto& p : pairs) {
-          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
-        }
-      };
-      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}));
-      return;
-    }
-    default: {
-      // Lambda function for permutation matrix
-      auto lambda = [&](const indexes_t &inds)->void {
-        for (const auto& p : pairs) {
-          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
-        }
-      };
-      // Use the lambda function
-      apply_lambda(lambda, qubits);
-    }
-  } // end switch
-                                                   	*/
-}
-
-	
-template <typename data_t>
-void QubitVectorThrust<data_t>::matMult_2x2(thrust::complex<double>* pVec,int qubit,thrust::complex<double>* pMat)
-{
-//	printf("   TEST : mat 2x2 : %d\n",qubit);
-
-	uint_t n;
-	uint_t add = 1ull << qubit;
-	uint_t mask = add - 1;
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto matMult2x2_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t i0,i1;
-		thrust::complex<double> q0,q1,m0,m1,m2,m3;
+		thrust::complex<double> q0,q1;
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
@@ -1014,42 +955,66 @@ void QubitVectorThrust<data_t>::matMult_2x2(thrust::complex<double>* pVec,int qu
 		q0 = pVec[i0];
 		q1 = pVec[i1];
 
-		m0 = pMat[0];
-		m1 = pMat[1];
-		m2 = pMat[2];
-		m3 = pMat[3];
-
 		pVec[i0] = m0 * q0 + m2 * q1;
 		pVec[i1] = m1 * q0 + m3 * q1;
-	};
+	}
+};
 
-	n = data_size_ >> 1;
-	thrust::for_each(thrust::device, ci, ci+n, matMult2x2_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::matMult_4x4(thrust::complex<double>* pVec,int qubit0,int qubit1,thrust::complex<double>* pMat)
+struct matMult4x4_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : mat 4x4 : %d, %d\n",qubit0,qubit1);
+	thrust::complex<double>* pVec;
+	thrust::complex<double> m00,m10,m20,m30;
+	thrust::complex<double> m01,m11,m21,m31;
+	thrust::complex<double> m02,m12,m22,m32;
+	thrust::complex<double> m03,m13,m23,m33;
+	int qubit0;
+	int qubit1;
+	uint_t add0;
+	uint_t mask0;
+	uint_t add1;
+	uint_t mask1;
 
-	uint_t n;
-	uint_t add0 = 1ull << qubit0;
-	uint_t add1 = 1ull << qubit1;
-	uint_t mask0 = add0 - 1;
-	uint_t mask1 = add1 - 1;
+	matMult4x4_lambda(thrust::complex<double>* pV,thrust::complex<double>* pMat,int q0,int q1)
+	{
+		pVec = pV;
+		qubit0 = q0;
+		qubit1 = q1;
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
+		m00 = pMat[0];
+		m01 = pMat[1];
+		m02 = pMat[2];
+		m03 = pMat[3];
 
-	auto matMult4x4_lambda = [=] __host__ __device__ (uint_t i) 
+		m10 = pMat[4];
+		m11 = pMat[5];
+		m12 = pMat[6];
+		m13 = pMat[7];
+
+		m20 = pMat[8];
+		m21 = pMat[9];
+		m22 = pMat[10];
+		m23 = pMat[11];
+
+		m30 = pMat[12];
+		m31 = pMat[13];
+		m32 = pMat[14];
+		m33 = pMat[15];
+
+		add0 = 1ull << qubit0;
+		add1 = 1ull << qubit1;
+		mask0 = add0 - 1;
+		mask1 = add1 - 1;
+	}
+
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t i0,i1,i2,i3;
-		thrust::complex<double> q0,q1,q2,q3,m0,m1,m2,m3;
+		thrust::complex<double> q0,q1,q2,q3;
 
 		i0 = i & mask0;
-		i = (i - i0) << 1;
-		i1 = i & mask1;
-		i = (i - i1) << 1;
-		i2 = i;
+		i2 = (i - i0) << 1;
+		i1 = i2 & mask1;
+		i2 = (i2 - i1) << 1;
 
 		i0 = i0 + i1 + i2;
 		i1 = i0 + add0;
@@ -1061,67 +1026,59 @@ void QubitVectorThrust<data_t>::matMult_4x4(thrust::complex<double>* pVec,int qu
 		q2 = pVec[i2];
 		q3 = pVec[i3];
 
-		m0 = pMat[0];
-		m1 = pMat[4];
-		m2 = pMat[8];
-		m3 = pMat[12];
+		pVec[i0] = m00 * q0 + m10 * q1 + m20 * q2 + m30 * q3;
 
-		pVec[i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3;
+		pVec[i1] = m01 * q0 + m11 * q1 + m21 * q2 + m31 * q3;
 
-		m0 = pMat[1];
-		m1 = pMat[5];
-		m2 = pMat[9];
-		m3 = pMat[13];
+		pVec[i2] = m02 * q0 + m12 * q1 + m22 * q2 + m32 * q3;
 
-		pVec[i1] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3;
+		pVec[i3] = m03 * q0 + m13 * q1 + m23 * q2 + m33 * q3;
+	}
+};
 
-		m0 = pMat[2];
-		m1 = pMat[6];
-		m2 = pMat[10];
-		m3 = pMat[14];
-
-		pVec[i2] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3;
-
-		m0 = pMat[3];
-		m1 = pMat[7];
-		m2 = pMat[11];
-		m3 = pMat[15];
-
-		pVec[i3] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3;
-	};
-
-	n = data_size_ >> 2;
-	thrust::for_each(thrust::device, ci, ci+n, matMult4x4_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::matMult_8x8(thrust::complex<double>* pVec,int qubit0,int qubit1,int qubit2,thrust::complex<double>* pMat)
+struct matMult8x8_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : mat 8x8 : %d, %d, %d\n",qubit0,qubit1,qubit2);
+	thrust::complex<double>* pVec;
+	thrust::complex<double>* pMat;
+	int qubit0;
+	int qubit1;
+	int qubit2;
+	uint_t add0;
+	uint_t mask0;
+	uint_t add1;
+	uint_t mask1;
+	uint_t add2;
+	uint_t mask2;
 
-	uint_t n;
-	uint_t add0 = 1ull << qubit0;
-	uint_t add1 = 1ull << qubit1;
-	uint_t add2 = 1ull << qubit2;
-	uint_t mask0 = add0 - 1;
-	uint_t mask1 = add1 - 1;
-	uint_t mask2 = add2 - 1;
+	matMult8x8_lambda(thrust::complex<double>* pV,thrust::complex<double>* pM,int q0,int q1,int q2)
+	{
+		pVec = pV;
+		qubit0 = q0;
+		qubit1 = q1;
+		qubit2 = q2;
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
+		pMat = pM;
 
-	auto matMult8x8_lambda = [=] __host__ __device__ (uint_t i) 
+		add0 = 1ull << qubit0;
+		add1 = 1ull << qubit1;
+		add2 = 1ull << qubit2;
+		mask0 = add0 - 1;
+		mask1 = add1 - 1;
+		mask2 = add2 - 1;
+	}
+
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t i0,i1,i2,i3,i4,i5,i6,i7;
 		thrust::complex<double> q0,q1,q2,q3,q4,q5,q6,q7;
 		thrust::complex<double> m0,m1,m2,m3,m4,m5,m6,m7;
 
 		i0 = i & mask0;
-		i = (i - i0) << 1;
-		i1 = i & mask1;
-		i = (i - i1) << 1;
-		i2 = i & mask2;
-		i = (i - i2) << 1;
-		i3 = i;
+		i3 = (i - i0) << 1;
+		i1 = i3 & mask1;
+		i3 = (i3 - i1) << 1;
+		i2 = i3 & mask2;
+		i3 = (i3 - i2) << 1;
 
 		i0 = i0 + i1 + i2 + i3;
 		i1 = i0 + add0;
@@ -1228,30 +1185,47 @@ void QubitVectorThrust<data_t>::matMult_8x8(thrust::complex<double>* pVec,int qu
 		m7 = pMat[63];
 
 		pVec[i7] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
-	};
+	}
+};
 
-	n = data_size_ >> 3;
-	thrust::for_each(thrust::device, ci, ci+n, matMult8x8_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::matMult_16x16(thrust::complex<double>* pVec,int qubit0,int qubit1,int qubit2,int qubit3,thrust::complex<double>* pMat)
+struct matMult16x16_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : mat 16x16 : %d, %d, %d\n",qubit0,qubit1,qubit2);
+	thrust::complex<double>* pVec;
+	thrust::complex<double>* pMat;
+	int qubit0;
+	int qubit1;
+	int qubit2;
+	int qubit3;
+	uint_t add0;
+	uint_t mask0;
+	uint_t add1;
+	uint_t mask1;
+	uint_t add2;
+	uint_t mask2;
+	uint_t add3;
+	uint_t mask3;
 
-	uint_t n;
-	uint_t add0 = 1ull << qubit0;
-	uint_t add1 = 1ull << qubit1;
-	uint_t add2 = 1ull << qubit2;
-	uint_t add3 = 1ull << qubit3;
-	uint_t mask0 = add0 - 1;
-	uint_t mask1 = add1 - 1;
-	uint_t mask2 = add2 - 1;
-	uint_t mask3 = add3 - 1;
+	matMult16x16_lambda(thrust::complex<double>* pV,thrust::complex<double>* pM,int q0,int q1,int q2,int q3)
+	{
+		pVec = pV;
+		qubit0 = q0;
+		qubit1 = q1;
+		qubit2 = q2;
+		qubit3 = q3;
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
+		pMat = pM;
 
-	auto matMult16x16_lambda = [=] __host__ __device__ (uint_t i) 
+		add0 = 1ull << qubit0;
+		add1 = 1ull << qubit1;
+		add2 = 1ull << qubit2;
+		add3 = 1ull << qubit3;
+		mask0 = add0 - 1;
+		mask1 = add1 - 1;
+		mask2 = add2 - 1;
+		mask3 = add3 - 1;
+	}
+
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t i0,i1,i2,i3,i4,i5,i6,i7;
 		uint_t i8,i9,i10,i11,i12,i13,i14,i15;
@@ -1262,14 +1236,13 @@ void QubitVectorThrust<data_t>::matMult_16x16(thrust::complex<double>* pVec,int 
 		int j;
 
 		i0 = i & mask0;
-		i = (i - i0) << 1;
-		i1 = i & mask1;
-		i = (i - i1) << 1;
-		i2 = i & mask2;
-		i = (i - i2) << 1;
-		i3 = i & mask3;
-		i = (i - i3) << 1;
-		i4 = i;
+		i4 = (i - i0) << 1;
+		i1 = i4 & mask1;
+		i4 = (i4 - i1) << 1;
+		i2 = i4 & mask2;
+		i4 = (i4 - i2) << 1;
+		i3 = i4 & mask3;
+		i4 = (i4 - i3) << 1;
 
 		i0 = i0 + i1 + i2 + i3 + i4;
 		i1 = i0 + add0;
@@ -1640,41 +1613,44 @@ void QubitVectorThrust<data_t>::matMult_16x16(thrust::complex<double>* pVec,int 
 
 		pVec[i15] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7 +
 					m8 * q8 + m9 * q9 + m10* q10+ m11* q11+ m12* q12+ m13* q13+ m14* q14+ m15* q15;
-	};
-
-	n = data_size_ >> 4;
-	thrust::for_each(thrust::device, ci, ci+n, matMult16x16_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::matMult_NxN(thrust::complex<double>* pVec,uint_t* qubits,int nqubits,thrust::complex<double>* pMat)
-{
-
-	uint_t n;
-	int matSize = 1 << nqubits;
-	uint_t* offset;
-	int j,k;
-	uint_t add;
-
-//	printf("   TEST : mat %dx%d\n",matSize,matSize);
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	cudaMallocManaged(&offset,sizeof(uint_t)*matSize);
-
-	for(k=0;k<matSize;k++){
-		offset[k] = 0;
 	}
-	for(j=0;j<nqubits;j++){
-		add = (1ull << qubits[j]);
+};
+
+struct matMultNxN_lambda : public unary_function<uint_t,void>
+{
+	thrust::complex<double>* pVec;
+	thrust::complex<double>* pMat;
+	uint_t* offset;
+	uint_t* qubits;
+	int nqubits;
+	uint_t matSize;
+
+	matMultNxN_lambda(thrust::complex<double>* pV,thrust::complex<double>* pM,uint_t* pBuf,uint_t* qb,int nq)
+	{
+		int j,k;
+		uint_t add;
+		pVec = pV;
+		nqubits = nq;
+		pMat = pM;
+		matSize = 1ull << nqubits;
+		offset = pBuf;
+		qubits = pBuf + matSize;
+
 		for(k=0;k<matSize;k++){
-			if((k >> j) & 1){
-				offset[k] += add;
+			qubits[k] = qb[k];
+			offset[k] = 0;
+		}
+		for(j=0;j<nqubits;j++){
+			add = (1ull << qb[j]);
+			for(k=0;k<matSize;k++){
+				if((k >> j) & 1){
+					offset[k] += add;
+				}
 			}
 		}
 	}
 
-	auto matMultNxN_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		thrust::complex<double> q[32];
 		thrust::complex<double> m;
@@ -1709,50 +1685,86 @@ void QubitVectorThrust<data_t>::matMult_NxN(thrust::complex<double>* pVec,uint_t
 
 			pVec[offset[j] + idx] = r;
 		}
-	};
+	}
+};
 
-	n = data_size_ >> nqubits;
-	thrust::for_each(thrust::device, ci, ci+n, matMultNxN_lambda);
-
-	cudaFree(offset);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::diagMult_2x2(thrust::complex<double>* pVec,int qubit,thrust::complex<double>* pMat)
+struct phase_1_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : diag 2x2 : %d\n",qubit);
+	thrust::complex<double>* pVec;
+	thrust::complex<double> phase;
+	int qubit;
+	uint_t mask;
 
-	uint_t n;
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto diagMult2x2_lambda = [=] __host__ __device__ (uint_t i) 
+	phase_1_lambda(thrust::complex<double>* pV,int q,thrust::complex<double> p)
 	{
-		int im;
+		pVec = pV;
+		qubit = q;
+		phase = p;
+
+		mask = 1ull << qubit;
+	}
+
+	__host__ __device__ void operator()(const uint_t &i) const
+	{
+		thrust::complex<double> q0;
+
+		if((i & mask) != 0){
+			q0 = pVec[i];
+			pVec[i ] = q0 * phase;
+		}
+	}
+};
+
+struct diagMult2x2_lambda : public unary_function<uint_t,void>
+{
+	thrust::complex<double>* pVec;
+	thrust::complex<double> m0,m1;
+	int qubit;
+
+	diagMult2x2_lambda(thrust::complex<double>* pV,thrust::complex<double>* pMat,int q)
+	{
+		pVec = pV;
+		qubit = q;
+		m0 = pMat[0];
+		m1 = pMat[1];
+	}
+
+	__host__ __device__ void operator()(const uint_t &i) const
+	{
 		thrust::complex<double> q,m;
 
-		im = (i >> qubit) & 1;
-
 		q = pVec[i];
-		m = pMat[im];
+		if(((i >> qubit) & 1) == 0){
+			m = m0;
+		}
+		else{
+			m = m1;
+		}
 
 		pVec[i] = m * q;
-	};
+	}
+};
 
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, diagMult2x2_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::diagMult_NxN(thrust::complex<double>* pVec,uint_t* qubits,int nqubits,thrust::complex<double>* pMat)
+struct diagMultNxN_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : diag NxN \n");
+	thrust::complex<double>* pVec;
+	thrust::complex<double>* pMat;
+	int nqubits;
+	uint_t* qubits;
 
-	uint_t n;
+	diagMultNxN_lambda(thrust::complex<double>* pV,thrust::complex<double>* pM,uint_t* pBuf,uint_t* qb,int nq)
+	{
+		int i;
+		pVec = pV;
+		pMat = pM;
+		qubits = pBuf;
+		nqubits = nq;
+		for(i=0;i<nqubits;i++){
+			qubits[i] = qb[i];
+		}
+	}
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto diagMultNxN_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		int im,j;
 		thrust::complex<double> q,m;
@@ -1768,49 +1780,55 @@ void QubitVectorThrust<data_t>::diagMult_NxN(thrust::complex<double>* pVec,uint_
 		m = pMat[im];
 
 		pVec[i] = m * q;
-	};
-
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, diagMultNxN_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::phase_1(thrust::complex<double>* pVec,int qubit,thrust::complex<double> p)
+	}
+};
+	
+struct X_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : Phase : %d\n",qubit);
+	thrust::complex<double>* pVec;
+	uint_t add;
 
-	uint_t n;
-	uint_t mask = 1ull << qubit;
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto phase_lambda = [=] __host__ __device__ (uint_t i) 
+	X_lambda(thrust::complex<double>* pV,int q)
 	{
-		thrust::complex<double> q0;
+		pVec = pV;
+		add = 1ull << q;
+	}
 
-		if((i & mask) != 0){
+	__host__ __device__ void operator()(const uint_t &i) const
+	{
+		uint_t ip;
+		thrust::complex<double> q0,q1;
+
+		ip = i ^ add;
+		if(i < ip){
 			q0 = pVec[i];
-			pVec[i ] = q0 * p;
+			q1 = pVec[ip];
+
+			pVec[i ] = q1;
+			pVec[ip] = q0;
 		}
-	};
+	}
+};
 
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, phase_lambda);
-
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::CX(thrust::complex<double>* pVec,int qubit_c,int qubit_t)
+struct CX_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : CX : %d, %d\n",qubit_c,qubit_t);
+	thrust::complex<double>* pVec;
+	int qubit_c;
+	int qubit_t;
+	uint_t add;
+	uint_t mask;
 
-	uint_t n;
-	uint_t add = 1ull << qubit_t;
-	uint_t mask = 1ull << qubit_c;
+	CX_lambda(thrust::complex<double>* pV,int qc,int qt)
+	{
+		pVec = pV;
+		qubit_c = qc;
+		qubit_t = qt;
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
+		add = 1ull << qubit_t;
+		mask = 1ull << qubit_c;
+	}
 
-	auto CX_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t ip;
 		thrust::complex<double> q0,q1;
@@ -1825,52 +1843,21 @@ void QubitVectorThrust<data_t>::CX(thrust::complex<double>* pVec,int qubit_c,int
 				pVec[ip] = q0;
 			}
 		}
-	};
+	}
+};
 
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, CX_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::X(thrust::complex<double>* pVec,int qubit)
+struct Y_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : X : %d\n",qubit);
+	thrust::complex<double>* pVec;
+	uint_t add;
 
-	uint_t n;
-	uint_t add = 1ull << qubit;
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto X_lambda = [=] __host__ __device__ (uint_t i) 
+	Y_lambda(thrust::complex<double>* pV,int q)
 	{
-		uint_t ip;
-		thrust::complex<double> q0,q1;
+		pVec = pV;
+		add = 1ull << q;
+	}
 
-		ip = i ^ add;
-		if(i < ip){
-			q0 = pVec[i];
-			q1 = pVec[ip];
-
-			pVec[i ] = q1;
-			pVec[ip] = q0;
-		}
-	};
-
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, X_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::Y(thrust::complex<double>* pVec,int qubit)
-{
-//	printf("   TEST : Y : %d\n",qubit);
-
-	uint_t n;
-	uint_t add = 1ull << qubit;
-
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto Y_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t ip;
 		thrust::complex<double> q0,q1;
@@ -1883,24 +1870,23 @@ void QubitVectorThrust<data_t>::Y(thrust::complex<double>* pVec,int qubit)
 			pVec[i ] = thrust::complex<double>(q1.imag(),-q1.real());
 			pVec[ip] = thrust::complex<double>(-q0.imag(),q0.real());
 		}
-	};
+	}
+};
 
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, Y_lambda);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::CY(thrust::complex<double>* pVec,int qubit_c,int qubit_t)
+struct CY_lambda : public unary_function<uint_t,void>
 {
-//	printf("   TEST : CY : %d, %d\n",qubit_c,qubit_t);
+	thrust::complex<double>* pVec;
+	uint_t add;
+	uint_t mask;
 
-	uint_t n;
-	uint_t add = 1ull << qubit_t;
-	uint_t mask = 1ull << qubit_c;
+	CY_lambda(thrust::complex<double>* pV,int qc,int qt)
+	{
+		pVec = pV;
+		add = 1ull << qt;
+		mask = 1ull << qc;
+	}
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
-
-	auto CY_lambda = [=] __host__ __device__ (uint_t i) 
+	__host__ __device__ void operator()(const uint_t &i) const
 	{
 		uint_t ip;
 		thrust::complex<double> q0,q1;
@@ -1915,57 +1901,296 @@ void QubitVectorThrust<data_t>::CY(thrust::complex<double>* pVec,int qubit_c,int
 				pVec[ip] = thrust::complex<double>(-q0.imag(),q0.real());
 			}
 		}
-	};
-
-	n = data_size_;
-	thrust::for_each(thrust::device, ci, ci+n, CY_lambda);
-}
+	}
+};
 
 struct dot_lambda : public unary_function<uint_t,double>
 {
-	thrust::complex<double>* m_pVec;
-	int m_qubit;
+	thrust::complex<double>* pVec;
+	uint64_t mask;
 
 	dot_lambda(thrust::complex<double>* pV,int q)
 	{
-		m_pVec = pV;
-		m_qubit = q;
+		pVec = pV;
+		mask = (1ull << q);
 	}
 
 	__host__ __device__ double operator()(const uint_t &i) const
 	{
-		uint_t i0,i1;
 		thrust::complex<double> q0;
+		double ret;
 
-		i1 = i & ((1ull << m_qubit) - 1);
-		i0 = (i - i1) << 1;
-		i0 += i1;
+		ret = 0.0;
 
-		q0 = m_pVec[i0];
-
-		return q0.real()*q0.real() + q0.imag()*q0.imag();
+		if((i & mask) == 0){
+			q0 = pVec[i];
+			ret = q0.real()*q0.real() + q0.imag()*q0.imag();
+		}
+		return ret;
 	}
 };
 
 template <typename data_t>
-double QubitVectorThrust<data_t>::dot_q(thrust::complex<double>* pVec,int qubit) const
+template <typename UnaryFunction>
+void QubitVectorThrust<data_t>::apply_lambda(UnaryFunction func,uint_t n)
 {
-//	printf("   TEST : Dot : %d\n",qubit);
+	if(m_nDevParallel == 1){
+		auto ci = thrust::counting_iterator<uint_t>(0);
 
-	uint_t n;
-	uint_t add = 1ull << qubit;
-	uint_t mask = add - 1;
-	double ret;
+		thrust::for_each(thrust::device, ci, ci+n, func);
+	}
+	else{
+		int iDev;
 
-	auto ci = thrust::counting_iterator<uint_t>(0);
+#pragma omp parallel for
+		for(iDev=0;iDev<m_nDevParallel;iDev++){
+			uint_t is,ie;
+			is = n * iDev / m_nDevParallel;
+			ie = n * (iDev+1) / m_nDevParallel;
 
+			auto ci = thrust::counting_iterator<uint_t>(0);
 
-	n = data_size_ >> 1;
-	ret = thrust::transform_reduce(thrust::device, ci, ci+n, dot_lambda(pVec,qubit),0.0,thrust::plus<double>());
-
-	return ret;
+			cudaSetDevice(iDev);
+			thrust::for_each(thrust::device, ci + is, ci + ie, func);
+		}
+	}
 }
 
+template <typename data_t>
+template <typename UnaryFunction>
+double QubitVectorThrust<data_t>::apply_sum_lambda(UnaryFunction func,uint_t n) const
+{
+	double ret = 0.0;
+
+	if(m_nDevParallel == 1){
+		auto ci = thrust::counting_iterator<uint_t>(0);
+
+		ret = thrust::transform_reduce(thrust::device, ci, ci+n, func,0.0,thrust::plus<double>());
+	}
+	else{
+		int iDev;
+
+#pragma omp parallel for reduction(+:ret)
+		for(iDev=0;iDev<m_nDevParallel;iDev++){
+			uint_t is,ie;
+			is = n * iDev / m_nDevParallel;
+			ie = n * (iDev+1) / m_nDevParallel;
+
+			auto ci = thrust::counting_iterator<uint_t>(0);
+
+			cudaSetDevice(iDev);
+			ret += thrust::transform_reduce(thrust::device, ci + is, ci + ie, func,0.0,thrust::plus<double>());
+		}
+	}
+	return ret;
+}
+	
+	
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
+                                       const cvector_t &mat) 
+{
+	const size_t N = qubits.size();
+	uint_t size;
+
+
+#ifdef QASM_TIMING
+	TimeStart(QS_GATE_MULT);
+#endif
+	if(N == 1){
+		size = data_size_ >> 1;
+		apply_lambda(matMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&mat[0],qubits[0]), size);
+	}
+	else if(N == 2){
+		size = data_size_ >> 2;
+		apply_lambda(matMult4x4_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&mat[0],qubits[0],qubits[1]), size);
+	}
+	else{
+		thrust::complex<double>* pMat;
+
+#ifdef QASM_HAS_ATS
+		pMat = (thrust::complex<double>*)&mat[0];
+#else
+		uint_t i,matSize;
+		matSize = 1ull << N;
+		if(N > m_matBits){
+			cudaFree(m_pMatDev);
+			cudaFree(m_pUintBuf);
+			m_matBits = N;
+			cudaMallocManaged(&m_pMatDev,sizeof(complex_t) * matSize*matSize);
+			cudaMallocManaged(&m_pUintBuf,sizeof(uint_t) * matSize*2);
+		}
+		pMat = m_pMatDev;
+
+#pragma omp parallel for 
+		for(i=0;i<matSize*matSize;i++){
+			m_pMatDev[i] = mat[i];
+		}
+#endif
+
+		if(N == 3){
+			size = data_size_ >> 3;
+			apply_lambda(matMult8x8_lambda((thrust::complex<double>*)&data_[0],pMat,qubits[0],qubits[1],qubits[2]), size);
+		}
+		else if(N == 4){
+			size = data_size_ >> 4;
+			apply_lambda(matMult16x16_lambda((thrust::complex<double>*)&data_[0],pMat,qubits[0],qubits[1],qubits[2],qubits[3]), size);
+		}
+		else{
+			size = data_size_ >> N;
+			apply_lambda(matMultNxN_lambda((thrust::complex<double>*)&data_[0],pMat,m_pUintBuf,(uint_t*)&qubits[0],N), size);
+		}
+	}
+
+#ifdef QASM_TIMING
+	TimeEnd(QS_GATE_MULT);
+#endif
+}
+
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
+		const reg_t &target_qubits,
+		const cvector_t &mat)
+{
+	printf(" apply_multiplexer NOT SUPPORTED : %d, %d \n",control_qubits.size(),target_qubits.size());
+			/*
+  // General implementation
+  const size_t control_count = control_qubits.size();
+  const size_t target_count  = target_qubits.size();
+  const uint_t DIM = BITS[(target_count+control_count)];
+  const uint_t columns = BITS[target_count];
+  const uint_t blocks = BITS[control_count];
+  // Lambda function for stacked matrix multiplication
+  auto lambda = [&](const indexes_t &inds, const cvector_t &_mat)->void {
+    auto cache = std::make_unique<complex_t[]>(DIM);
+    for (uint_t i = 0; i < DIM; i++) {
+      const auto ii = inds[i];
+      cache[i] = data_[ii];
+      data_[ii] = 0.;
+    }
+    // update state vector
+    for (uint_t b = 0; b < blocks; b++)
+      for (uint_t i = 0; i < columns; i++)
+        for (uint_t j = 0; j < columns; j++)
+	{
+	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
+	}
+  };
+  
+  // Use the lambda function
+  auto qubits = target_qubits;
+  for (const auto &q : control_qubits) {qubits.push_back(q);}
+  apply_lambda(lambda, qubits, mat);
+	*/
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
+                                                const cvector_t &diag) 
+{
+	const int_t N = qubits.size();
+
+#ifdef QASM_TIMING
+	TimeStart(QS_GATE_DIAG);
+#endif
+	if(N == 1){
+		apply_lambda(diagMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&diag[0],qubits[0]), data_size_ );
+	}
+	else{
+		thrust::complex<double>* pMat;
+
+#ifdef QASM_HAS_ATS
+		pMat = (thrust::complex<double>*)&diag[0];
+#else
+		uint_t i,matSize;
+		matSize = 1ull << N;
+		if(N > m_matBits){
+			cudaFree(m_pMatDev);
+			cudaFree(m_pUintBuf);
+			m_matBits = N;
+			cudaMallocManaged(&m_pMatDev,sizeof(complex_t) * matSize*matSize);
+			cudaMallocManaged(&m_pUintBuf,sizeof(uint_t) * matSize*2);
+		}
+#pragma omp parallel for 
+		for(i=0;i<matSize;i++){
+			m_pMatDev[i] = diag[i];
+		}
+		pMat = m_pMatDev;
+#endif
+		apply_lambda(diagMultNxN_lambda((thrust::complex<double>*)&data_[0],pMat,m_pUintBuf,(uint_t*)&qubits[0], N), data_size_ );
+	}
+
+#ifdef QASM_TIMING
+	TimeEnd(QS_GATE_DIAG);
+#endif
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
+                                                   const std::vector<std::pair<uint_t, uint_t>> &pairs) {
+  const size_t N = qubits.size();
+	printf(" apply_permutation_matrix : %d , %d   NOT SUPPORTED\n",N,qubits[0]);
+/*
+  // Error checking
+  #ifdef DEBUG
+  check_vector(diag, N);
+  #endif
+
+  switch (N) {
+    case 1: {
+      // Lambda function for permutation matrix
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        for (const auto& p : pairs) {
+          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
+        }
+      };
+      apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
+      return;
+    }
+    case 2: {
+      // Lambda function for permutation matrix
+      auto lambda = [&](const areg_t<4> &inds)->void {
+        for (const auto& p : pairs) {
+          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
+        }
+      };
+      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
+      return;
+    }
+    case 3: {
+      // Lambda function for permutation matrix
+      auto lambda = [&](const areg_t<8> &inds)->void {
+        for (const auto& p : pairs) {
+          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
+        }
+      };
+      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
+      return;
+    }
+    case 4: {
+      // Lambda function for permutation matrix
+      auto lambda = [&](const areg_t<16> &inds)->void {
+        for (const auto& p : pairs) {
+          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
+        }
+      };
+      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}));
+      return;
+    }
+    default: {
+      // Lambda function for permutation matrix
+      auto lambda = [&](const indexes_t &inds)->void {
+        for (const auto& p : pairs) {
+          std::swap(data_[inds[p.first]], data_[inds[p.second]]);
+        }
+      };
+      // Use the lambda function
+      apply_lambda(lambda, qubits);
+    }
+  } // end switch
+                                                   	*/
+}
 
 
 /*******************************************************************************
@@ -1984,18 +2209,21 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) {
   const size_t N = qubits.size();
 
 	if(N == 1){
-		X((thrust::complex<double>*)&data_[0],qubits[0]);
+		apply_lambda(X_lambda((thrust::complex<double>*)&data_[0],qubits[0]), data_size_);
 	}
 	else if(N == 2){
 #ifdef QASM_TIMING
 		TimeStart(QS_GATE_CX);
 #endif
-		CX((thrust::complex<double>*)&data_[0],qubits[0],qubits[1]);
+		apply_lambda(CX_lambda((thrust::complex<double>*)&data_[0],qubits[0],qubits[1]), data_size_);
+
 #ifdef QASM_TIMING
 		TimeEnd(QS_GATE_CX);
 #endif
 	}
-
+	else{
+		printf(" CCX %d NOT SUPPORTED\n",N);
+	}
 /*
   const size_t pos0 = MASKS[N - 1];
   const size_t pos1 = MASKS[N];
@@ -2045,10 +2273,13 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) {
   const complex_t I(0., 1.);
 
 	if(N == 1){
-		Y((thrust::complex<double>*)&data_[0],qubits[0]);
+		apply_lambda(Y_lambda((thrust::complex<double>*)&data_[0],qubits[0]), data_size_);
 	}
 	else if(N == 2){
-		CY((thrust::complex<double>*)&data_[0],qubits[0],qubits[1]);
+		apply_lambda(CY_lambda((thrust::complex<double>*)&data_[0],qubits[0],qubits[1]), data_size_);
+	}
+	else{
+		printf(" CCY %d NOT SUPPORTED\n",N);
 	}
 
 
@@ -2140,7 +2371,10 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const complex
   const size_t N = qubits.size();
 
 	if(N == 1){
-		phase_1((thrust::complex<double>*)&data_[0],qubits[0],*(thrust::complex<double>*)&phase);
+		apply_lambda(phase_1_lambda((thrust::complex<double>*)&data_[0],qubits[0],*(thrust::complex<double>*)&phase), data_size_ );
+	}
+	else{
+		printf(" Phase %d NOT SUPPORTED\n",N);
 	}
 
 	/*
@@ -2194,7 +2428,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 #endif
 			const cvector_t diag = {{mat[0], mat[3]}};
 
-			diagMult_2x2((thrust::complex<double>*)&data_[0],qubits[0],(thrust::complex<double>*)&diag[0]);
+			apply_lambda(diagMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&diag[0],qubits[0]), data_size_ );
 
 #ifdef QASM_TIMING
 			TimeEnd(QS_GATE_DIAG);
@@ -2204,12 +2438,16 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 #ifdef QASM_TIMING
 			TimeStart(QS_GATE_MULT);
 #endif
-			matMult_2x2((thrust::complex<double>*)&data_[0],qubits[0],(thrust::complex<double>*)&mat[0]);
+
+			apply_lambda(matMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&mat[0],qubits[0]), data_size_ >> 1);
 
 #ifdef QASM_TIMING
 			TimeEnd(QS_GATE_MULT);
 #endif
 		}
+	}
+	else{
+		printf(" MCU %d NOT SUPPORTED\n",N);
 	}
 
 	/*
@@ -2335,7 +2573,9 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 #ifdef QASM_TIMING
 	TimeStart(QS_GATE_MULT);
 #endif
-	matMult_2x2((thrust::complex<double>*)&data_[0],qubit,(thrust::complex<double>*)&mat[0]);
+
+	apply_lambda(matMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&mat[0],qubit), data_size_ >> 1);
+
 #ifdef QASM_TIMING
 	TimeEnd(QS_GATE_MULT);
 #endif
@@ -2348,7 +2588,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
 #ifdef QASM_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
-	diagMult_2x2((thrust::complex<double>*)&data_[0],qubit,(thrust::complex<double>*)&diag[0]);
+	apply_lambda(diagMult2x2_lambda((thrust::complex<double>*)&data_[0],(thrust::complex<double>*)&diag[0],qubit), data_size_ );
 #ifdef QASM_TIMING
 	TimeEnd(QS_GATE_DIAG);
 #endif
@@ -2375,6 +2615,7 @@ double QubitVectorThrust<data_t>::norm() const {
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t &mat) const {
 
+	printf("    norm NOT SUPPORTED\n");
 	/*
   const uint_t N = qubits.size();
 
@@ -2455,6 +2696,7 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t &mat
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvector_t &mat) const {
+	printf("    norm NOT SUPPORTED\n");
 	/*
 
   const uint_t N = qubits.size();
@@ -2531,6 +2773,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 //------------------------------------------------------------------------------
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t &mat) const {
+	printf("    norm NOT SUPPORTED\n");
 	/*
   // Error handling
   #ifdef DEBUG
@@ -2560,6 +2803,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t &mat)
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvector_t &mat) const {
+	printf("    norm NOT SUPPORTED\n");
 	/*
   // Error handling
   #ifdef DEBUG
@@ -2613,8 +2857,7 @@ rvector_t QubitVectorThrust<data_t>::probabilities(const reg_t &qubits) const
 	rvector_t probs((1ull << N), 0.);
 
 	if(N == 1){
-		double d = dot_q((thrust::complex<double>*)&data_[0],qubits[0]);
-		probs[0] = d;
+		probs[0] = apply_sum_lambda(dot_lambda((thrust::complex<double>*)&data_[0],qubits[0]), data_size_);
 		probs[1] = 1.0 - probs[0];
 
 #ifdef QASM_DEBUG
@@ -2633,7 +2876,7 @@ rvector_t QubitVectorThrust<data_t>::probabilities(const uint_t qubit) const
 {
 	double p0,p1;
 
-	p0 = dot_q((thrust::complex<double>*)&data_[0],qubit);
+	p0 = apply_sum_lambda(dot_lambda((thrust::complex<double>*)&data_[0],qubit), data_size_);
 	p1 = 1.0 - p0;
 
 	return rvector_t({p0,p1});
@@ -2652,10 +2895,6 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	double* pVec = (double*)&data_[0];
 	uint_t n = data_size_*2;
 	int i;
-	thrust::device_vector<double> vRnd(SHOTS);
-	thrust::device_vector<unsigned long> vSamp(SHOTS);
-	thrust::host_vector<double> hvRnd(SHOTS);
-	thrust::host_vector<unsigned long> hvSamp(SHOTS);
 
 #ifdef QASM_TIMING
 	TimeStart(QS_GATE_MEASURE);
@@ -2663,26 +2902,93 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 	samples.assign(SHOTS, 0);
 
-	thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
+	if(m_nDevParallel == 1){
+		thrust::device_vector<double> vRnd(SHOTS);
+		thrust::device_vector<unsigned long> vSamp(SHOTS);
+		thrust::host_vector<double> hvRnd(SHOTS);
+		thrust::host_vector<unsigned long> hvSamp(SHOTS);
+
+		thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
 
 #pragma omp parallel for
-	for(i=0;i<SHOTS;i++){
-		hvRnd[i] = rnds[i];
+		for(i=0;i<SHOTS;i++){
+			hvRnd[i] = rnds[i];
+		}
+		vRnd = hvRnd;
+
+		thrust::lower_bound(thrust::device, pVec, pVec + n, vRnd.begin(), vRnd.end(), vSamp.begin());
+
+		hvSamp = vSamp;
+
+#pragma omp parallel for
+		for(i=0;i<SHOTS;i++){
+			samples[i] = hvSamp[i]/2;
+		}
 	}
-	vRnd = hvRnd;
+	else{
+		int iDev;
+		double* pDevSum = new double[m_nDevParallel];
 
-	thrust::lower_bound(thrust::device, pVec, pVec + n, vRnd.begin(), vRnd.end(), vSamp.begin());
+#pragma omp parallel for private(i)
+		for(iDev=0;iDev<m_nDevParallel;iDev++){
+			uint_t is,ie;
+			is = n * iDev / m_nDevParallel;
+			ie = n * (iDev+1) / m_nDevParallel;
 
-	hvSamp = vSamp;
+			cudaSetDevice(iDev);
 
-#pragma omp parallel for
-	for(i=0;i<SHOTS;i++){
-		samples[i] = hvSamp[i]/2;
+			thrust::transform_inclusive_scan(thrust::device,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
+
+			pDevSum[iDev] = pVec[ie-1];
+		}
+
+#pragma omp parallel for private(i)
+		for(iDev=0;iDev<m_nDevParallel;iDev++){
+			uint_t is,ie;
+			double low,high;
+			is = n * iDev / m_nDevParallel;
+			ie = n * (iDev+1) / m_nDevParallel;
+
+			cudaSetDevice(iDev);
+
+			thrust::device_vector<double> vRnd(SHOTS);
+			thrust::device_vector<unsigned long> vSamp(SHOTS);
+			thrust::host_vector<double> hvRnd(SHOTS);
+			thrust::host_vector<unsigned long> hvSamp(SHOTS);
+
+			low = 0.0;
+			for(i=0;i<iDev;i++){
+				low += pDevSum[i];
+			}
+			high = low + pDevSum[iDev];
+
+			for(i=0;i<SHOTS;i++){
+				if(rnds[i] < low || rnds[i] >= high){
+					hvRnd[i] = 10.0;
+				}
+				else{
+					hvRnd[i] = rnds[i] - low;
+				}
+			}
+			vRnd = hvRnd;
+
+			thrust::lower_bound(thrust::device, pVec + is, pVec + ie, vRnd.begin(), vRnd.end(), vSamp.begin());
+
+			hvSamp = vSamp;
+			for(i=0;i<SHOTS;i++){
+				if(hvSamp[i] < ie-is){
+					samples[i] = (is + hvSamp[i])/2;
+				}
+			}
+		}
+
+		delete[] pDevSum;
 	}
 
 #ifdef QASM_TIMING
 	TimeEnd(QS_GATE_MEASURE);
 #endif
+
 	return samples;
 }
 
