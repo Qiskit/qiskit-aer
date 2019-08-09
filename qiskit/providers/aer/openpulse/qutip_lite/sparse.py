@@ -44,7 +44,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, len-as-condition, no-name-in-module
+# pylint: disable=import-error
 
 """
 This module contains a collection of routines for operating on sparse
@@ -56,16 +57,16 @@ __all__ = ['sp_fro_norm', 'sp_inf_norm', 'sp_L2_norm', 'sp_max_norm',
            'sp_one_norm', 'sp_reshape', 'sp_eigs', 'sp_expm', 'sp_permute',
            'sp_reverse_permute', 'sp_bandwidth', 'sp_profile']
 
-import scipy.sparse as sp
-import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
+import scipy.sparse as sp
+import scipy.sparse.linalg as spla
 from scipy.linalg.blas import get_blas_funcs
 from .cy.sparse_utils import (_sparse_profile, _sparse_permute,
-                                   _sparse_reverse_permute, _sparse_bandwidth,
-                                   _isdiag, zcsr_one_norm, zcsr_inf_norm)
+                              _sparse_reverse_permute, _sparse_bandwidth,
+                              _isdiag, zcsr_one_norm, zcsr_inf_norm)
 from .fastsparse import fast_csr_matrix
-from .cy.spconvert import (arr_coo2fast, zcsr_reshape)
+from .cy.spconvert import (zcsr_reshape)
 
 
 _dznrm2 = get_blas_funcs("znrm2")
@@ -82,8 +83,9 @@ def sp_inf_norm(A):
     """
     Infinity norm for sparse matrix
     """
-    return zcsr_inf_norm(A.data, A.indices, 
-                A.indptr, A.shape[0], A.shape[1])
+    return zcsr_inf_norm(A.data, A.indices,
+                         A.indptr, A.shape[0],
+                         A.shape[1])
 
 
 def sp_L2_norm(A):
@@ -110,40 +112,36 @@ def sp_one_norm(A):
     """
     One norm for sparse matrix
     """
-    return zcsr_one_norm(A.data, A.indices, 
-                A.indptr, A.shape[0], A.shape[1])
+    return zcsr_one_norm(A.data, A.indices,
+                         A.indptr, A.shape[0],
+                         A.shape[1])
 
-
+# pylint: disable=redefined-builtin
 def sp_reshape(A, shape, format='csr'):
     """
     Reshapes a sparse matrix.
 
-    Parameters
-    ----------
-    A : sparse_matrix
-        Input matrix in any format
-    shape : list/tuple
-        Desired shape of new matrix
-    format : string {'csr','coo','csc','lil'}
-        Optional string indicating desired output format
+    Args:
+        A (sparse): Input matrix in any format
 
-    Returns
-    -------
-    B : csr_matrix
-        Reshaped sparse matrix
+        shape (list):Desired shape of new matrix
 
-    References
-    ----------
+        format (str): Optional string indicating
+                      desired output format
 
-        http://stackoverflow.com/questions/16511879/reshape-sparse-matrix-efficiently-python-scipy-0-12
+    Returns:
+        csr_matrix: Reshaped sparse matrix
+
+    Raises:
+        ValueError: Invalid input.
 
     """
     if not hasattr(shape, '__len__') or len(shape) != 2:
         raise ValueError('Shape must be a list of two integers')
-    
+
     if format == 'csr':
         return zcsr_reshape(A, shape[0], shape[1])
-    
+
     C = A.tocoo()
     nrows, ncols = C.shape
     size = nrows * ncols
@@ -171,9 +169,6 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
     Internal functions for computing eigenvalues and eigenstates for a dense
     matrix.
     """
-    if debug:
-        logger.debug(inspect.stack()[0][3] + ": vectors = " + str(vecs))
-
     evecs = None
 
     if vecs:
@@ -229,8 +224,6 @@ def _sp_eigs(data, isherm, vecs, N, eigvals, num_large, num_small, tol,
     Internal functions for computing eigenvalues and eigenstates for a sparse
     matrix.
     """
-    if debug:
-        print(inspect.stack()[0][3] + ": vectors = " + str(vecs))
 
     big_vals = np.array([])
     small_vals = np.array([])
@@ -318,34 +311,33 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     """Returns Eigenvalues and Eigenvectors for a sparse matrix.
     Uses dense eigen-solver unless user sets sparse=True.
 
-    Parameters
-    ----------
-    data : csr_matrix
-        Input matrix
-    isherm : bool
-        Indicate whether the matrix is hermitian or not
-    vecs : bool {True , False}
-        Flag for requesting eigenvectors
-    sparse : bool {False , True}
-        Flag to use sparse solver
-    sort : str {'low' , 'high}
-        Return lowest or highest eigenvals/vecs
-    eigvals : int
-        Number of eigenvals/vecs to return.  Default = 0 (return all)
-    tol : float
-        Tolerance for sparse eigensolver.  Default = 0 (Machine precision)
-    maxiter : int
-        Max. number of iterations used by sparse sigensolver.
+    Args:
+        data (csr_matrix): Input matrix.
 
-    Returns
-    -------
-    Array of eigenvalues and (by default) array of corresponding Eigenvectors.
+        isherm (bool): Indicate whether the matrix is hermitian or not
+
+        vecs (bool): Flag for requesting eigenvectors
+
+        sparse (bool): Flag to use sparse solver
+
+        sort (str): Return lowest or highest eigenvals/vecs
+
+        eigvals (int): Number of eigenvals/vecs to return.
+                       Default = 0 (return all)
+
+        tol (float): Tolerance for sparse eigensolver.
+                     Default = 0 (Machine precision)
+
+        maxiter (int): Max. number of iterations used by sparse sigensolver.
+
+    Returns:
+        array: Eigenvalues and (by default) array of corresponding Eigenvectors.
+
+    Raises:
+        TypeError: Invalid input.
+        ValueError: Invalid input.
 
     """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
     if data.shape[0] != data.shape[1]:
         raise TypeError("Can only diagonalize square matrices")
 
@@ -393,18 +385,17 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
 
 def sp_expm(A, sparse=False):
     """
-    Sparse matrix exponential.    
+    Sparse matrix exponential.
     """
     if _isdiag(A.indices, A.indptr, A.shape[0]):
-        A = sp.diags(np.exp(A.diagonal()), shape=A.shape, 
-                    format='csr', dtype=complex)
+        A = sp.diags(np.exp(A.diagonal()), shape=A.shape,
+                     format='csr', dtype=complex)
         return A
     if sparse:
         E = spla.expm(A.tocsc())
     else:
         E = spla.expm(A.toarray())
     return sp.csr_matrix(E)
-    
 
 
 def sp_permute(A, rperm=(), cperm=(), safe=True):
@@ -414,21 +405,20 @@ def sp_permute(A, rperm=(), cperm=(), safe=True):
     Here, the permutation arrays specify the new order of the rows and
     columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
 
-    Parameters
-    ----------
-    A : csr_matrix, csc_matrix
-        Input matrix.
-    rperm : array_like of integers
-        Array of row permutations.
-    cperm : array_like of integers
-        Array of column permutations.
-    safe : bool
-        Check structure of permutation arrays.
+    Args:
+        A (csr_matrix): Input matrix.
 
-    Returns
-    -------
-    perm_csr : csr_matrix, csc_matrix
-        CSR or CSC matrix with permuted rows/columns.
+        rperm (ndarray): Array of row permutations.
+
+        cperm (ndarray): Array of column permutations.
+
+        safe (bool): Check structure of permutation arrays.
+
+    Returns:
+        csr_matrix: CSR matrix with permuted rows/columns.
+
+    Raises:
+        ValueError: Invalid input.
 
     """
     rperm = np.asarray(rperm, dtype=np.int32)
@@ -441,9 +431,9 @@ def sp_permute(A, rperm=(), cperm=(), safe=True):
         cperm = np.arange(ncols, dtype=np.int32)
     if safe:
         if len(np.setdiff1d(rperm, np.arange(nrows))) != 0:
-            raise Exception('Invalid row permutation array.')
+            raise ValueError('Invalid row permutation array.')
         if len(np.setdiff1d(cperm, np.arange(ncols))) != 0:
-            raise Exception('Invalid column permutation array.')
+            raise ValueError('Invalid column permutation array.')
 
     shp = A.shape
     kind = A.getformat()
@@ -452,7 +442,7 @@ def sp_permute(A, rperm=(), cperm=(), safe=True):
     elif kind == 'csc':
         flag = 1
     else:
-        raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+        raise ValueError('Input must be Qobj, CSR, or CSC matrix.')
 
     data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
                                      nrows, ncols, rperm, cperm, flag)
@@ -469,21 +459,20 @@ def sp_reverse_permute(A, rperm=(), cperm=(), safe=True):
     Here, the permutation arrays specify the order of the rows and columns used
     to permute the original array.
 
-    Parameters
-    ----------
-    A : csr_matrix, csc_matrix
-        Input matrix.
-    rperm : array_like of integers
-        Array of row permutations.
-    cperm : array_like of integers
-        Array of column permutations.
-    safe : bool
-        Check structure of permutation arrays.
+    Args:
+        A (csr_matrix): Input matrix.
 
-    Returns
-    -------
-    perm_csr : csr_matrix, csc_matrix
-        CSR or CSC matrix with permuted rows/columns.
+        rperm (ndarray): Array of row permutations.
+
+        cperm (ndarray): Array of column permutations.
+
+        safe (bool): Check structure of permutation arrays.
+
+    Returns:
+        csr_matrix: CSR matrix with permuted rows/columns.
+
+    Raises:
+        Exception: Invalid permutation.
 
     """
     rperm = np.asarray(rperm, dtype=np.int32)
@@ -526,19 +515,14 @@ def sp_bandwidth(A):
     If the matrix is symmetric then the upper and lower bandwidths are
     identical. Diagonal matrices have a bandwidth equal to one.
 
-    Parameters
-    ----------
-    A : csr_matrix, csc_matrix
-        Input matrix
+    Args:
+        A (csr_matrix): Input matrix
 
-    Returns
-    -------
-    mb : int
-        Maximum bandwidth of matrix.
-    lb : int
-        Lower bandwidth of matrix.
-    ub : int
-        Upper bandwidth of matrix.
+    Returns:
+        tuple: Maximum, lower, and upper bandwidths
+
+    Raises:
+        Exception: Invalid input.
 
     """
     nrows = A.shape[0]
@@ -561,10 +545,14 @@ def sp_profile(A):
     If the matrix is symmetric then the upper and lower profiles are
     identical. Diagonal matrices have zero profile.
 
-    Parameters
-    ----------
-    A : csr_matrix, csc_matrix
-        Input matrix
+    Args:
+        A (csr_matrix): Input matrix
+
+    Returns:
+        tuple: Maximum, lower, and upper profiles.
+
+    Raises:
+        TypeError: Invalid inputs.
     """
     if sp.isspmatrix_csr(A):
         up = _sparse_profile(A.indices, A.indptr, A.shape[0])
@@ -584,17 +572,16 @@ def sp_profile(A):
 
 def sp_isdiag(A):
     """Determine if sparse CSR matrix is diagonal.
-    
-    Parameters
-    ----------
-    A : csr_matrix, csc_matrix
-        Input matrix
-        
-    Returns
-    -------
-    isdiag : int
-        True if matix is diagonal, False otherwise.
-    
+
+    Args:
+        A (csr_matrix); Input matrix
+
+    Returns:
+        int: True if matix is diagonal, False otherwise.
+
+    Raises:
+        TypeError: Invalid input.
+
     """
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input sparse matrix must be in CSR format.')

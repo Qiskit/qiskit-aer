@@ -56,7 +56,7 @@ from .fastsparse import fast_csr_matrix, fast_identity
 from .sparse import sp_reshape
 from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
 
-
+# pylint: disable=dangerous-default-value
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
@@ -64,13 +64,18 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     Args:
         H (qobj.Qobj): System Hamiltonian.
 
-    c_ops (qobj.Qobj or array_like): A single collapse operator or an array.
+        c_ops (qobj.Qobj or array_like): A single collapse operator
+                                         or an array.
+        data_only (bool): Return data only.
+
+        chi (flaot): Multiplication factor.
 
     Returns:
         qobj.Qobj: Liouvillian superoperator.
 
     Raises:
         ValueError: Chi must be list of len(c_ops).
+        TypeError: Invalidinput types.
 
     """
     if isinstance(c_ops, (Qobj)):
@@ -158,18 +163,18 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
         \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
         \\frac{1}{2}a^\\dagger b\\rho - \\frac{1}{2}\\rho a^\\dagger b
 
-    Parameters
-    ----------
-    a : Qobj or QobjEvo
-        Left part of collapse operator.
+    Args:
+        a (Qobj): Left part of collapse operator.
 
-    b : Qobj or QobjEvo (optional)
-        Right part of collapse operator. If not specified, b defaults to a.
+        b (Qobj): Right part of collapse operator. If not specified,
+                  b defaults to a.
 
-    Returns
-    -------
-    D : qobj, QobjEvo
-        Lindblad dissipator superoperator.
+        data_only (bool): Return data only.
+
+        chi (flaot): Multiplication factor.
+
+    Returns:
+        Qobj: Lindblad dissipator superoperator.
     """
     if b is None:
         b = a
@@ -242,15 +247,14 @@ def mat2vec_index(N, i, j):
 def spost(A):
     """Superoperator formed from post-multiplication by operator A
 
-    Parameters
-    ----------
-    A : Qobj or QobjEvo
-        Quantum operator for post multiplication.
+    Args:
+        A (Qobj): Quantum operator for post multiplication.
 
-    Returns
-    -------
-    super : Qobj or QobjEvo
-        Superoperator formed from input qauntum object.
+    Returns:
+        Qobj: Superoperator formed from input qauntum object.
+
+    Raises:
+        TypeError: Invalid inputs.
     """
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
@@ -268,15 +272,14 @@ def spost(A):
 def spre(A):
     """Superoperator formed from pre-multiplication by operator A.
 
-    Parameters
-    ----------
-    A : Qobj or QobjEvo
-        Quantum operator for pre-multiplication.
+    Args:
+        A (Qobj): Quantum operator for pre-multiplication.
 
-    Returns
-    --------
-    super :Qobj or QobjEvo
-        Superoperator formed from input quantum object.
+    Returns:
+        Qobj: Superoperator formed from input quantum object.
+
+    Raises:
+        TypeError: Invalid input type.
     """
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
