@@ -49,11 +49,12 @@ enum class CmdArguments {
 };
 
 inline CmdArguments parse_cmd_options(const std::string& argv){
-  if(argv == "-v" || argv == "--version"){
+  if(argv == "-v" || argv == "--version")
     return CmdArguments::SHOW_VERSION;
-  } else if (argv == "-c" || argv == "--config"){
+
+  if (argv == "-c" || argv == "--config")
     return CmdArguments::INPUT_CONFIG;
-  }
+
   return CmdArguments::INPUT_DATA;
 }
 
@@ -93,13 +94,13 @@ int main(int argc, char **argv) {
   json_t config;
 
   if(argc == 1){
-    usage(std::string(argv[0]), out);
+    usage(std::string(argv[0]), out); // NOLINT
     return 1;
   }
-  
+
   // Parse command line options
   for(auto pos = 1ul; pos < static_cast<unsigned int>(argc); ++pos){
-    auto option = parse_cmd_options(std::string(argv[pos]));
+    auto option = parse_cmd_options(std::string(argv[pos])); // NOLINT
     switch(option){
       case CmdArguments::SHOW_VERSION:
         show_version();
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
         break;
       case CmdArguments::INPUT_DATA:
         try {
-          qobj = JSON::load(std::string(argv[pos]));
+          qobj = JSON::load(std::string(argv[pos])); // NOLINT
           pos = argc; //Exit from the loop
         }catch(std::exception &e){
           std::string msg = "Invalid input (" +  std::string(e.what()) + ")";
@@ -146,7 +147,7 @@ int main(int argc, char **argv) {
 
     // Check if execution was succesful.
     bool success = false;
-    std::string status = "";
+    std::string status;
     JSON::get_value(success, "success", result);
     JSON::get_value(status, "status", result);
     if (!success) {
