@@ -45,6 +45,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+# pylint: disable=invalid-name
+
 """
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
@@ -61,48 +63,17 @@ from .fastsparse import fast_csr_matrix, fast_identity
 def jmat(j, *args):
     """Higher-order spin operators:
 
-    Parameters
-    ----------
-    j : float
-        Spin of operator
+    Args:
+        j (float): Spin of operator
 
-    args : str
-        Which operator to return 'x','y','z','+','-'.
-        If no args given, then output is ['x','y','z']
+        args (str): Which operator to return 'x','y','z','+','-'.
+                    If no args given, then output is ['x','y','z']
 
-    Returns
-    -------
-    jmat : qobj / ndarray
-        ``qobj`` for requested spin operator(s).
+    Returns:
+        Qobj: Requested spin operator(s).
 
-
-    Examples
-    --------
-    >>> jmat(1)
-    [ Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
-    Qobj data =
-    [[ 0.          0.70710678  0.        ]
-     [ 0.70710678  0.          0.70710678]
-     [ 0.          0.70710678  0.        ]]
-     Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
-    Qobj data =
-    [[ 0.+0.j          0.-0.70710678j  0.+0.j        ]
-     [ 0.+0.70710678j  0.+0.j          0.-0.70710678j]
-     [ 0.+0.j          0.+0.70710678j  0.+0.j        ]]
-     Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
-    Qobj data =
-    [[ 1.  0.  0.]
-     [ 0.  0.  0.]
-     [ 0.  0. -1.]]]
-
-
-    Notes
-    -----
-    If no 'args' input, then returns array of ['x','y','z'] operators.
-
+    Raises:
+        TypeError: Invalid input.
     """
     if (scipy.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
@@ -137,7 +108,7 @@ def _jplus(j):
     ind = np.arange(1, N, dtype=np.int32)
     ptr = np.array(list(range(N-1))+[N-1]*2, dtype=np.int32)
     ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+    return fast_csr_matrix((data, ind, ptr), shape=(N, N))
 
 
 def _jz(j):
@@ -145,19 +116,19 @@ def _jz(j):
     Internal functions for generating the data representing the J-z operator.
     """
     N = int(2*j+1)
-    data = np.array([j-k for k in range(N) if (j-k)!=0], dtype=complex)
+    data = np.array([j-k for k in range(N) if (j-k) != 0], dtype=complex)
     # Even shaped matrix
-    if (N % 2 == 0):
+    if N % 2 == 0:
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
+        ptr = np.arange(N+1, dtype=np.int32)
         ptr[-1] = N
     # Odd shaped matrix
     else:
         j = int(j)
-        ind = np.array(list(range(j))+list(range(j+1,N)), dtype=np.int32)
-        ptr = np.array(list(range(j+1))+list(range(j,N)), dtype=np.int32)
+        ind = np.array(list(range(j))+list(range(j+1, N)), dtype=np.int32)
+        ptr = np.array(list(range(j+1))+list(range(j, N)), dtype=np.int32)
         ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+    return fast_csr_matrix((data, ind, ptr), shape=(N, N))
 
 
 #
@@ -183,15 +154,11 @@ def spin_Jx(j):
 def spin_Jy(j):
     """Spin-j y operator
 
-    Parameters
-    ----------
-    j : float
-        Spin of operator
+    Args:
+        j (float): Spin of operator
 
-    Returns
-    -------
-    op : Qobj
-        ``qobj`` representation of the operator.
+    Returns:
+        Qobj: representation of the operator.
 
     """
     return jmat(j, 'y')
@@ -200,15 +167,11 @@ def spin_Jy(j):
 def spin_Jz(j):
     """Spin-j z operator
 
-    Parameters
-    ----------
-    j : float
-        Spin of operator
+    Args:
+        j (float): Spin of operator
 
-    Returns
-    -------
-    op : Qobj
-        ``qobj`` representation of the operator.
+    Returns:
+        Qobj: representation of the operator.
 
     """
     return jmat(j, 'z')
@@ -217,15 +180,11 @@ def spin_Jz(j):
 def spin_Jm(j):
     """Spin-j annihilation operator
 
-    Parameters
-    ----------
-    j : float
-        Spin of operator
+    Parameters:
+        j (float): Spin of operator
 
-    Returns
-    -------
-    op : Qobj
-        ``qobj`` representation of the operator.
+    Returns:
+        Qobj: representation of the operator.
 
     """
     return jmat(j, '-')
@@ -234,15 +193,11 @@ def spin_Jm(j):
 def spin_Jp(j):
     """Spin-j creation operator
 
-    Parameters
-    ----------
-    j : float
-        Spin of operator
+    Args:
+        j (float): Spin of operator
 
-    Returns
-    -------
-    op : Qobj
-        ``qobj`` representation of the operator.
+    Returns:
+        Qobj: representation of the operator.
 
     """
     return jmat(j, '+')
@@ -251,15 +206,11 @@ def spin_Jp(j):
 def spin_J_set(j):
     """Set of spin-j operators (x, y, z)
 
-    Parameters
-    ----------
-    j : float
-        Spin of operators
+    Args:
+        j (float): Spin of operators
 
-    Returns
-    -------
-    list : list of Qobj
-        list of ``qobj`` representating of the spin operator.
+    Returns:
+        list: list of ``qobj`` representating of the spin operator.
 
     """
     return jmat(j)
@@ -353,41 +304,28 @@ shape = [2, 2], type = oper, isHerm = True
 # out = destroy(N), N is integer value &  N>0
 #
 def destroy(N, offset=0):
-    '''Destruction (lowering) operator.
+    """Destruction (lowering) operator.
 
-    Parameters
-    ----------
-    N : int
-        Dimension of Hilbert space.
+    Args:
+        N (int): Dimension of Hilbert space.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
+        offset (int): (default 0) The lowest number state that is included
+                      in the finite number state representation of the operator.
 
-    Returns
-    -------
-    oper : qobj
-        Qobj for lowering operator.
+    Returns:
+        Qobj: Qobj for lowering operator.
 
-    Examples
-    --------
-    >>> destroy(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
-     [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
+    Raises:
+        ValueError: Invalid input.
 
-    '''
+    """
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-    ind = np.arange(1,N, dtype=np.int32)
+    ind = np.arange(1, N, dtype=np.int32)
     ptr = np.arange(N+1, dtype=np.int32)
     ptr[-1] = N-1
-    return Qobj(fast_csr_matrix((data, ind, ptr),shape=(N,N)), isherm=False)
+    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(N, N)), isherm=False)
 
 
 #
@@ -395,34 +333,21 @@ shape = [4, 4], type = oper, isHerm = False
 # out = create(N), N is integer value &  N>0
 #
 def create(N, offset=0):
-    '''Creation (raising) operator.
+    """Creation (raising) operator.
 
-    Parameters
-    ----------
-    N : int
-        Dimension of Hilbert space.
+    Args:
+        N (int): Dimension of Hilbert space.
 
-    Returns
-    -------
-    oper : qobj
-        Qobj for raising operator.
+        offset (int): (default 0) The lowest number state that is included
+                      in the finite number state representation of the operator.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
+    Returns:
+        Qobj: Qobj for raising operator.
 
-    Examples
-    --------
-    >>> create(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-     [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
+    Raises:
+        ValueError: Invalid inputs.
 
-    '''
+    """
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     qo = destroy(N, offset=offset)  # create operator using destroy function
@@ -437,28 +362,16 @@ def qeye(N):
     """
     Identity operator
 
-    Parameters
-    ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    Args:
+        N (int): Dimension of Hilbert space. If provided as a list of ints,
+                 then the dimension is the product over this list, but the
+                 ``dims`` property of the new Qobj are set to this list.
 
-    Returns
-    -------
-    oper : qobj
-        Identity operator Qobj.
+    Returns:
+        Qobj: Identity operator Qobj.
 
-    Examples
-    --------
-    >>> qeye(3)
-    Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
-    Qobj data =
-    [[ 1.  0.  0.]
-     [ 0.  1.  0.]
-     [ 0.  0.  1.]]
-
+    Raises:
+        ValueError: Invalid input.
     """
     N = int(N)
     if N < 0:
@@ -488,19 +401,13 @@ def position(N, offset=0):
     """
     Position operator x=1/sqrt(2)*(a+a.dag())
 
-    Parameters
-    ----------
-    N : int
-        Number of Fock states in Hilbert space.
+    Args:
+        N (int): Number of Fock states in Hilbert space.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
-
-    Returns
-    -------
-    oper : qobj
-        Position operator as Qobj.
+        offset (int): (default 0) The lowest number state that is included
+                      in the finite number state representation of the operator.
+    Returns:
+        Qobj: Position operator as Qobj.
     """
     a = destroy(N, offset=offset)
     return 1.0 / np.sqrt(2.0) * (a + a.dag())
@@ -510,19 +417,14 @@ def momentum(N, offset=0):
     """
     Momentum operator p=-1j/sqrt(2)*(a-a.dag())
 
-    Parameters
-    ----------
-    N : int
-        Number of Fock states in Hilbert space.
+    Args:
+        N (int): Number of Fock states in Hilbert space.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
-
-    Returns
-    -------
-    oper : qobj
-        Momentum operator as Qobj.
+        offset (int): (default 0) The lowest number state that is
+                      included in the finite number state
+                      representation of the operator.
+    Returns:
+        Qobj: Momentum operator as Qobj.
     """
     a = destroy(N, offset=offset)
     return -1j / np.sqrt(2.0) * (a - a.dag())
@@ -531,78 +433,44 @@ def momentum(N, offset=0):
 def num(N, offset=0):
     """Quantum object for number operator.
 
-    Parameters
-    ----------
-    N : int
-        The dimension of the Hilbert space.
+    Args:
+        N (int): The dimension of the Hilbert space.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
+        offset(int): (default 0) The lowest number state that is included
+                     in the finite number state representation of the operator.
 
-    Returns
-    -------
-    oper: qobj
-        Qobj for number operator.
-
-    Examples
-    --------
-    >>> num(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = True
-    Qobj data =
-    [[0 0 0 0]
-     [0 1 0 0]
-     [0 0 2 0]
-     [0 0 0 3]]
+    Returns:
+        Qobj: Qobj for number operator.
 
     """
     if offset == 0:
-        data = np.arange(1,N, dtype=complex)
-        ind = np.arange(1,N, dtype=np.int32)
-        ptr = np.array([0]+list(range(0,N)), dtype=np.int32)
+        data = np.arange(1, N, dtype=complex)
+        ind = np.arange(1, N, dtype=np.int32)
+        ptr = np.array([0]+list(range(0, N)), dtype=np.int32)
         ptr[-1] = N-1
     else:
         data = np.arange(offset, offset + N, dtype=complex)
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
+        ptr = np.arange(N+1, dtype=np.int32)
         ptr[-1] = N
 
-    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
+    return Qobj(fast_csr_matrix((data, ind, ptr),
+                                shape=(N, N)), isherm=True)
 
 
 def squeeze(N, z, offset=0):
     """Single-mode Squeezing operator.
 
+    Args:
+        N (int): Dimension of hilbert space.
 
-    Parameters
-    ----------
-    N : int
-        Dimension of hilbert space.
+        z (complex): Squeezing parameter.
 
-    z : float/complex
-        Squeezing parameter.
+        offset (int): (default 0) The lowest number state that is included
+                      in the finite number state representation of the operator.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
-
-    Returns
-    -------
-    oper : :class:`qutip.qobj.Qobj`
-        Squeezing operator.
-
-
-    Examples
-    --------
-    >>> squeeze(4, 0.25)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
-     [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
+    Returns:
+        Qobj:`Squeezing operator.
 
     """
     a = destroy(N, offset=offset)
@@ -613,26 +481,15 @@ shape = [4, 4], type = oper, isHerm = False
 def squeezing(a1, a2, z):
     """Generalized squeezing operator.
 
-    .. math::
+    Args:
+        a1 (Qobj): Operator 1.
 
-        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2
-        - za_1^\\dagger a_2^\\dagger\\right)\\right)
+        a2 (Qobj): Operator 2.
 
-    Parameters
-    ----------
-    a1 : :class:`qutip.qobj.Qobj`
-        Operator 1.
+        z (complex): Squeezing parameter.
 
-    a2 : :class:`qutip.qobj.Qobj`
-        Operator 2.
-
-    z : float/complex
-        Squeezing parameter.
-
-    Returns
-    -------
-    oper : :class:`qutip.qobj.Qobj`
-        Squeezing operator.
+    Returns:
+        Qobj: Squeezing operator.
 
     """
     b = 0.5 * (np.conj(z) * (a1 * a2) - z * (a1.dag() * a2.dag()))
@@ -642,34 +499,17 @@ def squeezing(a1, a2, z):
 def displace(N, alpha, offset=0):
     """Single-mode displacement operator.
 
-    Parameters
-    ----------
-    N : int
-        Dimension of Hilbert space.
+    Args:
+        N (int): Dimension of Hilbert space.
 
-    alpha : float/complex
-        Displacement amplitude.
+        alpha (complex): Displacement amplitude.
 
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
+        offset (int): The lowest number state that is included
+                      in the finite number state
+                      representation of the operator.
 
-    Returns
-    -------
-    oper : qobj
-        Displacement operator.
-
-    Examples
-    ---------
-    >>> displace(4,0.25)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.96923323+0.j -0.24230859+0.j  0.04282883+0.j -0.00626025+0.j]
-     [ 0.24230859+0.j  0.90866411+0.j -0.33183303+0.j  0.07418172+0.j]
-     [ 0.04282883+0.j  0.33183303+0.j  0.84809499+0.j -0.41083747+0.j]
-     [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
-
+    Returns:
+        Qobj: Displacement operator.
     """
     a = destroy(N, offset=offset)
     D = (alpha * a.dag() - np.conj(alpha) * a).expm()
@@ -680,6 +520,19 @@ def commutator(A, B, kind="normal"):
     """
     Return the commutator of kind `kind` (normal, anti) of the
     two operators A and B.
+
+    Args:
+        A (Qobj): Operator A.
+
+        B (Qobj): Operator B.
+
+        kind (str): 'normal' or 'anti' commutator.
+
+    Returns:
+        Qobj: Commutator
+
+    Raises:
+        TypeError: Invalid input.
     """
     if kind == 'normal':
         return A * B - B * A
@@ -691,93 +544,20 @@ def commutator(A, B, kind="normal"):
         raise TypeError("Unknown commutator kind '%s'" % kind)
 
 
-def qutrit_ops():
-    """
-    Operators for a three level system (qutrit).
-
-    Returns
-    -------
-    opers: array
-        `array` of qutrit operators.
-
-    """
-    from qutip.states import qutrit_basis
-
-    one, two, three = qutrit_basis()
-    sig11 = one * one.dag()
-    sig22 = two * two.dag()
-    sig33 = three * three.dag()
-    sig12 = one * two.dag()
-    sig23 = two * three.dag()
-    sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31],
-                    dtype=object)
-
-
-def qdiags(diagonals, offsets, dims=None, shape=None):
-    """
-    Constructs an operator from an array of diagonals.
-
-    Parameters
-    ----------
-    diagonals : sequence of array_like
-        Array of elements to place along the selected diagonals.
-
-    offsets : sequence of ints
-        Sequence for diagonals to be set:
-            - k=0 main diagonal
-            - k>0 kth upper diagonal
-            - k<0 kth lower diagonal
-    dims : list, optional
-        Dimensions for operator
-
-    shape : list, tuple, optional
-        Shape of operator.  If omitted, a square operator large enough
-        to contain the diagonals is generated.
-
-    See Also
-    --------
-    scipy.sparse.diags : for usage information.
-
-    Notes
-    -----
-    This function requires SciPy 0.11+.
-
-    Examples
-    --------
-    >>> qdiags(sqrt(range(1, 4)), 1)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isherm = False
-    Qobj data =
-    [[ 0.          1.          0.          0.        ]
-     [ 0.          0.          1.41421356  0.        ]
-     [ 0.          0.          0.          1.73205081]
-     [ 0.          0.          0.          0.        ]]
-
-    """
-    data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    if not dims:
-        dims = [[], []]
-    if not shape:
-        shape = []
-    return Qobj(data, dims, list(shape))
-
 def qzero(N):
     """
     Zero operator
 
-    Parameters
-    ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    Args:
+        N (int or list): Dimension of Hilbert space. If provided as a
+                         list of ints, then the dimension is the product
+                         over this list, but the ``dims`` property of the
+                         new Qobj are set to this list.
+    Returns:
+        Qobj: Zero operator Qobj.
 
-    Returns
-    -------
-    qzero : qobj
-        Zero operator Qobj.
-
+    Raises:
+        ValueError: Invalid input.
     """
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
@@ -785,31 +565,20 @@ def qzero(N):
     return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
 
 
-def charge(Nmax, Nmin=None, frac = 1):
+def charge(Nmax, Nmin=None, frac=1):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
 
-    Parameters
-    ----------
-    Nmax : int
-        Maximum charge state to consider.
+    Args:
+        Nmax (int): Maximum charge state to consider.
 
-    Nmin : int (default = -Nmax)
-        Lowest charge state to consider.
+        Nmin (int): (default = -Nmax) Lowest charge state to consider.
 
-    frac : float (default = 1)
-        Specify fractional charge if needed.
+        frac (float): (default = 1) Specify fractional charge if needed.
 
-    Returns
-    -------
-    C : Qobj
-        Charge operator over [Nmin,Nmax].
-
-    Notes
-    -----
-    .. versionadded:: 3.2
-
+    Returns:
+        Qobj: Charge operator over [Nmin,Nmax].
     """
     if Nmin is None:
         Nmin = -Nmax
@@ -824,27 +593,19 @@ def charge(Nmax, Nmin=None, frac = 1):
 def tunneling(N, m=1):
     """
     Tunneling operator with elements of the form
-    :math:`\sum |N><N+m| + |N+m><N|`.
+    :math:`\\sum |N><N+m| + |N+m><N|`.
 
-    Parameters
-    ----------
-    N : int
-        Number of basis states in Hilbert space.
-    m : int (default = 1)
-        Number of excitations in tunneling event.
+    Args:
+        N (int): Number of basis states in Hilbert space.
 
-    Returns
-    -------
-    T : Qobj
-        Tunneling operator.
+        m (int): Number of excitations in tunneling event.
 
-    Notes
-    -----
-    .. versionadded:: 3.2
-
+    Returns:
+        Qobj: Tunneling operator.
     """
-    diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
+    diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
+    T = sp.diags(diags, [m, -m], format='csr', dtype=complex)
     return Qobj(T, isherm=True)
 
+# pylint: disable=wrong-import-position
 from .qobj import Qobj
