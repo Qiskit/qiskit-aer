@@ -1693,5 +1693,6 @@ class Qobj(object):
 
         return q_sum
 
+
 # pylint: disable=wrong-import-position
 from ..qutip_lite import states
