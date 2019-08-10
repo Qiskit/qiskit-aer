@@ -53,7 +53,8 @@ Module for expectation values.
 __all__ = ['expect', 'variance']
 
 import numpy as np
-from .qobj import Qobj, isoper
+from .qobj import Qobj
+# pylint: disable=import-error, no-name-in-module
 from .cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, cy_spmm_tr,
                             expect_csr_ket)
 
@@ -65,10 +66,10 @@ def expect(oper, state):
     """Calculates the expectation value for operator(s) and state(s).
 
     Args:
-    oper (qobj.Qobj or list): A single or a `list` or operators
+        oper (Qobj or list): A single or a `list` or operators
                               for expectation value.
 
-    state (qobj.Qobj or list): A single or a `list` of quantum states
+        state (Qobj or list): A single or a `list` of quantum states
                                or density matrices.
 
     Returns:
@@ -109,7 +110,7 @@ def _single_qobj_expect(oper, state):
     """
     Private function used by expect to calculate expectation values of Qobjs.
     """
-    if isoper(oper):
+    if oper.isoper:
         if oper.dims[1] != state.dims[0]:
             raise Exception('Operator and state do not have same tensor ' +
                             'structure: %s and %s' %
