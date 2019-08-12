@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.extensions.simulator import Snapshot
+from qiskit.providers.aer.extensions import snapshot
 
 class SnapshotStatevector(Snapshot):
     """ Simulator snapshot instruction for statevector snapshot type """
@@ -28,38 +28,15 @@ class SnapshotStatevector(Snapshot):
 
 def snapshot_statevector(self,
                          label,
-                         snapshot_type='statevector',
                          qubits=None,
                          params=None):
 
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is deprecated.", DeprecationWarning)
-        label = str(label)
-    # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    if not qubits:
-        tuples = []
-        if isinstance(self, QuantumCircuit):
-            for register in self.qregs:
-                tuples.append(register)
-        if not tuples:
-            raise ExtensionError('no qubits for snapshot')
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
+    qubits = Snapshot.define_snapshot_register(label, qubits)
+
     return self.append(
         SnapshotStatevector(
             label,
-            snapshot_type=snapshot_type,
+            snapshot_type='statevector',
             num_qubits=len(qubits),
             params=params), qubits)
 

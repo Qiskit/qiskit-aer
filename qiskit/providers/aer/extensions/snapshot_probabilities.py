@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.extensions.simulator import Snapshot
+from qiskit.providers.aer.extensions import snapshot
 
 class SnapshotProbabilites(Snapshot):
 
@@ -32,7 +32,6 @@ class SnapshotProbabilites(Snapshot):
 def snapshot_probabilities(self,
                            label,
                            qubits=None,
-                           snapshot_type='probabilities',
                            params=None):
 
     # Convert label to string for backwards compatibility
@@ -65,8 +64,8 @@ def snapshot_probabilities(self,
     return self.append(
         SnapshotProbabilites(
             label,
-            qubits,
-            snapshot_type=snapshot_type,
+            num_qubits=len(qubits),
+            snapshot_type='probabilities',
             params=params),qubits)
 
 

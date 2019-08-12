@@ -60,6 +60,35 @@ class Snapshot(Instruction):
         return Snapshot(self.num_qubits, self.num_clbits, self.params[0],
                         self.params[1])
 
+    @staticmethod
+    def define_snapshot_register(label,
+                                 qubits=None):
+
+        # Convert label to string for backwards compatibility
+        if not isinstance(label, str):
+            warnings.warn(
+                "Snapshot label should be a string, "
+                "implicit conversion is deprecated.", DeprecationWarning)
+            label = str(label)
+        # If no qubits are specified we add all qubits so it acts as a barrier
+        # This is needed for full register snapshots like statevector
+        if isinstance(qubits, QuantumRegister):
+            qubits = qubits[:]
+        if not qubits:
+            tuples = []
+            if isinstance(self, QuantumCircuit):
+                for register in self.qregs:
+                    tuples.append(register)
+            if not tuples:
+                raise ExtensionError('no qubits for snapshot')
+            qubits = []
+            for tuple_element in tuples:
+                if isinstance(tuple_element, QuantumRegister):
+                    for j in range(tuple_element.size):
+                        qubits.append(tuple_element[j])
+                else:
+                    qubits.append(tuple_element)
+
     @property
     def snapshot_type(self):
         """Return snapshot type"""

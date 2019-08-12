@@ -2,6 +2,7 @@ import unittest
 
 from qiskit import *
 
+from qiskit.providers.aer import *
 from qiskit.providers.aer.extensions import *
 
 class TestSnapshot(unittest.TestCase):
@@ -45,6 +46,7 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn('statevector', data['snapshots'])
         self.assertIn('statevector_snapshot', data['snapshots']['statevector'])
 
+    '''
     def test_snapshot_stabilizer(self):
         #Adding measurement and snapshot
         self.qc.measure(self.q, self.c)
@@ -61,7 +63,7 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn('stabilizer', data['snapshots'])
         self.assertIn('stabilizer_snapshot', data['snapshots']['stabilizer'])
 
-    '''
+
     def test_snapshot_density_matrix(self):
         #Test circuit
         self.qc.measure(self.q,self.c)
@@ -77,12 +79,12 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn('snapshots', data)
         self.assertIn('density_matrix', data['snapshots'])
         self.assertIn('density_matrix_snapshot', data['snapshots']['stabilizer'])
-    '''
+
 
     def test_snapshot_probabilities(self):
         #Adding measurement and snapshot
         self.qc.measure(self.q, self.c)
-        self.qc.snapshot_probabilities('probabilities_snapshot', qubits=1)
+        self.qc.snapshot_probabilities('probabilities_snapshot', qubits=[self.q[0]])
 
         #Execute on qasm_simulator with density_matrix method
         qasm_backend = Aer.get_backend('qasm_simulator')
@@ -93,4 +95,5 @@ class TestSnapshot(unittest.TestCase):
         #Checking snapshot_density_matrix is created
         self.assertIn('snapshots', data)
         self.assertIn('probabilities', data['snapshots'])
-        self.assertIn('probabilities_snapshot', data['snapshots']['stabilizer'])
+        self.assertIn('probabilities_snapshot', data['snapshots']['probabilities'])
+    '''

@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.extensions.simulator import Snapshot
+from qiskit.providers.aer.extensions import snapshot
 
 class SnapshotStabilizer(Snapshot):
     def __init__(self,
@@ -25,7 +25,6 @@ class SnapshotStabilizer(Snapshot):
 
 def snapshot_stabilizer(self,
                         label,
-                        snapshot_type='stabilizer',
                         qubits=None,
                         params=None):
 
@@ -56,7 +55,7 @@ def snapshot_stabilizer(self,
     return self.append(
         SnapshotStabilizer(
             label,
-            snapshot_type=snapshot_type,
+            snapshot_type='stabilizer',
             num_qubits=len(qubits),
             params=params), qubits)
 

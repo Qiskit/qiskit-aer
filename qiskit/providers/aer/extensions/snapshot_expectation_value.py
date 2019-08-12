@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.extensions.simulator import Snapshot
+from qiskit.providers.aer.extensions import snapshot
 
 class SnapshotExpectationValue(Snapshot):
 
@@ -25,7 +25,43 @@ class SnapshotExpectationValue(Snapshot):
 
         super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
 
-def snapshot_expectation_value():
-    pass
+def snapshot_expectation_value(self,
+                               label,
+                               qubits=None,
+                               params=None):
+
+    # Convert label to string for backwards compatibility
+    if not isinstance(label, str):
+        warnings.warn(
+            "Snapshot label should be a string, "
+            "implicit conversion is deprecated.", DeprecationWarning)
+        label = str(label)
+
+    # If no qubits are specified we add all qubits so it acts as a barrier
+    # This is needed for full register snapshots
+    if isinstance(qubits, QuantumRegister):
+        qubits = qubits[:]
+
+    if not qubits:
+        tuples = []
+        if isinstance(self, QuantumCircuit):
+            for register in self.qregs:
+                tuples.append(register)
+        if not tuples:
+            raise ExtensionError('no qubits for snapshot')
+        qubits = []
+        for tuple_element in tuples:
+            if isinstance(tuple_element, QuantumRegister):
+                for j in range(tuple_element.size):
+                    qubits.append(tuple_element[j])
+            else:
+                qubits.append(tuple_element)
+
+    return self.append(
+        SnapshotExpectationValue(
+            label,
+            num_qubits=len(qubits),
+            snapshot_type='expectation_value',
+            params=params),qubits)
 
 QuantumCircuit.snapshot_expectation_value = snapshot_expectation_value
