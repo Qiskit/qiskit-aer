@@ -46,7 +46,7 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn('statevector', data['snapshots'])
         self.assertIn('statevector_snapshot', data['snapshots']['statevector'])
 
-    '''
+
     def test_snapshot_stabilizer(self):
         #Adding measurement and snapshot
         self.qc.measure(self.q, self.c)
@@ -86,14 +86,27 @@ class TestSnapshot(unittest.TestCase):
         self.qc.measure(self.q, self.c)
         self.qc.snapshot_probabilities('probabilities_snapshot', qubits=[self.q[0]])
 
-        #Execute on qasm_simulator with density_matrix method
+        #Execute on qasm_simulator
         qasm_backend = Aer.get_backend('qasm_simulator')
-        #BACKEND_OPTS = {'method' : 'density_matrix'}
         job = execute(self.qc, qasm_backend, shots=10)
         data = job.result().data(0)
 
-        #Checking snapshot_density_matrix is created
+        #Checking snapshot_probabilities is created
         self.assertIn('snapshots', data)
         self.assertIn('probabilities', data['snapshots'])
         self.assertIn('probabilities_snapshot', data['snapshots']['probabilities'])
-    '''
+
+        def test_snapshot_expectation_value(self):
+            #Adding measurement and snapshot
+            self.qc.measure(self.q, self.c)
+            self.qc.snapshot_expectation_value('expectation_value_snapshot', qubits=[self.q[0]])
+
+            #Execute on qasm_simulator
+            qasm_backend = Aer.get_backend('qasm_simulator')
+            job = execute(self.qc, qasm_backend, shots=10)
+            data = job.result().data(0)
+
+            #Checking snapshot_expectation_value is created
+            self.assertIn('snapshots', data)
+            self.assertIn('expectation_value', data['snapshots'])
+            self.assertIn('expectation_value_snapshot', data['snapshots']['probabilities'])

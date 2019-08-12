@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.providers.aer.extensions import snapshot
+from qiskit.providers.aer.extensions import Snapshot
 
 class SnapshotStatevector(Snapshot):
     """ Simulator snapshot instruction for statevector snapshot type """
@@ -31,13 +31,12 @@ def snapshot_statevector(self,
                          qubits=None,
                          params=None):
 
-    qubits = Snapshot.define_snapshot_register(label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotStatevector(
             label,
-            snapshot_type='statevector',
-            num_qubits=len(qubits),
-            params=params), qubits)
+            num_qubits=len(snapshot_register),
+            params=params), snapshot_register)
 
 QuantumCircuit.snapshot_statevector = snapshot_statevector

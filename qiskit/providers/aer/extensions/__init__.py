@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 from . import snapshot
+from .snapshot import Snapshot
 from . import snapshot_statevector
 from . import snapshot_stabilizer
 from . import snapshot_density_matrix

@@ -12,7 +12,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.providers.aer.extensions import snapshot
+from qiskit.providers.aer.extensions import Snapshot
 
 class SnapshotProbabilites(Snapshot):
 
@@ -34,39 +34,13 @@ def snapshot_probabilities(self,
                            qubits=None,
                            params=None):
 
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is deprecated.", DeprecationWarning)
-        label = str(label)
-
-    # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-
-    if not qubits:
-        tuples = []
-        if isinstance(self, QuantumCircuit):
-            for register in self.qregs:
-                tuples.append(register)
-        if not tuples:
-            raise ExtensionError('no qubits for snapshot')
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotProbabilites(
             label,
-            num_qubits=len(qubits),
-            snapshot_type='probabilities',
-            params=params),qubits)
+            num_qubits=len(snapshot_register),
+            params=params),snapshot_register)
 
 
 QuantumCircuit.snapshot_probabilities = snapshot_probabilities

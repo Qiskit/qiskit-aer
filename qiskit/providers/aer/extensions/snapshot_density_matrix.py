@@ -12,52 +12,28 @@
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.extensions.simulator import Snapshot
+from qiskit.providers.aer.extensions import Snapshot
 
-class SnaphotDensityMatrix(Snapshot):
+class SnapshotDensityMatrix(Snapshot):
     def __init__(self,
                  label,
                  snapshot_type='density_matrix',
                  num_qubits=0,
                  num_clbits=0,
                  params=None):
-        super().__init__(label, num_qubits, num_clbits, params)
+        super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
 
 def snapshot_density_matrix(self,
                             label,
-                            snapshot_type='density_matrix',
                             qubits=None,
                             params=None):
 
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is deprecated.", DeprecationWarning)
-        label = str(label)
-    # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    if not qubits:
-        tuples = []
-        if isinstance(self, QuantumCircuit):
-            for register in self.qregs:
-                tuples.append(register)
-        if not tuples:
-            raise ExtensionError('no qubits for snapshot')
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+
     return self.append(
         SnapshotDensityMatrix(
             label,
-            snapshot_type=snapshot_type,
-            num_qubits=len(qubits),
-            params=params), qubits)
+            num_qubits=len(snapshot_register),
+            params=params), snapshot_register)
 
 QuantumCircuit.snapshot_density_matrix = snapshot_density_matrix
