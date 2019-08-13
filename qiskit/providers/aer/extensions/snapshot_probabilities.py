@@ -10,37 +10,51 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals
 
+
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.providers.aer.extensions import Snapshot
 
+
 class SnapshotProbabilites(Snapshot):
+    """Snapshot instruction for all methods of Qasm simulator."""
 
     def __init__(self,
                  label,
-                 num_qubits,
-                 snapshot_type='probabilities',
+                 num_qubits=0,
                  num_clbits=0,
                  params=None,
                  variance=False):
 
-        super().__init__(label, snapshot_type, num_qubits, num_clbits, params)
-
         if variance:
-            snapshot_type = 'probabilities_with_variance'
+            super().__init__(label, 'probabilities_with_variance', num_qubits, num_clbits, params)
+        else:
+            super().__init__(label, 'probabilities', num_qubits, num_clbits, params)
+
 
 def snapshot_probabilities(self,
                            label,
                            qubits=None,
+                           variance=False,
                            params=None):
-
+    """Take a snapshot of the internal simulator representation.
+    Works on specified qubits or the full register, and prevents reordering (like barrier).
+    Args:
+        label (str): a snapshot label to report the result
+        qubits (list or None): the qubits to apply snapshot to [Default: None]
+        variance (bool): set snapshot_type to 'probabilities' or 'probabilities_with_variance' [Default: False]
+        params (list or None): the parameters for snapshot_type [Default: None]
+    Returns:
+        QuantumCircuit: with attached command
+    Raises:
+        ExtensionError: malformed command
+    """
     snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
-        SnapshotProbabilites(
-            label,
-            num_qubits=len(snapshot_register),
-            params=params),snapshot_register)
+        SnapshotProbabilites(label,
+                             num_qubits=len(snapshot_register),
+                             params=params), snapshot_register)
 
 
 QuantumCircuit.snapshot_probabilities = snapshot_probabilities

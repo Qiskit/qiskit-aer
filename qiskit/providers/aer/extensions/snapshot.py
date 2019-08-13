@@ -61,7 +61,7 @@ class Snapshot(Instruction):
                         self.params[1])
 
     @staticmethod
-    def define_snapshot_register(self,
+    def define_snapshot_register(circuit,
                                  label,
                                  qubits=None):
 
@@ -77,8 +77,8 @@ class Snapshot(Instruction):
             qubits = qubits[:]
         if not qubits:
             tuples = []
-            if isinstance(self, QuantumCircuit):
-                for register in self.qregs:
+            if isinstance(circuit, QuantumCircuit):
+                for register in circuit.qregs:
                     tuples.append(register)
             if not tuples:
                 raise ExtensionError('no qubits for snapshot')
