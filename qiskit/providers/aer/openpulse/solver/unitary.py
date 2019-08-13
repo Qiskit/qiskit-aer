@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 # pylint: disable=unused-variable, no-name-in-module, protected-access,
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, import-error, exec-used
 
 """Module for unitary pulse evolution.
 """
@@ -37,7 +37,10 @@ def unitary_evolution(exp, global_data, ode_options):
         ode_options (OPoptions): Options for the underlying ODE solver.
 
     Returns:
-        Stuff
+        array: Memory of shots.
+
+    Raises:
+        Exception: Error in ODE solver.
     """
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])

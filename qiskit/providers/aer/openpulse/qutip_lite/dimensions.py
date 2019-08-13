@@ -1,3 +1,17 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -30,6 +44,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+# pylint: disable=invalid-name
 """
 Internal use module for manipulating dims specifications.
 """
@@ -48,7 +63,7 @@ def flatten(l):
 
     Args:
         l (list): Input list
-    
+
     Returns:
         list: Flattened list.
 
@@ -66,12 +81,14 @@ def is_scalar(dims):
     return np.prod(flatten(dims)) == 1
 
 def is_vector(dims):
+    """Is a vector"""
     return (
         isinstance(dims, list) and
         isinstance(dims[0], (int, np.integer))
     )
 
 def is_vectorized_oper(dims):
+    """Is a vectorized operator."""
     return (
         isinstance(dims, list) and
         isinstance(dims[0], list)
@@ -79,6 +96,7 @@ def is_vectorized_oper(dims):
 
 
 def type_from_dims(dims, enforce_square=True):
+    """Get the type of operator from dims structure"""
     bra_like, ket_like = map(is_scalar, dims)
 
     if bra_like:
@@ -156,13 +174,10 @@ def collapse_dims_super(dims):
     Args:
         dims (list): Dimensions specifications to be collapsed.
 
-    Returns
-    -------
-
-    collapsed_dims : list of lists of ints
-        Collapsed dimensions specification describing the same shape
-        such that ``len(collapsed_dims[i][j]) == 1`` for ``i`` and ``j``
-        in ``range(2)``.
+    Returns:
+        list: Collapsed dimensions specification describing the same shape
+              such that ``len(collapsed_dims[i][j]) == 1`` for ``i`` and ``j``
+              in ``range(2)``.
     """
     return _collapse_dims_to_level(dims, 2)
 

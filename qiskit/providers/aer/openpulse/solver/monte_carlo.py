@@ -12,22 +12,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
+# pylint: disable=no-name-in-module, import-error, unused-variable, invalid-name
+
+"""Monte carlo wave function solver."""
 
 from math import log
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
 
-from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
 from qiskit.providers.aer.openpulse.solver.zvode import qiskit_zvode
-from qiskit.providers.aer.openpulse.cy.memory import write_memory
 from qiskit.providers.aer.openpulse.cy.measure import (occ_probabilities,
                                                        write_shots_memory)
+from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -37,7 +38,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
     at times tlist for a single trajectory.
     """
 
-    cy_rhs_func  = global_data['rhs_func']
+    cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
     snapshots = []
@@ -64,6 +65,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
 
     _inst = 'ODE.set_f_params(%s)' % global_data['string']
     code = compile(_inst, '<string>', 'exec')
+    # pylint: disable=exec-used
     exec(code)
 
     # initialize ODE solver for RHS
@@ -77,7 +79,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
                                    max_step=ode_options.max_step
                                   )
     # Forces complex ODE solving
-    if not len(ODE._y):
+    if not any(ODE._y):
         ODE.t = 0.0
         ODE._y = np.array([0.0], complex)
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
@@ -122,7 +124,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
                     if (abs(rand_vals[0] - norm2_guess) <
                             ode_options.norm_tol * rand_vals[0]):
                         break
-                    elif (norm2_guess < rand_vals[0]):
+                    elif norm2_guess < rand_vals[0]:
                         # t_guess is still > t_jump
                         t_final = t_guess
                         norm2_psi = norm2_guess

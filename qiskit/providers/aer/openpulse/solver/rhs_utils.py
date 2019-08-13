@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Routines for generating and loading runtime RHS function"""
+
 import os
 from .codegen import OPCodegen
 from . import settings as op_set
@@ -39,6 +41,7 @@ def _op_func_load(op_system):
     """
     code = compile('from ' + op_system.global_data['rhs_file_name'] +
                    ' import cy_td_ode_rhs', '<string>', 'exec')
+    # pylint: disable=exec-used
     exec(code, globals())
     # pylint: disable=undefined-variable
     op_system.global_data['rhs_func'] = cy_td_ode_rhs

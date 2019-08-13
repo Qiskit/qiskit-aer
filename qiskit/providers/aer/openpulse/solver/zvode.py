@@ -16,8 +16,9 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
+# pylint: disable=no-value-for-parameter, invalid-name
 
-# pylint: disable=no-value-for-parameter
+"""Hack for the ZVODE solver to do the correct stepping without restart."""
 
 from scipy.integrate._ode import zvode
 

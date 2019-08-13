@@ -11,6 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
+
+"""Data configuration module"""
 
 import numpy as np
 pi = np.pi
@@ -31,8 +34,8 @@ def op_data_config(op_system):
     # take care of collapse operators, if any
     op_system.global_data['c_num'] = 0
     if op_system.noise:
-         op_system.global_data['c_num'] = len(op_system.noise)
-         op_system.global_data['num_h_terms'] += 1
+        op_system.global_data['c_num'] = len(op_system.noise)
+        op_system.global_data['num_h_terms'] += 1
 
     op_system.global_data['c_ops_data'] = []
     op_system.global_data['c_ops_ind'] = []
@@ -98,19 +101,19 @@ def op_data_config(op_system):
         ode_var_str += "exp['channels']['%s'][0], " % chan
         ode_var_str += "exp['channels']['%s'][1]" % chan
         if chan != final_chan or var_list:
-            ode_var_str+= ', '
+            ode_var_str += ', '
 
     #now do the variables
     for idx, var in enumerate(var_list):
         ode_var_str += "global_data['vars'][%s]" % idx
         if var != final_var or freq_list:
-             ode_var_str+= ', '
+            ode_var_str += ', '
 
     #now do the freq
     for idx, freq in enumerate(freq_list):
         ode_var_str += "global_data['freqs'][%s]" % idx
         if freq != final_freq:
-             ode_var_str+= ', '
+            ode_var_str += ', '
 
     # Add register
     ode_var_str += ", register"
