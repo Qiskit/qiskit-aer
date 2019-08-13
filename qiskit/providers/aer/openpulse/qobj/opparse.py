@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
+""" The openpulse simulator parser"""
+
 import re
 import copy
 from collections import namedtuple, OrderedDict
@@ -117,7 +119,7 @@ class HamiltonianParser:
                 raise Exception('Missing correct number of brackets in %s' % ham)
 
             # find correct sum-bracket correspondence
-            if len(p_sums) == 0:
+            if any(p_sums) == 0:
                 ham_out.append(ham)
             else:
                 itr = p_sums[0].group('itr')
@@ -202,12 +204,12 @@ class HamiltonianParser:
                     prev = _key
                     break
             else:
-                raise Exception('Invalid input string %s is found', op_str)
+                raise Exception('Invalid input string %s is found' % op_str)
 
         # split coefficient
         coef = ''
         if any([k.type == 'Var' for k in token_list]):
-            for ii in range(len(token_list)):
+            for ii, _ in enumerate(token_list):
                 if token_list[ii].name == '*':
                     if all([k.type != 'Var' for k in token_list[ii+1:]]):
                         coef = ''.join([k.name for k in token_list[:ii]])
@@ -364,7 +366,7 @@ def math_priority(o1, o2):
     else:
         return True
 
-
+# pylint: disable=dangerous-default-value
 def parse_binop(op_str, operands={}, cast_str=True):
     """ Calculate binary operation in string format
     """
