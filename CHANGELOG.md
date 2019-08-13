@@ -28,6 +28,8 @@ Added
     sample_measure to use apply_measure (\#299)
 -   Added density matrix simulation method to QasmSimulator (\# 295, \# 253)
 -   Adds delay measure circuit optimization (\# 317)
+-   Added sampling for sampling with readout-errors (\# 222)
+-   Added support of single precision for statevector and density matrix simulation (\# 286, \# 315)
 
 - Noise model inserter module (\# 239)
 
