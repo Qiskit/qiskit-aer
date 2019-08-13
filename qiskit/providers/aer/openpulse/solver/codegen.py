@@ -16,10 +16,13 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
+# pylint: disable=invalid-name
+
+"""OpenPulse runtime code generator"""
 
 import os
 import sys
-from ..qutip_lite import cy as cy
+from ..qutip_lite import cy
 from . import settings
 
 _cython_path = os.path.abspath(cy.__file__).replace('__init__.py', '')
@@ -155,8 +158,8 @@ class OPCodegen(object):
         func_vars.append("# Eval the time-dependent terms and do SPMV.")
         for idx in range(len(self.op_system.system)+1):
 
-            if (idx==len(self.op_system.system) and
-                (len(self.op_system.system) < self.num_ham_terms)):
+            if (idx == len(self.op_system.system) and
+                    (len(self.op_system.system) < self.num_ham_terms)):
                 #this is the noise term
                 term = [1.0, 1.0]
             elif idx < len(self.op_system.system):
@@ -183,7 +186,8 @@ class OPCodegen(object):
             func_vars.append(sp2 + sp2 + "coef = conj(td%d)"%idx)
             func_vars.append(sp1 + sp2 + "else:")
             func_vars.append(sp2 + sp2 + "coef = td%d"%idx)
-            func_vars.append(sp1 + sp2 + "dot += coef*osc_term*data%d[jj]*vec[idx%d[jj]];"%(idx,idx))
+            func_vars.append(sp1 + sp2 + \
+                             "dot += coef*osc_term*data%d[jj]*vec[idx%d[jj]];"%(idx, idx))
             func_vars.append(sp2 + "out[row] += dot;")
 
         #remove the diagonal terms
@@ -193,6 +197,8 @@ class OPCodegen(object):
         return func_vars
 
     def func_end(self):
+        """End of the RHS function.
+        """
         end_str = [""]
         end_str.append("# Convert to NumPy array, grab ownership, and return.")
         end_str.append("cdef np.npy_intp dims = num_rows")
@@ -205,11 +211,13 @@ class OPCodegen(object):
         return end_str
 
 def func_header(op_system):
+    """Header for the RHS function.
+    """
     func_vars = ["", 'cdef size_t row, jj', 'cdef unsigned int row_start, row_end',
                  'cdef unsigned int num_rows = vec.shape[0]',
                  'cdef double complex dot, osc_term, coef',
-                     "cdef double complex * " +
-                     'out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))'
+                 "cdef double complex * " +
+                 'out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))'
                 ]
     func_vars.append("")
 
@@ -272,4 +280,3 @@ def cython_checks():
     return ["""@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)"""]
-

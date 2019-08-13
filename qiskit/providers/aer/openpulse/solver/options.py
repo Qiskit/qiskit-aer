@@ -12,10 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""OpenPulse options"""
 
 class OPoptions(object):
     """
-    Class of options for opsolver.  Options can be specified either as 
+    Class of options for opsolver.  Options can be specified either as
     arguments to the constructor::
 
         opts = Options(order=10, ...)
@@ -38,7 +39,7 @@ class OPoptions(object):
         max_step (float, 0): Maximum step size (0 = automatic)
         num_cpus (int): Number of cpus used by mcsolver (default = # of cpus).
         norm_tol (float, 1e-3): Tolerance used when finding wavefunction norm.
-        norm_steps (int, 5): Max. number of steps used to find wavefunction norm 
+        norm_steps (int, 5): Max. number of steps used to find wavefunction norm
                             to within norm_tol
         shots (int, 1024): Number of shots to run.
         rhs_reuse (bool, False): Reuse RHS compiled function.
@@ -46,7 +47,7 @@ class OPoptions(object):
         seeds (ndarray, None): Array containing random number seeds for
                                 repeatible shots.
         reuse_seeds (bool, False): Reuse seeds, if already generated.
-        store_final_state (bool, False): Whether or not to store the final state 
+        store_final_state (bool, False): Whether or not to store the final state
                                         of the evolution.
     """
 
@@ -57,7 +58,7 @@ class OPoptions(object):
                  rhs_filename=None, shots=1024,
                  store_final_state=False, seeds=None,
                  reuse_seeds=False):
-        
+
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -104,6 +105,3 @@ class OPoptions(object):
         return str(vars(self))
     def __repr__(self):
         return self.__str__()
-
-
-        

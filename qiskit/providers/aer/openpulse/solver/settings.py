@@ -12,5 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Holds OpenPulse solver settings"""
+
 # Code generation counter
 CGEN_NUM = 0

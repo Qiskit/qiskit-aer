@@ -11,25 +11,22 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=no-name-in-module, import-error, invalid-name
 
 """The main OpenPulse solver routine.
 """
 
 import time
 import numpy as np
-from numpy.random import RandomState, randint
 from scipy.linalg.blas import get_blas_funcs
-from collections import OrderedDict
-from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv, spmv_csr
+from qiskit.tools.parallel import parallel_map, CPU_COUNT
+from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr
 from ..qutip_lite.cy.utilities import _cython_build_cleanup
 from ..qobj.operators import apply_projector
-from .codegen import OPCodegen
 from .rhs_utils import _op_generate_rhs, _op_func_load
 from .data_config import op_data_config
 from .unitary import unitary_evolution
 from .monte_carlo import monte_carlo
-from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from ..cy.measure import write_shots_memory
 
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
@@ -86,9 +83,9 @@ class OP_mcwf(object):
             # preallocate ntraj arrays for state vectors, collapse times, and
             # which operator
             self.collapse_times = [[] for kk in
-                range(op_system.global_data['shots'])]
+                                   range(op_system.global_data['shots'])]
             self.collapse_operators = [[] for kk in
-                range(op_system.global_data['shots'])]
+                                       range(op_system.global_data['shots'])]
         # setup seeds array
         if op_system.global_data['seed']:
             prng = np.random.RandomState(op_system.global_data['seed'])
@@ -99,7 +96,8 @@ class OP_mcwf(object):
             exp['seed'] = prng.randint(np.iinfo(np.int32).max-1)
 
     def run(self):
-
+        """Runs the solver.
+        """
         map_kwargs = {'num_processes': self.op_system.ode_options.num_cpus}
 
 
@@ -117,13 +115,12 @@ class OP_mcwf(object):
         if self.op_system.can_sample:
             start = time.time()
             exp_results = parallel_map(unitary_evolution,
-                                   self.op_system.experiments,
-                                   task_args=(self.op_system.global_data,
-                                              self.op_system.ode_options
-                                             ),
-                                   **map_kwargs
-                                  )
-
+                                       self.op_system.experiments,
+                                       task_args=(self.op_system.global_data,
+                                                  self.op_system.ode_options
+                                                 ),
+                                       **map_kwargs
+                                      )
             end = time.time()
             exp_times = (np.ones(len(self.op_system.experiments))*
                          (end-start)/len(self.op_system.experiments))
@@ -181,13 +178,13 @@ class OP_mcwf(object):
             memory = exp_results[idx_exp]
 
             # meas_level 2 return the shots
-            if m_lev==2:
+            if m_lev == 2:
 
                 # convert the memory **array** into a n
                 # integer
                 # e.g. [1,0] -> 2
                 int_mem = memory.dot(np.power(2.0,
-                                          np.arange(memory.shape[1]-1, -1, -1))).astype(int)
+                                              np.arange(memory.shape[1]-1, -1, -1))).astype(int)
 
                 # if the memory flag is set return each shot
                 if self.op_system.global_data['memory']:
@@ -204,13 +201,11 @@ class OP_mcwf(object):
                 results['data']['counts'] = hex_dict
 
             # meas_level 1 returns the <n>
-            elif m_lev==1:
+            elif m_lev == 1:
 
+                if m_ret == 'avg':
 
-
-                if m_ret=='avg':
-
-                    memory = [np.mean(memory,0)]
+                    memory = [np.mean(memory, 0)]
 
                 # convert into the right [real, complex] pair form for json
                 # this should be cython?
@@ -220,9 +215,9 @@ class OP_mcwf(object):
                     results['data']['memory'].append([])
                     for mem_slot in mem_shot:
                         results['data']['memory'][-1].append(
-                                [np.real(mem_slot), np.imag(mem_slot)])
+                            [np.real(mem_slot), np.imag(mem_slot)])
 
-                if m_ret=='avg':
+                if m_ret == 'avg':
                     results['data']['memory'] = results['data']['memory'][0]
 
 
@@ -243,7 +238,7 @@ def _proj_measurement(pid, ophandler, tt, state, memory, register=None):
 
     for key, acq in ophandler._acqs.items():
         if pid < 0:
-            if len(acq.m_slot) > 0:
+            if any(acq.m_slot):
                 mem_slot_id = acq.m_slot[-1]
             else:
                 continue
@@ -273,7 +268,7 @@ def _proj_measurement(pid, ophandler, tt, state, memory, register=None):
         results.append(outcome)
 
     # projection
-    if len(qubits) > 0:
+    if any(qubits):
         psi_proj = apply_projector(qubits, results, ophandler.h_qub, ophandler.h_osc, state)
     else:
         psi_proj = state

@@ -11,7 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, no-name-in-module, import-error
+
+"""Operators to use in simulator"""
 
 import numpy as np
 from ..qutip_lite import operators as ops
@@ -90,7 +92,7 @@ def project(dim, states):
     if ket in range(dim) and bra in range(dim):
         return st.basis(dim, ket) * st.basis(dim, bra).dag()
     else:
-        raise Exception('States are specified on the outside of Hilbert space %s', states)
+        raise Exception('States are specified on the outside of Hilbert space %s' % states)
 
 
 def tensor(list_qobj):
