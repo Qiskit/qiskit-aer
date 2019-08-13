@@ -11,25 +11,26 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
+
+"""Module for creating quantum operators."""
+
 import numpy as np
 import scipy.linalg as la
 from ..qobj import op_qobj as op
 
-
 def gen_oper(opname, index, h_osc, h_qub, states=None):
     """Generate quantum operators.
 
-    Parameters
-    ----------
-    opname (str): Name of the operator to be returned.
-    index (int): Index of operator.
-    h_osc (dict): Dimension of oscillator subspace
-    h_qub (dict): Dimension of qubit subspace
-    states (tuple): State indices of projection operator.
+    Args:
+        opname (str): Name of the operator to be returned.
+        index (int): Index of operator.
+        h_osc (dict): Dimension of oscillator subspace
+        h_qub (dict): Dimension of qubit subspace
+        states (tuple): State indices of projection operator.
 
-    Returns
-    -------
-    out_oper (qutip.Qobj): quantum operator for target qubit.
+    Returns:
+        Qobj: quantum operator for target qubit.
     """
 
     opr_tmp = None
@@ -39,10 +40,10 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
         is_qubit = True
         dim = h_qub.get(index, 2)
 
-        if opname in ['X', 'Y', 'Z'] and dim>2:
-            if opname=='X':
+        if opname in ['X', 'Y', 'Z'] and dim > 2:
+            if opname == 'X':
                 opr_tmp = op.get_oper('A', dim)+op.get_oper('C', dim)
-            elif opname=='Y':
+            elif opname == 'Y':
                 opr_tmp = -1j*op.get_oper('A', dim)+1j*op.get_oper('C', dim)
             else:
                 opr_tmp = op.get_oper('I', dim) - op.get_oper('N', dim)
@@ -89,9 +90,8 @@ def qubit_occ_oper(target_qubit, h_osc, h_qub, level=0):
     h_qub (dict): Dict of number of levels in each qubit system.
     level (int): Level of qubit system to be measured.
 
-    Returns
-    -------
-    out_oper (qutip.Qobj): Occupation number operator for target qubit.
+    Returns:
+        Qobj: Occupation number operator for target qubit.
     """
     # reverse sort by index
     rev_h_osc = sorted(h_osc.items(), key=lambda x: x[0])[::-1]
@@ -115,17 +115,15 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
     subsystems, and the qubit last. This does it for a dressed systems
     assuming estates has the same ordering
 
-    Parameters
-    ----------
-    target_qubit (int): Qubit for which operator is built.
-    estates: eigenstates in the dressed frame
-    h_osc (dict): Dict of number of levels in each oscillator.
-    h_qub (dict): Dict of number of levels in each qubit system.
-    level (int): Level of qubit system to be measured.
+    Args:
+        target_qubit (int): Qubit for which operator is built.
+        estates (list): eigenstates in the dressed frame
+        h_osc (dict): Dict of number of levels in each oscillator.
+        h_qub (dict): Dict of number of levels in each qubit system.
+        level (int): Level of qubit system to be measured.
 
-    Returns
-    -------
-    out_oper (qutip.Qobj): Occupation number operator for target qubit.
+    Returns:
+        Qobj: Occupation number operator for target qubit.
     """
     # reverse sort by index
     rev_h_osc = sorted(h_osc.items(), key=lambda x: x[0])[::-1]
@@ -134,9 +132,9 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
     # osc_n * … * osc_0 * qubit_n * … * qubit_0
     states = []
     proj_op = 0*op.fock_dm(len(estates), 0)
-    for ii,dd in rev_h_osc:
-        states.append(op.basis(dd,0))
-    for ii,dd in rev_h_qub:
+    for ii, dd in rev_h_osc:
+        states.append(op.basis(dd, 0))
+    for ii, dd in rev_h_qub:
         if ii == target_qubit:
             states.append(op.basis(dd, level))
         else:
@@ -145,9 +143,9 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
 
     state = op.tensor(states)
 
-    for ii in range(len(estates)):
-        if state[ii]==1:
-            proj_op += estates[ii] * estates[ii].dag()
+    for ii, estate in enumerate(estates):
+        if state[ii] == 1:
+            proj_op += estate * estate.dag()
 
     return proj_op
 
@@ -163,7 +161,7 @@ def measure_outcomes(measured_qubits, state_vector, measure_ops,
         seed (int): Optional seed to RandomState for reproducibility.
 
     Returns:
-        outcomes (str): String of binaries representing measured qubit values.
+        str: String of binaries representing measured qubit values.
     """
     outcome_len = max(measured_qubits)+1
     # Create random generator with given seed (if any).
@@ -189,17 +187,15 @@ def apply_projector(measured_qubits, results, h_qub, h_osc, state_vector):
     """Builds and applies the projection operator associated
     with a given qubit measurement result onto a state vector.
 
-    Parameters
-    ----------
-    measured_qubits (list): measured qubit indices.
-    results (list): results of qubit measurements.
-    h_qub (dict): Dict of number of levels in each qubit system.
-    h_osc (dict): Dict of number of levels in each oscillator.
-    state_vector (ndarray): State vector.
+    Args:
+        measured_qubits (list): measured qubit indices.
+        results (list): results of qubit measurements.
+        h_qub (dict): Dict of number of levels in each qubit system.
+        h_osc (dict): Dict of number of levels in each oscillator.
+        state_vector (ndarray): State vector.
 
     Returns:
-    ----------
-    proj_state (qutip.Qobj): State vector after projector applied, and normalized.
+        Qobj: State vector after projector applied, and normalized.
     """
 
     # reverse sort by index
@@ -222,7 +218,7 @@ def apply_projector(measured_qubits, results, h_qub, h_osc, state_vector):
 
     return psi
 
-
+# pylint: disable=dangerous-default-value
 def init_fock_state(h_osc, h_qub, noise_dict={}):
     """ Generate initial Fock state, in the number state
     basis, for an oscillator in a thermal state defined
@@ -233,7 +229,7 @@ def init_fock_state(h_osc, h_qub, noise_dict={}):
         h_qub (dict): Dimension of qubit subspace
         noise_dict (dict): Dictionary of thermal particles for each oscillator subspace
     Returns:
-        qutip.Qobj: State vector
+        Qobj: State vector
     """
     # reverse sort by index
     rev_h_osc = sorted(h_osc.items(), key=lambda x: x[0])[::-1]

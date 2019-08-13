@@ -11,11 +11,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=eval-used, exec-used, invalid-name
+
+"""A module of routines for digesting a PULSE qobj
+into something we can actually use.
+"""
 
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
-from qiskit.exceptions import QiskitError
 from .op_system import OPSystem
 from .opparse import HamiltonianParser, NoiseParser
 from .operators import qubit_occ_oper_dressed
@@ -24,9 +28,6 @@ from ..solver.options import OPoptions
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
-"""A module of routines for digesting a PULSE qobj
-into something we can actually use.
-"""
 
 
 def digest_pulse_obj(qobj):
@@ -38,6 +39,10 @@ def digest_pulse_obj(qobj):
 
     Returns:
         OPSystem: The parsed qobj.
+
+    Raises:
+        Exception: Invalid options
+        ValueError: Invalid channel selection.
     """
     # Output data object
     out = OPSystem()
@@ -76,12 +81,12 @@ def digest_pulse_obj(qobj):
         out.global_data['memory_slots'] = config_dict['memory_slots']
     else:
         err_str = 'Number of memory_slots must be specific in Qobj config'
-        raise QiskitError(err_str)
+        raise ValueError(err_str)
 
     if 'memory' in config_keys:
         out.global_data['memory'] = config_dict['memory']
     else:
-         out.global_data['memory'] = False
+        out.global_data['memory'] = False
 
     out.global_data['n_registers'] = 0
     if 'n_registers' in config_keys:
@@ -95,8 +100,8 @@ def digest_pulse_obj(qobj):
 
     # Attach the ODE options
     allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                       'num_cpus', 'norm_tol', 'norm_steps',
-                       'rhs_reuse', 'rhs_filename']
+                           'num_cpus', 'norm_tol', 'norm_steps',
+                           'rhs_reuse', 'rhs_filename']
     user_set_ode_options = {}
     if 'ode_options' in config_keys_sim:
         for key, val in config_dict_sim['ode_options'].items():
@@ -109,7 +114,7 @@ def digest_pulse_obj(qobj):
 
     # Step #1: Parse hamiltonian representation
     if 'hamiltonian' not in config_keys_sim:
-        raise QiskitError('Qobj must have hamiltonian in config to simulate.')
+        raise ValueError('Qobj must have hamiltonian in config to simulate.')
     else:
         ham = config_dict_sim['hamiltonian']
 
@@ -159,7 +164,7 @@ def digest_pulse_obj(qobj):
 
 
     # Step #2: Get Hamiltonian channels
-    out.channels = get_hamiltonian_channels(out.system, qubit_list)
+    out.channels = get_hamiltonian_channels(out.system)
 
     h_diag, evals, estates = get_diag_hamiltonian(out.system,
                                                   out.vars, out.channels)
@@ -167,7 +172,7 @@ def digest_pulse_obj(qobj):
     #convert estates into a qobj
     estates_qobj = []
     for kk in range(len(estates[:,])):
-        estates_qobj.append(op.state(estates[:,kk]))
+        estates_qobj.append(op.state(estates[:, kk]))
 
     out.h_diag = np.ascontiguousarray(h_diag.real)
     out.evals = evals
@@ -175,7 +180,7 @@ def digest_pulse_obj(qobj):
 
     # Set initial state
     out.initial_state = 0*op.basis(len(evals), 1)
-    for idx, estate_coef in enumerate(estates[:,0]):
+    for idx, estate_coef in enumerate(estates[:, 0]):
         out.initial_state += estate_coef*op.basis(len(evals), idx)
     #init_fock_state(dim_osc, dim_qub)
 
@@ -183,9 +188,9 @@ def digest_pulse_obj(qobj):
     out.freqs = OrderedDict()
     for key in out.channels.keys():
         chidx = int(key[1:])
-        if key[0]=='D':
+        if key[0] == 'D':
             out.freqs[key] = config_dict['qubit_lo_freq'][chidx]
-        elif key[0]=='U':
+        elif key[0] == 'U':
             out.freqs[key] = 0
             for u_lo_idx in config_dict_sim['u_channel_lo'][chidx]:
                 if u_lo_idx['q'] < len(config_dict['qubit_lo_freq']):
@@ -206,7 +211,7 @@ def digest_pulse_obj(qobj):
 
     # Step #4: Get dt
     if 'dt' not in config_dict_sim.keys():
-        raise QiskitError('Qobj must have a dt value to simulate.')
+        raise ValueError('Qobj must have a dt value to simulate.')
     else:
         out.dt = config_dict_sim['dt']
 
@@ -233,7 +238,7 @@ def digest_pulse_obj(qobj):
 
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
-        if len(exp_struct['acquire']) > 0:
+        if any(exp_struct['acquire']):
             for acq in exp_struct['acquire']:
                 for jj in acq[1]:
                     if jj > qubit_list[-1]:
@@ -241,11 +246,11 @@ def digest_pulse_obj(qobj):
                     if not out.global_data['measurement_ops'][jj]:
                         out.global_data['measurement_ops'][jj] = \
                             qubit_occ_oper_dressed(jj,
-                                           estates_qobj,
-                                           h_osc=dim_osc,
-                                           h_qub=dim_qub,
-                                           level=out.global_data['q_level_meas']
-                                          )
+                                                   estates_qobj,
+                                                   h_osc=dim_osc,
+                                                   h_qub=dim_qub,
+                                                   level=out.global_data['q_level_meas']
+                                                  )
 
 
         out.experiments.append(exp_struct)
@@ -262,9 +267,9 @@ def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
         parsed_ham (list): A list holding ops and strings from the Hamiltonian
         of a specific quantum system.
 
-        ham_vars: dictionary of variables
+        ham_vars (dict): dictionary of variables
 
-        channels: drive channels (set to 0)
+        channels (dict): drive channels (set to 0)
 
     Returns:
         h_diag: diagonal elements of the hamiltonian
@@ -274,9 +279,6 @@ def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     Raises:
         Exception: Missing index on channel.
     """
-
-    pi = np.pi
-
     #Get the diagonal elements of the hamiltonian with all the
     #drive terms set to zero
     for chan in channels:
@@ -285,7 +287,7 @@ def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     #might be a better solution to replace the 'var' in the hamiltonian
     #string with 'op_system.vars[var]'
     for var in ham_vars:
-        exec('%s=%f'%(var,ham_vars[var]))
+        exec('%s=%f'%(var, ham_vars[var]))
 
     H_full = np.zeros(np.shape(parsed_ham[0][0].full()), dtype=complex)
 
@@ -298,28 +300,26 @@ def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
 
     eval_mapping = []
     for ii in range(len(evals)):
-        eval_mapping.append(np.argmax(np.abs(estates[:,ii])))
+        eval_mapping.append(np.argmax(np.abs(estates[:, ii])))
 
     evals2 = evals.copy()
     estates2 = estates.copy()
 
-    for ii in range(len(eval_mapping)):
-        evals2[eval_mapping[ii]] = evals[ii]
-        estates2[:,eval_mapping[ii]] = estates[:,ii]
+    for ii, val in enumerate(eval_mapping):
+        evals2[val] = evals[ii]
+        estates2[:, val] = estates[:, ii]
 
     return h_diag, evals2, estates2
 
 
 
-def get_hamiltonian_channels(parsed_ham, qubit_list=None):
+def get_hamiltonian_channels(parsed_ham):
     """ Get all the qubit channels D_i and U_i in the string
     representation of a system Hamiltonian.
 
     Parameters:
         parsed_ham (list): A list holding ops and strings from the Hamiltonian
         of a specific quantum system.
-
-        qubit_list: whitelist of qubits
 
     Returns:
         list: A list of all channels in Hamiltonian string.
@@ -365,18 +365,21 @@ def build_pulse_arrays(qobj):
         qobj (Qobj): A pulse-qobj instance.
 
     Returns:
-        ndarray, ndarray, dict: Returns all pulses in one array,
+        tuple: Returns all pulses in one array,
         an array of start indices for pulses, and dict that
         maps pulses to the index at which the pulses start.
     """
     qobj_pulses = qobj['config']['pulse_library']
     pulse_dict = {}
     total_pulse_length = 0
-    for kk, pulse in enumerate(qobj_pulses):
-        pulse_dict[pulse['name']] = kk
-        total_pulse_length += len(pulse['samples'])
 
-    idx = kk+1
+    num_pulse = 0
+    for pulse in qobj_pulses:
+        pulse_dict[pulse['name']] = num_pulse
+        total_pulse_length += len(pulse['samples'])
+        num_pulse += 1
+
+    idx = num_pulse+1
     #now go through experiments looking for PV gates
     pv_pulses = []
     for exp in qobj['experiments']:
@@ -394,7 +397,7 @@ def build_pulse_arrays(qobj):
 
     stop = 0
     ind = 1
-    for kk, pulse in enumerate(qobj_pulses):
+    for _, pulse in enumerate(qobj_pulses):
         stop = pulses_idx[ind-1] + len(pulse['samples'])
         pulses_idx[ind] = stop
         oplist_to_array(pulse['samples'], pulses, pulses_idx[ind-1])
@@ -410,6 +413,23 @@ def build_pulse_arrays(qobj):
 
 def experiment_to_structs(experiment, ham_chans, pulse_inds,
                           pulse_to_int, dt, qubit_list=None):
+    """Converts an experiment to a better formatted structure
+
+    Args:
+        experiment (dict): An experiment.
+        ham_chans (dict): The channels in the Hamiltonian.
+        pulse_inds (array): Array of pulse indices.
+        pulse_to_int (array): Qobj pulses labeled by ints.
+        dt (float): Pulse time resolution.
+        qubit_list (list): List of qubits.
+
+    Returns:
+        dict: The output formatted structure.
+
+    Raises:
+        ValueError: Channel not in Hamiltonian.
+        TypeError: Incorrect snapshot type.
+    """
     #TO DO: Error check that operations are restricted to qubit list
     max_time = 0
     structs = {}
@@ -457,7 +477,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
 
             # Frame changes
             elif inst['name'] == 'fc':
-                structs['channels'][chan_name][1].extend([inst['t0'],inst['phase'], cond])
+                structs['channels'][chan_name][1].extend([inst['t0'], inst['phase'], cond])
 
             # A standard pulse
             else:
@@ -509,7 +529,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
             # conditionals
             elif inst['name'] == 'bfunc':
                 bfun_vals = [inst['t0'], inst['mask'], inst['relation'],
-                            inst['val'], inst['register']]
+                             inst['val'], inst['register']]
                 if 'memory' in inst.keys():
                     bfun_vals.append(inst['memory'])
                 else:
@@ -527,7 +547,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
             # snapshots
             elif inst['name'] == 'snapshot':
                 if inst['type'] != 'state':
-                    raise QiskitError("Snapshots must be of type 'state'")
+                    raise TypeError("Snapshots must be of type 'state'")
                 structs['snapshot'].append([inst['t0'], inst['label']])
 
                 # Add time to tlist
