@@ -19,7 +19,8 @@ import warnings
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.exceptions import QiskitError, ExtensionError
+from qiskit.extensions.exceptions import ExtensionError
+
 
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""

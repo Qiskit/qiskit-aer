@@ -10,9 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Simulator command to snapshot internal simulator representation.
+"""
 
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.providers.aer.extensions import Snapshot
 
 
@@ -51,5 +53,6 @@ def snapshot_statevector(self,
             label,
             num_qubits=len(snapshot_register),
             params=params), snapshot_register)
+
 
 QuantumCircuit.snapshot_statevector = snapshot_statevector

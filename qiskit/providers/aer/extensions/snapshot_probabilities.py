@@ -23,8 +23,8 @@ class SnapshotProbabilites(Snapshot):
                  label,
                  num_qubits=0,
                  num_clbits=0,
-                 params=None,
-                 variance=False):
+                 variance=False,
+                 params=None,):
 
         if variance:
             super().__init__(label, 'probabilities_with_variance', num_qubits, num_clbits, params)
@@ -42,7 +42,8 @@ def snapshot_probabilities(self,
     Args:
         label (str): a snapshot label to report the result
         qubits (list or None): the qubits to apply snapshot to [Default: None]
-        variance (bool): set snapshot_type to 'probabilities' or 'probabilities_with_variance' [Default: False]
+        variance (bool): set snapshot_type to 'probabilities' or '
+                         probabilities_with_variance' [Default: False]
         params (list or None): the parameters for snapshot_type [Default: None]
     Returns:
         QuantumCircuit: with attached command
@@ -54,6 +55,7 @@ def snapshot_probabilities(self,
     return self.append(
         SnapshotProbabilites(label,
                              num_qubits=len(snapshot_register),
+                             variance=variance,
                              params=params), snapshot_register)
 
 

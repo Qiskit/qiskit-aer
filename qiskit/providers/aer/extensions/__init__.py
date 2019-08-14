@@ -10,6 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Snapshot extensions for Quantum Circuits
+"""
+
 from . import snapshot
 from .snapshot import Snapshot
 from . import snapshot_statevector
