@@ -26,7 +26,7 @@ from .operators import gen_oper
 Token = namedtuple('Token', ('type', 'name'))
 
 ham_elements = OrderedDict(
-    QubOpr=re.compile(r"(?P<opr>O|Sp|Sm|X|Y|Z)(?P<idx>[0-9]+)"),
+    QubOpr=re.compile(r"(?P<opr>O|Sp|Sm|X|Y|Z|I)(?P<idx>[0-9]+)"),
     PrjOpr=re.compile(r"P(?P<idx>[0-9]+),(?P<ket>[0-9]+),(?P<bra>[0-9]+)"),
     CavOpr=re.compile(r"(?P<opr>A|C|N)(?P<idx>[0-9]+)"),
     Func=re.compile(r"(?P<name>[a-z]+)\("),
