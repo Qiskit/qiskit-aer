@@ -19,6 +19,7 @@ import numpy as np
 import scipy.linalg as la
 from ..qobj import op_qobj as op
 
+
 def gen_oper(opname, index, h_osc, h_qub, states=None):
     """Generate quantum operators.
 
@@ -42,11 +43,12 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
 
         if opname in ['X', 'Y', 'Z'] and dim > 2:
             if opname == 'X':
-                opr_tmp = op.get_oper('A', dim)+op.get_oper('C', dim)
+                opr_tmp = op.get_oper('A', dim) + op.get_oper('C', dim)
             elif opname == 'Y':
-                opr_tmp = -1j*op.get_oper('A', dim)+1j*op.get_oper('C', dim)
+                opr_tmp = (-1j * op.get_oper('A', dim) +
+                           1j * op.get_oper('C', dim))
             else:
-                opr_tmp = op.get_oper('I', dim) - op.get_oper('N', dim)
+                opr_tmp = op.get_oper('I', dim) - 2 * op.get_oper('N', dim)
 
     else:
         is_qubit = False
@@ -109,6 +111,7 @@ def qubit_occ_oper(target_qubit, h_osc, h_qub, level=0):
 
     return op.tensor(opers)
 
+
 def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
     """Builds the occupation number operator for a target qubit
     in a qubit oscillator system, where the oscillator are the first
@@ -131,7 +134,7 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
 
     # osc_n * … * osc_0 * qubit_n * … * qubit_0
     states = []
-    proj_op = 0*op.fock_dm(len(estates), 0)
+    proj_op = 0 * op.fock_dm(len(estates), 0)
     for ii, dd in rev_h_osc:
         states.append(op.basis(dd, 0))
     for ii, dd in rev_h_qub:
@@ -139,7 +142,6 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
             states.append(op.basis(dd, level))
         else:
             states.append(op.state(np.ones(dd)))
-
 
     state = op.tensor(states)
 
@@ -163,7 +165,7 @@ def measure_outcomes(measured_qubits, state_vector, measure_ops,
     Returns:
         str: String of binaries representing measured qubit values.
     """
-    outcome_len = max(measured_qubits)+1
+    outcome_len = max(measured_qubits) + 1
     # Create random generator with given seed (if any).
     rng_gen = np.random.RandomState(seed)
     rnds = rng_gen.rand(outcome_len)
@@ -218,7 +220,8 @@ def apply_projector(measured_qubits, results, h_qub, h_osc, state_vector):
 
     return psi
 
-# pylint: disable=dangerous-default-value
+
+# pylint: disable=dangerous-default-value,comparison-with-callable
 def init_fock_state(h_osc, h_qub, noise_dict={}):
     """ Generate initial Fock state, in the number state
     basis, for an oscillator in a thermal state defined
@@ -246,7 +249,7 @@ def init_fock_state(h_osc, h_qub, noise_dict={}):
             # consider finite thermal excitation
             levels = np.arange(dd)
             beta = np.log(1.0 / n_thermal + 1.0)
-            diags = np.exp(-beta * levels)
+            diags = np.exp(-1.0 * beta * levels)
             diags /= np.sum(diags)
             cum_sum = np.cumsum(diags)
             idx = np.where(np.random.random() < cum_sum)[0][0]

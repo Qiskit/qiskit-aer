@@ -26,7 +26,7 @@ from .operators import gen_oper
 Token = namedtuple('Token', ('type', 'name'))
 
 ham_elements = OrderedDict(
-    QubOpr=re.compile(r"(?P<opr>O|Sp|Sm|X|Y|Z)(?P<idx>[0-9]+)"),
+    QubOpr=re.compile(r"(?P<opr>O|Sp|Sm|X|Y|Z|I)(?P<idx>[0-9]+)"),
     PrjOpr=re.compile(r"P(?P<idx>[0-9]+),(?P<ket>[0-9]+),(?P<bra>[0-9]+)"),
     CavOpr=re.compile(r"(?P<opr>A|C|N)(?P<idx>[0-9]+)"),
     Func=re.compile(r"(?P<name>[a-z]+)\("),
@@ -133,7 +133,7 @@ class HamiltonianParser:
 
                 # substitute iterator value
                 _temp = []
-                for kk in range(_l, _u+1):
+                for kk in range(_l, _u + 1):
                     trg_s = ham[p_sums[0].end():p_brks[ii].start()]
                     # generate replacement pattern
                     pattern = {}
@@ -211,9 +211,9 @@ class HamiltonianParser:
         if any([k.type == 'Var' for k in token_list]):
             for ii, _ in enumerate(token_list):
                 if token_list[ii].name == '*':
-                    if all([k.type != 'Var' for k in token_list[ii+1:]]):
+                    if all([k.type != 'Var' for k in token_list[ii + 1:]]):
                         coef = ''.join([k.name for k in token_list[:ii]])
-                        token_list = token_list[ii+1:]
+                        token_list = token_list[ii + 1:]
                         break
             else:
                 raise Exception('Invalid order of operators and coefficients in %s' % op_str)
@@ -366,6 +366,7 @@ def math_priority(o1, o2):
     else:
         return True
 
+
 # pylint: disable=dangerous-default-value
 def parse_binop(op_str, operands={}, cast_str=True):
     """ Calculate binary operation in string format
@@ -392,22 +393,22 @@ def parse_binop(op_str, operands={}, cast_str=True):
                     if val0.isdecimal() and val1.isdecimal():
                         retv = int(val0) + int(val1)
                     else:
-                        retv = '+'.join(str(val0), str(val1))
+                        retv = '+'.join([str(val0), str(val1)])
                 elif key == 'sub':
                     if val0.isdecimal() and val1.isdecimal():
                         retv = int(val0) - int(val1)
                     else:
-                        retv = '-'.join(str(val0), str(val1))
+                        retv = '-'.join([str(val0), str(val1)])
                 elif key == 'mul':
                     if val0.isdecimal() and val1.isdecimal():
                         retv = int(val0) * int(val1)
                     else:
-                        retv = '*'.join(str(val0), str(val1))
+                        retv = '*'.join([str(val0), str(val1)])
                 elif key == 'div':
                     if val0.isdecimal() and val1.isdecimal():
                         retv = int(val0) / int(val1)
                     else:
-                        retv = '/'.join(str(val0), str(val1))
+                        retv = '/'.join([str(val0), str(val1)])
                 else:
                     retv = 0
             break

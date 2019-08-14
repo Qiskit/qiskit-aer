@@ -71,6 +71,7 @@ from .cy.spconvert import (zcsr_reshape)
 
 _dznrm2 = get_blas_funcs("znrm2")
 
+
 def sp_fro_norm(data):
     """
     Frobius norm for sparse matrix
@@ -115,6 +116,7 @@ def sp_one_norm(A):
     return zcsr_one_norm(A.data, A.indices,
                          A.indptr, A.shape[0],
                          A.shape[1])
+
 
 # pylint: disable=redefined-builtin
 def sp_reshape(A, shape, format='csr'):
@@ -448,8 +450,8 @@ def sp_permute(A, rperm=(), cperm=(), safe=True):
                                      nrows, ncols, rperm, cperm, flag)
     if kind == 'csr':
         return fast_csr_matrix((data, ind, ptr), shape=shp)
-    elif kind == 'csc':
-        return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
+
+    return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
 def sp_reverse_permute(A, rperm=(), cperm=(), safe=True):
@@ -503,8 +505,8 @@ def sp_reverse_permute(A, rperm=(), cperm=(), safe=True):
 
     if kind == 'csr':
         return fast_csr_matrix((data, ind, ptr), shape=shp)
-    elif kind == 'csc':
-        return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
+
+    return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
 def sp_bandwidth(A):
@@ -567,7 +569,7 @@ def sp_profile(A):
     else:
         raise TypeError('Input sparse matrix must be in CSR or CSC format.')
 
-    return up+lp, lp, up
+    return up + lp, lp, up
 
 
 def sp_isdiag(A):

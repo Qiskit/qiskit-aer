@@ -64,9 +64,9 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    ceil, copysign, cos, cosh, degrees, e, exp, expm1, fabs,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
                    log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
-from qiskit.providers.aer.version import __version__
 import scipy.sparse as sp
 import scipy.linalg as la
+from qiskit.providers.aer.version import __version__
 from .settings import (auto_tidyup, auto_tidyup_dims, atol, auto_tidyup_atol)
 from .fastsparse import fast_csr_matrix, fast_identity
 from .sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
@@ -78,7 +78,7 @@ from .cy.spmatfuncs import zcsr_mat_elem
 from .cy.sparse_utils import cy_tidyup
 
 
-class Qobj(object):
+class Qobj():
     """A class for representing quantum objects, such as quantum operators
     and states.
 
@@ -184,6 +184,7 @@ class Qobj(object):
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
+
     # pylint: disable=dangerous-default-value, redefined-builtin
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
@@ -205,6 +206,7 @@ class Qobj(object):
         Raises:
             Exception: Something bad happened.
         """
+
         self._isherm = isherm
         self._type = type
         self.superrep = superrep
@@ -258,7 +260,7 @@ class Qobj(object):
 
             self._data = fast_csr_matrix(shape=(N, M))
 
-        elif isinstance(inpt, list) or isinstance(inpt, tuple):
+        elif isinstance(inpt, (list, tuple)):
             # case where input is a list
             data = np.array(inpt)
             if len(data.shape) == 1:
@@ -281,7 +283,7 @@ class Qobj(object):
             do_copy = copy
             if not isinstance(inpt, fast_csr_matrix):
                 _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
-                _tmp.sort_indices() #Make sure indices are sorted.
+                _tmp.sort_indices()  # Make sure indices are sorted.
                 do_copy = 0
             else:
                 _tmp = inpt
@@ -320,10 +322,9 @@ class Qobj(object):
                 # check if root of shape is int
                 if (sub_shape % 1) != 0:
                     raise Exception('Invalid shape for a super operator.')
-                else:
-                    sub_shape = int(sub_shape)
-                    self.dims = [[[sub_shape], [sub_shape]]]*2
 
+                sub_shape = int(sub_shape)
+                self.dims = [[[sub_shape], [sub_shape]]] * 2
 
         if superrep:
             self.superrep = superrep
@@ -342,14 +343,14 @@ class Qobj(object):
         """Gets underlying data."""
         return self._data
 
-    #Here we perfrom a check of the csr matrix type during setting of Q.data
+    # Here we perfrom a check of the csr matrix type during setting of Q.data
     def set_data(self, data):
         """Data setter
         """
         if not isinstance(data, fast_csr_matrix):
             raise TypeError('Qobj data must be in fast_csr format.')
-        else:
-            self._data = data
+
+        self._data = data
     data = property(get_data, set_data)
 
     def __add__(self, other):
@@ -359,9 +360,9 @@ class Qobj(object):
         self._isunitary = None
 
         if not isinstance(other, Qobj):
-            if isinstance(other, (int, float, complex, np.integer, np.floating,
-                                  np.complexfloating, np.ndarray, list, tuple)) \
-                                  or sp.issparse(other):
+            if isinstance(other, (int, float, complex, np.integer,
+                                  np.floating, np.complexfloating, np.ndarray,
+                                  list, tuple)) or sp.issparse(other):
                 other = Qobj(other)
             else:
                 return NotImplemented
@@ -474,6 +475,7 @@ class Qobj(object):
         """
         return (-self) + other
 
+    # pylint: disable=too-many-return-statements
     def __mul__(self, other):
         """
         MULTIPLICATION with Qobj on LEFT [ ex. Qobj*4 ]
@@ -488,9 +490,9 @@ class Qobj(object):
                 out.dims = dims
                 if auto_tidyup:
                     out.tidyup()
-                if (auto_tidyup_dims
-                        and not isinstance(dims[0][0], list)
-                        and not isinstance(dims[1][0], list)):
+                if (auto_tidyup_dims and not
+                        isinstance(dims[0][0], list) and not
+                        isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
                     # we should implicitly partial trace over
                     # matching dimensions of 1.
@@ -498,8 +500,8 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1],
-                                                                fillvalue=None)]
+                    mask = [ll == r == 1 for ll, r in
+                            zip_longest(dims[0], dims[1], fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
                     # use max() to add a dimensions list of [1] if all matching dims
                     # are traced out of that side.
@@ -546,7 +548,6 @@ class Qobj(object):
                                 dtype=object)
             else:
                 return self.data * other
-
 
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
@@ -664,12 +665,9 @@ class Qobj(object):
         """
         EQUALITY operator.
         """
-        if (isinstance(other, Qobj) and
-                self.dims == other.dims and
-                not np.any(np.abs((self.data - other.data).data) > atol)):
-            return True
-        else:
-            return False
+        return bool(isinstance(other, Qobj) and
+                    self.dims == other.dims and
+                    not np.any(np.abs((self.data - other.data).data) > atol))
 
     def __ne__(self, other):
         """
@@ -694,7 +692,7 @@ class Qobj(object):
             out.superrep = self.superrep
             return out.tidyup() if auto_tidyup else out
 
-        except:
+        except ValueError:
             raise ValueError('Invalid choice of exponent.')
 
     def __abs__(self):
@@ -752,11 +750,13 @@ class Qobj(object):
         if not isinstance(other, Qobj):
             raise TypeError("Only defined for quantum objects.")
 
-        elif self.type == "oper":
+        if self.type == "oper":
             if other.type == "ket":
                 return self * other
             else:
                 raise TypeError("Can only act oper on ket.")
+        else:
+            return None
 
     def __getstate__(self):
         # defines what happens when Qobj object gets pickled
@@ -850,7 +850,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M > 10 and N <= 10:
+        elif N <= 10 < M:
             # truncated vertically elongated matrix output
             for m in range(5):
                 for n in range(N):
@@ -866,7 +866,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M <= 10 and N > 10:
+        elif M <= 10 < N:
             # truncated horizontally elongated matrix output
             for m in range(M):
                 for n in range(5):
@@ -934,7 +934,7 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                _op = self*self.dag()
+                _op = self * self.dag()
                 vals = sp_eigs(_op.data, _op.isherm, vecs=False,
                                sparse=sparse, tol=tol, maxiter=maxiter)
                 return np.sum(np.sqrt(np.abs(vals)))
@@ -1109,7 +1109,6 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-
     def cosm(self):
         """Cosine of a quantum operator.
 
@@ -1135,7 +1134,6 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-
     def sinm(self):
         """Sine of a quantum operator.
 
@@ -1158,8 +1156,8 @@ class Qobj(object):
         """
         if self.dims[0][0] == self.dims[1][0]:
             return -0.5j * ((1j * self).expm() - (-1j * self).expm())
-        else:
-            raise TypeError('Invalid operand for matrix square root')
+
+        raise TypeError('Invalid operand for matrix square root')
 
     def unit(self, inplace=False,
              norm=None, sparse=False,
@@ -1171,9 +1169,11 @@ class Qobj(object):
         Args:
             inplace (bool): Do an in-place normalization
             norm (str): Requested norm for states / operators.
-            sparse (bool): Use sparse eigensolver for trace norm. Does not affect other norms.
+            sparse (bool): Use sparse eigensolver for trace norm.
+            Does not affect other norms.
             tol (float): Tolerance used by sparse eigensolver.
-            maxiter (int): Number of maximum iterations performed by sparse eigensolver.
+            maxiter (int): Number of maximum iterations performed by
+            sparse eigensolver.
 
         Returns:
             qobj.Qobj: Normalized quantum object if not in-place, else None.
@@ -1186,6 +1186,8 @@ class Qobj(object):
                             tol=tol, maxiter=maxiter)
 
             self.data /= nrm
+
+            return None
         elif not inplace:
             out = self / self.norm(norm=norm, sparse=sparse,
                                    tol=tol, maxiter=maxiter)
@@ -1212,8 +1214,8 @@ class Qobj(object):
 
         """
         if self.data.nnz:
-            #This does the tidyup and returns True if
-            #The sparse data needs to be shortened
+            # This does the tidyup and returns True if
+            # The sparse data needs to be shortened
             if cy_tidyup(self.data.data, atol, self.data.nnz):
                 self.data.eliminate_zeros()
             return self
@@ -1259,7 +1261,6 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for basis transformation')
 
-
         # transform data
         if inverse:
             if self.isket:
@@ -1291,7 +1292,6 @@ class Qobj(object):
         else:
             return out
 
-
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
 
@@ -1313,14 +1313,14 @@ class Qobj(object):
         if not self.isoper:
             raise TypeError("Can only get matrix elements for an operator.")
 
-        else:
-            if bra.isbra and ket.isket:
-                return zcsr_mat_elem(self.data, bra.data, ket.data, 1)
+        if bra.isbra and ket.isket:
+            return zcsr_mat_elem(self.data, bra.data, ket.data, 1)
 
-            elif bra.isket and ket.isket:
-                return zcsr_mat_elem(self.data, bra.data, ket.data, 0)
-            else:
-                raise TypeError("Can only calculate matrix elements for bra and ket vectors.")
+        elif bra.isket and ket.isket:
+            return zcsr_mat_elem(self.data, bra.data, ket.data, 0)
+        else:
+            raise TypeError("Can only calculate matrix elements " +
+                            "for bra and ket vectors.")
 
     def overlap(self, other):
         """Overlap between two state vectors or two operators.
@@ -1355,39 +1355,44 @@ class Qobj(object):
 
         if isinstance(other, Qobj):
 
+            returnval = 0
+
             if self.isbra:
                 if other.isket:
-                    return zcsr_inner(self.data, other.data, 1)
+                    returnval = zcsr_inner(self.data, other.data, 1)
                 elif other.isbra:
-                    #Since we deal mainly with ket vectors, the bra-bra combo
-                    #is not common, and not optimized.
-                    return zcsr_inner(self.data, other.dag().data, 1)
+                    # Since we deal mainly with ket vectors, the bra-bra combo
+                    # is not common, and not optimized.
+                    returnval = zcsr_inner(self.data, other.dag().data, 1)
                 elif other.isoper:
-                    return (states.ket2dm(self).dag() * other).tr()
+                    returnval = (states.ket2dm(self).dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    raise TypeError("Can only calculate overlap for " +
+                                    "state vector Qobjs")
 
             elif self.isket:
                 if other.isbra:
-                    return zcsr_inner(other.data, self.data, 1)
+                    returnval = zcsr_inner(other.data, self.data, 1)
                 elif other.isket:
-                    return zcsr_inner(self.data, other.data, 0)
+                    returnval = zcsr_inner(self.data, other.data, 0)
                 elif other.isoper:
-                    return (states.ket2dm(self).dag() * other).tr()
+                    returnval = (states.ket2dm(self).dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    raise TypeError("Can only calculate overlap for " +
+                                    "state vector Qobjs")
 
             elif self.isoper:
                 if other.isket or other.isbra:
-                    return (self.dag() * states.ket2dm(other)).tr()
+                    returnval = (self.dag() * states.ket2dm(other)).tr()
                 elif other.isoper:
-                    return (self.dag() * other).tr()
+                    returnval = (self.dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    raise TypeError("Can only calculate overlap " +
+                                    "for state vector Qobjs")
+        else:
+            raise TypeError("Can only calculate overlap for state vector Qobjs")
 
-
-        raise TypeError("Can only calculate overlap for state vector Qobjs")
-
+        return returnval
 
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
@@ -1438,11 +1443,9 @@ class Qobj(object):
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
-
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
         """Eigenenergies of a quantum object.
-
         Eigenenergies (eigenvalues) are defined for operators or superoperators
         only.
 
@@ -1504,7 +1507,7 @@ class Qobj(object):
         if safe:
             if tol == 0:
                 tol = 1e-15
-            if (grndval[1]-grndval[0]) <= 10*tol:
+            if (grndval[1] - grndval[0]) <= 10 * tol:
                 print("WARNING: Ground state may be degenerate. "
                       "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
@@ -1550,14 +1553,10 @@ class Qobj(object):
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
-            return not (np.any(np.abs((self.data*self.dag().data
-                                       - eye_data).data)
-                               > atol)
-                        or
-                        np.any(np.abs((self.dag().data*self.data
-                                       - eye_data).data) >
-                               atol)
-                        )
+            return not (np.any(np.abs((self.data * self.dag().data -
+                                       eye_data).data) > atol) or
+                        np.any(np.abs((self.dag().data * self.data -
+                                       eye_data).data) > atol))
 
         else:
             return False
