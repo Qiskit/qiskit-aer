@@ -65,7 +65,7 @@ class Snapshot(Instruction):
     def define_snapshot_register(circuit,
                                  label,
                                  qubits=None):
-
+        """Defines qubits to snapshot for all snapshot methods"""
         # Convert label to string for backwards compatibility
         if not isinstance(label, str):
             warnings.warn(

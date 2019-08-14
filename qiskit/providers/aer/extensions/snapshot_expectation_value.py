@@ -30,11 +30,21 @@ class SnapshotExpectationValue(Snapshot):
                  num_clbits=0,
                  params=None):
 
+        num_qubits = len(op)
+
         if pauli:
             if variance:
-                super().__init__(label, 'expectation_value_pauli_with_variance', num_qubits, num_clbits, params)
+                super().__init__(label,
+                                 'expectation_value_pauli_with_variance',
+                                 num_qubits,
+                                 num_clbits,
+                                 params)
             else:
-                super().__init__(label, 'expectation_value_pauli', num_qubits, num_clbits, params)
+                super().__init__(label,
+                                 'expectation_value_pauli',
+                                 num_qubits,
+                                 num_clbits,
+                                 params)
 
         else:
             if variance:
@@ -48,6 +58,18 @@ def snapshot_expectation_value(self,
                                op,
                                qubits=None,
                                params=None):
+    """Take a snapshot of expectation value <M> of some Operator M.
+    Works on all qubits, and prevents reordering (like barrier).
+    Args:
+        label (str): a snapshot label to report the result
+        op (Operator): operator to snapshot 
+        qubits (list or None): the qubits to apply snapshot to [Default: None].
+        params (list or None): the parameters for snapshot_type [Default: None].
+    Returns:
+        QuantumCircuit: with attached command
+    Raises:
+        ExtensionError: malformed command
+    """
 
     num_qubits = len(op)
     snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
@@ -56,7 +78,6 @@ def snapshot_expectation_value(self,
         SnapshotExpectationValue(
             label,
             op,
-            num_qubits=num_qubits,
             params=params), snapshot_register)
 
 
