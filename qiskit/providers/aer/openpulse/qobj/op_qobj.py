@@ -22,6 +22,7 @@ from ..qutip_lite import tensor as ten
 from ..qutip_lite.qobj import Qobj
 from ..qutip_lite.cy.spmatfuncs import (spmv_csr, cy_expect_psi_csr)
 
+
 def sigmax(dim=2):
     """Qiskit wrapper of sigma-X operator.
     """
@@ -162,6 +163,7 @@ def basis(level, pos):
     """ Qiskit wrapper of basis
     """
     return st.basis(level, pos)
+
 
 def state(state_vec):
     """ Qiskit wrapper of qobj
