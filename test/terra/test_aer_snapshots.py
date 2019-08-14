@@ -88,13 +88,13 @@ class TestSnapshot(unittest.TestCase):
         #Execute on qasm_simulator with density_matrix method
         qasm_backend = Aer.get_backend('qasm_simulator')
         BACKEND_OPTS = {'method' : 'density_matrix'}
-        job = execute(self.qc, qasm_backend, shots=10)
+        job = execute(self.qc, qasm_backend, backend_options=BACKEND_OPTS, shots=10)
         data = job.result().data(0)
 
         #Checking snapshot_density_matrix is created
         self.assertIn('snapshots', data)
         self.assertIn('density_matrix', data['snapshots'])
-        self.assertIn('density_matrix_snapshot', data['snapshots']['stabilizer'])
+        self.assertIn('density_matrix_snapshot', data['snapshots']['density_matrix'])
 
 
     def test_snapshot_probabilities(self):
