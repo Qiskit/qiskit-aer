@@ -46,7 +46,7 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
             elif opname == 'Y':
                 opr_tmp = -1j*op.get_oper('A', dim)+1j*op.get_oper('C', dim)
             else:
-                opr_tmp = op.get_oper('I', dim) - op.get_oper('N', dim)
+                opr_tmp = op.get_oper('I', dim) - 2*op.get_oper('N', dim)
 
     else:
         is_qubit = False
