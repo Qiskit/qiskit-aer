@@ -48,7 +48,8 @@ class SnapshotExpectationValue(Snapshot):
 
         else:
             if variance:
-                super().__init__(label, 'expectation_value_matrix_with_variance', num_qubits, num_clbits, params)
+                super().__init__(label, 'expectation_value_matrix_with_variance', num_qubits,
+                                 num_clbits, params)
             else:
                 super().__init__(label, 'expectation_value_matrix', num_qubits, num_clbits, params)
 
@@ -62,7 +63,7 @@ def snapshot_expectation_value(self,
     Works on all qubits, and prevents reordering (like barrier).
     Args:
         label (str): a snapshot label to report the result
-        op (Operator): operator to snapshot 
+        op (Operator): operator to snapshot
         qubits (list or None): the qubits to apply snapshot to [Default: None].
         params (list or None): the parameters for snapshot_type [Default: None].
     Returns:
@@ -71,7 +72,6 @@ def snapshot_expectation_value(self,
         ExtensionError: malformed command
     """
 
-    num_qubits = len(op)
     snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
