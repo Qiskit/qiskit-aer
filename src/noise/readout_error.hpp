@@ -15,8 +15,6 @@
 #ifndef _aer_noise_readout_error_hpp_
 #define _aer_noise_readout_error_hpp_
 
-#include "noise/abstract_error.hpp"
-
 namespace AER {
 namespace Noise {
 
@@ -26,23 +24,26 @@ namespace Noise {
 
 
 
-class ReadoutError : public AbstractError {
+class ReadoutError {
 public:
 
+  // Alias for return type
+  using NoiseOps = std::vector<Operations::Op>;
+
   //-----------------------------------------------------------------------
-  // Error base required methods
+  // Error sampling
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &memory,
-                        RngEngine &rng) const override;
+                        RngEngine &rng) const;
+
+  //-----------------------------------------------------------------------
+  // Initialization
+  //-----------------------------------------------------------------------
 
   // Load a ReadoutError object from a JSON Error object
-  void load_from_json(const json_t &js) override;
-
-  //-----------------------------------------------------------------------
-  // Additional class methods
-  //-----------------------------------------------------------------------
+  void load_from_json(const json_t &js);
 
   // Set the default assignment probabilities for measurement of each qubit
   // Each vector is a list of probabilities {P(0|q), P(1|q), ... P(n-1|q)}
@@ -50,7 +51,22 @@ public:
   // identity matrix
   void set_probabilities(const std::vector<rvector_t> &probs);
 
+  //-----------------------------------------------------------------------
+  // Utility
+  //-----------------------------------------------------------------------
+
+  // Set number of qubits or memory bits for error
+  inline void set_num_qubits(uint_t num_qubits) {num_qubits_ = num_qubits;}
+
+  // Get number of qubits or memory bits for error
+  inline uint_t get_num_qubits() const {return num_qubits_;}
+
 protected:
+
+  // Number of qubits/memory bits the error applies to
+  uint_t num_qubits_ = 0;
+
+  // Vector of assignment probability vectors
   std::vector<rvector_t> assignment_probabilities_; 
 
   // threshold for checking probabilities

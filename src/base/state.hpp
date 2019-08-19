@@ -95,7 +95,8 @@ public:
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized State.
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) = 0;
+                                    const std::vector<Operations::Op> &ops)
+                                    const = 0;
 
   //-----------------------------------------------------------------------
   // Optional: Load config settings

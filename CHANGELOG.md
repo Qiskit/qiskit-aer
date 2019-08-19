@@ -15,21 +15,43 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...HEAD)
 =======================================================================
 
 Added
 -----
+-   New simulation method for qasm simulator: tensor_network (\#56)
+-   Added superop qobj instruction and superoperator matrix utils (\# 289)
+-   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
+-   Add "validation_threshold" config parameter to Aer backends (\# 290)
+-   Added support for apply_measure in tensor_network_state. Also changed 
+    sample_measure to use apply_measure (\#299)
+-   Added density matrix simulation method to QasmSimulator (\# 295, \# 253)
+-   Adds delay measure circuit optimization (\# 317)
+-   Added sampling for sampling with readout-errors (\# 222)
+-   Added support of single precision for statevector and density matrix simulation (\# 286, \# 315)
 
+- Noise model inserter module (\# 239)
 
 Changed
 -------
-
+-   Added density matrix method to automatic QasmSimulator methods (\# 316)
 
 Removed
 -------
 
+
+Fixed
+-----
+- Bug in handling parallelization in matrix_product_state.cpp (PR \#292)
+
+- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR \#294)
+
+- Change name of qasm simulation method from tensor_network to matrix_product_state (\#320)
+
+
+[0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
+===============================================================================
 
 Fixed
 -----

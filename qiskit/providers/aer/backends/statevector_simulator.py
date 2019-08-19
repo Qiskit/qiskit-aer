@@ -17,10 +17,9 @@ Qiskit Aer statevector simulator backend.
 """
 
 import logging
-import os
 from math import log2
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
 from .statevector_controller_wrapper import statevector_controller_execute
@@ -42,6 +41,9 @@ class StatevectorSimulator(AerBackend):
 
         * "zero_threshold" (double): Sets the threshold for truncating
             small values to zero in the result data (Default: 1e-10).
+
+        * "validation_threshold" (double): Sets the threshold for checking
+            if the initial statevector is valid (Default: 1e-8).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -92,15 +94,12 @@ class StatevectorSimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(statevector_controller_execute,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+                         QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
