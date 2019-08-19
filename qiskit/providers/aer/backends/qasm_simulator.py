@@ -14,14 +14,12 @@ Qiskit Aer qasm simulator backend.
 """
 
 import logging
-import os
 from math import log2
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
 from .qasm_controller_wrapper import qasm_controller_execute
-from ..aererror import AerError
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
@@ -40,12 +38,13 @@ class QasmSimulator(AerBackend):
         ------------------------
         * "method" (str): Set the simulation method. Allowed values are:
             * "statevector": Uses a dense statevector simulation.
-            * "stabilizer": uses a Clifford stabilizer state simulator that
+            * "stabilizer": Uses a Clifford stabilizer state simulator that
             is only valid for Clifford circuits and noise models.
             * "extended_stabilizer": Uses an approximate simulator that
             decomposes circuits into stabilizer state terms, the number of
             which grows with the number of non-Clifford gates.
-            * "automatic": automatically run on stabilizer simulator if
+            * "matrix_product_state": Uses a Matrix Product State (MPS) simulator.
+            * "automatic": Automatically run on stabilizer simulator if
             the circuit and noise model supports it. If there is enough
             available memory, uses the statevector method. Otherwise, uses
             the extended_stabilizer method (Default: "automatic").
@@ -55,6 +54,9 @@ class QasmSimulator(AerBackend):
 
         * "zero_threshold" (double): Sets the threshold for truncating
             small values to zero in the result data (Default: 1e-10).
+
+        * "validation_threshold" (double): Sets the threshold for checking
+            if initial states are valid (Default: 1e-8).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -165,16 +167,13 @@ class QasmSimulator(AerBackend):
             'name': 'TODO',
             'parameters': [],
             'qasm_def': 'TODO'
-        }],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        }]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(
             qasm_controller_execute,
-            BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
             provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
@@ -231,29 +230,3 @@ class QasmSimulator(AerBackend):
                 logger.warning(
                     'No measurements in circuit "%s": '
                     'count data will return all zeros.', name)
-            # Check qubits for statevector simulation
-            if not clifford and method != "extended_stabilizer":
-                n_qubits = experiment.config.n_qubits
-                max_qubits = self.configuration().n_qubits
-                if n_qubits > max_qubits:
-                    system_memory = int(local_hardware_info()['memory'])
-                    err_string = ('Number of qubits ({}) is greater than '
-                                  'maximum ({}) for "{}" (method=statevector) '
-                                  'with {} GB system memory')
-                    err_string = err_string.format(n_qubits, max_qubits,
-                                                   self.name(), system_memory)
-                    if method != "automatic":
-                        raise AerError(err_string + '.')
-
-                    if n_qubits > 63:
-                        raise AerError('{}, and has too many qubits to fall '
-                                       'back to the extended_stabilizer '
-                                       'method.'.format(err_string))
-                    if not ch_supported:
-                        raise AerError('{}, and contains instructions '
-                                       'not supported by the extended_etabilizer '
-                                       'method.'.format(err_string))
-                    logger.info(
-                        'The QasmSimulator will automatically '
-                        'switch to the Extended Stabilizer backend, based on '
-                        'the memory requirements.')

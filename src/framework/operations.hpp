@@ -36,7 +36,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, multiplexer, kraus, roerror, noise_switch, initialize
+  matrix, multiplexer, kraus, superop, roerror, noise_switch, initialize
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -67,6 +67,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::kraus:
     stream << "kraus";
+    break;
+  case OpType::superop:
+    stream << "superop";
     break;
   case OpType::roerror:
     stream << "roerror";
@@ -401,6 +404,15 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string la
   return op;
 }
 
+inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
+  Op op;
+  op.type = OpType::superop;
+  op.name = "superop";
+  op.qubits = qubits;
+  op.mats = {mat};
+  return op;
+}
+
 inline Op make_fusion(const reg_t &qubits, const cmatrix_t &mat, const std::vector<Op>& fusioned_ops, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
@@ -548,6 +560,7 @@ Op json_to_op_snapshot_pauli(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
+Op json_to_op_superop(const json_t &js);
 Op json_to_op_multiplexer(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
 Op json_to_op_noise_switch(const json_t &js);
@@ -582,6 +595,8 @@ Op json_to_op(const json_t &js) {
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
+  if (name == "superop")
+    return json_to_op_superop(js);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
@@ -850,6 +865,24 @@ Op json_to_op_unitary(const json_t &js) {
   return op;
 }
 
+Op json_to_op_superop(const json_t &js) {
+  // Warning: we don't check superoperator is valid!
+  Op op;
+  op.type = OpType::superop;
+  op.name = "superop";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.mats, "params", js);
+  // Check conditional
+  add_condtional(Allowed::Yes, op, js);
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  if (op.mats.size() != 1) {
+    throw std::invalid_argument("\"superop\" params must be a single matrix.");
+  }
+  return op;
+}
+
 Op json_to_op_multiplexer(const json_t &js) {
   // Parse parameters
   reg_t qubits;
@@ -876,7 +909,7 @@ Op json_to_op_kraus(const json_t &js) {
   check_empty_qubits(op);
   check_duplicate_qubits(op);
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_condtional(Allowed::Yes, op, js);
   return op;
 }
 
@@ -899,11 +932,9 @@ Op json_to_op_snapshot(const json_t &js) {
   std::string snapshot_type;
   JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
   JSON::get_value(snapshot_type, "type", js);
-  if (snapshot_type == "expectation_value_pauli" ||
-      snapshot_type == "expectation_value_pauli_with_variance")
+  if (snapshot_type.find("expectation_value_pauli") != std::string::npos)
     return json_to_op_snapshot_pauli(js);
-  if (snapshot_type == "expectation_value_matrix" ||
-      snapshot_type == "expectation_value_matrix_with_variance")
+  if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
     return json_to_op_snapshot_matrix(js);
   // Default snapshot: has "type", "label", "qubits"
   auto op = json_to_op_snapshot_default(js);

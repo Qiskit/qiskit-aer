@@ -31,8 +31,9 @@ enum class Gates {id, x, y, z, h, s, sdg, cx, cz, swap};
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  cmemory, cregister,
-  probs, probs_var // TODO
+  stabilizer, cmemory, cregister,
+  probs, probs_var
+  /* TODO: the following snapshots still need to be implemented */
   //expval_pauli, expval_pauli_var, //  TODO
 };
 
@@ -75,7 +76,7 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"memory", "register"};
+    return {"stabilizer", "memory", "register"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -94,7 +95,8 @@ public:
   // TODO: currently returns 0
   // Returns the required memory for storing an n-qubit state in megabytes.
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config) override;
@@ -201,6 +203,7 @@ const stringmap_t<Gates> State::gateset_({
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
+  {"stabilizer", Snapshots::stabilizer},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister},
   {"probabilities", Snapshots::probs},
@@ -236,7 +239,8 @@ void State::initialize_qreg(uint_t num_qubits,
 //-------------------------------------------------------------------------
 
 size_t State::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) {
+                                 const std::vector<Operations::Op> &ops)
+                                 const  {
   (void)ops; // avoid unused variable compiler warning
   // The Clifford object requires very little memory.
   // A Pauli vector consists of 2 binary vectors each with
@@ -267,31 +271,32 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                       RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto op: ops) {
-    switch (op.type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits, rng);
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::gate:
-        if (BaseState::creg_.check_conditional(op))
+    if(BaseState::creg_.check_conditional(op)) {
+      switch (op.type) {
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits, rng);
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::gate:
           apply_gate(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
-        break;
-      default:
-        throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
-                                    op.name + "\'.");
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, data);
+          break;
+        default:
+          throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
+                                      op.name + "\'.");
+      }
     }
   }
 }
@@ -418,6 +423,9 @@ void State::apply_snapshot(const Operations::Op &op,
     throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
   switch (it->second) {
+    case Snapshots::stabilizer:
+      BaseState::snapshot_state(op, data, "stabilizer");
+      break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
       break;
