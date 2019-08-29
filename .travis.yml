@@ -178,10 +178,14 @@ jobs:
         - PYTHON_VERSION=3.5.6
 
     - sudo: required
+      dist: xenial
+      language: python
+      python: 3.7
+      os: linux
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython && tools/install_wheel_deps.sh"
+        - CIBW_BEFORE_BUILD="pip install -U Cython && tools/install_wheel_deps.sh && pip install pip<19"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
@@ -190,11 +194,14 @@ jobs:
         - VIRTUALENV_NO_DOWNLOAD=1
 #      if: tag IS present
       script:
+        - sudo pip install pip<19
         - sudo pip install cibuildwheel==0.11.1
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
     - os: osx
-      language: generic
+      language: python
+      python: 3.7
+      sudo: required
 #      if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython && tools/install_wheel_deps.sh"
@@ -205,6 +212,7 @@ jobs:
         - CIBW_ENVIRONMENT=VIRTUALENV_NO_DOWNLOAD=1
         - VIRTUALENV_NO_DOWNLOAD=1
       script:
-        - sudo pip2 install cibuildwheel==0.11.1
+        - sudo pip install pip<19
+        - sudo pip install cibuildwheel==0.11.1
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
