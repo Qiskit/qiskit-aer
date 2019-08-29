@@ -18,10 +18,10 @@ stages:
       pool: {vmImage: 'vs2017-win2016'}
 #      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
-        CIBW_BEFORE_BUILD: pip install -U Cython 'pip<19' && bash tools/install_wheel_deps.sh
+        CIBW_BEFORE_BUILD: pip install -U Cython 'pip<19' && bash tools\install_wheel_deps.sh
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/tools/verify_wheels.py
+        CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
         CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
         CIBW_ENVIRONMENT: VIRTUALENV_NO_DOWNLOAD=1
         VIRTUALENV_NO_DOWNLOAD: 1
