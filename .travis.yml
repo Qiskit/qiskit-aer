@@ -187,6 +187,7 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19' && tools/install_wheel_deps.sh"
         - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_BUILD="manylinux2010*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
@@ -195,7 +196,11 @@ jobs:
 #      if: tag IS present
       script:
         - pip install 'pip<19'
-        - pip install cibuildwheel==0.11.1
+        - git clone https://github.com/joerick/cibuildwheel.git
+        - pushd cibuildwheel
+        - git pull --no-commit https://github.com/YannickJadoul/cibuildwheel.git manylinux2010
+        - pip install .
+        - popd
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
     - os: osx
