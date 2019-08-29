@@ -190,7 +190,7 @@ jobs:
         - VIRTUALENV_NO_DOWNLOAD=1
 #      if: tag IS present
       script:
-        - sudo pip install cibuildwheel==0.10.1
+        - sudo pip install cibuildwheel==0.11.1
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
     - os: osx
@@ -200,9 +200,11 @@ jobs:
         - CIBW_BEFORE_BUILD="pip install -U Cython && tools/install_wheel_deps.sh"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+        - CIBW_ENVIRONMENT=VIRTUALENV_NO_DOWNLOAD=1
+        - VIRTUALENV_NO_DOWNLOAD=1
       script:
-        - sudo pip2 install cibuildwheel==0.10.1
+        - sudo pip2 install cibuildwheel==0.11.1
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
