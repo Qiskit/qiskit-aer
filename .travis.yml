@@ -187,7 +187,7 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19' && tools/install_wheel_deps.sh"
         - CIBW_SKIP="cp27-* cp34-*"
-        - CIBW_BUILD="manylinux2010*"
+        - CIBW_BUILD="*manylinux2010_x86_64"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
