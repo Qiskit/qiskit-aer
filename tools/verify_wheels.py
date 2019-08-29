@@ -9,7 +9,7 @@ import numpy as np
 from numpy.linalg import norm
 
 from qiskit import ClassicalRegister
-from qiskit import compile
+from qiskit.compiler import assemble, transpile
 from qiskit import execute
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister 
@@ -221,7 +221,7 @@ circuits = grovers_circuit(final_measure=True, allow_sampling=True)
 targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
             '0x2': shots / 8, '0x3': shots / 8}]
 simulator = QasmSimulator()
-qobj = compile(circuits, simulator, shots=shots)
+qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
 result = simulator.run(qobj).result()
 assert result.status == 'COMPLETED'
 compare_counts(result, circuits, targets, delta=0.05 * shots)
