@@ -29,6 +29,10 @@
 #include <stdexcept>
 
 #include "framework/json.hpp"
+#ifdef SIMD
+#include "kernel_simd.hpp"
+#endif
+#include "kernel.hpp"
 
 namespace QV {
 
@@ -400,6 +404,10 @@ protected:
   size_t data_size_;
   std::complex<data_t>* data_;
   std::complex<data_t>* checkpoint_;
+  // If data_t is double, SIMD function is enable
+#ifdef SIMD
+  bool type_double = ((typeid(data_t) == typeid(double)) ? true : false);
+#endif
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -525,6 +533,7 @@ protected:
   std::complex<double> apply_reduction_lambda(Lambda&& func,
                                               const list_t &qubits,
                                               const param_t &params) const;
+
 };
 
 /*******************************************************************************
@@ -1108,36 +1117,57 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
       return;
     case 2: {
       // Lambda function for 2-qubit matrix multiplication
+
+      #ifdef SIMD
+      if(type_double){
+        __m256d mat_vec[8];
+        __m256d mat_perm[8];
+
+        KernelSimd::kernel2_init(mat_vec, mat_perm, mat);
+
+        auto lambda = [&](const areg_t<4> &inds, const cvector_t<data_t> &_mat)->void {
+            KernelSimd::kernel2((std::complex<data_t>* )data_, inds, mat_vec, mat_perm);
+        };
+        apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), convert(mat));
+      }else{
+        auto lambda = [&](const areg_t<4> &inds, const cvector_t<data_t> &_mat)->void {
+          Kernel::kernel2(data_, inds, _mat);
+        };
+        apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), convert(mat));
+      }
+      #else
       auto lambda = [&](const areg_t<4> &inds, const cvector_t<data_t> &_mat)->void {
-        std::array<std::complex<data_t>, 4> cache;
-        for (size_t i = 0; i < 4; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 4; i++)
-          for (size_t j = 0; j < 4; j++)
-            data_[inds[i]] += _mat[i + 4 * j] * cache[j];
+          Kernel::kernel2(data_, inds, _mat);
       };
       apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), convert(mat));
+      #endif
+
       return;
     }
     case 3: {
+      #ifdef SIMD
+      if(type_double){
+        __m256d mat_vec[32];
+        __m256d mat_perm[32];
+
+        KernelSimd::kernel3_init(mat_vec, mat_perm, mat);
+        auto lambda = [&](const areg_t<8> &inds, const cvector_t<data_t> &_mat)->void {
+          KernelSimd::kernel3((std::complex<data_t>* )data_, inds, mat_vec, mat_perm);
+        };
+        apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), convert(mat));
+      } else {
+        auto lambda = [&](const areg_t<8> &inds, const cvector_t<data_t> &_mat)->void {
+          Kernel::kernel3(data_, inds, _mat);
+        };
+        apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), convert(mat));
+      }
+      #else
       // Lambda function for 3-qubit matrix multiplication
       auto lambda = [&](const areg_t<8> &inds, const cvector_t<data_t> &_mat)->void {
-        std::array<std::complex<data_t>, 8> cache;
-        for (size_t i = 0; i < 8; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 8; i++)
-          for (size_t j = 0; j < 8; j++)
-            data_[inds[i]] += _mat[i + 8 * j] * cache[j];
+          Kernel::kernel3(data_, inds, _mat);
       };
       apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), convert(mat));
+      #endif
       return;
     }
     case 4: {
@@ -1666,13 +1696,31 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
     apply_lambda(lambda, qubits, convert(mat));
     return;
   }
+
   // Otherwise general single-qubit matrix multiplication
+  #ifdef SIMD
+  if(type_double) {
+    __m256d mat_vec[2];
+    __m256d mat_perm[2];
+
+    KernelSimd::kernel1_init(mat_vec, mat_perm, mat);
+
+    auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
+      KernelSimd::kernel1((std::complex<data_t>* )data_, inds, mat_vec, mat_perm);
+    };
+    apply_lambda(lambda, qubits, convert(mat));
+  } else {
+    auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
+      Kernel::kernel1((std::complex<data_t>* )data_, inds, _mat);
+    };
+    apply_lambda(lambda, qubits, convert(mat));
+  }
+  #else
   auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
-    const auto cache = data_[inds[0]];
-    data_[inds[0]] = _mat[0] * cache + _mat[2] * data_[inds[1]];
-    data_[inds[1]] = _mat[1] * cache + _mat[3] * data_[inds[1]];
+    Kernel::kernel1((std::complex<data_t>* )data_, inds, _mat);
   };
   apply_lambda(lambda, qubits, convert(mat));
+  #endif
 }
 
 template <typename data_t>

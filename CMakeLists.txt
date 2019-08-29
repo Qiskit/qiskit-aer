@@ -204,6 +204,11 @@ else() # Standalone build
 	add_linter(qasm_simulator)
 endif()
 
+if(APPLE)
+	enable_cxx_compiler_flag_if_supported("-mavx")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMD")
+endif()
+
 # Tests
 if(BUILD_TESTS)
 	add_subdirectory(test)
