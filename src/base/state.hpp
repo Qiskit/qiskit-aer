@@ -18,8 +18,8 @@
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
-#include "framework/data.hpp"
 #include "framework/creg.hpp"
+#include "framework/results/data.hpp"
 
 namespace AER {
 namespace Base {

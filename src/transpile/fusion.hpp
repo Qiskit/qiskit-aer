@@ -209,8 +209,7 @@ void Fusion::optimize_circuit(Circuit& circ,
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 
     if (verbose_)
-      data.add_additional_data("metadata",
-                               json_t::object({{"fusion_verbose", circ.ops}}));
+      data.add_metadata("fusion_verbose", circ.ops);
   }
 
 #ifdef DEBUG

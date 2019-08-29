@@ -660,12 +660,10 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   // Output data container
   OutputData data;
   data.set_config(config);
-  data.add_additional_data("metadata",
-                           json_t::object({{"method", state.name()}}));
+  data.add_metadata("method", state.name());
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
-  data.add_additional_data("metadata",
-                            json_t::object({{"measure_sampling", false}}));
+  data.add_metadata("measure_sampling", false);
 
   // Choose execution method based on noise and method
   if (noise.is_ideal()) {
@@ -760,8 +758,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
     // Add measure sampling metadata
-    data.add_additional_data("metadata",
-                             json_t::object({{"measure_sampling", true}}));
+    data.add_metadata("measure_sampling", true);
   }  
 }
 

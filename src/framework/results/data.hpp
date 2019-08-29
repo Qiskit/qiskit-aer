@@ -16,8 +16,8 @@
 #define _aer_framework_data_hpp_
 
 #include "framework/json.hpp"
-#include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
+#include "framework/results/snapshot.hpp"
 
 namespace AER {
 
@@ -96,6 +96,14 @@ public:
 
   void clear_additional_data(const std::string &key);
 
+  // Metadata
+  json_t& metadata() {return metadata_;}
+  const json_t& metadata() const {return metadata_;}
+
+  template <typename T>
+  void add_metadata(const std::string &key, const T &data);
+
+  void clear_metadata(const std::string &key);
   //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
@@ -135,6 +143,9 @@ protected:
 
   // Miscelaneous data
   json_t additional_data_;
+
+  // Metadata
+  json_t metadata_;
 
   //----------------------------------------------------------------
   // Config
@@ -247,6 +258,21 @@ void OutputData::clear_additional_data(const std::string &key) {
 }
 
 
+template <typename T>
+void OutputData::add_metadata(const std::string &key, const T &data) {
+  json_t js = data; // use implicit to_json conversion function for T
+  if (JSON::check_key(key, additional_data_))
+    metadata_[key].update(js.begin(), js.end());
+  else
+    metadata_[key] = js;
+}
+
+
+void OutputData::clear_metadata(const std::string &key) {
+  metadata_.erase(key);
+}
+
+
 void OutputData::clear() {
   // Clear measure and counts
   counts_.clear();
@@ -257,6 +283,7 @@ void OutputData::clear() {
   average_snapshots_.clear();
   // Clear additional data
   additional_data_.clear();
+  metadata_.clear();
 }
 
 
@@ -276,6 +303,10 @@ OutputData& OutputData::combine(OutputData &data) {
   }
   for (auto &pair : data.average_snapshots_) {
     average_snapshots_[pair.first].combine(pair.second);
+  }
+  // Combine metadata
+  for(auto& metadatum: data.metadata_.items()) {
+    metadata_[metadatum.key()] = metadatum.value();
   }
   // Combine additional data
   // Note that this will override any fields that have the same value

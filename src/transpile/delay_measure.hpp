@@ -121,8 +121,7 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
   circ.ops.insert(circ.ops.end(), meas_ops.begin(), meas_ops.end());
   
   if (verbose_)
-      data.add_additional_data("metadata",
-                               json_t::object({{"delay_measure_verbose", circ.ops}}));
+      data.add_metadata("delay_measure_verbose", circ.ops);
 }
 
 

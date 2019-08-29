@@ -112,10 +112,10 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
   noise.remap_qubits(mapping);
 
   if (verbose_) {
-    json_t metadata;
-    metadata["truncate_qubits"]["active_qubits"] = active_qubits;
-    metadata["truncate_qubits"]["mapping"] = mapping;
-    data.add_additional_data("metadata", metadata);
+    json_t truncate_metadata;
+    truncate_metadata["active_qubits"] = active_qubits;
+    truncate_metadata["mapping"] = mapping;
+    data.add_metadata("truncate_qubits", truncate_metadata);
   }
 }
 
