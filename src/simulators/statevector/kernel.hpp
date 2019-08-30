@@ -15,7 +15,6 @@
 #ifndef _kernel_hpp
 #define _kernel_hpp
 namespace Kernel{
-template<typename data_t> using data_t = double;
 using uint_t = uint64_t;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
