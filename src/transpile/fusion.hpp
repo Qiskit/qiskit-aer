@@ -15,6 +15,8 @@
 #ifndef _aer_transpile_fusion_hpp_
 #define _aer_transpile_fusion_hpp_
 
+//#define DEBUG
+
 #include "transpile/circuitopt.hpp"
 
 namespace AER {
@@ -116,6 +118,7 @@ const std::vector<std::string> Fusion::supported_gates({
   // Two-qubit gates
   "CX",   // Controlled-X gate (CNOT)
   "cx",   // Controlled-X gate (CNOT)
+  "cu1",  // Controlled-U1 gate
   "cz",   // Controlled-Z gate
   "swap" // SWAP gate
   // Three-qubit gates
@@ -514,21 +517,21 @@ bool Fusion::only_u1(const std::vector<op_t>& ops,
                      const uint_t until) const {
 
   for (uint_t i = from; i <= until; ++i) {
-    if (ops[i].name == "u1")
-      continue;
-    if (from < i && (i + 2) <= until
-        && ops[i - 1].name == "u1"
-        && ops[i    ].name == "cx"
-        && ops[i + 1].name == "u1"
-        && ops[i + 2].name == "cx"
-        && ops[i - 1].qubits[0] == ops[i    ].qubits[1]
-        && ops[i    ].qubits[1] == ops[i + 1].qubits[0]
-        && ops[i + 1].qubits[0] == ops[i + 2].qubits[1]
-        && ops[i    ].qubits[0] == ops[i + 2].qubits[0] )
+    if ((i + 3) <= until
+        && ops[i    ].name == "u1"
+        && ops[i + 1].name == "cx"
+        && ops[i + 2].name == "u1"
+        && ops[i + 3].name == "cx"
+        && ops[i    ].qubits[0] == ops[i + 1].qubits[1]
+        && ops[i + 1].qubits[1] == ops[i + 2].qubits[0]
+        && ops[i + 2].qubits[0] == ops[i + 3].qubits[1]
+        && ops[i + 1].qubits[0] == ops[i + 3].qubits[0] )
     {
-      i += 2;
+      i += 3;
       continue;
     }
+    if (ops[i].name == "u1" || ops[i].name == "cu1")
+      continue;
     return false;
   }
   return true;
@@ -578,6 +581,13 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
       return Utils::make_matrix<complex_t>( {
         { {1, 0}, {0, 0} },
         { {0, 0}, std::exp( complex_t(0, 1.) * std::real(op.params[0])) }}
+      );
+    } else if (op.name == "cu1") {   // zero-X90 pulse waltz gate
+      return Utils::make_matrix<complex_t>( {
+        { {1, 0}, {0, 0}, {0, 0}, {0, 0} },
+        { {0, 0}, {1, 0}, {0, 0}, {0, 0} },
+        { {0, 0}, {0, 0}, {1, 0}, {0, 0} },
+        { {0, 0}, {0, 0}, {0, 0}, std::exp( complex_t(0, 1.) * std::real(op.params[0])) }}
       );
     } else if (op.name == "u2") {   // single-X90 pulse waltz gate
       return Utils::Matrix::u3( M_PI / 2., std::real(op.params[0]), std::real(op.params[1]));
