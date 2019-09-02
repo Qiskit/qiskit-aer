@@ -46,12 +46,12 @@ class QasmMethodTests:
                 qobj, backend_options=self.BACKEND_OPTS).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         result = get_result()
         self.is_completed(result)
-        if method == 'statevector':
+        if method != 'automatic':
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
                                          'stabilizer')
@@ -85,12 +85,12 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         result = get_result()
         self.is_completed(result)
-        if method == 'statevector':
+        if method != 'automatic':
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
                                          'stabilizer')
@@ -115,13 +115,13 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
         self.is_completed(result)
-        if method == 'statevector':
+        if method != 'automatic':
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
                                          'stabilizer')
@@ -146,14 +146,18 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     def test_backend_method_clifford_circuits_and_kraus_noise(self):
         """Test statevector method is used for Clifford circuit"""
@@ -176,14 +180,18 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     # ---------------------------------------------------------------------
     # Test non-Clifford circuits with clifford and non-clifford noise
@@ -201,14 +209,18 @@ class QasmMethodTests:
                 qobj, backend_options=self.BACKEND_OPTS).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'statevector'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     def test_backend_method_nonclifford_circuit_and_reset_noise(self):
         """Test statevector method is used for Clifford circuit"""
@@ -239,14 +251,18 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     def test_backend_method_nonclifford_circuit_and_pauli_noise(self):
         """Test statevector method is used for Clifford circuit"""
@@ -268,14 +284,18 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     def test_backend_method_nonclifford_circuit_and_unitary_noise(self):
         """Test statevector method is used for Clifford circuit"""
@@ -297,14 +317,18 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
 
     def test_backend_method_nonclifford_circuit_and_kraus_noise(self):
         """Test statevector method is used for Clifford circuit"""
@@ -327,11 +351,15 @@ class QasmMethodTests:
                 noise_model=noise_model).result()
 
         # Check simulation method
-        method = self.BACKEND_OPTS.get('method')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         if method == 'stabilizer':
             self.assertRaises(AerError, get_result)
         else:
             result = get_result()
             self.is_completed(result)
+            if method == 'automatic':
+                target_method = 'density_matrix'
+            else:
+                target_method = method
             self.compare_result_metadata(result, circuits, 'method',
-                                         'statevector')
+                                         target_method)
