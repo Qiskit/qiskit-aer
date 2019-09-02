@@ -23,6 +23,7 @@ DEFAULT_CONFIGURATION = {
     'open_pulse': False,
     'memory': False,
     'local': False,
+    'coupling_map': None,
     'max_shots': 8192,
     'max_experiments': 1024,
     'GPU': True,
