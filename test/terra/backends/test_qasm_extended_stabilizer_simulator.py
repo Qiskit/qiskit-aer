@@ -138,11 +138,10 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     def test_measure_deterministic_multi_qubit_with_sampling(self):
         """Test ExtendedStabilizer multi-qubit measure with deterministic counts with sampling"""
         shots = 100
-        qobj = ref_measure.measure_circuits_qobj_deterministic(
+        circuits = ref_measure.multiqubit_measure_circuits_deterministic(
             allow_sampling=True)
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_deterministic(shots)
+        targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         job = QasmSimulator().run(
             qobj,
             backend_options={
@@ -156,11 +155,10 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     def test_measure_deterministic_multi_qubit_without_sampling(self):
         """Test ExtendedStabilizer multi-qubit measure with deterministic counts without sampling"""
         shots = 100
-        qobj = ref_measure.measure_circuits_qobj_deterministic(
+        circuits = ref_measure.multiqubit_measure_circuits_deterministic(
             allow_sampling=False)
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_deterministic(shots)
+        targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         job = QasmSimulator().run(
             qobj,
             backend_options={
@@ -173,11 +171,10 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test CHimulator reset with non-deterministic counts"""
         shots = 2000
-        qobj = ref_measure.measure_circuits_qobj_nondeterministic(
+        circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
+        targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         job = QasmSimulator().run(
             qobj,
             backend_options={
@@ -191,11 +188,10 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test CHimulator reset with non-deterministic counts"""
         shots = 2000
-        qobj = ref_measure.measure_circuits_qobj_nondeterministic(
+        circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
-        qobj.config.shots = shots
-        circuits = [experiment.header.name for experiment in qobj.experiments]
-        targets = ref_measure.measure_counts_qobj_nondeterministic(shots)
+        targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
+        qobj = assemble(circuits, QasmSimulator(), shots=shots)
         job = QasmSimulator().run(
             qobj,
             backend_options={

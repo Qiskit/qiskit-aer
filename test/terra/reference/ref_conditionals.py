@@ -16,14 +16,44 @@ Test circuits and reference outputs for conditional gates.
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Instruction
 
+
+def add_conditional_x(circuit, qreg, creg, val, conditional_type):
+    """Add a conditional instruction to a circuit.
+
+    Args:
+        circuit (QuantumCircuit): circuit to add instruction to.
+        qreg (QuantumRegister): qubit to apply conditional X to
+        creg (ClassicalRegister): classical reg to condition on
+        val (int): Classical reg value to condition on.
+        conditional_type (string): instruction type to add conditional
+                                   X as.
+
+    Conditional type can be 'gate', 'unitary', 'kraus', 'superop'
+    and will apply a conditional X-gate in that representation
+    """
+    # X-gate matrix
+    x_mat = np.array([[0, 1], [1, 0]], dtype=complex)
+    x_superop = Instruction('superop', 1, 0, [np.kron(x_mat, x_mat)])
+    x_kraus = Instruction('kraus', 1, 0, [x_mat])
+
+    if conditional_type == 'unitary':
+        circuit.unitary(x_mat, [qreg]).c_if(creg, val)
+    elif conditional_type == 'kraus':
+        circuit.append(x_kraus, [qreg]).c_if(creg, val)
+    elif conditional_type == 'superop':
+        circuit.append(x_superop, [qreg]).c_if(creg, val)
+    else:
+        circuit.x(qreg).c_if(creg, val)
 
 # ==========================================================================
 # Conditionals on 1-bit register
 # ==========================================================================
 
-def conditional_circuits_1bit(final_measure=True):
-    """Conditional test circuits on single bit classical register."""
+
+def conditional_circuits_1bit(final_measure=True, conditional_type='gate'):
+    """Conditional gates on single bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
     cond = ClassicalRegister(1, 'cond')
@@ -36,7 +66,7 @@ def conditional_circuits_1bit(final_measure=True):
     # Conditional on 0 (cond = 0)
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -48,7 +78,7 @@ def conditional_circuits_1bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -57,7 +87,7 @@ def conditional_circuits_1bit(final_measure=True):
     # Conditional on 1 (cond = 0)
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -69,7 +99,7 @@ def conditional_circuits_1bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -120,7 +150,7 @@ def conditional_statevector_1bit():
 # Conditionals on 2-bit register
 # ==========================================================================
 
-def conditional_circuits_2bit(final_measure=True):
+def conditional_circuits_2bit(final_measure=True, conditional_type='gate'):
     """Conditional test circuits on 2-bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
@@ -134,7 +164,7 @@ def conditional_circuits_2bit(final_measure=True):
     # Conditional on 00 (cr = 00)
     circuit = QuantumCircuit(*regs)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -146,7 +176,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -158,7 +188,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     circuits.append(circuit)
 
     # Conditional on 00 (cr = 11)
@@ -168,7 +198,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 0)
+    add_conditional_x(circuit, qr[0], cond, 0, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -176,7 +206,7 @@ def conditional_circuits_2bit(final_measure=True):
 
     # Conditional on 01 (cr = 00)
     circuit = QuantumCircuit(*regs)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -188,7 +218,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -200,7 +230,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -213,7 +243,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 1)
+    add_conditional_x(circuit, qr[0], cond, 1, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -229,7 +259,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 2)
+    add_conditional_x(circuit, qr[0], cond, 2, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -241,7 +271,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 2)
+    add_conditional_x(circuit, qr[0], cond, 2, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -254,7 +284,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 2)
+    add_conditional_x(circuit, qr[0], cond, 2, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -262,7 +292,8 @@ def conditional_circuits_2bit(final_measure=True):
 
     # Conditional on 11 (cr = 00)
     circuit = QuantumCircuit(*regs)
-    circuit.x(qr).c_if(cond, 3)
+    circuit.barrier(qr)
+    add_conditional_x(circuit, qr[0], cond, 3, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -274,7 +305,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[0])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 3)
+    add_conditional_x(circuit, qr[0], cond, 3, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -286,7 +317,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 3)
+    add_conditional_x(circuit, qr[0], cond, 3, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -299,7 +330,7 @@ def conditional_circuits_2bit(final_measure=True):
     circuit.measure(qr[0], cond[1])
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.x(qr).c_if(cond, 3)
+    add_conditional_x(circuit, qr[0], cond, 3, conditional_type)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -380,7 +411,7 @@ def conditional_counts_2bit(shots, hex_counts=True):
     return targets
 
 
-def conditional_statevector_2bit(final_measure=True):
+def conditional_statevector_2bit():
     """2-bit conditional circuits reference statevector."""
     state_0 = np.array([1, 0])
     state_1 = np.array([0, 1])
