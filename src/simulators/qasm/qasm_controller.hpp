@@ -310,7 +310,7 @@ void QasmController::set_config(const json_t &config) {
     else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
     }
-    else if (method == "matrix_product_state") 
+    else if (method == "matrix_product_state")
     {
       simulation_method_ = Method::matrix_product_state;
     }

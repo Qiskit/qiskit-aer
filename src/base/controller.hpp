@@ -517,7 +517,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 
   // Get QOBJ id and pass through header to result
   result["qobj_id"] = qobj.id;
-  if (!qobj.header.empty())
+  if (!qobj.header.empty()) // NOLINT
       result["header"] = qobj.header;
 
   // Qobj was loaded successfully, now we proceed

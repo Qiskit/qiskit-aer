@@ -93,13 +93,13 @@ int main(int argc, char **argv) {
   json_t qobj;
   json_t config;
 
-  if(argc == 1){
+  if(argc == 1){ // NOLINT
     usage(std::string(argv[0]), out); // NOLINT
     return 1;
   }
 
   // Parse command line options
-  for(auto pos = 1ul; pos < static_cast<unsigned int>(argc); ++pos){
+  for(auto pos = 1UL; pos < static_cast<unsigned int>(argc); ++pos){ // NOLINT
     auto option = parse_cmd_options(std::string(argv[pos])); // NOLINT
     switch(option){
       case CmdArguments::SHOW_VERSION:
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
     // Check for command line config
     // and if present add to qobj config
     json_t& config_all = qobj["config"];
-    if (!config.empty())
+    if (!config.empty()) // NOLINT
       config_all.update(config.begin(), config.end());
 
     // Initialize simulator
