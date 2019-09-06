@@ -71,9 +71,9 @@ private:
                           const reg_t& dst_sorted_qubits,
                           const cmatrix_t& mat) const;
 
-  bool only_u1(const oplist_t& ops,
-               const uint_t from,
-               const uint_t until) const;
+  bool is_diagonal(const oplist_t& ops,
+                   const uint_t from,
+                   const uint_t until) const;
 
   double estimate_cost(const oplist_t& ops,
                        const uint_t from,
@@ -116,6 +116,7 @@ const std::vector<std::string> Fusion::supported_gates({
   // Two-qubit gates
   "CX",   // Controlled-X gate (CNOT)
   "cx",   // Controlled-X gate (CNOT)
+  "cu1",  // Controlled-U1 gate
   "cz",   // Controlled-Z gate
   "swap" // SWAP gate
   // Three-qubit gates
@@ -509,26 +510,30 @@ cmatrix_t Fusion::sort_matrix(const reg_t &src,
   return ret;
 }
 
-bool Fusion::only_u1(const std::vector<op_t>& ops,
-                     const uint_t from,
-                     const uint_t until) const {
+bool Fusion::is_diagonal(const std::vector<op_t>& ops,
+                         const uint_t from,
+                         const uint_t until) const {
+
+  // check unitary matrix of ops between "from" and "to" is a diagonal matrix
 
   for (uint_t i = from; i <= until; ++i) {
-    if (ops[i].name == "u1")
-      continue;
-    if (from < i && (i + 2) <= until
-        && ops[i - 1].name == "u1"
-        && ops[i    ].name == "cx"
+    //   ┌───┐┌────┐┌───┐
+    //  ─┤ X ├┤ U1 ├┤ X ├
+    //   └─┬─┘└────┘└─┬─┘
+    //  ───■──────────■─-
+    if ((i + 2) <= until
+        && ops[i + 0].name == "cx"
         && ops[i + 1].name == "u1"
         && ops[i + 2].name == "cx"
-        && ops[i - 1].qubits[0] == ops[i    ].qubits[1]
-        && ops[i    ].qubits[1] == ops[i + 1].qubits[0]
+        && ops[i + 0].qubits[1] == ops[i + 1].qubits[0]
         && ops[i + 1].qubits[0] == ops[i + 2].qubits[1]
-        && ops[i    ].qubits[0] == ops[i + 2].qubits[0] )
+        && ops[i + 0].qubits[0] == ops[i + 2].qubits[0] )
     {
       i += 2;
       continue;
     }
+    if (ops[i].name == "u1" || ops[i].name == "cu1")
+      continue;
     return false;
   }
   return true;
@@ -537,7 +542,7 @@ bool Fusion::only_u1(const std::vector<op_t>& ops,
 double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
-  if (only_u1(ops, from, until))
+  if (is_diagonal(ops, from, until))
     return cost_factor_;
 
   reg_t fusion_qubits;
@@ -578,6 +583,13 @@ cmatrix_t Fusion::matrix(const op_t& op) const {
       return Utils::make_matrix<complex_t>( {
         { {1, 0}, {0, 0} },
         { {0, 0}, std::exp( complex_t(0, 1.) * std::real(op.params[0])) }}
+      );
+    } else if (op.name == "cu1") {   // zero-X90 pulse waltz gate
+      return Utils::make_matrix<complex_t>( {
+        { {1, 0}, {0, 0}, {0, 0}, {0, 0} },
+        { {0, 0}, {1, 0}, {0, 0}, {0, 0} },
+        { {0, 0}, {0, 0}, {1, 0}, {0, 0} },
+        { {0, 0}, {0, 0}, {0, 0}, std::exp( complex_t(0, 1.) * std::real(op.params[0])) }}
       );
     } else if (op.name == "u2") {   // single-X90 pulse waltz gate
       return Utils::Matrix::u3( M_PI / 2., std::real(op.params[0]), std::real(op.params[1]));
