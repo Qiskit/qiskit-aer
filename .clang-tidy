@@ -1,4 +1,4 @@
-Checks: '*,-hicpp-braces-around-statements,-google-readability-braces-around-statements,-readability-braces-around-statements,-fuchsia-default-arguments,clang-diagnostic-*,clang-analyzer-*,-clang-analyzer-alpha*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cert-err61-cpp,-misc-throw-by-value-catch-by-reference,-clang-analyzer-alpha.deadcode.UnreachableCode,-cert-err58-cpp,-clang-analyzer-alpha.*,-clang-analyzer-security.insecureAPI.strcpy,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-type-reinterpret-cast,-google-runtime-int,-modernize-raw-string-literal,-cppcoreguidelines-pro-bounds-constant-array-index'
+Checks: '-*,modernize-*'
 WarningsAsErrors: ''
 AnalyzeTemporaryDtors: false
 User:            atilag

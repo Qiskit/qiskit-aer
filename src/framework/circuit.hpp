@@ -138,8 +138,8 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   }
   ops.clear(); // remove any current operations
   const json_t &jops = circ["instructions"];
-  for (auto it = jops.cbegin(); it != jops.cend(); ++it) {
-    ops.emplace_back(Operations::json_to_op(*it));
+  for(auto jop: jops){
+    ops.emplace_back(Operations::json_to_op(jop));
   }
 
   // Set optype information

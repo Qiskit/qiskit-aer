@@ -327,7 +327,7 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
   for (size_t j=0; j<circuits.size(); j++) {
     required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
   }
-  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
+  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<>());
   size_t total_memory = 0;
   parallel_experiments_ = 0;
   for (size_t required_memory_mb : required_memory_mb_list) {
@@ -384,7 +384,7 @@ void Controller::set_parallelization_circuit(const Circuit& circ,
 }
 
 
-size_t Controller::get_system_memory_mb(void){
+size_t Controller::get_system_memory_mb(){
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
    auto pages = sysconf(_SC_PHYS_PAGES);
