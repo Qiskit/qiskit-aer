@@ -15,8 +15,6 @@
 #ifndef _aer_transpile_fusion_hpp_
 #define _aer_transpile_fusion_hpp_
 
-//#define DEBUG
-
 #include "transpile/circuitopt.hpp"
 
 namespace AER {
@@ -73,9 +71,9 @@ private:
                           const reg_t& dst_sorted_qubits,
                           const cmatrix_t& mat) const;
 
-  bool only_u1(const oplist_t& ops,
-               const uint_t from,
-               const uint_t until) const;
+  bool is_diagonal(const oplist_t& ops,
+                   const uint_t from,
+                   const uint_t until) const;
 
   double estimate_cost(const oplist_t& ops,
                        const uint_t from,
@@ -512,22 +510,26 @@ cmatrix_t Fusion::sort_matrix(const reg_t &src,
   return ret;
 }
 
-bool Fusion::only_u1(const std::vector<op_t>& ops,
-                     const uint_t from,
-                     const uint_t until) const {
+bool Fusion::is_diagonal(const std::vector<op_t>& ops,
+                         const uint_t from,
+                         const uint_t until) const {
+
+  // check unitary matrix of ops between "from" and "to" is a diagonal matrix
 
   for (uint_t i = from; i <= until; ++i) {
-    if ((i + 3) <= until
-        && ops[i    ].name == "u1"
-        && ops[i + 1].name == "cx"
-        && ops[i + 2].name == "u1"
-        && ops[i + 3].name == "cx"
-        && ops[i    ].qubits[0] == ops[i + 1].qubits[1]
-        && ops[i + 1].qubits[1] == ops[i + 2].qubits[0]
-        && ops[i + 2].qubits[0] == ops[i + 3].qubits[1]
-        && ops[i + 1].qubits[0] == ops[i + 3].qubits[0] )
+    //   ┌───┐┌────┐┌───┐
+    //  ─┤ X ├┤ U1 ├┤ X ├
+    //   └─┬─┘└────┘└─┬─┘
+    //  ───■──────────■─-
+    if ((i + 2) <= until
+        && ops[i + 0].name == "cx"
+        && ops[i + 1].name == "u1"
+        && ops[i + 2].name == "cx"
+        && ops[i + 0].qubits[1] == ops[i + 1].qubits[0]
+        && ops[i + 1].qubits[0] == ops[i + 2].qubits[1]
+        && ops[i + 0].qubits[0] == ops[i + 2].qubits[0] )
     {
-      i += 3;
+      i += 2;
       continue;
     }
     if (ops[i].name == "u1" || ops[i].name == "cu1")
@@ -540,7 +542,7 @@ bool Fusion::only_u1(const std::vector<op_t>& ops,
 double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
-  if (only_u1(ops, from, until))
+  if (is_diagonal(ops, from, until))
     return cost_factor_;
 
   reg_t fusion_qubits;
