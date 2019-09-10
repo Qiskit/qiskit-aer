@@ -22,6 +22,7 @@ from qiskit.providers.jobstatus import JobStatus
 from ..aererror import AerError
 from ..version import __version__
 from ..api import HttpConnector
+from ..api import SshConnector
 
 
 logger = logging.getLogger(__name__)
@@ -32,18 +33,22 @@ class RemoteNode():
     Remote Node Class
     """
 
-    def __init__(self, url=None, method=None):
+    def __init__(self, host=None, method=None, connect_config=None):
         """
         Args:
-            url (string) : API Url
+            host (string) : Host address
             method (string) : Portocol
         """
         self._method = method
-        self._url = url
+        self._host = host
         self._status = None
+        self._connect_config = None
 
         if method == "http":
-            self._api = HttpConnector(self._url)
+            self._api = HttpConnector(self._host)
+
+        if method == "ssh":
+            self._api = SshConnector(self._host, connect_config)
 
         _raw_config = self._api.available_backends()
         raw_config = _raw_config[0]
@@ -110,7 +115,9 @@ class RemoteNode():
             AerError : Can not submit qobj to remote node
         """
         try:
+            print("call_api_run")
             submit_info = self._api.run_job(qobj, 'qasm_simulator')
+            print(submit_info)
 
         # pylint: disable=broad-except
         except Exception as err:

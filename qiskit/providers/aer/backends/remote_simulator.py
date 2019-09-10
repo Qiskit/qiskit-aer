@@ -51,14 +51,25 @@ class RemoteSimulator(AerBackend):
         self._config = configuration
         self._provider = provider
         self._gpu = False
+        self._connect_config = None
+        self._protocol = None
 
         if "http_hosts" in kwargs:
             self._host_list = kwargs["http_hosts"]
+            self._protocol = "http"
+
+        if "ssh_hosts" in kwargs:
+            self._host_list = kwargs["ssh_hosts"]
+            self._protocol = "ssh"
+
+        if "ssh_configs" in kwargs:            
+            self._connect_config = kwargs["ssh_configs"]
+            del kwargs["ssh_configs"]
 
         self._nodelist = []
 
         if self._host_list:
-            self._get_config(self._host_list)
+            self._get_config(self._host_list, self._protocol, self._connect_config)
 
         super().__init__(None, self._config, self._provider, self)
 
@@ -88,9 +99,13 @@ class RemoteSimulator(AerBackend):
 
             qobj_list = self._gen_qobj_for_map(qobj, shots, len(self._nodelist))
 
+            print("remote run job")
             for index, each_qobj in enumerate(qobj_list):
                 submit = self._job_submit(self._nodelist[index], each_qobj)
+                print("remote run")
+                print(submit)
                 submit_info_list.append(submit)
+                print("list append")
         else:
             # Always Select First Node without noise (Temporary Solution)
             node = self._nodelist[0]
@@ -231,12 +246,15 @@ class RemoteSimulator(AerBackend):
 
         return first_data
 
-    def _get_config(self, host_list):
+    def _get_config(self, host_list, proto, config):
         """
         Get config from each remote node
         """
-        for host in host_list:
-            self._nodelist.append(RemoteNode(host, "http"))
+        for index, host in enumerate(host_list):
+            each_config = None
+            if config:
+                each_config = config[index]
+            self._nodelist.append(RemoteNode(host, proto, each_config))
 
         self._host_list = host_list
         self._config = self._generate_config()
@@ -254,7 +272,8 @@ class RemoteSimulator(AerBackend):
 
         base_config = remote_config_list[0].copy()
         base_config["backend_name"] = "remote_simulator"
-        base_config["http_hosts"] = self._host_list
+        host_name = self._protocol + "_hosts"
+        base_config[host_name] = self._host_list
 
         conditional = True
         open_pulse = True

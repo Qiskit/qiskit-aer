@@ -36,8 +36,11 @@ class AerProvider(BaseProvider):
 
     def get_backend(self, name=None, **kwargs):
         # If set http_hosts option, create Remote Simulator
-        if kwargs is not None and "http_hosts" in kwargs:
-            self._backends.append(RemoteSimulator(provider=self, kwargs=kwargs))
+        if kwargs is not None:
+            bk_name = ["http_hosts", "ssh_hosts"]
+            bK_name_kwargs = set(bk_name) & set(kwargs)
+            if len(bK_name_kwargs) > 0:
+                self._backends.append(RemoteSimulator(provider=self, kwargs=kwargs))
 
         return super().get_backend(name=name, **kwargs)
 

@@ -86,14 +86,15 @@ class AerRemoteJob(BaseJob):
             config = qobj.config.to_dict()
             if noise_model:
                 config["noise_model"] = noise_model.to_dict()
-                del config["run_config"]
+                print(config["run_config"])
+                config.pop("run_config", None)
                 qobj.config = QasmQobjConfig.from_dict(config)
                 self._noise = True
 
             if self._gpu_enable:
                 # with noise, copy qobj and submit to the nodes
                 config["GPU"] = True
-                del config["run_config"]
+                config.pop("run_config", None)
                 qobj.config = QasmQobjConfig.from_dict(config)
 
             validate_qobj_against_schema(qobj)
@@ -195,6 +196,8 @@ class AerRemoteJob(BaseJob):
         """
         try:
             submit_info_list = self._simulator.run_job(self._qobj_payload, self._noise)
+            print("back info list")
+            print(submit_info_list)
         # pylint: disable=broad-except
         except Exception as err:
             # Undefined error during submission:
@@ -257,6 +260,7 @@ class AerRemoteJob(BaseJob):
             if self._future is None:
                 raise JobError("You have to submit before asking for status or results!")
             try:
+                print("call future result")
                 submit_info_list = self._future.result(timeout=timeout)
             except TimeoutError as ex:
                 raise JobTimeoutError(
