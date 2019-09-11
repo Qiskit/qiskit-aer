@@ -187,6 +187,7 @@ set(AER_LIBRARIES
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/openpulse/cy)
+	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
