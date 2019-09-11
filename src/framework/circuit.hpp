@@ -34,8 +34,8 @@ public:
   using OpType = Operations::OpType;
   std::vector<Op> ops;      // circuit operations
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
-  uint_t num_memory = 0;    // maxmimum number of memory clbits needed for ops
-  uint_t num_registers = 0; // maxmimum number of registers clbits needed for ops
+  uint_t num_memory = 0;    // maximum number of memory clbits needed for ops
+  uint_t num_registers = 0; // maximum number of registers clbits needed for ops
   uint_t shots = 1;
   uint_t seed;
 
