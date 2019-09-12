@@ -106,8 +106,8 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   #else
      #pragma omp parallel for collapse(2)
   #endif
-  for(int_t row = 0; row < num_rows; row++) {
-      for(int_t col = 0; col < num_cols; col++) {
+  for(int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
+    for(int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
       }
   }
@@ -214,7 +214,7 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 
 	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
 	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A],lambda_reg_[index_A], q_reg_[index_B]);
+	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
 
 	temp.apply_swap();
 	MPS_Tensor left_gamma,right_gamma;
@@ -350,26 +350,10 @@ void MPS::change_position(uint_t src, uint_t dst)
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
-  // ***** Assuming ascending sorted qubits register *****
-  vector<uint_t> internalIndexes;
-  for (uint_t index : qubits)
-    internalIndexes.push_back(index);
-
   MPS temp_TN;
-  temp_TN.initialize(*this);
-  vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
-  uint_t avg = new_indexes[new_indexes.size()/2];
-  vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
-  int mid = std::distance(internalIndexes.begin(), it);
-  for(uint_t i = mid; i < internalIndexes.size(); i++)
-  {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
-  }
-  for(int i = mid-1; i >= 0; i--)
-  {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
-  }
-  MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
+  uint front = 0, back = 0;
+  TN_with_new_indices(qubits, temp_TN, front, back);
+  MPS_Tensor psi = temp_TN.state_vec(front, back);
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32
@@ -383,6 +367,31 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
     }
   }
   return rho;
+}
+
+  void MPS::TN_with_new_indices(const reg_t &qubits, 
+				MPS& temp_TN, 
+				uint &front, uint &back) const {
+  // ***** Assuming ascending sorted qubits register *****
+  vector<uint_t> internalIndexes;
+  for (uint_t index : qubits)
+    internalIndexes.push_back(index);
+
+  temp_TN.initialize(*this);
+  vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
+  uint_t avg = new_indexes[new_indexes.size()/2];
+  vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
+  int mid = std::distance(internalIndexes.begin(), it);
+  for(uint_t i = mid; i < internalIndexes.size(); i++)
+  {
+    temp_TN.change_position(internalIndexes[i], new_indexes[i]);
+  }
+  for(int i = mid-1; i >= 0; i--)
+  {
+    temp_TN.change_position(internalIndexes[i], new_indexes[i]);
+  }
+  front = internalIndexes.front();
+  back = internalIndexes.back();
 }
 
 double MPS::expectation_value(const reg_t &qubits, const string &matrices) const
@@ -424,6 +433,131 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
     for (uint_t j = 0; j < M.GetRows(); j++)
       res += M(i,j)*rho(j,i);
   return real(res);
+}
+
+
+
+// Initial state:
+//      0   1   2   3                                         0   1   2   3
+//   ---o-a0-o-a1-o-a2--o---  we can actually think of this as   --o---o---o---o--
+//      |    |    |     |                                       |  |   |   |   |  |
+//   ---o-a0-o-a1-o-a2--o---                                     --o---o---o---o--
+//                        because expectation value on the left and right are 1. 
+// After step 1:
+//       /o---o---o--
+//      o |   |   |  |
+//       \o---o---o-- 
+
+complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices) const
+{
+  MPS temp_TN;
+  //  MPS_Tensor expval_tensor, temp_tensor1, temp_tensor2;
+  uint first_index = 0, last_index = 0;
+  TN_with_new_indices(qubits, temp_TN, first_index, last_index);
+
+  string matrices_reverse = matrices;
+  reverse(matrices_reverse.begin(), matrices_reverse.end());
+  cmatrix_t M(1), gate_matrix;
+
+  char gate = matrices_reverse[0];
+
+  // step 1 - contract Gamma0 with Gamma0' over i and aL
+  // Gamma0 has dimensions aL x aR, Gamma0' has dimensions aR' x aL' (L for left, R for right)
+  // left_contract will have dimensions aR x aR
+
+  MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
+  if (first_index > 0)
+    left_tensor.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[first_index-1]);
+
+  // special case that we are computing expectation value on a single qubit,
+  // we need to mul by right gamma
+  if (first_index==last_index && first_index < num_qubits_)
+      left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
+
+  MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), AER::Utils::dagger(left_tensor.get_data(1)));
+  cout << "left_tensor" <<endl;
+  left_tensor.print(cout);
+  cout << "left_tensor_dagger" <<endl;
+  left_tensor_dagger.print(cout);
+  left_tensor_dagger.apply_pauli(gate);
+  cout << "after apply pauli, left_tensor_dagger" <<endl;
+  left_tensor_dagger.print(cout);
+
+  cmatrix_t left_contract;
+  MPS_Tensor::contract_2_axes(left_tensor_dagger, left_tensor, 0, 1, left_contract);
+
+  left_contract.SetOutputStyle(Matrix);
+  cout << " left_contract " << endl << left_contract << endl;
+
+  cmatrix_t final_contract = left_contract;
+
+  for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
+    cout <<"in loop, qubit_num = " << qubit_num <<endl;
+
+    // step 2 - multiply next Gamma by its left lambda
+    // next gamma has dimensions aR x aN x i (aR from previous gamma, N for next)
+    MPS_Tensor next_gamma = temp_TN.q_reg_[qubit_num];
+    cout << "index = " << qubit_num<<endl;
+    cout << "next_gamma before anything = " <<endl;
+    next_gamma.print(cout);
+    next_gamma.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[qubit_num-1]);
+    cout <<"after mul by Lambda, next_gamma "<<endl;
+    next_gamma.print(cout);
+
+    if (qubit_num==last_index && qubit_num < num_qubits_-1)
+      next_gamma.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[qubit_num]);
+
+    cout <<"after if and mul by right Lambda, next_gamma "<<endl;
+    next_gamma.print(cout);
+    next_gamma.get_data(0).SetOutputStyle(Matrix);
+    next_gamma.get_data(1).SetOutputStyle(Matrix);
+    cout << "next_gamma = " <<endl;
+    next_gamma.print(cout);
+    
+    // step 3 - prepare the dagger of the next gamma
+    // next_gamma_dagger has dimensions a1' x a0' x i
+    MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), AER::Utils::dagger(next_gamma.get_data(1)));
+    cout << "next_gamma_dagger = " <<endl;
+    next_gamma_dagger.get_data(0).SetOutputStyle(Matrix);
+    next_gamma_dagger.get_data(1).SetOutputStyle(Matrix);
+    next_gamma_dagger.print(cout);
+    
+    // step 4 - apply gate
+    gate = matrices_reverse[qubit_num - first_index];
+    next_gamma_dagger.apply_pauli(gate);
+    
+    cout << "after pauli, next_gamma_dagger = " <<endl;
+    next_gamma_dagger.print(cout);
+    
+    // step 5 - contract final_contract from previous stage with next gamma over aR
+    // final_contract has dimensions aR x aR, Gamma1 has dimensions aR x aN x i (where i=2)
+    // result is aR x aN x i
+
+    MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), final_contract * next_gamma.get_data(1));
+    cout << "next_contract =" <<endl;
+    next_contract.print(cout);
+
+    
+    // step 6 - contract next_contract (aR x aN x i) with next_gamma_dagger (i x aR x aN)
+    // here we need to contract across two dimensions: aR and i
+    // result is aN x aN
+
+    MPS_Tensor::contract_2_axes(next_contract, next_gamma_dagger, 0, 1, final_contract);      
+    cout << "final contract" <<endl;
+    cout << final_contract << endl;
+  }
+
+  cout << "end of loop" <<endl;
+
+
+ 
+  // step - contract over final matrix of size aN x aN
+  // simply take trace of final_contract
+  complex_t result;
+  result = AER::Utils::trace(final_contract);
+
+  cout << "res" << result <<endl;
+  return result;
 }
 
 ostream& MPS::print(ostream& out) const

@@ -127,6 +127,20 @@ public:
   //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
   double expectation_value(const reg_t &qubits, const string &matrices) const;
   double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+  complex_t new_expectation_value(const reg_t &qubits, const string &matrices) const;
+
+    //----------------------------------------------------------------
+  // function name: TN_with_new_indices
+  // Description: Creates a copy of *this where the indices of the
+  //   selected qubits have been moved for more efficient computation
+  //   of the expectation value
+  // Parameters: The qubits for which we compute expectation value.
+  // Returns: new MPS.
+  //----------------------------------------------------------------
+  void TN_with_new_indices(const reg_t &qubits, MPS& temp_TN,
+			   uint &front, uint &back) const;
+
+  void contract_with_self(uint qubit, const rvector_t &lambda, char gate, MPS_Tensor &temp_tensor);
 
   //----------------------------------------------------------------	
   // function name: print

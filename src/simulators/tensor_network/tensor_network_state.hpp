@@ -450,6 +450,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+    cout << "mps after operation " << op <<endl;
+    qreg_.print(cout);
   }
 }
 
@@ -471,8 +473,13 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     string pauli_matrices = param.second;
-    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
-    expval += coeff * one_expval;;
+    //    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
+    complex_t new_expval = qreg_.new_expectation_value(op.qubits, pauli_matrices);
+    //    cout << "old expval = " << one_expval <<endl;
+    cout << "new expval = " << new_expval <<endl;
+
+    //expval += coeff * one_expval;
+    expval += coeff * new_expval;
   }
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
 }
