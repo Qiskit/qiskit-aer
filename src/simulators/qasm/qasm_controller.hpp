@@ -505,7 +505,7 @@ QasmController::simulation_method(const Circuit &circ,
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
         return Method::density_matrix;
         }
-      // Finally we check if the statevector memory requirement for the
+      // Finally we check the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
       // the extended stabilizer simulator.
