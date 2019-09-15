@@ -437,16 +437,24 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
 
 
-// Initial state:
-//      0   1   2   3                                         0   1   2   3
-//   ---o-a0-o-a1-o-a2--o---  we can actually think of this as   --o---o---o---o--
-//      |    |    |     |                                       |  |   |   |   |  |
-//   ---o-a0-o-a1-o-a2--o---                                     --o---o---o---o--
-//                        because expectation value on the left and right are 1. 
+// Initial state: 
+//      0      1      2      3                                          
+//   ---o--a0--o--a1--o--a2--o---  
+//      |      |      |      |  
+//   ---o--a0--o--a1--o--a2--o---                                     
+//                       
+//                                 
+// We can actually think of this as        0   1   2   3
+//                                       --o---o---o---o--
+//                                      |  |   |   |   |  |
+//                                       --o---o---o---o--
+// because expectation value on the left and right are 1. 
+
 // After step 1:
-//       /o---o---o--
-//      o |   |   |  |
-//       \o---o---o-- 
+//        1    2     3
+//     a0/o--a1--o--a2--o--
+//      o |      |      |  |
+//     a0\o--a1--o--a2--o-- 
 
 complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices) const
 {
@@ -454,26 +462,26 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
   //  MPS_Tensor expval_tensor, temp_tensor1, temp_tensor2;
   uint first_index = 0, last_index = 0;
   TN_with_new_indices(qubits, temp_TN, first_index, last_index);
-
   string matrices_reverse = matrices;
   reverse(matrices_reverse.begin(), matrices_reverse.end());
   cmatrix_t M(1), gate_matrix;
 
   char gate = matrices_reverse[0];
-
-  // step 1 - contract Gamma0 with Gamma0' over i and aL
-  // Gamma0 has dimensions aL x aR, Gamma0' has dimensions aR' x aL' (L for left, R for right)
-  // left_contract will have dimensions aR x aR
+  // step 1 - contract Gamma0 with Gamma0' over i and a0
+  // Gamma0 has dimensions a0 x a1, Gamma0' has dimensions a1 x a0 
+  // result = left_contract will have dimensions a1 x a1
 
   MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
-  if (first_index > 0)
+  if (first_index > 0) {
+    cout << "in first if" << endl;
     left_tensor.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[first_index-1]);
+  }
 
-  // special case that we are computing expectation value on a single qubit,
-  // we need to mul by right gamma
-  if (first_index==last_index && first_index < num_qubits_)
+  // we need to mul by right gamma 
+  if (first_index==last_index && first_index < num_qubits_-1) {
+    cout << "in second if" << endl;
       left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
-
+  }
   MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), AER::Utils::dagger(left_tensor.get_data(1)));
   cout << "left_tensor" <<endl;
   left_tensor.print(cout);
@@ -484,7 +492,7 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
   left_tensor_dagger.print(cout);
 
   cmatrix_t left_contract;
-  MPS_Tensor::contract_2_axes(left_tensor_dagger, left_tensor, 0, 1, left_contract);
+  MPS_Tensor::contract_2_axes(left_tensor_dagger, left_tensor, left_contract);
 
   left_contract.SetOutputStyle(Matrix);
   cout << " left_contract " << endl << left_contract << endl;
@@ -529,26 +537,23 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
     cout << "after pauli, next_gamma_dagger = " <<endl;
     next_gamma_dagger.print(cout);
     
-    // step 5 - contract final_contract from previous stage with next gamma over aR
-    // final_contract has dimensions aR x aR, Gamma1 has dimensions aR x aN x i (where i=2)
-    // result is aR x aN x i
+    // step 5 - contract final_contract from previous stage with next gamma over a1
+    // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
+    // result is a1 x a2 x i
 
     MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), final_contract * next_gamma.get_data(1));
     cout << "next_contract =" <<endl;
     next_contract.print(cout);
 
     
-    // step 6 - contract next_contract (aR x aN x i) with next_gamma_dagger (i x aR x aN)
-    // here we need to contract across two dimensions: aR and i
-    // result is aN x aN
+    // step 6 - contract next_contract (a1 x a2 x i) with next_gamma_dagger (i x a2 x a1)
+    // here we need to contract across two dimensions: a1 and i
+    // result is a2 x a2
 
-    MPS_Tensor::contract_2_axes(next_contract, next_gamma_dagger, 0, 1, final_contract);      
+    MPS_Tensor::contract_2_axes(next_gamma_dagger, next_contract, final_contract);      
     cout << "final contract" <<endl;
     cout << final_contract << endl;
   }
-
-  cout << "end of loop" <<endl;
-
 
  
   // step - contract over final matrix of size aN x aN

@@ -122,8 +122,7 @@ public:
   static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
 static void contract_2_axes(const MPS_Tensor &left_gamma, 
 			    const MPS_Tensor &right_gamma,
-			    int_t axis1, int_t axis2,
-			    cmatrix_t result);
+			    cmatrix_t &result);
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			   bool right, /* or left */
@@ -378,72 +377,9 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
   return Res;
 }
 
-//---------------------------------------------------------------
-// function name: contract
-// Description: 
-// 		
-// Parameters: MPS_Tensor &left_gamma, &right_gamma , 
-// 	       tensors to contract.
-//             axis = 0=contract over rows of left gamma, columns of right gamma; 
-//                    1= contract over columns of left gamma, rows of right gamma;,
-//                    2 = contract over i
-// Returns: The result tensor of the contract
-//---------------------------------------------------------------
-/*MPS_Tensor MPS_Tensor::contract_axis(const MPS_Tensor &left_gamma, 
-				     const MPS_Tensor &right_gamma,
-				     int_t axis)
-
-{
-  MPS_Tensor Res;
-
-  int_t left_rows = left_gamma.data_[0].GetRows();
-  int_t left_columns = left_gamma.data_[0].GetColumns();
-  int_t left_size = left_gamma.data_.size();
-  int_t right_rows = right_gamma.data_[0].GetRows();
-  int_t right_columns = right_gamma.data_[0].GetColumns();
-  int_t right_size = right_gamma.data_.size();
-
-  switch (axis) {
-  case 0: 
-    std::assert(left_columns == right_rows);
-    for(uint_t i = 0; i < left_gamma.data_.size(); i++)
-      for(uint_t j = 0; j < right_gamma.data_.size(); j++) {
-	Res.data_.push_back(right_gamma.data_[j] * left_gamma.data_[i]);
-
-
-	   
-    }
-    break;
-    
-  case 1: 
-    std::assert(left_rows == right_columns);
-    for(uint_t j = 0; j < right_gamma.data_.size(); j++) {
-      for(uint_t i = 0; i < left_gamma.data_.size(); i++)
-	Res.data_.push_back(left_gamma.data_[j] * right_gamma.data_[i]);
-    }
-    break;
-
-  case 2: //axis 1 and 2
-   std::assert(left_size == right_size && left_rows == right_columns);  
-   cmatrix_t temp_res(a, b);
-   for(uint_t a = 0; a < left_rows; a++)
-     for(uint_t b = 0; b < right_columns; a++)
-       for(uint_t col = 0; col < left_columns; col++)
-	    for(uint_t s = 0; s < left_size; s++)
-	      temp_res(a, b) = left_gamma.data_[i][a, col] * right_gamma[j][col, b] *
-	                left_gamma.data_[j][a, col] * right_gamma[i][col, b];
-   res.push_back(temp_res);
-   break;
-
-  default:
-     throw std::invalid_argument("Illegal axis for contraction. Axis must be 0, 1, or 2"); 
-  return Res;
-}
-*/
-
 void MPS_Tensor::contract_2_axes(const MPS_Tensor &left_gamma, 
-			    const MPS_Tensor &right_gamma,
-				 int_t axis1, int_t axis2, cmatrix_t result)
+			         const MPS_Tensor &right_gamma,
+				 cmatrix_t &result)
 {
   int_t left_rows = left_gamma.data_[0].GetRows();
   int_t left_columns = left_gamma.data_[0].GetColumns();
@@ -452,21 +388,32 @@ void MPS_Tensor::contract_2_axes(const MPS_Tensor &left_gamma,
   int_t right_columns = right_gamma.data_[0].GetColumns();
   int_t right_size = right_gamma.data_.size();
 
-  // assume for now axes are 1 and 2 i.e., left_columns and left size
+  // assume for now axes are 1 and 2 i.e., 
+  // left_columns/right_rows and left_size/right_size
+  if (left_columns != right_rows)   
+    throw std::runtime_error("left_columns != right_rows");
+
+  if (left_size != right_size)
+    throw std::runtime_error("left_size != right_size");
   result.resize(left_rows, right_columns);
+
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++)
       result(l_row, r_col) = 0;
 
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++) {
+      cout <<"result["<<l_row <<", " << r_col <<"]"<<endl;
 
-      for (int_t l_col=0; l_col<left_columns ; l_col++)
-	for (int_t r_row=0; r_row<right_rows ; r_row++)
-	  for (int_t l_size=0; l_size<left_size; l_size++)
-	    for (int_t r_size=0; r_size<right_size; r_size++)
+      for (int_t l_size=0; l_size<left_size; l_size++)
+	  for (int_t l_col=0; l_col<left_columns ; l_col++) {
+ 
 	      result(l_row, r_col) += left_gamma.data_[l_size](l_row, l_col) *
-		                      right_gamma.data_[r_size](r_row, r_col);
+		                      right_gamma.data_[l_size](l_col, r_col);      
+	      cout << left_gamma.data_[l_size](l_row, l_col) <<" * " <<
+		right_gamma.data_[l_size](l_col, r_col) <<endl; 
+
+	    }
 	  }
 }
 //---------------------------------------------------------------
