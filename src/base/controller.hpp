@@ -114,6 +114,10 @@ public:
   // class.
   virtual Result execute(const json_t &qobj);
 
+  virtual Result execute(std::vector<Circuit> &circuits,
+                         const Noise::NoiseModel &noise_model,
+                         const json_t &config);
+
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
@@ -149,10 +153,10 @@ protected:
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual ExperimentData run_circuit(const Circuit &circ,
-                                 const Noise::NoiseModel &noise,
-                                 const json_t &config,
-                                 uint_t shots,
-                                 uint_t rng_seed) const = 0;
+                                     const Noise::NoiseModel &noise,
+                                     const json_t &config,
+                                     uint_t shots,
+                                     uint_t rng_seed) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -477,20 +481,18 @@ void Controller::optimize_circuit(Circuit &circ,
 }
 
 //-------------------------------------------------------------------------
-// Qobj and Circuit Execution to JSON output
+// Qobj execution
 //-------------------------------------------------------------------------
-
 Result Controller::execute(const json_t &qobj_js) {
-  // Start QOBJ timer
-  auto timer_start = myclock_t::now();
-
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
-  Qobj qobj;
-  Noise::NoiseModel noise_model;
-  json_t config;
   try {
-    qobj = Qobj(qobj_js);
+    // Start QOBJ timer
+    auto timer_start = myclock_t::now();
+
+    Qobj qobj(qobj_js);
+    Noise::NoiseModel noise_model;
+    json_t config;
     // Check for config
     if (JSON::get_value(config, "config", qobj_js)) {
       // Set config
@@ -498,23 +500,40 @@ Result Controller::execute(const json_t &qobj_js) {
       // Load noise model
       JSON::get_value(noise_model, "noise_model", config);
     }
-  }
-  catch (std::exception &e) {
+    auto result = execute(qobj.circuits, noise_model, config);
+    // Get QOBJ id and pass through header to result
+    result.qobj_id = qobj.id;
+    if (!qobj.header.empty()) {
+        result.header = qobj.header;
+    }
+    // Stop the timer and add total timing data including qobj parsing
+    auto timer_stop = myclock_t::now();
+    result.metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+    return result;
+  } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
     Result result;
     result.status = Result::Status::error;
     result.message = std::string("Failed to load qobj: ") + e.what();
     return result;
   }
-  // Qobj was loaded successfully, now we proceed
-  // Generate empty return JSON that matches Result spec
-  Result result(qobj.circuits.size());
+}
 
-  // Get QOBJ id and pass through header to result
-  result.qobj_id = qobj.id;
-  if (!qobj.header.empty()) // NOLINT
-      result.header = qobj.header;
+//-------------------------------------------------------------------------
+// Experiment execution
+//-------------------------------------------------------------------------
 
+Result Controller::execute(std::vector<Circuit> &circuits,
+                           const Noise::NoiseModel &noise_model,
+                           const json_t &config) {
+  // Start QOBJ timer
+  auto timer_start = myclock_t::now();
+
+  // Initialize Result object for the given number of experiments
+  const auto num_circuits = circuits.size();
+  Result result(num_circuits);
+
+  // Execute each circuit in a try block
   try {
     // Set max_parallel_threads_
     if (max_parallel_threads_ < 1)
@@ -526,7 +545,7 @@ Result Controller::execute(const json_t &qobj_js) {
 
     if (!explicit_parallelization_) {
       // set parallelization for experiments
-      set_parallelization_experiments(qobj.circuits, noise_model);
+      set_parallelization_experiments(circuits, noise_model);
     }
 
   #ifdef _OPENMP
@@ -536,7 +555,7 @@ Result Controller::execute(const json_t &qobj_js) {
   #endif
     result.metadata["parallel_experiments"] = parallel_experiments_;
     result.metadata["max_memory_mb"] = max_memory_mb_;
-    const int num_circuits = qobj.circuits.size();
+    
 
   #ifdef _OPENMP
     if (parallel_shots_ > 1 || parallel_state_update_ > 1)
@@ -547,8 +566,9 @@ Result Controller::execute(const json_t &qobj_js) {
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < result.results.size(); ++j) {
         // Make a copy of the noise model for each circuit execution
+        // so that it can be modified if required
         auto circ_noise_model = noise_model;
-        result.results[j] = execute_circuit(qobj.circuits[j],
+        result.results[j] = execute_circuit(circuits[j],
                                             circ_noise_model,
                                             config);
       }
@@ -557,7 +577,7 @@ Result Controller::execute(const json_t &qobj_js) {
       for (int j = 0; j < num_circuits; ++j) {
         // Make a copy of the noise model for each circuit execution
         auto circ_noise_model = noise_model;
-        result.results[j] = execute_circuit(qobj.circuits[j],
+        result.results[j] = execute_circuit(circuits[j],
                                             circ_noise_model,
                                             config);
       }
