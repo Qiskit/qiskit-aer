@@ -473,77 +473,47 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
 
   MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
   if (first_index > 0) {
-    cout << "in first if" << endl;
     left_tensor.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[first_index-1]);
   }
 
   // we need to mul by right gamma 
   if (first_index==last_index && first_index < num_qubits_-1) {
-    cout << "in second if" << endl;
       left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
   }
   MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), AER::Utils::dagger(left_tensor.get_data(1)));
-  cout << "left_tensor" <<endl;
-  left_tensor.print(cout);
-  cout << "left_tensor_dagger" <<endl;
-  left_tensor_dagger.print(cout);
   left_tensor_dagger.apply_pauli(gate);
-  cout << "after apply pauli, left_tensor_dagger" <<endl;
-  left_tensor_dagger.print(cout);
 
   cmatrix_t left_contract;
   MPS_Tensor::contract_2_axes(left_tensor_dagger, left_tensor, left_contract);
 
-  left_contract.SetOutputStyle(Matrix);
-  cout << " left_contract " << endl << left_contract << endl;
-
   cmatrix_t final_contract = left_contract;
 
   for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
-    cout <<"in loop, qubit_num = " << qubit_num <<endl;
 
     // step 2 - multiply next Gamma by its left lambda
     // next gamma has dimensions aR x aN x i (aR from previous gamma, N for next)
     MPS_Tensor next_gamma = temp_TN.q_reg_[qubit_num];
-    cout << "index = " << qubit_num<<endl;
-    cout << "next_gamma before anything = " <<endl;
-    next_gamma.print(cout);
     next_gamma.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[qubit_num-1]);
-    cout <<"after mul by Lambda, next_gamma "<<endl;
-    next_gamma.print(cout);
 
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
       next_gamma.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[qubit_num]);
 
-    cout <<"after if and mul by right Lambda, next_gamma "<<endl;
-    next_gamma.print(cout);
     next_gamma.get_data(0).SetOutputStyle(Matrix);
     next_gamma.get_data(1).SetOutputStyle(Matrix);
-    cout << "next_gamma = " <<endl;
-    next_gamma.print(cout);
     
     // step 3 - prepare the dagger of the next gamma
     // next_gamma_dagger has dimensions a1' x a0' x i
     MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), AER::Utils::dagger(next_gamma.get_data(1)));
-    cout << "next_gamma_dagger = " <<endl;
-    next_gamma_dagger.get_data(0).SetOutputStyle(Matrix);
-    next_gamma_dagger.get_data(1).SetOutputStyle(Matrix);
-    next_gamma_dagger.print(cout);
     
     // step 4 - apply gate
     gate = matrices_reverse[qubit_num - first_index];
     next_gamma_dagger.apply_pauli(gate);
-    
-    cout << "after pauli, next_gamma_dagger = " <<endl;
-    next_gamma_dagger.print(cout);
     
     // step 5 - contract final_contract from previous stage with next gamma over a1
     // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
     // result is a1 x a2 x i
 
     MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), final_contract * next_gamma.get_data(1));
-    cout << "next_contract =" <<endl;
-    next_contract.print(cout);
 
     
     // step 6 - contract next_contract (a1 x a2 x i) with next_gamma_dagger (i x a2 x a1)
@@ -551,8 +521,6 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
     // result is a2 x a2
 
     MPS_Tensor::contract_2_axes(next_gamma_dagger, next_contract, final_contract);      
-    cout << "final contract" <<endl;
-    cout << final_contract << endl;
   }
 
  
@@ -561,7 +529,6 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
   complex_t result;
   result = AER::Utils::trace(final_contract);
 
-  cout << "res" << result <<endl;
   return result;
 }
 

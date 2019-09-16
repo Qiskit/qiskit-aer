@@ -397,21 +397,28 @@ void MPS_Tensor::contract_2_axes(const MPS_Tensor &left_gamma,
     throw std::runtime_error("left_size != right_size");
   result.resize(left_rows, right_columns);
 
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(2)
+  #endif
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++)
       result(l_row, r_col) = 0;
 
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(4)
+  #endif
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++) {
-      cout <<"result["<<l_row <<", " << r_col <<"]"<<endl;
 
       for (int_t l_size=0; l_size<left_size; l_size++)
 	  for (int_t l_col=0; l_col<left_columns ; l_col++) {
  
 	      result(l_row, r_col) += left_gamma.data_[l_size](l_row, l_col) *
 		                      right_gamma.data_[l_size](l_col, r_col);      
-	      cout << left_gamma.data_[l_size](l_row, l_col) <<" * " <<
-		right_gamma.data_[l_size](l_col, r_col) <<endl; 
 
 	    }
 	  }

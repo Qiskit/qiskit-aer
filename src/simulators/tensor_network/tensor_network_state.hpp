@@ -450,8 +450,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
-    cout << "mps after operation " << op <<endl;
-    qreg_.print(cout);
   }
 }
 
