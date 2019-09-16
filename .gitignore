@@ -26,3 +26,5 @@ contrib/standalone/version.hpp
 *.env
 *.idea/
 test/.asv
+
+.tox/
