@@ -490,7 +490,7 @@ Result Controller::execute(const json_t &qobj_js) {
   Noise::NoiseModel noise_model;
   json_t config;
   try {
-    qobj.load_qobj_from_json(qobj_js);
+    qobj = Qobj(qobj_js);
     // Check for config
     if (JSON::get_value(config, "config", qobj_js)) {
       // Set config
