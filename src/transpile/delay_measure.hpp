@@ -36,7 +36,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const Operations::OpSet &opset,
-                        OutputData &data) const override;
+                        ExperimentData &data) const override;
 
 private:
   // show debug info
@@ -55,7 +55,7 @@ void DelayMeasure::set_config(const json_t &config) {
 void DelayMeasure::optimize_circuit(Circuit& circ,
                                     Noise::NoiseModel& noise,
                                     const Operations::OpSet &allowed_opset,
-                                    OutputData &data) const {
+                                    ExperimentData &data) const {
   // Pass if we have quantum errors in the noise model
   if (active_ == false || circ.shots <= 1 || noise.has_quantum_errors())
     return; 

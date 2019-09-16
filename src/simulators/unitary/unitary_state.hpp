@@ -80,7 +80,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit unitary to the identity matrix
@@ -125,7 +125,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
@@ -210,7 +210,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 
 template <class data_t>
 void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                  OutputData &data,
+                                  ExperimentData &data,
                                   RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto op: ops) {
@@ -414,7 +414,7 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
 
 template <class data_t>
 void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   OutputData &data) {
+                                   ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
     BaseState::snapshot_state(op, data);

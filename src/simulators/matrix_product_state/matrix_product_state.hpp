@@ -113,7 +113,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit state to the all |0> state
@@ -181,7 +181,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exception will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   // We assume matrix to be 2x2
@@ -231,22 +231,22 @@ protected:
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             OutputData &data,
+                             ExperimentData &data,
                              bool variance);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   // Snapshot the state vector
   void snapshot_state(const Operations::Op &op,
-		      OutputData &data,
+		      ExperimentData &data,
 		      std::string name = "");
 
   //-----------------------------------------------------------------------
@@ -410,7 +410,7 @@ void State::set_config(const json_t &config) {
 //=========================================================================
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      OutputData &data,
+                      ExperimentData &data,
                       RngEngine &rng) {
 
   // Simple loop over vector of input operations
@@ -459,7 +459,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 //=========================================================================
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
-				  OutputData &data,
+				  ExperimentData &data,
 				  bool variance){
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -479,7 +479,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
-				   OutputData &data,
+				   ExperimentData &data,
 				   bool variance){
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -501,7 +501,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 }
 
 void State::snapshot_state(const Operations::Op &op,
-			   OutputData &data,
+			   ExperimentData &data,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
@@ -510,7 +510,7 @@ void State::snapshot_state(const Operations::Op &op,
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
-				   OutputData &data,
+				   ExperimentData &data,
 				   bool variance) {
   MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   rvector_t prob_vector;
@@ -674,7 +674,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   return all_samples;
 }
 
-void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
+void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
   // Look for snapshot type in snapshotset
 
   auto it = snapshotset_.find(op.name);

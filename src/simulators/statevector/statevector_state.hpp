@@ -105,7 +105,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit state to the all |0> state
@@ -174,7 +174,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const Operations::Op &op);
@@ -232,17 +232,17 @@ protected:
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             OutputData &data,
+                             ExperimentData &data,
                              SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               SnapshotDataType type);
 
   //-----------------------------------------------------------------------
@@ -424,7 +424,7 @@ void State<statevec_t>::set_config(const json_t &config) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 OutputData &data,
+                                 ExperimentData &data,
                                  RngEngine &rng) {
 
   // Simple loop over vector of input operations
@@ -478,7 +478,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class statevec_t>
 void State<statevec_t>::apply_snapshot(const Operations::Op &op,
-                                       OutputData &data) {
+                                       ExperimentData &data) {
 
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -530,7 +530,7 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
-                                               OutputData &data,
+                                               ExperimentData &data,
                                                SnapshotDataType type) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
@@ -543,7 +543,7 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
-                                              OutputData &data,
+                                              ExperimentData &data,
                                               SnapshotDataType type) {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
@@ -614,7 +614,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
-                                               OutputData &data,
+                                               ExperimentData &data,
                                                SnapshotDataType type) {
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {

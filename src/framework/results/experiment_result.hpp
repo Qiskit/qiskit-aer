@@ -15,7 +15,7 @@
 #ifndef _aer_framework_results_experiment_result_hpp_
 #define _aer_framework_results_experiment_result_hpp_
 
-#include "framework/results/data.hpp"
+#include "framework/results/experiment_data.hpp"
 
 namespace AER {
 
@@ -30,7 +30,7 @@ public:
   enum class Status {empty, completed, error};
 
   // Experiment data
-  OutputData data;
+  ExperimentData data;
   uint_t shots;
   uint_t seed;
   double time_taken;

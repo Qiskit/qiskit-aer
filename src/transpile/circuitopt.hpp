@@ -40,7 +40,7 @@ public:
   virtual void optimize_circuit(Circuit& circ,
                                 Noise::NoiseModel& noise,
                                 const Operations::OpSet &opset,
-                                OutputData &data) const = 0;
+                                ExperimentData &data) const = 0;
 
   virtual void set_config(const json_t &config);
 

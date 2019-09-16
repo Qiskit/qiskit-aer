@@ -41,7 +41,7 @@
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
 #include "framework/results/result.hpp"
-#include "framework/results/data.hpp"
+#include "framework/results/experiment_data.hpp"
 #include "noise/noise_model.hpp"
 #include "transpile/circuitopt.hpp"
 #include "transpile/truncate_qubits.hpp"
@@ -148,7 +148,7 @@ protected:
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  virtual OutputData run_circuit(const Circuit &circ,
+  virtual ExperimentData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel &noise,
                                  const json_t &config,
                                  uint_t shots,
@@ -185,7 +185,7 @@ protected:
   void optimize_circuit(Circuit &circ,
                         Noise::NoiseModel& noise,
                         state_t& state,
-                        OutputData &data) const;
+                        ExperimentData &data) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -464,7 +464,7 @@ template <class state_t>
 void Controller::optimize_circuit(Circuit &circ,
                                   Noise::NoiseModel& noise,
                                   state_t& state,
-                                  OutputData &data) const {
+                                  ExperimentData &data) const {
 
   Operations::OpSet allowed_opset;
   allowed_opset.optypes = state.allowed_ops();
@@ -594,7 +594,7 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
 
   // Initialize circuit json return
   ExperimentResult exp_result;
-  OutputData data;
+  ExperimentData data;
   data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
@@ -627,7 +627,7 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
       }
 
       // Vector to store parallel thread output data
-      std::vector<OutputData> par_data(parallel_shots_);
+      std::vector<ExperimentData> par_data(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
