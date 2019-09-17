@@ -11,17 +11,18 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
+"""Init for openpulse"""
 
 import distutils.sysconfig
 import numpy as np
 from .qutip_lite.cy import pyxbuilder as pbldr
 
 # Remove -Wstrict-prototypes from cflags
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+CFG_VARS = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in CFG_VARS:
+    CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
 
 # Setup pyximport
-#pbldr.install(setup_args={'include_dirs': [np.get_include()]})
+# pylint: disable=no-member
+pbldr.install(setup_args={'include_dirs': [np.get_include()]})
 del pbldr

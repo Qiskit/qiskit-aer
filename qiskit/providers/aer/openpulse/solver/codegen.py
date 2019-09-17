@@ -27,10 +27,10 @@ from . import settings
 
 _cython_path = os.path.abspath(cy.__file__).replace('__init__.py', '')
 _cython_path = _cython_path.replace("\\", "/")
-_include_string = "'"+_cython_path+"complex_math.pxi'"
+_include_string = "'" + _cython_path + "complex_math.pxi'"
 
 
-class OPCodegen(object):
+class OPCodegen():
     """
     Class for generating cython code files at runtime.
     """
@@ -110,11 +110,11 @@ class OPCodegen(object):
                            "int[::1] idx%d, " % k +
                            "int[::1] ptr%d" % k)
 
-        #Add global vaiables
+        # Add global vaiables
         input_vars += (",\n        " + "complex[::1] pulse_array")
         input_vars += (",\n        " + "unsigned int[::1] pulse_indices")
 
-        #Add per experiment variables
+        # Add per experiment variables
         for key in self.op_system.channels.keys():
             input_vars += (",\n        " + "double[::1] %s_pulses" % key)
             input_vars += (",\n        " + "double[::1] %s_fc" % key)
@@ -133,7 +133,6 @@ class OPCodegen(object):
         func_end = "):"
         return [func_name + input_vars + func_end]
 
-
     def channels(self):
         """Write out the channels
         """
@@ -141,26 +140,25 @@ class OPCodegen(object):
 
         channel_lines.append("# Compute complex channel values at time `t`")
         for chan, idx in self.op_system.channels.items():
-            chan_str = "%s = chan_value(t, %s, %s_freq, " %(chan, idx, chan) + \
+            chan_str = "%s = chan_value(t, %s, %s_freq, " % (chan, idx, chan) + \
                        "%s_pulses,  pulse_array, pulse_indices, " % chan + \
                        "%s_fc, register)" % (chan)
             channel_lines.append(chan_str)
         channel_lines.append('')
         return channel_lines
 
-
     def func_vars(self):
         """Writes the variables and spmv parts"""
         func_vars = []
         sp1 = "    "
-        sp2 = sp1+sp1
+        sp2 = sp1 + sp1
 
         func_vars.append("# Eval the time-dependent terms and do SPMV.")
-        for idx in range(len(self.op_system.system)+1):
+        for idx in range(len(self.op_system.system) + 1):
 
             if (idx == len(self.op_system.system) and
                     (len(self.op_system.system) < self.num_ham_terms)):
-                #this is the noise term
+                # this is the noise term
                 term = [1.0, 1.0]
             elif idx < len(self.op_system.system):
                 term = self.op_system.system[idx]
@@ -176,21 +174,21 @@ class OPCodegen(object):
 
             func_vars.append(sp1 + "for row in range(num_rows):")
             func_vars.append(sp2 + "dot = 0;")
-            func_vars.append(sp2 + "row_start = ptr%d[row];"%idx)
-            func_vars.append(sp2 + "row_end = ptr%d[row+1];"%idx)
+            func_vars.append(sp2 + "row_start = ptr%d[row];" % idx)
+            func_vars.append(sp2 + "row_end = ptr%d[row+1];" % idx)
             func_vars.append(sp2 + "for jj in range(row_start,row_end):")
             func_vars.append(sp1 +
                              sp2 +
-                             "osc_term = exp(1j*(energ[row]-energ[idx%d[jj]])*t)"%idx)
-            func_vars.append(sp1 + sp2 + "if row<idx%d[jj]:"%idx)
-            func_vars.append(sp2 + sp2 + "coef = conj(td%d)"%idx)
+                             "osc_term = exp(1j*(energ[row]-energ[idx%d[jj]])*t)" % idx)
+            func_vars.append(sp1 + sp2 + "if row<idx%d[jj]:" % idx)
+            func_vars.append(sp2 + sp2 + "coef = conj(td%d)" % idx)
             func_vars.append(sp1 + sp2 + "else:")
-            func_vars.append(sp2 + sp2 + "coef = td%d"%idx)
-            func_vars.append(sp1 + sp2 + \
-                             "dot += coef*osc_term*data%d[jj]*vec[idx%d[jj]];"%(idx, idx))
+            func_vars.append(sp2 + sp2 + "coef = td%d" % idx)
+            func_vars.append(sp1 + sp2 +
+                             "dot += coef*osc_term*data%d[jj]*vec[idx%d[jj]];" % (idx, idx))
             func_vars.append(sp2 + "out[row] += dot;")
 
-        #remove the diagonal terms
+        # remove the diagonal terms
         func_vars.append("for row in range(num_rows):")
         func_vars.append(sp1 + "out[row] += 1j*energ[row]*vec[row];")
 
@@ -210,6 +208,7 @@ class OPCodegen(object):
         end_str.append("return arr_out")
         return end_str
 
+
 def func_header(op_system):
     """Header for the RHS function.
     """
@@ -218,16 +217,17 @@ def func_header(op_system):
                  'cdef double complex dot, osc_term, coef',
                  "cdef double complex * " +
                  'out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))'
-                ]
+                 ]
     func_vars.append("")
 
     for val in op_system.channels:
         func_vars.append("cdef double complex %s" % val)
 
-    for kk in range(len(op_system.system)+1):
+    for kk in range(len(op_system.system) + 1):
         func_vars.append("cdef double complex td%s" % kk)
 
     return func_vars
+
 
 def cython_preamble():
     """
@@ -268,7 +268,7 @@ from libc.math cimport pi
 
 from qiskit.providers.aer.openpulse.cy.channel_value cimport chan_value
 
-include """+_include_string+"""
+include """ + _include_string + """
 """]
     return preamble
 

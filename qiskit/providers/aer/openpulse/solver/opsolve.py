@@ -37,6 +37,7 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 #
 _cy_rhs_func = None
 
+
 def opsolve(op_system):
     """Opsolver
     """
@@ -50,7 +51,7 @@ def opsolve(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-     # compile Cython RHS
+    # compile Cython RHS
     _op_generate_rhs(op_system)
     # Load cython function
     _op_func_load(op_system)
@@ -61,10 +62,11 @@ def opsolve(op_system):
     # Results are stored in ophandler.result
     return out
 
+
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
-class OP_mcwf(object):
+class OP_mcwf():
     """
     Private class for solving Monte Carlo evolution
     """
@@ -91,15 +93,14 @@ class OP_mcwf(object):
             prng = np.random.RandomState(op_system.global_data['seed'])
         else:
             prng = np.random.RandomState(
-                np.random.randint(np.iinfo(np.int32).max-1))
+                np.random.randint(np.iinfo(np.int32).max - 1))
         for exp in op_system.experiments:
-            exp['seed'] = prng.randint(np.iinfo(np.int32).max-1)
+            exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
     def run(self):
         """Runs the solver.
         """
         map_kwargs = {'num_processes': self.op_system.ode_options.num_cpus}
-
 
         # exp_results from the solvers return the values of the measurement
         # operators
@@ -118,13 +119,12 @@ class OP_mcwf(object):
                                        self.op_system.experiments,
                                        task_args=(self.op_system.global_data,
                                                   self.op_system.ode_options
-                                                 ),
+                                                  ),
                                        **map_kwargs
-                                      )
+                                       )
             end = time.time()
-            exp_times = (np.ones(len(self.op_system.experiments))*
-                         (end-start)/len(self.op_system.experiments))
-
+            exp_times = (np.ones(len(self.op_system.experiments)) *
+                         (end - start) / len(self.op_system.experiments))
 
         # need to simulate each trajectory, so shots*len(experiments) times
         # Do a for-loop over experiments, and do shots in parallel_map
@@ -134,15 +134,16 @@ class OP_mcwf(object):
             for exp in self.op_system.experiments:
                 start = time.time()
                 rng = np.random.RandomState(exp['seed'])
-                seeds = rng.randint(np.iinfo(np.int32).max-1,
+                seeds = rng.randint(np.iinfo(np.int32).max - 1,
                                     size=self.op_system.global_data['shots'])
                 exp_res = parallel_map(monte_carlo,
                                        seeds,
-                                       task_args=(exp, self.op_system.global_data,
+                                       task_args=(exp,
+                                                  self.op_system.global_data,
                                                   self.op_system.ode_options
-                                                 ),
+                                                  ),
                                        **map_kwargs
-                                      )
+                                       )
 
                 # exp_results is a list for each shot
                 # so transform back to an array of shots
@@ -150,16 +151,13 @@ class OP_mcwf(object):
                 for exp_shot in exp_res:
                     exp_res2.append(exp_shot[0].tolist())
 
-
                 end = time.time()
-                exp_times.append(end-start)
+                exp_times.append(end - start)
                 exp_results.append(np.array(exp_res2))
 
-
-        #format the data into the proper output
+        # format the data into the proper output
         all_results = []
         for idx_exp, exp in enumerate(self.op_system.experiments):
-
 
             m_lev = self.op_system.global_data['meas_level']
             m_ret = self.op_system.global_data['meas_return']
@@ -184,7 +182,8 @@ class OP_mcwf(object):
                 # integer
                 # e.g. [1,0] -> 2
                 int_mem = memory.dot(np.power(2.0,
-                                              np.arange(memory.shape[1]-1, -1, -1))).astype(int)
+                                              np.arange(memory.shape[1] - 1,
+                                                        -1, -1))).astype(int)
 
                 # if the memory flag is set return each shot
                 if self.op_system.global_data['memory']:
@@ -220,7 +219,6 @@ class OP_mcwf(object):
                 if m_ret == 'avg':
                     results['data']['memory'] = results['data']['memory'][0]
 
-
             all_results.append(results)
 
         _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
@@ -232,7 +230,7 @@ def _proj_measurement(pid, ophandler, tt, state, memory, register=None):
     """
     Projection measurement of quantum state
     """
-    prng = np.random.RandomState(np.random.randint(np.iinfo(np.int32).max-1))
+    prng = np.random.RandomState(np.random.randint(np.iinfo(np.int32).max - 1))
     qubits = []
     results = []
 
@@ -269,7 +267,8 @@ def _proj_measurement(pid, ophandler, tt, state, memory, register=None):
 
     # projection
     if any(qubits):
-        psi_proj = apply_projector(qubits, results, ophandler.h_qub, ophandler.h_osc, state)
+        psi_proj = apply_projector(qubits, results, ophandler.h_qub,
+                                   ophandler.h_osc, state)
     else:
         psi_proj = state
 

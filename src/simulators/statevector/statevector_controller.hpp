@@ -51,7 +51,7 @@ namespace Simulator {
  * - "max_parallel_experiments" (int): Set number of circuits that may be
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
@@ -63,7 +63,8 @@ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
-  
+  StatevectorController();
+
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
   // Allowed config options:
@@ -76,7 +77,8 @@ public:
 
 protected:
 
-  virtual size_t required_memory_mb(const Circuit& circuit) const override;
+  virtual size_t required_memory_mb(const Circuit& circuit,
+                                    const Noise::NoiseModel& noise) const override;
 
 private:
 
@@ -87,6 +89,8 @@ private:
   // This simulator will only return a single shot, regardless of the
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
 
@@ -100,6 +104,10 @@ private:
 // Implementations
 //=========================================================================
 
+StatevectorController::StatevectorController() : Base::Controller() {
+  // Disable qubit truncation by default
+  Base::Controller::truncate_qubits_ = false;
+}
 
 //-------------------------------------------------------------------------
 // Config
@@ -112,7 +120,7 @@ void StatevectorController::set_config(const json_t &config) {
   //Add custom initial state
   if (JSON::get_value(initial_state_, "initial_statevector", config)) {
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_state_, 1e-10))
+    if (!Utils::is_unit_vector(initial_state_, validation_threshold_))
       throw std::runtime_error("StatevectorController: initial_statevector is not a unit vector");
   }
 }
@@ -122,7 +130,8 @@ void StatevectorController::clear_config() {
   initial_state_ = cvector_t();
 }
 
-size_t StatevectorController::required_memory_mb(const Circuit& circ) const {
+size_t StatevectorController::required_memory_mb(const Circuit& circ,
+                                                 const Noise::NoiseModel& noise) const {
   Statevector::State<> state;
   return state.required_memory_mb(circ.num_qubits, circ.ops);
 }
@@ -132,13 +141,15 @@ size_t StatevectorController::required_memory_mb(const Circuit& circ) const {
 //-------------------------------------------------------------------------
 
 OutputData StatevectorController::run_circuit(const Circuit &circ,
+                                              const Noise::NoiseModel& noise,
+                                              const json_t &config,
                                               uint_t shots,
                                               uint_t rng_seed) const {
   // Initialize  state
   Statevector::State<> state;
 
   // Validate circuit and throw exception if invalid operations exist
-  validate_state(state, circ, noise_model_, true);
+  validate_state(state, circ, noise, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
@@ -152,7 +163,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
   }
 
   // Set config
-  state.set_config(Base::Controller::config_);
+  state.set_config(config);
   state.set_parallalization(parallel_state_update_);
   
   // Rng engine
@@ -161,7 +172,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::config_);
+  data.set_config(config);
   
   // Run single shot collecting measure data or snapshots
   if (initial_state_.empty())

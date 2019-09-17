@@ -89,7 +89,8 @@ def basis(N, n=0, offset=0):
 
     data = np.array([1], dtype=complex)
     ind = np.array([0], dtype=np.int32)
-    ptr = np.array([0]*((n - offset)+1)+[1]*(N-(n-offset)), dtype=np.int32)
+    ptr = np.array([0] * ((n - offset) + 1) + [1] * (N - (n - offset)),
+                   dtype=np.int32)
 
     return Qobj(fast_csr_matrix((data, ind, ptr), shape=(N, 1)), isherm=False)
 
@@ -136,15 +137,15 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     elif method == "analytic" or offset > 0:
 
-        sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
-        sqrtn[0] = 1 # Get rid of divide by zero warning
-        data = alpha/sqrtn
+        sqrtn = np.sqrt(np.arange(offset, offset + N, dtype=complex))
+        sqrtn[0] = 1  # Get rid of divide by zero warning
+        data = alpha / sqrtn
         if offset == 0:
             data[0] = np.exp(-abs(alpha)**2 / 2.0)
         else:
-            s = np.prod(np.sqrt(np.arange(1, offset + 1))) # sqrt factorial
+            s = np.prod(np.sqrt(np.arange(1, offset + 1)))  # sqrt factorial
             data[0] = np.exp(-abs(alpha)**2 / 2.0) * alpha**(offset) / s
-        np.cumprod(data, out=sqrtn) # Reuse sqrtn array
+        np.cumprod(data, out=sqrtn)  # Reuse sqrtn array
         return Qobj(sqrtn)
 
     else:
@@ -252,7 +253,7 @@ def thermal_dm(N, n, method='operator'):
         i = arange(N)
         if method == 'operator':
             beta = np.log(1.0 / n + 1.0)
-            diags = np.exp(-beta * i)
+            diags = np.exp(-1 * beta * i)
             diags = diags / np.sum(diags)
             # populates diagonal terms using truncated operator expression
             rm = sp.spdiags(diags, 0, N, N, format='csr')
@@ -283,7 +284,8 @@ def maximally_mixed_dm(N):
     if (not isinstance(N, (int, np.int64))) or N <= 0:
         raise ValueError("N must be integer N > 0")
 
-    dm = sp.spdiags(np.ones(N, dtype=complex)/float(N), 0, N, N, format='csr')
+    dm = sp.spdiags(np.ones(N, dtype=complex) / float(N),
+                    0, N, N, format='csr')
 
     return Qobj(dm, isherm=True)
 

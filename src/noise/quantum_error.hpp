@@ -15,7 +15,7 @@
 #ifndef _aer_noise_quantum_error_hpp_
 #define _aer_noise_quantum_error_hpp_
 
-#include "noise/abstract_error.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 
 namespace AER {
 namespace Noise {
@@ -27,26 +27,38 @@ namespace Noise {
 // Quantum error class that can model any error that is expressed as a 
 // qobj instruction acting on qubits.
 
-class QuantumError : public AbstractError {
+class QuantumError {
 public:
+
+  // Methods for sampling
+  enum class Method {standard, superop};
 
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
 
   //-----------------------------------------------------------------------
-  // Error base required methods
+  // Sampling method
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
-                        RngEngine &rng) const override;
+                        RngEngine &rng,
+                        Method method = Method::standard) const;
+
+  // Return the opset for the quantum error
+  const Operations::OpSet& opset() const {return opset_;}
+
+  // Return the superoperator matrix representation of the error.
+  // If the error cannot be converted to a superoperator and error
+  // will be raised.
+  const cmatrix_t& superoperator() const;
+
+  //-----------------------------------------------------------------------
+  // Initialization
+  //-----------------------------------------------------------------------
 
   // Load a QuantumError object from a JSON Error object
-  void load_from_json(const json_t &js) override;
-
-  //-----------------------------------------------------------------------
-  // Additional class methods
-  //-----------------------------------------------------------------------
+  void load_from_json(const json_t &js);
 
   // Sets the sub-circuits and probabilities to be sampled from.
   // The length of the circuits vector and probability vector must be equal.
@@ -58,15 +70,37 @@ public:
   // non-kraus subcircuits.
   void set_from_kraus(const std::vector<cmatrix_t> &mats);
 
+  // Compute the superoperator representation of the quantum error
+  void compute_superoperator();
+  
+  //-----------------------------------------------------------------------
+  // Utility
+  //-----------------------------------------------------------------------
+
+  // Set number of qubits or memory bits for error
+  inline void set_num_qubits(uint_t num_qubits) {num_qubits_ = num_qubits;}
+
+  // Get number of qubits or memory bits for error
+  inline uint_t get_num_qubits() const {return num_qubits_;}
+
+  // Set the sampled errors to be applied after the original operation
+  inline void set_errors_after() {errors_after_op_ = true;}
+
+  // Set the sampled errors to be applied before the original operation
+  inline void set_errors_before() {errors_after_op_ = false;}
+
+  // Returns true if the errors are to be applied after the operation
+  inline bool errors_after() const {return errors_after_op_;}
+
   // Set threshold for checking probabilities and matrices
   void set_threshold(double);
 
-  const Operations::OpSet& opset() const {return opset_;}
-
 protected:
+  // Number of qubits sthe error applies to
+  uint_t num_qubits_ = 0;
+
   // Probabilities, first entry is no-error (identity)
   rvector_t probabilities_;
-  //std::discrete_distribution<uint_t> probabilities_;
 
   // List of unitary error matrices
   std::vector<NoiseOps> circuits_;
@@ -76,37 +110,56 @@ protected:
 
   // threshold for validating if matrices are unitary
   double threshold_ = 1e-10;
+
+  // Superoperator matrix representation of the error
+  cmatrix_t superoperator_;
+
+  // flag for where errors should be applied relative to the sampled op
+  bool errors_after_op_ = true;  
 };
 
 //-------------------------------------------------------------------------
 // Implementation: Mixed unitary error subclass
 //-------------------------------------------------------------------------
 
+
 QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
-                                                  RngEngine &rng) const {
+                                                  RngEngine &rng,
+                                                  Method method) const {
   if (qubits.size() < get_num_qubits()) {
     std::stringstream msg;
     msg << "QuantumError: qubits size (" << qubits.size() << ")";
     msg << " < error qubits (" << get_num_qubits() << ").";
     throw std::invalid_argument(msg.str());
   }
-  auto r = rng.rand_int(probabilities_);
-  // Check for invalid arguments
-  if (r + 1 > circuits_.size()) {
-    std::stringstream msg;
-    msg << "QuantumError: probability outcome (" << r << ")";
-    msg << " is greater than number of circuits (" << circuits_.size() << ").";
-    throw std::invalid_argument(msg.str());
-  }
-  NoiseOps noise_ops = circuits_[r];
-  // Add qubits to noise op commands;
-  for (auto &op : noise_ops) {
-    // Update qubits based on position in qubits list
-    for (size_t q=0; q < op.qubits.size(); q++) {
-      op.qubits[q] = qubits[op.qubits[q]];
+  switch (method) {
+    case Method::superop: {
+      // Truncate qubits to size of the actual error
+      reg_t op_qubits = qubits;
+      op_qubits.resize(get_num_qubits());
+      auto op = Operations::make_superop(op_qubits, superoperator());
+      return NoiseOps({op});
+    }
+    default: {
+      auto r = rng.rand_int(probabilities_);
+      // Check for invalid arguments
+      if (r + 1 > circuits_.size()) {
+        throw std::invalid_argument(
+          "QuantumError: probability outcome (" + std::to_string(r) + ")"
+          ") is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
+        );
+      }
+      NoiseOps noise_ops = circuits_[r];
+      // Add qubits to noise op commands;
+      for (auto &op : noise_ops) {
+        // Update qubits based on position in qubits list
+        for (size_t q=0; q < op.qubits.size(); q++) {
+          op.qubits[q] = qubits[op.qubits[q]];
+        }
+      }
+      return noise_ops;
     }
   }
-  return noise_ops;
 }
 
 void QuantumError::set_threshold(double threshold) {
@@ -116,11 +169,11 @@ void QuantumError::set_threshold(double threshold) {
 void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
                                 const rvector_t &probs) {
   if (probs.size() != circuits.size()) {
-    std::stringstream msg;
-    msg << "QuantumError: invalid input, number of circuits (";
-    msg << circuits.size() << ")" << "and number of probabilities (";
-    msg << probs.size() << ") are not equal.";
-    throw std::invalid_argument(msg.str());
+    throw std::invalid_argument(
+      "QuantumError: invalid input, number of circuits (" +
+      std::to_string(circuits.size()) + ") and number of probabilities (" +
+      std::to_string(probs.size()) + ") are not equal."
+    );
   }
   // Check probability vector
   double total = 0.;
@@ -256,6 +309,35 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   
   // Add the circuits
   set_circuits(circuits, probs);
+}
+
+
+const cmatrix_t& QuantumError::superoperator() const {
+  // Check the superoperator is actually computed
+  // If not raise an exception
+  if (superoperator_.empty()) {
+    throw std::runtime_error("QuantumError: superoperator is empty.");
+  }
+  return superoperator_;
+}
+
+
+void QuantumError::compute_superoperator() {
+  // Initialize superoperator matrix to correct size
+  size_t dim = 1 << (2 * get_num_qubits());
+  superoperator_.initialize(dim, dim);
+  // We use the superoperator simulator state to do this
+  QubitSuperoperator::State<> superop;
+  for (size_t j=0; j<circuits_.size(); j++ ){
+    // Initialize identity superoperator
+    superop.initialize_qreg(get_num_qubits());
+    // Apply each gate in the circuit
+    // We don't need output data or RNG for this
+    OutputData data;
+    RngEngine rng;
+    superop.apply_ops(circuits_[j], data, rng);
+    superoperator_ += probabilities_[j] * superop.qreg().matrix();
+  }
 }
 
 

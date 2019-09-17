@@ -57,6 +57,7 @@ from scipy.sparse import (_sparsetools, isspmatrix, csr_matrix, dia_matrix)
 from scipy.sparse.sputils import (upcast, isdense, isscalarlike, get_index_dtype)
 from scipy.sparse.base import SparseEfficiencyWarning
 
+
 class fast_csr_matrix(csr_matrix):
     """
     A subclass of scipy.sparse.csr_matrix that skips the data format
@@ -64,12 +65,12 @@ class fast_csr_matrix(csr_matrix):
     """
     # pylint: disable=super-init-not-called
     def __init__(self, args=None, shape=None, dtype=None, copy=False):
-        if args is None: #Build zero matrix
+        if args is None:  # Build zero matrix
             if shape is None:
                 raise Exception('Shape must be given when building zero matrix.')
             self.data = np.array([], dtype=complex)
             self.indices = np.array([], dtype=np.int32)
-            self.indptr = np.zeros(shape[0]+1, dtype=np.int32)
+            self.indptr = np.zeros(shape[0] + 1, dtype=np.int32)
             self._shape = tuple(int(s) for s in shape)
 
         else:
@@ -83,7 +84,7 @@ class fast_csr_matrix(csr_matrix):
             self.indices = np.array(args[1], dtype=np.int32, copy=copy)
             self.indptr = np.array(args[2], dtype=np.int32, copy=copy)
             if shape is None:
-                self._shape = tuple([len(self.indptr)-1]*2)
+                self._shape = tuple([len(self.indptr) - 1] * 2)
             else:
                 self._shape = tuple(int(s) for s in shape)
         self.dtype = complex
@@ -130,12 +131,13 @@ class fast_csr_matrix(csr_matrix):
             # too much waste, trim arrays
             indices = indices.copy()
             data = data.copy()
-        if isinstance(other, fast_csr_matrix) and (not op in bool_ops):
+        if isinstance(other, fast_csr_matrix) and (op not in bool_ops):
             A = fast_csr_matrix((data, indices, indptr), dtype=data.dtype, shape=self.shape)
         else:
             A = csr_matrix((data, indices, indptr), dtype=data.dtype, shape=self.shape)
         return A
 
+    # pylint: disable=too-many-return-statements
     def multiply(self, other):
         """Point-wise multiplication by another matrix, vector, or
         scalar.
@@ -210,7 +212,7 @@ class fast_csr_matrix(csr_matrix):
         other = csr_matrix(other)  # convert to this format
         idx_dtype = get_index_dtype((self.indptr, self.indices,
                                      other.indptr, other.indices),
-                                    maxval=M*N)
+                                    maxval=M * N)
         indptr = np.empty(major_axis + 1, dtype=idx_dtype)
 
         fn = getattr(_sparsetools, self.format + '_matmat_pass1')
@@ -249,6 +251,7 @@ class fast_csr_matrix(csr_matrix):
         res.eliminate_zeros()
         return res
 
+    # pylint: disable=too-many-return-statements
     def __eq__(self, other):
         # Scalar other.
         if isscalarlike(other):
@@ -270,7 +273,7 @@ class fast_csr_matrix(csr_matrix):
         elif isspmatrix(other):
             warn("Comparing sparse matrices using == is inefficient, try using"
                  " != instead.", SparseEfficiencyWarning)
-            #TODO sparse broadcasting
+            # TODO sparse broadcasting
             if self.shape != other.shape:
                 return False
             elif self.format != other.format:
@@ -281,6 +284,7 @@ class fast_csr_matrix(csr_matrix):
         else:
             return False
 
+    # pylint: disable=too-many-return-statements
     def __ne__(self, other):
         # Scalar other.
         if isscalarlike(other):
@@ -302,7 +306,7 @@ class fast_csr_matrix(csr_matrix):
             return self.todense() != other
         # Sparse other.
         elif isspmatrix(other):
-            #TODO sparse broadcasting
+            # TODO sparse broadcasting
             if self.shape != other.shape:
                 return True
             elif self.format != other.format:
@@ -316,7 +320,8 @@ class fast_csr_matrix(csr_matrix):
         if isscalarlike(other):
             if other == 0 and op_name in ('_le_', '_ge_'):
                 raise NotImplementedError(" >= and <= don't work with 0.")
-            elif op(0, other):
+
+            if op(0, other):
                 warn(bad_scalar_msg, SparseEfficiencyWarning)
                 other_arr = np.empty(self.shape, dtype=np.result_type(other))
                 other_arr.fill(other)
@@ -329,10 +334,10 @@ class fast_csr_matrix(csr_matrix):
             return op(self.todense(), other)
         # Sparse other.
         elif isspmatrix(other):
-            #TODO sparse broadcasting
+            # TODO sparse broadcasting
             if self.shape != other.shape:
                 raise ValueError("inconsistent shapes")
-            elif self.format != other.format:
+            if self.format != other.format:
                 other = other.asformat(self.format)
             if op_name not in ('_ge_', '_le_'):
                 return self._binopt(other, op_name)
@@ -359,6 +364,7 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data, self.indices, self.indptr),
                                    shape=self.shape, dtype=data.dtype)
+
     # pylint: disable=arguments-differ
     def transpose(self):
         """
@@ -413,23 +419,22 @@ def fast_identity(N):
     """
     data = np.ones(N, dtype=complex)
     ind = np.arange(N, dtype=np.int32)
-    ptr = np.arange(N+1, dtype=np.int32)
+    ptr = np.arange(N + 1, dtype=np.int32)
     ptr[-1] = N
     return fast_csr_matrix((data, ind, ptr), shape=(N, N))
 
 
-#Convenience functions
-#--------------------
+# Convenience functions
+# --------------------
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
                     np.tile(np.arange(shape[1], dtype=np.int32), shape[0]),
-                    np.arange(0, np.prod(shape)+1, shape[1], dtype=np.int32)),
+                    np.arange(0, np.prod(shape) + 1, shape[1], dtype=np.int32)),
                    shape=shape)
     return A
 
 
-
-#Need to do some trailing imports here
-#-------------------------------------
+# Need to do some trailing imports here
+# -------------------------------------
 # pylint: disable=no-name-in-module, wrong-import-position
 from .cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_mult)
