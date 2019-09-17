@@ -28,5 +28,6 @@ contrib/standalone/version.hpp
 .DS_Store
 *.ipynb
 test/.asv
-*.cpp
 qiskit/providers/aer/backends/libomp.dylib
+.tox/
+
