@@ -25,6 +25,9 @@ contrib/standalone/version.hpp
 *.log
 *.env
 *.idea/
+.DS_Store
+*.ipynb
 test/.asv
-
+qiskit/providers/aer/backends/libomp.dylib
 .tox/
+

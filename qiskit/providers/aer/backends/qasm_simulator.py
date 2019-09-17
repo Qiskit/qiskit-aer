@@ -216,14 +216,14 @@ class QasmSimulator(AerBackend):
             ch_supported = False
             ch_supported = method in ["extended_stabilizer", "automatic"]
             clifford = False if method == "statevector" else clifford_noise
-            for op in experiment.instructions:
+            for inst in experiment.instructions:
                 if not clifford and not no_measure:
                     break  # we don't need to check any more ops
-                if clifford and op.name not in clifford_instructions:
+                if clifford and inst.name not in clifford_instructions:
                     clifford = False
-                if no_measure and op.name == "measure":
+                if no_measure and inst.name == "measure":
                     no_measure = False
-                if ch_supported and op.name in unsupported_ch_instructions:
+                if ch_supported and inst.name in unsupported_ch_instructions:
                     ch_supported = False
             # Print warning if clbits but no measure
             if no_measure:
