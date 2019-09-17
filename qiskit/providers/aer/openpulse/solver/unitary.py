@@ -24,6 +24,7 @@ from ..cy.measure import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
+
 def unitary_evolution(exp, global_data, ode_options):
     """
     Calculates evolution when there is no noise,
@@ -68,7 +69,7 @@ def unitary_evolution(exp, global_data, ode_options):
 
     _inst = 'ODE.set_f_params(%s)' % global_data['string']
     code = compile(_inst, '<string>', 'exec')
-    exec(code) # pylint disable=exec-used
+    exec(code)  # pylint disable=exec-used
 
     if not ODE._y:
         ODE.t = 0.0
@@ -90,11 +91,11 @@ def unitary_evolution(exp, global_data, ode_options):
         # set channel and frame change indexing arrays
 
     # Do final measurement at end
-    psi_rot = np.exp(-1j*global_data['h_diag_elems']*ODE.t)
+    psi_rot = np.exp(-1j * global_data['h_diag_elems'] * ODE.t)
     psi *= psi_rot
     qubits = exp['acquire'][0][1]
     memory_slots = exp['acquire'][0][2]
     probs = occ_probabilities(qubits, psi, global_data['measurement_ops'])
-    rand_vals = rng.rand(memory_slots.shape[0]*shots)
+    rand_vals = rng.rand(memory_slots.shape[0] * shots)
     write_shots_memory(memory, memory_slots, probs, rand_vals)
     return memory

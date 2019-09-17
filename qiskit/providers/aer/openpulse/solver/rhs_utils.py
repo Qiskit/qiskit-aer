@@ -26,10 +26,11 @@ def _op_generate_rhs(op_system):
     Args:
         op_system (OPSystem): An OpenPulse system object.
     """
-    name = "rhs" + str(os.getpid()) + str(op_set.CGEN_NUM)+'_op'
+    name = "rhs" + str(os.getpid()) + str(op_set.CGEN_NUM) + '_op'
     op_system.global_data['rhs_file_name'] = name
     cgen = OPCodegen(op_system)
     cgen.generate(name + ".pyx")
+
 
 def _op_func_load(op_system):
     """Loads the Cython function defined in the file

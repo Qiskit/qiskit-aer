@@ -56,6 +56,7 @@ from .fastsparse import fast_csr_matrix, fast_identity
 from .sparse import sp_reshape
 from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
 
+
 # pylint: disable=dangerous-default-value
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -134,8 +135,8 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             cd = c_.data.H
             c = c_.data
             if chi:
-                data = data + np.exp(1j * chi[idx]) * \
-                                zcsr_kron(c.conj(), c)
+                data = data + (np.exp(1j * chi[idx]) *
+                               zcsr_kron(c.conj(), c))
             else:
                 data = data + zcsr_kron(c.conj(), c)
             cdc = cd * c

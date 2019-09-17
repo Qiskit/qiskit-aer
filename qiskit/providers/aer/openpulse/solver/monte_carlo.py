@@ -32,6 +32,7 @@ from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
+
 def monte_carlo(seed, exp, global_data, ode_options):
     """
     Monte Carlo algorithm returning state-vector or expectation values
@@ -77,7 +78,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
                                    first_step=ode_options.first_step,
                                    min_step=ode_options.min_step,
                                    max_step=ode_options.max_step
-                                  )
+                                   )
     # Forces complex ODE solving
     if not any(ODE._y):
         ODE.t = 0.0

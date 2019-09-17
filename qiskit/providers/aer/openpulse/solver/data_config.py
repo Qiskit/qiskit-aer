@@ -18,6 +18,7 @@
 import numpy as np
 pi = np.pi
 
+
 def op_data_config(op_system):
     """ Preps the data for the opsolver.
 
@@ -67,14 +68,15 @@ def op_data_config(op_system):
         H = H + [H_noise]
 
     # construct data sets
-    op_system.global_data['h_ops_data'] = [-1.0j* hpart.data.data for hpart in H]
+    op_system.global_data['h_ops_data'] = [-1.0j * hpart.data.data
+                                           for hpart in H]
     op_system.global_data['h_ops_ind'] = [hpart.data.indices for hpart in H]
     op_system.global_data['h_ops_ptr'] = [hpart.data.indptr for hpart in H]
 
     # setup ode args string
     ode_var_str = ""
 
-    #diagonal elements
+    # diagonal elements
     ode_var_str += "global_data['h_diag_elems'], "
 
     # Hamiltonian data
@@ -103,13 +105,13 @@ def op_data_config(op_system):
         if chan != final_chan or var_list:
             ode_var_str += ', '
 
-    #now do the variables
+    # now do the variables
     for idx, var in enumerate(var_list):
         ode_var_str += "global_data['vars'][%s]" % idx
         if var != final_var or freq_list:
             ode_var_str += ', '
 
-    #now do the freq
+    # now do the freq
     for idx, freq in enumerate(freq_list):
         ode_var_str += "global_data['freqs'][%s]" % idx
         if freq != final_freq:
@@ -119,6 +121,6 @@ def op_data_config(op_system):
     ode_var_str += ", register"
     op_system.global_data['string'] = ode_var_str
 
-    #Convert inital state to flat array in global_data
+    # Convert inital state to flat array in global_data
     op_system.global_data['initial_state'] = \
         op_system.initial_state.full().ravel()

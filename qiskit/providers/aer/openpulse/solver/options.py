@@ -14,7 +14,8 @@
 
 """OpenPulse options"""
 
-class OPoptions(object):
+
+class OPoptions():
     """
     Class of options for opsolver.  Options can be specified either as
     arguments to the constructor::
@@ -103,5 +104,6 @@ class OPoptions(object):
 
     def __str__(self):
         return str(vars(self))
+
     def __repr__(self):
         return self.__str__()
