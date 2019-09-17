@@ -17,10 +17,9 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
-import os
 from math import log2, sqrt
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
@@ -43,6 +42,10 @@ class UnitarySimulator(AerBackend):
 
         * "initial_unitary" (matrix_like): Sets a custom initial unitary
             matrix for the simulation instead of identity (Default: None).
+
+        * "validation_threshold" (double): Sets the threshold for checking
+            if initial unitary and target unitary are unitary matrices.
+            (Default: 1e-8).
 
         * "zero_threshold" (double): Sets the threshold for truncating
             small values to zero in the result data (Default: 1e-10).
@@ -88,7 +91,7 @@ class UnitarySimulator(AerBackend):
         'description': 'A Python simulator for computing the unitary'
                        'matrix for experiments in qobj files',
         'coupling_map': None,
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                         'multiplexer', 'snapshot', 'unitary'],
         'gates': [
@@ -97,15 +100,12 @@ class UnitarySimulator(AerBackend):
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(unitary_controller_execute,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+                         QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):

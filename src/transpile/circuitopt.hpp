@@ -25,6 +25,8 @@
 #include <vector>
 
 #include "framework/operations.hpp"
+#include "noise/noise_model.hpp"
+
 
 namespace AER {
 namespace Transpile {
@@ -36,6 +38,7 @@ public:
   virtual ~CircuitOptimization() = default;
 
   virtual void optimize_circuit(Circuit& circ,
+                                Noise::NoiseModel& noise,
                                 const Operations::OpSet &opset,
                                 OutputData &data) const = 0;
 

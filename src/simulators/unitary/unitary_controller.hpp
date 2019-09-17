@@ -56,7 +56,8 @@ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
-  
+  UnitaryController();
+
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
   // Allowed config options:
@@ -69,7 +70,8 @@ public:
 
 protected:
 
-  size_t required_memory_mb(const Circuit& circ) const override;
+  size_t required_memory_mb(const Circuit& circ,
+                            const Noise::NoiseModel& noise) const override;
 
 private:
 
@@ -80,6 +82,8 @@ private:
   // This simulator will only return a single shot, regardless of the
   // input shot number
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
   
@@ -93,6 +97,11 @@ private:
 // Implementation
 //=========================================================================
 
+UnitaryController::UnitaryController() : Base::Controller() {
+  // Disable qubit truncation by default
+  Base::Controller::truncate_qubits_ = false;
+}
+
 //-------------------------------------------------------------------------
 // Config
 //-------------------------------------------------------------------------
@@ -104,7 +113,7 @@ void UnitaryController::set_config(const json_t &config) {
   //Add custom initial unitary
   if (JSON::get_value(initial_unitary_, "initial_unitary", config) ) {
     // Check initial state is unitary
-    if (!Utils::is_unitary(initial_unitary_, 1e-10))
+    if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
       throw std::runtime_error("UnitaryController: initial_unitary is not unitary");
   }
 }
@@ -114,7 +123,8 @@ void UnitaryController::clear_config() {
   initial_unitary_ = cmatrix_t();
 }
 
-size_t UnitaryController::required_memory_mb(const Circuit& circ) const {
+size_t UnitaryController::required_memory_mb(const Circuit& circ,
+                                             const Noise::NoiseModel& noise) const {
   QubitUnitary::State<> state;
   return state.required_memory_mb(circ.num_qubits, circ.ops);
 }
@@ -124,13 +134,15 @@ size_t UnitaryController::required_memory_mb(const Circuit& circ) const {
 //-------------------------------------------------------------------------
 
 OutputData UnitaryController::run_circuit(const Circuit &circ,
+                                          const Noise::NoiseModel& noise,
+                                          const json_t &config,
                                           uint_t shots,
                                           uint_t rng_seed) const {
   // Initialize state
   QubitUnitary::State<> state;
   
   // Validate circuit and throw exception if invalid operations exist
-  validate_state(state, circ, noise_model_, true);
+  validate_state(state, circ, noise, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_unitary_.empty()) {
@@ -150,7 +162,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
   }
 
   // Set state config
-  state.set_config(Base::Controller::config_);
+  state.set_config(config);
   state.set_parallalization(parallel_state_update_);
 
   // Rng engine (not actually needed for unitary controller)
@@ -159,7 +171,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::config_);
+  data.set_config(config);
 
   // Run single shot collecting measure data or snapshots
   if (initial_unitary_.empty())

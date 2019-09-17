@@ -40,7 +40,7 @@ enum class Gates {
 // QubitUnitary State subclass
 //=========================================================================
 
-template <class data_t = complex_t*>
+template <class data_t = double>
 class State : public Base::State<QV::UnitaryMatrix<data_t>> {
 public:
   using BaseState = Base::State<QV::UnitaryMatrix<data_t>>;
@@ -67,7 +67,7 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "swap",
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
             "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
@@ -94,7 +94,8 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 2 * num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -187,9 +188,10 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"u2", Gates::mcu2},  // single-X90 pulse waltz gate
   {"u3", Gates::mcu3},  // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::mcx},  // Controlled-X gate (CNOT)
-  {"cy", Gates::mcy},  // Controlled-Z gate
-  {"cz", Gates::mcz},  // Controlled-Z gate
+  {"cx", Gates::mcx},   // Controlled-X gate (CNOT)
+  {"cy", Gates::mcy},   // Controlled-Z gate
+  {"cz", Gates::mcz},   // Controlled-Z gate
+  {"cu1", Gates::mcu1}, // Controlled-u1 gate
   {"swap", Gates::mcswap}, // SWAP gate
   // Three-qubit gates
   {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
@@ -235,7 +237,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class data_t>
 size_t State<data_t>::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) {
+                                 const std::vector<Operations::Op> &ops)
+                                 const {
   // An n-qubit unitary as 2^2n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
@@ -322,7 +325,7 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcz:
       // Includes Z, CZ, CCZ, etc
-      BaseState::qreg_.apply_mcz(op.qubits);
+      BaseState::qreg_.apply_mcphase(op.qubits, -1);
       break;
     case Gates::id:
       break;
@@ -363,7 +366,7 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcu1:
       // Includes u1, cu1, etc
-      apply_gate_mcu3(op.qubits, 0., 0., std::real(op.params[0]));
+      BaseState::qreg_.apply_mcphase(op.qubits, std::exp(complex_t(0, 1) * op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
