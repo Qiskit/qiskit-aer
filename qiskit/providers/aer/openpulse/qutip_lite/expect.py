@@ -105,6 +105,7 @@ def expect(oper, state):
     else:
         raise TypeError('Arguments must be quantum objects')
 
+
 # pylint: disable=inconsistent-return-statements
 def _single_qobj_expect(oper, state):
     """
