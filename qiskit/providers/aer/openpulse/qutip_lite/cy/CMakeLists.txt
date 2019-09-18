@@ -22,8 +22,10 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
-add_cython_module(spmatfuncs)
-add_cython_module(sparse_utils)
-add_cython_module(spmath)
-add_cython_module(math)
 add_cython_module(spconvert)
+add_cython_module(math)
+add_cython_module(spmath)
+add_cython_module(sparse_utils)
+add_cython_module(spmatfuncs)
+
+
