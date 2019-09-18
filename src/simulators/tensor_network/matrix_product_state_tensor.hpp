@@ -120,9 +120,9 @@ public:
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
   static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma, bool mul_by_lambda);
   static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
-static void contract_2_axes(const MPS_Tensor &left_gamma, 
-			    const MPS_Tensor &right_gamma,
-			    cmatrix_t &result);
+static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
+				  const MPS_Tensor &right_gamma,
+				  cmatrix_t &result);
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
 			   bool right, /* or left */
@@ -138,7 +138,7 @@ private:
 //---------------------------------------------------------------
 // function name: print
 // Description: Prints the Tensor. All the submatrices are aligned by rows.
-//-------------------------------------------------------------
+//---------------------------------------------------------------
 ostream& MPS_Tensor::print(ostream& out) const {   
     complex_t value;
     
@@ -377,9 +377,26 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
   return Res;
 }
 
-void MPS_Tensor::contract_2_axes(const MPS_Tensor &left_gamma, 
-			         const MPS_Tensor &right_gamma,
-				 cmatrix_t &result)
+//---------------------------------------------------------------
+// Function name: contract_2_dimensions
+// Description: Contract two Gamma tensors across 2 dimensions: left_columns/right_rows and
+//                                                              left_size/right_size
+// Parameters: MPS_Tensor &left_gamma, &right_gamma - the tensors to contract.
+// Returns: The result matrix of the contract
+// Assumptions:
+//   1. We assume lamda was already multiplied into the gammas before this function
+//   2. We assume the tensors are of the form:
+//      1   
+//      o--a1--o
+//     ||
+//      o--a2--o
+//      2
+//  There is a double bond between tensor 1 and 2, and each of them has on additional bond of 
+//  dimension a1 and a2 respectively. The result matrix will be of size a2 x a1
+//---------------------------------------------------------------
+void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma, 
+			               const MPS_Tensor &right_gamma,
+				       cmatrix_t &result)
 {
   int_t left_rows = left_gamma.data_[0].GetRows();
   int_t left_columns = left_gamma.data_[0].GetColumns();
@@ -405,7 +422,7 @@ void MPS_Tensor::contract_2_axes(const MPS_Tensor &left_gamma,
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++)
       result(l_row, r_col) = 0;
-
+  
   #ifdef _WIN32
      #pragma omp parallel for
   #else

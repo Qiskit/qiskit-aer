@@ -369,9 +369,9 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   return rho;
 }
 
-  void MPS::TN_with_new_indices(const reg_t &qubits, 
-				MPS& temp_TN, 
-				uint &front, uint &back) const {
+void MPS::TN_with_new_indices(const reg_t &qubits, 
+			      MPS& temp_TN, 
+			      uint &front, uint &back) const {
   // ***** Assuming ascending sorted qubits register *****
   vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
@@ -394,34 +394,6 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   back = internalIndexes.back();
 }
 
-double MPS::expectation_value(const reg_t &qubits, const string &matrices) const
-{
-  // ***** Assuming ascending sorted qubits register *****
-  cmatrix_t rho = density_matrix(qubits);
-  string matrices_reverse = matrices;
-  reverse(matrices_reverse.begin(), matrices_reverse.end());
-  cmatrix_t M(1), temp;
-  M(0,0) = complex_t(1);
-  for(const char& gate : matrices_reverse)
-  {
-    if (gate == 'X')
-	  temp = AER::Utils::Matrix::X;
-    else if (gate == 'Y')
-	  temp = AER::Utils::Matrix::Y;
-    else if (gate == 'Z')
-	  temp = AER::Utils::Matrix::Z;
-    else if (gate == 'I')
-	  temp = AER::Utils::Matrix::I;
-    M = AER::Utils::tensor_product(M, temp);
-  }
-  // Trace(rho*M). not using methods for efficiency
-  complex_t res = 0;
-  for (uint_t i = 0; i < M.GetRows(); i++)
-    for (uint_t j = 0; j < M.GetRows(); j++)
-      res += M(i,j)*rho(j,i);
-  return real(res);
-}
-
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
   // ***** Assuming ascending sorted qubits register *****
@@ -435,8 +407,9 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
   return real(res);
 }
 
-
-
+//---------------------------------------------------------------
+// Function: expectation_value_pauli
+// Algorithm:
 // Initial state: 
 //      0      1      2      3                                          
 //   ---o--a0--o--a1--o--a2--o---  
@@ -451,25 +424,36 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 // because expectation value on the left and right are 1. 
 
 // After step 1:
-//        1    2     3
+//        1      2      3
 //     a0/o--a1--o--a2--o--
 //      o |      |      |  |
 //     a0\o--a1--o--a2--o-- 
+//
+// After step 2:
+//        1      2      3
+//        o--a1--o--a2--o--
+//    a0 ||i     |      |  |
+//        o--a1--o--a2--o-- 
+//
+// After step 3:
+//               2      3
+//            a1/o--a2--o--
+//             o |      |  |
+//            a1\o--a2--o-- 
 
-complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices) const
+complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matrices) const
 {
   MPS temp_TN;
-  //  MPS_Tensor expval_tensor, temp_tensor1, temp_tensor2;
   uint first_index = 0, last_index = 0;
   TN_with_new_indices(qubits, temp_TN, first_index, last_index);
   string matrices_reverse = matrices;
   reverse(matrices_reverse.begin(), matrices_reverse.end());
-  cmatrix_t M(1), gate_matrix;
 
   char gate = matrices_reverse[0];
-  // step 1 - contract Gamma0 with Gamma0' over i and a0
-  // Gamma0 has dimensions a0 x a1, Gamma0' has dimensions a1 x a0 
-  // result = left_contract will have dimensions a1 x a1
+
+  // step 1 - contract Gamma0' with Gamma0 over dimensions a0 and i
+  // Gamma0' has size a1 x a0, Gamma0 has size a0 x a1
+  // result = left_contract will have size a1 x a1
 
   MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
   if (first_index > 0) {
@@ -481,10 +465,11 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
       left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
   }
   MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), AER::Utils::dagger(left_tensor.get_data(1)));
-  left_tensor_dagger.apply_pauli(gate);
+
+  left_tensor.apply_pauli(gate);
 
   cmatrix_t left_contract;
-  MPS_Tensor::contract_2_axes(left_tensor_dagger, left_tensor, left_contract);
+  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, left_contract);
 
   cmatrix_t final_contract = left_contract;
 
@@ -498,16 +483,13 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
       next_gamma.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[qubit_num]);
 
-    next_gamma.get_data(0).SetOutputStyle(Matrix);
-    next_gamma.get_data(1).SetOutputStyle(Matrix);
-    
     // step 3 - prepare the dagger of the next gamma
     // next_gamma_dagger has dimensions a1' x a0' x i
     MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), AER::Utils::dagger(next_gamma.get_data(1)));
     
     // step 4 - apply gate
     gate = matrices_reverse[qubit_num - first_index];
-    next_gamma_dagger.apply_pauli(gate);
+    next_gamma.apply_pauli(gate);
     
     // step 5 - contract final_contract from previous stage with next gamma over a1
     // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
@@ -520,7 +502,7 @@ complex_t MPS::new_expectation_value(const reg_t &qubits, const string &matrices
     // here we need to contract across two dimensions: a1 and i
     // result is a2 x a2
 
-    MPS_Tensor::contract_2_axes(next_gamma_dagger, next_contract, final_contract);      
+    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, final_contract);      
   }
 
  
@@ -616,7 +598,7 @@ uint_t MPS::apply_measure(uint_t qubit,
   qubits_to_update.push_back(qubit);
 
   // step 1 - measure qubit 0 in Z basis
-  double exp_val = expectation_value(qubits_to_update, "Z");
+  double exp_val = real(expectation_value_pauli(qubits_to_update, "Z"));
   
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;

@@ -466,18 +466,13 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
 
   //Compute expval components
   complex_t expval(0., 0.);
-  double one_expval = 0;
 
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     string pauli_matrices = param.second;
-    //    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
-    complex_t new_expval = qreg_.new_expectation_value(op.qubits, pauli_matrices);
-    //    cout << "old expval = " << one_expval <<endl;
-    cout << "new expval = " << new_expval <<endl;
+    complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
 
-    //expval += coeff * one_expval;
-    expval += coeff * new_expval;
+    expval += coeff * pauli_expval;
   }
   data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
 }

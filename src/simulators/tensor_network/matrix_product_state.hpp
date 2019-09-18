@@ -124,12 +124,27 @@ public:
   
   cmatrix_t density_matrix(const reg_t &qubits) const;
 
-  //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
-  double expectation_value(const reg_t &qubits, const string &matrices) const;
+  //---------------------------------------------------------------
+  // Function: expectation_value
+  // Description: Computes expectation value of the given qubits on the given matrix.
+  // Parameters: The qubits for which we compute expectation value.
+  //             M - the matrix
+  // Returns: The expectation value. 
+  //------------------------------------------------------------------
   double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
-  complex_t new_expectation_value(const reg_t &qubits, const string &matrices) const;
 
-    //----------------------------------------------------------------
+  //---------------------------------------------------------------
+  // Function: expectation_value_pauli
+  // Description: Computes expectation value of the given qubits on a string of Pauli matrices.
+  // Parameters: The qubits for which we compute expectation value.
+  //             A string of matrices of the set {X, Y, Z, I}. The matrices are given in 
+  //             reverse order relative to the qubits.
+  // Returns: The expectation value in the form of a complex number. The real part is the 
+  //          actual expectation value.
+  //------------------------------------------------------------------
+  complex_t expectation_value_pauli(const reg_t &qubits, const string &matrices) const;
+
+  //------------------------------------------------------------------
   // function name: TN_with_new_indices
   // Description: Creates a copy of *this where the indices of the
   //   selected qubits have been moved for more efficient computation
