@@ -409,34 +409,36 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
 //---------------------------------------------------------------
 // Function: expectation_value_pauli
-// Algorithm:
+// Algorithm: For the illustration, assume computing the expectation 
+// value on qubits numbered q0, q1, q2, q3. There may be additional qubits
+// before q0 or after q3 
 // Initial state: 
-//      0      1      2      3                                          
+//     q0     q1     q2     q3                               
 //   ---o--a0--o--a1--o--a2--o---  
 //      |      |      |      |  
 //   ---o--a0--o--a1--o--a2--o---                                     
 //                       
 //                                 
-// We can actually think of this as        0   1   2   3
+// We can actually think of this as       q0  q1  q2  q3
 //                                       --o---o---o---o--
 //                                      |  |   |   |   |  |
 //                                       --o---o---o---o--
 // because expectation value on the left and right are 1. 
 
 // After step 1:
-//        1      2      3
+//       q1     q2     q3
 //     a0/o--a1--o--a2--o--
 //      o |      |      |  |
 //     a0\o--a1--o--a2--o-- 
 //
 // After step 2:
-//        1      2      3
+//       q1     q2     q3
 //        o--a1--o--a2--o--
 //    a0 ||i     |      |  |
 //        o--a1--o--a2--o-- 
 //
 // After step 3:
-//               2      3
+//              q2     q3
 //            a1/o--a2--o--
 //             o |      |  |
 //            a1\o--a2--o-- 
@@ -446,70 +448,78 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
   MPS temp_TN;
   uint first_index = 0, last_index = 0;
   TN_with_new_indices(qubits, temp_TN, first_index, last_index);
+
+  // Preliminary step - reverse the order of the matrices because 
+  // they are ordered in reverse to that of the qubits (in the interface)
   string matrices_reverse = matrices;
   reverse(matrices_reverse.begin(), matrices_reverse.end());
-
   char gate = matrices_reverse[0];
 
-  // step 1 - contract Gamma0' with Gamma0 over dimensions a0 and i
-  // Gamma0' has size a1 x a0, Gamma0 has size a0 x a1
-  // result = left_contract will have size a1 x a1
-
+  // Step 1 - multiply tensor of q0 by its left lambda
   MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
   if (first_index > 0) {
     left_tensor.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[first_index-1]);
   }
 
-  // we need to mul by right gamma 
+  // The last gamma must be multiplied also by its right lambda.
+  // Here we handle the special case that we are calculating exp val 
+  // on a single qubit
+  // we need to mul every gamma by its right lambda
   if (first_index==last_index && first_index < num_qubits_-1) {
       left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
   }
-  MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), AER::Utils::dagger(left_tensor.get_data(1)));
 
+  MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), 
+				AER::Utils::dagger(left_tensor.get_data(1)));
+  
+  // Step 2 - Apply the gate to q0
   left_tensor.apply_pauli(gate);
 
-  cmatrix_t left_contract;
-  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, left_contract);
-
-  cmatrix_t final_contract = left_contract;
+  // Step 3 - contract Gamma0' with Gamma0 over dimensions a0 and i
+  // Before contraction, Gamma0' has size a1 x a0, Gamma0 has size a0 x a1
+  // result = left_contract will have size a1 x a1
+  cmatrix_t final_contract;
+  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, 
+				    final_contract);
 
   for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
 
-    // step 2 - multiply next Gamma by its left lambda
-    // next gamma has dimensions aR x aN x i (aR from previous gamma, N for next)
+    // Step 4 - multiply next Gamma by its left lambda (Same as step 1)
+    // next gamma has dimensions a0 x a1 x i 
     MPS_Tensor next_gamma = temp_TN.q_reg_[qubit_num];
     next_gamma.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[qubit_num-1]);
 
+    // Last qubit must be multiplied by rightmost lambda
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
       next_gamma.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[qubit_num]);
 
-    // step 3 - prepare the dagger of the next gamma
+    // Step 3 - prepare the dagger of the next gamma
     // next_gamma_dagger has dimensions a1' x a0' x i
-    MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), AER::Utils::dagger(next_gamma.get_data(1)));
+    MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), 
+				 AER::Utils::dagger(next_gamma.get_data(1)));
     
-    // step 4 - apply gate
+    // Step 4 - apply gate
     gate = matrices_reverse[qubit_num - first_index];
     next_gamma.apply_pauli(gate);
     
-    // step 5 - contract final_contract from previous stage with next gamma over a1
+    // Step 5 - contract final_contract from previous stage with next gamma over a1
     // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
     // result is a1 x a2 x i
 
-    MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), final_contract * next_gamma.get_data(1));
+    MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), 
+			     final_contract * next_gamma.get_data(1));
 
-    
-    // step 6 - contract next_contract (a1 x a2 x i) with next_gamma_dagger (i x a2 x a1)
+    // Step 6 - contract next_contract (a1 x a2 x i) with next_gamma_dagger (i x a2 x a1)
     // here we need to contract across two dimensions: a1 and i
     // result is a2 x a2
 
-    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, final_contract);      
+    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, 
+				      final_contract);      
   }
-
  
   // step - contract over final matrix of size aN x aN
   // simply take trace of final_contract
-  complex_t result;
-  result = AER::Utils::trace(final_contract);
+  complex_t result = AER::Utils::trace(final_contract);
 
   return result;
 }

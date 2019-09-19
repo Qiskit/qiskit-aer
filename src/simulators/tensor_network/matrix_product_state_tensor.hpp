@@ -405,7 +405,6 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   int_t right_columns = right_gamma.data_[0].GetColumns();
   int_t right_size = right_gamma.data_.size();
 
-  // assume for now axes are 1 and 2 i.e., 
   // left_columns/right_rows and left_size/right_size
   if (left_columns != right_rows)   
     throw std::runtime_error("left_columns != right_rows");
@@ -433,8 +432,7 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 
       for (int_t l_size=0; l_size<left_size; l_size++)
 	  for (int_t l_col=0; l_col<left_columns ; l_col++) {
- 
-	      result(l_row, r_col) += left_gamma.data_[l_size](l_row, l_col) *
+ 	      result(l_row, r_col) += left_gamma.data_[l_size](l_row, l_col) *
 		                      right_gamma.data_[l_size](l_col, r_col);      
 
 	    }
