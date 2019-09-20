@@ -23,7 +23,7 @@ set(CYTHON_INSTALL_DIR "qiskit/providers/aer/backends")
 
 function(add_cython_module module)
     add_cython_target(${module} ${module}.pyx CXX)
-    add_library(${module} MODULE ${module})
+    add_library(${module} MODULE ${module} ${ARGV1})
     set_target_properties(${module} PROPERTIES
         LINKER_LANGUAGE CXX
         CXX_STANDARD 14)

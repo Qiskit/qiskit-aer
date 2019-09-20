@@ -22,10 +22,9 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
-add_cython_module(spconvert)
-add_cython_module(math)
-add_cython_module(spmath)
-add_cython_module(sparse_utils)
-add_cython_module(spmatfuncs)
-
-
+set(CYTHON_INSTALL_DIR "qiskit/providers/aer/openpulse/qutip_lite/cy")
+add_cython_module(spconvert src/zspmv.cpp)
+add_cython_module(math src/zspmv.cpp)
+add_cython_module(spmath src/zspmv.cpp)
+add_cython_module(sparse_utils src/zspmv.cpp)
+add_cython_module(spmatfuncs src/zspmv.cpp)

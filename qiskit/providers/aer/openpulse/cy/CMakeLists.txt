@@ -25,6 +25,7 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
+set(CYTHON_INSTALL_DIR "qiskit/providers/aer/openpulse/cy/")
 add_cython_module(channel_value)
 add_cython_module(measure)
 add_cython_module(memory)
