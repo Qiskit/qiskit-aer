@@ -504,7 +504,7 @@ QasmController::simulation_method(const Circuit &circ,
           validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
         return Method::density_matrix;
-        }
+      }
       // Finally we check the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
@@ -527,10 +527,16 @@ QasmController::simulation_method(const Circuit &circ,
     }
     // If we didn't select extended stabilizer above proceed to the default switch clause
     default: {
-      // Default method is statevector
+      // For default we use statevector followed by density matrix (for the case
+      // when the circuit contains invalid instructions for statevector)
+      if (validate_state(Statevector::State<>(), circ, noise_model, false)) {
+        return Method::statevector;
+      }
+      // If circuit contains invalid instructions for statevector throw a hail
+      // mary and try for density matrix.
       if (validate)
-        validate_state(Statevector::State<>(), circ, noise_model, true);
-      return Method::statevector;
+        validate_state(DensityMatrix::State<>(), circ, noise_model, true);
+      return Method::density_matrix;
     }
   }
 }
