@@ -1248,11 +1248,9 @@ class Qobj():
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
             if sparse:
-                S = sp.hstack([psi.data for psi in inpt],
-                              format='csr', dtype=complex).conj().T
+                S = sp.hstack([psi.data for psi in inpt], format='csr').conj().T
             else:
-                S = np.hstack([psi.full() for psi in inpt],
-                              dtype=complex).conj().T
+                S = np.hstack([psi.full() for psi in inpt]).conj().T
         elif isinstance(inpt, Qobj) and inpt.isoper:
             S = inpt.data
         elif isinstance(inpt, np.ndarray):

@@ -30,6 +30,7 @@ from ..openpulse.solver.opsolve import opsolve
 
 logger = logging.getLogger(__name__)
 
+
 class PulseSimulator(AerBackend):
     """Aer OpenPulse simulator
     """
@@ -45,7 +46,6 @@ class PulseSimulator(AerBackend):
         'open_pulse': True,
         'memory': False,
         'max_shots': 50000,
-        'coupling_map': None,
         'description': 'A pulse-based Hamiltonian simulator',
         'gates': [],
         'basis_gates': []

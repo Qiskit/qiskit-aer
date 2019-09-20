@@ -54,7 +54,8 @@ import numpy as np
 from .qobj import Qobj
 from .fastsparse import fast_csr_matrix, fast_identity
 from .sparse import sp_reshape
-from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module, import-error
+from .cy.spmath import zcsr_kron
 
 
 # pylint: disable=dangerous-default-value
