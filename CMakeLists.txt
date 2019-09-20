@@ -178,8 +178,6 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
-message(STATUS "Looking for Eigen library...")
-
 # Set dependent libraries
 set(AER_LIBRARIES
 		${OPENMP_EXTERNAL_LIB}
