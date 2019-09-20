@@ -39,7 +39,6 @@ def gate_param_values(properties):
         qubits = gate.qubits
         # Check for gate time information
         gate_length = None  # default value
-        time_param = _check_for_item(gate.parameters, 'gate_time')  # deprecated
         time_param = _check_for_item(gate.parameters, 'gate_length')
         if hasattr(time_param, 'value'):
             gate_length = time_param.value
@@ -97,7 +96,6 @@ def gate_length_values(properties):
         name = gate.gate
         qubits = gate.qubits
         value = None  # default value
-        params = _check_for_item(gate.parameters, 'gate_time')  # deprecated
         params = _check_for_item(gate.parameters, 'gate_length')
         if hasattr(params, 'value'):
             value = params.value
