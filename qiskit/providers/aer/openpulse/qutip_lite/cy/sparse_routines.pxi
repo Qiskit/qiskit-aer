@@ -39,7 +39,7 @@ cimport numpy as np
 cimport cython
 from libcpp.algorithm cimport sort
 from libcpp.vector cimport vector
-from qiskit.providers.aer.openpulse.qutip_lite.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
+from .sparse_structs cimport CSR_Matrix, COO_Matrix
 np.import_array()
 
 cdef extern from "numpy/arrayobject.h" nogil:

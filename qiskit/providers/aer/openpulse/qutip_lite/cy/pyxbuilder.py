@@ -48,6 +48,9 @@
 import sys
 import os
 import pyximport
+from pyximport import install
+
+__all__ = ["install"]
 
 OLD_EXT = pyximport.pyximport.get_distutils_extension
 

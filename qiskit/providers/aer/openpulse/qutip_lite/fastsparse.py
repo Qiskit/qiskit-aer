@@ -436,5 +436,5 @@ def _all_true(shape):
 
 # Need to do some trailing imports here
 # -------------------------------------
-# pylint: disable=no-name-in-module, wrong-import-position
+# pylint: disable=no-name-in-module, wrong-import-position, import-error
 from .cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_mult)
