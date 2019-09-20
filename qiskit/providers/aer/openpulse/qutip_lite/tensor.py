@@ -49,7 +49,8 @@ Module for the creation of composite quantum objects via the tensor product.
 """
 
 import numpy as np
-from .cy.spmath import zcsr_kron  # pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module, import-error
+from .cy.spmath import zcsr_kron
 from .qobj import Qobj
 from ..qutip_lite.settings import auto_tidyup
 
