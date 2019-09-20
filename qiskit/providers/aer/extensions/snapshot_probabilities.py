@@ -18,47 +18,50 @@ from qiskit import QuantumCircuit
 from qiskit.providers.aer.extensions import Snapshot
 
 
-class SnapshotProbabilites(Snapshot):
+class SnapshotProbabilities(Snapshot):
     """Snapshot instruction for all methods of Qasm simulator."""
 
-    def __init__(self,
-                 label,
-                 num_qubits=0,
-                 num_clbits=0,
-                 variance=False,
-                 params=None,):
+    def __init__(self, label, num_qubits, variance=False):
+        """Create a probability snapshot instruction.
 
+        Args:
+            label (str): the snapshot label.
+            num_qubits (int): the number of qubits to snapshot.
+            variance (bool): compute variance of probabilities [Default: False]
+
+        Raises:
+            ExtensionError: if snapshot is invalid.
+        """
         if variance:
-            super().__init__(label, 'probabilities_with_variance', num_qubits, num_clbits, params)
+            snapshot_type = 'probabilities_with_variance'
         else:
-            super().__init__(label, 'probabilities', num_qubits, num_clbits, params)
+            snapshot_type = 'probabilities'
+
+        super().__init__(label, snapshot_type=snapshot_type,
+                         num_qubits=num_qubits)
 
 
-def snapshot_probabilities(self,
-                           label,
-                           qubits=None,
-                           variance=False,
-                           params=None):
-    """Take a snapshot of the internal simulator representation.
-    Works on specified qubits or the full register, and prevents reordering (like barrier).
+def snapshot_probabilities(self, label, qubits, variance=False):
+    """Take a probability snapshot of the simulator state.
+
     Args:
         label (str): a snapshot label to report the result
-        qubits (list or None): the qubits to apply snapshot to [Default: None]
-        variance (bool): set snapshot_type to 'probabilities' or '
-                         probabilities_with_variance' [Default: False]
-        params (list or None): the parameters for snapshot_type [Default: None]
+        qubits (list): the qubits to snapshot.
+        variance (bool): compute variance of probabilities [Default: False]
+
     Returns:
-        QuantumCircuit: with attached command
+        QuantumCircuit: with attached instruction.
+
     Raises:
-        ExtensionError: malformed command
+        ExtensionError: if snapshot is invalid.
     """
     snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
-        SnapshotProbabilites(label,
-                             num_qubits=len(snapshot_register),
-                             variance=variance,
-                             params=params), snapshot_register)
+        SnapshotProbabilities(label,
+                              num_qubits=len(snapshot_register),
+                              variance=variance),
+        snapshot_register)
 
 
 QuantumCircuit.snapshot_probabilities = snapshot_probabilities
