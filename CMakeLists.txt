@@ -188,6 +188,8 @@ set(AER_LIBRARIES
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
+	add_subdirectory(qiskit/providers/aer/openpulse/cy)
+	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
@@ -201,7 +203,7 @@ else() # Standalone build
 	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	# Linter
 	# This will add the linter as part of the compiling build target
-	add_linter(qasm_simulator)
+	#add_linter(qasm_simulator)
 endif()
 
 # Tests

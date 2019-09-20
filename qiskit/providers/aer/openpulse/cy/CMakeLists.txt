@@ -1,6 +1,7 @@
+# Cython OP extensions
+
 include(Linter)
 include(cython_utils)
-
 
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
@@ -24,11 +25,8 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
-add_cython_module(qasm_controller_wrapper)
-add_cython_module(statevector_controller_wrapper)
-add_cython_module(unitary_controller_wrapper)
-
-# Install redistributable dependencies
-if(APPLE)
-    install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
-endif()
+set(CYTHON_INSTALL_DIR "qiskit/providers/aer/openpulse/cy/")
+add_cython_module(channel_value)
+add_cython_module(measure)
+add_cython_module(memory)
+add_cython_module(utils)
