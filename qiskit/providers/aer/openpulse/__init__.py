@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 """Init for openpulse"""
 
+# pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
 from .qutip_lite.cy import pyxbuilder as pbldr
