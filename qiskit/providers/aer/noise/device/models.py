@@ -135,7 +135,7 @@ def basic_device_readout_errors(properties):
     errors = []
     for qubit, value in enumerate(readout_error_values(properties)):
         if value is not None:
-            if type(value) is list and len(value)==2:
+            if isinstance(value, list) and len(value) == 2:
                 probabilities = [[1-value[0], value[0]], 
                                  [value[1], 1-value[1]]]
             elif value > 0:
