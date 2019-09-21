@@ -1,16 +1,30 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_qasm_controller_hpp_
 #define _aer_qasm_controller_hpp_
 
 #include "base/controller.hpp"
+#include "transpile/basic_opts.hpp"
+#include "transpile/fusion.hpp"
+#include "transpile/delay_measure.hpp"
+#include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/tensor_network/tensor_network_state.hpp"
+#include "simulators/densitymatrix/densitymatrix_state.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 
 
 namespace AER {
@@ -22,13 +36,17 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
+ * - "optimize_ideal_threshold" (int): Qubit threshold for running circuit
+ *   optimizations passes for an ideal circuit [Default: 0].
+ * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
+ *   optimizations passes for a noisy circuit [Default: 12].
  * 
  * From Statevector::State class
- * 
+ *
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
- * - "chop_threshold" (double): Threshold for truncating small values to
- *      zero in result data [Default: 1e-15]
+ * - "zero_threshold" (double): Threshold for truncating small values to
+ *      zero in result data [Default: 1e-10]
  * - "statevector_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 13]
@@ -37,6 +55,32 @@ namespace Simulator {
  *      measure sampling [Default: 10]
  * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
  *      [Default: False]
+ *
+ * From ExtendedStabilizer::State class
+ * - "extended_stabilizer_approximation_error" (double): Set the error in the 
+ *     approximation for the ch method. A smaller error needs more
+ *     memory and computational time. [Default: 0.05]
+ *
+ * - "extended_stabilizer_disable_measurement_opt" (bool): Force the simulator to
+ *      re-run the monte-carlo step for every measurement. Enabling
+ *      this will improve the sampling accuracy if the output
+ *      distribution is strongly peaked, but requires more
+ *      computational time. [Default: True]
+ *
+ * - "extended_stabilizer_mixing_time" (int): Set how long the monte-carlo method
+ *      runs before performing measurements. If the output
+ *      distribution is strongly peaked, this can be
+ *      decreased alongside setting extended_stabilizer_disable_measurement_opt
+ *      to True. [Default: 5000]
+ *
+ * - "extended_stabilizer_norm_estimation_samples" (int): Number of samples used to
+ *      compute the correct normalisation for a statevector snapshot.
+ *      [Default: 100]
+ *
+ * - "extended_stabilizer_parallel_threshold" (int): Set the minimum size of the ch
+ *      decomposition before we enable OpenMP parallelisation. If
+ *      parallel circuit or shot execution is enabled this will only
+ *      use unallocated CPU cores up to max_parallel_threads. [Default: 100]
  *
  * From BaseController Class
  *
@@ -54,11 +98,19 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
+ * - "max_memory_mb" (int): Memory in MB available to the state class.
+ *      If specified, is divided by the number of parallel shots/experiments.
+ *      [Default: 0]
  *
  **************************************************************************/
 
 class QasmController : public Base::Controller {
 public:
+  //-----------------------------------------------------------------------
+  // Constructor
+  //-----------------------------------------------------------------------
+  QasmController();
+
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
@@ -73,13 +125,26 @@ public:
   // Clear the current config
   void virtual clear_config() override;
 
-private:
+protected:
   //-----------------------------------------------------------------------
   // Simulation types
   //-----------------------------------------------------------------------
 
   // Simulation methods for the Qasm Controller
-  enum class Method {automatic, statevector, stabilizer};
+  enum class Method {
+    automatic,
+    statevector,
+    density_matrix,
+    stabilizer,
+    extended_stabilizer,
+    matrix_product_state
+  };
+
+  // Simulation precision
+  enum class Precision {
+    double_precision,
+    single_precision
+  };
 
   //-----------------------------------------------------------------------
   // Base class abstract method override
@@ -89,6 +154,8 @@ private:
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual OutputData run_circuit(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
+                                 const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
 
@@ -100,7 +167,9 @@ private:
   // If a custom method is specified in the config this will be
   // used. If the default automatic method is set this will choose
   // the appropriate method based on the input circuit.
-  Method simulation_method(const Circuit &circ) const;
+  Method simulation_method(const Circuit &circ,
+                           const Noise::NoiseModel &noise,
+                           bool validate = false) const;
 
   // Initialize a State subclass to a given initial state
   template <class State_t, class Initstate_t>
@@ -108,12 +177,9 @@ private:
                         State_t &state,
                         const Initstate_t &initial_state) const;
 
-  // Optimize a circuit based on simulator config, and store the optimized
-  // circuit in output_circ
-  // To optimize in place use output_circ = input_circ
-  // NOTE: That is a place-holder and no optimization passes are implemented
-  template <class State_t>
-  void optimize_circuit(const Circuit& input_circ, Circuit& output_circ) const;
+  // Set parallelization for qasm simulator
+  virtual void set_parallelization_circuit(const Circuit& circ,
+                                           const Noise::NoiseModel& noise) override;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -122,9 +188,12 @@ private:
   // Execute n-shots of a circuit on the input state
   template <class State_t, class Initstate_t>
   OutputData run_circuit_helper(const Circuit &circ,
+                                const Noise::NoiseModel &noise,
+                                const json_t &config,
                                 uint_t shots,
                                 uint_t rng_seed,
-                                const Initstate_t &initial_state) const;
+                                const Initstate_t &initial_state,
+                                const Method method) const;
 
   // Execute a single shot a circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
@@ -145,6 +214,7 @@ private:
                                  uint_t shots,
                                  State_t &state,
                                  const Initstate_t &initial_state,
+                                 const Method method,
                                  OutputData &data,
                                  RngEngine &rng) const;
 
@@ -152,6 +222,7 @@ private:
   // instance of the circuit for each shot.
   template <class State_t, class Initstate_t>
   void run_circuit_with_noise(const Circuit &circ,
+                              const Noise::NoiseModel& noise,
                               uint_t shots,
                               State_t &state,
                               const Initstate_t &initial_state,
@@ -171,27 +242,49 @@ private:
                        OutputData &data,
                        RngEngine &rng) const;
 
-  // Check if measure sampling optimization if valid for the input circuit
+  // Check if measure sampling optimization is valid for the input circuit
   // if so return a pair {true, pos} where pos is the position of the
   // first measurement operation in the input circuit
-  std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ) const;
+  std::pair<bool, size_t>
+  check_measure_sampling_opt(const Circuit &circ, const Method method) const;
 
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
+  size_t required_memory_mb(const Circuit& circ,
+                            const Noise::NoiseModel& noise) const override;
 
   // Simulation method
   Method simulation_method_ = Method::automatic;
+
+  // Simulation precision
+  Precision simulation_precision_ = Precision::double_precision;
+
+  // Qubit threshold for running circuit optimizations
+  uint_t circuit_opt_ideal_threshold_ = 0;
+  uint_t circuit_opt_noise_threshold_ = 12;
 
   // Initial statevector for Statevector simulation method
   cvector_t initial_statevector_;
 
   // TODO: initial stabilizer state
+
+  // Controller-level parameter for CH method
+  bool extended_stabilizer_measure_sampling_ = false;
 };
 
 //=========================================================================
 // Implementations
 //=========================================================================
+
+//-------------------------------------------------------------------------
+// Constructor
+//-------------------------------------------------------------------------
+QasmController::QasmController() {
+  add_circuit_optimization(Transpile::ReduceBarrier());
+  add_circuit_optimization(Transpile::DelayMeasure());
+  add_circuit_optimization(Transpile::Fusion());
+}
 
 //-------------------------------------------------------------------------
 // Config
@@ -205,26 +298,66 @@ void QasmController::set_config(const json_t &config) {
   // Override automatic simulation method with a fixed method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
-    if (method == "statevector")
+    if (method == "statevector") {
       simulation_method_ = Method::statevector;
-    else if (method == "stabilizer")
+    }
+    else if (method == "density_matrix") {
+      simulation_method_ = Method::density_matrix;
+    }
+    else if (method == "stabilizer") {
       simulation_method_ = Method::stabilizer;
-    else if (method != "automatic")
-      throw std::runtime_error(std::string("QasmController: Invalid simulation method.") + method);
+    }
+    else if (method == "extended_stabilizer") {
+      simulation_method_ = Method::extended_stabilizer;
+    }
+    else if (method == "matrix_product_state") 
+    {
+      simulation_method_ = Method::matrix_product_state;
+    }
+    else if (method != "automatic") {
+      throw std::runtime_error(std::string("QasmController: Invalid simulation method (") +
+                               method + std::string(")."));
+    }
   }
 
-  //Add custom initial state
+  std::string precision;
+  if (JSON::get_value(precision, "precision", config)) {
+    if (precision == "double") {
+      simulation_precision_ = Precision::double_precision;
+    } else if (precision == "single") {
+      simulation_precision_ = Precision::single_precision;
+    }
+  }
+
+
+  // Check for circuit optimization threshold
+  JSON::get_value(circuit_opt_ideal_threshold_,
+                  "optimize_ideal_threshold", config);
+  JSON::get_value(circuit_opt_noise_threshold_,
+                  "optimize_noise_threshold", config);
+
+  // Check for extended stabilizer measure sampling
+  JSON::get_value(extended_stabilizer_measure_sampling_,
+                  "extended_stabilizer_measure_sampling", config);
+
+  // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
-    // Raise error if method is set to stabilizer
+    // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
       throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
                                std::string(" is not valid with stabilizer simulation method.") +
                                method);
     }
+    else if (simulation_method_ == Method::extended_stabilizer)
+    {
+      throw std::runtime_error(std::string("QasmController: Using an initial statevector") +
+                               std::string(" is not valid with the CH simulation method.") +
+                               method);
+    }
     // Override simulator method to statevector
     simulation_method_ = Method::statevector;
     // Check initial state is normalized
-    if (!Utils::is_unit_vector(initial_statevector_, 1e-10)) {
+    if (!Utils::is_unit_vector(initial_statevector_, validation_threshold_)) {
       throw std::runtime_error("QasmController: initial_statevector is not a unit vector");
     }
   }
@@ -241,47 +374,166 @@ void QasmController::clear_config() {
 //-------------------------------------------------------------------------
 
 OutputData QasmController::run_circuit(const Circuit &circ,
+                                       const Noise::NoiseModel& noise,
+                                       const json_t &config,
                                        uint_t shots,
                                        uint_t rng_seed) const {
-  // Execute according to simulation method
-  switch (simulation_method(circ)) {
+  // Validate circuit for simulation method
+  switch (simulation_method(circ, noise, true)) {
     case Method::statevector:
-      // Statvector simulation
-      return run_circuit_helper<Statevector::State<>>(circ,
+      if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
                                                       shots,
                                                       rng_seed,
-                                                      initial_statevector_); // allow custom initial state
+                                                      initial_statevector_,
+                                                      Method::statevector);
+      } else {
+        // Single-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_,
+                                                      Method::statevector);
+      }
+    case Method::density_matrix:
+      if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrix<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix);
+      } else {
+        // Single-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrix<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix);
+      }
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
       return run_circuit_helper<Stabilizer::State>(circ,
+                                                   noise,
+                                                   config,
                                                    shots,
                                                    rng_seed,
-                                                   Clifford::Clifford()); // no custom initial state
+                                                   Clifford::Clifford(),
+                                                   Method::stabilizer);
+    case Method::extended_stabilizer:
+      return run_circuit_helper<ExtendedStabilizer::State>(circ,
+                                                           noise,
+                                                           config,
+                                                           shots,
+                                                           rng_seed,
+                                                           CHSimulator::Runner(),
+                                                           Method::extended_stabilizer);
+
+    case Method::matrix_product_state:
+      return run_circuit_helper<TensorNetworkState::State>(circ,
+                                                           noise,
+                                                           config,
+                                                           shots,
+                                                           rng_seed,
+                                                           TensorNetworkState::MPS(),
+                                                           Method::matrix_product_state);
+
     default:
-      // We shouldn't get here, so throw an exception if we do
       throw std::runtime_error("QasmController:Invalid simulation method");
   }
 }
+
 
 //-------------------------------------------------------------------------
 // Utility methods
 //-------------------------------------------------------------------------
 
-QasmController::Method QasmController::simulation_method(const Circuit &circ) const {
-  // Check conditions for automatic simulation types
-  auto method = simulation_method_;
-  if (method == Method::automatic) {
-    // Check if Clifford circuit and noise model
-    if (validate_state(Stabilizer::State(), circ, noise_model_, false))
-      method = Method::stabilizer;
-    // Default method is statevector
-    else
-      method = Method::statevector;
+QasmController::Method
+QasmController::simulation_method(const Circuit &circ,
+                                  const Noise::NoiseModel &noise_model,
+                                  bool validate) const {
+  // Check simulation method and validate state
+  switch(simulation_method_) {
+    case Method::density_matrix: {
+      if (validate)
+        validate_state(DensityMatrix::State<>(), circ, noise_model, true);
+      return Method::density_matrix;
+    }
+    case Method::stabilizer: {
+      if (validate)
+        validate_state(Stabilizer::State(), circ, noise_model, true);
+      return Method::stabilizer;
+    }
+    case Method::extended_stabilizer: {
+      if (validate)
+        validate_state(ExtendedStabilizer::State(), circ, noise_model, true);
+      return Method::extended_stabilizer;
+    }
+    case Method::matrix_product_state: {
+      if (validate)
+        validate_state(TensorNetworkState::State(), circ, noise_model, true);
+      return Method::matrix_product_state;
+    }
+    case Method::automatic: {
+      // If circuit and noise model are Clifford run on Stabilizer simulator
+      if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
+        return Method::stabilizer;
+      }
+      // For noisy simulations we enable the density matrix method if
+      // shots > 2 ** num_qubits. This is based on a rough estimate that
+      // a single shot of the density matrix simulator is approx 2 ** nq
+      // times slow than a single shot of statevector due the increased 
+      // dimension
+      if (noise_model.has_quantum_errors() &&
+          circ.shots > (1 << circ.num_qubits) &&
+          validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
+          validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
+          check_measure_sampling_opt(circ, Method::density_matrix).first) {
+        return Method::density_matrix;
+        }
+      // Finally we check the statevector memory requirement for the
+      // current number of qubits. If it fits in available memory we
+      // default to the Statevector method. Otherwise we attempt to use
+      // the extended stabilizer simulator.
+      bool enough_memory = true;
+      if (simulation_precision_ == Precision::single_precision) {
+        Statevector::State<QV::QubitVector<float>> sv_state;
+        enough_memory = validate_memory_requirements(sv_state, circ, false);
+      } else {
+        Statevector::State<> sv_state;
+        enough_memory = validate_memory_requirements(sv_state, circ, false);
+      }
+      if(!enough_memory) {
+        if(validate_state(ExtendedStabilizer::State(), circ, noise_model, false)) {
+          return Method::extended_stabilizer;
+        } else {
+          throw std::runtime_error( "QasmSimulator: Circuit cannot be run using available methods.");
+        }
+      }
+    }
+    // If we didn't select extended stabilizer above proceed to the default switch clause
+    default: {
+      // Default method is statevector
+      if (validate)
+        validate_state(Statevector::State<>(), circ, noise_model, true);
+      return Method::statevector;
+    }
   }
-  return method;
 }
-
 
 template <class State_t, class Initstate_t>
 void QasmController::initialize_state(const Circuit &circ,
@@ -295,14 +547,70 @@ void QasmController::initialize_state(const Circuit &circ,
   state.initialize_creg(circ.num_memory, circ.num_registers);
 }
 
-
-template <class State_t>
-void QasmController::optimize_circuit(const Circuit &input_circ,
-                                      Circuit &output_circ) const {
-  output_circ = input_circ;
-  // Add optimization passes here
+size_t QasmController::required_memory_mb(const Circuit& circ,
+                                          const Noise::NoiseModel& noise) const {
+  switch (simulation_method(circ, noise, false)) {
+    case Method::statevector: {
+      if (simulation_precision_ == Precision::single_precision) {
+        Statevector::State<QV::QubitVector<float>> state;
+        return state.required_memory_mb(circ.num_qubits, circ.ops);
+      } else {
+        Statevector::State<> state;
+        return state.required_memory_mb(circ.num_qubits, circ.ops);
+      }
+    }
+    case Method::density_matrix: {
+      DensityMatrix::State<> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::stabilizer: {
+      Stabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::extended_stabilizer: {
+      ExtendedStabilizer::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    case Method::matrix_product_state: {
+      TensorNetworkState::State state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+    default:
+      // We shouldn't get here, so throw an exception if we do
+      throw std::runtime_error("QasmController: Invalid simulation method");
+  }
 }
 
+void QasmController::set_parallelization_circuit(const Circuit& circ,
+                                                 const Noise::NoiseModel& noise_model) {
+
+  if (max_parallel_threads_ < max_parallel_shots_)
+    max_parallel_shots_ = max_parallel_threads_;
+  const auto method = simulation_method(circ, noise_model, false);
+  switch (method) {
+    case Method::statevector:
+    case Method::matrix_product_state: {
+      if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
+          check_measure_sampling_opt(circ, Method::statevector).first) {
+        parallel_shots_ = 1;
+        parallel_state_update_ = max_parallel_threads_;
+        return;
+      }
+      Base::Controller::set_parallelization_circuit(circ, noise_model);
+      break;
+    }
+    case Method::density_matrix: {
+      if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
+        parallel_shots_ = 1;
+        parallel_state_update_ = max_parallel_threads_;
+        return;
+      }
+    }
+    default: {
+      Base::Controller::set_parallelization_circuit(circ, noise_model);
+    }
+  }
+}
 
 //-------------------------------------------------------------------------
 // Run circuit helpers
@@ -310,18 +618,21 @@ void QasmController::optimize_circuit(const Circuit &input_circ,
 
 template <class State_t, class Initstate_t>
 OutputData QasmController::run_circuit_helper(const Circuit &circ,
+                                              const Noise::NoiseModel &noise,
+                                              const json_t &config,
                                               uint_t shots,
                                               uint_t rng_seed,
-                                              const Initstate_t &initial_state) const {  
+                                              const Initstate_t &initial_state,
+                                              const Method method) const {  
   // Initialize new state object
   State_t state;
 
-  // Valid state again and raise exeption if invalid ops
-  validate_state(state, circ, noise_model_, true);
+  // Check memory requirements, raise exception if they're exceeded
+  validate_memory_requirements(state, circ, true);
 
   // Set state config
-  state.set_config(Base::Controller::config_);
-  state.set_available_threads(parallel_state_update_);
+  state.set_config(config);
+  state.set_parallalization(parallel_state_update_);
 
   // Rng engine
   RngEngine rng;
@@ -329,15 +640,34 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
 
   // Output data container
   OutputData data;
-  data.set_config(Base::Controller::config_);
+  data.set_config(config);
   data.add_additional_data("metadata",
                            json_t::object({{"method", state.name()}}));
+  // Add measure sampling to metadata
+  // Note: this will set to `true` if sampling is enabled for the circuit
+  data.add_additional_data("metadata",
+                            json_t::object({{"measure_sampling", false}}));
 
-  // Check if there is noise for the implementation
-  if (noise_model_.ideal()) {
-    run_circuit_without_noise(circ, shots, state, initial_state, data, rng);
+  // Choose execution method based on noise and method
+  if (noise.is_ideal()) {
+    run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
+  }
+  else if (method == Method::density_matrix && noise.has_quantum_errors()) {
+    // We can sample the noise model using superoperator method
+    // and then execute the resulting circuit containing superoperators
+    Noise::NoiseModel noise_cpy = noise;
+    noise_cpy.activate_superop_method();
+    Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
+    run_circuit_without_noise(noise_circ, shots, state, initial_state, method, data, rng);
+  }
+  else if (noise.has_quantum_errors() == false) {
+    // We can insert the readout errors from the noise model and then
+    // execute the resulting circuit
+    Circuit noise_circ = noise.sample_noise(circ, rng);
+    run_circuit_without_noise(noise_circ, shots, state, initial_state, method, data, rng);
   } else {
-    run_circuit_with_noise(circ, shots, state, initial_state, data, rng);
+    // Run sampling a noisy instance of the circuit for each shot
+    run_circuit_with_noise(circ, noise, shots, state, initial_state, data, rng);
   }
   return data;
 }
@@ -357,6 +687,7 @@ void QasmController::run_single_shot(const Circuit &circ,
 
 template <class State_t, class Initstate_t>
 void QasmController::run_circuit_with_noise(const Circuit &circ,
+                                            const Noise::NoiseModel& noise,
                                             uint_t shots,
                                             State_t &state,
                                             const Initstate_t &initial_state,
@@ -364,10 +695,14 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             RngEngine &rng) const {
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
-    Circuit noise_circ = noise_model_.sample_noise(circ, rng);
-    optimize_circuit<State_t>(noise_circ, noise_circ);
+    Circuit noise_circ = noise.sample_noise(circ, rng);
+    noise_circ.shots = 1;
+    if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
+      Noise::NoiseModel dummy;
+      optimize_circuit(noise_circ, dummy, state, data);
+    }
     run_single_shot(noise_circ, state, initial_state, data, rng);
-  }                                   
+  }     
 }
 
 
@@ -376,15 +711,18 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                uint_t shots,
                                                State_t &state,
                                                const Initstate_t &initial_state,
+                                               const Method method,
                                                OutputData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
-  Circuit opt_circ;
-  optimize_circuit<State_t>(circ, opt_circ);
-
+  Circuit opt_circ = circ;
+  if (opt_circ.num_qubits > circuit_opt_ideal_threshold_) {
+    Noise::NoiseModel dummy;
+    optimize_circuit(opt_circ, dummy, state, data);
+  }
   // Check if measure sampler and optimization are valid
-  auto check = check_measure_sampling_opt(opt_circ);
-  if (check.first == false || shots == 1) {
+  auto check = check_measure_sampling_opt(opt_circ, method);
+  if (check.first == false) {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while(shots-- > 0) {
@@ -402,7 +740,10 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
-  }                                
+    // Add measure sampling metadata
+    data.add_additional_data("metadata",
+                             json_t::object({{"measure_sampling", true}}));
+  }  
 }
 
 
@@ -411,18 +752,27 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 //-------------------------------------------------------------------------
 
 std::pair<bool, size_t>
-QasmController::check_measure_sampling_opt(const Circuit &circ) const {
+QasmController::check_measure_sampling_opt(const Circuit &circ,
+                                           const Method method) const {
   // Find first instance of a measurement and check there
-  // are no reset operations before the measurement
+  // are no reset or initialize operations before the measurement
+  if(method == Method::extended_stabilizer
+     && !extended_stabilizer_measure_sampling_) {
+    return std::make_pair(false, 0);
+  }
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;
-    if (type == Operations::OpType::reset ||
+    if (method != Method::density_matrix) {
+      if(type == Operations::OpType::reset ||
+        type == Operations::OpType::initialize ||
         type == Operations::OpType::kraus ||
-        type == Operations::OpType::roerror) {
-      return std::make_pair(false, 0);
+        type == Operations::OpType::superop) {
+        return std::make_pair(false, 0);
+      }
     }
-    if (type == Operations::OpType::measure)
+    if (type == Operations::OpType::measure ||
+        type == Operations::OpType::roerror)
       break;
     ++start;
   }
@@ -430,7 +780,9 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
   auto start_meas = start;
   // Check all remaining operations are measurements
   while (start != circ.ops.end()) {
-    if (start->type != Operations::OpType::measure) {
+    if ((start->type != Operations::OpType::measure
+         && start->type != Operations::OpType::roerror) ||
+        start->conditional) {
       return std::make_pair(false, 0);
     }
     ++start;
@@ -443,18 +795,28 @@ QasmController::check_measure_sampling_opt(const Circuit &circ) const {
 
 
 template <class State_t>
-void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops,
+void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_roerror_ops,
                                      uint_t shots,
                                      State_t &state,
                                      OutputData &data,
                                      RngEngine &rng) const {
+
   // Check if meas_circ is empty, and if so return initial creg
-  if (meas_ops.empty()) {
+  if (meas_roerror_ops.empty()) {
     while (shots-- > 0) {
       state.add_creg_to_data(data);
     }
     return;
   }
+
+  std::vector<Operations::Op> meas_ops;
+  std::vector<Operations::Op> roerror_ops;
+  for (const Operations::Op& op: meas_roerror_ops)
+    if (op.type == Operations::OpType::roerror)
+      roerror_ops.push_back(op);
+    else /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(op);
+
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits; // measured qubits
   for (const auto &op : meas_ops) {
@@ -484,11 +846,11 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
         register_map[op.registers[j]] = pos;
     }
   }
-
+  
   // Process samples
   // Convert opts to circuit so we can get the needed creg sizes
   // NB: this function could probably be moved somewhere else like Utils or Ops
-  Circuit meas_circ(meas_ops);
+  Circuit meas_circ(meas_roerror_ops);
   ClassicalRegister creg;
   while (!all_samples.empty()) {
     auto sample = all_samples.back();
@@ -498,14 +860,20 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_ops
     for (const auto &pair : memory_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}), reg_t());
     }
-    auto memory = creg.memory_hex();
-    data.add_memory_count(memory);
-    data.add_memory_singleshot(memory);
-
     // process register bit measurements
     for (const auto &pair : register_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t(), reg_t({pair.first}));
     }
+
+    // process read out errors for memory and registers
+    for (const Operations::Op& roerror: roerror_ops) {
+      creg.apply_roerror(roerror, rng);
+    }
+
+    auto memory = creg.memory_hex();
+    data.add_memory_count(memory);
+    data.add_memory_singleshot(memory);
+
     data.add_register_singleshot(creg.register_hex());
 
     // pop off processed sample

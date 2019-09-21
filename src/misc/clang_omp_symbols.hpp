@@ -1,3 +1,17 @@
+/**
+ * This code is part of Qiskit.
+ *
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
+ */
+
 #ifndef _aer_misc_hacks_clang_symbols_
 #define _aer_misc_hacks_clang_symbols_
 
@@ -5,6 +19,7 @@
  * This is some sort of "black magic" to solve a problem we have with OpenMP libraries on Mac.
  * The problem is actually in the library itself, but it's out of our control, so we had to
  * fix it this way.
+ * Symbol signatures are taken from: https://github.com/llvm/llvm-project/blob/master/openmp/runtime/src/kmp.h
  */
 
 #include <dlfcn.h>
@@ -37,20 +52,20 @@ extern "C" {
 
     using __kmpc_barrier_t = void(*)(id*, int);
     __kmpc_barrier_t _hook__kmpc_barrier;
-    inline void __kmpc_barrier(id* pId, int gtid){
+    void __kmpc_barrier(id* pId, int gtid){
         _hook__kmpc_barrier(pId, gtid);
     }
 
     using __kmpc_for_static_fini_t =  void(*)(kmp_Ident *, int32_t);
     __kmpc_for_static_fini_t _hook__kmpc_for_static_fini;
-    inline void __kmpc_for_static_fini(kmp_Ident *loc, int32_t global_tid){
+    void __kmpc_for_static_fini(kmp_Ident *loc, int32_t global_tid){
         _hook__kmpc_for_static_fini(loc, global_tid);
     }
 
     using __kmpc_for_static_init_4_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int32_t *, int32_t *, int32_t *, int32_t, int32_t);
     __kmpc_for_static_init_4_t _hook__kmpc_for_static_init_4;
-    inline void __kmpc_for_static_init_4(kmp_Ident *loc, int32_t global_tid,
+    void __kmpc_for_static_init_4(kmp_Ident *loc, int32_t global_tid,
                                      int32_t sched, int32_t *plastiter,
                                      int32_t *plower, int32_t *pupper,
                                      int32_t *pstride, int32_t incr,
@@ -62,7 +77,7 @@ extern "C" {
     using __kmpc_for_static_init_8_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *,
                                      int64_t *, int64_t *, int64_t *, int64_t, int64_t);
     __kmpc_for_static_init_8_t _hook__kmpc_for_static_init_8;
-    inline void __kmpc_for_static_init_8(kmp_Ident *loc, int32_t global_tid,
+    void __kmpc_for_static_init_8(kmp_Ident *loc, int32_t global_tid,
                                      int32_t sched, int32_t *plastiter,
                                      int64_t *plower, int64_t *pupper,
                                      int64_t *pstride, int64_t incr,
@@ -74,7 +89,7 @@ extern "C" {
     using __kmpc_for_static_init_8u_t = void(*)(kmp_Ident *, int32_t, int32_t, int32_t *, uint64_t *, uint64_t *,
                                       int64_t *, int64_t, int64_t);
     __kmpc_for_static_init_8u_t _hook__kmpc_for_static_init_8u;
-    inline void __kmpc_for_static_init_8u(kmp_Ident *loc, int32_t global_tid,
+    void __kmpc_for_static_init_8u(kmp_Ident *loc, int32_t global_tid,
                                       int32_t sched, int32_t *plastiter1,
                                       uint64_t *plower, uint64_t *pupper,
                                       int64_t *pstride, int64_t incr,
@@ -158,6 +173,18 @@ extern "C" {
         return _hook__kmpc_global_thread_num(pId);
     }
 
+    using __kmpc_critical_t = void(*)(ident_t *, kmp_int32, kmp_critical_name *);
+    __kmpc_critical_t _hook__kmpc_critical;
+    void __kmpc_critical(ident_t *id, kmp_int32 global_tid, kmp_critical_name *lck){
+        return _hook__kmpc_critical(id, global_tid, lck);
+    }
+
+    using __kmpc_end_critical_t = void(*)(ident_t *, kmp_int32, kmp_critical_name *);
+    __kmpc_end_critical_t _hook__kmpc_end_critical;
+    void __kmpc_end_critical(ident_t *id, kmp_int32 global_tid, kmp_critical_name *lck){
+        return _hook__kmpc_end_critical(id, global_tid, lck);
+    }
+
     #define __KAI_KMPC_CONVENTION
     using omp_get_max_threads_t = int(*)(void);
     omp_get_max_threads_t _hook_omp_get_max_threads;
@@ -169,6 +196,7 @@ extern "C" {
     void __KAI_KMPC_CONVENTION omp_set_nested(int foo){
         _hook_omp_set_nested(foo);
     }
+
 
     // Symbols above this line would be needed in a future, if clang changes
     // the OpenMP implementation. So I'll keep them here just in case I need
@@ -249,7 +277,7 @@ extern "C" {
 namespace AER {
 namespace Hacks {
 
-inline void populate_hooks(void * handle){
+void populate_hooks(void * handle){
     _hook__kmpc_barrier = reinterpret_cast<decltype(&__kmpc_barrier)>(dlsym(handle, "__kmpc_barrier"));
     _hook__kmpc_for_static_fini = reinterpret_cast<decltype(&__kmpc_for_static_fini)>(dlsym(handle, "__kmpc_for_static_fini"));
     _hook__kmpc_end_reduce_nowait = reinterpret_cast<decltype(&__kmpc_end_reduce_nowait)>(dlsym(handle, "__kmpc_end_reduce_nowait"));
@@ -262,6 +290,8 @@ inline void populate_hooks(void * handle){
     _hook__kmpc_serialized_parallel = reinterpret_cast<decltype(&__kmpc_serialized_parallel)>(dlsym(handle, "__kmpc_serialized_parallel"));
     _hook__kmpc_end_serialized_parallel = reinterpret_cast<decltype(&__kmpc_end_serialized_parallel)>(dlsym(handle, "__kmpc_end_serialized_parallel"));
     _hook__kmpc_global_thread_num = reinterpret_cast<decltype(&__kmpc_global_thread_num)>(dlsym(handle, "__kmpc_global_thread_num"));
+    _hook__kmpc_critical = reinterpret_cast<decltype(&__kmpc_critical)>(dlsym(handle, "__kmpc_critical"));
+    _hook__kmpc_end_critical = reinterpret_cast<decltype(&__kmpc_end_critical)>(dlsym(handle, "__kmpc_end_critical"));
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
 }

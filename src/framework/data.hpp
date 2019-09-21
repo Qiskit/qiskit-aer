@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_framework_data_hpp_
@@ -20,8 +27,8 @@ namespace AER {
 
 /**************************************************************************
  * Data config options:
- * 
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ *
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
@@ -227,7 +234,10 @@ template <typename T>
 void OutputData::add_additional_data(const std::string &key, const T &data) {
   if (return_additional_data_) {
     json_t js = data; // use implicit to_json conversion function for T
-    additional_data_[key] = js;
+    if (JSON::check_key(key, additional_data_))
+      additional_data_[key].update(js.begin(), js.end());
+    else
+      additional_data_[key] = js;
   }
 }
 
@@ -271,7 +281,17 @@ OutputData& OutputData::combine(OutputData &data) {
   // Note that this will override any fields that have the same value
   for (auto it = data.additional_data_.begin();
        it != data.additional_data_.end(); ++it) {
-    additional_data_[it.key()] = it.value();
+    // Check if key exists
+    if (additional_data_.find(it.key()) == additional_data_.end()) {
+      // If it doesn't add the data
+      additional_data_[it.key()] = it.value();
+    } else {
+      // If it does we append the data.
+      // Note that this will overwrite any subkeys with same name
+      for (auto it2 = it.value().begin(); it2 != it.value().end(); it2++) {
+        additional_data_[it.key()][it2.key()] = it2.value();
+      }
+    }
   }
 
   // Clear any remaining data from other container

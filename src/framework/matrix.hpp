@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 /*
@@ -282,8 +289,8 @@ inline matrix<T>::matrix(size_t dim2)
   else if (size_ == 1)
     rows_ = size_;
   else if (size_ == 2) {
-    std::cerr << "Error: matrix constructor matrix(dim): the number you enterd "
-                 "does not have a interger sqrt."
+    std::cerr << "Error: matrix constructor matrix(dim): the number you entered "
+                 "does not have a integer sqrt."
               << std::endl;
     exit(1);
   } else

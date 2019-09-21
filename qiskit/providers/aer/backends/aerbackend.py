@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Qiskit Aer qasm simulator backend.
@@ -12,20 +17,26 @@ Qiskit Aer qasm simulator backend.
 import json
 import logging
 import datetime
+import os
 import time
 import uuid
 from numpy import ndarray
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
-from qiskit.qobj import QobjConfig
+from qiskit.qobj import QasmQobjConfig
 from qiskit.result import Result
+from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
 from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
+
+# Location where we put external libraries that will be loaded at runtime
+# by the simulator extension
+LIBRARY_DIR = os.path.dirname(__file__)
 
 
 class AerJSONEncoder(json.JSONEncoder):
@@ -44,8 +55,8 @@ class AerJSONEncoder(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
-        if hasattr(obj, "as_dict"):
-            return obj.as_dict()
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
         return super().default(obj)
 
 
@@ -66,11 +77,12 @@ class AerBackend(BaseBackend):
 
         Raises:
             FileNotFoundError if backend executable is not available.
-            QiskitError: if there is no name in the configuration
+            AerError: if there is no name in the configuration
         """
         super().__init__(configuration, provider=provider)
         self._controller = controller
 
+    # pylint: disable=arguments-differ
     def run(self, qobj, backend_options=None, noise_model=None, validate=True):
         """Run a qobj on the backend."""
         # Submit job
@@ -110,17 +122,20 @@ class AerBackend(BaseBackend):
         original_config = qobj.config
         # Convert to dictionary and add new parameters
         # from noise model and backend options
-        config = original_config.as_dict()
+        config = original_config.to_dict()
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val
+        if "max_memory_mb" not in config:
+            max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
+            config['max_memory_mb'] = max_memory_mb
         # Add noise model
         if noise_model is not None:
             config["noise_model"] = noise_model
 
         # Add runtime config
-        config['library_dir'] = self.configuration().library_dir
-        qobj.config = QobjConfig.from_dict(config)
+        config['library_dir'] = LIBRARY_DIR
+        qobj.config = QasmQobjConfig.from_dict(config)
         # Get the JSON serialized string
         output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
         # Revert original qobj
@@ -140,14 +155,19 @@ class AerBackend(BaseBackend):
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
+        if not isinstance(output, dict):
+            logger.error("%s: simulation failed.", self.name())
+            if output:
+                logger.error('Output: %s', output)
+            raise AerError("simulation terminated without returning valid output.")
         # Check results
         # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
         #       is merged this should be updated to deal with errors using
         #       the Result object methods
         if not output.get("success", False):
-            logger.error("AerBackend: simulation failed")
+            logger.error("%s: simulation failed", self.name())
             # Check for error message in the failed circuit
-            for res in output.get('results'):
+            for res in output.get('results', []):
                 if not res.get('success', False):
                     raise AerError(res.get("status", None))
             # If no error was found check for error message at qobj level

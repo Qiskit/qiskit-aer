@@ -1,9 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
@@ -12,11 +17,11 @@ Qiskit Aer statevector simulator backend.
 """
 
 import logging
-import os
 from math import log2
-from qiskit._util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.util import local_hardware_info
+from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
+# pylint: disable=import-error
 from .statevector_controller_wrapper import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
@@ -34,12 +39,11 @@ class StatevectorSimulator(AerBackend):
         `backend_options` kwarg diction for `StatevectorSimulator.run` or
         `qiskit.execute`
 
-        * "initial_statevector" (vector_like): Sets a custom initial
-            statevector for the simulation instead of the all zero
-            initial state (Default: None).
+        * "zero_threshold" (double): Sets the threshold for truncating
+            small values to zero in the result data (Default: 1e-10).
 
-        * "chop_threshold" (double): Sets the threshold for truncating small
-            values to zero in the Result data (Default: 1e-15)
+        * "validation_threshold" (double): Sets the threshold for checking
+            if the initial statevector is valid (Default: 1e-8).
 
         * "max_parallel_threads" (int): Sets the maximum number of CPU
             cores used by OpenMP for parallelization. If set to 0 the
@@ -51,19 +55,19 @@ class StatevectorSimulator(AerBackend):
             execution will be disabled. If set to 0 the maximum will be
             automatically set to max_parallel_threads (Default: 1).
 
+        * "max_memory_mb" (int): Sets the maximum size of memory
+            to store a state vector. If a state vector needs more, an error
+            is thrown. In general, a state vector of n-qubits uses 2^n complex
+            values (16 Bytes). If set to 0, the maximum will be automatically
+            set to half the system memory size (Default: 0).
+
         * "statevector_parallel_threshold" (int): Sets the threshold that
             "n_qubits" must be greater than to enable OpenMP
             parallelization for matrix multiplication during execution of
             an experiment. If parallel circuit or shot execution is enabled
             this will only use unallocated CPU cores up to
             max_parallel_threads. Note that setting this too low can reduce
-            performance (Default: 12).
-
-        * "statevector_hpc_gate_opt" (bool): If set to True this enables
-            a different optimzied gate application routine that can
-            increase performance on systems with a large number of CPU
-            cores. For systems with a small number of cores it enabling
-            can reduce performance (Default: False).
+            performance (Default: 14).
     """
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
@@ -80,24 +84,22 @@ class StatevectorSimulator(AerBackend):
         'memory': True,
         'max_shots': 1,
         'description': 'A C++ statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
+        'coupling_map': None,
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z',
                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                        'snapshot', 'unitary'],
+                        'multiplexer', 'snapshot', 'unitary', 'reset', 'initialize'],
         'gates': [
             {
                 'name': 'TODO',
                 'parameters': [],
                 'qasm_def': 'TODO'
             }
-        ],
-        # Location where we put external libraries that will be loaded at runtime
-        # by the simulator extension
-        'library_dir': os.path.dirname(__file__)
+        ]
     }
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(statevector_controller_execute,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+                         QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
@@ -109,20 +111,19 @@ class StatevectorSimulator(AerBackend):
         """
         name = self.name()
         if noise_model is not None:
-            logger.error("{} cannot be run with a noise.".format(name))
             raise AerError("{} does not support noise.".format(name))
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise AerError('Number of qubits ({}) '.format(n_qubits) +
-                           'is greater than maximum ({}) '.format(max_qubits) +
-                           'for "{}" '.format(name) +
-                           'with {} GB system memory.'.format(int(local_hardware_info()['memory'])))
+            raise AerError(
+                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
+                .format(n_qubits, max_qubits, name, int(local_hardware_info()['memory'])))
+
         if qobj.config.shots != 1:
-            logger.info('"%s" only supports 1 shot. Setting shots=1.',
-                        name)
+            logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
             qobj.config.shots = 1
+
         for experiment in qobj.experiments:
             exp_name = experiment.header.name
             if getattr(experiment.config, 'shots', 1) != 1:

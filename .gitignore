@@ -13,10 +13,18 @@ out/*
 *.so
 *.pyc
 *_skbuild*
+*_cmake_test_compile*
 *.whl
 *.egg*
 build/*
+
+# Ignore macOS DS_Store
+.DS_Store
+# Ignore other IDE Files
 contrib/standalone/version.hpp
 *.log
 *.env
 *.idea/
+test/.asv
+
+.tox/

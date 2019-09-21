@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 #ifndef _aer_framework_circuit_hpp_
@@ -19,7 +26,7 @@ namespace AER {
 // Circuit class for Qiskit-Aer
 //============================================================================
 
-// A circuit is a list of Ops allong with a specification of maximum needed
+// A circuit is a list of Ops along with a specification of maximum needed
 // qubits, memory bits, and register bits for the input operators.
 class Circuit {
 public:
@@ -27,8 +34,8 @@ public:
   using OpType = Operations::OpType;
   std::vector<Op> ops;      // circuit operations
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
-  uint_t num_memory = 0;    // maxmimum number of memory clbits needed for ops
-  uint_t num_registers = 0; // maxmimum number of registers clbits needed for ops
+  uint_t num_memory = 0;    // maximum number of memory clbits needed for ops
+  uint_t num_registers = 0; // maximum number of registers clbits needed for ops
   uint_t shots = 1;
   uint_t seed;
 
@@ -40,7 +47,7 @@ public:
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
-  // parameters by scaning the input list of ops.
+  // parameters by scanning the input list of ops.
   Circuit() {set_random_seed();}
   Circuit(const std::vector<Op> &_ops);
 
@@ -63,7 +70,7 @@ public:
   // Check if any circuit ops are conditional ops
   bool has_conditional() const;
 
-  // Check if circuit containts a specific op
+  // Check if circuit contains a specific op
   bool has_op(std::string name) const;
 
   // return minimum and maximum op.qubit arguments as pair (min, max)

@@ -36,8 +36,15 @@ set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_MAIN
     "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
-    "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
+
+# TODO: We may want to change the prefix path for all the environments
+if(WIN32)
+	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
+endif()
 
 # Adding support for CCache
 find_program(CCACHE_FOUND ccache)
@@ -106,6 +113,7 @@ endif()
 #
 # Looking for external libraries
 #
+message(STATUS "Looking for OpenMP support...")
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
 # so we need to link with an external library: libomp.
@@ -129,12 +137,15 @@ if(OPENMP_FOUND)
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
 		if(NOT SKBUILD)
 			set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			message("Adding Clang: ${OPENMP_EXTERNAL_LIB}")
+			message(STATUS "Adding Clang: ${OPENMP_EXTERNAL_LIB}")
 		endif()
 	endif()
-	message("OpenMP found!")
+	message(STATUS "OpenMP found!")
+else()
+	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
+message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 find_package(Threads)
@@ -152,6 +163,12 @@ else()
     set(BLA_VENDOR "OpenBLAS")
 endif()
 
+if(WIN32)
+	message(STATUS "Uncompressing OpenBLAS static library...")
+	execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z"
+		WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
+endif()
+
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
 	message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
@@ -159,7 +176,7 @@ if(NOT BLAS_FOUND)
 	find_package(BLAS REQUIRED)
 endif()
 
-message("BLAS: ${BLAS_LIBRARIES}")
+message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 # Set dependent libraries
 set(AER_LIBRARIES

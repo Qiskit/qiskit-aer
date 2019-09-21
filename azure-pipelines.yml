@@ -1,0 +1,45 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+- stable
+
+pool:
+  vmImage: 'vs2017-win2016'
+strategy:
+  matrix:
+    Python35:
+      python.version: '3.5'
+    Python36:
+      python.version: '3.6'
+    Python37:
+      python.version: '3.7'
+
+steps:
+  - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+    displayName: Add conda to PATH
+  - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
+    displayName: Create Anaconda environment
+  - script: |
+      call activate qiskit-aer-$(Build.BuildNumber)
+      conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
+    displayName: Install Anaconda packages
+  - bash: |
+      set -e
+      source activate qiskit-aer-$(Build.BuildNumber)
+      git clean -fdX
+      python -m pip install --disable-pip-version-check pip==18
+      pip install cython
+      pip install git+https://github.com/Qiskit/qiskit-terra.git
+      pip install --ignore-installed -r requirements-dev.txt
+      python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+    displayName: 'Install Dependencies and Build Aer'
+  - bash: |
+      set -e
+      source activate qiskit-aer-$(Build.BuildNumber)
+      pip install dist/qiskit_aer*.whl
+      python -m unittest discover -s test/terra -v
+    displayName: 'Install Aer and Run Tests'
