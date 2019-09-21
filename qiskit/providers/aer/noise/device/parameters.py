@@ -120,9 +120,15 @@ def readout_error_values(properties):
     values = []
     for qubit_props in properties.qubits:
         value = None  # default value
-        params = _check_for_item(qubit_props, 'readout_error')
-        if hasattr(params, 'value'):
-            value = params.value
+
+        params_roerror = _check_for_item(qubit_props, 'readout_error')
+        params_m1p0 = _check_for_item(qubit_props, 'prob_meas1_prep0')
+        params_m0p1 = _check_for_item(qubit_props, 'prob_meas0_prep1')
+
+        if hasattr(params_m1p0, 'value') and hasattr(params_m0p1, 'value'):
+            value = [params_m1p0.value, params_m0p1.value]
+        elif hasattr(params_roerror, 'value'):
+            value = params_roerror.value
         values.append(value)
     return values
 
