@@ -350,10 +350,10 @@ void MPS::change_position(uint_t src, uint_t dst)
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
-  MPS temp_TN;
+  MPS temp_MPS;
   uint front = 0, back = 0;
-  TN_with_new_indices(qubits, temp_TN, front, back);
-  MPS_Tensor psi = temp_TN.state_vec(front, back);
+  MPS_with_new_indices(qubits, temp_MPS, front, back);
+  MPS_Tensor psi = temp_MPS.state_vec(front, back);
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32
@@ -369,26 +369,26 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   return rho;
 }
 
-void MPS::TN_with_new_indices(const reg_t &qubits, 
-			      MPS& temp_TN, 
+void MPS::MPS_with_new_indices(const reg_t &qubits, 
+			      MPS& temp_MPS, 
 			      uint &front, uint &back) const {
   // ***** Assuming ascending sorted qubits register *****
   vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
     internalIndexes.push_back(index);
 
-  temp_TN.initialize(*this);
+  temp_MPS.initialize(*this);
   vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
   uint_t avg = new_indexes[new_indexes.size()/2];
   vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
-    temp_TN.change_position(internalIndexes[i], new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i], new_indexes[i]);
   }
   for(int i = mid-1; i >= 0; i--)
   {
-    temp_TN.change_position(internalIndexes[i], new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i], new_indexes[i]);
   }
   front = internalIndexes.front();
   back = internalIndexes.back();
@@ -409,14 +409,16 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
 //---------------------------------------------------------------
 // Function: expectation_value_pauli
-// Algorithm: For the illustration, assume computing the expectation 
+// Algorithm: For more details, see "The density-matrix renormalization group in the age of matrix 
+//            product states" by Ulrich Schollwock.
+// For the illustration, assume computing the expectation 
 // value on qubits numbered q0, q1, q2, q3. There may be additional qubits
 // before q0 or after q3 
 // Initial state: 
-//     q0     q1     q2     q3                               
-//   ---o--a0--o--a1--o--a2--o---  
-//      |      |      |      |  
-//   ---o--a0--o--a1--o--a2--o---                                     
+//      q0     q1     q2     q3                               
+//   -a0-o--a1--o--a2--o--a3--o---  
+//       |      |      |      |  
+//   -a0-o--a1--o--a2--o--a3--o---                                     
 //                       
 //                                 
 // We can actually think of this as       q0  q1  q2  q3
@@ -427,38 +429,39 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 
 // After Step 4:
 //       q1     q2     q3
-//     a0/o--a1--o--a2--o--
+//     a1/o--a2--o--a3--o--
 //      o |      |      |  |
-//     a0\o--a1--o--a2--o-- 
+//     a1\o--a2--o--a3--o-- 
 //
 // After step 8:
 //       q1     q2     q3
-//        o--a1--o--a2--o--
-//    a0 ||i     |      |  |
-//        o--a1--o--a2--o-- 
+//        o--a2--o--a3--o--
+//     a1||i     |      |  |
+//        o--a2--o--a3--o-- 
 //
 // After step 9:
 //              q2     q3
-//            a1/o--a2--o--
+//            a2/o--a3--o--
 //             o |      |  |
-//            a1\o--a2--o-- 
+//            a2\o--a3--o-- 
+//---------------------------------------------------------------
 
 complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matrices) const
 {
-  MPS temp_TN;
+  MPS temp_MPS;
   uint first_index = 0, last_index = 0;
-  TN_with_new_indices(qubits, temp_TN, first_index, last_index);
+  MPS_with_new_indices(qubits, temp_MPS, first_index, last_index);
 
   // Preliminary step - reverse the order of the matrices because 
   // they are ordered in reverse to that of the qubits (in the interface)
-  string matrices_reverse = matrices;
-  reverse(matrices_reverse.begin(), matrices_reverse.end());
-  char gate = matrices_reverse[0];
+  string reversed_matrices = matrices;
+  reverse(reversed_matrices.begin(), reversed_matrices.end());
+  char gate = reversed_matrices[0];
 
   // Step 1 - multiply tensor of q0 by its left lambda
-  MPS_Tensor left_tensor = temp_TN.q_reg_[first_index];
+  MPS_Tensor left_tensor = temp_MPS.q_reg_[first_index];
   if (first_index > 0) {
-    left_tensor.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[first_index-1]);
+    left_tensor.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[first_index-1]);
   }
 
   // The last gamma must be multiplied also by its right lambda.
@@ -466,7 +469,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
   // on a single qubit
   // we need to mul every gamma by its right lambda
   if (first_index==last_index && first_index < num_qubits_-1) {
-      left_tensor.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[first_index]);
+      left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
   }
 
   // Step 2 - prepare the dagger of left_tensor
@@ -477,8 +480,8 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
   left_tensor.apply_pauli(gate);
 
   // Step 4 - contract Gamma0' with Gamma0 over dimensions a0 and i
-  // Before contraction, Gamma0' has size a1 x a0, Gamma0 has size a0 x a1
-  // result = left_contract will have size a1 x a1
+  // Before contraction, Gamma0' has size a1 x a0 x i, Gamma0 has size i x a0 x a1
+  // result = left_contract is a matrix of size a1 x a1
   cmatrix_t final_contract;
   MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, 
 				    final_contract);
@@ -487,12 +490,12 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
 
     // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
     // next gamma has dimensions a0 x a1 x i 
-    MPS_Tensor next_gamma = temp_TN.q_reg_[qubit_num];
-    next_gamma.mul_Gamma_by_left_Lambda(temp_TN.lambda_reg_[qubit_num-1]);
+    MPS_Tensor next_gamma = temp_MPS.q_reg_[qubit_num];
+    next_gamma.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[qubit_num-1]);
 
     // Last qubit must be multiplied by rightmost lambda
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
-      next_gamma.mul_Gamma_by_right_Lambda(temp_TN.lambda_reg_[qubit_num]);
+      next_gamma.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[qubit_num]);
 
     // Step 6 - prepare the dagger of the next gamma (same as Step 2)
     // next_gamma_dagger has dimensions a1' x a0' x i
@@ -500,25 +503,26 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
 				 AER::Utils::dagger(next_gamma.get_data(1)));
     
     // Step 7 - apply gate (same as Step 3)
-    gate = matrices_reverse[qubit_num - first_index];
+    gate = reversed_matrices[qubit_num - first_index];
     next_gamma.apply_pauli(gate);
     
     // Step 8 - contract final_contract from previous stage with next gamma over a1
     // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
-    // result is a1 x a2 x i
+    // result is a tensor of size a1 x a2 x i
     MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), 
 			     final_contract * next_gamma.get_data(1));
 
     // Step 9 - contract next_contract (a1 x a2 x i) 
     // with next_gamma_dagger (i x a2 x a1) (same as Step 4)
     // here we need to contract across two dimensions: a1 and i
-    // result is a2 x a2
+    // result is a matrix of size a2 x a2
     MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, 
 				      final_contract);      
   }
  
   // Step 10 - contract over final matrix of size aN x aN
-  // simply take trace of final_contract
+  // We need to contract the final matrix with itself
+  // Compute this by taking the trace of final_contract
   complex_t result = AER::Utils::trace(final_contract);
 
   return result;

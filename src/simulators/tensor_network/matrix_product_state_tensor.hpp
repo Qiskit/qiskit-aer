@@ -384,14 +384,14 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
 // Parameters: MPS_Tensor &left_gamma, &right_gamma - the tensors to contract.
 // Returns: The result matrix of the contract
 // Assumptions:
-//   1. We assume lamda was already multiplied into the gammas before this function
-//   2. We assume the tensors are of the form:
-//      1   
+//   1. We assume lambda was already multiplied into the gammas before this function
+//   2. We assume the tensors (t1 and t2) are of the form:
+//      t1   
 //      o--a1--o
 //     ||
 //      o--a2--o
-//      2
-//  There is a double bond between tensor 1 and 2, and each of them has on additional bond of 
+//      t2
+//  There is a double bond between tensor 1 and 2, and each of them has an additional bond of 
 //  dimension a1 and a2 respectively. The result matrix will be of size a2 x a1
 //---------------------------------------------------------------
 void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma, 
@@ -400,10 +400,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 {
   int_t left_rows = left_gamma.data_[0].GetRows();
   int_t left_columns = left_gamma.data_[0].GetColumns();
-  int_t left_size = left_gamma.data_.size();
+  int_t left_size = left_gamma.get_dim();
   int_t right_rows = right_gamma.data_[0].GetRows();
   int_t right_columns = right_gamma.data_[0].GetColumns();
-  int_t right_size = right_gamma.data_.size();
+  int_t right_size = right_gamma.get_dim();
 
   // left_columns/right_rows and left_size/right_size
   if (left_columns != right_rows)   
@@ -430,10 +430,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++) {
 
-      for (int_t l_size=0; l_size<left_size; l_size++)
-	  for (int_t l_col=0; l_col<left_columns ; l_col++) {
- 	      result(l_row, r_col) += left_gamma.data_[l_size](l_row, l_col) *
-		                      right_gamma.data_[l_size](l_col, r_col);      
+      for (int_t size=0; size<left_size; size++)
+	  for (int_t index=0; index<left_columns ; index++) {
+ 	      result(l_row, r_col) += left_gamma.data_[size](l_row, index) *
+		                      right_gamma.data_[size](index, r_col);      
 
 	    }
 	  }

@@ -114,7 +114,7 @@ public:
   // function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
   //   for expectation value calculations. Similar to swap, but doesn't
-  //   move qubit in dst back to src, therefore being used only on the temp TN
+  //   move qubit in dst back to src, therefore being used only on the temp MPS
   //   in Expectation_value function.
   // Parameters: uint_t src, source of the qubit.
   //			 uint_t dst, destination of the qubit.
@@ -145,17 +145,15 @@ public:
   complex_t expectation_value_pauli(const reg_t &qubits, const string &matrices) const;
 
   //------------------------------------------------------------------
-  // function name: TN_with_new_indices
+  // function name: MPS_with_new_indices
   // Description: Creates a copy of *this where the indices of the
   //   selected qubits have been moved for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
   // Returns: new MPS.
   //----------------------------------------------------------------
-  void TN_with_new_indices(const reg_t &qubits, MPS& temp_TN,
+  void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
 			   uint &front, uint &back) const;
-
-  void contract_with_self(uint qubit, const rvector_t &lambda, char gate, MPS_Tensor &temp_tensor);
 
   //----------------------------------------------------------------	
   // function name: print
