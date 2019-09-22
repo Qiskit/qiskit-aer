@@ -153,7 +153,7 @@ public:
   // Returns: new MPS.
   //----------------------------------------------------------------
   void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
-			   uint &front, uint &back) const;
+			    uint_t &front, uint_t &back) const;
 
   //----------------------------------------------------------------	
   // function name: print

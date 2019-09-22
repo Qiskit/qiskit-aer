@@ -21,6 +21,8 @@
 #include "matrix_product_state.hpp"
 #include "matrix_product_state_tensor.hpp"
 
+using namespace std;
+
 namespace AER {
 namespace TensorNetworkState {
 
@@ -88,7 +90,7 @@ cvector_t reverse_all_bits(const cvector_t& statevector, uint_t num_qubits)
 vector<uint_t> calc_new_indexes(vector<uint_t> indexes)
 {
 	uint_t n = indexes.size();
-	uint_t avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
+	uint_t avg = std::round(std::accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
 	vector<uint_t> new_indexes( n );
 	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
 	return new_indexes;
@@ -351,7 +353,7 @@ void MPS::change_position(uint_t src, uint_t dst)
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
   MPS temp_MPS;
-  uint front = 0, back = 0;
+  uint_t front = 0, back = 0;
   MPS_with_new_indices(qubits, temp_MPS, front, back);
   MPS_Tensor psi = temp_MPS.state_vec(front, back);
   uint_t size = psi.get_dim();
@@ -371,7 +373,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
 			      MPS& temp_MPS, 
-			      uint &front, uint &back) const {
+			      uint_t &front, uint_t &back) const {
   // ***** Assuming ascending sorted qubits register *****
   vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
@@ -449,7 +451,7 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matrices) const
 {
   MPS temp_MPS;
-  uint first_index = 0, last_index = 0;
+  uint_t first_index = 0, last_index = 0;
   MPS_with_new_indices(qubits, temp_MPS, first_index, last_index);
 
   // Preliminary step - reverse the order of the matrices because 
