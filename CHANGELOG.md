@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- New (efficient) implementation for expectation_value_pauli (\#344)
 
 Removed
 -------
