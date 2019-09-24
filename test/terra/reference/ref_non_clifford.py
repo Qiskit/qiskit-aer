@@ -1398,23 +1398,23 @@ def cswap_gate_statevector_deterministic():
     targets = []
     # CSWAP(0,1,2) # -> |000>
     targets.append(np.array([1, 0, 0, 0, 0, 0, 0, 0]))
-    # (X^I^I).CSWAP(0,1,2) -> |100>
+    # CSWAP(0,1,2).(X^I^I) -> |100>
     targets.append(np.array([0, 0, 0, 0, 1, 0, 0, 0]))
-    # (I^X^I).CSWAP(0,1,2) -> |010>
+    # CSWAP(0,1,2).(I^X^I) -> |010>
     targets.append(np.array([0, 0, 1, 0, 0, 0, 0, 0]))
-    # (X^X^I).CSWAP(0,1,2) -> |110>
+    # CSWAP(0,1,2).(X^X^I) -> |110>
     targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
-    # (I^I^X).CSWAP(0,1,2) -> |001>
+    # CSWAP(0,1,2).(I^I^X) -> |001>
     targets.append(np.array([0, 1, 0, 0, 0, 0, 0, 0]))
-    # (I^X^X).CSWAP(0,1,2) -> |101>
+    # CSWAP(0,1,2).(I^X^X) -> |101>
     targets.append(np.array([0, 0, 0, 0, 0, 1, 0, 0]))
-    # (X^I^X).CSWAP(0,1,2) -> |011>
+    # CSWAP(0,1,2).(X^I^X) -> |011>
     targets.append(np.array([0, 0, 0, 1, 0, 0, 0, 0]))
-    # (X^X^X).CSWAP(0,1,2) -> |111>
+    # CSWAP(0,1,2).(X^X^X) -> |111>
     targets.append(np.array([0, 0, 0, 0, 0, 0, 0, 1]))
-    # (I^X^X).CSWAP(1,0,2) -> |110>
+    # CSWAP(1,0,2).(I^X^X) -> |110>
     targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
-    # (X^I^X).CSWAP(2,1,0) -> |110>
+    # CSWAP(2,1,0).(X^I^X) -> |110>
     targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
     return targets
 
@@ -1451,7 +1451,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 1, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 0, 0, 0, 0, 1]]))
-    # (X^I^I).CSWAP(0,1,2) -> |100>
+    # CSWAP(0,1,2).(X^I^I) -> |100>
     targets.append(np.array([[0, 0, 0, 0, 1, 0, 0, 0],
                              [0, 0, 0, 0, 0, 1, 0, 0],
                              [0, 0, 0, 0, 0, 0, 1, 0],
@@ -1460,7 +1460,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 0, 0, 0, 0, 1],
                              [0, 0, 1, 0, 0, 0, 0, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0]]))
-    # (I^X^I).CSWAP(0,1,2) -> |010>
+    # CSWAP(0,1,2).(I^X^I) -> |010>
     targets.append(np.array([[0, 0, 1, 0, 0, 0, 0, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0],
                              [1, 0, 0, 0, 0, 0, 0, 0],
@@ -1469,7 +1469,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 1, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 1, 0, 0, 0],
                              [0, 0, 0, 0, 0, 1, 0, 0]]))
-    # (X^X^I).CSWAP(0,1,2) -> |110>
+    # CSWAP(0,1,2).(X^X^I) -> |110>
     targets.append(np.array([[0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 0, 0, 0, 0, 1],
                              [0, 0, 0, 0, 1, 0, 0, 0],
@@ -1478,7 +1478,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 0, 0, 1, 0, 0],
                              [1, 0, 0, 0, 0, 0, 0, 0],
                              [0, 1, 0, 0, 0, 0, 0, 0]]))
-    # (I^I^X).CSWAP(0,1,2) -> |001>
+    # CSWAP(0,1,2).(I^I^X) -> |001>
     targets.append(np.array([[0, 1, 0, 0, 0, 0, 0, 0],
                              [1, 0, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0],
@@ -1487,7 +1487,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 1, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0, 0, 0, 1],
                              [0, 0, 0, 0, 0, 0, 1, 0]]))
-    # (I^X^X).CSWAP(0,1,2) -> |101>
+    # CSWAP(0,1,2).(I^X^X) -> |101>
     targets.append(np.array([[0, 0, 0, 1, 0, 0, 0, 0],
                              [0, 0, 1, 0, 0, 0, 0, 0],
                              [0, 1, 0, 0, 0, 0, 0, 0],
@@ -1496,7 +1496,7 @@ def cswap_gate_unitary_deterministic():
                              [1, 0, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0, 1, 0, 0],
                              [0, 0, 0, 0, 1, 0, 0, 0]]))
-    # (X^I^X).CSWAP(0,1,2) -> |011>
+    # CSWAP(0,1,2).(X^I^X) -> |011>
     targets.append(np.array([[0, 0, 0, 0, 0, 1, 0, 0],
                              [0, 0, 0, 0, 1, 0, 0, 0],
                              [0, 0, 0, 0, 0, 0, 0, 1],
@@ -1505,7 +1505,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0],
                              [0, 0, 1, 0, 0, 0, 0, 0]]))
-    # (X^X^X).CSWAP(0,1,2) -> |111>
+    # CSWAP(0,1,2).(X^X^X) -> |111>
     targets.append(np.array([[0, 0, 0, 0, 0, 0, 0, 1],
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 0, 0, 1, 0, 0],
@@ -1514,7 +1514,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 0, 1, 0, 0, 0],
                              [0, 1, 0, 0, 0, 0, 0, 0],
                              [1, 0, 0, 0, 0, 0, 0, 0]]))
-    # (I^X^X).CSWAP(1,0,2) -> |110>
+    # CSWAP(1,0,2).(I^X^X) -> |110>
     targets.append(np.array([[0, 0, 0, 1, 0, 0, 0, 0],
                              [0, 0, 1, 0, 0, 0, 0, 0],
                              [0, 1, 0, 0, 0, 0, 0, 0],
@@ -1523,7 +1523,7 @@ def cswap_gate_unitary_deterministic():
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [1, 0, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 1, 0, 0, 0]]))
-    # (X^I^X).CSWAP(2,1,0) -> |110>
+    # CSWAP(2,1,0).(X^I^X) -> |110>
     targets.append(np.array([[0, 0, 0, 0, 0, 1, 0, 0],
                              [0, 0, 0, 0, 1, 0, 0, 0],
                              [0, 0, 0, 0, 0, 0, 0, 1],
