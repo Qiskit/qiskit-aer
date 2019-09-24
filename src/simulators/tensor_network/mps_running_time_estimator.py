@@ -78,51 +78,77 @@ def sort_gates_by_registers(mini_list, regs):
             
     return gates_list
 
-def reorder_qc(qc):
+def reorder_qc(qc,qregisters_dict):
     new_qc = []
-    n = qc.qregs[0].size
-    
+  
+    two_qubits_gates = []
 # remove unwanted gates
-#     for gate in qc.data:
+    for gate in qc.data:
 #         if(type(gate[0]) is not (qiskit.extensions.standard.cx.CnotGate or qiskit.extensions.unitary.UnitaryGate)):
 #             qc.data.remove(gate)
-#     print(qc.data)
+        if(type(gate[0]) is not (qiskit.extensions.standard.barrier.Barrier) and len(gate[1]) > 1 ):
+            two_qubits_gates.append(gate)
+
+            
     
-    while (qc.data):
-        gates = deepcopy(qc.data)
-#         print("in while")
+#     print(two_qubits_gates)
+    while (two_qubits_gates):
+        gates = deepcopy(two_qubits_gates)
         mini_list = []
         available = list(range(n))
         for gate in gates:
             if (len(available) == 0):
                 break
-            (i, j) = sorted((gate[1][0][1], gate[1][1][1]))
-#             print((i, j))
-#             print(available)
+            i = gate[1][0][1] + qregisters_dict[gate[1][0][0].name]
+            j = gate[1][1][1] + qregisters_dict[gate[1][1][0].name]
+            (i, j) = sorted((i, j))
             if (i in available and j in available):
                 available.remove(i)
-#                 available.remove(j)
+                available.remove(j)
                 mini_list.append((i, j))
-                qc.data.remove(gate)
-#                 print(qc.data)
+                two_qubits_gates.remove(gate)
             elif (i in available): # and j not...
                 available.remove(i)
             elif (j in available): # and i not...
                 available.remove(j)
-#             print(mini_list) 
         new_qc.append(mini_list)
     return new_qc
 
+# mps slows when entanglement grows, but entanglement requires superposition.
+# Assumes no general U3,U2 gates, only Hadamards can cause superposition.
+def super_position_estimation(qc,n):
+    num_of_H = 0
+    for gate in qc.data:
+        if type(gate[0]) is (qiskit.extensions.standard.h.HGate):
+            num_of_H = num_of_H + 1
+            if num_of_H == n:
+                return 2**num_of_H
+        elif type(gate[0]) is (qiskit.extensions.unitary.UnitaryGate):
+            return None
+           
+    estimated_superposition = 2**num_of_H
+    return estimated_superposition
+
 # Input: Quantum circuit.
-# Output: Array of length n-1 with the estimated number of schmidt coefficients for every bipartition 
-#         If d is the maximal schmidt coefficient, running time is O(d^3)
+# Output: 1. Array of length n-1 with the estimated number of schmidt coefficients for every bipartition 
+#            If d is the maximal schmidt coefficient, running time is O(d^3)
+#         2. estimated_superposition
 def mps_running_time_estimator(qc):
-    n = qc.qregs[0].size
+    
+    qregisters_dict = {}
+    offset = 0
+    for qreg in qc.qregs:
+        qregisters_dict[qreg.name] = offset
+#         print( offset)
+        offset = offset + qreg.size
+    n = offset
+
+    estimated_superposition = super_position_estimation(qc,n)
+
     regs = [{"qubits": [i], "coefs": np.array([], dtype = int)} for i in range(n)]
     last_gates = [[] for i in range(n)]
-    
-    new_qc = reorder_qc(qc)
-    print(new_qc)
+    new_qc = reorder_qc(qc,qregisters_dict)
+#     print(new_qc)
     for mini_list in new_qc:
         gates_list = sort_gates_by_registers(mini_list, regs)
         for (i, j) in gates_list:
@@ -134,8 +160,10 @@ def mps_running_time_estimator(qc):
                     continue
                 reg = regs[reg_i_index]
                 del regs[reg_i_index]
+                same_register = True
                 single_qubit_reg = False
-            else: 
+            else:
+                same_register = False
                 single_qubit_reg =  (len(regs[reg_i_index]["qubits"]) == 1) or len(regs[reg_j_index]["qubits"]) == 1
                 reg = Connect_two_registers(regs[reg_i_index], regs[reg_j_index], n)
                 #order is important here!
@@ -150,26 +178,36 @@ def mps_running_time_estimator(qc):
             
             expanding_right = (len(last_gates[i]) > 1 and 
                                last_gates[i][-2:] == sorted(last_gates[i][-2:]) and
-                               last_gates[i][-1] < j)
+                               last_gates[i][-2] > i and
+                               last_gates[i][-1] < j and
+                               len(last_gates[j]) < 2)
             
 #             expanding_left = (len(last_gates[j]) > 2 and 
 #                                last_gates[j][-3:] == sorted(last_gates[j][-3:], reverse = True) and
 #                                last_gates[j][-1] > i)
  
             expanding_left = (len(last_gates[j]) > 1 and 
-                               last_gates[j][-2:] == sorted(last_gates[j][-2:], reverse = True) and
-                               last_gates[j][-1] > i)
+                              last_gates[j][-2:] == sorted(last_gates[j][-2:], reverse = True) and
+                              last_gates[j][-2] < j and 
+                              last_gates[j][-1] > i and
+                              len(last_gates[i]) < 2
+                             )
             
-            if (expanding_right):
+            if (same_register):
+                print("same_register")
+                reg = add_entanglement(reg, i,j)
+            elif (expanding_right):
+                print("expanding_right")
                 reg = add_entanglement(reg, last_gates[i][-1], j)
                 reg = add_entanglement(reg, last_gates[i][-2],last_gates[i][-1])
 #                 print(str(i) + "," + str(j) + ": expanding_right !")
 
             elif (expanding_left):
+                print("expanding_left")
                 reg = add_entanglement(reg, i, last_gates[j][-1])
                 reg = add_entanglement(reg, last_gates[j][-1],last_gates[j][-2])
 #                 print(str(i) + "," + str(j) + ": expanding_left !")
-            elif (len(set(last_gates[i])) < 2 or len(set(last_gates[j])) < 2):
+            elif ((len(set(last_gates[i]))  < 2 or len(set(last_gates[j])) < 2)) :
 #             elif (single_qubit_reg):
                 reg = add_entanglement(reg, i,j)
             else:
@@ -202,4 +240,4 @@ def mps_running_time_estimator(qc):
     
 #     return estimated_schmidt_rank,int(estimated_memory_size)
 
-    return estimated_schmidt_rank
+    return estimated_schmidt_rank, estimated_superposition
