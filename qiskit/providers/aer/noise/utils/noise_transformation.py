@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=import-outside-toplevel
+
 """
 Noise transformation module
 
@@ -28,10 +31,6 @@ used in a Clifford simulator.
 import itertools
 import numpy
 import sympy
-try:
-    import cvxopt
-except ImportError:
-    raise ImportError("The CVXOPT library is required to use this module")
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
@@ -507,22 +506,20 @@ class NoiseTransformer:
         Returns:
             list: A row vector repesenting the flattened matrix
         """
-        # pylint: disable=unnecessary-comprehension
-        return [element for element in m]
+        return list(m)
 
     def channel_matrix_representation(self, operators):
         """
-                We convert the operators to a matrix by applying the channel to
-                the four basis elements of the 2x2 matrix space representing
-                density operators; this is standard linear algebra
+        We convert the operators to a matrix by applying the channel to
+        the four basis elements of the 2x2 matrix space representing
+        density operators; this is standard linear algebra
 
-                Args:
-                    operators (list): The list of operators to transform into a Matrix
+        Args:
+            operators (list): The list of operators to transform into a Matrix
 
-                Returns:
-                    sympy.Matrix: The matrx representation of the operators
-                """
-
+        Returns:
+            sympy.Matrix: The matrx representation of the operators
+        """
         shape = operators[0].shape
         standard_base = []
         for i in range(shape[0]):
@@ -695,6 +692,11 @@ class NoiseTransformer:
         This method is the only place in the code where we rely on the cvxopt library
         should we consider another library, only this method needs to change
         """
+        try:
+            import cvxopt
+        except ImportError:
+            raise ImportError(
+                "The CVXOPT library is required to use this module")
 
         P = cvxopt.matrix(numpy.array(P).astype(float))
         q = cvxopt.matrix(numpy.array(q).astype(float)).T
