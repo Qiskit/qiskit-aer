@@ -31,10 +31,6 @@ used in a Clifford simulator.
 import itertools
 import numpy
 import sympy
-try:
-    import cvxopt
-except ImportError:
-    raise ImportError("The CVXOPT library is required to use this module")
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
@@ -514,16 +510,21 @@ class NoiseTransformer:
 
     def channel_matrix_representation(self, operators):
         """
-                We convert the operators to a matrix by applying the channel to
-                the four basis elements of the 2x2 matrix space representing
-                density operators; this is standard linear algebra
+        We convert the operators to a matrix by applying the channel to
+        the four basis elements of the 2x2 matrix space representing
+        density operators; this is standard linear algebra
 
-                Args:
-                    operators (list): The list of operators to transform into a Matrix
+        Args:
+            operators (list): The list of operators to transform into a Matrix
 
-                Returns:
-                    sympy.Matrix: The matrx representation of the operators
-                """
+        Returns:
+            sympy.Matrix: The matrx representation of the operators
+        """
+        try:
+            import cvxopt
+        except ImportError:
+            raise ImportError(
+                "The CVXOPT library is required to use this module")
 
         shape = operators[0].shape
         standard_base = []
