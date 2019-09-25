@@ -18,11 +18,11 @@
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
 
-#include "matrix_product_state.hpp"
+#include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
 
 namespace AER {
-namespace TensorNetworkState {
+namespace MatrixProductState {
 
 static const cmatrix_t zero_measure = 
       AER::Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}},
@@ -355,21 +355,21 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   for (uint_t index : qubits)
     internalIndexes.push_back(index);
 
-  MPS temp_TN;
-  temp_TN.initialize(*this);
+  MPS temp_MPS;
+  temp_MPS.initialize(*this);
   vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
   uint_t avg = new_indexes[new_indexes.size()/2];
   vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i],new_indexes[i]);
   }
   for(int i = mid-1; i >= 0; i--)
   {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i],new_indexes[i]);
   }
-  MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
+  MPS_Tensor psi = temp_MPS.state_vec(new_indexes.front(), new_indexes.back());
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32
