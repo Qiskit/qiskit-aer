@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=import-outside-toplevel
+
 """
 Noise transformation module
 
@@ -504,7 +507,7 @@ class NoiseTransformer:
             list: A row vector repesenting the flattened matrix
         """
 
-        return [element for element in m]
+        return list(m)
 
     def channel_matrix_representation(self, operators):
         """
