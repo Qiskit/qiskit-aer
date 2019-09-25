@@ -5,8 +5,8 @@
  * the LICENSE.txt file in the root directory of this source tree.
  */
 
-#ifndef _aer_tensor_state_hpp_
-#define _aer_tensor_state_hpp_
+#ifndef _aer_matrix_product_state_hpp_
+#define _aer_matrix_product_state_hpp_
 
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
@@ -14,7 +14,7 @@
 #include "matrix_product_state_tensor.hpp"
 
 namespace AER {
-namespace TensorNetworkState {
+namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
@@ -44,9 +44,9 @@ public:
 
   //--------------------------------------------------------------------------
   // function name: initialize
-  // Description: Initialize the tensor network with some state.
+  // Description: Initialize the MPS with some state.
   // 1.	Parameters: none. Initializes all qubits to |0>.
-  // 2.	Parameters: const MPS &other - Copy another tensor network
+  // 2.	Parameters: const MPS &other - Copy another MPS
   // TODO:
   // 3.	Parameters: uint_t num_qubits, const cvector_t &vecState -
   //  				Initializes qubits with a statevector.
@@ -58,7 +58,7 @@ public:
 
   //----------------------------------------------------------------	
   // function name: num_qubits
-  // Description: Get the number of qubits in the tensor network
+  // Description: Get the number of qubits in the MPS
   // Parameters: none.
   // Returns: none.
   //----------------------------------------------------------------	
@@ -66,7 +66,7 @@ public:
   
   //----------------------------------------------------------------	
   // function name: set_num_qubits
-  // Description: Set the number of qubits in the tensor network
+  // Description: Set the number of qubits in the MPS
   // Parameters: size_t num_qubits - number of qubits to set.
   // Returns: none.
   //----------------------------------------------------------------	
@@ -114,7 +114,7 @@ public:
   // function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
   //   for expectation value calculations. Similar to swap, but doesn't
-  //   move qubit in dst back to src, therefore being used only on the temp TN
+  //   move qubit in dst back to src, therefore being used only on the temp MPS
   //   in Expectation_value function.
   // Parameters: uint_t src, source of the qubit.
   //			 uint_t dst, destination of the qubit.
@@ -246,4 +246,4 @@ operator <<(std::ostream& out, const MPS& mps)
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
-#endif /* _aer_tensor_state_hpp_ */
+#endif /* _aer_matrix_product_state_hpp_ */
