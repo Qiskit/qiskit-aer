@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added tests for the cu1 gate (#360)
 
 Changed
 -------
