@@ -487,7 +487,6 @@ def qubits_from_mat(mat):
     """Return the number of qubits for a multi-qubit matrix."""
     arr = np.array(mat)
     shape = arr.shape
-    # pylint: disable=unsubscriptable-object
     num_qubits = int(np.log2(shape[1]))
     if shape[1] != 2**num_qubits:
         raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
@@ -498,7 +497,6 @@ def is_matrix_diagonal(mat):
     """Test if row-vector representation of diagonal matrix."""
     mat = np.array(mat)
     shape = mat.shape
-    # pylint: disable=unsubscriptable-object
     return len(shape) == 2 and shape[0] == 1
 
 
@@ -559,7 +557,6 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     for mat in kraus_ops:
         # Get the value of the maximum diagonal element
         # of op.H * op for rescaling
-        # pylint: disable=no-member
         prob = abs(max(np.diag(np.conj(np.transpose(mat)).dot(mat))))
         if prob > 0.0:
             if abs(prob - 1) > 0.0:
