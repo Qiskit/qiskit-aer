@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added tests for the Fredkin gate (#357)
 
 Changed
 -------
