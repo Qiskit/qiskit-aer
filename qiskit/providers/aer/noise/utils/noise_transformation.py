@@ -520,12 +520,6 @@ class NoiseTransformer:
         Returns:
             sympy.Matrix: The matrx representation of the operators
         """
-        try:
-            import cvxopt
-        except ImportError:
-            raise ImportError(
-                "The CVXOPT library is required to use this module")
-
         shape = operators[0].shape
         standard_base = []
         for i in range(shape[0]):
@@ -698,6 +692,11 @@ class NoiseTransformer:
         This method is the only place in the code where we rely on the cvxopt library
         should we consider another library, only this method needs to change
         """
+        try:
+            import cvxopt
+        except ImportError:
+            raise ImportError(
+                "The CVXOPT library is required to use this module")
 
         P = cvxopt.matrix(numpy.array(P).astype(float))
         q = cvxopt.matrix(numpy.array(q).astype(float)).T
