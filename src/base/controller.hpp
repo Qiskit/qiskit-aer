@@ -631,7 +631,7 @@ json_t Controller::execute_circuit(Circuit &circ,
       for (int j = 0; j < parallel_shots_; ++j) {
         subshots.push_back(circ.shots / parallel_shots_);
       }
-      // If shots is not perfectly divisible by threads, assign the remaineder
+      // If shots is not perfectly divisible by threads, assign the remainder
       for (int j=0; j < int(circ.shots % parallel_shots_); ++j) {
         subshots[j] += 1;
       }
@@ -667,13 +667,13 @@ json_t Controller::execute_circuit(Circuit &circ,
     result["shots"] = circ.shots;
     result["seed_simulator"] = circ.seed;
     // Move any metadata from the subclass run_circuit data
-    // to the experiment resultmetadata field
+    // to the experiment result's metadata field
     if (JSON::check_key("metadata", result["data"])) {
 
       for(auto& metadata: result["data"]["metadata"].items()) {
         result["metadata"][metadata.key()] = metadata.value();
       }
-      // Remove the metatdata field from data
+      // Remove the metadata field from data
       result["data"].erase("metadata");
     }
     result["metadata"]["parallel_shots"] = parallel_shots_;

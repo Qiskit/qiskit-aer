@@ -18,16 +18,16 @@
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
 
-#include "matrix_product_state.hpp"
+#include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
 
 namespace AER {
-namespace TensorNetworkState {
+namespace MatrixProductState {
 
-static const cmatrix_t zero_measure =
+static const cmatrix_t zero_measure = 
       AER::Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}},
 	                                 {{0, 0}, {0, 0}}});
-static const cmatrix_t one_measure =
+static const cmatrix_t one_measure = 
       AER::Utils::make_matrix<complex_t>({{{0, 0}, {0, 0}},
 			                 {{0, 0}, {1, 0}}});
 
@@ -36,19 +36,19 @@ static const cmatrix_t one_measure =
 //------------------------------------------------------------------------
 //--------------------------------------------------------------------------
 // Function name: reverse_all_bits
-// Description: The ordering of the amplitudes in the statevector in this module is
+// Description: The ordering of the amplitudes in the statevector in this module is 
 //    000, 001, 010, 011, 100, 101, 110, 111.
-//    The ordering of the amplitudes in the statevector in Qasm in general is
+//    The ordering of the amplitudes in the statevector in Qasm in general is 
 //    000, 100, 010, 110, 001, 101, 011, 111.
 //    This function converts the statevector from one representation to the other.
 // Input: the input statevector and the number of qubits
 // Returns: the statevector in reverse order
-//----------------------------------------------------------------
+//----------------------------------------------------------------	
 cvector_t reverse_all_bits(const cvector_t& statevector, uint_t num_qubits);
 uint_t reverse_bits(uint_t num, uint_t len);
 vector<uint_t> calc_new_indexes(vector<uint_t> indexes);
 
-// The following two functions are helper functions used by
+// The following two functions are helper functions used by 
 // initialize_from_statevector
 cmatrix_t reshape_matrix(cmatrix_t input_matrix);
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
@@ -143,10 +143,10 @@ void MPS::initialize(const MPS &other){
       num_qubits_ = other.num_qubits_;
       q_reg_ = other.q_reg_;
       lambda_reg_ = other.lambda_reg_;
-    }
+    }     
 }
 
-void MPS::apply_h(uint_t index)
+void MPS::apply_h(uint_t index) 
 {
     cmatrix_t h_matrix = AER::Utils::Matrix::H;
     q_reg_[index].apply_matrix(h_matrix);
@@ -230,12 +230,12 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 //-------------------------------------------------------------------------
 // MPS::apply_2_qubit_gate - outline of the algorithm
 // 1. Swap qubits A and B until they are consecutive
-// 2. Contract MPS_Tensor[A] and MPS_Tensor[B], yielding a temporary four-matrix MPS_Tensor
+// 2. Contract MPS_Tensor[A] and MPS_Tensor[B], yielding a temporary four-matrix MPS_Tensor 
 //    that represents the entangled states of A and B.
 // 3. Apply the gate
 // 4. Decompose the temporary MPS_Tensor (using SVD) into U*S*V, where U and V are matrices
 //    and S is a diagonal matrix
-// 5. U is split by rows to yield two MPS_Tensors representing qubit A (in reshape_U_after_SVD),
+// 5. U is split by rows to yield two MPS_Tensors representing qubit A (in reshape_U_after_SVD), 
 //    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
@@ -298,7 +298,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	  break;
 
 	default:
-	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate");
+	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
 	}
 	MPS_Tensor left_gamma,right_gamma;
 	rvector_t lambda;
@@ -310,10 +310,10 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
 	q_reg_[index_B] = right_gamma;
 }
 
-void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat)
+void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
 {
   switch (qubits.size()) {
-  case 1:
+  case 1: 
     q_reg_[qubits[0]].apply_matrix(mat);
     break;
   case 2:
@@ -355,21 +355,21 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   for (uint_t index : qubits)
     internalIndexes.push_back(index);
 
-  MPS temp_TN;
-  temp_TN.initialize(*this);
+  MPS temp_MPS;
+  temp_MPS.initialize(*this);
   vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
   uint_t avg = new_indexes[new_indexes.size()/2];
   vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i],new_indexes[i]);
   }
   for(int i = mid-1; i >= 0; i--)
   {
-    temp_TN.change_position(internalIndexes[i],new_indexes[i]);
+    temp_MPS.change_position(internalIndexes[i],new_indexes[i]);
   }
-  MPS_Tensor psi = temp_TN.state_vec(new_indexes.front(), new_indexes.back());
+  MPS_Tensor psi = temp_MPS.state_vec(new_indexes.front(), new_indexes.back());
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32
@@ -493,7 +493,7 @@ void MPS::probabilities_vector(rvector_t& probvector) const
   }
 }
 
-reg_t MPS::apply_measure(const reg_t &qubits,
+reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
   reg_t qubits_to_update;
   reg_t outcome_vector;
@@ -504,7 +504,7 @@ reg_t MPS::apply_measure(const reg_t &qubits,
   return outcome_vector;
 }
 
-uint_t MPS::apply_measure(uint_t qubit,
+uint_t MPS::apply_measure(uint_t qubit, 
 			 RngEngine &rng) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);

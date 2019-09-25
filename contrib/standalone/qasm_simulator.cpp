@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
     auto result = sim.execute(qobj);
     out << result.dump(4) << std::endl;
 
-    // Check if execution was succesful.
+    // Check if execution was successful.
     bool success = false;
     std::string status;
     JSON::get_value(success, "success", result);
