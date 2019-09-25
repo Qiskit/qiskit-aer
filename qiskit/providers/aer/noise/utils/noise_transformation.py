@@ -31,6 +31,10 @@ used in a Clifford simulator.
 import itertools
 import numpy
 import sympy
+try:
+    import cvxopt
+except ImportError:
+    raise ImportError("The CVXOPT library is required to use this module")
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
@@ -506,7 +510,6 @@ class NoiseTransformer:
         Returns:
             list: A row vector repesenting the flattened matrix
         """
-
         return list(m)
 
     def channel_matrix_representation(self, operators):
@@ -694,11 +697,7 @@ class NoiseTransformer:
         This method is the only place in the code where we rely on the cvxopt library
         should we consider another library, only this method needs to change
         """
-        try:
-            import cvxopt
-        except ImportError:
-            raise ImportError(
-                "The CVXOPT library is required to use this module")
+
         P = cvxopt.matrix(numpy.array(P).astype(float))
         q = cvxopt.matrix(numpy.array(q).astype(float)).T
         n = len(q)
