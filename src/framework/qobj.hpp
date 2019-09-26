@@ -36,14 +36,14 @@ public:
 
   // JSON deserialization constructor
   inline Qobj(const json_t &js) {load_qobj_from_json(js);};
-  
+
 
   //----------------------------------------------------------------
   // Data
   //----------------------------------------------------------------
 
   std::string id;                 // qobj identifier passed to result
-  std::string type = "QASM";      // currently we only support QASM      
+  std::string type = "QASM";      // currently we only support QASM
   std::vector<Circuit> circuits;  // List of circuits
   json_t header;                  // (optional) passed through to result;
   json_t config;                  // (optional) not currently used?
@@ -52,7 +52,7 @@ public:
   //----------------------------------------------------------------
   // Loading Functions
   //----------------------------------------------------------------
-  
+
   void load_qobj_from_json(const json_t &js);
   void load_qobj_from_file(const std::string file);
   inline void load_qobj_from_string(const std::string &input);
@@ -80,7 +80,7 @@ void Qobj::load_qobj_from_json(const json_t &js) {
 
   // Get qobj id
   if (JSON::get_value(id, "qobj_id", js) == false) {
-    throw std::invalid_argument("Invalid qobj: no \"qobj_id\" field");
+    throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
   };
   // Get header and config;
   JSON::get_value(config, "config", js);
@@ -91,11 +91,11 @@ void Qobj::load_qobj_from_json(const json_t &js) {
   // Get type
   JSON::get_value(type, "type", js);
   if (type != "QASM") {
-    throw std::invalid_argument("Invalid qobj: currently only \"type\" = \"QASM\" is supported.");
+    throw std::invalid_argument(R"(Invalid qobj: currently only "type" = "QASM" is supported.)");
   };
   // Get circuits
   if (JSON::check_key("experiments", js) == false) {
-    throw std::invalid_argument("Invalid qobj: no \"experiments\" field.");
+    throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
   // Parse experiments
   const json_t &circs = js["experiments"];

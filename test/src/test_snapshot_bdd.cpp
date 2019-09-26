@@ -22,7 +22,6 @@ SCENARIO("We can get snapshots from different simulator types") {
         qobj_snapshots["matrix"] =
             AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_expval_matrix.json");
 
-        using State = AER::QubitVector::State<>;
         AER::Simulator::QasmController sim{};
 
         WHEN("we get the expected results"){
