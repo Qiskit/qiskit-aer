@@ -1,0 +1,43 @@
+# Entries in this file are made for two reasons:
+# 1) to merge multiple git commit authors that correspond to a single author
+# 2) to change the canonical name and/or email address of an author.
+#
+# Format is:
+#     Canonical Name <Canonical@email> commit name <commit@email>
+#     \--------------+---------------/ \----------+-------------/
+#                 replace                       find
+# See also: 'git shortlog --help' and 'git check-mailmap --help'.
+#
+# If you don't like the way your name is cited by qiskit, please feel free to
+# open a pull request against this file to set your preferred naming.
+#
+# Note that each qiskit element uses its own mailmap so it may be necessary to
+# propagate changes in other repos for consistency.
+#
+Ali Javadi-Abhari <ali.javadi@ibm.com> <ajavadia@users.noreply.github.com>
+Ali Javadi-Abhari <ali.javadi@ibm.com> <ajavadia@princeton.edu>
+Christian Claus <cclauss@me.com>
+Christopher J. Wood <cjwood@us.ibm.com>
+Diego M. Rodríguez <diego.plan9@gmail.com>
+Gadi Aleksandrowicz <gadia@il.ibm.com>
+Gadi Aleksandrowicz <gadia@il.ibm.com> <gadial@gmail.com>
+Hiroshi Horii <horii@jp.ibm.com> <HORII@jp.ibm.com>
+Hiroshi Horii <horii@jp.ibm.com> <hhorii@users.noreply.github.com>
+Hitomi Takahashi <hitomi@jp.ibm.com> <hitomi@jp.ibm.com>
+Hitomi Takahashi <hitomi@jp.ibm.com> <hitomi@hitominbookpuro.dhcp.hakozaki.ibm.com>
+Ikko Hamamura <ikkoham@users.noreply.github.com>
+Jay M. Gambetta <jay.gambetta@us.ibm.com>
+Joe Latone <jlatone@us.ibm.com>
+John A. Gunnels <john.a.gunnels@gmail.com>
+Juan Cruz-Benito <juan.cruz@ibm.com>
+Juan Gomez-Mosquera <juan.gomez1@ibm.com> <Juan.Gomez1@ibm.com>
+Juan Gomez-Mosquera <juan.gomez1@ibm.com> <atilag@gmail.com>
+Maddy Tod <40489777+maddy-tod@users.noreply.github.com>
+Matthew Treinish <mtreinish@kortar.org>
+Padraic Calpin <padraic.calpin93@gmail.com>
+Paul Kassebaum <paul.kassebaum@ibm.com>
+Paul Nation <nonhermitian@gmail.com>
+Shelly Garion <shelly@il.ibm.com> <46566946+ShellyGarion@users.noreply.github.com>
+Wei Hu <weihu@cs.virginia.edu> <wh5a@virginia.edu>
+Yael Ben-Haim <yaelbh@il.ibm.com> 
+Yael Ben-Haim <yaelbh@il.ibm.com> <YAELBH@il.ibm.com>

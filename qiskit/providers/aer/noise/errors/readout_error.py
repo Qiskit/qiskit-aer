@@ -18,6 +18,7 @@ import copy
 import numpy as np
 from numpy.linalg import norm
 
+from qiskit.circuit import Instruction
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
@@ -140,6 +141,10 @@ class ReadoutError:
         if delta == 0:
             return True
         return False
+
+    def to_instruction(self):
+        """Convet the ReadoutError to a circuit Instruction."""
+        return Instruction("roerror", 0, self.number_of_qubits, self._probabilities)
 
     def as_dict(self):
         """

@@ -15,7 +15,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.1...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...HEAD)
 =======================================================================
 
 Added
@@ -30,15 +30,86 @@ Removed
 Fixed
 -----
 
+
+[0.3.0](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...0.3.0) - 2019-08-21
+===============================================================================
+
+Added
+-----
+- New simulation method for qasm simulator: tensor_network (\#56)
+- Added superop qobj instruction and superoperator matrix utils (\#289)
+- Added support for conditional unitary, kraus, superop qobj instructions (\#291)
+- Add "validation_threshold" config parameter to Aer backends (\#290)
+- Added support for apply_measure in tensor_network_state. Also changed
+  sample_measure to use apply_measure (\#299)
+- Added density matrix simulation method to QasmSimulator (\#295, \#253)
+- Adds delay measure circuit optimization (\#317)
+- Added sampling for sampling with readout-errors (\#222)
+- Added support of single precision for statevector and density matrix simulation (\#286, \#315)
+- Noise model inserter module (\#239)
+
+Changed
+-------
+- Added density matrix method to automatic QasmSimulator methods (\#316)
+
+Removed
+-------
+
+
+Fixed
+-----
+- Bug in handling parallelization in matrix_product_state.cpp (PR\#292)
+- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR\#294)
+- Change name of qasm simulation method from tensor_network to matrix_product_state (\#320)
+
+
+[0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11
+===============================================================================
+
+Fixed
+-----
+-   Bug in measure sampling conditional checking with conditional instructions (\#280)
+
+
+[0.2.2](https://github.com/Qiskit/qiskit-aer/compare/0.2.1...0.2.2) - 2019-07-10
+================================================================================
+
+Added
+-----
+-   Added multi-controlled phase gate to `QubitVector` and changed
+    multi-controlled Z and multi-controlled u1 gates to use this method (\# 258)
+-   Added optimized anti-diagonal single-qubit gates to QubitVector (\# 258)
+
+Changed
+-------
+-   Improve performance of matrix fusion circuit optimization and move fusion
+    code out of `QubitVector` class and into Fusion optimization class (\#255)
+
+Removed
+-------
+-   Remove `matrix_sequence` Op type from `Op` class (\#255)
+
+Fixed
+-----
+-   Change maximum parameter for depolarizing_error to allow for error channel
+    with no identity component. (\#243)
+-   Fixed 2-qubit depolarizing-only error parameter calculation in
+    basic_device_noise_model (\#243)
+-   Set maximum workers to ThreadPoolExecutor in AerJob to limit thread creation (\#259)
+
 [0.2.1](https://github.com/Qiskit/qiskit-aer/compare/0.2.0...0.2.1) - 2019-05-20
 ================================================================================
 
 Added
 -----
+-   Added 2-qubit Pauli and reset approximation to noise transformation (\#236)
+-   Added `to_instruction` method to `ReadoutError` (\#257).
 
 Changed
 -------
 
+-   When loading qobj check if all instructions are conditional and raise an
+    exception if an unsupported instruction is conditional (\#271)
 -   Deprecate the use of \".as\_dict()\" in favor of \".to\_dict()\"
     (\#228)
 -   Set simulator seed from \"seed\_simulator\" in qobj (\#210)

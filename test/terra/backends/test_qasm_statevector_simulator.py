@@ -16,27 +16,45 @@ QasmSimulator Integration Tests
 
 import unittest
 from test.terra import common
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
-from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+
+# Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTests
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
+from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+# Conditional instruction tests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
+# Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_extra import QasmExtraTests
+# Noise model simulation tests
+
+from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+# Other tests
+from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
 class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmMethodTests,
                                    QasmMeasureTests,
+                                   QasmMultiQubitMeasureTests,
                                    QasmResetTests,
-                                   QasmConditionalTests,
+                                   QasmConditionalGateTests,
+                                   QasmConditionalUnitaryTests,
+                                   QasmConditionalKrausTests,
                                    QasmCliffordTests,
                                    QasmCliffordTestsWaltzBasis,
                                    QasmCliffordTestsMinimalBasis,
@@ -46,7 +64,11 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmAlgorithmTests,
                                    QasmAlgorithmTestsWaltzBasis,
                                    QasmAlgorithmTestsMinimalBasis,
-                                   QasmExtraTests):
+                                   QasmUnitaryGateTests,
+                                   QasmReadoutNoiseTests,
+                                   QasmPauliNoiseTests,
+                                   QasmResetNoiseTests,
+                                   QasmKrausNoiseTests):
     """QasmSimulator statevector method tests."""
 
     BACKEND_OPTS = {"method": "statevector"}

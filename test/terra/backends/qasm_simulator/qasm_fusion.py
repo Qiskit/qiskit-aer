@@ -19,6 +19,7 @@ from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
+from test.benchmark.tools import quantum_volume_circuit, qft_circuit
 
 class QasmFusionTests:
     """QasmSimulator fusion tests."""
@@ -57,7 +58,7 @@ class QasmFusionTests:
             return noise
 
     def check_mat_exist(self, result):
-        fusion_gates = result.as_dict(
+        fusion_gates = result.to_dict(
         )['results'][0]['metadata']['fusion_verbose']
         for gate in fusion_gates:
             print(gate)
@@ -79,12 +80,12 @@ class QasmFusionTests:
         self.is_completed(result)
 
         self.assertTrue(
-            'results' in result.as_dict(), msg="results must exist in result")
+            'results' in result.to_dict(), msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result.as_dict()['results'][0],
+            'metadata' in result.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' not in result.as_dict()['results'][0]['metadata'],
+            'fusion_verbose' not in result.to_dict()['results'][0]['metadata'],
             msg="fusion must not work for clifford")
 
     def test_noise_fusion(self):
@@ -112,12 +113,12 @@ class QasmFusionTests:
         self.is_completed(result)
 
         self.assertTrue(
-            'results' in result.as_dict(), msg="results must exist in result")
+            'results' in result.to_dict(), msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result.as_dict()['results'][0],
+            'metadata' in result.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' in result.as_dict()['results'][0]['metadata'],
+            'fusion_verbose' in result.to_dict()['results'][0]['metadata'],
             msg="verbose must work with noise")
 
     def test_fusion_verbose(self):
@@ -139,13 +140,13 @@ class QasmFusionTests:
             backend_options=backend_options).result()
         self.is_completed(result_verbose)
         self.assertTrue(
-            'results' in result_verbose.as_dict(),
+            'results' in result_verbose.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_verbose.as_dict()['results'][0],
+            'metadata' in result_verbose.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' in result_verbose.as_dict()['results'][0]
+            'fusion_verbose' in result_verbose.to_dict()['results'][0]
             ['metadata'],
             msg="fusion must work for satevector")
 
@@ -161,13 +162,13 @@ class QasmFusionTests:
             backend_options=backend_options).result()
         self.is_completed(result_nonverbose)
         self.assertTrue(
-            'results' in result_nonverbose.as_dict(),
+            'results' in result_nonverbose.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_nonverbose.as_dict()['results'][0],
+            'metadata' in result_nonverbose.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' not in result_nonverbose.as_dict()['results'][0]
+            'fusion_verbose' not in result_nonverbose.to_dict()['results'][0]
             ['metadata'],
             msg="verbose must not work if fusion_verbose is False")
 
@@ -180,13 +181,13 @@ class QasmFusionTests:
             qobj, backend_options=backend_options).result()
         self.is_completed(result_default)
         self.assertTrue(
-            'results' in result_default.as_dict(),
+            'results' in result_default.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_default.as_dict()['results'][0],
+            'metadata' in result_default.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' not in result_default.as_dict()['results'][0]
+            'fusion_verbose' not in result_default.to_dict()['results'][0]
             ['metadata'],
             msg="verbose must not work if fusion_verbose is False")
 
@@ -208,13 +209,13 @@ class QasmFusionTests:
             backend_options=backend_options).result()
         self.is_completed(result_verbose)
         self.assertTrue(
-            'results' in result_verbose.as_dict(),
+            'results' in result_verbose.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_verbose.as_dict()['results'][0],
+            'metadata' in result_verbose.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' in result_verbose.as_dict()['results'][0]
+            'fusion_verbose' in result_verbose.to_dict()['results'][0]
             ['metadata'],
             msg="fusion must work for satevector")
 
@@ -230,13 +231,13 @@ class QasmFusionTests:
             backend_options=backend_options).result()
         self.is_completed(result_disabled)
         self.assertTrue(
-            'results' in result_disabled.as_dict(),
+            'results' in result_disabled.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_disabled.as_dict()['results'][0],
+            'metadata' in result_disabled.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' not in result_disabled.as_dict()['results'][0]
+            'fusion_verbose' not in result_disabled.to_dict()['results'][0]
             ['metadata'],
             msg="fusion must not work with fusion_enable is False")
 
@@ -247,13 +248,13 @@ class QasmFusionTests:
             qobj, backend_options=backend_options).result()
         self.is_completed(result_default)
         self.assertTrue(
-            'results' in result_default.as_dict(),
+            'results' in result_default.to_dict(),
             msg="results must exist in result")
         self.assertTrue(
-            'metadata' in result_default.as_dict()['results'][0],
+            'metadata' in result_default.to_dict()['results'][0],
             msg="metadata must exist in results[0]")
         self.assertTrue(
-            'fusion_verbose' not in result_default.as_dict()['results'][0]
+            'fusion_verbose' not in result_default.to_dict()['results'][0]
             ['metadata'],
             msg="fusion must not work by default for satevector")
 
@@ -269,17 +270,15 @@ class QasmFusionTests:
             circuit.h(qr[i])
             circuit.barrier(qr)
 
-        circuit.x(qr[0])
+        circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
-        circuit.x(qr[1])
+        circuit.u3(0.1, 0.1, 0.1, qr[1])
         circuit.barrier(qr)
-        circuit.x(qr[0])
+        circuit.cx(qr[1], qr[0])
         circuit.barrier(qr)
-        circuit.x(qr[1])
+        circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
-        circuit.cx(qr[2], qr[3])
-        circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
+        circuit.u3(0.1, 0.1, 0.1, qr[1])
         circuit.barrier(qr)
         circuit.u3(0.1, 0.1, 0.1, qr[3])
         circuit.barrier(qr)
@@ -347,3 +346,78 @@ class QasmFusionTests:
             result_nonfusion.get_counts(circuit),
             delta=0.0,
             msg="fusion x-x-x was failed")
+
+
+    def test_fusion_qv(self):
+        """Test Fusion with quantum volume"""
+        shots = 100
+        
+        circuit = quantum_volume_circuit(10, 1, measure=True, seed=0)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
+        result_fusion = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.is_completed(result_fusion)
+
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = False
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
+        result_nonfusion = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.is_completed(result_nonfusion)
+        
+        self.assertDictAlmostEqual(
+            result_fusion.get_counts(circuit),
+            result_nonfusion.get_counts(circuit),
+            delta=0.0,
+            msg="fusion for qv was failed")
+        
+    def test_fusion_qft(self):
+        """Test Fusion with qft"""
+        shots = 100
+        
+        circuit = qft_circuit(10, measure=True)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = True
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
+        result_fusion = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.is_completed(result_fusion)
+
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_enable'] = False
+        backend_options['fusion_verbose'] = True
+        backend_options['fusion_threshold'] = 1
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
+        result_nonfusion = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.is_completed(result_nonfusion)
+        
+        self.assertDictAlmostEqual(
+            result_fusion.get_counts(circuit),
+            result_nonfusion.get_counts(circuit),
+            delta=0.0,
+            msg="fusion for qft was failed")

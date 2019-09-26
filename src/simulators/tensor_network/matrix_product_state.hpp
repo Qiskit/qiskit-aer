@@ -22,6 +22,8 @@ enum Gates {
   cx, cz, cu1, swap, su4 // two qubit
 };
 
+enum class Direction {RIGHT, LEFT};
+
 //=========================================================================
 // MPS class
 //=========================================================================
@@ -191,7 +193,11 @@ public:
     return 0;
   }
   
-  reg_t sample_measure(std::vector<double> &rnds);
+  reg_t apply_measure(const reg_t &qubits, 
+		      RngEngine &rng);
+
+  uint_t apply_measure(uint_t qubit, 
+		       RngEngine &rng);
 
   //----------------------------------------------------------------
   // function name: initialize_from_statevector

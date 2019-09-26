@@ -113,6 +113,7 @@ endif()
 #
 # Looking for external libraries
 #
+message(STATUS "Looking for OpenMP support...")
 find_package(OpenMP QUIET)
 # This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
 # so we need to link with an external library: libomp.
@@ -136,12 +137,15 @@ if(OPENMP_FOUND)
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
 		if(NOT SKBUILD)
 			set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			message("Adding Clang: ${OPENMP_EXTERNAL_LIB}")
+			message(STATUS "Adding Clang: ${OPENMP_EXTERNAL_LIB}")
 		endif()
 	endif()
-	message("OpenMP found!")
+	message(STATUS "OpenMP found!")
+else()
+	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
+message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
 find_package(Threads)
@@ -160,7 +164,7 @@ else()
 endif()
 
 if(WIN32)
-	message("Uncompressing OpenBLAS static library...")
+	message(STATUS "Uncompressing OpenBLAS static library...")
 	execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z"
 		WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
 endif()
@@ -172,7 +176,7 @@ if(NOT BLAS_FOUND)
 	find_package(BLAS REQUIRED)
 endif()
 
-message("BLAS: ${BLAS_LIBRARIES}")
+message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -181,24 +185,6 @@ set(AER_LIBRARIES
 	    nlohmann_json
 		Threads::Threads
 		${CMAKE_DL_LIBS})
-
-#
-# Enable GPU if CUDA is installed
-#
-set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-find_package(CUDA)
-if(CUDA_FOUND)
-	set(QSIM_PAR_DEFS "-DQSIM_COL_MAJOR -DQSIM_DOUBLE")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DQASM_PARALLEL ${QSIM_PAR_DEFS}")
-
-	add_subdirectory(src/simulators/statevector/qsim_par)
-	set(AER_LIBRARIES
-		${AER_LIBRARIES}
-		${CUDA_LIBRARIES}
-		qsim_par
-		qsim_par_cuda)
-endif(CUDA_FOUND)
-
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
@@ -213,7 +199,6 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
-
 	# Linter
 	# This will add the linter as part of the compiling build target
 	add_linter(qasm_simulator)

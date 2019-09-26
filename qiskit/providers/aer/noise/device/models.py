@@ -15,6 +15,7 @@
 Simplified noise models for devices backends.
 """
 
+import warnings
 from numpy import inf, exp
 
 from .parameters import readout_error_values
@@ -33,6 +34,7 @@ def basic_device_noise_model(properties,
                              readout_error=True,
                              thermal_relaxation=True,
                              temperature=0,
+                             gate_lengths=None,
                              gate_times=None,
                              standard_gates=True):
     """Approximate device noise model derived from backend properties.
@@ -46,9 +48,10 @@ def basic_device_noise_model(properties,
                                    [Default: True].
         temperature (double): qubit temperature in milli-Kelvin (mK) for
                               thermal relaxation errors [Default: 0].
-        gate_times (list): Custom gate times for thermal relaxation errors.
-                           Used to extend or override the gate times in
-                           the backend properties [Default: None])
+        gate_length (list): Custom gate times for thermal relaxation errors.
+                            Used to extend or override the gate times in
+                            the backend properties [Default: None])
+        gate_times (list): DEPRECATED -- use gate_lengths.
         standard_gates (bool): If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions [Default: True]
@@ -88,18 +91,29 @@ def basic_device_noise_model(properties,
 
         Secifying custom gate times:
 
-        The `gate_times` kwarg can be used to specify custom gate times
+        The `gate_lengths` kwarg can be used to specify custom gate times
         to add gate errors using the T1 and T2 values from the backend
         properties. This should be passed as a list of tuples
-            `gate_times=[(name, value), ...]`
+            `gate_lengths=[(name, value), ...]`
         where `name` is the gate name string, and `value` is the gate time
         in nanoseconds.
 
         If a custom gate is specified that already exists in
-        the backend properties, the `gate_times` value will override the
+        the backend properties, the `gate_lengths` value will override the
         gate time value from the backend properties.
-        If non-default values are used gate_times should be a list
+        If non-default values are used gate_lengths should be a list
     """
+    # Decrecation warning for change of name field in device model
+    # from gate_times to gate_lengths
+    if gate_times:
+        warnings.warn(
+            'gate_times kwarg is deprecated and will be removed '
+            'in a future release. Use gate_lengths kwarg instead.',
+            DeprecationWarning)
+        # Convert deprecated kwarg to current kwarg if it is not
+        # also defined
+        if gate_lengths is None:
+            gate_lengths = gate_times
 
     noise_model = NoiseModel()
 
@@ -113,7 +127,7 @@ def basic_device_noise_model(properties,
         properties,
         gate_error=gate_error,
         thermal_relaxation=thermal_relaxation,
-        gate_times=gate_times,
+        gate_lengths=gate_lengths,
         temperature=temperature,
         standard_gates=standard_gates)
     for name, qubits, error in gate_errors:
@@ -143,7 +157,8 @@ def basic_device_readout_errors(properties):
 def basic_device_gate_errors(properties,
                              gate_error=True,
                              thermal_relaxation=True,
-                             gate_times=None,
+                             gate_lengths=None,
+                             gate_times=None,  # DEPRECATED
                              temperature=0,
                              standard_gates=True):
     """Get depolarizing noise quantum error objects for backend gates
@@ -153,9 +168,10 @@ def basic_device_gate_errors(properties,
         gate_error (bool): Include depolarizing gate errors [Default: True].
         thermal_relaxation (Bool): Include thermal relaxation errors
                                    [Default: True].
-        gate_times (list): Override device gate times with custom
-                           values. If None use gate times from
-                           backend properties. [Default: None]
+        gate_lengths (list): Override device gate times with custom
+                             values. If None use gate times from
+                             backend properties. [Default: None]
+        gate_times (list): DEPRECATED -- use gate_lengths.
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               [Default: 0].
         standard_gates (bool): If true return errors as standard
@@ -168,12 +184,24 @@ def basic_device_gate_errors(properties,
         value.
 
     Additional Information:
-        If non-default values are used gate_times should be a list
+        If non-default values are used gate_lengths should be a list
         of tuples (name, qubits, value) where name is the gate name string,
         qubits is a list of qubits or None to apply gate time to this
         gate one any set of qubits, and value is the gate time in
         nanoseconds.
     """
+    # Decrecation warning for change of name field in device model
+    # from gate_times to gate_lengths
+    if gate_times:
+        warnings.warn(
+            'gate_times kwarg is deprecated and will be removed '
+            'in a future release. Use gate_lengths kwarg instead.',
+            DeprecationWarning)
+        # Convert deprecated kwarg to current kwarg if it is not
+        # also defined
+        if gate_lengths is None:
+            gate_lengths = gate_times
+
     # Initilize empty errors
     depol_error = None
     relax_error = None
@@ -186,8 +214,8 @@ def basic_device_gate_errors(properties,
         relax_params = thermal_relaxation_values(properties)
         # If we are specifying custom gate times include
         # them in the custom times dict
-        if gate_times:
-            for name, qubits, value in gate_times:
+        if gate_lengths:
+            for name, qubits, value in gate_lengths:
                 if name in custom_times:
                     custom_times[name].append((qubits, value))
                 else:
@@ -197,9 +225,9 @@ def basic_device_gate_errors(properties,
 
     # Construct quantum errors
     errors = []
-    for name, qubits, gate_time, error_param in device_gate_params:
+    for name, qubits, gate_length, error_param in device_gate_params:
         # Check for custom gate time
-        relax_time = gate_time
+        relax_time = gate_length
         # Override with custom value
         if name in custom_times:
             filtered = [
@@ -265,21 +293,28 @@ def _device_depolarizing_error(qubits,
     # with dim = 2 ** N for an N-qubit gate error.
 
     error = None
+    num_qubits = len(qubits)
+    dim = 2 ** num_qubits
+
     if not thermal_relaxation:
         # Model gate error entirely as depolarizing error
-        p_depol = _depol_error_value_one_qubit(error_param)
+        if error_param is not None and error_param > 0:
+            dim = 2 ** num_qubits
+            depol_param = dim * error_param / (dim - 1)
+        else:
+            depol_param = 0
     else:
         # Model gate error as thermal relaxation and depolarizing
         # error.
         # Get depolarizing probability
-        if len(qubits) == 1:
+        if num_qubits == 1:
             t1, t2, _ = relax_params[qubits[0]]
-            p_depol = _depol_error_value_one_qubit(
+            depol_param = _depol_error_value_one_qubit(
                 error_param, gate_time, t1=t1, t2=t2)
-        elif len(qubits) == 2:
+        elif num_qubits == 2:
             q0_t1, q0_t2, _ = relax_params[qubits[0]]
             q1_t1, q1_t2, _ = relax_params[qubits[1]]
-            p_depol = _depol_error_value_two_qubit(
+            depol_param = _depol_error_value_two_qubit(
                 error_param,
                 gate_time,
                 qubit0_t1=q0_t1,
@@ -290,9 +325,15 @@ def _device_depolarizing_error(qubits,
             raise NoiseError("Device noise model only supports "
                              "1 and 2-qubit gates when using "
                              "thermal_relaxation=True.")
-    if p_depol > 0:
+    if depol_param > 0:
+        # If the device reports an error_param greater than the maximum
+        # allowed for a depolarzing error model we will get a non-physical
+        # depolarizing parameter.
+        # In this case we truncate it to 1 so that the error channel is a
+        # completely depolarizing channel E(rho) = id / d
+        depol_param = min(depol_param, 1.0)
         error = depolarizing_error(
-            p_depol, len(qubits), standard_gates=standard_gates)
+            depol_param, num_qubits, standard_gates=standard_gates)
     return error
 
 
@@ -343,7 +384,7 @@ def _excited_population(freq, temperature):
 
 
 def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
-    """Return 2-qubit depolarizing channel probability for device model"""
+    """Return 2-qubit depolarizing channel parameter for device model"""
     # Check trivial case where there is no gate error
     if error_param is None:
         return None
@@ -367,7 +408,7 @@ def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
         else:
             return 0
 
-    # Otherwise we calculate the depolarizing error probability to account
+    # Otherwise we calculate the depolarizing error parameter to account
     # for the difference between the relaxation error and gate error
     if t1 == inf:
         par1 = 1
@@ -377,8 +418,8 @@ def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
         par2 = 1
     else:
         par2 = exp(-gate_time / t2)
-    p_depol = 1 + 3 * (2 * error_param - 1) / (par1 + 2 * par2)
-    return p_depol
+    depol_param = 1 + 3 * (2 * error_param - 1) / (par1 + 2 * par2)
+    return depol_param
 
 
 def _depol_error_value_two_qubit(error_param,
@@ -387,7 +428,7 @@ def _depol_error_value_two_qubit(error_param,
                                  qubit0_t2=inf,
                                  qubit1_t1=inf,
                                  qubit1_t2=inf):
-    """Return 2-qubit depolarizing channel probability for device model"""
+    """Return 2-qubit depolarizing channel parameter for device model"""
     # Check trivial case where there is no gate error
     if error_param is None:
         return None
@@ -435,5 +476,5 @@ def _depol_error_value_two_qubit(error_param,
     denom = (
         q0_par1 + q1_par1 + q0_par1 * q1_par1 + 4 * q0_par2 * q1_par2 +
         2 * (q0_par2 + q1_par2) + 2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
-    p_depol = 1 + 5 * (4 * error_param - 3) / denom
-    return p_depol
+    depol_param = 1 + 5 * (4 * error_param - 3) / denom
+    return depol_param
