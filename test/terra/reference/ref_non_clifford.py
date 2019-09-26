@@ -16,6 +16,9 @@ Test circuits and reference outputs for non-Clifford gate instructions.
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.extensions import Cu1Gate
+from qiskit.quantum_info.synthesis import two_qubit_cnot_decompose
+
 from test.terra.utils.multiplexer import multiplexer_multi_controlled_x
 
 
@@ -1054,23 +1057,16 @@ def multiplexer_ccx_gate_counts_nondeterministic(shots, hex_counts=True):
     """ The counts are exactly the same as the ccx gate """
     return ccx_gate_counts_nondeterministic(shots, hex_counts)
 
-
+  
 # ==========================================================================
 # CSWAP-gate (Fredkin)
 # ==========================================================================
-
-
 def cswap_gate_circuits_deterministic(final_measure):
     """cswap-gate test circuits with deterministic counts."""
     circuits = []
     qr = QuantumRegister(3)
     if final_measure:
         cr = ClassicalRegister(3)
-        regs = (qr, cr)
-    else:
-        regs = (qr,)
-
-
     # CSWAP(0,1,2) # -> |000>
     circuit = QuantumCircuit(*regs)
     circuit.cswap(qr[0], qr[1], qr[2])
@@ -1100,7 +1096,7 @@ def cswap_gate_circuits_deterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     # CSWAP(0,1,2).(X^X^I) -> |110>
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[1])
@@ -1112,7 +1108,7 @@ def cswap_gate_circuits_deterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     # CSWAP(0,1,2).(I^I^X) -> |001>
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
@@ -1135,7 +1131,7 @@ def cswap_gate_circuits_deterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     # CSWAP(0,1,2).(X^I^X) -> |011>
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
@@ -1160,7 +1156,7 @@ def cswap_gate_circuits_deterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     # CSWAP(1,0,2).(I^X^X) -> |110>
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
@@ -1184,7 +1180,118 @@ def cswap_gate_circuits_deterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
+    return circuits
+  
+  
+# ==========================================================================
+# CU1
+# ==========================================================================
+def cu1_gate_circuits_nondeterministic(final_measure):
+    circuits = []
+    qr = QuantumRegister(2)
+    if final_measure:
+        cr = ClassicalRegister(2)
+        regs = (qr, cr)
+    else:
+        regs = (qr,)
 
+    #H^X.CU1(0,0,1).H^X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.x(qr[0])
+    circuit.cu1(0, qr[0], qr[1])
+    circuit.x(qr[0])
+    circuit.h(qr[1])
+
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    #H^I.CU1(pi,0,1).H^I
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.h(qr[1])
+    
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    #H^X.CU1(pi/4,0,1).H^X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.x(qr[0])
+    circuit.cu1(np.pi/4, qr[0], qr[1])
+    circuit.x(qr[0])
+    circuit.h(qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # H^X.CU1(pi/2,0,1).H^X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.x(qr[0])
+    circuit.cu1(np.pi/2, qr[0], qr[1])
+    circuit.x(qr[0])
+    circuit.h(qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # H^X.CU1(pi,0,1).H^X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.x(qr[0])
+    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.x(qr[0])
+    circuit.h(qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+        
+    # H^H.CU1(0,0,1).H^H
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.h(qr[0])
+    circuit.cu1(0, qr[0], qr[1])
+    circuit.h(qr[0])
+    circuit.h(qr[1])
+
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # H^H.CU1(pi/2,0,1).H^H
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.h(qr[0])
+    circuit.cu1(np.pi/2, qr[0], qr[1])
+    circuit.h(qr[0])
+    circuit.h(qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # H^H.CU1(pi,0,1).H^H
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.h(qr[0])
+    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.h(qr[0])
+    circuit.h(qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
     return circuits
 
 
@@ -1257,7 +1364,7 @@ def cswap_gate_circuits_nondeterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+   
     # CSWAP(0,1,2).(X^I^H). -> |100> + |011>
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[0])
@@ -1286,6 +1393,7 @@ def cswap_gate_circuits_nondeterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
+    
     # CSWAP(0,1,2).(H^I^I)  -> |100>+|000>
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[2])
@@ -1302,6 +1410,7 @@ def cswap_gate_circuits_nondeterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
+    
     # CSWAP(0,1,2).(X^X^H)  -> |110> + |111>
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[0])
@@ -1311,11 +1420,11 @@ def cswap_gate_circuits_nondeterministic(final_measure=True):
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
-    circuits.append(circuit)
+    circuits.append(circuit)    
 
     return circuits
 
-
+  
 def cswap_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
 
@@ -1657,4 +1766,101 @@ def cswap_gate_unitary_nondeterministic():
                                0,           0,           0,           0],
                               [0.70710678, -0.70710678,  0,           0,
                                0,           0,           0,           0]]))
+    return targets
+  
+def cu1_gate_counts_nondeterministic(shots, hex_counts=True):
+    """CU1-gate circuits reference counts."""
+    targets = []
+    if hex_counts:
+        # H^X.CU1(0,0,1).H^X
+        targets.append({'0x0': shots})
+        # H^I.CU1(pi,0,1).H^I
+        targets.append({'0x0': shots})
+        # H^X.CU1(pi/4,0,1).H^X
+        targets.append({'0x0': shots * (0.25 * (2 + np.sqrt(2))), '0x2': shots * (0.25 * (2 - np.sqrt(2)))})
+        # H^X.CU1(pi/2,0,1).H^X
+        targets.append({'0x0': shots * 0.5, '0x2': shots * 0.5})
+        # H^X.CU1(pi,0,1).H^X
+        targets.append({'0x2': shots})
+        # H^H.CU1(0,0,1).H^H
+        targets.append({'0x0': shots})
+        # H^H.CU1(pi/2,0,1).H^H
+        targets.append({'0x0': shots * 0.625, '0x1': shots * 0.125, '0x2': shots * 0.125, '0x3': shots * 0.125})
+        # H^H.CU1(pi,0,1).H^H
+        targets.append({'0x0': shots * 0.25, '0x1': shots * 0.25, '0x2': shots * 0.25, '0x3': shots * 0.25})
+    else:
+        # H^X.CU1(0,0,1).H^X
+        targets.append({'00': shots})
+        # H^I.CU1(pi,0,1).H^I
+        targets.append({'00': shots})
+        # H^X.CU1(pi/4,0,1).H^X
+        targets.append({'00': shots * 0.85, '10': shots * 0.15})
+        # H^X.CU1(pi/2,0,1).H^X
+        targets.append({'00': shots * 0.5, '10': shots * 0.5})
+        # H^X.CU1(pi,0,1).H^X
+        targets.append({'10': shots})
+        # H^H.CU1(0,0,1).H^H
+        targets.append({'00': shots})
+        # H^H.CU1(pi/2,0,1).H^H
+        targets.append({'00': shots * 0.5125, '01': shots * 0.125, '10': shots * 0.125, '11': shots * 0.125})
+        # H^H.CU1(pi,0,1).H^H
+        targets.append({'00': shots * 0.25, '01': shots * 0.25, '10': shots * 0.25, '11': shots * 0.25})
+    return targets
+
+
+def cu1_gate_statevector_nondeterministic():
+    targets = []
+    # H^X.CU1(0,0,1).H^X
+    targets.append(np.array([1, 0, 0, 0]))
+    # H^I.CU1(pi,0,1).H^I
+    targets.append(np.array([1, 0, 0, 0]))
+    # H^X.CU1(pi/4,0,1).H^X
+    targets.append(np.array(
+        [(0.25 * (2 + np.sqrt(2))) + (1 / (2 * np.sqrt(2)))*1j, 0, (0.25 * (2 - np.sqrt(2))) - (1 / (2 * np.sqrt(2)))*1j, 0]))
+    # H^X.CU1(pi/2,0,1).H^X
+    targets.append(np.array([0.5+0.5j, 0, 0.5-0.5j, 0]))
+    # H^X.CU1(pi,0,1).H^X
+    targets.append(np.array([0, 0, 1, 0]))
+    # H^H.CU1(0,0,1).H^H
+    targets.append(np.array([1, 0, 0, 0]))
+    # H^H.CU1(pi/2,0,1).H^H
+    targets.append(np.array([0.75+0.25j, 0.25-0.25j, 0.25-0.25j, -0.25+0.25j]))
+    # H^H.CU1(pi,0,1).H^H
+    targets.append(np.array([0.5, 0.5, 0.5, -0.5]))
+    return targets
+
+
+def cu1_gate_unitary_nondeterministic():
+    targets = []
+    # H^X.CU1(0,0,1).H^X
+    targets.append(np.eye(4))
+    # H^I.CU1(pi,0,1).H^I
+    targets.append(np.array([[1, 0, 0, 0],
+                             [0, 0, 0, 1],
+                             [0, 0, 1, 0],
+                             [0, 1, 0, 0]]))
+    # H^X.CU1(pi/4,0,1).H^X
+    targets.append(np.array([[(0.25 * (2 + np.sqrt(2))) + (1 / (2 * np.sqrt(2)))*1j, 0,
+                              (0.25 * (2 - np.sqrt(2))) - (1 / (2 * np.sqrt(2)))*1j, 0],
+                             [0, 1, 0, 0],
+                             [(0.25 * (2 - np.sqrt(2))) - (1 / (2 * np.sqrt(2)))*1j, 0,
+                              (0.25 * (2 + np.sqrt(2))) + (1 / (2 * np.sqrt(2)))*1j, 0],
+                             [0, 0, 0, 1]]))
+    # H^X.CU1(pi/2,0,1).H^X
+    targets.append(np.array([[0.5+0.5j, 0, 0.5-0.5j, 0],
+                             [0, 1, 0, 0],
+                             [0.5-0.5j, 0, 0.5+0.5j, 0],
+                             [0, 0, 0, 1]]))
+    # H^X.CU1(pi,0,1).H^X
+    targets.append(np.array([[0, 0, 1, 0],
+                             [0, 1, 0, 0],
+                             [1, 0, 0, 0],
+                             [0, 0, 0, 1]]))
+    # H^H.CU1(0,0,1).H^H
+    targets.append(np.eye(4))
+    # H^H.CU1(pi/2,0,1).H^H
+    targets.append((0.75 + 0.25j) * np.eye(4) + (0.25 - 0.25j) * np.array(
+        [[0, 1, 1, -1], [1, 0, -1, 1], [1, -1, 0, 1], [-1, 1, 1, 0]]))
+    # H^H.CU1(pi,0,1).H^H
+    targets.append(0.5 * np.array([[1, 1, 1, -1], [1, 1, -1, 1], [1, -1, 1, 1], [-1, 1, 1, 1]]))
     return targets

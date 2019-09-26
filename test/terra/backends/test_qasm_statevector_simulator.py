@@ -71,7 +71,10 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmKrausNoiseTests):
     """QasmSimulator statevector method tests."""
 
-    BACKEND_OPTS = {"method": "statevector"}
+    BACKEND_OPTS = {
+        "seed_simulator": 271828,
+        "method": "statevector"
+    }
 
 
 if __name__ == '__main__':

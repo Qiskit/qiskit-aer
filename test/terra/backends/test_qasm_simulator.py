@@ -80,6 +80,10 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmBasicsTests):
     """QasmSimulator automatic method tests."""
 
+    BACKEND_OPTS = {
+        "seed_simulator": 2113
+    }
+
 
 if __name__ == '__main__':
     unittest.main()
