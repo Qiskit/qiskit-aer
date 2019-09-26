@@ -654,7 +654,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         result = job.result()
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
-        
+
     # ---------------------------------------------------------------------
     # Test cu1 gate
     # ---------------------------------------------------------------------
@@ -676,7 +676,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         result = job.result()
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
-        
+
     def test_cu1_gate_nondeterministic_minimal_basis_gates(self):
         """"Test cu1-gate gate circuits compiling to u3,cx"""
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(final_measure=False)
@@ -704,7 +704,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         result = job.result()
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
-        
+
     def test_cu1_gate_nondeterministic_default_basis_gates(self):
         """Test cu1-gate gate circuits compiling to default basis"""
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(final_measure=False)

@@ -1067,6 +1067,10 @@ def cswap_gate_circuits_deterministic(final_measure):
     qr = QuantumRegister(3)
     if final_measure:
         cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr,)
+
     # CSWAP(0,1,2) # -> |000>
     circuit = QuantumCircuit(*regs)
     circuit.cswap(qr[0], qr[1], qr[2])

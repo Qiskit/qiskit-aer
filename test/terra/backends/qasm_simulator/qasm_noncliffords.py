@@ -121,7 +121,7 @@ class QasmNonCliffordTests:
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-        
+
     # ---------------------------------------------------------------------
     # Test cu1 gate
     # ---------------------------------------------------------------------
@@ -242,7 +242,7 @@ class QasmNonCliffordTestsWaltzBasis:
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-        
+
     # ---------------------------------------------------------------------
     # Test cu1 gate
     # ---------------------------------------------------------------------

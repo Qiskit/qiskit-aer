@@ -820,10 +820,10 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
 
-
     # ---------------------------------------------------------------------
     # Test cswap-gate (Fredkin)
     # ---------------------------------------------------------------------
+
     def test_cswap_gate_deterministic_default_basis_gates(self):
         """Test cswap-gate circuits compiling to backend default basis_gates."""
         circuits = ref_non_clifford.cswap_gate_circuits_deterministic(final_measure=False)
@@ -832,7 +832,6 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         result = job.result()
         self.is_completed(result)
         self.compare_statevector(result, circuits, targets)
-
 
     def test_cswap_gate_deterministic_minimal_basis_gates(self):
         """Test cswap-gate gate circuits compiling to u3,cx"""
