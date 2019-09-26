@@ -356,28 +356,28 @@ stringset_t OpSet::invalid_snapshots(const stringset_t &allowed_snapshots) const
 // Raise an exception if name string is empty
 inline void check_empty_name(const Op &op) {
   if (op.name.empty())
-    throw std::invalid_argument("Invalid qobj instruction (\"name\" is empty).");
+    throw std::invalid_argument(R"(Invalid qobj instruction ("name" is empty).)");
 }
 
 // Raise an exception if qubits list is empty
 inline void check_empty_qubits(const Op &op) {
   if (op.qubits.empty())
-    throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"qubits\" is empty).");
+    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
+                                R"(" instruction ("qubits" is empty).)");
 }
 
 // Raise an exception if params is empty
 inline void check_empty_params(const Op &op) {
   if (op.params.empty())
-    throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"params\" is empty).");
+    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
+                                R"(" instruction ("params" is empty).)");
 }
 
 // Raise an exception if params is empty
 inline void check_length_params(const Op &op, const size_t size) {
   if (op.params.size() != size)
-    throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"params\" is incorrect length)");
+    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
+                                R"(" instruction ("params" is incorrect length).)");
 }
 
 // Raise an exception if qubits list contains duplications
@@ -385,8 +385,8 @@ inline void check_duplicate_qubits(const Op &op) {
   auto cpy = op.qubits;
   std::unique(cpy.begin(), cpy.end());
   if (cpy != op.qubits)
-    throw std::invalid_argument("Invalid qobj \"" + op.name + 
-                                "\" instruction (\"qubits\" are not unique)");
+    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
+                                R"(" instruction ("qubits" are not unique).)");
 }
 
 //------------------------------------------------------------------------------
@@ -472,13 +472,13 @@ inline Op make_multiplexer(const reg_t &qubits,
 
   // Check matrices are N-qubit
   auto dim = mats[0].GetRows();
-  uint_t num_targets = uint_t(std::log2(dim));
+  auto num_targets = static_cast<uint_t>(std::log2(dim));
   if (1ULL << num_targets != dim) {
     throw std::invalid_argument("invalid multiplexer matrix dimension.");
   }
   // Check number of matrix compents is power of 2.
   size_t num_mats = mats.size();
-  uint_t num_controls = uint_t(std::log2(num_mats));
+  auto num_controls = static_cast<uint_t>(std::log2(num_mats));
   if (1ULL << num_controls != num_mats) {
     throw std::invalid_argument("invalid number of multiplexer matrices.");
   }
@@ -723,10 +723,10 @@ Op json_to_op_measure(const json_t &js) {
   check_empty_qubits(op);
   check_duplicate_qubits(op);
   if (op.memory.empty() == false && op.memory.size() != op.qubits.size()) {
-    throw std::invalid_argument("Invalid measure operation: \"memory\" and \"qubits\" are different lengths.");
+    throw std::invalid_argument(R"(Invalid measure operation: "memory" and "qubits" are different lengths.)");
   }
   if (op.registers.empty() == false && op.registers.size() != op.qubits.size()) {
-    throw std::invalid_argument("Invalid measure operation: \"register\" and \"qubits\" are different lengths.");
+    throw std::invalid_argument(R"(Invalid measure operation: "register" and "qubits" are different lengths.)");
   }
   return op;
 }
@@ -950,7 +950,7 @@ Op json_to_op_snapshot_default(const json_t &js) {
   JSON::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
   JSON::get_value(op.name, "snapshot_type", js);
   // If missing use "default" for label
-  op.string_params.push_back("default");
+  op.string_params.emplace_back("default");
   JSON::get_value(op.string_params[0], "label", js);
   // Add optional qubits field
   JSON::get_value(op.qubits, "qubits", js);
@@ -992,7 +992,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
                                       "(Pauli label does not match qubit number.).");
         }
         // make tuple and add to components
-        op.params_expval_pauli.push_back(std::make_pair(coeff, pauli));
+        op.params_expval_pauli.emplace_back(coeff, pauli);
       } // end if > threshold
     } // end component loop
   } else {
@@ -1038,9 +1038,9 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
                                         comp.dump() + " invalid).");
           }
-          mats.push_back(std::make_pair(comp_qubits, comp_matrix));
+          mats.emplace_back(comp_qubits, comp_matrix);
         }
-        op.params_expval_matrix.push_back(std::make_pair(coeff, mats));
+        op.params_expval_matrix.emplace_back(coeff, mats);
       }
     } // end component loop
   } else {

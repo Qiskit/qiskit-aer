@@ -17,6 +17,8 @@
 
 #include <algorithm>
 #include <sstream>
+#include <cmath>
+#include <limits>
 
 #include "framework/types.hpp"
 
@@ -1407,13 +1409,13 @@ reg_t hex2reg(std::string str) {
     size_t length = (str.size() % 8) + 32 * (str.size() / 8);
     reg.reserve(length);
     while (str.size() > 8) {
-      unsigned long hex = stoull(str.substr(str.size() - 8), 0, 16);
+      unsigned long hex = stoull(str.substr(str.size() - 8), nullptr, 16);
       reg_t tmp = int2reg(hex, 2, 32);
       std::move(tmp.begin(), tmp.end(), back_inserter(reg));
       str.erase(str.size() - 8);
     }
     if (str.size() > 0) {
-      reg_t tmp = int2reg(stoul(str, 0, 16), 2, 0);
+      reg_t tmp = int2reg(stoul(str, nullptr, 16), 2, 0);
       std::move(tmp.begin(), tmp.end(), back_inserter(reg));
     }
     return reg;
@@ -1538,6 +1540,21 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   return padleft_inplace(tmp, '0', minlen);
 }
 
+// No silver bullet for floating point comparison techniques.
+// With this function the user can at least specify the precision
+// If we have numbers closer to 0, then max_diff can be set to a value
+// way smaller than epsilon. For numbers larger than 1.0, epsilon will
+// scale (the bigger the number, the bigger the epsilon).
+template<typename T>
+typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
+    almost_equal(T f1, T f2, T max_diff = std::numeric_limits<T>::epsilon(), T max_relative_diff = std::numeric_limits<T>::epsilon())
+{
+  T diff = std::abs(f1 - f2);
+  if(diff <= max_diff)
+    return true;
+
+  return diff <= max_relative_diff * std::max(std::abs(f1), std::abs(f2));
+}
 
 //------------------------------------------------------------------------------
 } // end namespace Utils
