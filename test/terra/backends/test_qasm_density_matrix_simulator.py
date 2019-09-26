@@ -71,7 +71,10 @@ class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
                                      QasmKrausNoiseTests):
     """QasmSimulator density_matrix method tests."""
 
-    BACKEND_OPTS = {"method": "density_matrix"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "density_matrix"
+    }
 
 
 if __name__ == '__main__':
