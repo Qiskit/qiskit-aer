@@ -21,10 +21,13 @@ from test.terra.backends.qasm_simulator.matrix_product_state_measure import Qasm
 
 
 class TestQasmMatrixProductStateSimulator(common.QiskitAerTestCase,
-                                   QasmMatrixProductStateMethodTests,
-                                   QasmMatrixProductStateMeasureTests):
+                                          QasmMatrixProductStateMethodTests,
+                                          QasmMatrixProductStateMeasureTests):
 
-    BACKEND_OPTS = {"method": "matrix_product_state"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "matrix_product_state"
+    }
 
 if __name__ == '__main__':
     unittest.main()
