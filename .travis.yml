@@ -28,7 +28,7 @@ stage_generic: &stage_generic
     # Installing qiskit-terra master branch...
     - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
     # Installing qiskit-aer...
-    - pip install -U -r requirements-dev.txt
+    - pip install -U -c constraints.txt -r requirements-dev.txt
 
 stage_linux: &stage_linux
   <<: *stage_generic
