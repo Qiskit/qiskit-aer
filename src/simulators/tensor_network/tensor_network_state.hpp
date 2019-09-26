@@ -469,7 +469,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
 
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
-    string pauli_matrices = param.second;
+    std::string pauli_matrices = param.second;
     complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
 
     expval += coeff * pauli_expval;

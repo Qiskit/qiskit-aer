@@ -81,7 +81,7 @@ public:
     }
     return *this;
   }
-  virtual ostream& print(ostream& out) const;
+  virtual std::ostream& print(std::ostream& out) const;
   reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
@@ -128,7 +128,7 @@ private:
 			   bool right, /* or left */
 			   bool mul    /* or div */);
 
-  vector<cmatrix_t> data_;
+  std::vector<cmatrix_t> data_;
 };
 
 //=========================================================================
@@ -139,10 +139,10 @@ private:
 // function name: print
 // Description: Prints the Tensor. All the submatrices are aligned by rows.
 //---------------------------------------------------------------
-ostream& MPS_Tensor::print(ostream& out) const {   
+std::ostream& MPS_Tensor::print(std::ostream& out) const {   
     complex_t value;
     
-    out << "[" << endl;
+    out << "[" << std::endl;
     if (data_.size() > 0){
         //Printing the matrices row by row (i.e., not matrix by matrix)
         
@@ -160,10 +160,10 @@ ostream& MPS_Tensor::print(ostream& out) const {
                 }    
                 out << "| ,";
             }
-            out << endl;
+            out << std::endl;
         }        
     }
-    out << "]" << endl;
+    out << "]" << std::endl;
 
     return out;
 }
@@ -452,23 +452,23 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   matrix<complex_t> C;
   C = reshape_before_SVD(temp.data_);
   matrix<complex_t> U,V;
-  rvector_t S(min(C.GetRows(), C.GetColumns()));
+  rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
-  cout << "Input matrix before SVD =" << endl << C ;
+  std::std::cout << "Input matrix before SVD =" << std::std::endl << C ;
 #endif
   
   csvd_wrapper(C, U, S, V);
   reduce_zeros(U, S, V);
 
 #ifdef DEBUG
-  cout << "matrices after SVD:" <<endl;
-  cout << "U = " << endl << U ;
-  cout << "S = " << endl;
+  std::cout << "matrices after SVD:" <<std::endl;
+  std::cout << "U = " << std::endl << U ;
+  std::cout << "S = " << std::endl;
   for (uint_t i = 0; i != S.size(); ++i)
-    cout << S[i] << " , ";
-  cout << endl;
-  cout << "V* = " << endl << V ;
+    std::cout << S[i] << " , ";
+  std::cout << std::endl;
+  std::cout << "V* = " << std::endl << V ;
 #endif
 
   left_gamma.data_  = reshape_U_after_SVD(U);

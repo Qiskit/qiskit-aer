@@ -142,7 +142,7 @@ public:
   // Returns: The expectation value in the form of a complex number. The real part is the 
   //          actual expectation value.
   //------------------------------------------------------------------
-  complex_t expectation_value_pauli(const reg_t &qubits, const string &matrices) const;
+  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
 
   //------------------------------------------------------------------
   // function name: MPS_with_new_indices
@@ -159,13 +159,13 @@ public:
   // function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------	
-   virtual ostream&  print(ostream& out) const;
+  virtual std::ostream&  print(std::ostream& out) const;
 
    //----------------------------------------------------------------
    // function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
-   vector<reg_t> get_matrices_sizes() const;
+  std::vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
   // function name: state_vec
@@ -202,7 +202,7 @@ public:
   }
 
   void enable_gate_opt() {
-    cout << "enable_gate_opt not supported yet" <<endl;
+    std::cout << "enable_gate_opt not supported yet" <<std::endl;
   }
 
   rvector_t probabilities(const AER::reg_t &qubits) const
@@ -216,7 +216,7 @@ public:
   //           cout << " store_measure not supported yet" <<endl;}
 
   double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
-    cout << "norm not supported yet" <<endl;
+    std::cout << "norm not supported yet" <<std::endl;
     return 0;
   }
   
@@ -239,8 +239,8 @@ public:
   
 protected:
   uint_t num_qubits_;
-  vector<MPS_Tensor> q_reg_;
-  vector<rvector_t> lambda_reg_;
+  std::vector<MPS_Tensor> q_reg_;
+  std::vector<rvector_t> lambda_reg_;
   //-----------------------------------------------------------------------
   // Config settings
   //----------------------------------------------------------------------- 
@@ -251,7 +251,7 @@ protected:
                                     // in JSON serialization
 };
  
-inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
+  inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   out << "[";
   uint_t size = vec.size();
   for (uint_t i = 0; i < size-1; ++i) {
@@ -262,7 +262,7 @@ inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   return out;
 }
  
-inline ostream&
+inline std::ostream&
 operator <<(std::ostream& out, const MPS& mps)
 {
   return mps.print(out);

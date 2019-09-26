@@ -22,7 +22,6 @@
 #define THRESHOLD 1e-9
 #define NUM_SVD_TRIES 15
 
-using namespace std;
 namespace AER {
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
@@ -40,7 +39,7 @@ cmatrix_t diag(rvector_t S, uint_t m, uint_t n)
 	return Res;
 }
 
-cmatrix_t reshape_before_SVD(vector<cmatrix_t> data)
+cmatrix_t reshape_before_SVD(std::vector<cmatrix_t> data)
 {
 //	Turns 4 matrices A0,A1,A2,A3 to big matrix:
 //	A0 A1
@@ -49,17 +48,17 @@ cmatrix_t reshape_before_SVD(vector<cmatrix_t> data)
 		  temp2 = AER::Utils::concatenate(data[2], data[3], 1);
 	return AER::Utils::concatenate(temp1, temp2, 0);
 }
-vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t U)
+std::vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t U)
 {
-	vector<cmatrix_t> Res(2);
-	AER::Utils::split(U, Res[0], Res[1], 0);
-	return Res;
+  std::vector<cmatrix_t> Res(2);
+  AER::Utils::split(U, Res[0], Res[1], 0);
+  return Res;
 }
-vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
+std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 {
-	vector<cmatrix_t> Res(2);
-	AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1] ,1);
-	return Res;
+  std::vector<cmatrix_t> Res(2);
+  AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1] ,1);
+  return Res;
 }
 
 //-------------------------------------------------------------
@@ -80,7 +79,7 @@ uint_t num_of_SV(rvector_t S, double threshold)
 		sum++;
 	}
 	if (sum == 0)
-	  cout << "SV_Num == 0"<< '\n';
+	  std::cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
 
@@ -94,20 +93,20 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
 // added cut-off at the end
 status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 {
-	int m = A.GetRows(), n = A.GetColumns(), size = max(m,n);
-	rvector_t b(size,0.0), c(size,0.0), t(size,0.0);
-	double cs = 0.0, eps = 0.0, f = 0.0 ,g = 0.0, h = 0.0, sn = 0.0 , w = 0.0, x = 0.0, y = 0.0, z = 0.0;
-	double eta = 1e-10, tol = 1.5e-34;
-	// using int and not uint_t because uint_t caused bugs in loops with condition of >= 0
-	int i = 0, j = 0, k = 0, k1 = 0, l = 0, l1 = 0;
-	complex_t q = 0;
-	// Transpose when m < n
-    bool transposed = false;
-    if (m < n)
+  int m = A.GetRows(), n = A.GetColumns(), size = std::max(m,n);
+  rvector_t b(size,0.0), c(size,0.0), t(size,0.0);
+  double cs = 0.0, eps = 0.0, f = 0.0 ,g = 0.0, h = 0.0, sn = 0.0 , w = 0.0, x = 0.0, y = 0.0, z = 0.0;
+  double eta = 1e-10, tol = 1.5e-34;
+  // using int and not uint_t because uint_t caused bugs in loops with condition of >= 0
+  int i = 0, j = 0, k = 0, k1 = 0, l = 0, l1 = 0;
+  complex_t q = 0;
+  // Transpose when m < n
+  bool transposed = false;
+  if (m < n)
     {
     	transposed = true;
     	A = AER::Utils::dagger(A);
-    	swap(m,n);
+	std::swap(m,n);
     }
 	cmatrix_t temp_A = A;
 	c[0] = 0;
@@ -209,7 +208,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	{
 		S[k] = b[k];
 		t[k] = c[k];
-		eps = max( eps, S[k] + t[k] );
+		eps = std::max( eps, S[k] + t[k] );
 	}
 	eps = eps * eta;
 
@@ -308,8 +307,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				w = sqrt( h * h + f * f );
 				if (w == 0) {
 #ifdef DEBUG
-				  cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << endl;
-				  cout << " w = " << w << endl;
+				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << endl;
+				  std::cout << " w = " << w << endl;
 #endif
 				}
 				t[i-1] = w;
@@ -320,7 +319,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				long double large_f = 0;
 				if (f==0) {
 #ifdef DEBUG
-				  cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
+				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
 #endif
 				  long double large_x =   x * tiny_factor;
 				  long double large_g =   g * tiny_factor;
@@ -329,9 +328,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				  large_f = large_x * large_cs + large_g * large_sn;
 
 #ifdef DEBUG
-				  cout << large_x * large_cs <<endl;;
-				  cout << large_g * large_sn <<endl;
-				  cout << "new f = " << large_f << endl;
+				  std::cout << large_x * large_cs <<endl;;
+				  std::cout << large_g * large_sn <<endl;
+				  std::cout << "new f = " << large_f << endl;
 
 #endif
 				}
@@ -349,7 +348,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 				bool tiny_w = false;
 #ifdef DEBUG
-				cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
+				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
 #endif
 				if (abs(h)  < 1e-13 && abs(f) < 1e-13 && large_f != 0) {
 				  tiny_w = true;
@@ -361,8 +360,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				if (w == 0 && !tiny_w) {
 
 #ifdef DEBUG
-				    cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << endl;
-				    cout << " w = " << w << endl;
+				    std::cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << endl;
+				    std::cout << " w = " << w << endl;
 #endif
 				  return FAILURE;
 				}
@@ -508,7 +507,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 	// Transpose again if m < n
 	if(transposed)
-		swap(U,V);
+	  std::swap(U,V);
 
 	return SUCCESS;
 }
@@ -519,7 +518,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   cmatrix_t copied_A = A;
   int times = 0;
 #ifdef DEBUG
-  cout << "1st try" << endl;
+  std::cout << "1st try" << endl;
 #endif
   status current_status = csvd(A, U, S, V);
   if (current_status == SUCCESS) {
@@ -533,7 +532,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
       A = copied_A;
 
 #ifdef DEBUG
-      cout << "SVD trial #" << times << endl;
+      std::cout << "SVD trial #" << times << endl;
 #endif
 
       current_status = csvd(A, U, S, V);

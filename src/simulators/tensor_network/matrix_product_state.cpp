@@ -21,8 +21,6 @@
 #include "matrix_product_state.hpp"
 #include "matrix_product_state_tensor.hpp"
 
-using namespace std;
-
 namespace AER {
 namespace TensorNetworkState {
 
@@ -48,7 +46,7 @@ static const cmatrix_t one_measure =
 //----------------------------------------------------------------	
 cvector_t reverse_all_bits(const cvector_t& statevector, uint_t num_qubits);
 uint_t reverse_bits(uint_t num, uint_t len);
-vector<uint_t> calc_new_indexes(vector<uint_t> indexes);
+  std::vector<uint_t> calc_new_indexes(std::vector<uint_t> indexes);
 
 // The following two functions are helper functions used by 
 // initialize_from_statevector
@@ -87,11 +85,11 @@ cvector_t reverse_all_bits(const cvector_t& statevector, uint_t num_qubits)
   return output_vector;
 }
 
-vector<uint_t> calc_new_indexes(vector<uint_t> indexes)
+std::vector<uint_t> calc_new_indexes(std::vector<uint_t> indexes)
 {
 	uint_t n = indexes.size();
 	uint_t avg = std::round(std::accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
-	vector<uint_t> new_indexes( n );
+	std::vector<uint_t> new_indexes( n );
 	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
 	return new_indexes;
 }
@@ -117,7 +115,7 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 }
 
 cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
-  vector<cmatrix_t> res(2);
+  std::vector<cmatrix_t> res(2);
   AER::Utils::split(input_matrix, res[0], res[1], 1);
   cmatrix_t reshaped_matrix = AER::Utils::concatenate(res[0], res[1], 0);
   return reshaped_matrix;
@@ -375,14 +373,14 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 			      MPS& temp_MPS, 
 			      uint_t &front, uint_t &back) const {
   // ***** Assuming ascending sorted qubits register *****
-  vector<uint_t> internalIndexes;
+  std::vector<uint_t> internalIndexes;
   for (uint_t index : qubits)
     internalIndexes.push_back(index);
 
   temp_MPS.initialize(*this);
-  vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
+  std::vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
   uint_t avg = new_indexes[new_indexes.size()/2];
-  vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
+  std::vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
@@ -448,7 +446,7 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 //            a2\o--a3--o-- 
 //---------------------------------------------------------------
 
-complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matrices) const
+complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const
 {
   MPS temp_MPS;
   uint_t first_index = 0, last_index = 0;
@@ -456,7 +454,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
 
   // Preliminary step - reverse the order of the matrices because 
   // they are ordered in reverse to that of the qubits (in the interface)
-  string reversed_matrices = matrices;
+  std::string reversed_matrices = matrices;
   reverse(reversed_matrices.begin(), reversed_matrices.end());
   char gate = reversed_matrices[0];
 
@@ -530,30 +528,30 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const string &matric
   return result;
 }
 
-ostream& MPS::print(ostream& out) const
+  std::ostream& MPS::print(std::ostream& out) const
 {
 	for(uint_t i=0; i<num_qubits_; i++)
 	{
-	  out << "Gamma [" << i << "] :" << endl;
+	  out << "Gamma [" << i << "] :" << std::endl;
 	  q_reg_[i].print(out);
 	  if(i < num_qubits_- 1)
 	    {
-	      out << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << endl;
-	      out << lambda_reg_[i] << endl;
+	      out << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << std::endl;
+	      out << lambda_reg_[i] << std::endl;
 	    }
 	}
-	out << endl;
+	out << std::endl;
 	return out;
 }
 
-vector<reg_t> MPS::get_matrices_sizes() const
+std::vector<reg_t> MPS::get_matrices_sizes() const
 {
-	vector<reg_t> result;
-	for(uint_t i=0; i<num_qubits_; i++)
-	{
-		result.push_back(q_reg_[i].get_size());
-	}
-	return result;
+  std::vector<reg_t> result;
+  for(uint_t i=0; i<num_qubits_; i++)
+    {
+      result.push_back(q_reg_[i].get_size());
+    }
+  return result;
 }
 
 MPS_Tensor MPS::state_vec(uint_t first_index, uint_t last_index) const
@@ -582,7 +580,7 @@ void MPS::full_state_vector(cvector_t& statevector) const
     statevector[i] = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
   }
 #ifdef DEBUG
-  cout << *this;
+  std::cout << *this;
 #endif
 }
 
@@ -689,13 +687,13 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
 
     // step 2 - SVD
     S.clear();
-    S.resize(min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
+    S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
     csvd_wrapper(reshaped_matrix, U, S, V);
     reduce_zeros(U, S, V);
 
     // step 3 - update q_reg_ with new gamma and new lambda
     //          increment number of qubits in the MPS structure
-    vector<cmatrix_t> left_data = reshape_U_after_SVD(U);
+    std::vector<cmatrix_t> left_data = reshape_U_after_SVD(U);
     MPS_Tensor left_gamma(left_data[0], left_data[1]); 
     if (!first_iter)
       left_gamma.div_Gamma_by_left_Lambda(lambda_reg_.back()); 
@@ -707,7 +705,7 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
   }
 
   // step 4 - create the rightmost gamma and update q_reg_
-  vector<cmatrix_t> right_data = reshape_V_after_SVD(V);
+  std::vector<cmatrix_t> right_data = reshape_V_after_SVD(V);
   
   MPS_Tensor right_gamma(right_data[0], right_data[1]) ;
   q_reg_.push_back(right_gamma);
