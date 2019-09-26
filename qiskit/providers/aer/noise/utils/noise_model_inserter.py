@@ -32,8 +32,7 @@ def insert_noise(circuits, noise_model, transpile=False):
     is_circuits_list = isinstance(circuits, (list, tuple))
     circuits = circuits if is_circuits_list else [circuits]
     result_circuits = []
-    errors = noise_model._default_quantum_errors.items()
-    error_dict = {name: qubit_dict for (name, qubit_dict) in errors}
+    errors = noise_model._default_quantum_errors
     for circuit in circuits:
         if transpile:
             transpiled_circuit = qiskit.compiler.transpile(circuit,
@@ -44,8 +43,8 @@ def insert_noise(circuits, noise_model, transpile=False):
         result_circuit.data = []
         for inst, qargs, cargs in transpiled_circuit.data:
             result_circuit.data.append((inst, qargs, cargs))
-            if inst.name in error_dict.keys():
-                error = error_dict[inst.name]
+            if inst.name in errors.keys():
+                error = errors[inst.name]
                 result_circuit.append(error.to_instruction(), qargs)
         result_circuits.append(result_circuit)
     return result_circuits if is_circuits_list else result_circuits[0]

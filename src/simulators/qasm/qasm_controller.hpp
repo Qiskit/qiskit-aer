@@ -22,7 +22,7 @@
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
-#include "simulators/tensor_network/tensor_network_state.hpp"
+#include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
@@ -310,7 +310,7 @@ void QasmController::set_config(const json_t &config) {
     else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
     }
-    else if (method == "matrix_product_state") 
+    else if (method == "matrix_product_state")
     {
       simulation_method_ = Method::matrix_product_state;
     }
@@ -444,12 +444,12 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                            Method::extended_stabilizer);
 
     case Method::matrix_product_state:
-      return run_circuit_helper<TensorNetworkState::State>(circ,
+      return run_circuit_helper<MatrixProductState::State>(circ,
                                                            noise,
                                                            config,
                                                            shots,
                                                            rng_seed,
-                                                           TensorNetworkState::MPS(),
+                                                           MatrixProductState::MPS(),
                                                            Method::matrix_product_state);
 
     default:
@@ -485,7 +485,7 @@ QasmController::simulation_method(const Circuit &circ,
     }
     case Method::matrix_product_state: {
       if (validate)
-        validate_state(TensorNetworkState::State(), circ, noise_model, true);
+        validate_state(MatrixProductState::State(), circ, noise_model, true);
       return Method::matrix_product_state;
     }
     case Method::automatic: {
@@ -505,7 +505,7 @@ QasmController::simulation_method(const Circuit &circ,
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
         return Method::density_matrix;
         }
-      // Finally we check if the statevector memory requirement for the
+      // Finally we check the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
       // the extended stabilizer simulator.
@@ -572,7 +572,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     case Method::matrix_product_state: {
-      TensorNetworkState::State state;
+      MatrixProductState::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     default:

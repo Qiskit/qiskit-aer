@@ -99,6 +99,20 @@ class QasmNonCliffordTests:
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    # ---------------------------------------------------------------------
+    # Test cu1 gate
+    # ---------------------------------------------------------------------
+    def test_cu1_gate_nondeterministic_default_basis_gates(self):
+        """Test cu1-gate gate circuits compiling to default basis."""
+        shots = 2000
+        circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
 
 class QasmNonCliffordTestsWaltzBasis:
     """QasmSimulator non-Clifford gate tests in minimal u1,u2,u3,cx basis."""
@@ -181,6 +195,20 @@ class QasmNonCliffordTestsWaltzBasis:
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    # ---------------------------------------------------------------------
+    # Test cu1 gate
+    # ---------------------------------------------------------------------
+    def test_cu1_gate_nondeterministic_waltz_basis_gates(self):
+        """Test cu1-gate gate circuits compiling to u1,u2,u3,cx"""
+        shots = 2000
+        circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
 
 class QasmNonCliffordTestsMinimalBasis:
     """QasmSimulator non-Clifford gate tests in minimal U,CX basis."""
@@ -258,6 +286,20 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.1 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test cu1 gate
+    # ---------------------------------------------------------------------
+    def test_cu1_gate_nondeterministic_minimal_basis_gates(self):
+        """Test cu1-gate gate circuits compiling to u3,cx"""
+        shots = 2000
+        circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = job.result()
         self.is_completed(result)
