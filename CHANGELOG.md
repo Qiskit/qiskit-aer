@@ -25,6 +25,9 @@ Added
 Changed
 -------
 - Changed all names from tensor_network_state to matrix_product_state (\#356)
+- Update device noise model to use gate_length (\#352)
+- Refactoring code and introducing floating point comparison func (\#338)
+
 
 
 Removed

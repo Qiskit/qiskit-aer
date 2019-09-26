@@ -20,7 +20,6 @@ TEST_CASE( "Simulators Snapshot", "[snaphot]" ) {
     qobj_snapshots["matrix"] =
         AER::Test::Utilities::load_qobj("../../test/data/qobj_snapshot_expval_matrix.json");
 
-    using State = AER::QubitVector::State<>;
     AER::Simulator::QasmController sim{};
 
     SECTION( "State simulator snapshot" ) {

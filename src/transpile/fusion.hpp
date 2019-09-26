@@ -93,8 +93,8 @@ private:
   uint_t max_qubit_;
   uint_t threshold_;
   double cost_factor_;
-  bool verbose_;
-  bool active_;
+  bool verbose_ = false;
+  bool active_ = false;
 };
 
 const std::vector<std::string> Fusion::supported_gates({
@@ -124,8 +124,7 @@ const std::vector<std::string> Fusion::supported_gates({
 });
 
 Fusion::Fusion(uint_t max_qubit, uint_t threshold, double cost_factor):
-    max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor),
-    verbose_(false), active_(false) {
+    max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor) {
 }
 
 void Fusion::set_config(const json_t &config) {
@@ -552,9 +551,11 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
-  for (uint_t i = 0; i < op.qubits.size(); ++i)
-    if (find(fusion_qubits.begin(), fusion_qubits.end(), op.qubits[i]) == fusion_qubits.end())
-      fusion_qubits.push_back(op.qubits[i]);
+  for (const auto qubit: op.qubits){
+    if (find(fusion_qubits.begin(), fusion_qubits.end(), qubit) == fusion_qubits.end()){
+      fusion_qubits.push_back(qubit);
+    }
+  }
 }
 
 cmatrix_t Fusion::matrix(const op_t& op) const {
