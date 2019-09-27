@@ -644,6 +644,18 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.compare_unitary(result, circuits, targets)
 
     # ---------------------------------------------------------------------
+    # Test cswap-gate (Fredkin)
+    # ---------------------------------------------------------------------
+    def test_cswap_gate_deterministic_default_basis_gates(self):
+        """Test cswap-gate circuits compiling to backend default basis_gates."""
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_deterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
+    # ---------------------------------------------------------------------
     # Test cu1 gate
     # ---------------------------------------------------------------------
     def test_cu1_gate_nondeterministic_waltz_basis_gates(self):
@@ -651,6 +663,16 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_non_clifford.cu1_gate_unitary_nondeterministic()
         job = execute(circuits, UnitarySimulator(), shots=1, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
+    def test_cswap_gate_deterministic_minimal_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u3,cx"""
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
+            final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_deterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
@@ -664,11 +686,50 @@ class TestUnitarySimulator(common.QiskitAerTestCase):
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)
 
+    def test_cswap_gate_deterministic_waltz_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u1,u2,u3,cx"""
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_deterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
+    def test_cswap_gate_nondeterministic_default_basis_gates(self):
+        """Test cswap-gate circuits compiling to backend default basis_gates."""
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_nondeterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
     def test_cu1_gate_nondeterministic_default_basis_gates(self):
         """Test cu1-gate gate circuits compiling to default basis"""
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_non_clifford.cu1_gate_unitary_nondeterministic()
         job = execute(circuits, UnitarySimulator(), shots=1)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
+    def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u3,cx"""
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
+            final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_nondeterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1, basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_unitary(result, circuits, targets)
+
+    def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u1,u2,u3,cx"""
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(final_measure=False)
+        targets = ref_non_clifford.cswap_gate_unitary_nondeterministic()
+        job = execute(circuits, UnitarySimulator(), shots=1,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.is_completed(result)
         self.compare_unitary(result, circuits, targets)

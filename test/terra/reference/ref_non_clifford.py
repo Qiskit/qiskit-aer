@@ -1057,6 +1057,136 @@ def multiplexer_ccx_gate_counts_nondeterministic(shots, hex_counts=True):
     """ The counts are exactly the same as the ccx gate """
     return ccx_gate_counts_nondeterministic(shots, hex_counts)
 
+  
+# ==========================================================================
+# CSWAP-gate (Fredkin)
+# ==========================================================================
+def cswap_gate_circuits_deterministic(final_measure):
+    """cswap-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr,)
+
+    # CSWAP(0,1,2) # -> |000>
+    circuit = QuantumCircuit(*regs)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(X^I^I) -> |100>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(I^X^I) -> |010>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(0,1,2).(X^X^I) -> |110>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[1])
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(0,1,2).(I^I^X) -> |001>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(I^X^X -> |101>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(0,1,2).(X^I^X) -> |011>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(X^X^X) -> |111>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[1])
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.cswap(qr[0], qr[1], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(1,0,2).(I^X^X) -> |110>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.cswap(qr[1], qr[0], qr[2])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(2,1,0).(X^I^X) -> |110>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.cswap(qr[2], qr[1], qr[0])
+    circuit.barrier(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    return circuits
+  
+  
 # ==========================================================================
 # CU1
 # ==========================================================================
@@ -1087,6 +1217,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit.h(qr[1])
     circuit.cu1(np.pi, qr[0], qr[1])
     circuit.h(qr[1])
+    
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -1127,7 +1258,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+        
     # H^H.CU1(0,0,1).H^H
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
@@ -1135,11 +1266,12 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit.cu1(0, qr[0], qr[1])
     circuit.h(qr[0])
     circuit.h(qr[1])
+
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     # H^H.CU1(pi/2,0,1).H^H
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
@@ -1163,10 +1295,483 @@ def cu1_gate_circuits_nondeterministic(final_measure):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
-
+    
     return circuits
 
 
+def cswap_gate_counts_deterministic(shots, hex_counts=True):
+    """"cswap-gate  circuits  reference counts."""
+    targets = []
+
+    if hex_counts:
+        # CSWAP(0,1,2) # -> |000>
+        targets.append({'0x0': shots})
+        # CSWAP(0,1,2).(X^I^I) -> |100>
+        targets.append({'0x4': shots})
+        # CSWAP(0,1,2).(I^X^I) -> |010>
+        targets.append({'0x2': shots})
+        # CSWAP(0,1,2).(X^X^I) -> |110>
+        targets.append({'0x6': shots})
+        # CSWAP(0,1,2).(I^I^X). -> |001>
+        targets.append({'0x1': shots})
+        # CSWAP(0,1,2).(I^X^X) -> |101>
+        targets.append({'0x5': shots})
+        # CSWAP(0,1,2).(X^I^X) -> |011>
+        targets.append({'0x3': shots})
+        # CSWAP(0,1,2).(X^X^X) -> |111>
+        targets.append({'0x7': shots})
+        # CSWAP(1,0,2).(I^X^X) -> |110>
+        targets.append({'0x6': shots})
+        # CSWAP(2,1,0).(X^I^X) -> |110>
+        targets.append({'0x6': shots})
+    else:
+        # CSWAP(0,1,2) # -> |000>
+        targets.append({'000': shots})
+        # CSWAP(0,1,2).(X^I^I) -> |100>
+        targets.append({'100': shots})
+        # CSWAP(0,1,2).(I^X^I) -> |010>
+        targets.append({'010': shots})
+        # CSWAP(0,1,2).(X^X^I) -> |110>
+        targets.append({'110': shots})
+        # CSWAP(0,1,2).(I^I^X) -> |001>
+        targets.append({'001': shots})
+        # CSWAP(0,1,2).(I^X^X) -> |101>
+        targets.append({'101': shots})
+        # CSWAP(0,1,2).(X^I^X) -> |011>
+        targets.append({'011': shots})
+        # CSWAP(0,1,2).(X^X^X) -> |111>
+        targets.append({'111': shots})
+        # CSWAP(1,0,2).(I^X^X) -> |110>
+        targets.append({'110': shots})
+        # CSWAP(2,1,0).(X^I^X) -> |110>
+        targets.append({'110': shots})
+    return targets
+
+
+def cswap_gate_circuits_nondeterministic(final_measure=True):
+    """cswap-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # CSWAP(0,1,2).(H^H^H)
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.h(qr[1])
+    circuit.h(qr[2])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+   
+    # CSWAP(0,1,2).(X^I^H). -> |100> + |011>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.x(qr[2])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(I^X^H). -> |010> + |101>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.x(qr[1])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # CSWAP(0,1,2).(I^H^I)  -> |010>+|000>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[1])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(0,1,2).(H^I^I)  -> |100>+|000>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[2])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    # CSWAP(0,1,2).(I^I^H)  -> |001>+|000>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    
+    # CSWAP(0,1,2).(X^X^H)  -> |110> + |111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.x(qr[1])
+    circuit.x(qr[2])
+    circuit.cswap(qr[0], qr[1], qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)    
+
+    return circuits
+
+  
+def cswap_gate_counts_nondeterministic(shots, hex_counts=True):
+    targets = []
+
+    if hex_counts:
+        # CSWAP(0,1,2).(H^H^H)  -> |--->
+        targets.append({'0x0': shots / 8,
+                        '0x1': shots / 8,
+                        '0x2': shots / 8,
+                        '0x3': shots / 8,
+                        '0x4': shots / 8,
+                        '0x5': shots / 8,
+                        '0x6': shots / 8,
+                        '0x7': shots / 8,
+                        })
+        # CSWAP(0,1,2).(X^I^H). -> |100> + |011>
+        targets.append({'0x3': shots / 2,
+                        '0x4': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^X^H). -> |010> + |101>
+        targets.append({'0x2': shots / 2,
+                        '0x5': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^H^I)  -> |0-0>
+        targets.append({'0x2': shots / 2,
+                        '0x0': shots / 2
+                        })
+        # CSWAP(0,1,2).(H^I^I)  -> |-00>
+        targets.append({'0x4': shots / 2,
+                        '0x0': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^I^H)  -> |00->
+        targets.append({'0x0': shots / 2,
+                        '0x1': shots / 2
+                        })
+        # CSWAP(0,1,2).(X^X^H)  -> |110> + |111>
+        targets.append({'0x6': shots / 2,
+                        '0x7': shots / 2
+                        })
+
+    else:
+        # CSWAP(0,1,2).(H^H^H)  -> |--->
+        targets.append({'000': shots / 8,
+                        '001': shots / 8,
+                        '010': shots / 8,
+                        '011': shots / 8,
+                        '100': shots / 8,
+                        '101': shots / 8,
+                        '110': shots / 8,
+                        '111': shots / 8,
+                        })
+        # CSWAP(0,1,2).(X^I^H). -> |100> + |011>
+        targets.append({'011': shots / 2,
+                        '100': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^X^H). -> |010> + |101>
+        targets.append({'010': shots / 2,
+                        '101': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^H^I)  -> |0-0>
+        targets.append({'010': shots / 2,
+                        '000': shots / 2
+                        })
+        # CSWAP(0,1,2).(H^I^I)  -> |-00>
+        targets.append({'100': shots / 2,
+                        '000': shots / 2
+                        })
+        # CSWAP(0,1,2).(I^I^H)  -> |00->
+        targets.append({'001': shots / 2,
+                        '000': shots / 2
+                        })
+        # CSWAP(0,1,2).(X^X^H)  -> |110> + |111>
+        targets.append({'110': shots / 2,
+                        '111': shots / 2
+                        })
+
+    return targets
+
+
+def cswap_gate_statevector_deterministic():
+    targets = []
+    # CSWAP(0,1,2) # -> |000>
+    targets.append(np.array([1, 0, 0, 0, 0, 0, 0, 0]))
+    # CSWAP(0,1,2).(X^I^I) -> |100>
+    targets.append(np.array([0, 0, 0, 0, 1, 0, 0, 0]))
+    # CSWAP(0,1,2).(I^X^I) -> |010>
+    targets.append(np.array([0, 0, 1, 0, 0, 0, 0, 0]))
+    # CSWAP(0,1,2).(X^X^I) -> |110>
+    targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
+    # CSWAP(0,1,2).(I^I^X) -> |001>
+    targets.append(np.array([0, 1, 0, 0, 0, 0, 0, 0]))
+    # CSWAP(0,1,2).(I^X^X) -> |101>
+    targets.append(np.array([0, 0, 0, 0, 0, 1, 0, 0]))
+    # CSWAP(0,1,2).(X^I^X) -> |011>
+    targets.append(np.array([0, 0, 0, 1, 0, 0, 0, 0]))
+    # CSWAP(0,1,2).(X^X^X) -> |111>
+    targets.append(np.array([0, 0, 0, 0, 0, 0, 0, 1]))
+    # CSWAP(1,0,2).(I^X^X) -> |110>
+    targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
+    # CSWAP(2,1,0).(X^I^X) -> |110>
+    targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 0]))
+    return targets
+
+
+def cswap_gate_statevector_nondeterministic():
+    targets = []
+    # CSWAP(0,1,2).(H^H^H)  -> |--->
+    targets.append(np.array([1, 1, 1, 1, 1, 1, 1, 1]) / np.sqrt(8))
+    # CSWAP(0,1,2).(X^I^H). -> |100> + |011>
+    targets.append(np.array([0, 0, 0, 1, 1, 0, 0, 0]) / np.sqrt(2))
+    # CSWAP(0,1,2).(I^X^H). -> |010> + |101>
+    targets.append(np.array([0, 0, 1, 0, 0, 1, 0, 0]) / np.sqrt(2))
+    # CSWAP(0,1,2).(I^H^I)  -> |0-0>
+    targets.append(np.array([1, 0, 1, 0, 0, 0, 0, 0]) / np.sqrt(2))
+    # CSWAP(0,1,2).(H^I^I)  -> |-00>
+    targets.append(np.array([1, 0, 0, 0, 1, 0, 0, 0]) / np.sqrt(2))
+    # CSWAP(0,1,2).(I^I^H)  -> |00->
+    targets.append(np.array([1, 1, 0, 0, 0, 0, 0, 0]) / np.sqrt(2))
+    # CSWAP(0,1,2).(X^X^H)  -> |110> + |111>
+    targets.append(np.array([0, 0, 0, 0, 0, 0, 1, 1]) / np.sqrt(2))
+    return targets
+
+
+def cswap_gate_unitary_deterministic():
+    """cswap-gate circuits reference unitaries."""
+    targets = []
+
+    # CSWAP(0,1,2) # -> |000>
+    targets.append(np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1]]))
+    # CSWAP(0,1,2).(X^I^I) -> |100>
+    targets.append(np.array([[0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0]]))
+    # CSWAP(0,1,2).(I^X^I) -> |010>
+    targets.append(np.array([[0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0]]))
+    # CSWAP(0,1,2).(X^X^I) -> |110>
+    targets.append(np.array([[0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0]]))
+    # CSWAP(0,1,2).(I^I^X) -> |001>
+    targets.append(np.array([[0, 1, 0, 0, 0, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 0, 0, 1, 0]]))
+    # CSWAP(0,1,2).(I^X^X) -> |101>
+    targets.append(np.array([[0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0]]))
+    # CSWAP(0,1,2).(X^I^X) -> |011>
+    targets.append(np.array([[0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0]]))
+    # CSWAP(0,1,2).(X^X^X) -> |111>
+    targets.append(np.array([[0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0]]))
+    # CSWAP(1,0,2).(I^X^X) -> |110>
+    targets.append(np.array([[0, 0, 0, 1, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0]]))
+    # CSWAP(2,1,0).(X^I^X) -> |110>
+    targets.append(np.array([[0, 0, 0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 1, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 0, 0, 1, 0],
+                             [0, 1, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 1, 0, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0, 0, 0]]))
+    return targets
+
+
+def cswap_gate_unitary_nondeterministic():
+    """cswap-gate circuits reference unitaries."""
+    targets = []
+
+    targets.append(np.array([ [0.35355339,  0.35355339,  0.35355339,  0.35355339,
+                               0.35355339,  0.35355339,  0.35355339,  0.35355339],
+                              [0.35355339, -0.35355339,  0.35355339, -0.35355339,
+                               0.35355339, -0.35355339,  0.35355339, -0.35355339],
+                              [0.35355339,  0.35355339, -0.35355339, -0.35355339,
+                               0.35355339,  0.35355339, -0.35355339, -0.35355339],
+                              [0.35355339, -0.35355339,  0.35355339, -0.35355339,
+                              -0.35355339,  0.35355339, -0.35355339,  0.35355339],
+                              [0.35355339,  0.35355339,  0.35355339,  0.35355339,
+                              -0.35355339, -0.35355339, -0.35355339, -0.35355339],
+                              [0.35355339, -0.35355339, -0.35355339,  0.35355339,
+                               0.35355339, -0.35355339, -0.35355339,  0.35355339],
+                              [0.35355339,  0.35355339, -0.35355339, -0.35355339,
+                              -0.35355339, -0.35355339,  0.35355339,  0.35355339],
+                              [0.35355339, -0.35355339, -0.35355339,  0.35355339,
+                              -0.35355339,  0.35355339,  0.35355339, -0.35355339]]))
+
+    targets.append(np.array([ [0,           0,           0,           0,
+                               0.70710678,  0.70710678,  0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678, -0.70710678,  0,           0],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678,  0.70710678],
+                              [0.70710678, -0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0.70710678,  0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678, -0.70710678],
+                              [0,           0,           0.70710678,  0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0.70710678, -0.70710678,
+                               0,           0,           0,           0]]))
+
+    targets.append(np.array([ [0,           0,           0.70710678,  0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0.70710678, -0.70710678,
+                               0,           0,           0,           0],
+                              [0.70710678,  0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678, -0.70710678],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678,  0.70710678],
+                              [0.70710678, -0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678,  0.70710678,  0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678, -0.70710678,  0,           0]]))
+
+    targets.append(np.array([ [0.70710678,  0,           0.70710678,  0,
+                               0,           0,           0,           0],
+                              [0,           0.70710678,  0,           0.70710678,
+                               0,           0,           0,           0],
+                              [0.70710678,  0,          -0.70710678,  0,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0,           0.70710678,  0,           0.70710678],
+                              [0,           0,           0,           0,
+                               0.70710678,  0,           0.70710678,  0],
+                              [0,           0.70710678,  0,          -0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678,  0,          -0.70710678,  0],
+                              [0,           0,           0,           0,
+                               0,           0.70710678,  0,          -0.70710678]]))
+
+    targets.append(np.array([ [0.70710678,  0,           0,           0,
+                               0.70710678,  0,           0,           0],
+                              [0,           0.70710678,  0,           0,
+                               0,           0.70710678,  0,           0],
+                              [0,           0,           0.70710678,  0,
+                               0,           0,           0.70710678,  0],
+                              [0,           0.70710678,  0,           0,
+                               0,          -0.70710678,  0,           0],
+                              [0.70710678,  0,           0,           0,
+                              -0.70710678,  0,           0,           0],
+                              [0,           0,           0,           0.70710678,
+                               0,           0,           0,           0.70710678],
+                              [0,           0,           0.70710678,  0,
+                               0,           0,          -0.70710678,  0],
+                              [0,           0,           0,           0.70710678,
+                               0,           0,           0,          -0.70710678]]))
+
+    targets.append(np.array([ [0.70710678,  0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0.70710678, -0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0,           0,           0.70710678,  0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678, -0.70710678,  0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678,  0.70710678,  0,           0],
+                              [0,           0,           0.70710678, -0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678,  0.70710678],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678, -0.70710678]]))
+
+    targets.append(np.array([ [0,           0,           0,           0,
+                               0,           0,           0.70710678,  0.70710678],
+                              [0,           0,           0,           0,
+                               0,           0,           0.70710678, -0.70710678],
+                              [0,           0,           0,           0,
+                               0.70710678,  0.70710678,  0,           0],
+                              [0,           0,           0.70710678, -0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0.70710678,  0.70710678,
+                               0,           0,           0,           0],
+                              [0,           0,           0,           0,
+                               0.70710678, -0.70710678,  0,           0],
+                              [0.70710678,  0.70710678,  0,           0,
+                               0,           0,           0,           0],
+                              [0.70710678, -0.70710678,  0,           0,
+                               0,           0,           0,           0]]))
+    return targets
+  
 def cu1_gate_counts_nondeterministic(shots, hex_counts=True):
     """CU1-gate circuits reference counts."""
     targets = []
@@ -1262,5 +1867,4 @@ def cu1_gate_unitary_nondeterministic():
         [[0, 1, 1, -1], [1, 0, -1, 1], [1, -1, 0, 1], [-1, 1, 1, 0]]))
     # H^H.CU1(pi,0,1).H^H
     targets.append(0.5 * np.array([[1, 1, 1, -1], [1, 1, -1, 1], [1, -1, 1, 1], [-1, 1, 1, 1]]))
-
     return targets
