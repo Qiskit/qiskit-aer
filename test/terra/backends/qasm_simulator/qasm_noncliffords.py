@@ -100,6 +100,29 @@ class QasmNonCliffordTests:
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
+    # Test cswap-gate (Fredkin)
+    # ---------------------------------------------------------------------
+    def test_cswap_gate_deterministic_default_basis_gates(self):
+        shots = 100
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_cswap_gate_nondeterministic_default_basis_gates(self):
+        shots = 2000
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
     # Test cu1 gate
     # ---------------------------------------------------------------------
     def test_cu1_gate_nondeterministic_default_basis_gates(self):
@@ -190,6 +213,31 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test cswap-gate (Fredkin)
+    # ---------------------------------------------------------------------
+    def test_cswap_gate_deterministic_waltz_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u1,u2,u3,cx"""
+        shots = 100
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u1,u2,u3,cx"""
+        shots = 2000
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.is_completed(result)
@@ -329,3 +377,28 @@ class QasmNonCliffordTestsMinimalBasis:
         result = job.result()
         self.is_completed(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test cswap-gate (Fredkin)
+    # ---------------------------------------------------------------------
+    def test_cswap_gate_deterministic_minimal_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u3,cx"""
+        shots = 100
+        circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
+        """Test cswap-gate gate circuits compiling to u3,cx"""
+        shots = 2000
+        circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.is_completed(result)
+        self.compare_counts(result, circuits, targets, delta=0.1 * shots)
