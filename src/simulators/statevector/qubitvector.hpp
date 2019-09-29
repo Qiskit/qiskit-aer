@@ -65,7 +65,7 @@ const std::array<uint_t, 64> BITS {{
   1048576ULL, 2097152ULL, 4194304ULL, 8388608ULL,
   16777216ULL, 33554432ULL, 67108864ULL, 134217728ULL,
   268435456ULL, 536870912ULL, 1073741824ULL, 2147483648ULL,
-  4294967296ULL, 8589934592ULL, 17179869184ULL, 34359738368ULL, 
+  4294967296ULL, 8589934592ULL, 17179869184ULL, 34359738368ULL,
   68719476736ULL, 137438953472ULL, 274877906944ULL, 549755813888ULL,
   1099511627776ULL, 2199023255552ULL, 4398046511104ULL, 8796093022208ULL,
   17592186044416ULL, 35184372088832ULL, 70368744177664ULL, 140737488355328ULL, 
@@ -143,7 +143,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  virtual void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits);
 
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const {return num_qubits_;}
@@ -547,7 +547,7 @@ json_t QubitVector<data_t>::json() const {
   const int_t END = data_size_;
   const json_t ZERO = std::complex<data_t>(0.0, 0.0);
   json_t js = json_t(data_size_, ZERO);
-  
+
   if (json_chop_threshold_ > 0) {
     #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     for (int_t j=0; j < END; j++) {
@@ -815,7 +815,7 @@ void QubitVector<data_t>::checkpoint() {
     checkpoint_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
 
   const int_t END = data_size_;    // end for k loop
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
     checkpoint_[k] = data_[k];
 }

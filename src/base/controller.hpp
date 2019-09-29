@@ -327,19 +327,20 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
   for (size_t j=0; j<circuits.size(); j++) {
     required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
   }
-  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
-  int total_memory = 0;
+  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<>());
+  size_t total_memory = 0;
   parallel_experiments_ = 0;
-  for (int required_memory_mb : required_memory_mb_list) {
+  for (size_t required_memory_mb : required_memory_mb_list) {
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_)
       break;
     ++parallel_experiments_;
   }
 
-  if (parallel_experiments_ == 0) {
+  if (parallel_experiments_ == 0)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
-  } else if (parallel_experiments_ != 1) {
+
+  if (parallel_experiments_ != 1) {
     parallel_experiments_ = std::min<int> ({ parallel_experiments_,
                                              max_parallel_experiments_,
                                              max_parallel_threads_,
@@ -383,7 +384,7 @@ void Controller::set_parallelization_circuit(const Circuit& circ,
 }
 
 
-size_t Controller::get_system_memory_mb(void){
+size_t Controller::get_system_memory_mb(){
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
    auto pages = sysconf(_SC_PHYS_PAGES);
@@ -516,7 +517,7 @@ json_t Controller::execute(const json_t &qobj_js) {
 
   // Get QOBJ id and pass through header to result
   result["qobj_id"] = qobj.id;
-  if (!qobj.header.empty())
+  if (!qobj.header.empty()) // NOLINT
       result["header"] = qobj.header;
 
   // Qobj was loaded successfully, now we proceed
