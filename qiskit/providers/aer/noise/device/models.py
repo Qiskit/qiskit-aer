@@ -16,7 +16,7 @@ Simplified noise models for devices backends.
 """
 
 import warnings
-from numpy import inf, exp
+from numpy import inf, exp, allclose
 
 from .parameters import readout_error_values
 from .parameters import gate_param_values
@@ -148,7 +148,7 @@ def basic_device_readout_errors(properties):
     """
     errors = []
     for qubit, value in enumerate(readout_error_values(properties)):
-        if value is not None and not np.allclose(value, [0, 0]):
+        if value is not None and not allclose(value, [0, 0]):
             probabilities = [[1 - value[0], value[0]], [value[1], 1 - value[1]]]
             errors.append(([qubit], ReadoutError(probabilities)))
     return errors
