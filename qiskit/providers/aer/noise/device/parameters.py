@@ -128,7 +128,7 @@ def readout_error_values(properties):
         if hasattr(params_m1p0, 'value') and hasattr(params_m0p1, 'value'):
             value = [params_m1p0.value, params_m0p1.value]
         elif hasattr(params_roerror, 'value'):
-            value = params_roerror.value
+            value = [params_roerror.value, params_roerror.value]
         values.append(value)
     return values
 
