@@ -404,7 +404,6 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
         }
         else{
-#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
                                                       circ,
                                                       noise,
@@ -430,7 +429,6 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
         }
         else{
-#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
                                                       circ,
                                                       noise,
@@ -565,6 +563,13 @@ QasmController::simulation_method(const Circuit &circ,
           throw std::runtime_error( "QasmSimulator: Circuit cannot be run using available methods.");
         }
       }
+    }
+    // If we didn't select extended stabilizer above proceed to the default switch clause
+    default: {
+      // Default method is statevector
+      if (validate)
+        validate_state(Statevector::State<>(), circ, noise_model, true);
+      return Method::statevector;
     }
     // If we didn't select extended stabilizer above proceed to the default switch clause
     default: {
