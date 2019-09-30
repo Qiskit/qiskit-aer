@@ -110,7 +110,7 @@ class AerBackend(BaseBackend):
         if validate:
             self._validate(qobj, backend_options, noise_model)
         qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
-        output = json.loads(self._controller(qobj_str).decode('UTF-8'))
+        output = json.loads(self._controller(qobj_str))
         self._validate_controller_output(output)
         end = time.time()
         return self._format_results(job_id, output, end - start)
