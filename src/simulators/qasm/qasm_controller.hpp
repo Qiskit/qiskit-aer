@@ -390,20 +390,9 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector:
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        if(use_GPUs_ == false){
-        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-                                                      circ,
-                                                      noise,
-                                                      config,
-                                                      shots,
-                                                      rng_seed,
-                                                      initial_statevector_,
-                                                      Method::statevector);
-        }
-        else{
 #ifdef QASM_THRUST
+     if(use_GPUs_){
+     	if (simulation_precision_ == Precision::double_precision) {
       	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<double>>>(
                                                       circ,
                                                       noise,
@@ -412,22 +401,8 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       rng_seed,
                                                       initial_statevector_,
                                                       Method::statevector);
-#endif
-        }
-      } else {
-        // Single-precision Statevector simulation
-        if(use_GPUs_ == false){
-        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-                                                      circ,
-                                                      noise,
-                                                      config,
-                                                      shots,
-                                                      rng_seed,
-                                                      initial_statevector_,
-                                                      Method::statevector);
-        }
-        else{
-#ifdef QASM_THRUST
+     	}
+     	else{
       	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<float>>>(
                                                       circ,
                                                       noise,
@@ -436,8 +411,30 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       rng_seed,
                                                       initial_statevector_,
                                                       Method::statevector);
+     	}
+     }
 #endif
-        }
+
+  	if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_,
+                                                      Method::statevector);
+      } else {
+        // Single-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_,
+                                                      Method::statevector);
       }
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
