@@ -22,13 +22,14 @@
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
-#include "simulators/tensor_network/tensor_network_state.hpp"
+#include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
 #ifdef QASM_THRUST
 #include "simulators/statevector/qubitvector_thrust.hpp"
 #endif
+
 
 namespace AER {
 namespace Simulator {
@@ -277,6 +278,7 @@ protected:
 
   // Use GPUs or not
   bool use_GPUs_ = false;
+
 };
 
 //=========================================================================
@@ -316,7 +318,7 @@ void QasmController::set_config(const json_t &config) {
     else if (method == "extended_stabilizer") {
       simulation_method_ = Method::extended_stabilizer;
     }
-    else if (method == "matrix_product_state") 
+    else if (method == "matrix_product_state")
     {
       simulation_method_ = Method::matrix_product_state;
     }
@@ -348,7 +350,7 @@ void QasmController::set_config(const json_t &config) {
 
   JSON::get_value(use_GPUs_,"GPU", config);
 
-	// DEPRECATED: Add custom initial state
+  // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
     // Raise error if method is set to stabilizer or ch
     if (simulation_method_ == Method::stabilizer) {
@@ -390,6 +392,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector:
       if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision Statevector simulation
 #ifdef QASM_THRUST
         if(use_GPUs_){
       	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<double>>>(
@@ -403,7 +406,6 @@ OutputData QasmController::run_circuit(const Circuit &circ,
         }
         else{
 #endif
-        // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
                                                       circ,
                                                       noise,
@@ -484,12 +486,12 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                            Method::extended_stabilizer);
 
     case Method::matrix_product_state:
-      return run_circuit_helper<TensorNetworkState::State>(circ,
+      return run_circuit_helper<MatrixProductState::State>(circ,
                                                            noise,
                                                            config,
                                                            shots,
                                                            rng_seed,
-                                                           TensorNetworkState::MPS(),
+                                                           MatrixProductState::MPS(),
                                                            Method::matrix_product_state);
 
     default:
@@ -525,7 +527,7 @@ QasmController::simulation_method(const Circuit &circ,
     }
     case Method::matrix_product_state: {
       if (validate)
-        validate_state(TensorNetworkState::State(), circ, noise_model, true);
+        validate_state(MatrixProductState::State(), circ, noise_model, true);
       return Method::matrix_product_state;
     }
     case Method::automatic: {
@@ -612,7 +614,7 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     case Method::matrix_product_state: {
-      TensorNetworkState::State state;
+      MatrixProductState::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
     default:
