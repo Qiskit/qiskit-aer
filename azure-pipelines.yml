@@ -35,7 +35,8 @@ stages:
           displayName: Create Anaconda environment
         - script: |
             call activate qiskit-aer-$(Build.BuildNumber)
-            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy openblas
+            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy
+            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 -c conda-forge openblas
           displayName: Install Anaconda packages
         - bash: |
             set -e
