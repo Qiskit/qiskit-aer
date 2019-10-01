@@ -29,12 +29,19 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
+        - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
+          displayName: Create Anaconda environment
+        - script: |
+            call activate qiskit-aer-$(Build.BuildNumber)
+            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy openblas
+          displayName: Install Anaconda packages
         - bash: |
             set -e
+            source activate qiskit-aer-$(Build.BuildNumber)
             python -m pip install 'pip<19'
             pip install cibuildwheel==0.12.0
             pip install -U twine
-            CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19' && tools\install_wheel_deps.sh" CIBW_SKIP="cp27-* cp34-*" CIBW_TEST_COMMAND="python {project}\tools\verify_wheels.py" CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git" CIBW_ENVIRONMENT="VIRTUALENV_NO_DOWNLOAD=1" cibuildwheel --output-dir wheelhouse
+            CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19'" CIBW_SKIP="cp27-* cp34-*" CIBW_TEST_COMMAND="python {project}\tools\verify_wheels.py" CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git" CIBW_ENVIRONMENT="VIRTUALENV_NO_DOWNLOAD=1" cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
 #        - bash: |
