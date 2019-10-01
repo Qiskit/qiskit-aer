@@ -468,6 +468,18 @@ QasmController::simulation_method(const Circuit &circ,
                                   bool validate) const {
   // Check simulation method and validate state
   switch(simulation_method_) {
+    case Method::statevector: {
+      if (validate) {
+        if (simulation_precision_ == Precision::single_precision) {
+          Statevector::State<QV::QubitVector<float>> state; 
+          validate_state(state, circ, noise_model, true);
+        } else {
+          Statevector::State<QV::QubitVector<>> state; 
+          validate_state(state, circ, noise_model, true);
+        }
+      }
+      return Method::statevector;
+    }
     case Method::density_matrix: {
       if (validate)
         validate_state(DensityMatrix::State<>(), circ, noise_model, true);
