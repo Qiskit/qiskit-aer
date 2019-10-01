@@ -160,7 +160,6 @@ def digest_pulse_obj(qobj):
 
     # Step #2: Get Hamiltonian channels
     out.channels = get_hamiltonian_channels(out.system)
-
     h_diag, evals, estates = get_diag_hamiltonian(out.system,
                                                   out.vars, out.channels)
 

@@ -60,6 +60,7 @@ class PulseSimulator(AerBackend):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
+
         aer_job = AerJob(self, job_id, self._run_job, qobj,
                          None, None, validate)
         aer_job.submit()
