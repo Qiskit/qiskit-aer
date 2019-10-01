@@ -198,7 +198,7 @@ jobs:
         - pip install 'pip<19'
         - git clone https://github.com/joerick/cibuildwheel.git
         - pushd cibuildwheel
-        - git pull --no-commit https://github.com/YannickJadoul/cibuildwheel.git manylinux2010
+        - git pull --no-commit https://github.com/YannickJadoul/cibuildwheel.git manylinux2010-alternative
         - pip install .
         - popd
         - cibuildwheel --output-dir wheelhouse
@@ -215,6 +215,6 @@ jobs:
         - VIRTUALENV_NO_DOWNLOAD=1
       script:
         - sudo pip2 install 'pip<19'
-        - sudo pip2 install cibuildwheel==0.11.1
+        - sudo pip2 install cibuildwheel==0.12.0 'twine<2.0'
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*

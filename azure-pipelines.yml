@@ -32,7 +32,7 @@ stages:
         - bash: |
             set -e
             python -m pip install 'pip<19'
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==0.12.0
             pip install -U twine
             CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19' && tools\install_wheel_deps.sh" CIBW_SKIP="cp27-* cp34-*" CIBW_TEST_COMMAND="python {project}\tools\verify_wheels.py" CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git" CIBW_ENVIRONMENT="VIRTUALENV_NO_DOWNLOAD=1" cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
