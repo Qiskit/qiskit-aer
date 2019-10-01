@@ -29,6 +29,8 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
+        - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+          displayName: Add conda to PATH
         - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
           displayName: Create Anaconda environment
         - script: |
