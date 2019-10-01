@@ -20,6 +20,11 @@ stages:
       variables:
         TWINE_USERNAME: qiskit
         VIRTUALENV_NO_DOWNLOAD: 1
+        CIBW_BEFORE_BUILD: pip install -U Cython 'pip<19'
+        CIBW_SKIP: cp27-* cp34-*
+        CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
+        CIBW_TEST_REQUIRES: qiskit-terra
+        CIBW_ENVIRONMENT: VIRTUALENV_NO_DOWNLOAD=1
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
@@ -44,7 +49,7 @@ stages:
             python -m pip install 'pip<19'
             pip install cibuildwheel==0.12.0
             pip install -U twine
-            CIBW_BEFORE_BUILD="pip install -U Cython 'pip<19'" CIBW_SKIP="cp27-* cp34-*" CIBW_TEST_COMMAND="python {project}\tools\verify_wheels.py" CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git" CIBW_ENVIRONMENT="VIRTUALENV_NO_DOWNLOAD=1" cibuildwheel --output-dir wheelhouse
+            cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
 #        - bash: |
