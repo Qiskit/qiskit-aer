@@ -20,9 +20,17 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added tests for the Fredkin gate (#357)
+- Added tests for the cu1 gate (#360)
 
 Changed
 -------
+- Changed all names from tensor_network_state to matrix_product_state (\#356)
+- Update device noise model to consume asymmetric readout errors from backends (\#354)
+- Update device noise model to use gate_length (\#352)
+- Refactoring code and introducing floating point comparison func (\#338)
+
+
 
 Removed
 -------

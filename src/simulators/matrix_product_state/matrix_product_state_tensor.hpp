@@ -25,7 +25,7 @@
 #include "framework/utils.hpp"
 
 namespace AER {
-namespace TensorNetworkState {
+namespace MatrixProductState {
 
 // Data types
 using complex_t = std::complex<double>;
@@ -388,7 +388,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 }
 
 //-------------------------------------------------------------------------
-} // end namespace MPS_TensorState
+} // end namespace MatrixProductState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
