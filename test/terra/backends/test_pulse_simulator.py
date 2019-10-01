@@ -120,9 +120,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test x gate
     # ---------------------------------------------------------------------
     def test_x_gate(self):
-        """ Test x gate
-
-        Set omega=omega0 (drive on resonance), phi=0, omega1 = pi/time
+        """ Test x gate. Set omega=omega0 (drive on resonance), phi=0, omega1 = pi/time
         """
 
         # set variables
@@ -144,6 +142,37 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_result = {'10':256}
 
         self.assertDictAlmostEqual(counts, exp_result)
+
+    def test_hadamard(self):
+        """ Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega=omega0
+        (drive on resonance), phi=pi/2, omega1 = pi/2/time
+        """
+
+        # set variables
+
+        # set omega0, omega equal (use qubit frequency) -> drive on resonance
+        omega0 = 2*np.pi*self.freq_qubit
+        omega = omega0
+
+        # Require omega1*time = pi/2 to implement pi/2 rotation pulse
+        # num of samples gives time
+        omega1 = np.pi/2/self.drive_samples
+
+        phi = np.pi/2
+        shots = 100000 # large number of shots so get good probabilities
+
+        x_qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi)
+        result = self.backend_sim.run(x_qobj).result()
+        counts = result.get_counts()
+
+        # compare proportions
+        prop = {}
+        for key in counts.keys():
+            prop[key] = counts[key]/shots
+
+        exp_prop = {'0':0.5, '10':0.5}
+
+        self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
 if __name__ == '__main__':
     unittest.main()
