@@ -22,7 +22,10 @@ unset(CYTHON_USER_LIB_DIRS)
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/backends")
 
 function(add_cython_module module)
-    add_cython_target(${module} ${module}.pyx CXX)
+    add_cython_target(${module} ${module}.pyx CXX OUTPUT_VAR CYTHON_OUTPUT_FILE)
+    get_filename_component(CYTHON_OUTPUT_FILE ${CYTHON_OUTPUT_FILE} DIRECTORY)
+    set(CYTHON_OUTPUT_DIR ${CYTHON_OUTPUT_FILE} PARENT_SCOPE)
+
     add_library(${module} MODULE ${module} ${ARGV1})
     set_target_properties(${module} PROPERTIES
         LINKER_LANGUAGE CXX

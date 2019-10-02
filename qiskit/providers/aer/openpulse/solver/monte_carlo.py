@@ -65,6 +65,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
     ODE = ode(cy_rhs_func)
 
     _inst = 'ODE.set_f_params(%s)' % global_data['string']
+    print("Monte Carlo: {}\n\n".format(_inst))
     code = compile(_inst, '<string>', 'exec')
     # pylint: disable=exec-used
     exec(code)

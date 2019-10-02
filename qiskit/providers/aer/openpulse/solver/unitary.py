@@ -68,6 +68,7 @@ def unitary_evolution(exp, global_data, ode_options):
                        max_step=ode_options.max_step)
 
     _inst = 'ODE.set_f_params(%s)' % global_data['string']
+    print("Unitary Evolution: {}\n\n".format(_inst))
     code = compile(_inst, '<string>', 'exec')
     exec(code)  # pylint disable=exec-used
 
