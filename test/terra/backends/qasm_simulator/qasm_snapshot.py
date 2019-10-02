@@ -65,7 +65,9 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -94,7 +96,9 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -126,7 +130,9 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -154,7 +160,9 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -216,7 +224,9 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -236,7 +246,7 @@ class QasmSnapshotStabilizerTests:
 
     def test_snapshot_stabilizer_pre_measure_nondet(self):
         """Test snapshot stabilizer before non-deterministic final measurement"""
-        shots = 1000
+        shots = 100
         label = "snap"
         counts_targets = snapshot_state_counts_nondeterministic(shots)
         statevec_targets = snapshot_state_pre_measure_statevector_nondeterministic(
@@ -246,7 +256,9 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -256,7 +268,7 @@ class QasmSnapshotStabilizerTests:
             self.compare_counts(result,
                                 circuits,
                                 counts_targets,
-                                delta=0.1 * shots)
+                                delta=0.2 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -279,7 +291,9 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -299,7 +313,7 @@ class QasmSnapshotStabilizerTests:
 
     def test_snapshot_stabilizer_post_measure_nondet(self):
         """Test snapshot stabilizer after non-deterministic final measurement"""
-        shots = 1000
+        shots = 100
         label = "snap"
         counts_targets = snapshot_state_counts_nondeterministic(shots)
         statevec_targets = snapshot_state_post_measure_statevector_nondeterministic(
@@ -309,7 +323,9 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj,
+                                 backend_options=self.BACKEND_OPTS,
+                                 validate=False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -319,7 +335,7 @@ class QasmSnapshotStabilizerTests:
             self.compare_counts(result,
                                 circuits,
                                 counts_targets,
-                                delta=0.1 * shots)
+                                delta=0.2 * shots)
             # Check snapshots
             for i, circuit in enumerate(circuits):
                 data = result.data(circuit)
