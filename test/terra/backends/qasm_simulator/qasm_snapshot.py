@@ -201,10 +201,6 @@ class QasmSnapshotStabilizerTests:
                 pauli_mat = Pauli.from_label(stab).to_matrix()
             val = statevector.conj().dot(pauli_mat.dot(statevector))
             if not np.isclose(val, 1):
-                print("IP VAL:", val)
-                print("STAB:", stabilizer)
-                print("GEN:", stab)
-                print("VEC:", statevector)
                 return False
         return True
 
@@ -331,8 +327,5 @@ class QasmSnapshotStabilizerTests:
                 for j, mem in enumerate(data['memory']):
                     statevec = statevec_targets[i].get(mem)
                     stabilizer = snaps[j]
-                    if not self.stabilizes_statevector(stabilizer, statevec):
-                        print("\n", circuit.draw())
-                        print("MEMORY:", mem)
                     self.assertTrue(
                         self.stabilizes_statevector(stabilizer, statevec))
