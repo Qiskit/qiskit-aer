@@ -20,7 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
-
+- Added pulse simulator tests
 Changed
 -------
 - Changed all names from tensor_network_state to matrix_product_state (\#356)
