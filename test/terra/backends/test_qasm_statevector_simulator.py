@@ -46,6 +46,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -75,6 +76,7 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmKrausNoiseTests,
                                    QasmSnapshotStatevectorTests,
                                    QasmSnapshotDensityMatrixTests,
+                                   QasmSnapshotProbabilitiesTests,
                                    QasmSnapshotStabilizerTests):
     """QasmSimulator statevector method tests."""
 
