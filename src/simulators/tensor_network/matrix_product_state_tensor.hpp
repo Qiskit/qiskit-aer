@@ -238,13 +238,13 @@ void MPS_Tensor::apply_pauli(char gate) {
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  swap(data_[0],data_[1]);
+  std::swap(data_[0],data_[1]);
 }
   void MPS_Tensor::apply_y()
   {
     data_[0] = data_[0] * complex_t(0, 1);
     data_[1] = data_[1] * complex_t(0, -1);
-    swap(data_[0],data_[1]);
+    std::swap(data_[0],data_[1]);
   }
 
 void MPS_Tensor::apply_z()
@@ -287,14 +287,14 @@ void MPS_Tensor::apply_matrix(const cmatrix_t &mat)
 void MPS_Tensor::apply_cnot(bool swapped)
 {
   if(!swapped)
-    swap(data_[2],data_[3]);
+    std::swap(data_[2],data_[3]);
   else
-    swap(data_[1],data_[3]);
+    std::swap(data_[1],data_[3]);
 }
 
 void MPS_Tensor::apply_swap()
 {
-  swap(data_[1],data_[2]);
+  std::swap(data_[1],data_[2]);
 }
 
 void MPS_Tensor::apply_cz()
@@ -425,7 +425,7 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   #ifdef _WIN32
      #pragma omp parallel for
   #else
-     #pragma omp parallel for collapse(4)
+     #pragma omp parallel for collapse(2)
   #endif
   for (int_t l_row=0; l_row<left_rows; l_row++)
     for (int_t r_col=0; r_col<right_columns; r_col++) {
@@ -455,7 +455,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
-  std::std::cout << "Input matrix before SVD =" << std::std::endl << C ;
+  std::cout << "Input matrix before SVD =" << std::endl << C ;
 #endif
   
   csvd_wrapper(C, U, S, V);

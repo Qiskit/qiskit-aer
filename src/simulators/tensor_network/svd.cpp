@@ -120,9 +120,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		b[k] = 0.0;
 		if ( tol < z )
 		{
-			z = sqrt( z );
+			z = std::sqrt( z );
 			b[k] = z;
-			w = abs( A(k,k) );
+			w = std::abs( A(k,k) );
 			if ( w == 0.0 ) {
 				q = complex_t( 1.0, 0.0 );
 			}
@@ -138,7 +138,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 					q = complex_t( 0.0, 0.0 );
 					for( i = k; i < m; i++){
-						q = q + conj( A(i,k) ) * A(i,j);
+						q = q + std::conj( A(i,k) ) * A(i,j);
 					}
 					q = q / ( z * ( z + w ) );
 
@@ -150,7 +150,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 //
 // Phase transformation.
 //
-				q = -conj(A(k,k))/abs(A(k,k));
+				q = -std::conj(A(k,k))/std::abs(A(k,k));
 
 				for( j = k1; j < n; j++){
 					A(k,j) = q * A(k,j);
@@ -167,9 +167,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 		if ( tol < z )
 		{
-			z = sqrt( z );
+			z = std::sqrt( z );
 			c[k1] = z;
-			w = abs( A(k,k1) );
+			w = std::abs( A(k,k1) );
 
 			if ( w == 0.0 ){
 				q = complex_t( 1.0, 0.0 );
@@ -184,7 +184,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				q = complex_t( 0.0, 0.0 );
 
 				for( j = k1; j < n; j++){
-					q = q + conj( A(k,j) ) * A(i,j);
+					q = q + std::conj( A(k,j) ) * A(i,j);
 				}
 				q = q / ( z * ( z + w ) );
 
@@ -195,7 +195,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 //
 // Phase transformation.
 //
-			q = -conj(A(k,k1) )/abs(A(k,k1));
+			q = -std::conj(A(k,k1) )/std::abs(A(k,k1));
 			for( i = k1; i < m; i++){
 				A(i,k1) = A(i,k1) * q;
 			}
@@ -243,12 +243,12 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			for( l = k; l >= 0; l--)
 			{
 
-				if ( abs( t[l] ) < eps )
+				if ( std::abs( t[l] ) < eps )
 				{
 					jump = true;
 					break;
 				}
-				else if ( abs( S[l-1] ) < eps ) {
+				else if ( std::abs( S[l-1] ) < eps ) {
 					break;
 				}
 			}
@@ -263,19 +263,19 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 					f = sn * t[i];
 					t[i] = cs * t[i];
 
-					if ( abs(f) < eps ) {
+					if ( std::abs(f) < eps ) {
 						break;
 					}
 					h = S[i];
-					w = sqrt( f * f + h * h );
+					w = std::sqrt( f * f + h * h );
 					S[i] = w;
 					cs = h / w;
 					sn = - f / w;
 
 					for( j = 0; j < n; j++)
 					{
-						x = real( U(j,l1) );
-						y = real( U(j,i) );
+						x = std::real( U(j,l1) );
+						y = std::real( U(j,i) );
 						U(j,l1) = complex_t( x * cs + y * sn, 0.0 );
 						U(j,i)  = complex_t( y * cs - x * sn, 0.0 );
 					}
@@ -290,7 +290,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			g = t[k-1];
 			h = t[k];
 			f = ( ( y - w ) * ( y + w ) + ( g - h ) * ( g + h ) )/ ( 2.0 * h * y );
-			g = sqrt( f * f + 1.0 );
+			g = std::sqrt( f * f + 1.0 );
 			if ( f < -1.0e-13){ //if ( f < 0.0){ //didn't work when f was negative very close to 0 (because of numerical reasons)
 				g = -g;
 			}
@@ -304,11 +304,11 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				y = S[i];
 				h = sn * g;
 				g = cs * g;
-				w = sqrt( h * h + f * f );
+				w = std::sqrt( h * h + f * f );
 				if (w == 0) {
 #ifdef DEBUG
-				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << endl;
-				  std::cout << " w = " << w << endl;
+				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << std::endl;
+				  std::cout << " w = " << w << std::endl;
 #endif
 				}
 				t[i-1] = w;
@@ -319,7 +319,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				long double large_f = 0;
 				if (f==0) {
 #ifdef DEBUG
-				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
+				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<std::endl;
 #endif
 				  long double large_x =   x * tiny_factor;
 				  long double large_g =   g * tiny_factor;
@@ -328,9 +328,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				  large_f = large_x * large_cs + large_g * large_sn;
 
 #ifdef DEBUG
-				  std::cout << large_x * large_cs <<endl;;
-				  std::cout << large_g * large_sn <<endl;
-				  std::cout << "new f = " << large_f << endl;
+				  std::cout << large_x * large_cs <<std::endl;;
+				  std::cout << large_g * large_sn <<std::endl;
+				  std::cout << "new f = " << large_f << std::endl;
 
 #endif
 				}
@@ -340,28 +340,28 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
 				for( j = 0; j < n; j++)
 				{
-					x = real( V(j,i-1) );
-					w = real( V(j,i) );
+					x = std::real( V(j,i-1) );
+					w = std::real( V(j,i) );
 					V(j,i-1) = complex_t( x * cs + w * sn, 0.0 );
 					V(j,i)   = complex_t( w * cs - x * sn, 0.0 );
 				}
 
 				bool tiny_w = false;
 #ifdef DEBUG
-				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
+				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << std::endl;
 #endif
-				if (abs(h)  < 1e-13 && abs(f) < 1e-13 && large_f != 0) {
+				if (std::abs(h)  < 1e-13 && std::abs(f) < 1e-13 && large_f != 0) {
 				  tiny_w = true;
 				}
 				else {
-				  w = sqrt( h * h + f * f );
+				  w = std::sqrt( h * h + f * f );
 				}
-				w = sqrt( h * h + f * f );
+				w = std::sqrt( h * h + f * f );
 				if (w == 0 && !tiny_w) {
 
 #ifdef DEBUG
-				    std::cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << endl;
-				    std::cout << " w = " << w << endl;
+				  std::cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << std::endl;
+				  std::cout << " w = " << w << std::endl;
 #endif
 				  return FAILURE;
 				}
@@ -379,8 +379,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				x = cs * y - sn * g;
 				for( j = 0; j < n; j++)
 				{
-					y = real( U(j,i-1) );
-					w = real( U(j,i) );
+					y = std::real( U(j,i-1) );
+					w = std::real( U(j,i) );
 					U(j,i-1) = complex_t( y * cs + w * sn, 0.0 );
 					U(j,i)   = complex_t( w * cs - y * sn, 0.0 );
 				}
@@ -441,7 +441,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	{
 		if ( b[k] != 0.0 )
 		{
-			q = -A(k,k) / abs( A(k,k) );
+			q = -A(k,k) / std::abs( A(k,k) );
 			for( j = 0; j < m; j++){
 				U(k,j) = q * U(k,j);
 			}
@@ -449,9 +449,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			{
 				q = complex_t( 0.0, 0.0 );
 				for( i = k; i < m; i++){
-					q = q + conj( A(i,k) ) * U(i,j);
+					q = q + std::conj( A(i,k) ) * U(i,j);
 				}
-				q = q / ( abs( A(k,k) ) * b[k] );
+				q = q / ( std::abs( A(k,k) ) * b[k] );
 				for( i = k; i < m; i++){
 					U(i,j) = U(i,j) - q * A(i,k);
 				}
@@ -464,7 +464,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		k1 = k + 1;
 		if ( c[k1] != 0.0 )
 		{
-			q = -conj( A(k,k1) ) / abs( A(k,k1) );
+			q = -std::conj( A(k,k1) ) / std::abs( A(k,k1) );
 
 			for( j = 0; j < n; j++){
 				V(k1,j) = q * V(k1,j);
@@ -476,9 +476,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				for( i = k1 ; i < n; i++){
 					q = q + A(k,i) * V(i,j);
 				}
-				q = q / ( abs( A(k,k1) ) * c[k1] );
+				q = q / ( std::abs( A(k,k1) ) * c[k1] );
 				for( i = k1; i < n; i++){
-					V(i,j) = V(i,j) - q * conj( A(k,i) );
+					V(i,j) = V(i,j) - q * std::conj( A(k,i) );
 				}
 			}
 		}
@@ -518,7 +518,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   cmatrix_t copied_A = A;
   int times = 0;
 #ifdef DEBUG
-  std::cout << "1st try" << endl;
+  std::cout << "1st try" << std::endl;
 #endif
   status current_status = csvd(A, U, S, V);
   if (current_status == SUCCESS) {
@@ -532,7 +532,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
       A = copied_A;
 
 #ifdef DEBUG
-      std::cout << "SVD trial #" << times << endl;
+      std::cout << "SVD trial #" << times << std::endl;
 #endif
 
       current_status = csvd(A, U, S, V);
