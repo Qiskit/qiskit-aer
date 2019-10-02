@@ -1,9 +1,10 @@
-/*
- * Tensor.hpp
+/**
+ * Copyright 2019, IBM.
  *
- *  Created on: Aug 23, 2018
- *      Author: eladgold
+ * This source code is licensed under the Apache License, Version 2.0 found in
+ * the LICENSE.txt file in the root directory of this source tree.
  */
+
 
 #ifndef _tensor_tensor_hpp_
 #define _tensor_tensor_hpp_
