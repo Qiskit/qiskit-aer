@@ -143,8 +143,7 @@ class QasmMethodTests:
             return self.SIMULATOR.run(
                 qobj,
                 backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model,
-                validate=False).result()
+                noise_model=noise_model).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -178,8 +177,7 @@ class QasmMethodTests:
             return self.SIMULATOR.run(
                 qobj,
                 backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model,
-                validate=False).result()
+                noise_model=noise_model).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -209,8 +207,7 @@ class QasmMethodTests:
         def get_result():
             return self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                validate=False).result()
+                backend_options=self.BACKEND_OPTS).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -285,8 +282,7 @@ class QasmMethodTests:
             return self.SIMULATOR.run(
                 qobj,
                 backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model,
-                validate=False).result()
+                noise_model=noise_model).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -319,8 +315,7 @@ class QasmMethodTests:
             return self.SIMULATOR.run(
                 qobj,
                 backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model,
-                validate=False).result()
+                noise_model=noise_model).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -354,8 +349,7 @@ class QasmMethodTests:
             return self.SIMULATOR.run(
                 qobj,
                 backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model,
-                validate=False).result()
+                noise_model=noise_model).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')

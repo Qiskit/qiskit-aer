@@ -13,6 +13,7 @@
 QasmSimulator Integration Tests for Snapshot instructions
 """
 
+import logging
 import numpy as np
 
 from qiskit.compiler import assemble
@@ -66,8 +67,7 @@ class QasmSnapshotStatevectorTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -97,10 +97,10 @@ class QasmSnapshotStatevectorTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+
             self.assertRaises(AerError, job.result)
         else:
             result = job.result()
@@ -131,10 +131,10 @@ class QasmSnapshotStatevectorTests:
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+            logging.getLogger().setLevel(logging.CRITICAL)
             self.assertRaises(AerError, job.result)
         else:
             result = job.result()
@@ -161,8 +161,7 @@ class QasmSnapshotStatevectorTests:
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -225,8 +224,7 @@ class QasmSnapshotStabilizerTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -257,8 +255,7 @@ class QasmSnapshotStabilizerTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -292,8 +289,7 @@ class QasmSnapshotStabilizerTests:
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
@@ -324,8 +320,7 @@ class QasmSnapshotStabilizerTests:
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
         job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS,
-                                 validate=False)
+                                 backend_options=self.BACKEND_OPTS)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotStabilizerTests.SUPPORTED_QASM_METHODS:
             self.assertRaises(AerError, job.result)
