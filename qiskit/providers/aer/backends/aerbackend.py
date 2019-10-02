@@ -24,7 +24,7 @@ from numpy import ndarray
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
-from qiskit.qobj import QasmQobjConfig
+from qiskit.qobj import QasmQobjConfig, validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
@@ -108,10 +108,12 @@ class AerBackend(BaseBackend):
         """Run a qobj job"""
         start = time.time()
         if validate:
+            validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
         qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
         output = json.loads(self._controller(qobj_str).decode('UTF-8'))
-        self._validate_controller_output(output)
+        if validate:
+            self._validate_controller_output(output)
         end = time.time()
         return self._format_results(job_id, output, end - start)
 
