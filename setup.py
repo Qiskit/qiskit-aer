@@ -59,5 +59,6 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
-    keywords="qiskit aer simulator quantum addon backend"
+    keywords="qiskit aer simulator quantum addon backend",
+    zip_safe=False
 )

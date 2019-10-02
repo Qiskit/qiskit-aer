@@ -18,11 +18,11 @@
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
 
-#include "matrix_product_state.hpp"
+#include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
 
 namespace AER {
-namespace TensorNetworkState {
+namespace MatrixProductState {
 
 static const cmatrix_t zero_measure = 
       AER::Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}},
@@ -354,6 +354,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   uint_t front = 0, back = 0;
   MPS_with_new_indices(qubits, temp_MPS, front, back);
   MPS_Tensor psi = temp_MPS.state_vec(front, back);
+
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
   #ifdef _WIN32

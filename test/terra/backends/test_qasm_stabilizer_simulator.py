@@ -47,7 +47,10 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmPauliNoiseTests):
     """QasmSimulator stabilizer method tests."""
 
-    BACKEND_OPTS = {"method": "stabilizer"}
+    BACKEND_OPTS = {
+        "seed_simulator": 1337,
+        "method": "stabilizer"
+    }
 
 
 if __name__ == '__main__':

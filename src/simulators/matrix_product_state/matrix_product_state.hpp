@@ -17,8 +17,8 @@
 //
 //--------------------------------------------------------------------------
 
-#ifndef _tensor_tensor_state_hpp
-#define _tensor_tensor_state_hpp
+#ifndef _matrix_product_state_hpp
+#define _matrix_product_state_hpp
 
 #include <algorithm>
 #define _USE_MATH_DEFINES
@@ -26,12 +26,12 @@
 
 #include "framework/json.hpp"
 #include "base/state.hpp"
-#include "matrix_product_state.hpp"
-#include "matrix_product_state.cpp"
+#include "matrix_product_state_internal.hpp"
+#include "matrix_product_state_internal.cpp"
 
 
 namespace AER {
-namespace TensorNetworkState { 
+namespace MatrixProductState { 
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -43,14 +43,14 @@ enum class Snapshots {
 
 
 //=========================================================================
-// Tensor Network State subclass
+// Matrix Product State subclass
 //=========================================================================
 
-using tensorstate_t = MPS;
+using matrixproductstate_t = MPS;
 
-class State : public Base::State<tensorstate_t> {
+class State : public Base::State<matrixproductstate_t> {
 public:
-  using BaseState = Base::State<tensorstate_t>;
+  using BaseState = Base::State<matrixproductstate_t>;
   
   State() = default;
 
@@ -66,7 +66,7 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {
-	  return "tensorstate";
+	  return "matrixproductstate";
   }
 
   bool empty() const {
@@ -119,7 +119,7 @@ public:
   virtual void initialize_qreg(uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state given as a complex std::vector
-  virtual void initialize_qreg(uint_t num_qubits, const tensorstate_t &state) override;
+  virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) override;
 
   void initialize_qreg(uint_t num_qubits, const cvector_t &statevector); 
 
@@ -338,10 +338,10 @@ void State::initialize_qreg(uint_t num_qubits) {
   qreg_.initialize((uint_t)num_qubits);
 }
 
-void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
+void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();
   //qreg_.initialize((uint_t)num_qubits, state);
@@ -353,7 +353,7 @@ void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
 void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();
 
@@ -446,7 +446,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           apply_kraus(op.qubits, op.mats, rng);
           break;
         default:
-          throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
+          throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
       }
     }
@@ -511,7 +511,7 @@ void State::snapshot_state(const Operations::Op &op,
 void State::snapshot_probabilities(const Operations::Op &op,
 				   OutputData &data,
 				   bool variance) {
-  TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+  MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   rvector_t prob_vector;
   qreg_.probabilities_vector(prob_vector);
   data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
@@ -522,7 +522,7 @@ void State::apply_gate(const Operations::Op &op) {
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
     throw std::invalid_argument(
-      "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
+      "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
 
   switch (it -> second) {
     case Gates::u3:
@@ -584,7 +584,7 @@ void State::apply_gate(const Operations::Op &op) {
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
-        "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
+        "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   }
 
 }
@@ -678,7 +678,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
 
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
-    throw std::invalid_argument("Tensor_Network_State::invalid snapshot instruction \'" + 
+    throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
   switch (it -> second) {
   case Snapshots::statevector: {
@@ -718,7 +718,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       }  break;*/
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("TensorNetworkState::State::invalid snapshot instruction \'" +
+      throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
                                   op.name + "\'."); 
   }
 }
@@ -836,7 +836,7 @@ void State::apply_kraus(const reg_t &qubits,
 }
 
 //-------------------------------------------------------------------------
-} // end namespace TensorNetworkState
+} // end namespace MatrixProductState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
