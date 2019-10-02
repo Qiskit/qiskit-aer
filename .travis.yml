@@ -71,8 +71,8 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
-    - brew install libomp
-    - brew install openblas
+    - travis_wait brew install libomp
+    - travis_wait brew install openblas
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
