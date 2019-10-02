@@ -97,7 +97,7 @@ class QasmDelayMeasureTests:
             backend_options=backend_options).result()
         self.is_completed(result)
         metadata = result.results[0].metadata
-        self.assertTrue('delay_measure_verbose' in metadata)
+        self.assertIn('delay_measure_verbose', metadata)
 
         # Delay measure verbose disabled
         backend_options = self.BACKEND_OPTS.copy()
@@ -110,7 +110,7 @@ class QasmDelayMeasureTests:
             backend_options=backend_options).result()
         self.is_completed(result)
         metadata = result.results[0].metadata
-        self.assertTrue('delay_measure_verbose' in metadata)
+        self.assertNotIn('delay_measure_verbose', metadata)
 
         # Delay measure verbose default
         backend_options = self.BACKEND_OPTS.copy()
@@ -123,4 +123,4 @@ class QasmDelayMeasureTests:
             backend_options=backend_options).result()
         self.is_completed(result)
         metadata = result.results[0].metadata
-        self.assertTrue('delay_measure_verbose' in metadata)
+        self.assertNotIn('delay_measure_verbose', metadata)
