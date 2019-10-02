@@ -14,10 +14,9 @@
 Snapshot extensions for Quantum Circuits
 """
 
-from . import snapshot
-from .snapshot import Snapshot
-from . import snapshot_statevector
-from . import snapshot_stabilizer
-from . import snapshot_density_matrix
-from . import snapshot_probabilities
-from . import snapshot_expectation_value
+from .snapshot import *
+from .snapshot_statevector import *
+from .snapshot_stabilizer import *
+from .snapshot_density_matrix import *
+from .snapshot_probabilities import *
+from .snapshot_expectation_value import *
