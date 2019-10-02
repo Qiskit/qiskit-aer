@@ -112,7 +112,7 @@ class AerBackend(BaseBackend):
             self._validate(qobj, backend_options, noise_model)
         qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
         output = json.loads(self._controller(qobj_str).decode('UTF-8'))
-        self._validate_controller_output(output, warn=validate)
+        self._validate_controller_output(output)
         end = time.time()
         return self._format_results(job_id, output, end - start)
 
@@ -154,21 +154,18 @@ class AerBackend(BaseBackend):
         output["time_taken"] = time_taken
         return Result.from_dict(output)
 
-    def _validate_controller_output(self, output, warn=True):
+    def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
         if not isinstance(output, dict):
-            if warn:
-                logger.warning("%s: simulation failed.", self.name())
-                if output:
-                    logger.warning('Output: %s', output)
+            logger.error("%s: simulation failed.", self.name())
+            if output:
+                logger.error('Output: %s', output)
             raise AerError("simulation terminated without returning valid output.")
         # Check results
         # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
         #       is merged this should be updated to deal with errors using
         #       the Result object methods
         if not output.get("success", False):
-            if warn:
-                logger.warning("%s: simulation failed", self.name())
             # Check for error message in the failed circuit
             for res in output.get('results', []):
                 if not res.get('success', False):
