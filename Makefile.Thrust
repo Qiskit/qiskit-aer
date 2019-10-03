@@ -1,0 +1,51 @@
+
+PROJECT_SOURCE_DIR=.
+AER_SIMULATOR_CPP_SRC_DIR=$(PROJECT_SOURCE_DIR)/src
+AER_SIMULATOR_CPP_MAIN=$(PROJECT_SOURCE_DIR)/contrib/standalone/qasm_simulator.cpp
+
+
+
+CUCC = /usr/local/cuda/bin/nvcc
+CXX = /gpfs/wscgpfs01/doichan/gcc/bin/g++
+
+CXXFLAGS= -ccbin $(CXX) -DQASM_THRUST -gencode arch=compute_70,code=sm_70 -std c++14 -I$(AER_SIMULATOR_CPP_SRC_DIR) -Xcompiler "-O3 -fopenmp -ffast-math -isystem $(AER_SIMULATOR_CPP_SRC_DIR)/third-party/headers" -use_fast_math -expt-extended-lambda -I/usr/local/cuda/include -x cu
+
+#-DQASM_DEBUG -DQASM_TIMING
+
+LDFLAGS=-O3 -fopenmp -std=c++14
+
+LDLIBS = -lpthread -L/usr/local/cuda/lib64 -lcudart -lopenblas 
+
+LD = $(CXX)
+
+
+#// program ===================================================================
+
+MODULE = qasm_simulator
+
+SRCSC = \
+	$(AER_SIMULATOR_CPP_MAIN) \
+
+OBJSC = ${SRCSC:.cpp=.o}
+
+#// rules =====================================================================
+
+all:	$(MODULE) 
+
+.SUFFIXES: .o .cpp
+
+.cpp.o:
+	$(CUCC) $(CXXFLAGS) -c $< -o $@
+
+
+$(MODULE): $(OBJSC) 
+	rm -f $(MODULE)
+	$(LD) $(OBJSC) $(LDFLAGS) $(LDLIBS) -o $@ 
+
+
+clean:
+	rm -f $(OBJSC) $(MODULE) 
+
+
+
+
