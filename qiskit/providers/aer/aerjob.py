@@ -19,7 +19,6 @@ import logging
 import functools
 
 from qiskit.providers import BaseJob, JobStatus, JobError
-from qiskit.qobj import validate_qobj_against_schema
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,6 @@ class AerJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
                                              *self._args)
 

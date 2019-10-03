@@ -21,38 +21,49 @@ from qiskit.providers.aer.extensions import Snapshot
 class SnapshotStabilizer(Snapshot):
     """Snapshot instruction for stabilizer method of Qasm simulator."""
 
-    def __init__(self,
-                 label,
-                 num_qubits=0,
-                 num_clbits=0,
-                 params=None):
+    def __init__(self, label, num_qubits=0):
+        """Create a stabilizer state snapshot instruction.
 
-        super().__init__(label, 'stabilizer', num_qubits, num_clbits, params)
+        Args:
+            label (str): the snapshot label.
+            num_qubits (int): the instruction barrier size [Default: 0].
+
+        Raises:
+            ExtensionError: if snapshot is invalid.
+
+        Additional Information:
+            This snapshot is always performed on all qubits in a circuit.
+            The number of qubits parameter specifies the size of the
+            instruction as a barrier and should be set to the number of
+            qubits in the circuit.
+        """
+        super().__init__(label, snapshot_type='stabilizer', num_qubits=num_qubits)
 
 
-def snapshot_stabilizer(self,
-                        label,
-                        qubits=None,
-                        params=None):
-    """Take a snapshot of the internal simulator representation.
-    Works on all qubits, and prevents reordering (like barrier).
+def snapshot_stabilizer(self, label):
+    """Take a stabilizer snapshot of the simulator state.
+
     Args:
-        label (str): a snapshot label to report the result
-        qubits (list or None): the qubits to apply snapshot to [Default: None].
-        params (list or None): the parameters for snapshot_type [Default: None].
+        label (str): a snapshot label to report the result.
+
     Returns:
-        QuantumCircuit: with attached command
+        QuantumCircuit: with attached instruction.
+
     Raises:
-        ExtensionError: malformed command
+        ExtensionError: if snapshot is invalid.
+
+    Additional Information:
+        This snapshot is always performed on all qubits in a circuit.
+        The number of qubits parameter specifies the size of the
+        instruction as a barrier and should be set to the number of
+        qubits in the circuit.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, label)
 
     return self.append(
-        SnapshotStabilizer(
-            label,
-            num_qubits=len(snapshot_register),
-            params=params), snapshot_register)
+        SnapshotStabilizer(label, num_qubits=len(snapshot_register)),
+        snapshot_register)
 
 
 QuantumCircuit.snapshot_stabilizer = snapshot_stabilizer
