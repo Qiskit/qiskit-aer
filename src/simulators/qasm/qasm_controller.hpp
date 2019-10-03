@@ -26,6 +26,9 @@
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
+#ifdef QASM_THRUST
+#include "simulators/statevector/qubitvector_thrust.hpp"
+#endif
 
 namespace AER {
 namespace Simulator {
@@ -271,6 +274,10 @@ protected:
 
   // Controller-level parameter for CH method
   bool extended_stabilizer_measure_sampling_ = false;
+
+  // Use GPUs or not
+  bool use_GPUs_ = false;
+
 };
 
 //=========================================================================
@@ -340,6 +347,8 @@ void QasmController::set_config(const json_t &config) {
   JSON::get_value(extended_stabilizer_measure_sampling_,
                   "extended_stabilizer_measure_sampling", config);
 
+  JSON::get_value(use_GPUs_,"GPU", config);
+
   // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
     // Raise error if method is set to stabilizer or ch
@@ -383,6 +392,19 @@ OutputData QasmController::run_circuit(const Circuit &circ,
     case Method::statevector:
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
+#ifdef QASM_THRUST
+        if(use_GPUs_){
+      	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_,
+                                                      Method::statevector);
+        }
+        else{
+#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
                                                       circ,
                                                       noise,
@@ -391,8 +413,24 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       rng_seed,
                                                       initial_statevector_,
                                                       Method::statevector);
+#ifdef QASM_THRUST
+        }
+#endif
       } else {
         // Single-precision Statevector simulation
+#ifdef QASM_THRUST
+        if(use_GPUs_){
+      	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      initial_statevector_,
+                                                      Method::statevector);
+        }
+        else{
+#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
                                                       circ,
                                                       noise,
@@ -401,6 +439,9 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       rng_seed,
                                                       initial_statevector_,
                                                       Method::statevector);
+#ifdef QASM_THRUST
+        }
+#endif
       }
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
@@ -589,7 +630,6 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   const auto method = simulation_method(circ, noise_model, false);
   switch (method) {
     case Method::statevector:
-    case Method::stabilizer:
     case Method::matrix_product_state: {
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
