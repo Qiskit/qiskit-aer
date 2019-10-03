@@ -66,7 +66,7 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {
-	  return "matrixproductstate";
+	  return "matrix_product_state";
   }
 
   bool empty() const {
