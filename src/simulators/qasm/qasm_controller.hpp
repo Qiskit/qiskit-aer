@@ -404,6 +404,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
         }
         else{
+#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
                                                       circ,
                                                       noise,
@@ -429,6 +430,7 @@ OutputData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
         }
         else{
+#endif
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
                                                       circ,
                                                       noise,
@@ -571,13 +573,6 @@ QasmController::simulation_method(const Circuit &circ,
         validate_state(Statevector::State<>(), circ, noise_model, true);
       return Method::statevector;
     }
-    // If we didn't select extended stabilizer above proceed to the default switch clause
-    default: {
-      // Default method is statevector
-      if (validate)
-        validate_state(Statevector::State<>(), circ, noise_model, true);
-      return Method::statevector;
-    }
   }
 }
 
@@ -635,7 +630,6 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
   const auto method = simulation_method(circ, noise_model, false);
   switch (method) {
     case Method::statevector:
-    case Method::stabilizer:
     case Method::matrix_product_state: {
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
