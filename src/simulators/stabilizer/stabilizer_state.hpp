@@ -150,6 +150,10 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
+  // Snapshot the stabilizer state of the simulator.
+  // This returns a list of stabilizer generators
+  void snapshot_stabilizer(const Operations::Op &op, OutputData &data);
+                            
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               OutputData &data,
@@ -424,7 +428,7 @@ void State::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it->second) {
     case Snapshots::stabilizer:
-      BaseState::snapshot_state(op, data, "stabilizer");
+      snapshot_stabilizer(op, data);
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -443,6 +447,17 @@ void State::apply_snapshot(const Operations::Op &op,
       throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" +
                                   op.name + "\'.");
   }
+}
+
+
+void State::snapshot_stabilizer(const Operations::Op &op, OutputData &data) {
+  // We don't want to snapshot the full Clifford table, only the
+  // stabilizer part. First Convert simulator clifford table to JSON
+  json_t clifford = BaseState::qreg_;
+  // Then extract the stabilizer generator list
+  data.add_singleshot_snapshot("stabilizer",
+                               op.string_params[0],
+                               clifford["stabilizers"]);
 }
 
 

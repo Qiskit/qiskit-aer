@@ -206,7 +206,8 @@ class QasmMethodTests:
 
         def get_result():
             return self.SIMULATOR.run(
-                qobj, backend_options=self.BACKEND_OPTS).result()
+                qobj,
+                backend_options=self.BACKEND_OPTS).result()
 
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
