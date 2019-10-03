@@ -52,8 +52,8 @@ class ReadoutError:
             representations of bitstrings.
 
             Example: 1-qubit
-                probabilities[0] = [P("0"|"0"), P("1"|"0")
-                probabilities[1] = [P("0"|"1"), P("1"|"1")
+                probabilities[0] = [P("0"|"0"), P("1"|"0")]
+                probabilities[1] = [P("0"|"1"), P("1"|"1")]
 
             Example: 2-qubit
                 probabilities[0] = [P("00"|"00"), P("01"|"00"), P("10"|"00"), P("11"|"00")]
