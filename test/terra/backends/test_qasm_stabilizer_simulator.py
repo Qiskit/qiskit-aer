@@ -30,6 +30,9 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -44,7 +47,9 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmAlgorithmTests,
                                   QasmReadoutNoiseTests,
                                   QasmResetNoiseTests,
-                                  QasmPauliNoiseTests):
+                                  QasmPauliNoiseTests,
+                                  QasmSnapshotStatevectorTests,
+                                  QasmSnapshotStabilizerTests):
     """QasmSimulator stabilizer method tests."""
 
     BACKEND_OPTS = {

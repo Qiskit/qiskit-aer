@@ -44,6 +44,8 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 
 
 class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
@@ -68,7 +70,8 @@ class TestQasmDensityMatrixSimulator(common.QiskitAerTestCase,
                                      QasmReadoutNoiseTests,
                                      QasmPauliNoiseTests,
                                      QasmResetNoiseTests,
-                                     QasmKrausNoiseTests):
+                                     QasmKrausNoiseTests,
+                                     QasmSnapshotStatevectorTests):
     """QasmSimulator density_matrix method tests."""
 
     BACKEND_OPTS = {
