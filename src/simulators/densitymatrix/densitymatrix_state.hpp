@@ -443,7 +443,11 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::densitymatrix:
-      BaseState::snapshot_state(op, data, "density_matrix");
+      data.add_average_snapshot("density_matrix",
+                                op.string_params[0],
+                                BaseState::creg_.memory_hex(),
+                                BaseState::qreg_,
+                                false);
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -483,13 +487,16 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
-                                               OutputData &data,
-                                               bool variance) {
+                                              OutputData &data,
+                                              bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
-  data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+  data.add_average_snapshot("probabilities",
+                            op.string_params[0],
+                            BaseState::creg_.memory_hex(),
+                            probs,
+                            variance);
 }
 
 
