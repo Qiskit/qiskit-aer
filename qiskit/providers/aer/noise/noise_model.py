@@ -55,10 +55,10 @@ class NoiseModel:
 
         Additional Information
         ----------------------
-        Errors added to the noise model will have thier instruction appended to
+        Errors added to the noise model will have their instruction appended to
         the noise model basis_gates if the instruction is in the QasmSimulator
         basis_gates. If the instruction is not in the QasmSimulator basis_gates
-        it is assumbed to be a label for a standard gate, and that gate should
+        it is assumed to be a label for a standard gate, and that gate should
         be added to the NoiseModel basis_gates either using the init method, or
         the `add_basis_Gates` method.
         """
