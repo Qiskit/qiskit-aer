@@ -35,6 +35,8 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStateve
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -53,6 +55,8 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmSnapshotStatevectorTests,
                                   QasmSnapshotDensityMatrixTests,
                                   QasmSnapshotProbabilitiesTests,
+                                  QasmSnapshotExpValPauliTests,
+                                  QasmSnapshotExpValMatrixTests,
                                   QasmSnapshotStabilizerTests):
     """QasmSimulator stabilizer method tests."""
 
