@@ -22,6 +22,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
+option(THRUST_BACKEND "Specify what backend will Thrust library use: CUDA, TBB, OMP" OMP)
 
 include(CTest)
 include(compiler_utils)
@@ -42,6 +43,8 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
+
+set(AER_COMPILER_DEFINITIONS "")
 
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
@@ -129,6 +132,9 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 		include_directories("${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
 		set(OPENMP_FOUND TRUE)
 	endif()
+	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+		set(AER_THRUST_NOT_SUPPORTED TRUE)
+	endif()
 endif()
 
 if(OPENMP_FOUND)
@@ -147,6 +153,56 @@ if(OPENMP_FOUND)
 	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
 	message(STATUS "WARNING: No OpenMP support found!")
+endif()
+
+if(AER_THRUST_BACKEND MATCHES "CUDA")
+	message(STATUS "Thrust library: Looking for CUDA backend...")
+	find_package(CUDA REQUIRED)
+	if(CUDA_FOUND)
+		message(STATUS "Thrust library: CUDA found!")
+	else()
+		message(STATUS "Thrust library: No CUDA found on the system, using OpenMP backend")
+		set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	endif()
+elseif(AER_THRUST_BACKEND MATCHES "TBB")
+	message(STATUS "Thrust library: Looking for TBB backend...")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
+	find_package(TBB REQUIRED)
+	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+elseif(AER_THRUST_BACKEND MATCHES "OMP")
+	message(STATUS "Thrust library: OMP backend selected")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	# We don't need to add OMP because it's already an AER dependency
+else()
+	message(STATUS "Thrust library: Looking for CUDA toolkit...")
+	find_package(CUDA)
+	if(CUDA_FOUND)
+		message(STATUS "Thrust library: CUDA found!")
+	else()
+		message(STATUS "Thrust library: No CUDA found on the system, using OpenMP backend")
+		set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	endif()
+endif()
+
+if(CUDA_FOUND)
+	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+
+	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	set(THRUST_DEPENDANT_LIBS "")
+endif()
+
+if(AER_TIMING)
+	set(AER_COMPILER_DEFINITIONS "AER_TIMING")
+endif()
+if(AER_DEBUG)
+	set(AER_COMPILER_DEFINITIONS "AER_DEBUG")
+endif()
+
+if(AER_THRUST_NOT_SUPPORTED)
+	message(STATUS "Disabling Thrust support")
+	set(AER_COMPILER_DEFINITIONS "AER_THRUST_NOT_SUPPORTED")
 endif()
 
 message(STATUS "Looking for NLOHMANN Json library...")
@@ -228,7 +284,8 @@ set(AER_LIBRARIES
 	Threads::Threads
 	${SPDLOG_LIB}
 	${DL_LIB}
-	${MUPARSERX_LIB})
+	${MUPARSERX_LIB}
+	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
@@ -238,7 +295,13 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/simulators/open_pulse)
 else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	if(CUDA_FOUND)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+	else(CUDA_FOUND)
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
@@ -246,9 +309,13 @@ else() # Standalone build
 		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	target_include_directories(qasm_simulator
+		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+	target_compile_definitions(qasm_simulator
+		PRIVATE ${AER_COMPILER_DEFINITIONS})
 	install(TARGETS qasm_simulator DESTINATION bin)
+
 	# Linter
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)
@@ -261,3 +328,7 @@ if(BUILD_TESTS)
 	# have real C++ tests in the codebase.
 	# add_subdirectory(test)
 endif()
+
+
+
+
