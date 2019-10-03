@@ -248,7 +248,7 @@ class QuantumError:
         return False
 
     def to_quantumchannel(self):
-        """Convet the QuantumError to a SuperOp quantum channel."""
+        """Convert the QuantumError to a SuperOp quantum channel."""
         # Initialize as an empty superoperator of the correct size
         dim = 2**self.number_of_qubits
         channel = SuperOp(np.zeros([dim * dim, dim * dim]))
@@ -259,7 +259,7 @@ class QuantumError:
         return channel
 
     def to_instruction(self):
-        """Convet the QuantumError to a circuit Instruction."""
+        """Convert the QuantumError to a circuit Instruction."""
         return self.to_quantumchannel().to_instruction()
 
     def error_term(self, position):
