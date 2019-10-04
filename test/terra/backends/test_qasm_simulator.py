@@ -44,6 +44,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
@@ -85,6 +86,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmBasicsTests,
                         QasmSnapshotStatevectorTests,
                         QasmSnapshotDensityMatrixTests,
+                        QasmSnapshotProbabilitiesTests,
                         QasmSnapshotStabilizerTests):
     """QasmSimulator automatic method tests."""
 

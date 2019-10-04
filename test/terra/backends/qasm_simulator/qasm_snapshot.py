@@ -29,10 +29,12 @@ from test.terra.reference.ref_snapshot_state import (
     snapshot_state_counts_nondeterministic,
     snapshot_state_pre_measure_statevector_nondeterministic,
     snapshot_state_post_measure_statevector_nondeterministic)
-
-def get_snapshots(data, label, snapshot_type):
-        """Format snapshots as list of Numpy arrays"""
-        return data.get("snapshots", {}).get(snapshot_type, {}).get(label, [])
+from test.terra.reference.ref_snapshot_probabilities import (
+    snapshot_probabilities_circuits,
+    snapshot_probabilities_counts,
+    snapshot_probabilities_labels_qubits,
+    snapshot_probabilities_post_meas_probs,
+    snapshot_probabilities_pre_meas_probs)
 
 
 class QasmSnapshotStatevectorTests:
@@ -484,3 +486,81 @@ class QasmSnapshotDensityMatrixTests:
                     target = np.outer(target, target.conj())
                     value = snaps.get(mem)
                     self.assertTrue(np.allclose(value, target))
+
+
+class QasmSnapshotProbabilitiesTests:
+    """QasmSimulator snapshot probabilities tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    @staticmethod
+    def probabilitiy_snapshots(data, labels):
+        """Format snapshots as nested dicts"""
+        # Check snapshot entry exists in data
+        output = {}
+        for label in labels:
+            snaps = data.get("snapshots", {}).get("probabilities", {}).get(label, [])
+            output[label] = {snap_dict['memory']: snap_dict['value']
+                             for snap_dict in snaps}
+        return output
+
+    def test_snapshot_probabilities_pre_measure(self):
+        """Test snapshot probabilities before final measurement"""
+        shots = 1000
+        labels = list(snapshot_probabilities_labels_qubits().keys())
+        counts_targets = snapshot_probabilities_counts(shots)
+        prob_targets = snapshot_probabilities_pre_meas_probs()
+
+        circuits = snapshot_probabilities_circuits(post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotProbabilitiesTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = prob_targets[j].get(label, {}).get(memory, {})
+                        self.assertDictAlmostEqual(value, target, delta=1e-7)
+
+    def test_snapshot_probabilities_post_measure(self):
+        """Test snapshot probabilities after final measurement"""
+        shots = 1000
+        labels = list(snapshot_probabilities_labels_qubits().keys())
+        counts_targets = snapshot_probabilities_counts(shots)
+        prob_targets = snapshot_probabilities_post_meas_probs()
+
+        circuits = snapshot_probabilities_circuits(post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotProbabilitiesTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    for memory, value in snaps.items():
+                        target = prob_targets[j].get(label, {}).get(memory, {})
+                        self.assertDictAlmostEqual(value, target, delta=1e-7)
