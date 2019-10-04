@@ -32,11 +32,7 @@ class SnapshotProbabilities(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
         """
-        if variance:
-            snapshot_type = 'probabilities_with_variance'
-        else:
-            snapshot_type = 'probabilities'
-
+        snapshot_type = 'probabilities_with_variance' if variance else 'probabilities'
         super().__init__(label, snapshot_type=snapshot_type,
                          num_qubits=num_qubits)
 

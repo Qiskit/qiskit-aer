@@ -504,11 +504,8 @@ class QasmSnapshotProbabilitiesTests:
         output = {}
         for label in labels:
             snaps = data.get("snapshots", {}).get("probabilities", {}).get(label, [])
-            # Convert list into dict
-            inner = {}
-            for snap_dict in snaps:
-                inner[snap_dict['memory']] = snap_dict['value']
-            output[label] = inner
+            output[label] = {snap_dict['memory']: snap_dict['value']
+                             for snap_dict in snaps}
         return output
 
     def test_snapshot_probabilities_pre_measure(self):
