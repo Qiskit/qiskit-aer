@@ -188,10 +188,12 @@ public:
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
   //           cout << " store_measure not supported yet" <<endl;}
 
-  double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
-    cout << "norm not supported yet" <<endl;
-    return 0;
-  }
+  /* TODO: implement this method
+    double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
+      cout << "norm not supported yet" <<endl;
+      return 0;
+    }
+  */
   
   reg_t apply_measure(const reg_t &qubits, 
 		      RngEngine &rng);
