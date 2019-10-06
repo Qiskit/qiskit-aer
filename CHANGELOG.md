@@ -23,10 +23,14 @@ Added
 - Added tests for the Fredkin gate (#357)
 - Added tests for the cu1 gate (#360)
 - Added tests for statevector and stabilizer snapshots (\#355)
+- Added tests for density matrix snapshot (\#374)
+- Added tests for probabilities snapshot (\#380)
 
 Changed
 -------
 - New (efficient) implementation for expectation_value_pauli (\#344)
+- Change signature of SnapshotProbabilities extension (\#380)
+- Change signature of SnapshotDensityMatrix extension (\#374)
 - Stabilizer snapshot returns stabilizer instead of full Clifford table (\#355)
 - Signature of SnapshotStatevector and SnapshotStabilizer (\#355)
 - Changed all names from tensor_network_state to matrix_product_state (\#356)

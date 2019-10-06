@@ -36,9 +36,9 @@ namespace MatrixProductState {
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
-  probs, probs_var,
-  expval_pauli, expval_pauli_var,
-  expval_matrix, expval_matrix_var
+  probs, //probs_var,
+  expval_pauli, //expval_pauli_var,
+  expval_matrix//, //expval_matrix_var
 };
 
 
@@ -86,8 +86,8 @@ public:
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
-      Operations::OpType::matrix,
-      Operations::OpType::kraus
+      Operations::OpType::matrix
+      //Operations::OpType::kraus  // TODO
     });
   }
 
@@ -104,9 +104,10 @@ public:
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
     return {"statevector", "memory", "register",
-            "probabilities", "probabilities_with_variance",
-            "expectation_value_pauli", "expectation_value_pauli_with_variance",
-            "expectation_value_matrix", "expectation_value_matrix_with_variance"};
+            "probabilities", //"probabilities_with_variance",
+            "expectation_value_pauli", //"expectation_value_pauli_with_variance",
+            "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
+            };
   }
 
   // Apply a sequence of operations by looping over list
@@ -190,9 +191,9 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a Kraus error operation
-  void apply_kraus(const reg_t &qubits,
-                   const std::vector<cmatrix_t> &krausops,
-                   RngEngine &rng);
+  //void apply_kraus(const reg_t &qubits,
+  //                 const std::vector<cmatrix_t> &krausops,
+  //                 RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -317,9 +318,9 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
-  {"probabilities_with_variance", Snapshots::probs_var},
-  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
-  {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
+  //{"probabilities_with_variance", Snapshots::probs_var},
+  //{"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  //{"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -442,9 +443,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
-        case Operations::OpType::kraus:
-          apply_kraus(op.qubits, op.mats, rng);
-          break;
+        //case Operations::OpType::kraus:
+        //  apply_kraus(op.qubits, op.mats, rng);
+        //  break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -789,10 +790,10 @@ void State::measure_reset_update(const std::vector<uint_t> &qubits,
 // Implementation: Kraus Noise
 // This function has not been checked yet
 //=========================================================================
+/* TODO: NORM NOT IMPLEMENTED IN MPS CLASS
 void State::apply_kraus(const reg_t &qubits,
                         const std::vector<cmatrix_t> &kmats,
                         RngEngine &rng) {
-
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
     return; // end function early
@@ -834,6 +835,7 @@ void State::apply_kraus(const reg_t &qubits,
     apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
   }
 }
+*/
 
 //-------------------------------------------------------------------------
 } // end namespace MatrixProductState
