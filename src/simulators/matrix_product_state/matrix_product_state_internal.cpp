@@ -128,6 +128,7 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
 void MPS::initialize(uint_t num_qubits)
 {
   num_qubits_ = num_qubits;
+  q_reg_.clear();
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
   for(uint_t i = 0; i < num_qubits_-1; i++) {
