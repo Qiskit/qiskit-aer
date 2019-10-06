@@ -188,9 +188,16 @@ public:
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
   //           cout << " store_measure not supported yet" <<endl;}
 
-  double norm(const AER::reg_t &reg_qubits, cvector_t &vmat) const {
-    cout << "norm not supported yet" <<endl;
-    return 0;
+  double norm(const uint_t qubit, cvector_t &vmat) const {
+    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
+    reg_t qubits;
+    qubits.push_back(qubit);
+    return expectation_value(qubits, mat);
+  }
+
+  double norm(const reg_t &qubits, cvector_t &vmat) const {
+    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
+    return expectation_value(qubits, mat);
   }
   
   reg_t apply_measure(const reg_t &qubits, 
