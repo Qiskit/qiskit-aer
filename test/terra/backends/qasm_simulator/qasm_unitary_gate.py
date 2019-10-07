@@ -37,5 +37,5 @@ class QasmUnitaryGateTests:
         targets = ref_unitary_gate.unitary_gate_counts_deterministic(
             shots)
         result = execute(circuits, self.SIMULATOR, shots=shots).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
