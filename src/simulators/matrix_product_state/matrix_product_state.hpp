@@ -216,10 +216,9 @@ protected:
   sample_measure_with_prob(const reg_t &qubits, RngEngine &rng);
 
 
-  void measure_reset_update(const std::vector<uint_t> &qubits,
+  void measure_reset_update(const reg_t &qubits,
                             const uint_t final_state,
-                            const uint_t meas_state,
-                            const double meas_prob);
+                            const reg_t &meas_state);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -645,10 +644,7 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-
   reg_t outcome = qreg_.apply_measure(qubits, rng);
-  //  measure_reset_update(qubits, meas.first, meas.first, meas.second);
-  //  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -726,11 +722,20 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
 
 void State::apply_reset(const reg_t &qubits,
                         RngEngine &rng) {
-
   // Simulate unobserved measurement
-  const auto meas = sample_measure_with_prob(qubits, rng);
-  // Apply update tp reset state
-  measure_reset_update(qubits, 0, meas.first, meas.second);
+  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  // Apply update to reset state
+  measure_reset_update(qubits, 0, outcome);
+}
+
+void State::measure_reset_update(const reg_t &qubits, 
+				 const uint_t final_state, 
+				 const reg_t &meas_state) {
+  for (uint_t i=0; i<qubits.size(); i++) {
+    if(meas_state[i] != final_state) {
+      qreg_.apply_x(qubits[i]);
+    }
+  }
 }
 
 std::pair<uint_t, double>
@@ -741,49 +746,6 @@ State::sample_measure_with_prob(const reg_t &qubits,
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);
-}
-
-void State::measure_reset_update(const std::vector<uint_t> &qubits,
-                                 const uint_t final_state,
-                                 const uint_t meas_state,
-                                 const double meas_prob) {
-  // Update a state vector based on an outcome pair [m, p] from
-  // sample_measure_with_prob function, and a desired post-measurement final_state
-  // Single-qubit case
-  if (qubits.size() == 1) {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    cvector_t mdiag(2, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    if (final_state != meas_state) {
-      qreg_.apply_x(qubits[0]);
-    }
-  }
-  // Multi qubit case
-  else {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    const size_t dim = 1ULL << qubits.size();
-    cvector_t mdiag(dim, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    // This function could be optimized as a permutation update
-    if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j=0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
-      }
-      // apply permutation to swap state
-      apply_matrix(qubits, perm);
-    }
-  }
 }
 
 //=========================================================================
