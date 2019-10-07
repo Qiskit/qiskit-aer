@@ -29,6 +29,12 @@ from test.terra.reference.ref_snapshot_state import (
     snapshot_state_counts_nondeterministic,
     snapshot_state_pre_measure_statevector_nondeterministic,
     snapshot_state_post_measure_statevector_nondeterministic)
+from test.terra.reference.ref_snapshot_probabilities import (
+    snapshot_probabilities_circuits,
+    snapshot_probabilities_counts,
+    snapshot_probabilities_labels_qubits,
+    snapshot_probabilities_post_meas_probs,
+    snapshot_probabilities_pre_meas_probs)
 
 
 class QasmSnapshotStatevectorTests:
@@ -40,14 +46,10 @@ class QasmSnapshotStatevectorTests:
     ]
     BACKEND_OPTS = {}
 
-    def statevector_snapshots(self, data, label):
+    @staticmethod
+    def statevector_snapshots(data, label):
         """Format snapshots as list of Numpy arrays"""
-        # Check snapshot entry exists in data
-        self.assertIn("snapshots", data)
-        self.assertIn("statevector", data["snapshots"])
-        self.assertIn(label, data["snapshots"]["statevector"])
-        # Format output as list of numpy array
-        snaps = data["snapshots"]["statevector"][label]
+        snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
         statevecs = []
         for snap in snaps:
             svec = np.array(snap)
@@ -188,14 +190,10 @@ class QasmSnapshotStabilizerTests:
     SUPPORTED_QASM_METHODS = ['automatic', 'stabilizer']
     BACKEND_OPTS = {}
 
-    def stabilizer_snapshots(self, data, label):
-        """Format snapshots as list of Numpy arrays"""
-        # Check snapshot entry exists in data
-        self.assertIn("snapshots", data)
-        self.assertIn("stabilizer", data["snapshots"])
-        self.assertIn(label, data["snapshots"]["stabilizer"])
-        # Format output as list of numpy array
-        return data["snapshots"]["stabilizer"][label]
+    @staticmethod
+    def stabilizer_snapshots(data, label):
+        """Get stabilizer snapshots"""
+        return data.get("snapshots", {}).get("stabilizer", {}).get(label, [])
 
     @staticmethod
     def stabilizes_statevector(stabilizer, statevector):
@@ -340,3 +338,229 @@ class QasmSnapshotStabilizerTests:
                     stabilizer = snaps[j]
                     self.assertTrue(
                         self.stabilizes_statevector(stabilizer, statevec))
+
+
+class QasmSnapshotDensityMatrixTests:
+    """QasmSimulator snapshot density matrix tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'density_matrix'
+    ]
+    BACKEND_OPTS = {}
+
+    @staticmethod
+    def density_snapshots(data, label):
+        """Format snapshots as list of Numpy arrays"""
+        # Check snapshot entry exists in data
+        snaps = data.get("snapshots", {}).get("density_matrix", {}).get(label, [])
+        # Convert nested lists to numpy arrays
+        output = {}
+        for snap_dict in snaps:
+            memory = snap_dict['memory']
+            mat = np.array(snap_dict['value'])
+            output[memory] = mat[:, :, 0] + 1j * mat[:, :, 1]
+        return output
+
+    def test_snapshot_density_matrix_pre_measure_det(self):
+        """Test snapshot density matrix before deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_state_counts_deterministic(shots)
+        statevec_targets = snapshot_state_pre_measure_statevector_deterministic(
+        )
+        circuits = snapshot_state_circuits_deterministic(label,
+                                                         'density_matrix',
+                                                         post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.density_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = np.outer(statevec_targets[j], statevec_targets[j].conj())
+                # Pre-measurement all memory bits should be 0
+                value = snaps.get('0x0')
+                self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_density_matrix_pre_measure_nondet(self):
+        """Test snapshot density matrix before non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_state_counts_nondeterministic(shots)
+        statevec_targets = snapshot_state_pre_measure_statevector_nondeterministic(
+        )
+        circuits = snapshot_state_circuits_nondeterministic(label,
+                                                            'density_matrix',
+                                                            post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.density_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = np.outer(statevec_targets[j], statevec_targets[j].conj())
+                value = snaps.get('0x0')
+                self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_density_matrix_post_measure_det(self):
+        """Test snapshot density matrix after deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_state_counts_deterministic(shots)
+        statevec_targets = snapshot_state_post_measure_statevector_deterministic(
+        )
+        circuits = snapshot_state_circuits_deterministic(label,
+                                                         'density_matrix',
+                                                         post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.density_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = statevec_targets[i].get(mem)
+                    target = np.outer(target, target.conj())
+                    value = snaps.get(mem)
+                    self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_density_matrix_post_measure_nondet(self):
+        """Test snapshot density matrix after non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_state_counts_nondeterministic(shots)
+        statevec_targets = snapshot_state_post_measure_statevector_nondeterministic(
+        )
+        circuits = snapshot_state_circuits_nondeterministic(label,
+                                                            'density_matrix',
+                                                            post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.density_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = statevec_targets[i].get(mem)
+                    target = np.outer(target, target.conj())
+                    value = snaps.get(mem)
+                    self.assertTrue(np.allclose(value, target))
+
+
+class QasmSnapshotProbabilitiesTests:
+    """QasmSimulator snapshot probabilities tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    @staticmethod
+    def probabilitiy_snapshots(data, labels):
+        """Format snapshots as nested dicts"""
+        # Check snapshot entry exists in data
+        output = {}
+        for label in labels:
+            snaps = data.get("snapshots", {}).get("probabilities", {}).get(label, [])
+            output[label] = {snap_dict['memory']: snap_dict['value']
+                             for snap_dict in snaps}
+        return output
+
+    def test_snapshot_probabilities_pre_measure(self):
+        """Test snapshot probabilities before final measurement"""
+        shots = 1000
+        labels = list(snapshot_probabilities_labels_qubits().keys())
+        counts_targets = snapshot_probabilities_counts(shots)
+        prob_targets = snapshot_probabilities_pre_meas_probs()
+
+        circuits = snapshot_probabilities_circuits(post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotProbabilitiesTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = prob_targets[j].get(label, {}).get(memory, {})
+                        self.assertDictAlmostEqual(value, target, delta=1e-7)
+
+    def test_snapshot_probabilities_post_measure(self):
+        """Test snapshot probabilities after final measurement"""
+        shots = 1000
+        labels = list(snapshot_probabilities_labels_qubits().keys())
+        counts_targets = snapshot_probabilities_counts(shots)
+        prob_targets = snapshot_probabilities_post_meas_probs()
+
+        circuits = snapshot_probabilities_circuits(post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotProbabilitiesTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    for memory, value in snaps.items():
+                        target = prob_targets[j].get(label, {}).get(memory, {})
+                        self.assertDictAlmostEqual(value, target, delta=1e-7)

@@ -256,7 +256,8 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   // We can't print OpTypes so we add a note if there are invalid
   // instructions other than gates or snapshots
   if (bad_instr && (!bad_gates && !bad_snaps))
-    ss << " invalid non gate or snapshot instructions: opset={" << opset << "}";
+    ss << " invalid non gate or snapshot instructions in opset {" << opset << "}";
+  ss << " for " << name() << " method"; 
   return ss.str();
 }
 
