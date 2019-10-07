@@ -190,7 +190,7 @@ jobs:
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
-        - CIBW_ENVIRONMENT="VIRTUALENV_NO_DOWNLOAD=1 LD_LIBRARY_PATH=/opt/rh/devtoolset-8/root/usr/lib64:/opt/rh/devtoolset-8/root/usr/lib:/opt/rh/devtoolset-8/root/usr/lib64/dyninst:/opt/rh/devtoolset-8/root/usr/lib/dyninst:/usr/local/lib64:/usr/local/lib"
+        - CIBW_ENVIRONMENT=VIRTUALENV_NO_DOWNLOAD=1
         - VIRTUALENV_NO_DOWNLOAD=1
 #      if: tag IS present
       script:
