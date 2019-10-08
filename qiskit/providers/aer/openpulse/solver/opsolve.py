@@ -173,7 +173,15 @@ class OP_mcwf():
                        'meas_return': m_ret,
                        'data': {}}
 
-            memory = exp_results[idx_exp]
+            if self.op_system.can_sample:
+                memory = exp_results[idx_exp][0]
+                results['data']['statevector'] = []
+                for coef in exp_results[idx_exp][1]:
+                    results['data']['statevector'].append([np.real(coef),
+                                                           np.imag(coef)])
+                results['header']['ode_t'] = exp_results[idx_exp][2]
+            else:
+                memory = exp_results[idx_exp]
 
             # meas_level 2 return the shots
             if m_lev == 2:
@@ -182,8 +190,7 @@ class OP_mcwf():
                 # integer
                 # e.g. [1,0] -> 2
                 int_mem = memory.dot(np.power(2.0,
-                                              np.arange(memory.shape[1] - 1,
-                                                        -1, -1))).astype(int)
+                                              np.arange(memory.shape[1]))).astype(int)
 
                 # if the memory flag is set return each shot
                 if self.op_system.global_data['memory']:
