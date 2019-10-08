@@ -45,6 +45,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -71,8 +72,9 @@ class TestQasmMatrixProductStateSimulator(
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
-        QasmSnapshotStatevectorTests,
-        QasmSnapshotStabilizerTests,
+        #QasmSnapshotStatevectorTests,
+        #QasmSnapshotProbabilitiesTests,
+        QasmSnapshotStabilizerTests
         ):
     """QasmSimulator matrix product state method tests."""
 
