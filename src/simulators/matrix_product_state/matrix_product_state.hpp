@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -12,7 +19,7 @@
 // For this simulation method, we represent the state of the circuit using a tensor
 // network structure, the specifically matrix product state. The idea is based on
 // the following paper (there exist other sources as well):
-// The density-matrix renormalization group in the age of matrix product states by 
+// The density-matrix renormalization group in the age of matrix product states by
 // Ulrich Schollwock.
 //
 //--------------------------------------------------------------------------
@@ -31,7 +38,7 @@
 
 
 namespace AER {
-namespace MatrixProductState { 
+namespace MatrixProductState {
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -51,7 +58,7 @@ using matrixproductstate_t = MPS;
 class State : public Base::State<matrixproductstate_t> {
 public:
   using BaseState = Base::State<matrixproductstate_t>;
-  
+
   State() = default;
 
   State(uint_t num_qubits) {
@@ -81,7 +88,7 @@ public:
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,
-      Operations::OpType::initialize,	
+      Operations::OpType::initialize,
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
@@ -122,7 +129,7 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) override;
 
-  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector); 
+  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -372,9 +379,9 @@ void State::initialize_omp() {
 
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
-    // for each qubit we have a tensor structure. 
+    // for each qubit we have a tensor structure.
     // Initially, each tensor contains 2 matrices with a single complex double
-    // Depending on the number of 2-qubit gates, 
+    // Depending on the number of 2-qubit gates,
     // these matrices may double their size
     // for now - compute only initial size
     // later - FIXME
@@ -565,10 +572,10 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       qreg_.apply_sdg(op.qubits[0]);
       break;
-    case Gates::t: 
+    case Gates::t:
       qreg_.apply_t(op.qubits[0]);
       break;
-    case Gates::tdg: 
+    case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::swap:
@@ -600,7 +607,7 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   }
 #ifdef DEBUG
   cout << "Currently only support matrices applied to 1 or 2 qubits";
-#endif  
+#endif
 }
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
@@ -655,7 +662,7 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
-  
+
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
@@ -666,7 +673,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-  
+
   return all_samples;
 }
 
@@ -675,12 +682,12 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
 
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
-    throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" + 
+    throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" +
                                 op.name + "\'.");
   switch (it -> second) {
   case Snapshots::statevector: {
-      snapshot_state(op, data, "statevector"); 
-      break; 
+      snapshot_state(op, data, "statevector");
+      break;
       }
       /*    case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -693,7 +700,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, false);
       break;
-    } 
+    }
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
       break;
@@ -716,7 +723,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
       throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
-                                  op.name + "\'."); 
+                                  op.name + "\'.");
   }
 }
 
@@ -728,8 +735,8 @@ void State::apply_reset(const reg_t &qubits,
   measure_reset_update(qubits, 0, outcome);
 }
 
-void State::measure_reset_update(const reg_t &qubits, 
-				 const uint_t final_state, 
+void State::measure_reset_update(const reg_t &qubits,
+				 const uint_t final_state,
 				 const reg_t &meas_state) {
   for (uint_t i=0; i<qubits.size(); i++) {
     if(meas_state[i] != final_state) {

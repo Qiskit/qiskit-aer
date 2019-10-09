@@ -52,8 +52,8 @@ from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
-        #QasmMethodTests,  # CRASHES: segmentation fault
-        QasmMeasureTests,  
+        #QasmMethodTests,  # FAILING: Not implemented yet
+        QasmMeasureTests,
         QasmMultiQubitMeasureTests,
         QasmResetTests,
         QasmConditionalGateTests,
@@ -68,12 +68,12 @@ class TestQasmMatrixProductStateSimulator(
         QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis,
         QasmUnitaryGateTests,
-        #QasmInitializeTests,  # CRASHES: uncaught exception
+        #QasmInitializeTests,  # THROWS: uncaught exception
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
         #QasmSnapshotStatevectorTests,
-        #QasmSnapshotProbabilitiesTests,
+        #QasmSnapshotProbabilitiesTests, # CRASHES: seg-fault
         QasmSnapshotStabilizerTests
         ):
     """QasmSimulator matrix product state method tests."""

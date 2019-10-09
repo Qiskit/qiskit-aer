@@ -25,6 +25,7 @@ Added
 - Added tests for statevector and stabilizer snapshots (\#355)
 - Added tests for density matrix snapshot (\#374)
 - Added tests for probabilities snapshot (\#380)
+- Added support for reset() in MPS simulation method (\#393)
 
 Changed
 -------
