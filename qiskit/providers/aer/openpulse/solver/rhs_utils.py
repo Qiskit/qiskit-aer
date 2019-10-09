@@ -17,6 +17,7 @@
 import os
 from .codegen import OPCodegen
 from . import settings as op_set
+from ..cy.numeric_integrator_wrapper import td_ode_rhs_static
 
 
 def _op_generate_rhs(op_system):
@@ -40,9 +41,10 @@ def _op_func_load(op_system):
     Args:
         op_system (OPSystem): An OpenPulse system object.
     """
-    code = compile('from ' + op_system.global_data['rhs_file_name'] +
-                   ' import cy_td_ode_rhs', '<string>', 'exec')
+    # code = compile('from ' + op_system.global_data['rhs_file_name'] +
+    #                ' import cy_td_ode_rhs', '<string>', 'exec')
     # pylint: disable=exec-used
-    exec(code, globals())
+    # exec(code, globals())
     # pylint: disable=undefined-variable
-    op_system.global_data['rhs_func'] = cy_td_ode_rhs
+    # op_system.global_data['rhs_func'] = cy_td_ode_rhs
+    op_system.global_data['rhs_func'] = td_ode_rhs_static

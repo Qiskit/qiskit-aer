@@ -28,9 +28,13 @@ from libcpp.complex cimport complex
 
 cdef extern from "src/numeric_integrator.hpp":
     cdef void td_ode_rhs(
-        dict global_data, dict exp, unsigned char register
+        dict global_data,
+        dict channels,
+        dict vars,
+        dict freqs,
+        dict exp,
+        unsigned char register
     ) except +
 
-
-def td_ode_rhs_static(global_data, exp, register):
-    td_ode_rhs(global_data, exp, register)
+def td_ode_rhs_static(global_data, channels, vars, freqs, exp, register):
+    td_ode_rhs(global_data, channels, vars, freqs, exp, register)

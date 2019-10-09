@@ -20,6 +20,82 @@
 #include <complex>
 #include <Python.h>
 
+
+template <typename T>
+struct iterator_extractor { typedef typename T::iterator type; };
+
+template <typename T>
+struct iterator_extractor<T const> { typedef typename T::const_iterator type; };
+
+/**
+ * Python-like `enumerate()` for C++14 ranged-for
+ *
+ * I wish I'd had this included in the STL :)
+ *
+ * Usage:
+ * ```c++
+ * for(auto& elem: index(vec)){
+ *     std::cout << "Index: " << elem.first << " Element: " << elem.second;
+ * }
+ * ```
+ **/
+template <typename T>
+class Indexer {
+public:
+    class _Iterator {
+        typedef typename iterator_extractor<T>::type inner_iterator;
+        typedef typename std::iterator_traits<inner_iterator>::reference inner_reference;
+    public:
+        typedef std::pair<size_t, inner_reference> reference;
+
+        _Iterator(inner_iterator it): _pos(0), _it(it) {}
+
+        reference operator*() const {
+            return reference(_pos, *_it);
+        }
+
+        _Iterator& operator++() {
+            ++_pos;
+            ++_it;
+            return *this;
+        }
+
+        _Iterator operator++(int) {
+            iterator tmp(*this);
+            ++*this;
+            return tmp;
+        }
+
+        bool operator==(_Iterator const& it) const {
+            return _it == it._it;
+        }
+        bool operator!=(_Iterator const& it) const {
+            return !(*this == it);
+        }
+
+    private:
+        size_t _pos;
+        inner_iterator _it;
+    };
+
+    Indexer(T& t): _container(t) {}
+
+    _Iterator begin() const {
+        return _Iterator(_container.begin());
+    }
+    _Iterator end() const {
+        return _Iterator(_container.end());
+    }
+
+private:
+    T& _container;
+}; // class Indexer
+
+template <typename T>
+Indexer<T> index(T& t) { return Indexer<T>(t); }
+
+
+
 bool _check_is_integer(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
@@ -49,6 +125,15 @@ bool _check_is_complex(PyObject * value){
         return false;
 
     return true;
+}
+
+bool _check_is_list(PyObject * value){
+    if(value == nullptr)
+    throw std::invalid_argument("Pyhton list is null!");
+
+    // Check that it's a list
+    if(!PyList_Check(value))
+        throw std::invalid_argument("PyObject is not a list!!");
 }
 
 template<typename T>
@@ -123,33 +208,36 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     return nullptr;
 }
 
+
+/**
+ * Get a C++ Vector of C++ types from a Python List
+ **/
+
 template<typename VecType>
 const std::vector<VecType> _get_vec_from_py_list(PyObject * py_list){
-    if(py_list == nullptr)
-        throw std::invalid_argument("Pyhton list is null!");
-
-    // Check that it's a list
-    if(!PyList_Check(py_list))
-        throw std::invalid_argument("PyObject is not a list!!");
-
+    if(!_check_is_list(py_list))
+        throw std::invalid_argument("PyObject is not a List!");
 
     auto size = PyList_Size(py_list);
     std::vector<VecType> vector;
     vector.reserve(size);
-    for(int i=0; i<size; ++i){
-        auto p_item = PyList_GetItem(py_list, i);
-        if(p_item == nullptr)
+    for(auto i=0; i<size; ++i){
+        auto py_item = PyList_GetItem(py_list, i);
+        if(py_item == nullptr)
             continue;
-        vector.emplace_back(p_item);
+        auto cpp_item = _get_value<VecType>(py_item);
+        vector.emplace_back(cpp_item);
     }
-
-
     return vector;
 }
 
 
+/**
+ * Get a C++ Unorderd map of C++ types (key = KeyType, values = ValueType)
+ * from a Python dictionary.
+ **/
 template<typename KeyType, typename ValueType>
-const std::unordered_map<KeyType, ValueType> _get_map_from_py_dict(PyObject * py_dict){
+const std::unordered_map<KeyType, ValueType> get_map_from_py_dict(PyObject * py_dict){
     if(py_dict == nullptr)
         throw std::invalid_argument("Pyhton list is null!");
 
@@ -164,9 +252,9 @@ const std::unordered_map<KeyType, ValueType> _get_map_from_py_dict(PyObject * py
     PyObject *key, *value;
     Py_ssize_t pos = 0;
     while (PyDict_Next(py_dict, &pos, &key, &value)) {
-        auto c_key = _get_value<KeyType>(key);
-        auto c_value = _get_value<ValueType>(value);
-        map.emplace(c_key, c_value);
+        auto cpp_key = _get_value<KeyType>(key);
+        auto cpp_value = _get_value<ValueType>(value);
+        map.emplace(cpp_key, cpp_value);
     }
     return map;
 }
@@ -221,7 +309,7 @@ const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::st
 template<typename KeyType, typename ValueType>
 const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return _get_map_from_py_dict<KeyType, ValueType>(py_value);
+    return get_map_from_py_dict<KeyType, ValueType>(py_value);
 }
 
 /**

@@ -21,13 +21,13 @@
 #include <map>
 #include <Python.h>
 
-// using pyhton_op_dict_t = std::map<std::string, std::string>;
-using pyhton_op_dict_t = PyObject *;
-// using rhs_ret_t = std::vector<std::complex<double>>;
-using rhs_ret_t = PyObject *;
-
-rhs_ret_t td_ode_rhs(
-    pyhton_op_dict_t global_data, pyhton_op_dict_t exp, unsigned char _register
+PyObject * td_ode_rhs(
+     PyObject * global_data,
+     PyObject * channels,
+     PyObject * vars,
+     PyObject * freqs,
+     PyObject * exp,
+     unsigned char _register
 );
 
 #endif // _NUMERIC_INTEGRATOR_HPP

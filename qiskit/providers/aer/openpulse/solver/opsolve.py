@@ -52,7 +52,8 @@ def opsolve(op_system):
     # build Hamiltonian data structures
     op_data_config(op_system)
     # compile Cython RHS
-    _op_generate_rhs(op_system)
+    # <JUAN> No more dynamically generated cython 
+    #_op_generate_rhs(op_system)
     # Load cython function
     _op_func_load(op_system)
     # load monte carlo class
@@ -115,11 +116,16 @@ class OP_mcwf():
         # into one of the qubit states (usually |1>)
         if self.op_system.can_sample:
             start = time.time()
+            # exp_results = parallel_map(unitary_evolution,
+            #                            self.op_system.experiments,
+            #                            task_args=(self.op_system.global_data,
+            #                                       self.op_system.ode_options
+            #                                       ),
+            #                            **map_kwargs
+            #                            )
             exp_results = parallel_map(unitary_evolution,
                                        self.op_system.experiments,
-                                       task_args=(self.op_system.global_data,
-                                                  self.op_system.ode_options
-                                                  ),
+                                       task_args=(self.op_system,),
                                        **map_kwargs
                                        )
             end = time.time()

@@ -25,7 +25,25 @@ from ..cy.measure import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def unitary_evolution(exp, global_data, ode_options):
+#def unitary_evolution(exp, global_data, ode_options):
+    # """
+    # Calculates evolution when there is no noise,
+    # or any measurements that are not at the end
+    # of the experiment.
+
+    # Args:
+    #     exp (dict): Dictionary of experimental pulse and fc
+    #         data.
+    #     global_data (dict): Data that applies to all experiments.
+    #     ode_options (OPoptions): Options for the underlying ODE solver.
+
+    # Returns:
+    #     array: Memory of shots.
+
+    # Raises:
+    #     Exception: Error in ODE solver.
+    # """
+def unitary_evolution(exp, op_system):
     """
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
@@ -33,9 +51,7 @@ def unitary_evolution(exp, global_data, ode_options):
 
     Args:
         exp (dict): Dictionary of experimental pulse and fc
-            data.
-        global_data (dict): Data that applies to all experiments.
-        ode_options (OPoptions): Options for the underlying ODE solver.
+        op_system (OPSystem): Global OpenPulse system settings
 
     Returns:
         array: Memory of shots.
@@ -43,34 +59,38 @@ def unitary_evolution(exp, global_data, ode_options):
     Raises:
         Exception: Error in ODE solver.
     """
-    cy_rhs_func = global_data['rhs_func']
+    cy_rhs_func = op_system.global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])
     tlist = exp['tlist']
     snapshots = []
-    shots = global_data['shots']
+    shots = op_system.global_data['shots']
     # Init memory
-    memory = np.zeros((shots, global_data['memory_slots']),
+    memory = np.zeros((shots, op_system.global_data['memory_slots']),
                       dtype=np.uint8)
     # Init register
-    register = np.zeros(global_data['n_registers'], dtype=np.uint8)
+    register = np.zeros(op_system.global_data['n_registers'], dtype=np.uint8)
 
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
     ODE.set_integrator('zvode',
-                       method=ode_options.method,
-                       order=ode_options.order,
-                       atol=ode_options.atol,
-                       rtol=ode_options.rtol,
-                       nsteps=ode_options.nsteps,
-                       first_step=ode_options.first_step,
-                       min_step=ode_options.min_step,
-                       max_step=ode_options.max_step)
+                       method=op_system.ode_options.method,
+                       order=op_system.ode_options.order,
+                       atol=op_system.ode_options.atol,
+                       rtol=op_system.ode_options.rtol,
+                       nsteps=op_system.ode_options.nsteps,
+                       first_step=op_system.ode_options.first_step,
+                       min_step=op_system.ode_options.min_step,
+                       max_step=op_system.ode_options.max_step)
 
-    _inst = 'ODE.set_f_params(%s)' % global_data['string']
-    print("Unitary Evolution: {}\n\n".format(_inst))
-    code = compile(_inst, '<string>', 'exec')
-    exec(code)  # pylint disable=exec-used
+    # _inst = 'ODE.set_f_params(%s)' % global_data['string']
+    # print("Unitary Evolution: {}\n\n".format(_inst))
+    # code = compile(_inst, '<string>', 'exec')
+    # exec(code)  # pylint disable=exec-used
+
+    # <JUAN> Pass arguments statically
+    ODE.set_f_params(op_system.global_data, op_system.channels, op_system.vars,
+        op_system.freqs, exp, register)
 
     if not ODE._y:
         ODE.t = 0.0
