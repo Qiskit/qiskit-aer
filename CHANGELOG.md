@@ -25,9 +25,11 @@ Added
 - Added tests for statevector and stabilizer snapshots (\#355)
 - Added tests for density matrix snapshot (\#374)
 - Added tests for probabilities snapshot (\#380)
+- Added tests for matrix and Pauli expectation value snapshot (\#386)
 
 Changed
 -------
+- Changes signature of SnapshotExpectationValue extension and the way qubit position parameters are parsed in expectation_value_matrix qobj instructions (\#386)
 - Change signature of SnapshotProbabilities extension (\#380)
 - Change signature of SnapshotDensityMatrix extension (\#374)
 - Stabilizer snapshot returns stabilizer instead of full Clifford table (\#355)
