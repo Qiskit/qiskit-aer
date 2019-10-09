@@ -19,7 +19,9 @@
 #include <vector>
 #include <complex>
 #include <Python.h>
+#include <exprtk.hpp>
 
+using complex_t = std::complex<double>;
 
 template <typename T>
 struct iterator_extractor { typedef typename T::iterator type; };
@@ -92,7 +94,7 @@ private:
 }; // class Indexer
 
 template <typename T>
-Indexer<T> index(T& t) { return Indexer<T>(t); }
+Indexer<T> enumerate(T& t) { return Indexer<T>(t); }
 
 
 
@@ -137,12 +139,12 @@ bool _check_is_list(PyObject * value){
 }
 
 template<typename T>
-T _get_value(PyObject * value){
+T get_value(PyObject * value){
     throw std::invalid_argument("Can't get the value for this type!");
 }
 
 template<>
-long _get_value(PyObject * value){
+long get_value(PyObject * value){
     if(!_check_is_integer(value))
         throw std::invalid_argument("PyObject is not a long!");
 
@@ -155,7 +157,7 @@ long _get_value(PyObject * value){
 }
 
 template<>
-double _get_value(PyObject * value){
+double get_value(PyObject * value){
     if(!_check_is_floating_point(value))
         throw std::invalid_argument("PyObject is not a double!");
 
@@ -168,7 +170,7 @@ double _get_value(PyObject * value){
 }
 
 template<>
-std::complex<double> _get_value(PyObject * value){
+std::complex<double> get_value(PyObject * value){
     if(!_check_is_complex(value))
         throw std::invalid_argument("PyObject is not a complex number!");
 
@@ -181,7 +183,7 @@ std::complex<double> _get_value(PyObject * value){
 }
 
 template<>
-std::string _get_value(PyObject * value){
+std::string get_value(PyObject * value){
     PyObject * tmp_py_str = PyUnicode_AsEncodedString(value, "utf-8", "replace");
     auto c_str = PyBytes_AS_STRING(tmp_py_str);
     if(c_str == nullptr)
@@ -189,7 +191,6 @@ std::string _get_value(PyObject * value){
 
     return std::string(c_str);
 }
-
 
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
 
@@ -200,7 +201,7 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     PyObject * value;
     Py_ssize_t pos = 0;
     while (PyDict_Next(dict, &pos, &tmp_key, &value)) {
-        auto key_str = _get_value<std::string>(tmp_key);
+        auto key_str = get_value<std::string>(tmp_key);
         if(key_str == key){
             return value;
         }
@@ -214,7 +215,7 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
  **/
 
 template<typename VecType>
-const std::vector<VecType> _get_vec_from_py_list(PyObject * py_list){
+const std::vector<VecType> get_vec_from_py_list(PyObject * py_list){
     if(!_check_is_list(py_list))
         throw std::invalid_argument("PyObject is not a List!");
 
@@ -225,7 +226,7 @@ const std::vector<VecType> _get_vec_from_py_list(PyObject * py_list){
         auto py_item = PyList_GetItem(py_list, i);
         if(py_item == nullptr)
             continue;
-        auto cpp_item = _get_value<VecType>(py_item);
+        auto cpp_item = get_value<VecType>(py_item);
         vector.emplace_back(cpp_item);
     }
     return vector;
@@ -252,8 +253,8 @@ const std::unordered_map<KeyType, ValueType> get_map_from_py_dict(PyObject * py_
     PyObject *key, *value;
     Py_ssize_t pos = 0;
     while (PyDict_Next(py_dict, &pos, &key, &value)) {
-        auto cpp_key = _get_value<KeyType>(key);
-        auto cpp_value = _get_value<ValueType>(value);
+        auto cpp_key = get_value<KeyType>(key);
+        auto cpp_value = get_value<ValueType>(value);
         map.emplace(cpp_key, cpp_value);
     }
     return map;
@@ -282,7 +283,7 @@ const std::unordered_map<KeyType, ValueType> get_map_from_py_dict(PyObject * py_
 template<typename VecType>
 const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return _get_vec_from_py_list<VecType>(py_value);
+    return get_vec_from_py_list<VecType>(py_value);
 }
 
 /**
@@ -313,7 +314,7 @@ const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * d
 }
 
 /**
- * Returns a C++ long from a Python numeric that is inside a Pyhton
+ * Returns a C++ value of type ValueTyep from a Python numeric that is inside a Pyhton
  * dictionary under a key.
  *
  * We assume that the item indexed by the key, it's a numeric:
@@ -321,7 +322,7 @@ const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * d
  * my_dict = { "key": 255} }
  * ```
  * ```c++
- * auto l = <long> get_long_from_dict_item(pyobj_dict, "key");
+ * auto l = get_value_from_dict_item<long>(pyobj_dict, "key");
  * std::cout << "val: " << l;
  * ```
  * Output:
@@ -332,59 +333,39 @@ const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * d
  * @param dict PyObject* A pointer to a PyObject type representing a dictionary
  * @return A long from the Pyhton's dictionary key.
  **/
-long get_long_from_dict_item(PyObject * dict, const std::string& item_key){
+template<typename ValueType>
+long get_value_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return _get_value<long>(py_value);
+    return get_value<ValueType>(py_value);
 }
 
-/**
- * Returns a C++ double from a Python numeric that is inside a Pyhton
- * dictionary under a key.
- *
- * We assume that the item indexed by the key, it's a numeric:
- * ```python
- * my_dict = { "key": 3.141592} }
- * ```
- * ```c++
- * auto d = <double> get_double_from_dict_item(pyobj_dict, "key");
- * std::cout << "val: " << d;
- * ```
- * Output:
- * ```
- * 3.141592
- * ```
- *
- * @param dict PyObject* A pointer to a PyObject type representing a dictionary
- * @return A double from the Pyhton's dictionary key.
- **/
-double get_double_from_dict_item(PyObject * dict, const std::string& item_key){
-    PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return _get_value<double>(py_value);
-}
+
 
 /**
- * Returns a C++ std::complex<double> from a Python complex that is inside a Pyhton
- * dictionary under a key.
- *
- * We assume that the item indexed by the key, it's a complex:
- * ```python
- * my_dict = { "key": 0.1+1j} }
- * ```
- * ```c++
- * auto c = <std::complex<double>> get_double_from_dict_item(pyobj_dict, "key");
- * std::cout << "val: " << c;
- * ```
- * Output:
- * ```
- * (0.1,1)
- * ```
- *
- * @param dict PyObject* A pointer to a PyObject type representing a dictionary
- * @return A double from the Pyhton's dictionary key.
+ * Math expression evaluator for the Hamiltonian terms
  **/
-std::complex<double> get_complex_from_dict_item(PyObject * dict, const std::string& item_key){
-    PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return _get_value<std::complex<double>>(py_value);
+template<typename T>
+T evaluate_hamiltonian_expression(const std::string& expr_string,
+                                  const std::vector<complex_t>& vars,
+                                  const std::vector<std::string>& vars_names){
+    exprtk::symbol_table<T> symbol_table;
+    symbol_table.add_variable("np.pi", M_PI);
+
+    for(const auto& idx_var : enumerate(vars)){
+        auto index = idx_var.first;
+        auto var = idx_var.second;
+        symbol_table.add_variable(vars_names[index], var);
+    }
+
+    exprtk::expression<T> expression;
+    expression.register_symbol_table(symbol_table);
+
+    exprtk::parser<T> parser;
+
+    if (!parser.compile(expr_string, expression)){
+        throw std::invalid_argument("Cannot evaluate hamiltonian expression: " + expr_string);
+    }
+    return expression.value();
 }
 
 

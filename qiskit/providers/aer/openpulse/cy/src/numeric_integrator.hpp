@@ -22,12 +22,12 @@
 #include <Python.h>
 
 PyObject * td_ode_rhs(
-     PyObject * global_data,
-     PyObject * channels,
-     PyObject * vars,
-     PyObject * freqs,
-     PyObject * exp,
-     unsigned char _register
+     PyObject * ,
+     PyObject * ,
+     PyObject * ,
+     PyObject * ,
+     PyObject * ,
+     PyObject *
 );
 
 #endif // _NUMERIC_INTEGRATOR_HPP

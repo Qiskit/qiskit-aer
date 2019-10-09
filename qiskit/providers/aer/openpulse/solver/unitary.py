@@ -89,8 +89,7 @@ def unitary_evolution(exp, op_system):
     # exec(code)  # pylint disable=exec-used
 
     # <JUAN> Pass arguments statically
-    ODE.set_f_params(op_system.global_data, op_system.channels, op_system.vars,
-        op_system.freqs, exp, register)
+    ODE.set_f_params(op_system.global_data, exp, register)
 
     if not ODE._y:
         ODE.t = 0.0
@@ -98,7 +97,7 @@ def unitary_evolution(exp, op_system):
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
 
     # Since all experiments are defined to start at zero time.
-    ODE.set_initial_value(global_data['initial_state'], 0)
+    ODE.set_initial_value(op_system.global_data['initial_state'], 0)
     for time in tlist[1:]:
         ODE.integrate(time, step=0)
         if ODE.successful():

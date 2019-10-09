@@ -116,6 +116,8 @@ def digest_pulse_obj(qobj):
 
     out.vars = OrderedDict(ham['vars'])
     out.global_data['vars'] = list(out.vars.values())
+    # <JUAN> I may gonna need this info for evaluating the hamiltonian vars
+    out.global_data['vars_names'] = list(out.vars.keys())
 
     # Get qubit subspace dimensions
     if 'qub' in ham.keys():
