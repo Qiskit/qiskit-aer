@@ -3,14 +3,16 @@
 #include <iostream>
 #include <Python.h>
 #include <numpy/arrayobject.h>
-
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include "numeric_integrator.hpp"
 #include "helpers.hpp"
+
 
 complex_t chan_value(
     double t,
     unsigned int chan_num,
-    double freq_ch,
+    const double freq_ch,
     const std::vector<double>& chan_pulse_times,
     const std::vector<complex_t>& pulse_array,
     const std::vector<unsigned int>& pulse_indices,
@@ -21,35 +23,44 @@ complex_t chan_value(
 }
 
 PyObject * td_ode_rhs(
-    PyObject * py_t,
+    double t,
     PyObject * py_vec,
     PyObject * py_global_data,
     PyObject * py_exp,
     PyObject * py_system,
     PyObject * py_register){
 
-    if(py_t == nullptr ||
-       py_vec == nullptr ||
+    if(py_vec == nullptr ||
        py_global_data == nullptr ||
        py_exp == nullptr ||
-       py_system == nullptr){
+       py_system == nullptr ||
+       py_register == nullptr){
            std::string msg = "These arguments cannot be null: ";
-           msg += (py_t == nullptr ? "py_t " : "" );
            msg += (py_vec == nullptr ? "py_vec " : "" );
            msg += (py_global_data == nullptr ? "py_global_data " : "" );
            msg += (py_exp == nullptr ? "py_exp " : "" );
            msg += (py_system == nullptr ? "py_system " : "" );
+           msg += (py_register == nullptr ? "py_register " : "" );
            throw std::invalid_argument(msg);
     }
 
-    // 1. Get t and vec
-    auto t = get_value<double>(py_t);
+    auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
+    spdlog::set_default_logger(file_logger);
+    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+
+    spdlog::debug("td_ode_rhs!");
+
+    // 1. Get vec
     auto vec = get_vec_from_py_list<complex_t>(py_vec);
+    jlog("vec: ", vec);
+
 
 
     // TODO: Not quite sure about vec.size()= shape?
     // unsigned int num_rows = vec.shape[0]
     unsigned int num_rows = vec.size();
+    spdlog::debug("num_rows: {}", num_rows);
+
 
     // 2. double complex * out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))
     // auto out = std::make_unique<complex_t>(
@@ -59,22 +70,28 @@ PyObject * td_ode_rhs(
     out.reserve(num_rows);
 
     // 3. Compute complex channel values at time `t`
-    // D0 = chan_value(t, 0, (double)D0_freq, ([doubles])D0_pulses,  pulse_array, pulse_indices, D0_fc, register)
-    // U0 = chan_value(t, 1, U0_freq, U0_pulses,  pulse_array, pulse_indices, U0_fc, register)
-    // D1 = chan_value(t, 2, D1_freq, D1_pulses,  pulse_array, pulse_indices, D1_fc, register)
-    // U1 = chan_value(t, 3, U1_freq, U1_pulses,  pulse_array, pulse_indices, U1_fc, register)
+    // D0 = chan_value(t, 0, (double)D0_freq, ([doubles])D0_pulses,  pulse_array, pulse_indices, D0_fc, )
+    // U0 = chan_value(t, 1, U0_freq, U0_pulses,  pulse_array, pulse_indices, U0_fc, )
+    // D1 = chan_value(t, 2, D1_freq, D1_pulses,  pulse_array, pulse_indices, D1_fc, )
+    // U1 = chan_value(t, 3, U1_freq, U1_pulses,  pulse_array, pulse_indices, U1_fc, )
     ////
     // for chan, idx in self.op_system.channels.items():
     // chan_str = "%s = chan_value(t, %s, %s_freq, " % (chan, idx, chan) + \
     //            "%s_pulses,  pulse_array, pulse_indices, " % chan + \
-    //            "%s_fc, register)" % (chan)
+    //            "%s_fc, )" % (chan)
 
-    const auto pulses = get_map_from_dict_item<std::string, std::vector<std::vector<double>>>(py_exp, "channels");
-    auto t = get_value_from_dict_item<double>(py_global_data, "h_diag_elems");
+    // TODO: Pass const & as keys to avoid copying
+    auto pulses = get_map_from_dict_item<std::string, std::vector<std::vector<double>>>(py_exp, "channels");
     auto freqs = get_map_from_dict_item<std::string, double>(py_global_data, "freqs");
-    const auto pulse_array = get_vec_from_dict_item<complex_t>(py_global_data, "pulse_array");
-    const auto pulse_indices = get_vec_from_dict_item<unsigned int>(py_global_data, "pulse_indices");
+    auto pulse_array = get_vec_from_dict_item<complex_t>(py_global_data, "pulse_array");
+    auto pulse_indices = get_vec_from_dict_item<unsigned int>(py_global_data, "pulse_indices");
     std::string reg = get_value<std::string>(py_register);
+
+    jlog("pulses: ", pulses);
+    jlog("freqs:", freqs);
+    jlog("pulse_array: ",  pulse_array);
+    spdlog::debug("reg: {}", reg);
+
 
     std::vector<complex_t> chan_values;
     chan_values.reserve(pulses.size());
@@ -92,27 +109,12 @@ PyObject * td_ode_rhs(
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-    // td0 = np.pi*(2*v0-alpha0)
-    // if abs(td0) > 1e-15:
-    //     for row in range(num_rows):
-    //         dot = 0;
-    //         row_start = ptr0[row];
-    //         row_end = ptr0[row+1];
-    //         for jj in range(row_start,row_end):
-    //             osc_term = exp(1j * (energ[row] - energ[idx0[jj]]) * t)
-    //             if row<idx0[jj]:
-    //                 coef = conj(td0)
-    //             else:
-    //                 coef = td0
-    //             dot += coef*osc_term*data0[jj]*vec[idx0[jj]];
-    //         out[row] += dot;
-    // td1 = np.pi*alpha0
 
     auto systems = get_vec_from_py_list<std::string>(py_system);
     auto vars = get_vec_from_dict_item<complex_t>(py_global_data, "vars");
     auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
     auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-    auto datas = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_data");
+    auto datas = get_vec_from_dict_item<std::vector<complex_t>>(py_global_data, "h_ops_data");
     auto idxs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ind");
     auto ptrs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ptr");
     auto energy = get_vec_from_dict_item<complex_t>(py_global_data, "h_diag_elems");
@@ -138,26 +140,38 @@ PyObject * td_ode_rhs(
             continue;
         }
 
-        for(const auto& idx_varname: enumerate(vars_names)){
-            auto var_name_index = idx_varname.first;
-            auto var_name = idx_varname.second;
-            auto td = evaluate_hamiltonian_expression<double>(term, vars, vars_names);
-            if(std::abs(td) > 1e-15){
-                for(auto i=0; i<num_rows; i++){
-                    complex_t dot = {0., 0.};
-                    auto row_start = ptrs[sys_index][i];
-                    auto row_end = ptrs[sys_index][i+1];
-                    for(auto j = row_start; j<row_start; ++j){
-                        auto tmp_idx = idxs[sys_index][j];
-                        auto osc_term =
-                            std::exp(
-                                complex_t(0.,1.) * (energy[i] - energy[tmp_idx] * t)
-                            );
-                        complex_t coef = (i < tmp_idx ? std::conj(td) : td);
-                        dot += coef * osc_term * datas[sys_index][j] * vec[tmp_idx];
-                    }
-                    out[i] += dot;
+        // 4.2
+        // td0 = np.pi*(2*v0-alpha0)
+        // if abs(td0) > 1e-15:
+        //     for row in range(num_rows):
+        //         dot = 0;
+        //         row_start = ptr0[row];
+        //         row_end = ptr0[row+1];
+        //         for jj in range(row_start,row_end):
+        //             osc_term = exp(1j * (energ[row] - energ[idx0[jj]]) * t)
+        //             if row<idx0[jj]:
+        //                 coef = conj(td0)
+        //             else:
+        //                 coef = td0
+        //             dot += coef*osc_term*data0[jj]*vec[idx0[jj]];
+        //         out[row] += dot;
+        // td1 = np.pi*alpha0
+        auto td = evaluate_hamiltonian_expression(term, vars, vars_names);
+        if(std::abs(td) > 1e-15){
+            for(auto i=0; i<num_rows; i++){
+                complex_t dot = {0., 0.};
+                auto row_start = ptrs[sys_index][i];
+                auto row_end = ptrs[sys_index][i+1];
+                for(auto j = row_start; j<row_end; ++j){
+                    auto tmp_idx = idxs[sys_index][j];
+                    auto osc_term =
+                        std::exp(
+                            complex_t(0.,1.) * (energy[i] - energy[tmp_idx] * t)
+                        );
+                    complex_t coef = (i < tmp_idx ? std::conj(td) : td);
+                    dot += coef * osc_term * datas[sys_index][j] * vec[tmp_idx];
                 }
+                out[i] += dot;
             }
         }
     } /* End of systems */

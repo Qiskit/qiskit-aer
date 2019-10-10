@@ -33,11 +33,18 @@ from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def monte_carlo(seed, exp, global_data, ode_options):
+#def monte_carlo(seed, exp, global_data, ode_options):
+def monte_carlo(seed, exp, op_system):
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
     """
+
+    #<JUAN>
+    global_data = op_system.global_data
+    ode_options = op_system.ode_options
+    #</JUAN>
+
 
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(seed)
@@ -65,7 +72,7 @@ def monte_carlo(seed, exp, global_data, ode_options):
     ODE = ode(cy_rhs_func)
 
     # <JUAN> Pass arguemnts statically
-    ODE.set_f_params(global_data, exp, register)
+    ODE.set_f_params(global_data, exp, op_system.system, register)
 
     #_inst = 'ODE.set_f_params(%s)' % global_data['string']
     #print("Monte Carlo: {}\n\n".format(_inst))

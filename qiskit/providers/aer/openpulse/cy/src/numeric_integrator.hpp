@@ -22,7 +22,7 @@
 #include <Python.h>
 
 PyObject * td_ode_rhs(
-     PyObject * ,
+     double ,
      PyObject * ,
      PyObject * ,
      PyObject * ,

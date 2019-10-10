@@ -59,29 +59,35 @@ def unitary_evolution(exp, op_system):
     Raises:
         Exception: Error in ODE solver.
     """
-    cy_rhs_func = op_system.global_data['rhs_func']
+
+    #<JUAN>
+    global_data = op_system.global_data
+    ode_options = op_system.ode_options
+    #</JUAN>
+
+    cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])
     tlist = exp['tlist']
     snapshots = []
-    shots = op_system.global_data['shots']
+    shots = global_data['shots']
     # Init memory
-    memory = np.zeros((shots, op_system.global_data['memory_slots']),
+    memory = np.zeros((shots, global_data['memory_slots']),
                       dtype=np.uint8)
     # Init register
-    register = np.zeros(op_system.global_data['n_registers'], dtype=np.uint8)
+    register = np.zeros(global_data['n_registers'], dtype=np.uint8)
 
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
     ODE.set_integrator('zvode',
-                       method=op_system.ode_options.method,
-                       order=op_system.ode_options.order,
-                       atol=op_system.ode_options.atol,
-                       rtol=op_system.ode_options.rtol,
-                       nsteps=op_system.ode_options.nsteps,
-                       first_step=op_system.ode_options.first_step,
-                       min_step=op_system.ode_options.min_step,
-                       max_step=op_system.ode_options.max_step)
+                       method=ode_options.method,
+                       order=ode_options.order,
+                       atol=ode_options.atol,
+                       rtol=ode_options.rtol,
+                       nsteps=ode_options.nsteps,
+                       first_step=ode_options.first_step,
+                       min_step=ode_options.min_step,
+                       max_step=ode_options.max_step)
 
     # _inst = 'ODE.set_f_params(%s)' % global_data['string']
     # print("Unitary Evolution: {}\n\n".format(_inst))
@@ -89,7 +95,7 @@ def unitary_evolution(exp, op_system):
     # exec(code)  # pylint disable=exec-used
 
     # <JUAN> Pass arguments statically
-    ODE.set_f_params(op_system.global_data, exp, register)
+    ODE.set_f_params(global_data, exp, op_system.system, register)
 
     if not ODE._y:
         ODE.t = 0.0
@@ -97,7 +103,7 @@ def unitary_evolution(exp, op_system):
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
 
     # Since all experiments are defined to start at zero time.
-    ODE.set_initial_value(op_system.global_data['initial_state'], 0)
+    ODE.set_initial_value(global_data['initial_state'], 0)
     for time in tlist[1:]:
         ODE.integrate(time, step=0)
         if ODE.successful():

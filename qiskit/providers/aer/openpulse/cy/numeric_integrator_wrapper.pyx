@@ -33,8 +33,8 @@ cdef extern from "src/numeric_integrator.hpp":
         dict global_data,
         dict exp,
         list system,
-        unsigned char[::1] register
+        register
     ) except +
 
-def td_ode_rhs_static(t, vec, global_data, exp, register):
-    td_ode_rhs(t, vec, global_data, exp, register)
+def td_ode_rhs_static(t, vec, global_data, exp, system, register):
+    td_ode_rhs(t, vec, global_data, exp, system, register)

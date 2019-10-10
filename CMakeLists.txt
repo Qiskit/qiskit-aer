@@ -178,12 +178,17 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
+message(STATUS "Looking for spdlog library...")
+find_package(spdlog REQUIRED)
+
+
 # Set dependent libraries
 set(AER_LIBRARIES
 		${OPENMP_EXTERNAL_LIB}
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 		Threads::Threads
+		spdlog::spdlog
 		${CMAKE_DL_LIBS})
 
 # Cython build is only enabled if building through scikit-build.

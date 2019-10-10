@@ -20,8 +20,46 @@
 #include <complex>
 #include <Python.h>
 #include <exprtk.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 using complex_t = std::complex<double>;
+
+
+template<typename T>
+void jlog(const std::string& msg, const T& values){
+    spdlog::debug("{}\n", msg);
+    for(const auto& val : values){
+        spdlog::debug("{} ", val);
+    }
+}
+template<>
+void jlog(const std::string& msg, const std::vector<complex_t>& values){
+    spdlog::debug("{}\n", msg);
+    for(const auto& val : values){
+        spdlog::debug("{}+{}j", val.real(), val.imag());
+    }
+}
+template<>
+void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
+    spdlog::debug("{}\n", msg);
+    for(const auto& val : values){
+        for(const auto& inner: val.second){
+            for(const auto& inner2: inner){
+                spdlog::debug("{}:{} ", val.first, inner2);
+            }
+        }
+    }
+}
+template<>
+void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
+    spdlog::debug("{}\n", msg);
+    for(const auto& val : values){
+        spdlog::debug("{}:{} ", val.first, val.second);
+    }
+}
+
+
 
 template <typename T>
 struct iterator_extractor { typedef typename T::iterator type; };
@@ -63,7 +101,7 @@ public:
         }
 
         _Iterator operator++(int) {
-            iterator tmp(*this);
+            _Iterator tmp(*this);
             ++*this;
             return tmp;
         }
@@ -131,11 +169,13 @@ bool _check_is_complex(PyObject * value){
 
 bool _check_is_list(PyObject * value){
     if(value == nullptr)
-    throw std::invalid_argument("Pyhton list is null!");
+        throw std::invalid_argument("Pyhton list is null!");
 
     // Check that it's a list
     if(!PyList_Check(value))
-        throw std::invalid_argument("PyObject is not a list!!");
+        return false;
+
+    return true;
 }
 
 template<typename T>
@@ -344,27 +384,29 @@ long get_value_from_dict_item(PyObject * dict, const std::string& item_key){
 /**
  * Math expression evaluator for the Hamiltonian terms
  **/
-template<typename T>
-T evaluate_hamiltonian_expression(const std::string& expr_string,
+double evaluate_hamiltonian_expression(const std::string& expr_string,
                                   const std::vector<complex_t>& vars,
                                   const std::vector<std::string>& vars_names){
-    exprtk::symbol_table<T> symbol_table;
-    symbol_table.add_variable("np.pi", M_PI);
+    exprtk::symbol_table<double> symbol_table;
+    auto pi = M_PI;
+    symbol_table.add_variable("np.pi", pi);
 
     for(const auto& idx_var : enumerate(vars)){
         auto index = idx_var.first;
         auto var = idx_var.second;
-        symbol_table.add_variable(vars_names[index], var);
+        auto real_part = var.real();
+        symbol_table.add_variable(vars_names[index], real_part);
     }
 
-    exprtk::expression<T> expression;
+    exprtk::expression<double> expression;
     expression.register_symbol_table(symbol_table);
 
-    exprtk::parser<T> parser;
+    exprtk::parser<double> parser;
 
     if (!parser.compile(expr_string, expression)){
         throw std::invalid_argument("Cannot evaluate hamiltonian expression: " + expr_string);
     }
+
     return expression.value();
 }
 
