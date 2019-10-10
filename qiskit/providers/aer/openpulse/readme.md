@@ -4,7 +4,7 @@ This simulates job using the open pulse format (see the spec).
 
 ## Example
 
-Consider the Hamiltonian H=-w * sigmaz/2  + w1 * cos(wt+phi) * sigmax/2. The Hamiltonian may be specified as:
+Consider the Hamiltonian `H=-w_0 * \sigma_z/2  + w_1 * cos(w t + \phi) * \sigma_x/2`. The Hamiltonian may be specified as:
 ```
 hamiltonian = {}
 hamiltonian['h_str'] = []
@@ -19,7 +19,7 @@ hamiltonian['vars'] = {'w0': (add w0 val here), 'w1': (add w1 value here)}
 hamiltonian['qub'] = {'0': 2}
 ```
 
-This particular example can be analyzed analytically using the rotating frame transformation (apply the unitary U=e^{-iwt * sigmaz/2} to the state) and the rotating wave approximation (RWA). The results obtained may be compared to the pulse simulator (see the pulse simulator test files).
+This Hamiltonian has a closed form in the rotating frame (w/ RWA), which may be compared to the pulse simulator result.
 
 ## Hamiltonian
 
@@ -60,7 +60,7 @@ Additionally, there is a sum form
 Available operators are: 
 {'X': sigmax, 'Y': sigmay, 'Z': sigmaz,
  'Sp': creation (sigma plus), 'Sm': destruction (sigma minus), 'I': identity,
- 'O': number op, 'P': projection, 'A': destruction, 'C': creation, 'N': number op}
+ 'O': number, 'P': projection, 'A': destruction, 'C': creation, 'N': number op}
  
  The following functions are also available: 
  {'cos': cos, 'sin': sin, 'exp': exp,
@@ -71,12 +71,10 @@ Available operators are:
 The solver takes the Hamiltonian (`H(t=0)`) and sets all drive/control channels to zero. 
 Consider `H_d` to be the diagonal elements of `H(t=0)`, then the transformation applied is
 `U=e^{-i H_d t/hbar}`. For all drive/control channels, the LO is applied so
-`d(t) -> D(t)e^{-i w t}`. The LO frequency w may be set in the pulse. If the drive is associated with some operator *B* then
+`d(t) -> D(t)e^{-i w t}`. The LO frequency `w` may be set in the pulse. If the drive is associated with some operator *B* then
 the upper triangular part of *B* is multiplied by `d(t)` and the lower triangular part
 by `d*(t)`. This ensures the Hamiltonian is Hermitian and also that in the transformed
 frame that a resonant pulse is close to DC. 
-
-TODO: Add a note about rotating frame and rotating wave approximation.
 
 ### Measurement
 
