@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name, bad-continuation
 
-"""RemoteSimulator module
+"""RemoteQasmSimulator module
 
 This module is used for connecting to Remote Simulator
 """
@@ -31,18 +31,19 @@ from ..aererror import AerError
 logger = logging.getLogger(__name__)
 
 
-class RemoteSimulator(AerBackend):
+class RemoteQasmSimulator(AerBackend):
     """ RemoteSimulator class """
 
     def __init__(self, configuration=None, provider=None,
-                 kwargs=None):
-        """RemoteSimulator for a distributed environment.
+                 remote_config=None, name=None):
+        """RemoteQasmSimulator for a distributed environment.
         This module is a pseudo simulator for qiskit aer.:
 
         Args:
             configuration (BackendConfiguration): backend configuration.
             provider (AerProvider): provider responsible for this backend.
-            kwargs (string) : Options for the simulator.
+            remote_config (dict) : Configuration for the distributed environemt
+            name (string) : Connector name
 
         Raises:
             AerError: If Job submission error occurs or No return results
@@ -52,24 +53,21 @@ class RemoteSimulator(AerBackend):
         self._provider = provider
         self._gpu = False
         self._connect_config = None
-        self._protocol = None
+        self._protocol = name
+        self._remote_config = remote_config
 
-        if "http_hosts" in kwargs:
-            self._host_list = kwargs["http_hosts"]
-            self._protocol = "http"
+        if "http" in name:
+            self._host_list = remote_config.get_host_list()
+            self._protocol = name
 
-        if "ssh_hosts" in kwargs:
-            self._host_list = kwargs["ssh_hosts"]
-            self._protocol = "ssh"
-
-        if "ssh_configs" in kwargs:            
-            self._connect_config = kwargs["ssh_configs"]
-            del kwargs["ssh_configs"]
+        if "ssh" in name:
+            self._host_list = remote_config.get_host_list()
+            self._protocol = name
 
         self._nodelist = []
 
         if self._host_list:
-            self._get_config(self._host_list, self._protocol, self._connect_config)
+            self._get_config(self._host_list, self._protocol, self._remote_config)
 
         super().__init__(None, self._config, self._provider, self)
 
@@ -99,13 +97,9 @@ class RemoteSimulator(AerBackend):
 
             qobj_list = self._gen_qobj_for_map(qobj, shots, len(self._nodelist))
 
-            print("remote run job")
             for index, each_qobj in enumerate(qobj_list):
                 submit = self._job_submit(self._nodelist[index], each_qobj)
-                print("remote run")
-                print(submit)
                 submit_info_list.append(submit)
-                print("list append")
         else:
             # Always Select First Node without noise (Temporary Solution)
             node = self._nodelist[0]
@@ -250,11 +244,11 @@ class RemoteSimulator(AerBackend):
         """
         Get config from each remote node
         """
-        for index, host in enumerate(host_list):
-            each_config = None
+        for host in host_list:
             if config:
-                each_config = config[index]
-            self._nodelist.append(RemoteNode(host, proto, each_config))
+                config_list = config.get_config_list()
+                for each_config in config_list:
+                    self._nodelist.append(RemoteNode(host, proto, each_config))
 
         self._host_list = host_list
         self._config = self._generate_config()
@@ -271,7 +265,7 @@ class RemoteSimulator(AerBackend):
             remote_config_list.append(BackendConfiguration.to_dict(node._config))
 
         base_config = remote_config_list[0].copy()
-        base_config["backend_name"] = "remote_simulator"
+        base_config["backend_name"] = "remote_qasm_simulator"
         host_name = self._protocol + "_hosts"
         base_config[host_name] = self._host_list
 

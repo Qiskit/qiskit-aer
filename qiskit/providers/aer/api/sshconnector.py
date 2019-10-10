@@ -10,18 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, bad-continuation
+# pylint: disable=unbalanced-tuple-unpacking, unused-variable, unused-argument
 
-"""This module implements http connector to the remote node."""
+"""This module implements ssh connector to the remote node."""
 
 import json
 import logging
-import re
-import time
 import uuid
 import concurrent.futures
 import datetime
-
 import paramiko
 
 logger = logging.getLogger(__name__)
@@ -29,22 +26,23 @@ logger = logging.getLogger(__name__)
 
 class SshConnector:
     """
-    Connector for Remote Node via Rest API
+    Connector for Remote Node via SSH command
     """
     def __init__(self, host=None, connect_config=None):
+        print(connect_config)
         self._host = host
         self._results = []
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
-        if "key" in connect_config:
-            self._key = connect_config["key"]
-        
-        if "user" in connect_config:
-            self._user = connect_config["user"]
+        if "ssh_key" in connect_config:
+            self._key = connect_config["ssh_key"]
+
+        if "ssh_user" in connect_config:
+            self._user = connect_config["ssh_user"]
 
         if "qobj_path" in connect_config:
             self._qobj_path = connect_config["qobj_path"]
-        
+
         if "conf_path" in connect_config:
             self._conf_path = connect_config["conf_path"]
 
@@ -56,7 +54,7 @@ class SshConnector:
 
     def _check_backend(self, backend):
         """
-        Check if the name of a backend is valid to run in QX Platform
+        Check if the name of a backend is valid to run
         """
         # First check against hacks for old backend names
         original_backend = backend
@@ -70,12 +68,12 @@ class SshConnector:
         # backend unrecognized
         return None
 
-
-
     def _run_submit(self, qobj, job_id):
+        """
+        Put qobj file to remote host by scp
+        """
         self._client.connect(self._host, username=self._user, key_filename=self._key)
-        file_name =  self._qobj_path + "/" + job_id + ".qobj"
-        print(file_name)
+        file_name = self._qobj_path + "/" + job_id + ".qobj"
         sftp = self._client.open_sftp()
         r_file = sftp.open(file_name, "a", -1)
         r_file.write(json.dumps(qobj))
@@ -83,30 +81,27 @@ class SshConnector:
         sftp.close()
 
         exec_cmd = self._run_command + " " + file_name
-        print("exec_cmd")
         stdin, stdout, stderr = self._client.exec_command(exec_cmd)
         result_string = stdout.read()
+        ssh_error = stderr.read()
         self._client.close()
 
+        if ssh_error:
+            usr_msg = 'scp failed'
+            dev_msg = usr_msg + ":" + ssh_error
+            raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
+
         result = json.loads(result_string)
-        print(result)
-        result["backend_name"] = "qasm_simulator"
+        result["backend_name"] = "remote_qasm_simulator"
         result["backend_version"] = "0.3.0"
         result["date"] = datetime.datetime.now().isoformat()
         result["job_id"] = job_id
+        result_json = {"id": job_id, "qObjectResult": result}
 
-        result_json = {"id" : job_id, "qObjectResult" : result}
-
-        print("call self._results")
         for each_result in self._results:
-            print(each_result)
             if each_result["id"] == job_id:
-                print("find")
                 each_result["result"] = result_json
                 each_result["status"] = "COMPLETED"
-
-        print(result_json)
-        return
 
     def run_job(self, job, backend='simulator', shots=1, seed=None):
         """
@@ -120,11 +115,8 @@ class SshConnector:
         job_id = uuid.uuid1().hex
 
         run_job_data = {"id": job_id, "status": "RUNNING", "result": None}
-        print(run_job_data)
         self._results.append(run_job_data)
-
         self._executor.submit(self._run_submit, job, job_id)
-        print("return submit")
         return_data = {"id": job_id}
 
         return return_data
@@ -155,25 +147,37 @@ class SshConnector:
 
         for each_result in self._results:
             if each_result["id"] == id_job:
-                return_data = {"id" : id_job, "status": each_result["status"]}
+                return_data = {"id": id_job, "status": each_result["status"]}
 
         return return_data
 
     def available_backends(self):
         """
-        Get the backends available to use in the QX Platform
+        Get the backends available to use
         """
-        self._client.connect(self._host, username=self._user, key_filename=self._key)
-        exec_cmd = "cat "  + self._conf_path
+        exec_cmd = "cat " + self._conf_path
+
+        try:
+            self._client.connect(self._host, username=self._user, key_filename=self._key)
+        except paramiko.AuthenticationException:
+            usr_msg = 'Authentication failed'
+            dev_msg = usr_msg
+            raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
+
         stdin, stdout, stderr = self._client.exec_command(exec_cmd)
         config_string = stdout.read()
+        ssh_error = stderr.read()
         self._client.close()
+
+        if ssh_error:
+            usr_msg = 'Command execution failed'
+            dev_msg = usr_msg + ":" + ssh_error
+            raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
 
         config = json.loads(config_string)
         config_list = [config]
 
         return config_list
-
 
 
 class ApiError(Exception):

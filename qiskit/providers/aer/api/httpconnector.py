@@ -270,8 +270,6 @@ class HttpConnector:
         url += '/' + id_job + '/status'
 
         status = self.req.get(url)
-        print("status")
-        print(status)
 
         return status
 

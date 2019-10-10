@@ -7,7 +7,6 @@
 
 """On-Premise Simulator API connector."""
 
-from .httpconnector import ApiError, BadBackendError, RegisterSizeError
-from .httpconnector import HttpConnector
 from .sshconnector import ApiError, BadBackendError, RegisterSizeError
 from .sshconnector import SshConnector
+from .httpconnector import HttpConnector

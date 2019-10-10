@@ -27,6 +27,7 @@ from .aerjob import AerJob
 from .aerremotejob import AerRemoteJob
 from .aererror import AerError
 from .backends import *
+from .remoteconfig import RemoteConfig
 from . import noise
 from . import utils
 from .version import __version__

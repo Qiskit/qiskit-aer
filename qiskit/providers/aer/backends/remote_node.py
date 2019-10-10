@@ -38,6 +38,7 @@ class RemoteNode():
         Args:
             host (string) : Host address
             method (string) : Portocol
+            connect_config(dict) : Connect configuration
         """
         self._method = method
         self._host = host
@@ -115,9 +116,7 @@ class RemoteNode():
             AerError : Can not submit qobj to remote node
         """
         try:
-            print("call_api_run")
-            submit_info = self._api.run_job(qobj, 'qasm_simulator')
-            print(submit_info)
+            submit_info = self._api.run_job(qobj, 'remote_qasm_simulator')
 
         # pylint: disable=broad-except
         except Exception as err:
