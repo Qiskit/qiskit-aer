@@ -35,6 +35,12 @@ from test.terra.reference.ref_snapshot_probabilities import (
     snapshot_probabilities_labels_qubits,
     snapshot_probabilities_post_meas_probs,
     snapshot_probabilities_pre_meas_probs)
+from test.terra.reference.ref_snapshot_expval import (
+    snapshot_expval_circuits,
+    snapshot_expval_counts,
+    snapshot_expval_labels,
+    snapshot_expval_post_meas_values,
+    snapshot_expval_pre_meas_values)
 
 
 class QasmSnapshotStatevectorTests:
@@ -564,3 +570,167 @@ class QasmSnapshotProbabilitiesTests:
                     for memory, value in snaps.items():
                         target = prob_targets[j].get(label, {}).get(memory, {})
                         self.assertDictAlmostEqual(value, target, delta=1e-7)
+
+
+class QasmSnapshotExpValPauliTests:
+    """QasmSimulator snapshot pauli expectation value tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector', 'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    @staticmethod
+    def expval_snapshots(data, labels):
+        """Format snapshots as nested dicts"""
+        # Check snapshot entry exists in data
+        output = {}
+        for label in labels:
+            snaps = data.get("snapshots", {}).get("expectation_value", {}).get(label, [])
+            # Convert list into dict
+            inner = {}
+            for snap_dict in snaps:
+                val = snap_dict['value']
+                inner[snap_dict['memory']] = val[0] + 1j * val[1]
+            output[label] = inner
+        return output
+
+    def test_snapshot_expval_pauli_pre_measure(self):
+        """Test snapshot expectation value (pauli) before final measurement"""
+        shots = 1000
+        labels = snapshot_expval_labels()
+        counts_targets = snapshot_expval_counts(shots)
+        value_targets = snapshot_expval_pre_meas_values()
+
+        circuits = snapshot_expval_circuits(pauli=True, post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotExpValPauliTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.expval_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = value_targets[j].get(label, {}).get(memory, {})
+                        self.assertAlmostEqual(value, target, delta=1e-7)
+
+    def test_snapshot_expval_pauli_post_measure(self):
+        """Test snapshot expectation value (pauli) before final measurement"""
+        shots = 1000
+        labels = snapshot_expval_labels()
+        counts_targets = snapshot_expval_counts(shots)
+        value_targets = snapshot_expval_post_meas_values()
+
+        circuits = snapshot_expval_circuits(pauli=True, post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotExpValPauliTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.expval_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = value_targets[j].get(label, {}).get(memory, {})
+                        self.assertAlmostEqual(value, target, delta=1e-7)
+
+class QasmSnapshotExpValMatrixTests:
+    """QasmSimulator snapshot pauli expectation value tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector', 'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    @staticmethod
+    def expval_snapshots(data, labels):
+        """Format snapshots as nested dicts"""
+        # Check snapshot entry exists in data
+        output = {}
+        for label in labels:
+            snaps = data.get("snapshots", {}).get("expectation_value", {}).get(label, [])
+            # Convert list into dict
+            inner = {}
+            for snap_dict in snaps:
+                inner[snap_dict['memory']] = snap_dict['value']
+            output[label] = inner
+        return output
+
+    def test_snapshot_expval_matrix_pre_measure(self):
+        """Test snapshot expectation value (matrix) before final measurement"""
+        shots = 1000
+        labels = snapshot_expval_labels()
+        counts_targets = snapshot_expval_counts(shots)
+        value_targets = snapshot_expval_pre_meas_values()
+
+        circuits = snapshot_expval_circuits(pauli=False, post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotExpValMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.expval_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = value_targets[j].get(label, {}).get(memory, {})
+                        self.assertAlmostEqual(value, target, delta=1e-7)
+
+    def test_snapshot_expval_matrix_post_measure(self):
+        """Test snapshot expectation value (matrix) before final measurement"""
+        shots = 1000
+        labels = snapshot_expval_labels()
+        counts_targets = snapshot_expval_counts(shots)
+        value_targets = snapshot_expval_post_meas_values()
+
+        circuits = snapshot_expval_circuits(pauli=False, post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotExpValMatrixTests.SUPPORTED_QASM_METHODS:
+            self.assertRaises(AerError, job.result)
+        else:
+            result = job.result()
+            self.is_completed(result)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.expval_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = value_targets[j].get(label, {}).get(memory, {})
+                        self.assertAlmostEqual(value, target, delta=1e-7)

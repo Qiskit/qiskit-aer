@@ -620,7 +620,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
-
+  reg_t qubits = op.qubits;
   // Cache the current quantum state
   BaseState::qreg_.checkpoint();
   bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
@@ -634,18 +634,20 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       first = false;
     else
       BaseState::qreg_.revert(true);
-
     // Apply each matrix component
     for (const auto &pair: param.second) {
-      const reg_t &qubits = pair.first;
+      reg_t sub_qubits;
+      for (const auto pos : pair.first) {
+        sub_qubits.push_back(qubits[pos]);
+      }
       const cmatrix_t &mat = pair.second;
       cvector_t vmat = (mat.GetColumns() == 1)
         ? Utils::vectorize_matrix(Utils::projector(Utils::vectorize_matrix(mat))) // projector case
         : Utils::vectorize_matrix(mat); // diagonal or square matrix case
       if (vmat.size() == 1ULL << qubits.size()) {
-        BaseState::qreg_.apply_diagonal_matrix(qubits, vmat);
+        BaseState::qreg_.apply_diagonal_matrix(sub_qubits, vmat);
       } else {
-        BaseState::qreg_.apply_matrix(qubits, vmat);
+        BaseState::qreg_.apply_matrix(sub_qubits, vmat);
       }
 
     }
