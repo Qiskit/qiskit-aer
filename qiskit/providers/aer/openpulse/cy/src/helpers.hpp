@@ -23,6 +23,13 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+
+/**
+ * TODO: There's a lot of copying due to converting from Pyhton C strucutres
+ * to C++ stl containers. We can avoid this by wrapping the former and avoiding
+ * copies
+ **/
+
 using complex_t = std::complex<double>;
 
 
@@ -178,6 +185,17 @@ bool _check_is_list(PyObject * value){
     return true;
 }
 
+bool _check_is_np_array(PyArrayObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Numpy ndarray is null!");
+
+    // Check that it's a numpy ndarray
+    if(!PyArray_Check(value))
+        return false;
+
+    return true;
+}
+
 template<typename T>
 T get_value(PyObject * value){
     throw std::invalid_argument("Can't get the value for this type!");
@@ -232,6 +250,19 @@ std::string get_value(PyObject * value){
     return std::string(c_str);
 }
 
+
+TODO Especializar para std::vector<T>...
+template<typename T>
+std::vector get_value(PyObject * value){
+    PyObject * tmp_py_str = PyUnicode_AsEncodedString(value, "utf-8", "replace");
+    auto c_str = PyBytes_AS_STRING(tmp_py_str);
+    if(c_str == nullptr)
+        throw std::invalid_argument("Conversion to utf-8 has failed!");
+
+    return std::string(c_str);
+}
+
+
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
 
     if(dict == nullptr)
@@ -272,6 +303,23 @@ const std::vector<VecType> get_vec_from_py_list(PyObject * py_list){
     return vector;
 }
 
+
+/**
+ * Get a C++ Vector of C++ types from a Numpy ndarray (PyArrayObject) type
+ **/
+template<typename VecType>
+const std::vector<VecType> get_vec_from_np_array(PyArrayObject * py_array){
+    if(!_check_is_np_array(py_array))
+        throw std::invalid_argument("PyObject is not a List!");
+
+    /* Handle zero-sized arrays specially */
+    if (PyArray_SIZE(py_array) == 0) {
+        return {};
+    }
+    /* TODO This is faster if we deal with PyArrayObject directly */
+    PyObject * py_list = PyArray_ToList(py_array);
+    return get_vec_from_py_list<VecType>(py_list);
+}
 
 /**
  * Get a C++ Unorderd map of C++ types (key = KeyType, values = ValueType)

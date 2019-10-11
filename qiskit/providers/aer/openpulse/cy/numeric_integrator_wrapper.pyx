@@ -15,7 +15,8 @@
 cimport cython
 from libcpp.vector cimport vector
 from libcpp.complex cimport complex
-
+import numpy as np
+cimport numpy as np
 
 #from qiskit.providers.aer.openpulse.qobj.op_system import OPSystem
 
@@ -29,7 +30,7 @@ from libcpp.complex cimport complex
 cdef extern from "src/numeric_integrator.hpp":
     cdef void td_ode_rhs(
         double t,
-        list vec,
+        np.ndarray vec,
         dict global_data,
         dict exp,
         list system,

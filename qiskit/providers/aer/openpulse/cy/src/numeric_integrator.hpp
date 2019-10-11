@@ -23,7 +23,7 @@
 
 PyObject * td_ode_rhs(
      double ,
-     PyObject * ,
+     PyArrayObject * ,
      PyObject * ,
      PyObject * ,
      PyObject * ,

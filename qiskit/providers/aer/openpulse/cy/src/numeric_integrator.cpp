@@ -1,3 +1,5 @@
+
+#include <csignal>
 #include <vector>
 #include <complex>
 #include <iostream>
@@ -8,6 +10,9 @@
 #include "numeric_integrator.hpp"
 #include "helpers.hpp"
 
+static bool init_numpy(){
+    import_array();
+};
 
 complex_t chan_value(
     double t,
@@ -24,11 +29,20 @@ complex_t chan_value(
 
 PyObject * td_ode_rhs(
     double t,
-    PyObject * py_vec,
+    PyArrayObject * py_vec,
     PyObject * py_global_data,
     PyObject * py_exp,
     PyObject * py_system,
     PyObject * py_register){
+
+    const static auto numpy_initialized = init_numpy();
+
+    auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
+    spdlog::set_default_logger(file_logger);
+    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+    spdlog::flush_on(spdlog::level::debug);
+
+    spdlog::debug("td_ode_rhs!");
 
     if(py_vec == nullptr ||
        py_global_data == nullptr ||
@@ -44,16 +58,13 @@ PyObject * td_ode_rhs(
            throw std::invalid_argument(msg);
     }
 
-    auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
-    spdlog::set_default_logger(file_logger);
-    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+    // Generate an interrupt
+    std::raise(SIGINT);
 
-    spdlog::debug("td_ode_rhs!");
-
+    spdlog::debug("Printing vec...");
     // 1. Get vec
-    auto vec = get_vec_from_py_list<complex_t>(py_vec);
+    auto vec = get_vec_from_np_array<complex_t>(py_vec);
     jlog("vec: ", vec);
-
 
 
     // TODO: Not quite sure about vec.size()= shape?
@@ -80,16 +91,25 @@ PyObject * td_ode_rhs(
     //            "%s_pulses,  pulse_array, pulse_indices, " % chan + \
     //            "%s_fc, )" % (chan)
 
+    spdlog::debug("Getting pulses...");
     // TODO: Pass const & as keys to avoid copying
     auto pulses = get_map_from_dict_item<std::string, std::vector<std::vector<double>>>(py_exp, "channels");
+    spdlog::debug("Getting freqs...");
     auto freqs = get_map_from_dict_item<std::string, double>(py_global_data, "freqs");
+    spdlog::debug("Getting pulse_array...");
     auto pulse_array = get_vec_from_dict_item<complex_t>(py_global_data, "pulse_array");
+    spdlog::debug("Getting pulse_indices...");
     auto pulse_indices = get_vec_from_dict_item<unsigned int>(py_global_data, "pulse_indices");
+    spdlog::debug("Getting reg...");
     std::string reg = get_value<std::string>(py_register);
 
+    spdlog::debug("Printing pulses...");
     jlog("pulses: ", pulses);
+    spdlog::debug("Printing freqs... ");
     jlog("freqs:", freqs);
+    spdlog::debug("Printing pulse_array... ");
     jlog("pulse_array: ",  pulse_array);
+    spdlog::debug("Printing reg...");
     spdlog::debug("reg: {}", reg);
 
 
