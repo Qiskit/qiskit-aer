@@ -19,6 +19,8 @@ hamiltonian['qub'] = {'0': 2}
 ```
 This Hamiltonian has a closed form in the rotating frame (w/ RWA), which may be compared to the pulse simulator result.
 
+Note: Variable names must be lowercase (uppercase is reserved for operators).
+
 ## Hamiltonian
 
 One of the main components of the open pulse simulator is the specification
