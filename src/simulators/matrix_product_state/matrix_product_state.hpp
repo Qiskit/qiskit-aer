@@ -111,7 +111,7 @@ public:
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
     return {"statevector", "memory", "register",
-            "probabilities", //"probabilities_with_variance",
+	//"probabilities", //"probabilities_with_variance",
             "expectation_value_pauli", //"expectation_value_pauli_with_variance",
             "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
             };
@@ -696,11 +696,11 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       BaseState::snapshot_creg_register(op, data);
       break;
       */
-  case Snapshots::probs: {
+    /*  case Snapshots::probs: {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, false);
       break;
-    }
+      }*/
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
       break;
