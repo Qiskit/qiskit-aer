@@ -18,13 +18,13 @@ complex_t chan_value(
     double t,
     unsigned int chan_num,
     const double freq_ch,
-    const std::vector<double>& chan_pulse_times,
+    const NpArray<double>& chan_pulse_times,
     const std::vector<complex_t>& pulse_array,
     const std::vector<unsigned int>& pulse_indices,
-    const std::vector<double>& fc_array,
+    const NpArray<double>& fc_array,
     const std::string& reg){
     //1. cdef unsigned int num_times = chan_pulse_times.shape[0] // 4
-    auto num_times = 
+    auto num_times = static_cast<int>(chan_pulse_times.shape[0]) / 4;
 
     return complex_t(0.0, 0.0);
 }
@@ -96,7 +96,7 @@ PyObject * td_ode_rhs(
 
     spdlog::debug("Getting pulses...");
     // TODO: Pass const & as keys to avoid copying
-    auto pulses = get_map_from_dict_item<std::string, std::vector<std::vector<double>>>(py_exp, "channels");
+    auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     spdlog::debug("Getting freqs...");
     auto freqs = get_map_from_dict_item<std::string, double>(py_global_data, "freqs");
     spdlog::debug("Getting pulse_array...");
