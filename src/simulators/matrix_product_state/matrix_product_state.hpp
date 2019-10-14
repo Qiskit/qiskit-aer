@@ -111,7 +111,6 @@ public:
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
     return {"statevector", "memory", "register",
-	//"probabilities", //"probabilities_with_variance",
             "expectation_value_pauli", //"expectation_value_pauli_with_variance",
             "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
             };
@@ -449,9 +448,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
-        //case Operations::OpType::kraus:
-        //  apply_kraus(op.qubits, op.mats, rng);
-        //  break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -637,14 +633,7 @@ void State::apply_initialize(const reg_t &qubits,
      }
    }
     // partial initialization not supported yet
-   std::stringstream msg;
-   msg << "MPS_State: Partial initialization not supported yet.";
-   throw std::invalid_argument(msg.str());
-
-   // Apply reset to qubits
-   //   apply_reset(qubits, rng);
-   // Apply initialize_component
-   //   BaseState::qreg_.initialize_component(qubits, params);
+   throw std::invalid_argument("MPS_State: Partial initialization not supported yet.");
 }
 
 void State::apply_measure(const reg_t &qubits,
@@ -689,18 +678,6 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       snapshot_state(op, data, "statevector");
       break;
       }
-      /*    case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(op, data);
-      break;
-    case Snapshots::cregister:
-      BaseState::snapshot_creg_register(op, data);
-      break;
-      */
-    /*  case Snapshots::probs: {
-      // get probs as hexadecimal
-      snapshot_probabilities(op, data, false);
-      break;
-      }*/
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
       break;
@@ -709,17 +686,6 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       snapshot_matrix_expval(op, data, false);
       break;
     }
-      /*
-    case Snapshots::probs_var: {
-      // get probs as hexadecimal
-      snapshot_probabilities(op, data, true);
-    } break;
-    case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, data, true);
-    } break;
-    case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, data, true);
-      }  break;*/
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
       throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
@@ -754,57 +720,6 @@ State::sample_measure_with_prob(const reg_t &qubits,
   uint_t outcome = rng.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);
 }
-
-//=========================================================================
-// Implementation: Kraus Noise
-// This function has not been checked yet
-//=========================================================================
-/* TODO: NORM NOT IMPLEMENTED IN MPS CLASS
-void State::apply_kraus(const reg_t &qubits,
-                        const std::vector<cmatrix_t> &kmats,
-                        RngEngine &rng) {
-  // Check edge case for empty Kraus set (this shouldn't happen)
-  if (kmats.empty())
-    return; // end function early
-
-
-  // Choose a real in [0, 1) to choose the applied kraus operator once
-  // the accumulated probability is greater than r.
-  // We know that the Kraus noise must be normalized
-  // So we only compute probabilities for the first N-1 kraus operators
-  // and infer the probability of the last one from 1 - sum of the previous
-
-  double r = rng.rand(0., 1.);
-  double accum = 0.;
-  bool complete = false;
-
-  // Loop through N-1 kraus operators
-  for (size_t j=0; j < kmats.size() - 1; j++) {
-
-    // Calculate probability
-    cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
-    double p = qreg_.norm(qubits, vmat);
-    accum += p;
-
-    // check if we need to apply this operator
-    if (accum > r) {
-      // rescale vmat so projection is normalized
-      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
-      // apply Kraus projection operator
-      apply_matrix(qubits, vmat);
-      complete = true;
-      break;
-    }
-  }
-
-  // check if we haven't applied a kraus operator yet
-  if (complete == false) {
-    // Compute probability from accumulated
-    complex_t renorm = 1 / std::sqrt(1. - accum);
-    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
-  }
-}
-*/
 
 //-------------------------------------------------------------------------
 } // end namespace MatrixProductState
