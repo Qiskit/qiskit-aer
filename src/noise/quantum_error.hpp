@@ -333,7 +333,7 @@ void QuantumError::compute_superoperator() {
     superop.initialize_qreg(get_num_qubits());
     // Apply each gate in the circuit
     // We don't need output data or RNG for this
-    OutputData data;
+    ExperimentData data;
     RngEngine rng;
     superop.apply_ops(circuits_[j], data, rng);
     superoperator_ += probabilities_[j] * superop.qreg().matrix();
