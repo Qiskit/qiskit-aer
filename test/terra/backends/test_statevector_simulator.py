@@ -43,7 +43,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, shots=1)
         sim_job = StatevectorSimulator().run(qobj)
         result = sim_job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_initialize_2(self):
@@ -53,7 +53,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, shots=1)
         sim_job = StatevectorSimulator().run(qobj)
         result = sim_job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -67,7 +67,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_reset.reset_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_reset_nondeterministic(self):
@@ -78,7 +78,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_reset.reset_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -90,7 +90,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_measure.measure_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -102,7 +102,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_statevector_1bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_1bit(self):
@@ -112,7 +112,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_statevector_1bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_gate_2bit(self):
@@ -121,7 +121,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_statevector_2bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_2bit(self):
@@ -131,7 +131,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_conditionals.conditional_statevector_2bit()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -143,7 +143,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_deterministic_waltz_basis_gates(self):
@@ -153,7 +153,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_deterministic_minimal_basis_gates(self):
@@ -162,7 +162,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_default_basis_gates(self):
@@ -171,7 +171,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_waltz_basis_gates(self):
@@ -181,7 +181,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_minimal_basis_gates(self):
@@ -190,7 +190,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.h_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -202,7 +202,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.x_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_x_gate_deterministic_waltz_basis_gates(self):
@@ -212,7 +212,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_x_gate_deterministic_minimal_basis_gates(self):
@@ -222,7 +222,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -234,7 +234,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.z_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_z_gate_deterministic_waltz_basis_gates(self):
@@ -244,7 +244,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_z_gate_deterministic_minimal_basis_gates(self):
@@ -254,7 +254,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -266,7 +266,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.y_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_y_gate_deterministic_waltz_basis_gates(self):
@@ -276,7 +276,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_y_gate_deterministic_minimal_basis_gates(self):
@@ -286,7 +286,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -298,7 +298,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.s_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_deterministic_waltz_basis_gates(self):
@@ -308,7 +308,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_deterministic_minimal_basis_gates(self):
@@ -318,7 +318,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_default_basis_gates(self):
@@ -327,7 +327,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.s_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_waltz_basis_gates(self):
@@ -337,7 +337,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_minimal_basis_gates(self):
@@ -347,7 +347,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -359,7 +359,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.sdg_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_deterministic_waltz_basis_gates(self):
@@ -369,7 +369,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_deterministic_minimal_basis_gates(self):
@@ -379,7 +379,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_default_basis_gates(self):
@@ -388,7 +388,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_1q_clifford.sdg_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_waltz_basis_gates(self):
@@ -398,7 +398,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_minimal_basis_gates(self):
@@ -408,7 +408,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -420,7 +420,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cx_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_deterministic_waltz_basis_gates(self):
@@ -430,7 +430,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_deterministic_minimal_basis_gates(self):
@@ -440,7 +440,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_default_basis_gates(self):
@@ -449,7 +449,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cx_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_waltz_basis_gates(self):
@@ -459,7 +459,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_minimal_basis_gates(self):
@@ -469,7 +469,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -481,7 +481,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cz_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_deterministic_waltz_basis_gates(self):
@@ -491,7 +491,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_deterministic_minimal_basis_gates(self):
@@ -501,7 +501,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_default_basis_gates(self):
@@ -510,7 +510,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.cz_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_waltz_basis_gates(self):
@@ -520,7 +520,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_minimal_basis_gates(self):
@@ -530,7 +530,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -542,7 +542,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.swap_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_deterministic_waltz_basis_gates(self):
@@ -552,7 +552,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_deterministic_minimal_basis_gates(self):
@@ -562,7 +562,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_default_basis_gates(self):
@@ -571,7 +571,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_2q_clifford.swap_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_waltz_basis_gates(self):
@@ -581,7 +581,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_minimal_basis_gates(self):
@@ -591,7 +591,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -603,7 +603,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.t_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_deterministic_waltz_basis_gates(self):
@@ -613,7 +613,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_deterministic_minimal_basis_gates(self):
@@ -623,7 +623,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
@@ -632,7 +632,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.t_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_waltz_basis_gates(self):
@@ -642,7 +642,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_minimal_basis_gates(self):
@@ -652,7 +652,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -664,7 +664,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.tdg_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_deterministic_waltz_basis_gates(self):
@@ -674,7 +674,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_deterministic_minimal_basis_gates(self):
@@ -684,7 +684,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_default_basis_gates(self):
@@ -693,7 +693,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.tdg_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
@@ -703,7 +703,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_minimal_basis_gates(self):
@@ -713,7 +713,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -725,7 +725,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.ccx_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_deterministic_waltz_basis_gates(self):
@@ -735,7 +735,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_deterministic_minimal_basis_gates(self):
@@ -745,7 +745,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
@@ -754,7 +754,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.ccx_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
@@ -764,7 +764,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_minimal_basis_gates(self):
@@ -774,7 +774,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -786,7 +786,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -798,7 +798,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cu1_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cu1_gate_nondeterministic_waltz_basis_gates(self):
@@ -808,7 +808,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cu1_gate_nondeterministic_minimal_basis_gates(self):
@@ -817,7 +817,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cu1_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -830,7 +830,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cswap_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_deterministic_minimal_basis_gates(self):
@@ -840,7 +840,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cswap_gate_statevector_deterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_deterministic_waltz_basis_gates(self):
@@ -850,7 +850,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_default_basis_gates(self):
@@ -859,7 +859,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cswap_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
@@ -869,7 +869,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         targets = ref_non_clifford.cswap_gate_statevector_nondeterministic()
         job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
@@ -879,7 +879,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         job = execute(circuits, StatevectorSimulator(), shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
 
