@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <vector>
 #include <complex>
+#include <type_traits>
 #include <Python.h>
 #include <exprtk.hpp>
 #include <spdlog/spdlog.h>
@@ -154,6 +155,16 @@ bool _check_is_integer(PyObject * value){
     return true;
 }
 
+bool _check_is_string(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("PyObject is null!");
+
+    if(!PyBytes_Check(value))
+        return false;
+
+    return true;
+}
+
 bool _check_is_floating_point(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
@@ -196,13 +207,25 @@ bool _check_is_np_array(PyArrayObject * value){
     return true;
 }
 
+// Simon Brand technique to achive partial specialization on function templates
+// https://www.fluentcpp.com/2017/08/15/function-templates-partial-specialization-cpp/
+// This "type" struct will carry T, but wil be ignored by the compiler later.
+// It's like a help you give to the compiler so it can resolve the specialization
+template<typename T>
+struct type{};
+
+template<typename T>
+T get_value(type<T> _, PyObject * value){
+    throw std::invalid_argument("Cannot get value for this type!");
+}
+
 template<typename T>
 T get_value(PyObject * value){
-    throw std::invalid_argument("Can't get the value for this type!");
+    return get_value(type<T>{}, value);
 }
 
 template<>
-long get_value(PyObject * value){
+long get_value(type<long> _, PyObject * value){
     if(!_check_is_integer(value))
         throw std::invalid_argument("PyObject is not a long!");
 
@@ -215,7 +238,7 @@ long get_value(PyObject * value){
 }
 
 template<>
-double get_value(PyObject * value){
+double get_value(type<double> _, PyObject * value){
     if(!_check_is_floating_point(value))
         throw std::invalid_argument("PyObject is not a double!");
 
@@ -228,7 +251,7 @@ double get_value(PyObject * value){
 }
 
 template<>
-std::complex<double> get_value(PyObject * value){
+std::complex<double> get_value(type<std::complex<double>> _, PyObject * value){
     if(!_check_is_complex(value))
         throw std::invalid_argument("PyObject is not a complex number!");
 
@@ -241,7 +264,10 @@ std::complex<double> get_value(PyObject * value){
 }
 
 template<>
-std::string get_value(PyObject * value){
+std::string get_value(type<std::string> _, PyObject * value){
+    if(!_check_is_string(value))
+        throw std::invalid_argument("PyObject is not a string!");
+
     PyObject * tmp_py_str = PyUnicode_AsEncodedString(value, "utf-8", "replace");
     auto c_str = PyBytes_AS_STRING(tmp_py_str);
     if(c_str == nullptr)
@@ -250,16 +276,22 @@ std::string get_value(PyObject * value){
     return std::string(c_str);
 }
 
-
-TODO Especializar para std::vector<T>...
 template<typename T>
-std::vector get_value(PyObject * value){
-    PyObject * tmp_py_str = PyUnicode_AsEncodedString(value, "utf-8", "replace");
-    auto c_str = PyBytes_AS_STRING(tmp_py_str);
-    if(c_str == nullptr)
-        throw std::invalid_argument("Conversion to utf-8 has failed!");
+std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
+    if(!_check_is_list(value))
+        throw std::invalid_argument("PyObject is not a List!");
 
-    return std::string(c_str);
+    auto size = PyList_Size(value);
+    std::vector<T> vector;
+    vector.reserve(size);
+    for(auto i=0; i<size; ++i){
+        auto py_item = PyList_GetItem(py_list, i);
+        if(py_item == nullptr)
+            continue;
+        auto item = get_value<T>(py_item);
+        vector.emplace_back(item);
+    }
+    return vector;
 }
 
 

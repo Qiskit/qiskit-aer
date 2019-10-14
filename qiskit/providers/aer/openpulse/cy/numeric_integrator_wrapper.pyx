@@ -18,15 +18,6 @@ from libcpp.complex cimport complex
 import numpy as np
 cimport numpy as np
 
-#from qiskit.providers.aer.openpulse.qobj.op_system import OPSystem
-
-#cdef public class OPSystem [object OP_System, type op_system_t]
-
-# cdef dict global_data
-# cdef dict exp
-# cdef unsigned char[::1] register
-
-
 cdef extern from "src/numeric_integrator.hpp":
     cdef void td_ode_rhs(
         double t,
@@ -39,3 +30,9 @@ cdef extern from "src/numeric_integrator.hpp":
 
 def td_ode_rhs_static(t, vec, global_data, exp, system, register):
     td_ode_rhs(t, vec, global_data, exp, system, register)
+
+
+# These definitions are only for testing the C++ wrappers over Python C API
+cdef extern from "src/helpers.hpp":
+    cdef T get_value(PyObject * value) except +
+}
