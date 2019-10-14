@@ -23,6 +23,8 @@ complex_t chan_value(
     const std::vector<unsigned int>& pulse_indices,
     const std::vector<double>& fc_array,
     const std::string& reg){
+    //1. cdef unsigned int num_times = chan_pulse_times.shape[0] // 4
+    auto num_times = 
 
     return complex_t(0.0, 0.0);
 }
@@ -63,13 +65,14 @@ PyObject * td_ode_rhs(
 
     spdlog::debug("Printing vec...");
     // 1. Get vec
-    auto vec = get_vec_from_np_array<complex_t>(py_vec);
-    jlog("vec: ", vec);
+    auto vec = get_value<NpArray<complex_t>>(py_vec);
+    jlog("vec.data", vec);
 
 
-    // TODO: Not quite sure about vec.size()= shape?
+
+    // deal with non 1D arrays as well (through PyArrayObject)
     // unsigned int num_rows = vec.shape[0]
-    unsigned int num_rows = vec.size();
+    auto num_rows = vec.shape[0];
     spdlog::debug("num_rows: {}", num_rows);
 
 
@@ -130,7 +133,7 @@ PyObject * td_ode_rhs(
 
     // 4. Eval the time-dependent terms and do SPMV.
 
-    auto systems = get_vec_from_py_list<std::string>(py_system);
+    auto systems = get_value<std::vector<std::string>>(py_system);
     auto vars = get_vec_from_dict_item<complex_t>(py_global_data, "vars");
     auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
     auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");

@@ -16,7 +16,7 @@
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
-from .qutip_lite.cy import pyxbuilder as pbldr
+#from .qutip_lite.cy import pyxbuilder as pbldr
 
 # Remove -Wstrict-prototypes from cflags
 CFG_VARS = distutils.sysconfig.get_config_vars()
@@ -25,5 +25,5 @@ if "CFLAGS" in CFG_VARS:
 
 # Setup pyximport
 # pylint: disable=no-member
-pbldr.install(setup_args={'include_dirs': [np.get_include()]})
-del pbldr
+#pbldr.install(setup_args={'include_dirs': [np.get_include()]})
+#del pbldr

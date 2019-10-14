@@ -31,7 +31,28 @@
  * copies
  **/
 
+
+/**
+ * Helper Types
+ **/
 using complex_t = std::complex<double>;
+
+template<typename VecType>
+class NpArray {
+    NpArray() = delete;
+    public:
+    explicit NpArray(const std::vector<VecType>& _data, const std::vector<int>& _shape)
+    : data(_data), shape(_shape)
+    {}
+    const std::vector<VecType>& data;
+    /**
+     * The shape of the array: like
+     * ```pyhton
+     * arr = np.array([0,1,2],[3,4,5])
+     * arr.shape
+     **/
+    const std::vector<int>& shape;
+};
 
 
 template<typename T>
@@ -40,6 +61,7 @@ void jlog(const std::string& msg, const T& values){
     for(const auto& val : values){
         spdlog::debug("{} ", val);
     }
+    spdlog::debug("\n");
 }
 template<>
 void jlog(const std::string& msg, const std::vector<complex_t>& values){
@@ -47,6 +69,7 @@ void jlog(const std::string& msg, const std::vector<complex_t>& values){
     for(const auto& val : values){
         spdlog::debug("{}+{}j", val.real(), val.imag());
     }
+    spdlog::debug("\n");
 }
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
@@ -58,6 +81,7 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
             }
         }
     }
+    spdlog::debug("\n");
 }
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
@@ -65,8 +89,19 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, double>&
     for(const auto& val : values){
         spdlog::debug("{}:{} ", val.first, val.second);
     }
+    spdlog::debug("\n");
 }
 
+template<typename T>
+void jlog(const std::string& msg, const NpArray<T>& values){
+    spdlog::debug("{}\n", msg);
+    spdlog::debug(".shape: {}", values.shape);
+    spdlog::debug(".data: ");
+    for(const auto& val : values.data){
+        spdlog::debug("{} ", val);
+    }
+    spdlog::debug("\n");
+}
 
 
 template <typename T>
@@ -159,7 +194,7 @@ bool _check_is_string(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
 
-    if(!PyBytes_Check(value))
+    if(!PyUnicode_Check(value))
         return false;
 
     return true;
@@ -196,6 +231,17 @@ bool _check_is_list(PyObject * value){
     return true;
 }
 
+bool _check_is_dict(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Pyhton dict is null!");
+
+    // Check that it's a dict
+    if(!PyDict_Check(value))
+        return false;
+
+    return true;
+}
+
 bool _check_is_np_array(PyArrayObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Numpy ndarray is null!");
@@ -219,10 +265,17 @@ T get_value(type<T> _, PyObject * value){
     throw std::invalid_argument("Cannot get value for this type!");
 }
 
+// <JUAN> TODO: We might want to expose only these two functions
 template<typename T>
 T get_value(PyObject * value){
     return get_value(type<T>{}, value);
 }
+
+template<typename T>
+const T get_value(PyArrayObject * value){
+    return get_value(type<T>{}, value);
+}
+// </JUAN>
 
 template<>
 long get_value(type<long> _, PyObject * value){
@@ -268,8 +321,9 @@ std::string get_value(type<std::string> _, PyObject * value){
     if(!_check_is_string(value))
         throw std::invalid_argument("PyObject is not a string!");
 
-    PyObject * tmp_py_str = PyUnicode_AsEncodedString(value, "utf-8", "replace");
-    auto c_str = PyBytes_AS_STRING(tmp_py_str);
+    auto bytes_str = PyUnicode_AsUTF8String(value);
+    auto c_str = PyBytes_AsString(bytes_str);
+
     if(c_str == nullptr)
         throw std::invalid_argument("Conversion to utf-8 has failed!");
 
@@ -285,7 +339,7 @@ std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
     std::vector<T> vector;
     vector.reserve(size);
     for(auto i=0; i<size; ++i){
-        auto py_item = PyList_GetItem(py_list, i);
+        auto py_item = PyList_GetItem(value, i);
         if(py_item == nullptr)
             continue;
         auto item = get_value<T>(py_item);
@@ -295,8 +349,79 @@ std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
 }
 
 
-PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
+template<typename ValueType>
+std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
+    if(!_check_is_dict(value))
+        throw std::invalid_argument("PyObject is not a dictonary!!");
 
+    auto size = PyDict_Size(value);
+    std::unordered_map<std::string, ValueType> map;
+    map.reserve(size);
+
+    PyObject *key, *val;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(value, &pos, &key, &val)) {
+        auto inner_key = get_value<std::string>(key);
+        auto inner_value = get_value<ValueType>(val);
+        map.emplace(inner_key, inner_value);
+    }
+    return map;
+}
+
+
+
+/**
+ * Returns the .shape of the a Numpy array object
+ * This is equivalent to:
+ * ```pyhton
+ * arr = np.array([[1,2],[3,4]])
+ * arr.shape
+ * ```
+ */
+std::vector<int> _get_shape_from_np_array(PyArrayObject * np_array){
+    if(!_check_is_np_array(np_array))
+        throw std::invalid_argument("PyArrayObject is not a numpy array!");
+
+    auto p_dims = PyArray_SHAPE(np_array);
+    if(p_dims == nullptr)
+        throw std::invalid_argument("Couldn't get the shape of the array!");
+
+    auto num_dims = PyArray_NDIM(np_array);
+    std::vector<int> dims;
+    dims.reserve(num_dims);
+    for(auto i = 0; i < num_dims; i){
+        dims.emplace_back(p_dims[i]);
+    }
+    return dims;
+}
+
+/**
+ * Get a C++ Vector of C++ types from a Numpy ndarray (PyArrayObject) type
+ **/
+template<typename VecType>
+const std::vector<VecType> _get_vec_from_np_array(PyArrayObject * py_array){
+    /* Handle zero-sized arrays specially */
+    if (PyArray_SIZE(py_array) == 0) {
+        return {};
+    }
+    /* TODO This is faster if we deal with PyArrayObject directly */
+    PyObject * py_list = PyArray_ToList(py_array);
+    return get_value<std::vector<VecType>>(py_list);
+}
+
+template<typename T>
+const NpArray<T> get_value(type<NpArray<T>> _, PyArrayObject * value){
+    if(!_check_is_np_array(value))
+        throw std::invalid_argument("PyArrayObject is not a numpy array!");
+
+    const auto arr = _get_vec_from_np_array<T>(value);
+    const auto shape = _get_shape_from_np_array(value);
+    return NpArray<T>(arr, shape);
+}
+
+
+
+PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     if(dict == nullptr)
         throw std::invalid_argument("Python dictionary is null!");
 
@@ -317,68 +442,24 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
  * Get a C++ Vector of C++ types from a Python List
  **/
 
-template<typename VecType>
-const std::vector<VecType> get_vec_from_py_list(PyObject * py_list){
-    if(!_check_is_list(py_list))
-        throw std::invalid_argument("PyObject is not a List!");
+// template<typename VecType>
+// const std::vector<VecType> get_vec_from_py_list(PyObject * py_list){
+//     if(!_check_is_list(py_list))
+//         throw std::invalid_argument("PyObject is not a List!");
 
-    auto size = PyList_Size(py_list);
-    std::vector<VecType> vector;
-    vector.reserve(size);
-    for(auto i=0; i<size; ++i){
-        auto py_item = PyList_GetItem(py_list, i);
-        if(py_item == nullptr)
-            continue;
-        auto cpp_item = get_value<VecType>(py_item);
-        vector.emplace_back(cpp_item);
-    }
-    return vector;
-}
+//     auto size = PyList_Size(py_list);
+//     std::vector<VecType> vector;
+//     vector.reserve(size);
+//     for(auto i=0; i<size; ++i){
+//         auto py_item = PyList_GetItem(py_list, i);
+//         if(py_item == nullptr)
+//             continue;
+//         auto cpp_item = get_value<VecType>(py_item);
+//         vector.emplace_back(cpp_item);
+//     }
+//     return vector;
+// }
 
-
-/**
- * Get a C++ Vector of C++ types from a Numpy ndarray (PyArrayObject) type
- **/
-template<typename VecType>
-const std::vector<VecType> get_vec_from_np_array(PyArrayObject * py_array){
-    if(!_check_is_np_array(py_array))
-        throw std::invalid_argument("PyObject is not a List!");
-
-    /* Handle zero-sized arrays specially */
-    if (PyArray_SIZE(py_array) == 0) {
-        return {};
-    }
-    /* TODO This is faster if we deal with PyArrayObject directly */
-    PyObject * py_list = PyArray_ToList(py_array);
-    return get_vec_from_py_list<VecType>(py_list);
-}
-
-/**
- * Get a C++ Unorderd map of C++ types (key = KeyType, values = ValueType)
- * from a Python dictionary.
- **/
-template<typename KeyType, typename ValueType>
-const std::unordered_map<KeyType, ValueType> get_map_from_py_dict(PyObject * py_dict){
-    if(py_dict == nullptr)
-        throw std::invalid_argument("Pyhton list is null!");
-
-    // Check that it's a dict
-    if(!PyDict_Check(py_dict))
-        throw std::invalid_argument("PyObject is not a dictonary!!");
-
-    auto size = PyDict_Size(py_dict);
-    std::unordered_map<KeyType, ValueType> map;
-    map.reserve(size);
-
-    PyObject *key, *value;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(py_dict, &pos, &key, &value)) {
-        auto cpp_key = get_value<KeyType>(key);
-        auto cpp_value = get_value<ValueType>(value);
-        map.emplace(cpp_key, cpp_value);
-    }
-    return map;
-}
 
 /**
  * Returns a C++ vector from a Python list that is inside a Pyhton dictionary under a key.
@@ -403,7 +484,7 @@ const std::unordered_map<KeyType, ValueType> get_map_from_py_dict(PyObject * py_
 template<typename VecType>
 const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return get_vec_from_py_list<VecType>(py_value);
+    return get_value<std::vector<VecType>>(py_value);
 }
 
 /**
@@ -430,7 +511,7 @@ const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::st
 template<typename KeyType, typename ValueType>
 const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return get_map_from_py_dict<KeyType, ValueType>(py_value);
+    return get_value<std::unordered_map<KeyType, ValueType>>(py_value);
 }
 
 /**
@@ -489,6 +570,5 @@ double evaluate_hamiltonian_expression(const std::string& expr_string,
 
     return expression.value();
 }
-
 
 #endif // _HELPERS_HPP
