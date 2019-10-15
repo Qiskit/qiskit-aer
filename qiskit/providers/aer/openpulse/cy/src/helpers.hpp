@@ -53,11 +53,7 @@ class NpArray {
      **/
     const std::vector<int>& shape;
 
-    const VecType& NpArray::operator[](size_t index) const {
-        return data[index];
-    }
-
-    VecType& NpArray::operator[](size_t index){
+    const VecType& operator[](size_t index) const {
         return data[index];
     }
 };
@@ -71,6 +67,7 @@ void jlog(const std::string& msg, const T& values){
     }
     spdlog::debug("\n");
 }
+
 template<>
 void jlog(const std::string& msg, const std::vector<complex_t>& values){
     spdlog::debug("{}\n", msg);
@@ -79,6 +76,7 @@ void jlog(const std::string& msg, const std::vector<complex_t>& values){
     }
     spdlog::debug("\n");
 }
+
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
     spdlog::debug("{}\n", msg);
@@ -91,6 +89,7 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
     }
     spdlog::debug("\n");
 }
+
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
     spdlog::debug("{}\n", msg);
@@ -100,11 +99,25 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, double>&
     spdlog::debug("\n");
 }
 
+template<>
+void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<NpArray<double>>>& values){
+    spdlog::debug("{}\n", msg);
+    for(const auto& val : values){
+        for(const auto& inner: val.second){
+            jlog("", inner);
+        }
+    }
+    spdlog::debug("\n");
+}
+
 template<typename T>
 void jlog(const std::string& msg, const NpArray<T>& values){
     spdlog::debug("{}\n", msg);
-    spdlog::debug(".shape: {}", values.shape);
-    spdlog::debug(".data: ");
+    spdlog::debug(".shape: ");
+    for(const auto& shape : values.shape)
+        spdlog::debug("{} ", shape);
+
+    spdlog::debug("\n.data: ");
     for(const auto& val : values.data){
         spdlog::debug("{} ", val);
     }

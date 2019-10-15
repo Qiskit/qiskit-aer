@@ -66,7 +66,7 @@ PyObject * td_ode_rhs(
     spdlog::debug("Printing vec...");
     // 1. Get vec
     auto vec = get_value<NpArray<complex_t>>(py_vec);
-    jlog("vec.data", vec);
+    jlog("vec", vec);
 
 
 
