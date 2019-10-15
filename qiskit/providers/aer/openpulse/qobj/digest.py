@@ -171,6 +171,7 @@ def digest_pulse_obj(qobj):
 
     out.h_diag = np.ascontiguousarray(h_diag.real)
     out.evals = evals
+    out.estates = estates
 
     # Set initial state
     out.initial_state = 0 * op.basis(len(evals), 1)

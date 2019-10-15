@@ -93,7 +93,7 @@ class PulseSimulator(AerBackend):
         """Digest the pulse qobj and return the eigenenergies
         of the Hamiltonian"""
         openpulse_system = digest_pulse_obj(qobj.to_dict())
-        return openpulse_system.evals
+        return openpulse_system.evals, openpulse_system.estates
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the pulse object. Make sure a
