@@ -141,7 +141,7 @@ private:
 
   uint64_t omp_threads_ = 1;          // Disable multithreading by default
   uint64_t omp_threshold_ = 1000;     // Qubit threshold for multithreading when enabled
-  double json_chop_threshold_ = 0;  // Threshold for choping small values
+  double json_chop_threshold_ = 0;  // Threshold for chopping small values
                                     // in JSON serialization
 
   //-----------------------------------------------------------------------

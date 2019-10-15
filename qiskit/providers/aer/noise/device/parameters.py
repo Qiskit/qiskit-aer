@@ -30,7 +30,7 @@ def gate_param_values(properties):
 
     Returns:
         list: A list of tuples (name, qubits, time, error). If gate
-              error or gate_time information is not available None
+              error or gate_length information is not available None
               will be returned for value.
     """
     values = []
@@ -38,19 +38,19 @@ def gate_param_values(properties):
         name = gate.gate
         qubits = gate.qubits
         # Check for gate time information
-        gate_time = None  # default value
-        time_param = _check_for_item(gate.parameters, 'gate_time')
+        gate_length = None  # default value
+        time_param = _check_for_item(gate.parameters, 'gate_length')
         if hasattr(time_param, 'value'):
-            gate_time = time_param.value
+            gate_length = time_param.value
             if hasattr(time_param, 'unit'):
                 # Convert gate time to ns
-                gate_time *= _NANOSECOND_UNITS.get(time_param.unit, 1)
+                gate_length *= _NANOSECOND_UNITS.get(time_param.unit, 1)
         # Check for gate error information
         gate_error = None  # default value
         error_param = _check_for_item(gate.parameters, 'gate_error')
         if hasattr(error_param, 'value'):
             gate_error = error_param.value
-        values.append((name, qubits, gate_time, gate_error))
+        values.append((name, qubits, gate_length, gate_error))
 
     return values
 
@@ -78,10 +78,10 @@ def gate_error_values(properties):
     return values
 
 
-def gate_time_values(properties):
-    """Get gate time values for backend gate from backend properties
+def gate_length_values(properties):
+    """Get gate length values for backend gate from backend properties
 
-    Gate time values are returned in nanosecond (ns) units.
+    Gate length values are returned in nanosecond (ns) units.
 
     Args:
         properties (BackendProperties): device backend properties
@@ -96,7 +96,7 @@ def gate_time_values(properties):
         name = gate.gate
         qubits = gate.qubits
         value = None  # default value
-        params = _check_for_item(gate.parameters, 'gate_time')
+        params = _check_for_item(gate.parameters, 'gate_length')
         if hasattr(params, 'value'):
             value = params.value
             if hasattr(params, 'unit'):
@@ -120,9 +120,15 @@ def readout_error_values(properties):
     values = []
     for qubit_props in properties.qubits:
         value = None  # default value
-        params = _check_for_item(qubit_props, 'readout_error')
-        if hasattr(params, 'value'):
-            value = params.value
+
+        params_roerror = _check_for_item(qubit_props, 'readout_error')
+        params_m1p0 = _check_for_item(qubit_props, 'prob_meas1_prep0')
+        params_m0p1 = _check_for_item(qubit_props, 'prob_meas0_prep1')
+
+        if hasattr(params_m1p0, 'value') and hasattr(params_m0p1, 'value'):
+            value = [params_m1p0.value, params_m0p1.value]
+        elif hasattr(params_roerror, 'value'):
+            value = [params_roerror.value, params_roerror.value]
         values.append(value)
     return values
 

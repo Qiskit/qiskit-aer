@@ -37,7 +37,7 @@ class QasmInitializeTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_initialize_2(self):
@@ -50,7 +50,7 @@ class QasmInitializeTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_initialize_sampling_opt(self):
@@ -61,5 +61,5 @@ class QasmInitializeTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
