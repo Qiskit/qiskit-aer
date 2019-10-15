@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -12,13 +19,13 @@
 // For this simulation method, we represent the state of the circuit using a tensor
 // network structure, the specifically matrix product state. The idea is based on
 // the following paper (there exist other sources as well):
-// The density-matrix renormalization group in the age of matrix product states by 
+// The density-matrix renormalization group in the age of matrix product states by
 // Ulrich Schollwock.
 //
 //--------------------------------------------------------------------------
 
-#ifndef _tensor_tensor_state_hpp
-#define _tensor_tensor_state_hpp
+#ifndef _matrix_product_state_hpp
+#define _matrix_product_state_hpp
 
 #include <algorithm>
 #define _USE_MATH_DEFINES
@@ -26,32 +33,32 @@
 
 #include "framework/json.hpp"
 #include "base/state.hpp"
-#include "matrix_product_state.hpp"
-#include "matrix_product_state.cpp"
+#include "matrix_product_state_internal.hpp"
+#include "matrix_product_state_internal.cpp"
 
 
 namespace AER {
-namespace TensorNetworkState { 
+namespace MatrixProductState {
 
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
-  probs, probs_var,
-  expval_pauli, expval_pauli_var,
-  expval_matrix, expval_matrix_var
+  probs, //probs_var,
+  expval_pauli, //expval_pauli_var,
+  expval_matrix//, //expval_matrix_var
 };
 
 
 //=========================================================================
-// Tensor Network State subclass
+// Matrix Product State subclass
 //=========================================================================
 
-using tensorstate_t = MPS;
+using matrixproductstate_t = MPS;
 
-class State : public Base::State<tensorstate_t> {
+class State : public Base::State<matrixproductstate_t> {
 public:
-  using BaseState = Base::State<tensorstate_t>;
-  
+  using BaseState = Base::State<matrixproductstate_t>;
+
   State() = default;
 
   State(uint_t num_qubits) {
@@ -66,7 +73,7 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {
-	  return "tensorstate";
+	  return "matrix_product_state";
   }
 
   bool empty() const {
@@ -81,13 +88,13 @@ public:
       Operations::OpType::gate,
       Operations::OpType::measure,
       Operations::OpType::reset,
-      Operations::OpType::initialize,	
+      Operations::OpType::initialize,
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
-      Operations::OpType::matrix,
-      Operations::OpType::kraus
+      Operations::OpType::matrix
+      //Operations::OpType::kraus  // TODO
     });
   }
 
@@ -104,24 +111,24 @@ public:
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
     return {"statevector", "memory", "register",
-            "probabilities", "probabilities_with_variance",
-            "expectation_value_pauli", "expectation_value_pauli_with_variance",
-            "expectation_value_matrix", "expectation_value_matrix_with_variance"};
+            "expectation_value_pauli", //"expectation_value_pauli_with_variance",
+            "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
+            };
   }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state given as a complex std::vector
-  virtual void initialize_qreg(uint_t num_qubits, const tensorstate_t &state) override;
+  virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) override;
 
-  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector); 
+  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -180,7 +187,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exception will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   // We assume matrix to be 2x2
@@ -190,9 +197,9 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a Kraus error operation
-  void apply_kraus(const reg_t &qubits,
-                   const std::vector<cmatrix_t> &krausops,
-                   RngEngine &rng);
+  //void apply_kraus(const reg_t &qubits,
+  //                 const std::vector<cmatrix_t> &krausops,
+  //                 RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -215,10 +222,9 @@ protected:
   sample_measure_with_prob(const reg_t &qubits, RngEngine &rng);
 
 
-  void measure_reset_update(const std::vector<uint_t> &qubits,
+  void measure_reset_update(const reg_t &qubits,
                             const uint_t final_state,
-                            const uint_t meas_state,
-                            const double meas_prob);
+                            const reg_t &meas_state);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -230,22 +236,22 @@ protected:
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             OutputData &data,
+                             ExperimentData &data,
                              bool variance);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   // Snapshot the state vector
   void snapshot_state(const Operations::Op &op,
-		      OutputData &data,
+		      ExperimentData &data,
 		      std::string name = "");
 
   //-----------------------------------------------------------------------
@@ -317,9 +323,9 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
-  {"probabilities_with_variance", Snapshots::probs_var},
-  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
-  {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
+  //{"probabilities_with_variance", Snapshots::probs_var},
+  //{"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  //{"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -338,10 +344,10 @@ void State::initialize_qreg(uint_t num_qubits) {
   qreg_.initialize((uint_t)num_qubits);
 }
 
-void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
+void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();
   //qreg_.initialize((uint_t)num_qubits, state);
@@ -353,7 +359,7 @@ void State::initialize_qreg(uint_t num_qubits, const tensorstate_t &state) {
 void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("TensorNetwork::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
   initialize_omp();
 
@@ -372,9 +378,9 @@ void State::initialize_omp() {
 
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
-    // for each qubit we have a tensor structure. 
+    // for each qubit we have a tensor structure.
     // Initially, each tensor contains 2 matrices with a single complex double
-    // Depending on the number of 2-qubit gates, 
+    // Depending on the number of 2-qubit gates,
     // these matrices may double their size
     // for now - compute only initial size
     // later - FIXME
@@ -409,7 +415,7 @@ void State::set_config(const json_t &config) {
 //=========================================================================
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      OutputData &data,
+                      ExperimentData &data,
                       RngEngine &rng) {
 
   // Simple loop over vector of input operations
@@ -442,11 +448,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
-        case Operations::OpType::kraus:
-          apply_kraus(op.qubits, op.mats, rng);
-          break;
         default:
-          throw std::invalid_argument("TensorNetworkState::State::invalid instruction \'" +
+          throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
       }
     }
@@ -458,7 +461,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 //=========================================================================
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
-				  OutputData &data,
+				  ExperimentData &data,
 				  bool variance){
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -478,7 +481,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
-				   OutputData &data,
+				   ExperimentData &data,
 				   bool variance){
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -500,7 +503,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 }
 
 void State::snapshot_state(const Operations::Op &op,
-			   OutputData &data,
+			   ExperimentData &data,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
@@ -509,9 +512,9 @@ void State::snapshot_state(const Operations::Op &op,
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
-				   OutputData &data,
+				   ExperimentData &data,
 				   bool variance) {
-  TensorNetworkState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+  MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   rvector_t prob_vector;
   qreg_.probabilities_vector(prob_vector);
   data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
@@ -522,7 +525,7 @@ void State::apply_gate(const Operations::Op &op) {
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
     throw std::invalid_argument(
-      "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
+      "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
 
   switch (it -> second) {
     case Gates::u3:
@@ -565,10 +568,10 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       qreg_.apply_sdg(op.qubits[0]);
       break;
-    case Gates::t: 
+    case Gates::t:
       qreg_.apply_t(op.qubits[0]);
       break;
-    case Gates::tdg: 
+    case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::swap:
@@ -584,7 +587,7 @@ void State::apply_gate(const Operations::Op &op) {
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
-        "TensorNetwork::State::invalid gate instruction \'" + op.name + "\'.");
+        "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   }
 
 }
@@ -600,7 +603,7 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   }
 #ifdef DEBUG
   cout << "Currently only support matrices applied to 1 or 2 qubits";
-#endif  
+#endif
 }
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
@@ -630,24 +633,14 @@ void State::apply_initialize(const reg_t &qubits,
      }
    }
     // partial initialization not supported yet
-   std::stringstream msg;
-   msg << "MPS_State: Partial initialization not supported yet.";
-   throw std::invalid_argument(msg.str());
-
-   // Apply reset to qubits
-   //   apply_reset(qubits, rng);
-   // Apply initialize_component
-   //   BaseState::qreg_.initialize_component(qubits, params);
+   throw std::invalid_argument("MPS_State: Partial initialization not supported yet.");
 }
 
 void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-
   reg_t outcome = qreg_.apply_measure(qubits, rng);
-  //  measure_reset_update(qubits, meas.first, meas.first, meas.second);
-  //  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -658,7 +651,7 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
-  
+
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
@@ -669,34 +662,22 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-  
+
   return all_samples;
 }
 
-void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
+void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
   // Look for snapshot type in snapshotset
 
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
-    throw std::invalid_argument("Tensor_Network_State::invalid snapshot instruction \'" + 
+    throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" +
                                 op.name + "\'.");
   switch (it -> second) {
   case Snapshots::statevector: {
-      snapshot_state(op, data, "statevector"); 
-      break; 
+      snapshot_state(op, data, "statevector");
+      break;
       }
-      /*    case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(op, data);
-      break;
-    case Snapshots::cregister:
-      BaseState::snapshot_creg_register(op, data);
-      break;
-      */
-  case Snapshots::probs: {
-      // get probs as hexadecimal
-      snapshot_probabilities(op, data, false);
-      break;
-    } 
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
       break;
@@ -705,31 +686,29 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       snapshot_matrix_expval(op, data, false);
       break;
     }
-      /*
-    case Snapshots::probs_var: {
-      // get probs as hexadecimal
-      snapshot_probabilities(op, data, true);
-    } break;
-    case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, data, true);
-    } break;
-    case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, data, true);
-      }  break;*/
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("TensorNetworkState::State::invalid snapshot instruction \'" +
-                                  op.name + "\'."); 
+      throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
+                                  op.name + "\'.");
   }
 }
 
 void State::apply_reset(const reg_t &qubits,
                         RngEngine &rng) {
-
   // Simulate unobserved measurement
-  const auto meas = sample_measure_with_prob(qubits, rng);
-  // Apply update tp reset state
-  measure_reset_update(qubits, 0, meas.first, meas.second);
+  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  // Apply update to reset state
+  measure_reset_update(qubits, 0, outcome);
+}
+
+void State::measure_reset_update(const reg_t &qubits,
+				 const uint_t final_state,
+				 const reg_t &meas_state) {
+  for (uint_t i=0; i<qubits.size(); i++) {
+    if(meas_state[i] != final_state) {
+      qreg_.apply_x(qubits[i]);
+    }
+  }
 }
 
 std::pair<uint_t, double>
@@ -742,101 +721,8 @@ State::sample_measure_with_prob(const reg_t &qubits,
   return std::make_pair(outcome, probs[outcome]);
 }
 
-void State::measure_reset_update(const std::vector<uint_t> &qubits,
-                                 const uint_t final_state,
-                                 const uint_t meas_state,
-                                 const double meas_prob) {
-  // Update a state vector based on an outcome pair [m, p] from
-  // sample_measure_with_prob function, and a desired post-measurement final_state
-  // Single-qubit case
-  if (qubits.size() == 1) {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    cvector_t mdiag(2, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    if (final_state != meas_state) {
-      qreg_.apply_x(qubits[0]);
-    }
-  }
-  // Multi qubit case
-  else {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    const size_t dim = 1ULL << qubits.size();
-    cvector_t mdiag(dim, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    // This function could be optimized as a permutation update
-    if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j=0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
-      }
-      // apply permutation to swap state
-      apply_matrix(qubits, perm);
-    }
-  }
-}
-
-//=========================================================================
-// Implementation: Kraus Noise
-// This function has not been checked yet
-//=========================================================================
-void State::apply_kraus(const reg_t &qubits,
-                        const std::vector<cmatrix_t> &kmats,
-                        RngEngine &rng) {
-
-  // Check edge case for empty Kraus set (this shouldn't happen)
-  if (kmats.empty())
-    return; // end function early
-
-
-  // Choose a real in [0, 1) to choose the applied kraus operator once
-  // the accumulated probability is greater than r.
-  // We know that the Kraus noise must be normalized
-  // So we only compute probabilities for the first N-1 kraus operators
-  // and infer the probability of the last one from 1 - sum of the previous
-
-  double r = rng.rand(0., 1.);
-  double accum = 0.;
-  bool complete = false;
-
-  // Loop through N-1 kraus operators
-  for (size_t j=0; j < kmats.size() - 1; j++) {
-
-    // Calculate probability
-    cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
-    double p = qreg_.norm(qubits, vmat);
-    accum += p;
-
-    // check if we need to apply this operator
-    if (accum > r) {
-      // rescale vmat so projection is normalized
-      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
-      // apply Kraus projection operator
-      apply_matrix(qubits, vmat);
-      complete = true;
-      break;
-    }
-  }
-
-  // check if we haven't applied a kraus operator yet
-  if (complete == false) {
-    // Compute probability from accumulated
-    complex_t renorm = 1 / std::sqrt(1. - accum);
-    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
-  }
-}
-
 //-------------------------------------------------------------------------
-} // end namespace TensorNetworkState
+} // end namespace MatrixProductState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

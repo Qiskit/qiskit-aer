@@ -79,7 +79,7 @@ public:
   //Apply a sequence of operations to the cicuit. For each operation,
   //we loop over the terms in the decomposition in parallel
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -108,7 +108,7 @@ protected:
   //circuit to a single state. This is used to optimize a circuit with a large
   //initial clifford fraction, or for running stabilizer circuits.
   void apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
-                                      OutputData &data,
+                                      ExperimentData &data,
                                       RngEngine &rng);
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -132,12 +132,12 @@ protected:
 
   //Take a snapshot of the simulation state
   //TODO: Improve the CHSimulator::to_json method.
-  void apply_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng);
+  void apply_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng);
   //Convert a decomposition to a state-vector
-  void statevector_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng);
+  void statevector_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng);
   //Compute probabilities from a stabilizer rank decomposition
   //TODO: Check ordering/output format...
-  void probabilities_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng);
+  void probabilities_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng);
 
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
@@ -320,7 +320,7 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 // Implementation: Operations
 //-------------------------------------------------------------------------
 
-void State::apply_ops(const std::vector<Operations::Op> &ops, OutputData &data,
+void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentData &data,
                          RngEngine &rng)
 {
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(ops);
@@ -452,7 +452,7 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
 }
 
 void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
-                                      OutputData &data, RngEngine &rng)
+                                      ExperimentData &data, RngEngine &rng)
 {
   for (const auto op: ops)
   {
@@ -631,7 +631,7 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
   }
 }
 
-void State::apply_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng)
+void State::apply_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng)
 {
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
@@ -663,7 +663,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data, RngEngine
   }
 }
 
-void State::statevector_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng)
+void State::statevector_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng)
 {
   cvector_t statevector;
   BaseState::qreg_.state_vector(statevector, rng);
@@ -675,7 +675,7 @@ void State::statevector_snapshot(const Operations::Op &op, OutputData &data, Rng
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
 }
 
-void State::probabilities_snapshot(const Operations::Op &op, OutputData &data, RngEngine &rng)
+void State::probabilities_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng)
 {
   rvector_t probs;
   if (op.qubits.size() == 0)

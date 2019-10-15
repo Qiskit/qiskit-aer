@@ -18,8 +18,8 @@
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
-#include "framework/data.hpp"
 #include "framework/creg.hpp"
+#include "framework/results/experiment_data.hpp"
 
 namespace AER {
 namespace Base {
@@ -82,7 +82,7 @@ public:
   // If this sequence contains operations not in allowed_operations
   // an exeption will be thrown.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng)  = 0;
 
   // Initializes the State to the default state.
@@ -159,8 +159,8 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  // Add current creg classical bit values to a OutputData container
-  void add_creg_to_data(OutputData &data) const;
+  // Add current creg classical bit values to a ExperimentData container
+  void add_creg_to_data(ExperimentData &data) const;
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -168,15 +168,15 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, OutputData &data,
+  void snapshot_state(const Operations::Op &op, ExperimentData &data,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, OutputData &data,
+  void snapshot_creg_memory(const Operations::Op &op, ExperimentData &data,
                             std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, OutputData &data,
+  void snapshot_creg_register(const Operations::Op &op, ExperimentData &data,
                               std::string name = "register") const;
 
   //-----------------------------------------------------------------------
@@ -256,7 +256,8 @@ std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset
   // We can't print OpTypes so we add a note if there are invalid
   // instructions other than gates or snapshots
   if (bad_instr && (!bad_gates && !bad_snaps))
-    ss << " invalid non gate or snapshot instructions: opset={" << opset << "}";
+    ss << " invalid non gate or snapshot instructions in opset {" << opset << "}";
+  ss << " for " << name() << " method"; 
   return ss.str();
 }
 
@@ -278,7 +279,7 @@ void State<state_t>::initialize_creg(uint_t num_memory,
 
 template <class state_t>
 void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    OutputData &data,
+                                    ExperimentData &data,
                                     std::string name) const {
   name = (name.empty()) ? op.name : name;
   data.add_singleshot_snapshot(name, op.string_params[0], qreg_);
@@ -287,7 +288,7 @@ void State<state_t>::snapshot_state(const Operations::Op &op,
 
 template <class state_t>
 void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
-                                          OutputData &data,
+                                          ExperimentData &data,
                                           std::string name) const {
   data.add_singleshot_snapshot(name,
                                op.string_params[0],
@@ -297,7 +298,7 @@ void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
 
 template <class state_t>
 void State<state_t>::snapshot_creg_register(const Operations::Op &op,
-                                            OutputData &data,
+                                            ExperimentData &data,
                                             std::string name) const {
   data.add_singleshot_snapshot(name,
                                op.string_params[0],
@@ -306,7 +307,7 @@ void State<state_t>::snapshot_creg_register(const Operations::Op &op,
 
 
 template <class state_t>
-void State<state_t>::add_creg_to_data(OutputData &data) const {
+void State<state_t>::add_creg_to_data(ExperimentData &data) const {
   if (creg_.memory_size() > 0) {
     std::string memory_hex = creg_.memory_hex();
     data.add_memory_count(memory_hex);

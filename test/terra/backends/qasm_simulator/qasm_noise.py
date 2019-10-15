@@ -44,7 +44,7 @@ class QasmReadoutNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
 
@@ -68,7 +68,7 @@ class QasmPauliNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     def test_pauli_reset_noise(self):
@@ -85,7 +85,7 @@ class QasmPauliNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     def test_pauli_measure_noise(self):
@@ -102,7 +102,7 @@ class QasmPauliNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
 
@@ -126,7 +126,7 @@ class QasmResetNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
 
@@ -150,5 +150,5 @@ class QasmKrausNoiseTests:
                 qobj,
                 backend_options=self.BACKEND_OPTS,
                 noise_model=noise_model).result()
-            self.is_completed(result)
+            self.assertTrue(getattr(result, 'success', False))
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)

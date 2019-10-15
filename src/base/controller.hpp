@@ -38,9 +38,10 @@
 
 // Base Controller
 #include "framework/qobj.hpp"
-#include "framework/data.hpp"
 #include "framework/rng.hpp"
 #include "framework/creg.hpp"
+#include "framework/results/result.hpp"
+#include "framework/results/experiment_data.hpp"
 #include "noise/noise_model.hpp"
 #include "transpile/circuitopt.hpp"
 #include "transpile/truncate_qubits.hpp"
@@ -111,7 +112,7 @@ public:
 
   // Load a QOBJ from a JSON file and execute on the State type
   // class.
-  virtual json_t execute(const json_t &qobj);
+  virtual Result execute(const json_t &qobj);
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -140,14 +141,14 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
-  virtual json_t execute_circuit(Circuit &circ,
-                                 Noise::NoiseModel &noise,
-                                 const json_t &config);
+  virtual ExperimentResult execute_circuit(Circuit &circ,
+                                           Noise::NoiseModel &noise,
+                                           const json_t &config);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  virtual OutputData run_circuit(const Circuit &circ,
+  virtual ExperimentData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel &noise,
                                  const json_t &config,
                                  uint_t shots,
@@ -184,7 +185,7 @@ protected:
   void optimize_circuit(Circuit &circ,
                         Noise::NoiseModel& noise,
                         state_t& state,
-                        OutputData &data) const;
+                        ExperimentData &data) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -327,19 +328,20 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
   for (size_t j=0; j<circuits.size(); j++) {
     required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
   }
-  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<size_t>());
-  int total_memory = 0;
+  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(), std::greater<>());
+  size_t total_memory = 0;
   parallel_experiments_ = 0;
-  for (int required_memory_mb : required_memory_mb_list) {
+  for (size_t required_memory_mb : required_memory_mb_list) {
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_)
       break;
     ++parallel_experiments_;
   }
 
-  if (parallel_experiments_ == 0) {
+  if (parallel_experiments_ == 0)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
-  } else if (parallel_experiments_ != 1) {
+
+  if (parallel_experiments_ != 1) {
     parallel_experiments_ = std::min<int> ({ parallel_experiments_,
                                              max_parallel_experiments_,
                                              max_parallel_threads_,
@@ -383,7 +385,7 @@ void Controller::set_parallelization_circuit(const Circuit& circ,
 }
 
 
-size_t Controller::get_system_memory_mb(void){
+size_t Controller::get_system_memory_mb(){
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
    auto pages = sysconf(_SC_PHYS_PAGES);
@@ -462,7 +464,7 @@ template <class state_t>
 void Controller::optimize_circuit(Circuit &circ,
                                   Noise::NoiseModel& noise,
                                   state_t& state,
-                                  OutputData &data) const {
+                                  ExperimentData &data) const {
 
   Operations::OpSet allowed_opset;
   allowed_opset.optypes = state.allowed_ops();
@@ -478,19 +480,9 @@ void Controller::optimize_circuit(Circuit &circ,
 // Qobj and Circuit Execution to JSON output
 //-------------------------------------------------------------------------
 
-json_t Controller::execute(const json_t &qobj_js) {
+Result Controller::execute(const json_t &qobj_js) {
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
-
-  // Generate empty return JSON that matches Result spec
-  json_t result;
-  result["qobj_id"] = nullptr;
-  result["success"] = true;
-  result["status"] = nullptr;
-  result["backend_name"] = nullptr;
-  result["backend_version"] = nullptr;
-  result["date"] = nullptr;
-  result["job_id"] = nullptr;
 
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
@@ -509,19 +501,21 @@ json_t Controller::execute(const json_t &qobj_js) {
   }
   catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
-    result["success"] = false;
-    result["status"] = std::string("ERROR: Failed to load qobj: ") + e.what();
+    Result result;
+    result.status = Result::Status::error;
+    result.message = std::string("Failed to load qobj: ") + e.what();
     return result;
   }
+  // Qobj was loaded successfully, now we proceed
+  // Generate empty return JSON that matches Result spec
+  Result result(qobj.circuits.size());
 
   // Get QOBJ id and pass through header to result
-  result["qobj_id"] = qobj.id;
-  if (!qobj.header.empty())
-      result["header"] = qobj.header;
+  result.qobj_id = qobj.id;
+  if (!qobj.header.empty()) // NOLINT
+      result.header = qobj.header;
 
-  // Qobj was loaded successfully, now we proceed
   try {
-
     // Set max_parallel_threads_
     if (max_parallel_threads_ < 1)
     #ifdef _OPENMP
@@ -536,74 +530,71 @@ json_t Controller::execute(const json_t &qobj_js) {
     }
 
   #ifdef _OPENMP
-    result["metadata"]["omp_enabled"] = true;
+    result.metadata["omp_enabled"] = true;
   #else
-    result["metadata"]["omp_enabled"] = false;
+    result.metadata["omp_enabled"] = false;
   #endif
-    result["metadata"]["parallel_experiments"] = parallel_experiments_;
-    result["metadata"]["max_memory_mb"] = max_memory_mb_;
+    result.metadata["parallel_experiments"] = parallel_experiments_;
+    result.metadata["max_memory_mb"] = max_memory_mb_;
     const int num_circuits = qobj.circuits.size();
 
   #ifdef _OPENMP
     if (parallel_shots_ > 1 || parallel_state_update_ > 1)
       omp_set_nested(1);
   #endif
-    // Initialize container to store parallel circuit output
-    result["results"] = std::vector<json_t>(num_circuits);
     if (parallel_experiments_ > 1) {
       // Parallel circuit execution
       #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < num_circuits; ++j) {
+      for (int j = 0; j < result.results.size(); ++j) {
         // Make a copy of the noise model for each circuit execution
         auto circ_noise_model = noise_model;
-        result["results"][j] = execute_circuit(qobj.circuits[j],
-                                               circ_noise_model,
-                                               config);
+        result.results[j] = execute_circuit(qobj.circuits[j],
+                                            circ_noise_model,
+                                            config);
       }
     } else {
       // Serial circuit execution
       for (int j = 0; j < num_circuits; ++j) {
         // Make a copy of the noise model for each circuit execution
         auto circ_noise_model = noise_model;
-        result["results"][j] = execute_circuit(qobj.circuits[j],
-                                               circ_noise_model,
-                                               config);
+        result.results[j] = execute_circuit(qobj.circuits[j],
+                                            circ_noise_model,
+                                            config);
       }
     }
 
-    // check success
-    for (const auto& experiment: result["results"]) {
-      if (experiment["success"].get<bool>() == false) {
-        result["success"] = false;
+    // Check each experiment result for completed status.
+    // If only some experiments completed return partial completed status.
+    result.status = Result::Status::completed;
+    for (const auto& experiment: result.results) {
+      if (experiment.status != ExperimentResult::Status::completed) {
+        result.status = Result::Status::partial_completed;
         break;
       }
     }
-    // Set status to completed
-    result["status"] = std::string("COMPLETED");
-
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
-    result["metadata"]["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
   }
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
-    result["success"] = false;
-    result["status"] = std::string("ERROR: ") + e.what();
+    result.status = Result::Status::error;
+    result.message = e.what();
   }
   return result;
 }
 
 
-json_t Controller::execute_circuit(Circuit &circ,
-                                   Noise::NoiseModel& noise,
-                                   const json_t &config) {
+ExperimentResult Controller::execute_circuit(Circuit &circ,
+                                             Noise::NoiseModel& noise,
+                                             const json_t &config) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  json_t result;
-  OutputData data;
+  ExperimentResult exp_result;
+  ExperimentData data;
   data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
@@ -630,13 +621,13 @@ json_t Controller::execute_circuit(Circuit &circ,
       for (int j = 0; j < parallel_shots_; ++j) {
         subshots.push_back(circ.shots / parallel_shots_);
       }
-      // If shots is not perfectly divisible by threads, assign the remaineder
+      // If shots is not perfectly divisible by threads, assign the remainder
       for (int j=0; j < int(circ.shots % parallel_shots_); ++j) {
         subshots[j] += 1;
       }
 
       // Vector to store parallel thread output data
-      std::vector<OutputData> par_data(parallel_shots_);
+      std::vector<ExperimentData> par_data(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
       #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
@@ -657,37 +648,33 @@ json_t Controller::execute_circuit(Circuit &circ,
       }
     }
     // Report success
-    result["data"] = data;
-    result["success"] = true;
-    result["status"] = std::string("DONE");
+    exp_result.data = data;
+    exp_result.status = ExperimentResult::Status::completed;
 
     // Pass through circuit header and add metadata
-    result["header"] = circ.header;
-    result["shots"] = circ.shots;
-    result["seed_simulator"] = circ.seed;
+    exp_result.header = circ.header;
+    exp_result.shots = circ.shots;
+    exp_result.seed = circ.seed;
     // Move any metadata from the subclass run_circuit data
     // to the experiment resultmetadata field
-    if (JSON::check_key("metadata", result["data"])) {
-
-      for(auto& metadata: result["data"]["metadata"].items()) {
-        result["metadata"][metadata.key()] = metadata.value();
-      }
-      // Remove the metatdata field from data
-      result["data"].erase("metadata");
+    for(auto& metadatum: exp_result.data.metadata().items()) {
+      exp_result.add_metadata(metadatum.key(), metadatum.value());
     }
-    result["metadata"]["parallel_shots"] = parallel_shots_;
-    result["metadata"]["parallel_state_update"] = parallel_state_update_;
+    // Remove the metatdata field from data
+    exp_result.data.metadata().clear();
+    exp_result.metadata["parallel_shots"] = parallel_shots_;
+    exp_result.metadata["parallel_state_update"] = parallel_state_update_;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-    result["time_taken"] = time_taken;
+    exp_result.time_taken = time_taken;
   }
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
-    result["success"] = false;
-    result["status"] = std::string("ERROR: ") + e.what();
+    exp_result.status = ExperimentResult::Status::error;
+    exp_result.message = e.what();
   }
-  return result;
+  return exp_result;
 }
 
 //-------------------------------------------------------------------------
