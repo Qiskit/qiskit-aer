@@ -38,11 +38,17 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsMinimalBasis
 # Noise model simulation tests
-
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -65,13 +71,23 @@ class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
                                    QasmAlgorithmTestsWaltzBasis,
                                    QasmAlgorithmTestsMinimalBasis,
                                    QasmUnitaryGateTests,
+                                   QasmInitializeTests,
                                    QasmReadoutNoiseTests,
                                    QasmPauliNoiseTests,
                                    QasmResetNoiseTests,
-                                   QasmKrausNoiseTests):
+                                   QasmKrausNoiseTests,
+                                   QasmSnapshotStatevectorTests,
+                                   QasmSnapshotDensityMatrixTests,
+                                   QasmSnapshotProbabilitiesTests,
+                                   QasmSnapshotExpValPauliTests,
+                                   QasmSnapshotExpValMatrixTests,
+                                   QasmSnapshotStabilizerTests):
     """QasmSimulator statevector method tests."""
 
-    BACKEND_OPTS = {"method": "statevector"}
+    BACKEND_OPTS = {
+        "seed_simulator": 271828,
+        "method": "statevector"
+    }
 
 
 if __name__ == '__main__':
