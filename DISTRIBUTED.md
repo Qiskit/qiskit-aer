@@ -8,7 +8,7 @@ SSH connector copies qobj file command and invokes aer simulator on remote node 
 
 ### Setup Remote Node
 
-1. Setup ssh key to connect the remote node without password. 
+1. Setup ssh to connect the remote node without password. 
 
 2. Create working directory on the remote node
 ```
@@ -20,16 +20,18 @@ SSH connector copies qobj file command and invokes aer simulator on remote node 
 % mkdir ssh_exe/qobj
 ```
 
-4. Put the simulator binary in the working directory on the remote node
+4. Build standalone simulator (qasm_simulator). Please see "Standalone Executable" section in [Contributiong Page](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md)
+
+5. Put the simulator binary in the working directory on the remote node
 ```
 % cp qasm_simulator ssh_exe
 
 ```
 
-5. Put the configuration json about the simulator information on the remote node
+6. Put the configuration json about the simulator information on the remote node
 
 ```
-% cp conf.json ssh_exe
+% vim ssh_exe/conf.json
 ```
 
 Example of conf.json
@@ -91,6 +93,25 @@ Example of conf.json
 }
 ```
 
+### Setup Local Host
+
+1. Setup ssh config to execute a command without any authentic information.
+
+```
+% vim ~/.ssh/config
+
+Host host1.com
+User user
+IdentityFile /home/user/.ssh/ssh-key
+
+```
+
+2. Check the connectivity to the remote node.
+
+```
+% ssh host1.com ls
+```
+
 ### Example Code
 
 Define `RemoteConfig` and call `Aer.setup_remote()`.
@@ -98,14 +119,10 @@ Define `RemoteConfig` and call `Aer.setup_remote()`.
 ```
 remote_config =  [ {
 "host" : "host1", 
-"ssh_key"  : "/home/user/.ssh/ssh-key", 
-"ssh_user" : "user", 
 "qobj_path" : "/home/user/ssh_exe/qobj", 
 "conf_path" : "/home/user/ssh_exe/conf.json", 
 "run_command" : "/home/user/ssh_exe/qasm_simulator"}, 
 { "host" : "host2", 
-"ssh_key"  : "/home/user/.ssh/yakumo-kube", 
-"ssh_user" : "user", 
 "qobj_path" : "/home/user/ssh_exe/qobj", 
 "conf_path" : "/home/user/ssh_exe/conf.json", 
 "run_command" : "/home/user/ssh_exe/qasm_simulator"}
@@ -118,10 +135,8 @@ bkend = Aer.get_backend("remote_qasm_simulator")
 job = execute([qft3], backend=bkend)
 ```
 
-### Remote Config Membper
+### Remote Config Member
 - host : hostname for the remote node
-- ssh_key : ssh key to connect the remote node
-- ssh_user : ssh user to connect the remote node
 - qobj_path : directory path in the remote to store qobj files
 - conf_path : file path for configuration file in the remote node
 - run_command : invoke command of Aer simulator in the remote node

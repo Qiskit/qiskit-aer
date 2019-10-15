@@ -14,6 +14,7 @@
 
 """This module implements ssh connector to the remote node."""
 
+import os
 import json
 import logging
 import uuid
@@ -29,16 +30,18 @@ class SshConnector:
     Connector for Remote Node via SSH command
     """
     def __init__(self, host=None, connect_config=None):
-        print(connect_config)
         self._host = host
         self._results = []
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+        self._proxy = None
 
-        if "ssh_key" in connect_config:
-            self._key = connect_config["ssh_key"]
+        ssh_config = paramiko.SSHConfig()
+        config_file = os.path.join(os.getenv('HOME'), '.ssh/config')
+        ssh_config.parse(open(config_file, 'r'))
 
-        if "ssh_user" in connect_config:
-            self._user = connect_config["ssh_user"]
+        self._ssh_host_config = ssh_config.lookup(host)
+        if 'proxycommand' in self._ssh_host_config:
+            proxy = paramiko.ProxyCommand(self._ssh_host_config['proxycommand'])
 
         if "qobj_path" in connect_config:
             self._qobj_path = connect_config["qobj_path"]
@@ -50,6 +53,7 @@ class SshConnector:
             self._run_command = connect_config["run_command"]
 
         self._client = paramiko.SSHClient()
+        self._client.load_system_host_keys()
         self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     def _check_backend(self, backend):
@@ -72,7 +76,12 @@ class SshConnector:
         """
         Put qobj file to remote host by scp
         """
-        self._client.connect(self._host, username=self._user, key_filename=self._key)
+        self._client.connect(
+            self._host,
+            username=self._ssh_host_config['user'],
+            key_filename=self._ssh_host_config['identityfile'],
+            sock=self._proxy
+        )
         file_name = self._qobj_path + "/" + job_id + ".qobj"
         sftp = self._client.open_sftp()
         r_file = sftp.open(file_name, "a", -1)
@@ -158,7 +167,12 @@ class SshConnector:
         exec_cmd = "cat " + self._conf_path
 
         try:
-            self._client.connect(self._host, username=self._user, key_filename=self._key)
+            self._client.connect(
+                self._host,
+                username=self._ssh_host_config['user'],
+                key_filename=self._ssh_host_config['identityfile'],
+                sock=self._proxy
+            )
         except paramiko.AuthenticationException:
             usr_msg = 'Authentication failed'
             dev_msg = usr_msg
