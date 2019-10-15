@@ -20,23 +20,43 @@ from libcpp.string cimport string
 from libcpp.complex cimport complex
 import numpy as np
 cimport numpy as np
+from numpy cimport PyArrayObject
 
 # These definitions are only for testing the C++ wrappers over Python C API
-cdef extern from "src/helpers.hpp":
-    cdef T get_value[T](PyObject * value) except +
+cdef extern from "src/test_helpers.hpp":
+    cdef cpp_test_py_string_to_cpp_string(string val)
+    cdef cpp_test_py_complex_double_to_cpp_complex_double(double complex val)
+    cdef cpp_test_py_list_to_cpp_vec(list val)
+    cdef cpp_test_py_list_of_lists_to_cpp_vector_of_vectors(list val)
+    cdef cpp_test_py_dict_string_numeric_to_cpp_map_string_numeric(dict val)
+    cdef cpp_test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(dict val)
+    cdef cpp_test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(dict val)
+    cdef cpp_test_np_array_of_doubles(np.array val)
+    cdef cpp_test_evaluate_hamiltonians(list val)
 
+def test_py_string_to_cpp_string(val)
+    return cpp_test_py_string_to_cpp_string(val)
 
-def get_value_string(val):
-    return get_value[string](<PyObject *>val)
+def test_py_complex_double_to_cpp_complex_double(val)
+    return cpp_test_py_complex_double_to_cpp_complex_double(val)
 
-def get_value_complex(val):
-    return get_value[complex](<PyObject *>val)
+def test_py_list_to_cpp_vec(val)
+    return cpp_test_py_list_to_cpp_vec(val)
 
-def get_value_list_of_doubles(val):
-    return get_value[vector[double]](<PyObject *>val)
+def test_py_list_of_lists_to_cpp_vector_of_vectors(val)
+    return cpp_test_py_list_of_lists_to_cpp_vector_of_vectors(val)
 
-def get_value_list_of_list_of_doubles(val):
-    return get_value[vector[vector[double]]](<PyObject *>val)
+def test_py_dict_string_numeric_to_cpp_map_string_numeric(val)
+    return cpp_test_py_dict_string_numeric_to_cpp_map_string_numeric(val)
 
-def get_value_map_of_string_and_list_of_list_of_doubles(val):
-    return get_value[unordered_map[string, vector[vector[double]]]](<PyObject *>val)
+def test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(val)
+    return cpp_test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(val)
+
+def test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(val)
+    return cpp_test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(val)
+
+def test_np_array_of_doubles(val)
+    return cpp_test_np_array_of_doubles(val)
+
+def test_evaluate_hamiltonians(val)
+    return cpp_test_evaluate_hamiltonians(val)

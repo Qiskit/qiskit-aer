@@ -52,6 +52,14 @@ class NpArray {
      * arr.shape
      **/
     const std::vector<int>& shape;
+
+    const VecType& NpArray::operator[](size_t index) const {
+        return data[index];
+    }
+
+    VecType& NpArray::operator[](size_t index){
+        return data[index];
+    }
 };
 
 
@@ -389,7 +397,7 @@ std::vector<int> _get_shape_from_np_array(PyArrayObject * np_array){
     auto num_dims = PyArray_NDIM(np_array);
     std::vector<int> dims;
     dims.reserve(num_dims);
-    for(auto i = 0; i < num_dims; i){
+    for(auto i = 0; i < num_dims; ++i){
         dims.emplace_back(p_dims[i]);
     }
     return dims;
