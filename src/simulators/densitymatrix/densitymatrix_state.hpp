@@ -94,7 +94,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit state to the all |0> state
@@ -158,7 +158,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
@@ -207,17 +207,17 @@ protected:
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             OutputData &data,
+                             ExperimentData &data,
                              bool variance);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   //-----------------------------------------------------------------------
@@ -383,7 +383,7 @@ void State<densmat_t>::set_config(const json_t &config) {
 
 template <class densmat_t>
 void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 OutputData &data,
+                                 ExperimentData &data,
                                  RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto op: ops) {
@@ -434,7 +434,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class densmat_t>
 void State<densmat_t>::apply_snapshot(const Operations::Op &op,
-                                       OutputData &data) {
+                                       ExperimentData &data) {
 
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -443,7 +443,11 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::densitymatrix:
-      BaseState::snapshot_state(op, data, "density_matrix");
+      data.add_average_snapshot("density_matrix",
+                                op.string_params[0],
+                                BaseState::creg_.memory_hex(),
+                                BaseState::qreg_,
+                                false);
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -483,13 +487,16 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
-                                               OutputData &data,
+                                               ExperimentData &data,
                                                bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
-  data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+  data.add_average_snapshot("probabilities",
+                            op.string_params[0],
+                            BaseState::creg_.memory_hex(),
+                            probs,
+                            variance);
 }
 
 

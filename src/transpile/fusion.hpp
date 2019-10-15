@@ -45,7 +45,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &opset,
-                        OutputData &data) const override;
+                        ExperimentData &data) const override;
 
 private:
   bool can_ignore(const op_t& op) const;
@@ -172,7 +172,7 @@ void Fusion::dump(const Circuit& circuit) const {
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              OutputData &data) const {
+                              ExperimentData &data) const {
 
   if (circ.num_qubits < threshold_
       || !active_)
@@ -209,8 +209,7 @@ void Fusion::optimize_circuit(Circuit& circ,
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 
     if (verbose_)
-      data.add_additional_data("metadata",
-                               json_t::object({{"fusion_verbose", circ.ops}}));
+      data.add_metadata("fusion_verbose", circ.ops);
   }
 
 #ifdef DEBUG

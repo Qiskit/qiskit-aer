@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-QasmSimulator Integration Tests
+QasmSimulator matrix product state method integration tests
 """
 
 import unittest
@@ -44,49 +44,43 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
-class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
-                                   QasmMethodTests,
-                                   QasmMeasureTests,
-                                   QasmMultiQubitMeasureTests,
-                                   QasmResetTests,
-                                   QasmConditionalGateTests,
-                                   QasmConditionalUnitaryTests,
-                                   QasmConditionalKrausTests,
-                                   QasmCliffordTests,
-                                   QasmCliffordTestsWaltzBasis,
-                                   QasmCliffordTestsMinimalBasis,
-                                   QasmNonCliffordTests,
-                                   QasmNonCliffordTestsWaltzBasis,
-                                   QasmNonCliffordTestsMinimalBasis,
-                                   QasmAlgorithmTests,
-                                   QasmAlgorithmTestsWaltzBasis,
-                                   QasmAlgorithmTestsMinimalBasis,
-                                   QasmUnitaryGateTests,
-                                   QasmInitializeTests,
-                                   QasmReadoutNoiseTests,
-                                   QasmPauliNoiseTests,
-                                   QasmResetNoiseTests,
-                                   QasmKrausNoiseTests,
-                                   QasmSnapshotStatevectorTests,
-                                   QasmSnapshotDensityMatrixTests,
-                                   QasmSnapshotProbabilitiesTests,
-                                   QasmSnapshotExpValPauliTests,
-                                   QasmSnapshotExpValMatrixTests,
-                                   QasmSnapshotStabilizerTests):
-    """QasmSimulator statevector method tests."""
+class TestQasmMatrixProductStateSimulator(
+        common.QiskitAerTestCase,
+        #QasmMethodTests,  # FAILING: Not implemented yet
+        QasmMeasureTests,
+        QasmMultiQubitMeasureTests,
+        QasmResetTests,
+        QasmConditionalGateTests,
+        QasmConditionalUnitaryTests,
+        QasmCliffordTests,
+        QasmCliffordTestsWaltzBasis,
+        QasmCliffordTestsMinimalBasis,
+        QasmNonCliffordTests,
+        QasmNonCliffordTestsWaltzBasis,
+        QasmNonCliffordTestsMinimalBasis,
+        QasmAlgorithmTests,
+        QasmAlgorithmTestsWaltzBasis,
+        QasmAlgorithmTestsMinimalBasis,
+        QasmUnitaryGateTests,
+        #QasmInitializeTests,  # THROWS: uncaught exception
+        QasmReadoutNoiseTests,
+        QasmPauliNoiseTests,
+        QasmResetNoiseTests,
+        #QasmSnapshotStatevectorTests,
+        #QasmSnapshotProbabilitiesTests, # CRASHES: seg-fault
+        QasmSnapshotStabilizerTests
+        ):
+    """QasmSimulator matrix product state method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 271828,
-        "method": "statevector"
+        "seed_simulator": 314159,
+        "method": "matrix_product_state"
     }
 
 
