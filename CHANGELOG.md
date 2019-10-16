@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added probability snapshots to Stabilizer qasm simulation method (\#400)
 
 Changed
 -------
