@@ -510,7 +510,7 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'
+        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
