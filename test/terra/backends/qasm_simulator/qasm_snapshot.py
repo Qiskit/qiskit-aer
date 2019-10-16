@@ -620,12 +620,13 @@ class QasmSnapshotExpValPauliTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotExpValPauliTests.SUPPORTED_QASM_METHODS:
-            self.assertRaises(AerError, job.result)
+            self.assertFalse(success)
         else:
-            result = job.result()
-            self.is_completed(result)
+            self.assertTrue(success)
             self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
@@ -649,12 +650,13 @@ class QasmSnapshotExpValPauliTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotExpValPauliTests.SUPPORTED_QASM_METHODS:
-            self.assertRaises(AerError, job.result)
+            self.assertFalse(success)
         else:
-            result = job.result()
-            self.is_completed(result)
+            self.assertTrue(success)
             self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
@@ -701,12 +703,13 @@ class QasmSnapshotExpValMatrixTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotExpValMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertRaises(AerError, job.result)
+            self.assertFalse(success)
         else:
-            result = job.result()
-            self.is_completed(result)
+            self.assertTrue(success)
             self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
@@ -730,12 +733,13 @@ class QasmSnapshotExpValMatrixTests:
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotExpValMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertRaises(AerError, job.result)
+            self.assertFalse(success)
         else:
-            result = job.result()
-            self.is_completed(result)
+            self.assertTrue(success)
             self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
