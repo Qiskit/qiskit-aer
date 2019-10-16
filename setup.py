@@ -1,15 +1,10 @@
 import os
 try:
     from skbuild import setup
-    dummy_install = False
-except:
-    print(""" WARNING
-              =======
-              scikit-build package is needed to build Aer sources.
-              Please, install scikit-build and reinstall Aer:
-              pip install -I qiskit-aer """)
-    from setuptools import setup
-    dummy_install = True
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
+    from skbuild import setup
 from setuptools import find_packages
 
 requirements = [
@@ -36,7 +31,7 @@ def find_qiskit_aer_packages():
 setup(
     name='qiskit-aer',
     version=VERSION,
-    packages=find_qiskit_aer_packages() if not dummy_install else [],
+    packages=find_qiskit_aer_packages(),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     url="https://github.com/Qiskit/qiskit-aer",
@@ -57,6 +52,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     install_requires=requirements,
+    setup_requires=['scikit-build', 'cmake', 'ninja', 'Cython'],
     include_package_data=True,
     cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
     keywords="qiskit aer simulator quantum addon backend",
