@@ -1171,6 +1171,32 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
       return;
     }
     case 4: {
+      #ifdef SIMD
+      if(type_double){
+        __m256d mat_vec[128];
+        __m256d mat_perm[128];
+
+        KernelSimd::kernel4_init(mat_vec, mat_perm, mat);
+        auto lambda = [&](const areg_t<16> &inds, const cvector_t<data_t> &_mat)->void {
+          KernelSimd::kernel4((std::complex<data_t>* )data_, inds, mat_vec, mat_perm);
+        };
+        apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), convert(mat));
+      } else {
+        auto lambda = [&](const areg_t<16> &inds, const cvector_t<data_t> &_mat)->void {
+          std::array<std::complex<data_t>, 16> cache;
+          for (size_t i = 0; i < 16; i++) {
+            const auto ii = inds[i];
+            cache[i] = data_[ii];
+            data_[ii] = 0.;
+          }
+          // update state vector
+          for (size_t i = 0; i < 16; i++)
+            for (size_t j = 0; j < 16; j++)
+              data_[inds[i]] += _mat[i + 16 * j] * cache[j];
+      };
+      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), convert(mat));
+      }
+      #else
       // Lambda function for 4-qubit matrix multiplication
       auto lambda = [&](const areg_t<16> &inds, const cvector_t<data_t> &_mat)->void {
         std::array<std::complex<data_t>, 16> cache;
@@ -1185,6 +1211,7 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
             data_[inds[i]] += _mat[i + 16 * j] * cache[j];
       };
       apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), convert(mat));
+      #endif
       return;
     }
     default: {
