@@ -98,4 +98,4 @@ def unitary_evolution(exp, global_data, ode_options):
     probs = occ_probabilities(qubits, psi, global_data['measurement_ops'])
     rand_vals = rng.rand(memory_slots.shape[0] * shots)
     write_shots_memory(memory, memory_slots, probs, rand_vals)
-    return memory
+    return [memory, psi, ODE.t]
