@@ -19,11 +19,9 @@
 #include "framework/json.hpp"
 #include "misc/hacks.hpp"
 
-
 //=========================================================================
 // Controller Execute interface
 //=========================================================================
-
 
 // This is used to make wrapping Controller classes in Cython easier
 // by handling the parsing of std::string input into JSON objects.
@@ -43,5 +41,21 @@ std::string controller_execute(const std::string &qobj_str) {
 
   return controller.execute(qobj_js).json().dump(-1);
 }
+
+template <class controller_t>
+json_t controller_execute_new(const json_t &qobj_js) {
+  controller_t controller;
+
+  // Fix for MacOS and OpenMP library double initialization crash.
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+  if (JSON::check_key("config", qobj_js)) {
+    std::string path;
+    JSON::get_value(path, "library_dir", qobj_js["config"]);
+    Hacks::maybe_load_openmp(path);
+  }
+
+  return controller.execute(qobj_js).json();
+}
+
 } // end namespace AER
 #endif

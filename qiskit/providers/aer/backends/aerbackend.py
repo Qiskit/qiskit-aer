@@ -20,6 +20,7 @@ import datetime
 import os
 import time
 import uuid
+import copy
 from numpy import ndarray
 
 from qiskit.providers import BaseBackend
@@ -110,20 +111,17 @@ class AerBackend(BaseBackend):
         if validate:
             validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
-        qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
-        output = json.loads(self._controller(qobj_str))
+        output = self._controller(self._format_qobj(qobj, backend_options, noise_model))
         self._validate_controller_output(output)
         end = time.time()
         return self._format_results(job_id, output, end - start)
 
-    def _format_qobj_str(self, qobj, backend_options, noise_model):
+    def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
-        # Save original qobj config so we can revert our modification
-        # after execution
-        original_config = qobj.config
-        # Convert to dictionary and add new parameters
-        # from noise model and backend options
-        config = original_config.to_dict()
+        # Convert qobj to dict so as to avoid editing original
+        output = qobj.to_dict()
+        # Add new parameters to config from backend options
+        config = output["config"]
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val
@@ -136,11 +134,6 @@ class AerBackend(BaseBackend):
 
         # Add runtime config
         config['library_dir'] = LIBRARY_DIR
-        qobj.config = QasmQobjConfig.from_dict(config)
-        # Get the JSON serialized string
-        output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
-        # Revert original qobj
-        qobj.config = original_config
         # Return output
         return output
 

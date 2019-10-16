@@ -24,7 +24,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 from ..aererror import AerError
 # pylint: disable=import-error
-from .unitary_controller_wrapper import unitary_controller_execute
+from .unitary_controller_wrapper import unitary_controller_execute_new
 from ..version import __version__
 
 # Logger
@@ -104,7 +104,7 @@ class UnitarySimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(unitary_controller_execute,
+        super().__init__(unitary_controller_execute_new,
                          QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
