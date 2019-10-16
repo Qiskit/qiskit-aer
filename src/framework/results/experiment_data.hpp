@@ -12,12 +12,12 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_data_hpp_
-#define _aer_framework_data_hpp_
+#ifndef _aer_framework_experiment_data_hpp_
+#define _aer_framework_experiment_data_hpp_
 
 #include "framework/json.hpp"
-#include "framework/snapshot.hpp"
 #include "framework/utils.hpp"
+#include "framework/results/snapshot.hpp"
 
 namespace AER {
 
@@ -34,7 +34,7 @@ namespace AER {
  * - "register" (bool): Return register array in circuit data [Default: False]
  **************************************************************************/
 
-class OutputData {
+class ExperimentData {
 public:
   //----------------------------------------------------------------
   // Measurement
@@ -96,6 +96,14 @@ public:
 
   void clear_additional_data(const std::string &key);
 
+  // Metadata
+  json_t& metadata() {return metadata_;}
+  const json_t& metadata() const {return metadata_;}
+
+  template <typename T>
+  void add_metadata(const std::string &key, const T &data);
+
+  void clear_metadata(const std::string &key);
   //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
@@ -112,16 +120,16 @@ public:
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
   // as this function should use move semantics to minimize copying
-  OutputData& combine(OutputData &eng);
+  ExperimentData& combine(ExperimentData &eng);
 
   // Operator overload for combine
   // Note this operator is not defined to be const on the input argument
-  inline OutputData& operator+=(OutputData &eng) {return combine(eng);}
+  inline ExperimentData& operator+=(ExperimentData &eng) {return combine(eng);}
 
 protected:
 
   //----------------------------------------------------------------
-  // OutputData
+  // ExperimentData
   //----------------------------------------------------------------
 
   // Measure outcomes
@@ -135,6 +143,9 @@ protected:
 
   // Miscelaneous data
   json_t additional_data_;
+
+  // Metadata
+  json_t metadata_;
 
   //----------------------------------------------------------------
   // Config
@@ -151,7 +162,7 @@ protected:
 // Implementations
 //============================================================================
 
-void OutputData::set_config(const json_t &config) {
+void ExperimentData::set_config(const json_t &config) {
   JSON::get_value(return_counts_, "counts", config);
   JSON::get_value(return_memory_, "memory", config);
   JSON::get_value(return_register_, "register", config);
@@ -159,21 +170,21 @@ void OutputData::set_config(const json_t &config) {
 }
 
 
-void OutputData::add_memory_count(const std::string &memory) {
+void ExperimentData::add_memory_count(const std::string &memory) {
   // Memory bits value
   if (return_counts_ && !memory.empty()) {
     counts_[memory] += 1;
   }
 }
 
-void OutputData::add_memory_singleshot(const std::string &memory) {
+void ExperimentData::add_memory_singleshot(const std::string &memory) {
   // Memory bits value
   if (return_memory_ && !memory.empty()) {
     memory_.push_back(memory);
   }
 }
 
-void OutputData::add_register_singleshot(const std::string &reg) {
+void ExperimentData::add_register_singleshot(const std::string &reg) {
   if (return_register_ && !reg.empty()) {
       register_.push_back(reg);
   }
@@ -181,7 +192,7 @@ void OutputData::add_register_singleshot(const std::string &reg) {
 
 
 template <typename T>
-void OutputData::add_singleshot_snapshot(const std::string &type,
+void ExperimentData::add_singleshot_snapshot(const std::string &type,
                                           const std::string &label,
                                           const T &datum) {
   if (return_snapshots_) {                                              
@@ -192,7 +203,7 @@ void OutputData::add_singleshot_snapshot(const std::string &type,
 
 
 template <typename T>
-void OutputData::add_average_snapshot(const std::string &type,
+void ExperimentData::add_average_snapshot(const std::string &type,
                                       const std::string &label,
                                       const std::string &memory,
                                       const T &datum,
@@ -204,12 +215,12 @@ void OutputData::add_average_snapshot(const std::string &type,
 }
 
 
-void OutputData::clear_singleshot_snapshot(const std::string &type) {
+void ExperimentData::clear_singleshot_snapshot(const std::string &type) {
   singleshot_snapshots_.erase(type);
 }
 
 
-void OutputData::clear_singleshot_snapshot(const std::string &type,
+void ExperimentData::clear_singleshot_snapshot(const std::string &type,
                                             const std::string &label) {
   if (singleshot_snapshots_.find(type) != singleshot_snapshots_.end()) {
     singleshot_snapshots_[type].erase(label);
@@ -217,12 +228,12 @@ void OutputData::clear_singleshot_snapshot(const std::string &type,
 }
 
 
-void OutputData::clear_average_snapshot(const std::string &type) {
+void ExperimentData::clear_average_snapshot(const std::string &type) {
   average_snapshots_.erase(type);
 }
 
 
-void OutputData::clear_average_snapshot(const std::string &type,
+void ExperimentData::clear_average_snapshot(const std::string &type,
                                              const std::string &label) {
   if (average_snapshots_.find(type) != average_snapshots_.end()) {
     average_snapshots_[type].erase(label);
@@ -231,7 +242,7 @@ void OutputData::clear_average_snapshot(const std::string &type,
 
 
 template <typename T>
-void OutputData::add_additional_data(const std::string &key, const T &data) {
+void ExperimentData::add_additional_data(const std::string &key, const T &data) {
   if (return_additional_data_) {
     json_t js = data; // use implicit to_json conversion function for T
     if (JSON::check_key(key, additional_data_))
@@ -242,12 +253,27 @@ void OutputData::add_additional_data(const std::string &key, const T &data) {
 }
 
 
-void OutputData::clear_additional_data(const std::string &key) {
+void ExperimentData::clear_additional_data(const std::string &key) {
   additional_data_.erase(key);
 }
 
 
-void OutputData::clear() {
+template <typename T>
+void ExperimentData::add_metadata(const std::string &key, const T &data) {
+  json_t js = data; // use implicit to_json conversion function for T
+  if (JSON::check_key(key, additional_data_))
+    metadata_[key].update(js.begin(), js.end());
+  else
+    metadata_[key] = js;
+}
+
+
+void ExperimentData::clear_metadata(const std::string &key) {
+  metadata_.erase(key);
+}
+
+
+void ExperimentData::clear() {
   // Clear measure and counts
   counts_.clear();
   memory_.clear();
@@ -257,10 +283,11 @@ void OutputData::clear() {
   average_snapshots_.clear();
   // Clear additional data
   additional_data_.clear();
+  metadata_.clear();
 }
 
 
-OutputData& OutputData::combine(OutputData &data) {
+ExperimentData& ExperimentData::combine(ExperimentData &data) {
   // Combine measure
   std::move(data.memory_.begin(), data.memory_.end(),
             std::back_inserter(memory_));
@@ -276,6 +303,10 @@ OutputData& OutputData::combine(OutputData &data) {
   }
   for (auto &pair : data.average_snapshots_) {
     average_snapshots_[pair.first].combine(pair.second);
+  }
+  // Combine metadata
+  for(auto& metadatum: data.metadata_.items()) {
+    metadata_[metadatum.key()] = metadatum.value();
   }
   // Combine additional data
   // Note that this will override any fields that have the same value
@@ -301,7 +332,7 @@ OutputData& OutputData::combine(OutputData &data) {
 }
 
 
-json_t OutputData::json() const {
+json_t ExperimentData::json() const {
 
   // Initialize output as additional data JSON
   json_t tmp = additional_data_;
@@ -339,7 +370,7 @@ json_t OutputData::json() const {
 //------------------------------------------------------------------------------
 // Implicit JSON conversion function
 //------------------------------------------------------------------------------
-inline void to_json(json_t &js, const OutputData &data) {
+inline void to_json(json_t &js, const ExperimentData &data) {
   js = data.json();
 }
 

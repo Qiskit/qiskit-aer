@@ -21,38 +21,41 @@ from qiskit.providers.aer.extensions import Snapshot
 class SnapshotDensityMatrix(Snapshot):
     """Snapshot instruction for density matrix method of Qasm simulator."""
 
-    def __init__(self,
-                 label,
-                 num_qubits=0,
-                 num_clbits=0,
-                 params=None):
+    def __init__(self, label, num_qubits):
+        """Create a density matrix state snapshot instruction.
 
-        super().__init__(label, 'density_matrix', num_qubits, num_clbits, params)
+        Args:
+            label (str): the snapshot label.
+            num_qubits (int): the number of qubits to snapshot.
+
+        Raises:
+            ExtensionError: if snapshot is invalid.
+        """
+        super().__init__(label,
+                         snapshot_type='density_matrix',
+                         num_qubits=num_qubits)
 
 
-def snapshot_density_matrix(self,
-                            label,
-                            qubits=None,
-                            params=None):
-    """Take a density matrix snapshot of the internal simulator representation.
-    Works on all qubits, and prevents reordering (like barrier).
+def snapshot_density_matrix(self, label, qubits=None):
+    """Take a density matrix snapshot of simulator state.
+
     Args:
         label (str): a snapshot label to report the result
-        qubits (list or None): the qubits to apply snapshot to [Default: None].
-        params (list or None): the parameters for snapshot_type [Default: None].
+        qubits (list or None): the qubits to apply snapshot to. If None all
+                               qubits will be snapshot [Default: None].
+
     Returns:
-        QuantumCircuit: with attached command
+        QuantumCircuit: with attached instruction.
+
     Raises:
-        ExtensionError: malformed command
+        ExtensionError: if snapshot is invalid.
     """
 
     snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
-        SnapshotDensityMatrix(
-            label,
-            num_qubits=len(snapshot_register),
-            params=params), snapshot_register)
+        SnapshotDensityMatrix(label, num_qubits=len(snapshot_register)),
+        snapshot_register)
 
 
 QuantumCircuit.snapshot_density_matrix = snapshot_density_matrix

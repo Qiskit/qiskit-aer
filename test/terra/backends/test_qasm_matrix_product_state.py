@@ -18,13 +18,20 @@ import unittest
 from test.terra import common
 from test.terra.backends.qasm_simulator.matrix_product_state_method import QasmMatrixProductStateMethodTests
 from test.terra.backends.qasm_simulator.matrix_product_state_measure import QasmMatrixProductStateMeasureTests
-
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 
 class TestQasmMatrixProductStateSimulator(common.QiskitAerTestCase,
-                                   QasmMatrixProductStateMethodTests,
-                                   QasmMatrixProductStateMeasureTests):
+                                          QasmMatrixProductStateMethodTests,
+                                          QasmMatrixProductStateMeasureTests,
+                                          #QasmSnapshotStatevectorTests,  # FAILING
+                                          ):
 
-    BACKEND_OPTS = {"method": "matrix_product_state"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "matrix_product_state"
+    }
+
 
 if __name__ == '__main__':
     unittest.main()

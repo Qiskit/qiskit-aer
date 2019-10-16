@@ -41,7 +41,7 @@ std::string controller_execute(const std::string &qobj_str) {
     Hacks::maybe_load_openmp(path);
   }
 
-  return controller.execute(qobj_js).dump(-1);
+  return controller.execute(qobj_js).json().dump(-1);
 }
 } // end namespace AER
 #endif

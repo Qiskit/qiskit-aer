@@ -69,7 +69,7 @@ canonical types of quantum errors:
    Combined phase and amplitude damping error
 
 Noise Utilities
---------------
+---------------
 The `noise.utils` module contains utilities for noise models and errors including:
    `remap_noise_model` for remapping the qubits specified in a NoiseModel.
    `approximate_quantum_error` for approximating a general quantum error via

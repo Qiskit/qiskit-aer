@@ -28,7 +28,7 @@ stage_generic: &stage_generic
     # Installing qiskit-terra master branch...
     - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
     # Installing qiskit-aer...
-    - pip install -U -r requirements-dev.txt
+    - pip install -U -c constraints.txt -r requirements-dev.txt
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -71,8 +71,6 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
-    - brew install libomp
-    - brew install openblas
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl

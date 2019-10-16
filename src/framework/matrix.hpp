@@ -34,6 +34,7 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <complex>
 #include <iostream>
 #include <vector>
+#include <array>
 
 /*******************************************************************************
  *
@@ -41,7 +42,7 @@ Multiplication is done with the C wrapper of the fortran blas library.
  *
  ******************************************************************************/
 
-const char Trans[] = {'N', 'T', 'C'};
+const std::array<char, 3> Trans = {'N', 'T', 'C'};
 /*  Trans (input) CHARACTER*1.
                 On entry, TRANSA specifies the form of op( A ) to be used in the
    matrix multiplication as follows:
@@ -49,17 +50,17 @@ const char Trans[] = {'N', 'T', 'C'};
                         = 'T' transpose of A;
                         = 'C' hermitian conjugate of A.
 */
-const char UpLo[] = {'U', 'L'};
+const std::array<char, 2> UpLo = {'U', 'L'};
 /*  UpLo    (input) CHARACTER*1
                         = 'U':  Upper triangle of A is stored;
                         = 'L':  Lower triangle of A is stored.
 */
-const char Jobz[] = {'V', 'N'};
+const std::array<char, 2> Jobz = {'V', 'N'};
 /*  Jobz    (input) CHARACTER*1
                         = 'N':  Compute eigenvalues only;
                         = 'V':  Compute eigenvalues and eigenvectors.
 */
-const char Range[] = {'A', 'V', 'I'};
+const std::array<char, 3> Range = {'A', 'V', 'I'};
 /*  Range   (input) CHARACTER*1
                                 = 'A': all eigenvalues will be found.
                                 = 'V': all eigenvalues in the half-open interval
@@ -251,14 +252,14 @@ public:
                      // the ith element
 
 protected:
-  size_t rows_, cols_, size_, LD_;
+  size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
   // rows_ and cols_ are the rows and columns of the matrix
   // size_ = rows*colums dimensions of the vector representation
   // LD is the leading dimeonsion and for Column major order is in general eqaul
   // to rows
-  enum OutputStyle outputstyle_;
+  enum OutputStyle outputstyle_ = Matrix;
   // outputstyle_ is the output style used by <<
-  T *mat_;
+  T *mat_ = nullptr;
   // the ptr to the vector containing the matrix
 };
 
@@ -269,8 +270,7 @@ protected:
  ******************************************************************************/
 
 template <class T>
-inline matrix<T>::matrix()
-    : rows_(0), cols_(0), size_(0), LD_(0), outputstyle_(Matrix), mat_(nullptr) {}
+inline matrix<T>::matrix(){}
 // constructs an empty matrix using the ....
 template <class T>
 inline matrix<T>::matrix(size_t rows, size_t cols)
@@ -419,7 +419,7 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
   if (rows_ != rhs.GetRows() ||
       cols_ != rhs.GetColumns()) { // if the rows are different size delete
     // re-construct the matrix
-    if (mat_ != 0)
+    if (mat_ != nullptr)
       delete[](mat_);
     rows_ = rhs.GetRows();
     cols_ = rhs.GetColumns();
