@@ -88,7 +88,7 @@ class NpArray {
 
 template<typename T>
 void jlog(const std::string& msg, const T& value){
-    spdlog::debug("{}: {}\n", msg, value);
+    spdlog::debug("{}: {}", msg, value);
 }
 
 template<>
@@ -98,7 +98,7 @@ void jlog(const std::string& msg, const complex_t& values){
 
 template<typename T>
 void jlog(const std::string& msg, const NpArray<T>& values){
-    spdlog::debug("{}\n", msg);
+    spdlog::debug("{}", msg);
     spdlog::debug(".shape: ");
     for(const auto& shape : values.shape)
         spdlog::debug("{} ", shape);
@@ -107,21 +107,19 @@ void jlog(const std::string& msg, const NpArray<T>& values){
     for(const auto& val : values.data){
         jlog("", val);
     }
-    spdlog::debug("\n");
 }
 
-template<>
-void jlog(const std::string& msg, const std::vector<complex_t>& values){
-    spdlog::debug("{}\n", msg);
+template<typename T>
+void jlog(const std::string& msg, const std::vector<T>& values){
+    spdlog::debug("{}", msg);
     for(const auto& val : values){
-        spdlog::debug("{}+{}j", val.real(), val.imag());
+        jlog("", val);
     }
-    spdlog::debug("\n");
 }
 
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
-    spdlog::debug("{}\n", msg);
+    spdlog::debug("{}", msg);
     for(const auto& val : values){
         for(const auto& inner: val.second){
             for(const auto& inner2: inner){
@@ -129,27 +127,24 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
             }
         }
     }
-    spdlog::debug("\n");
 }
 
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
-    spdlog::debug("{}\n", msg);
+    spdlog::debug("{}", msg);
     for(const auto& val : values){
         spdlog::debug("{}:{} ", val.first, val.second);
     }
-    spdlog::debug("\n");
 }
 
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<NpArray<double>>>& values){
-    spdlog::debug("{}\n", msg);
+    spdlog::debug("{}", msg);
     for(const auto& val : values){
         for(const auto& inner: val.second){
             jlog(val.first, inner);
         }
     }
-    spdlog::debug("\n");
 }
 
 template <typename T>
@@ -603,11 +598,10 @@ const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * d
  * @return A long from the Pyhton's dictionary key.
  **/
 template<typename ValueType>
-long get_value_from_dict_item(PyObject * dict, const std::string& item_key){
+ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
     return get_value<ValueType>(py_value);
 }
-
 
 
 /**

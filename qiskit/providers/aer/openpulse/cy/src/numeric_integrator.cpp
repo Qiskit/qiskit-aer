@@ -14,10 +14,10 @@ complex_t chan_value(
     unsigned int chan_num,
     const double freq_ch,
     const NpArray<double>& chan_pulse_times,
-    const std::vector<complex_t>& pulse_array,
-    const std::vector<unsigned int>& pulse_indexes,
+    const NpArray<complex_t>& pulse_array,
+    const NpArray<long>& pulse_indexes,
     const NpArray<double>& fc_array,
-    const std::string& reg){
+    const NpArray<uint8_t>& reg){
 
     static const auto get_arr_idx = [](double t, double start, double stop, size_t len_array) -> int {
         return static_cast<int>(std::floor((t - start) / (stop - start) * len_array));
@@ -104,9 +104,6 @@ PyObject * td_ode_rhs(
            throw std::invalid_argument(msg);
     }
 
-    // Generate an interrupt
-    std::raise(SIGINT);
-
     spdlog::debug("Printing vec...");
     // 1. Get vec
     auto vec = get_value<NpArray<complex_t>>(py_vec);
@@ -142,13 +139,13 @@ PyObject * td_ode_rhs(
     // TODO: Pass const & as keys to avoid copying
     auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     spdlog::debug("Getting freqs...");
-    auto freqs = get_map_from_dict_item<std::string, double>(py_global_data, "freqs");
+    auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
     spdlog::debug("Getting pulse_array...");
-    auto pulse_array = get_vec_from_dict_item<complex_t>(py_global_data, "pulse_array");
+    auto pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
     spdlog::debug("Getting pulse_indices...");
-    auto pulse_indices = get_vec_from_dict_item<unsigned int>(py_global_data, "pulse_indices");
+    auto pulse_indices = get_value_from_dict_item<NpArray<long>>(py_global_data, "pulse_indices");
     spdlog::debug("Getting reg...");
-    std::string reg = get_value<std::string>(py_register);
+    auto reg = get_value<NpArray<uint8_t>>(py_register);
 
     spdlog::debug("Printing pulses...");
     jlog("pulses: ", pulses);
@@ -157,7 +154,7 @@ PyObject * td_ode_rhs(
     spdlog::debug("Printing pulse_array... ");
     jlog("pulse_array: ",  pulse_array);
     spdlog::debug("Printing reg...");
-    spdlog::debug("reg: {}", reg);
+    jlog("reg: {}", reg);
 
 
     std::vector<complex_t> chan_values;
@@ -170,7 +167,7 @@ PyObject * td_ode_rhs(
         auto index = elem.first;
         auto pulse = elem.second;
 
-        auto val = chan_value(t, index, freqs[pulse.first], pulse.second[0], pulse_array,
+        auto val = chan_value(t, index, freqs[index], pulse.second[0], pulse_array,
                               pulse_indices, pulse.second[1], reg);
         chan_values.emplace_back(val);
     }
