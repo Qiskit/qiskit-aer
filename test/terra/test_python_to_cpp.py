@@ -13,8 +13,8 @@
 import unittest
 import numpy as np
 from qiskit.providers.aer.openpulse.cy.test_py_to_cpp_helpers import \
-    test_py_string_to_cpp_string, test_py_complex_double_to_cpp_complex_double,\
     test_py_list_to_cpp_vec, test_py_list_of_lists_to_cpp_vector_of_vectors,\
+    test_py_list_of_np_arrays,\
     test_py_dict_string_numeric_to_cpp_map_string_numeric,\
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
     test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles,\
@@ -26,14 +26,6 @@ class TestPythonToCpp(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_py_string_to_cpp_string(self):
-        arg = "thestring"
-        self.assertTrue(test_py_string_to_cpp_string(arg))
-
-    def test_py_complex_double_to_cpp_complex_double(self):
-        arg = 1. + 1.j
-        self.assertTrue(test_py_complex_double_to_cpp_complex_double(arg))
-
     def test_py_list_to_cpp_vec(self):
         arg = [1., 2., 3.]
         self.assertTrue(test_py_list_to_cpp_vec(arg))
@@ -41,6 +33,10 @@ class TestPythonToCpp(unittest.TestCase):
     def test_py_list_of_lists_to_cpp_vector_of_vectors(self):
         arg = [[1., 2., 3.]]
         self.assertTrue(test_py_list_of_lists_to_cpp_vector_of_vectors(arg))
+
+    def test_py_list_of_np_arrays(self):
+        arg = [np.array([1., 2., 3.]), np.array([1., 2., 3.])]
+        self.assertTrue(test_py_list_of_np_arrays(arg))
 
     def test_py_dict_string_numeric_to_cpp_map_string_numeric(self):
         arg = {"key": 1}
@@ -51,7 +47,7 @@ class TestPythonToCpp(unittest.TestCase):
         self.assertTrue(test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(arg))
 
     def test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(self):
-        arg = {"key", [[np.array([0., 1.]), np.array[2., 3.]]]}
+        arg = {"key": [np.array([0., 1.]), np.array([2., 3.])]}
         self.assertTrue(test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(arg))
 
     def test_np_array_of_doubles(self):
@@ -60,4 +56,4 @@ class TestPythonToCpp(unittest.TestCase):
 
     def test_evaluate_hamiltonians(self):
         """ Evaluate different hamiltonina expressions"""
-        self.assertEquals(True, False)
+        self.assertEqual(True, False)

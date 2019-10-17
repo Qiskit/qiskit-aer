@@ -1,4 +1,3 @@
-
 #include <csignal>
 #include <vector>
 #include <complex>
@@ -9,10 +8,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include "numeric_integrator.hpp"
 #include "helpers.hpp"
-
-static bool init_numpy(){
-    import_array();
-};
 
 complex_t chan_value(
     double t,

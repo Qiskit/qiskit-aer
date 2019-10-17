@@ -23,6 +23,7 @@
 #include <exprtk.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <numpy/arrayobject.h>
 
 
 /**
@@ -31,6 +32,14 @@
  * copies
  **/
 
+
+static bool init_numpy(){
+    static bool initialized = false;
+    if(!initialized){
+        import_array();
+        initialized = true;
+    }
+};
 
 /**
  * Helper Types
@@ -44,26 +53,59 @@ class NpArray {
     explicit NpArray(const std::vector<VecType>& _data, const std::vector<int>& _shape)
     : data(_data), shape(_shape)
     {}
-    const std::vector<VecType>& data;
+    const std::vector<VecType> data;
     /**
      * The shape of the array: like
      * ```pyhton
      * arr = np.array([0,1,2],[3,4,5])
      * arr.shape
      **/
-    const std::vector<int>& shape;
+    const std::vector<int> shape;
 
     const VecType& operator[](size_t index) const {
         return data[index];
+    }
+
+    const bool operator==(const NpArray<VecType>& other) const {
+        if(other.data.size() != data.size() ||
+           other.shape.size() != shape.size())
+           return false;
+
+        for(auto i = 0; i < other.data.size(); ++i){
+            if(data[i] != other[i])
+                return false;
+        }
+
+        for(auto i = 0; i < other.shape.size(); ++i){
+            if(shape[i] != other.shape[i])
+                return false;
+        }
+
+        return true;
     }
 };
 
 
 template<typename T>
-void jlog(const std::string& msg, const T& values){
+void jlog(const std::string& msg, const T& value){
+    spdlog::debug("{}: {}\n", msg, value);
+}
+
+template<>
+void jlog(const std::string& msg, const complex_t& values){
+    spdlog::debug("{}: [{},{}i]", msg, values.real(), values.imag());
+}
+
+template<typename T>
+void jlog(const std::string& msg, const NpArray<T>& values){
     spdlog::debug("{}\n", msg);
-    for(const auto& val : values){
-        spdlog::debug("{} ", val);
+    spdlog::debug(".shape: ");
+    for(const auto& shape : values.shape)
+        spdlog::debug("{} ", shape);
+
+    spdlog::debug("\n.data: ");
+    for(const auto& val : values.data){
+        jlog("", val);
     }
     spdlog::debug("\n");
 }
@@ -104,26 +146,11 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
     spdlog::debug("{}\n", msg);
     for(const auto& val : values){
         for(const auto& inner: val.second){
-            jlog("", inner);
+            jlog(val.first, inner);
         }
     }
     spdlog::debug("\n");
 }
-
-template<typename T>
-void jlog(const std::string& msg, const NpArray<T>& values){
-    spdlog::debug("{}\n", msg);
-    spdlog::debug(".shape: ");
-    for(const auto& shape : values.shape)
-        spdlog::debug("{} ", shape);
-
-    spdlog::debug("\n.data: ");
-    for(const auto& val : values.data){
-        spdlog::debug("{} ", val);
-    }
-    spdlog::debug("\n");
-}
-
 
 template <typename T>
 struct iterator_extractor { typedef typename T::iterator type; };
@@ -266,7 +293,7 @@ bool _check_is_dict(PyObject * value){
 bool _check_is_np_array(PyArrayObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Numpy ndarray is null!");
-
+    init_numpy();
     // Check that it's a numpy ndarray
     if(!PyArray_Check(value))
         return false;
@@ -369,6 +396,23 @@ std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
     return vector;
 }
 
+// template<typename T>
+// std::vector<NpArray<T>> get_value(type<std::vector<NpArray<T>>> _, PyObject * value){
+//     if(!_check_is_list(value))
+//         throw std::invalid_argument("PyObject is not a List!");
+
+//     auto size = PyList_Size(value);
+//     std::vector<NpArray<T>> vector;
+//     vector.reserve(size);
+//     for(auto i=0; i<size; ++i){
+//         PyArrayObject * py_item = reinterpret_cast<PyArrayObject *>(PyList_GetItem(value, i));
+//         if(py_item == nullptr)
+//             continue;
+//         auto item = get_value<NpArray<T>>(py_item);
+//         vector.emplace_back(item);
+//     }
+//     return vector;
+// }
 
 template<typename ValueType>
 std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
@@ -388,8 +432,6 @@ std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std
     }
     return map;
 }
-
-
 
 /**
  * Returns the .shape of the a Numpy array object
@@ -417,7 +459,7 @@ std::vector<int> _get_shape_from_np_array(PyArrayObject * np_array){
 }
 
 /**
- * Get a C++ Vector of C++ types from a Numpy ndarray (PyArrayObject) type
+ * Get a C++ Vector of C++ types from a Numpy ndarray (PyObject) type
  **/
 template<typename VecType>
 const std::vector<VecType> _get_vec_from_np_array(PyArrayObject * py_array){
@@ -425,7 +467,7 @@ const std::vector<VecType> _get_vec_from_np_array(PyArrayObject * py_array){
     if (PyArray_SIZE(py_array) == 0) {
         return {};
     }
-    /* TODO This is faster if we deal with PyArrayObject directly */
+    /* TODO This is faster if we deal with PyObject directly */
     PyObject * py_list = PyArray_ToList(py_array);
     return get_value<std::vector<VecType>>(py_list);
 }
@@ -440,6 +482,11 @@ const NpArray<T> get_value(type<NpArray<T>> _, PyArrayObject * value){
     return NpArray<T>(arr, shape);
 }
 
+template<typename T>
+const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value){
+    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(value);
+    return get_value<NpArray<T>>(array);
+}
 
 
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){

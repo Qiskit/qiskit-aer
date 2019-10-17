@@ -21,31 +21,27 @@ from libcpp.complex cimport complex
 from libcpp cimport bool
 import numpy as np
 cimport numpy as np
-from numpy cimport PyArrayObject
+#from numpy cimport PyArrayObject
 
 # These definitions are only for testing the C++ wrappers over Python C API
 cdef extern from "src/test_helpers.hpp":
-    cdef bool cpp_test_py_string_to_cpp_string(string val)
-    cdef bool cpp_test_py_complex_double_to_cpp_complex_double(double complex val)
     cdef bool cpp_test_py_list_to_cpp_vec(list val)
     cdef bool cpp_test_py_list_of_lists_to_cpp_vector_of_vectors(list val)
+    cdef bool cpp_test_py_list_of_np_arrays(list val)
     cdef bool cpp_test_py_dict_string_numeric_to_cpp_map_string_numeric(dict val)
     cdef bool cpp_test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(dict val)
     cdef bool cpp_test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(dict val)
     cdef bool cpp_test_np_array_of_doubles(np.ndarray val)
     cdef bool cpp_test_evaluate_hamiltonians(list val)
 
-def test_py_string_to_cpp_string(val):
-    return cpp_test_py_string_to_cpp_string(val)
-
-def test_py_complex_double_to_cpp_complex_double(val):
-    return cpp_test_py_complex_double_to_cpp_complex_double(val)
-
 def test_py_list_to_cpp_vec(val):
     return cpp_test_py_list_to_cpp_vec(val)
 
 def test_py_list_of_lists_to_cpp_vector_of_vectors(val):
     return cpp_test_py_list_of_lists_to_cpp_vector_of_vectors(val)
+
+def test_py_list_of_np_arrays(val):
+    return cpp_test_py_list_of_np_arrays(val)
 
 def test_py_dict_string_numeric_to_cpp_map_string_numeric(val):
     return cpp_test_py_dict_string_numeric_to_cpp_map_string_numeric(val)
