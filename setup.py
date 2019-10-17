@@ -52,7 +52,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     install_requires=requirements,
-    setup_requires=['scikit-build', 'cmake', 'ninja', 'Cython'],
+    setup_requires=['scikit-build', 'cmake', 'Cython'],
     include_package_data=True,
     cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
     keywords="qiskit aer simulator quantum addon backend",
