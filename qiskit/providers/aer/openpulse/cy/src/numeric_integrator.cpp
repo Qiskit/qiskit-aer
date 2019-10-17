@@ -15,13 +15,62 @@ complex_t chan_value(
     const double freq_ch,
     const NpArray<double>& chan_pulse_times,
     const std::vector<complex_t>& pulse_array,
-    const std::vector<unsigned int>& pulse_indices,
+    const std::vector<unsigned int>& pulse_indexes,
     const NpArray<double>& fc_array,
     const std::string& reg){
+
+    static const auto get_arr_idx = [](double t, double start, double stop, size_t len_array) -> int {
+        return static_cast<int>(std::floor((t - start) / (stop - start) * len_array));
+    };
+
+    complex_t out = {0., 0.};
+
     //1. cdef unsigned int num_times = chan_pulse_times.shape[0] // 4
     auto num_times = static_cast<int>(chan_pulse_times.shape[0]) / 4;
+    spdlog::debug("num_times: {}", num_times);
 
-    return complex_t(0.0, 0.0);
+    for(auto i=0; i < num_times; ++i){
+        auto start_time = chan_pulse_times[4 * i];
+        auto stop_time = chan_pulse_times[4 * i + 1];
+        if(start_time <= t && t < stop_time){
+            auto cond = static_cast<int>(chan_pulse_times[4 * i + 3]);
+            if(cond < 0 || reg[cond]) {
+                auto temp_idx = static_cast<int>(chan_pulse_times[4 * i + 2]);
+                auto start_idx = pulse_indexes[temp_idx];
+                auto stop_idx = pulse_indexes[temp_idx+1];
+                auto offset_idx = get_arr_idx(t, start_time, stop_time, stop_idx - start_idx);
+                out = pulse_array[start_idx + offset_idx];
+            }
+        }
+    }
+
+    // TODO floating point comparsion with complex<double> ?!
+    // Seems like this is equivalent to: out != complex_t(0., 0.)
+    if(out != 0.){
+        double phase = 0.;
+        num_times = fc_array.shape[0];
+        for(auto i = 0; i < num_times; ++i){
+            // TODO floating point comparison
+            if(t >= fc_array[3 * i]){
+                bool do_fc = true;
+                if(fc_array[3 * i + 2] >= 0){
+                    if(!reg[static_cast<int>(fc_array[3 * i +2])]){
+                       do_fc = false;
+                    }
+                }
+                if(do_fc){
+                    phase += fc_array[3 * i + 1];
+                }
+            }else{
+                break;
+            }
+        }
+        if(phase != 0.){
+            out *= std::exp(complex_t(0.,1.) * phase);
+        }
+        out *= std::exp(complex_t(0., -1.) * 2. * M_PI * freq_ch * t);
+    }
+    return out;
 }
 
 PyObject * td_ode_rhs(
