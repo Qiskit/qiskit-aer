@@ -28,11 +28,19 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
 
 class TestPulseSimulator(common.QiskitAerTestCase):
-    """ PulseSimulator tests.
+    """PulseSimulator tests.
+
+    Mathematical expressions are formulated in latex in docstrings for this class.
 
     # pylint: disable=anomalous backslash in string
-    Uses Hamiltonian `H = -0.5*\omega_0*\sigma_z + \omega_1*\cos(\omega*t+\phi)*\sigma_x`,
-    as it has a closed form solution under the rotating frame transformation. Described in readme.
+    Uses Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_1
+    e^{i(\omega t+\phi)} \sigma_x`,
+    as it has a closed form solution under the rotating frame transformation. We make sure H is
+    Hermitian by taking the complex conjugate of the lower triangular piece (as done by the
+    simulator). To find the closed form, we apply the unitary `Urot = e^{-i \omega_0 t \sigma_z/2}`.
+    In this frame, the Hamiltonian becomes
+    `Hrot = \frac{1}{2} \omega_1 (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)`,
+    which is easily solvable.
     """
 
     def setUp(self):
@@ -67,7 +75,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.backend_sim = qiskit.Aer.get_backend('pulse_simulator')
 
     def single_pulse_schedule(self, phi):
-        """ Creates schedule for single pulse test
+        """Creates schedule for single pulse test
         Args:
             phi (float): drive phase (phi in Hamiltonian)
         Returns:
@@ -86,7 +94,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         return schedule
 
     def frame_change_schedule(self, phi, fc_phi, fc_dur1, fc_dur2):
-        """ Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur1,
+        """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur1,
         then frame change of phase fc_phi, then another pulse of phase phi of duration dur2.
         The different durations for the pulses allow manipulation of rotation angles on Bloch sphere
         Args:
@@ -116,7 +124,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         return schedule
 
     def persistent_value_schedule(self, omega1_pv):
-        """ Creates schedule for persistent value experiment. Creates pv pulse w/ drive amplitude
+        """Creates schedule for persistent value experiment. Creates pv pulse w/ drive amplitude
         omega1_pv. It does this by setting the omega1 term in the Hamiltonian = 1. Sets length of
         the pv pulse = self.drive_samples. The product omega1_pv*self.drive_samples, then, controls
         the resulting state.
@@ -126,25 +134,19 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Returns:
             schedule (pulse schedule): schedule for pv experiment
         """
-
         # pv pulse
         pv_pulse = PersistentValue(value=omega1_pv, name='pv')
-
-        # 0 amp drive pulse
-        #drive_pulse = SamplePulse(np.ones(self.drive_samples), name='drive_pulse_0amp')
 
         # add commands to schedule
         schedule = pulse.Schedule(name='pv_schedule')
         schedule |= pv_pulse(self.system.qubits[self.qubit_0].drive)
-        # make pv_pulse last exactly self.drive_samples
-        #schedule += drive_pulse(self.system.qubits[self.qubit_0].drive) << self.drive_samples
         schedule |= self.acq_0 << self.drive_samples
 
         return schedule
 
     def create_qobj(self, shots, omega0, omega1, omega, phi, meas_level, schedule_type=None,
                     fc_phi=0, fc_dur1=0, fc_dur2=0, omega1_pv=0, qub_dim=2):
-        """ Creates qobj for the specified pulse experiment. Uses Hamiltonian above.
+        """Creates qobj for the specified pulse experiment. Uses Hamiltonian from class docstring.
         Args:
             shots (int): number of times to perform experiment
             omega0 (float): qubit frequency
@@ -209,7 +211,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test gates (using meas level 2)
     # ---------------------------------------------------------------------
     def test_x_gate(self):
-        """ Test x gate. Set omega=omega0 (drive on resonance), phi=0, omega1 = pi/time
+        """Test x gate. Set omega=omega0 (drive on resonance), phi=0, omega1 = pi/time
         """
 
         # set variables
@@ -234,7 +236,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_result)
 
     def test_hadamard_gate(self):
-        """ Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega=omega0
+        """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega=omega0
         (drive on resonance), phi=-pi/2, omega1 = pi/2/time
         """
 
@@ -266,7 +268,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(prob, exp_prob, delta=0.01)
 
     def test_arbitrary_gate(self):
-        """ Test a few examples w/ arbitary drive, phase and amplitude. """
+        """Test a few examples w/ arbitary drive, phase and amplitude. """
 
         # Gate 1
 
@@ -348,7 +350,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
 
     def test_meas_level_1(self):
-        """ Test measurement level 1. """
+        """Test measurement level 1. """
 
         # perform hadamard setup (so get some 0's and some 1's), but use meas_level = 1
 
@@ -388,7 +390,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
 
     def test_frame_change(self):
-        """ Test frame change command. """
+        """Test frame change command. """
         shots = 1000000
         # set omega0, omega equal (use qubit frequency) -> drive on resonance
         omega0 = 2*np.pi*self.freq_qubit_0
@@ -437,7 +439,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(prob, exp_prob, delta=0.001)
 
     def test_persistent_value(self):
-        """ Test persistent value command. """
+        """Test persistent value command. """
 
         shots = 256
         # set omega0, omega equal (use qubit frequency) -> drive on resonance
@@ -459,6 +461,59 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_result = {'1':shots}
 
         self.assertDictAlmostEqual(counts, exp_result)
+
+    # ---------------------------------------------------------------------
+    # Test higher energy levels (take 3 level system for simplicity)
+    # `\sigma_x \rightarrow a+\dagger{a}`,
+    # `\sigma_y \rightarrow -\imag (a-\dagger{a})`, etc
+    # ---------------------------------------------------------------------
+
+    def test_three_level(self):
+        """Test 3 level system. Compare statevectors as counts only use bitstrings. Analytically, 
+        the expected statevector is `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_1 t)),
+        -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_1 t),
+        -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_1 t)^2)`.
+        """
+
+        # set qubit dimension to 3
+        qub_dim = 3
+
+        shots = 1000
+        # set omega0, omega equal (use qubit frequency) -> drive on resonance
+        omega0 = 2*np.pi*self.freq_qubit_0
+        omega = omega0
+
+        # set phi = 0 for simplicity
+        phi = 0
+
+        # Test omega1*t = pi
+        omega1 = np.pi/self.drive_samples
+
+        qobj_1 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
+                                  meas_level=2, qub_dim=qub_dim)
+        result_1 = self.backend_sim.run(qobj_1).result()
+        state_vector_1 = result_1.get_statevector()
+
+        exp_state_vector_1 = [0.362425, 0. - 0.235892j, -0.901667]
+
+        # compare vectors element-wise
+        for i, _ in enumerate(state_vector_1):
+            self.assertAlmostEqual(state_vector_1[i], exp_state_vector_1[i], places=4)
+
+        # Test omega1*t = 2 pi
+        omega1 = 2*np.pi/self.drive_samples
+
+        qobj_2 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
+                                  meas_level=2, qub_dim=qub_dim)
+        result_2 = self.backend_sim.run(qobj_2).result()
+        state_vector_2 = result_2.get_statevector()
+
+        exp_state_vector_2 = [0.88871, 0.430608j, -0.157387]
+
+        # compare vectors element-wise
+        for i, _ in enumerate(state_vector_2):
+            self.assertAlmostEqual(state_vector_2[i], exp_state_vector_2[i], places=4)
+
 
 if __name__ == '__main__':
     unittest.main()
