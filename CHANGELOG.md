@@ -29,6 +29,7 @@ Removed
 
 Fixed
 -----
+- Fix sdist to always attempt to build (\#401)
 
 
 
