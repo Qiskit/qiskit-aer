@@ -613,7 +613,7 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       auto tmp_data = run_circuit(circ, noise, config, circ.shots, circ.seed);
-      data.combine(tmp_data);
+      data.combine(std::move(tmp_data));
     // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -643,8 +643,9 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
           throw std::runtime_error(error_msg);
 
       // Accumulate results across shots
+      // Use move semantics to avoid copying data
       for (auto &datum : par_data) {
-        data.combine(datum);
+        data.combine(std::move(datum));
       }
     }
     // Report success
