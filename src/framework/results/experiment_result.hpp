@@ -41,10 +41,7 @@ public:
 
   // Metadata
   json_t header;
-  json_t metadata;
-
-  // Clear all metadata for given key
-  void clear_metadata(const std::string &key);
+  stringmap_t<json_t> metadata;
   
   // Append metadata for a given key.
   // This assumes the metadata value is a dictionary and appends
@@ -62,15 +59,16 @@ public:
 //------------------------------------------------------------------------------
 template <typename T>
 void ExperimentResult::add_metadata(const std::string &key, const T &meta) {
-  json_t js = meta; // use implicit to_json conversion function for T
-  if (JSON::check_key(key, metadata))
-    metadata[key].update(js.begin(), js.end());
-  else
-    metadata[key] = js;
-}
-
-void ExperimentResult::clear_metadata(const std::string &key) {
-  metadata.erase(key);
+  // Use implicit to_json conversion function for T
+  json_t jdata = meta;
+  auto elt = metadata.find("key");
+  if (elt == metadata.end()) {
+    // If key doesn't already exist add new data
+    metadata[key] = std::move(jdata);
+  } else {
+    // If key already exists append with additional data
+    elt->second.update(jdata.begin(), jdata.end());
+  }
 }
 
 //------------------------------------------------------------------------------

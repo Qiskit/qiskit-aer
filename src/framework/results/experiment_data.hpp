@@ -50,7 +50,7 @@ class ExperimentData {
   void add_pershot_register(const std::string &reg);
 
   //----------------------------------------------------------------
-  // Generic (JSON) pershot snapshots
+  // Pershot snapshots
   //----------------------------------------------------------------
 
   // Add a new datum to the snapshot of the specified type and label
@@ -61,7 +61,7 @@ class ExperimentData {
                             const T &datum);
 
   //----------------------------------------------------------------
-  // Generic (JSON) average snapshots
+  // Average snapshots
   //----------------------------------------------------------------
 
   // Add a new datum to the snapshot of the specified type and label
@@ -78,19 +78,20 @@ class ExperimentData {
   // Additional data
   //----------------------------------------------------------------
 
+  // Add new data at the specified key.
+  // If they key already exists this will override the stored data
   template <typename T>
   void add_additional_data(const std::string &key, const T &data);
 
-  void clear_additional_data(const std::string &key);
-
+  //----------------------------------------------------------------
   // Metadata
-  json_t &metadata() { return metadata_; }
-  const json_t &metadata() const { return metadata_; }
+  //----------------------------------------------------------------
+
+  stringmap_t<json_t> &metadata() { return metadata_; }
+  const stringmap_t<json_t> &metadata() const { return metadata_; }
 
   template <typename T>
   void add_metadata(const std::string &key, const T &data);
-
-  void clear_metadata(const std::string &key);
 
   //----------------------------------------------------------------
   // Config
@@ -121,12 +122,12 @@ class ExperimentData {
   // Measurement data
   //----------------------------------------------------------------
 
-  // Measure outcomes
-  std::map<std::string, uint_t>
-      counts_;                       // histogram of memory counts over shots
-  std::vector<std::string> memory_;  // memory state for each shot as hex string
-  std::vector<std::string>
-      register_;  // register state for each shot as hex string
+  // Histogram of memory counts over shots
+  std::map<std::string, uint_t> counts_;
+  // Memory state for each shot as hex string
+  std::vector<std::string> memory_;
+  // Register state for each shot as hex string
+  std::vector<std::string> register_;
 
   //----------------------------------------------------------------
   // Pershot Snapshots
@@ -154,11 +155,19 @@ class ExperimentData {
   // Additional data
   //----------------------------------------------------------------
 
-  // Miscelaneous data
-  json_t additional_data_;
+  // Reserved keys that can't be used by additional data
+  const static stringset_t reserved_keys_;
 
+  // Miscelaneous data
+  stringmap_t<json_t> additional_json_data_;
+
+  //----------------------------------------------------------------
   // Metadata
-  json_t metadata_;
+  //----------------------------------------------------------------
+
+  // This will be passed up to the experiment_result level
+  // metadata field
+  stringmap_t<json_t> metadata_;
 
   //----------------------------------------------------------------
   // Config
@@ -233,36 +242,39 @@ void ExperimentData::add_average_snapshot(const std::string &type,
 }
 
 //------------------------------------------------------------------
-// Additional Snapshots
+// Additional Data
 //------------------------------------------------------------------
+
+const stringset_t ExperimentData::reserved_keys_ = {
+    "counts", "memory", "register", "snapshots"};
 
 template <typename T>
 void ExperimentData::add_additional_data(const std::string &key,
                                          const T &data) {
-  if (return_additional_data_) {
-    json_t js = data;  // use implicit to_json conversion function for T
-    if (JSON::check_key(key, additional_data_))
-      additional_data_[key].update(js.begin(), js.end());
-    else
-      additional_data_[key] = js;
+  // Check key isn't one of the reserved keys
+  if (reserved_keys_.find(key) != reserved_keys_.end()) {
+    throw std::invalid_argument(
+        "Cannot add additional data with reserved key name \"" + key + "\".");
   }
-}
-
-void ExperimentData::clear_additional_data(const std::string &key) {
-  additional_data_.erase(key);
+  if (return_additional_data_) {
+    // Use implicit to_json conversion function for T
+    json_t jdata = data;
+    additional_json_data_[key] = std::move(jdata);
+  }
 }
 
 template <typename T>
 void ExperimentData::add_metadata(const std::string &key, const T &data) {
-  json_t js = data;  // use implicit to_json conversion function for T
-  if (JSON::check_key(key, additional_data_))
-    metadata_[key].update(js.begin(), js.end());
-  else
-    metadata_[key] = js;
-}
-
-void ExperimentData::clear_metadata(const std::string &key) {
-  metadata_.erase(key);
+  // Use implicit to_json conversion function for T
+  json_t jdata = data;
+  auto elt = metadata_.find("key");
+  if (elt == metadata_.end()) {
+    // If key doesn't already exist add new data
+    metadata_[key] = std::move(jdata);
+  } else {
+    // If key already exists append with additional data
+    elt->second.update(jdata.begin(), jdata.end());
+  }
 }
 
 void ExperimentData::clear() {
@@ -274,7 +286,7 @@ void ExperimentData::clear() {
   pershot_json_snapshots_.clear();
   average_json_snapshots_.clear();
   // Clear additional data
-  additional_data_.clear();
+  additional_json_data_.clear();
   metadata_.clear();
 }
 
@@ -296,24 +308,15 @@ ExperimentData &ExperimentData::combine(ExperimentData &data) {
     average_json_snapshots_[pair.first].combine(pair.second);
   }
   // Combine metadata
-  for (auto &metadatum : data.metadata_.items()) {
-    metadata_[metadatum.key()] = metadatum.value();
+  for (auto &pair : data.metadata_) {
+    metadata_[pair.first] = pair.second;
   }
+
   // Combine additional data
-  // Note that this will override any fields that have the same value
-  for (auto it = data.additional_data_.begin();
-       it != data.additional_data_.end(); ++it) {
-    // Check if key exists
-    if (additional_data_.find(it.key()) == additional_data_.end()) {
-      // If it doesn't add the data
-      additional_data_[it.key()] = it.value();
-    } else {
-      // If it does we append the data.
-      // Note that this will overwrite any subkeys with same name
-      for (auto it2 = it.value().begin(); it2 != it.value().end(); it2++) {
-        additional_data_[it.key()][it2.key()] = it2.value();
-      }
-    }
+  for (auto &pair : data.additional_json_data_) {
+    const auto &key = pair.first;
+    // erase_duplicate_data_keys(key, "json");
+    additional_json_data_[key] = pair.second;
   }
 
   // Clear any remaining data from other container
@@ -324,11 +327,7 @@ ExperimentData &ExperimentData::combine(ExperimentData &data) {
 
 json_t ExperimentData::json() const {
   // Initialize output as additional data JSON
-  json_t tmp = additional_data_;
-
-  // Add standard data
-  // This will override any additional data fields if they use keys:
-  // "counts", "memory", "register", "snapshots"
+  json_t tmp = additional_json_data_;
 
   // Measure data
   if (return_counts_ && counts_.empty() == false) tmp["counts"] = counts_;
