@@ -15,6 +15,7 @@
 #ifndef _HELPERS_HPP
 #define _HELPERS_HPP
 
+#include <utility>
 #include <unordered_map>
 #include <vector>
 #include <complex>
@@ -33,6 +34,8 @@
  **/
 
 
+
+
 static bool init_numpy(){
     static bool initialized = false;
     if(!initialized){
@@ -41,6 +44,123 @@ static bool init_numpy(){
     }
 };
 
+bool _check_is_integer(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("PyObject is null!");
+
+    // Seems like this function checks every integer type
+    if(!PyLong_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_string(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("PyObject is null!");
+
+    if(!PyUnicode_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_floating_point(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("PyObject is null!");
+
+    if(!PyFloat_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_complex(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("PyObject is null!");
+
+    if(!PyComplex_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_list(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Pyhton list is null!");
+
+    // Check that it's a list
+    if(!PyList_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_tuple(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Pyhton tuple is null!");
+
+    // Check that it's a tuple
+    if(!PyTuple_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_dict(PyObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Pyhton dict is null!");
+
+    // Check that it's a dict
+    if(!PyDict_Check(value))
+        return false;
+
+    return true;
+}
+
+bool _check_is_np_array(PyArrayObject * value){
+    if(value == nullptr)
+        throw std::invalid_argument("Numpy ndarray is null!");
+    init_numpy();
+    // Check that it's a numpy ndarray
+    if(!PyArray_Check(value))
+        return false;
+
+    return true;
+}
+
+
+
+
+
+
+
+
+// Simon Brand technique to achive partial specialization on function templates
+// https://www.fluentcpp.com/2017/08/15/function-templates-partial-specialization-cpp/
+// This "type" struct will carry T, but wil be ignored by the compiler later.
+// It's like a help you give to the compiler so it can resolve the specialization
+template<typename T>
+struct type{};
+
+template<typename T>
+T get_value(type<T> _, PyObject * value){
+    throw std::invalid_argument("Cannot get value for this type!");
+}
+
+// <JUAN> TODO: We might want to expose only these two functions
+template<typename T>
+T get_value(PyObject * value){
+    return get_value(type<T>{}, value);
+}
+
+template<typename T>
+const T get_value(PyArrayObject * value){
+    return get_value(type<T>{}, value);
+}
+// </JUAN>
+
+
 /**
  * Helper Types
  **/
@@ -48,25 +168,36 @@ using complex_t = std::complex<double>;
 
 template<typename VecType>
 class NpArray {
-    NpArray() = delete;
-    public:
-    explicit NpArray(const std::vector<VecType>& _data, const std::vector<int>& _shape)
-    : data(_data), shape(_shape)
-    {}
-    const std::vector<VecType> data;
+  public:
+	NpArray(){}
+    NpArray(const std::vector<VecType>& data, const std::vector<int>& shape) :
+        data(data), shape(shape){
+    }
+	NpArray(PyArrayObject * array){
+		_populate_data(array);
+		_populate_shape(array);
+	}
+
+    std::vector<VecType> data;
     /**
      * The shape of the array: like
      * ```pyhton
      * arr = np.array([0,1,2],[3,4,5])
      * arr.shape
      **/
-    const std::vector<int> shape;
+    std::vector<int> shape;
 
     const VecType& operator[](size_t index) const {
         return data[index];
     }
 
-    const bool operator==(const NpArray<VecType>& other) const {
+    NpArray& operator=(const NpArray<VecType>& other){
+		data = other.data;
+		shape = other.shape;
+		return *this;
+	}
+
+    bool operator==(const NpArray<VecType>& other) const {
         if(other.data.size() != data.size() ||
            other.shape.size() != shape.size())
            return false;
@@ -83,8 +214,34 @@ class NpArray {
 
         return true;
     }
-};
+  private:
 
+	void _populate_shape(PyArrayObject * array){
+		if(!_check_is_np_array(array))
+			throw std::invalid_argument("PyArrayObject is not a numpy array!");
+
+		auto p_dims = PyArray_SHAPE(array);
+		if(p_dims == nullptr)
+			throw std::invalid_argument("Couldn't get the shape of the array!");
+
+		auto num_dims = PyArray_NDIM(array);
+		shape.reserve(num_dims);
+		for(auto i = 0; i < num_dims; ++i){
+			shape.emplace_back(p_dims[i]);
+		}
+	}
+
+	void _populate_data(PyArrayObject * array){
+		/* Handle zero-sized arrays specially */
+		if (PyArray_SIZE(array) == 0){
+			data = {};
+			return;
+		}
+		/* TODO This is faster if we deal with PyObject directly */
+		PyObject * py_list = PyArray_ToList(array);
+		data = get_value<std::vector<VecType>>(py_list);
+	}
+};
 
 template<typename T>
 void jlog(const std::string& msg, const T& value){
@@ -146,6 +303,13 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
         }
     }
 }
+
+
+
+
+
+
+
 
 template <typename T>
 struct iterator_extractor { typedef typename T::iterator type; };
@@ -222,103 +386,6 @@ Indexer<T> enumerate(T& t) { return Indexer<T>(t); }
 
 
 
-bool _check_is_integer(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("PyObject is null!");
-
-    // Seems like this function checks every integer type
-    if(!PyLong_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_string(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("PyObject is null!");
-
-    if(!PyUnicode_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_floating_point(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("PyObject is null!");
-
-    if(!PyFloat_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_complex(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("PyObject is null!");
-
-    if(!PyComplex_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_list(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("Pyhton list is null!");
-
-    // Check that it's a list
-    if(!PyList_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_dict(PyObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("Pyhton dict is null!");
-
-    // Check that it's a dict
-    if(!PyDict_Check(value))
-        return false;
-
-    return true;
-}
-
-bool _check_is_np_array(PyArrayObject * value){
-    if(value == nullptr)
-        throw std::invalid_argument("Numpy ndarray is null!");
-    init_numpy();
-    // Check that it's a numpy ndarray
-    if(!PyArray_Check(value))
-        return false;
-
-    return true;
-}
-
-// Simon Brand technique to achive partial specialization on function templates
-// https://www.fluentcpp.com/2017/08/15/function-templates-partial-specialization-cpp/
-// This "type" struct will carry T, but wil be ignored by the compiler later.
-// It's like a help you give to the compiler so it can resolve the specialization
-template<typename T>
-struct type{};
-
-template<typename T>
-T get_value(type<T> _, PyObject * value){
-    throw std::invalid_argument("Cannot get value for this type!");
-}
-
-// <JUAN> TODO: We might want to expose only these two functions
-template<typename T>
-T get_value(PyObject * value){
-    return get_value(type<T>{}, value);
-}
-
-template<typename T>
-const T get_value(PyArrayObject * value){
-    return get_value(type<T>{}, value);
-}
-// </JUAN>
 
 template<>
 long get_value(type<long> _, PyObject * value){
@@ -391,23 +458,31 @@ std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
     return vector;
 }
 
-// template<typename T>
-// std::vector<NpArray<T>> get_value(type<std::vector<NpArray<T>>> _, PyObject * value){
-//     if(!_check_is_list(value))
-//         throw std::invalid_argument("PyObject is not a List!");
+/* WARNING: There's no support for variadic templates in Cython, so
+   we use a std::pair because there's no more than two types in the Python
+   tuples so far, so as we are fine for now... */
+template<typename T, typename U>
+std::pair<T, U> get_value(type<std::pair<T, U>> _, PyObject * value){
+    if(!_check_is_tuple(value))
+        throw std::invalid_argument("PyObject is not a Tuple!");
 
-//     auto size = PyList_Size(value);
-//     std::vector<NpArray<T>> vector;
-//     vector.reserve(size);
-//     for(auto i=0; i<size; ++i){
-//         PyArrayObject * py_item = reinterpret_cast<PyArrayObject *>(PyList_GetItem(value, i));
-//         if(py_item == nullptr)
-//             continue;
-//         auto item = get_value<NpArray<T>>(py_item);
-//         vector.emplace_back(item);
-//     }
-//     return vector;
-// }
+    if(PyTuple_Size(value) > 2)
+        throw std::invalid_argument("Tuples with more than 2 elements are not supported yet!!");
+
+    auto first_py_item = PyTuple_GetItem(value, 0);
+    if(first_py_item == nullptr)
+        throw std::invalid_argument("The tuple must have a first element");
+
+    auto second_py_item = PyTuple_GetItem(value, 1);
+    if(second_py_item == nullptr)
+        throw std::invalid_argument("The tuple must have a second element");
+
+    auto first_item = get_value<T>(first_py_item);
+    auto second_item = get_value<U>(second_py_item);
+
+    return std::make_pair(first_item, second_item);
+}
+
 
 template<typename ValueType>
 std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
@@ -428,53 +503,12 @@ std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std
     return map;
 }
 
-/**
- * Returns the .shape of the a Numpy array object
- * This is equivalent to:
- * ```pyhton
- * arr = np.array([[1,2],[3,4]])
- * arr.shape
- * ```
- */
-std::vector<int> _get_shape_from_np_array(PyArrayObject * np_array){
-    if(!_check_is_np_array(np_array))
-        throw std::invalid_argument("PyArrayObject is not a numpy array!");
-
-    auto p_dims = PyArray_SHAPE(np_array);
-    if(p_dims == nullptr)
-        throw std::invalid_argument("Couldn't get the shape of the array!");
-
-    auto num_dims = PyArray_NDIM(np_array);
-    std::vector<int> dims;
-    dims.reserve(num_dims);
-    for(auto i = 0; i < num_dims; ++i){
-        dims.emplace_back(p_dims[i]);
-    }
-    return dims;
-}
-
-/**
- * Get a C++ Vector of C++ types from a Numpy ndarray (PyObject) type
- **/
-template<typename VecType>
-const std::vector<VecType> _get_vec_from_np_array(PyArrayObject * py_array){
-    /* Handle zero-sized arrays specially */
-    if (PyArray_SIZE(py_array) == 0) {
-        return {};
-    }
-    /* TODO This is faster if we deal with PyObject directly */
-    PyObject * py_list = PyArray_ToList(py_array);
-    return get_value<std::vector<VecType>>(py_list);
-}
-
 template<typename T>
 const NpArray<T> get_value(type<NpArray<T>> _, PyArrayObject * value){
     if(!_check_is_np_array(value))
         throw std::invalid_argument("PyArrayObject is not a numpy array!");
 
-    const auto arr = _get_vec_from_np_array<T>(value);
-    const auto shape = _get_shape_from_np_array(value);
-    return NpArray<T>(arr, shape);
+    return NpArray<T>(value);
 }
 
 template<typename T>
@@ -483,9 +517,8 @@ const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value){
     return get_value<NpArray<T>>(array);
 }
 
-
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
-    if(dict == nullptr)
+    if(!_check_is_dict(dict))
         throw std::invalid_argument("Python dictionary is null!");
 
     PyObject * tmp_key;
@@ -499,29 +532,6 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     }
     return nullptr;
 }
-
-
-/**
- * Get a C++ Vector of C++ types from a Python List
- **/
-
-// template<typename VecType>
-// const std::vector<VecType> get_vec_from_py_list(PyObject * py_list){
-//     if(!_check_is_list(py_list))
-//         throw std::invalid_argument("PyObject is not a List!");
-
-//     auto size = PyList_Size(py_list);
-//     std::vector<VecType> vector;
-//     vector.reserve(size);
-//     for(auto i=0; i<size; ++i){
-//         auto py_item = PyList_GetItem(py_list, i);
-//         if(py_item == nullptr)
-//             continue;
-//         auto cpp_item = get_value<VecType>(py_item);
-//         vector.emplace_back(cpp_item);
-//     }
-//     return vector;
-// }
 
 
 /**
@@ -600,6 +610,9 @@ const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * d
 template<typename ValueType>
 ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
+    if(py_value == Py_None)
+        return {};
+
     return get_value<ValueType>(py_value);
 }
 
@@ -608,7 +621,7 @@ ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key)
  * Math expression evaluator for the Hamiltonian terms
  **/
 double evaluate_hamiltonian_expression(const std::string& expr_string,
-                                  const std::vector<complex_t>& vars,
+                                  const std::vector<double>& vars,
                                   const std::vector<std::string>& vars_names){
     exprtk::symbol_table<double> symbol_table;
     auto pi = M_PI;
@@ -617,8 +630,7 @@ double evaluate_hamiltonian_expression(const std::string& expr_string,
     for(const auto& idx_var : enumerate(vars)){
         auto index = idx_var.first;
         auto var = idx_var.second;
-        auto real_part = var.real();
-        symbol_table.add_variable(vars_names[index], real_part);
+        symbol_table.add_variable(vars_names[index], var);
     }
 
     exprtk::expression<double> expression;
@@ -632,5 +644,60 @@ double evaluate_hamiltonian_expression(const std::string& expr_string,
 
     return expression.value();
 }
+
+/**
+ * Fast CSR Matrix representation
+ **/
+class FastCsrMatrix{
+  public:
+    FastCsrMatrix(){}
+    FastCsrMatrix(PyObject * obj){
+        auto dict = PyObject_GenericGetDict(obj, nullptr);
+        data = get_value_from_dict_item<NpArray<complex_t>>(dict, "data");
+        indices = get_value_from_dict_item<NpArray<long>>(dict, "indices");
+        indptr = get_value_from_dict_item<NpArray<long>>(dict, "indptr");
+
+    }
+    NpArray<complex_t> data;
+    NpArray<long> indices;
+    NpArray<long> indptr;
+};
+
+template<>
+FastCsrMatrix get_value(type<FastCsrMatrix>_, PyObject * value) {
+    return FastCsrMatrix(value);
+}
+
+
+/**
+ * This is the Qutip Quantum Object repesentation
+ **/
+struct QuantumObj {
+    public:
+	QuantumObj(){}
+	QuantumObj(PyObject * obj){
+        auto dict = PyObject_GenericGetDict(obj, nullptr);
+		data = get_value_from_dict_item<FastCsrMatrix>(dict, "_data");
+		is_hermitian = static_cast<bool>(get_value_from_dict_item<long>(dict, "_isherm"));
+		type = get_value_from_dict_item<std::string>(dict, "_type");
+		super_rep = get_value_from_dict_item<std::string>(dict, "superrep");
+		is_unitary = static_cast<bool>(get_value_from_dict_item<long>(dict, "_isunitary"));
+		dims = get_value_from_dict_item<std::vector<std::vector<long>>>(dict, "dims");
+	}
+
+    FastCsrMatrix data;
+    bool is_hermitian;
+    std::string type;
+    std::string super_rep;
+    bool is_unitary;
+    std::vector<std::vector<long>> dims;
+};
+
+template<>
+QuantumObj get_value(type<QuantumObj>_, PyObject * value) {
+    return QuantumObj(value);
+}
+
+
 
 #endif // _HELPERS_HPP

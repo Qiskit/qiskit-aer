@@ -173,12 +173,11 @@ PyObject * td_ode_rhs(
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-
-    auto systems = get_value<std::vector<std::string>>(py_system);
-    auto vars = get_vec_from_dict_item<complex_t>(py_global_data, "vars");
+    auto systems = get_value<std::vector<std::pair<QuantumObj, std::string>>>(py_system);
+    auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
     auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
     auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-    auto datas = get_vec_from_dict_item<std::vector<complex_t>>(py_global_data, "h_ops_data");
+    auto datas = get_vec_from_dict_item<std::vector<NpArray<complex_t>>>(py_global_data, "h_ops_data");
     auto idxs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ind");
     auto ptrs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ptr");
     auto energy = get_vec_from_dict_item<complex_t>(py_global_data, "h_diag_elems");
@@ -199,7 +198,7 @@ PyObject * td_ode_rhs(
         if(sys_index == systems.size() && num_h_terms > systems.size()){
             term = "1.0";
         }else if(sys_index < systems.size()){
-            term = sys;
+            term = sys.second;
         }else{
             continue;
         }

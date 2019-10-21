@@ -21,7 +21,6 @@ from libcpp.complex cimport complex
 from libcpp cimport bool
 import numpy as np
 cimport numpy as np
-#from numpy cimport PyArrayObject
 
 # These definitions are only for testing the C++ wrappers over Python C API
 cdef extern from "src/test_helpers.hpp":

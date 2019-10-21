@@ -20,6 +20,7 @@
 #include <vector>
 #include <complex>
 #include <Python.h>
+#include <iostream>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
@@ -79,11 +80,9 @@ bool cpp_test_np_array_of_doubles(PyArrayObject * val){
 }
 
 bool cpp_test_evaluate_hamiltonians(PyObject * val){
-    std::raise(SIGTRAP);
+    //std::raise(SIGTRAP);
     return false;
 }
-
-
 
 
 #endif // _TEST_HELPERS_HPP
