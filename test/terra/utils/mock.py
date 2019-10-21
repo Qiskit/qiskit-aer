@@ -91,11 +91,11 @@ class FakeBackend(BaseBackend):
             'backend_version': self.configuration().backend_version,
             'last_update_date': dummy_date,
             'qubits': [[{'name': 'DUMMY', 'date': dummy_date,
-                         'unit': 's', 'value': 0}]],
+                         'unit': 'ms', 'value': 0}]],
             'gates': [{'qubits': [0], 'gate': 'DUMMY',
                        'parameters':
                            [{'name': 'DUMMY', 'date': dummy_date,
-                             'unit': 's', 'value': 0}]}],
+                             'unit': 'ms', 'value': 0}]}],
             'general': []
         }
 
