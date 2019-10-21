@@ -47,6 +47,7 @@ template <class T, size_t N, typename = enable_if_numeric<T>>
 std::array<T, N>& isquare(std::array<T, N>& data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
+  return data;
 }
 
 //----------------------------------------------------------------------------
@@ -68,6 +69,7 @@ template <class T, typename = enable_if_numeric<T>>
 std::vector<T>& isquare(std::vector<T>& data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
+  return data;
 }
 
 //----------------------------------------------------------------------------
@@ -148,15 +150,14 @@ json_t& isquare(json_t& data) {
       isquare(data[pos]);
     }
     return data;
-  } else if (data.is_object()) {
+  } 
+  if (data.is_object()) {
     for (auto it = data.begin(); it != data.end(); ++it) {
       isquare(data[it.key()]);
     }
     return data;
-  } else {
-    throw std::invalid_argument("Input JSONs cannot be squared.");
   }
-  return data;
+  throw std::invalid_argument("Input JSONs cannot be squared.");
 }
 
 json_t square(const json_t& data) {
