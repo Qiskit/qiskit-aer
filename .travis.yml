@@ -25,6 +25,7 @@ sudo: false
 stage_generic: &stage_generic
   install:
     - pip install cython
+    - pip install pybind11
     # Installing qiskit-terra master branch...
     - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
     # Installing qiskit-aer...
