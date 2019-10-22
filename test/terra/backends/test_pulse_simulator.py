@@ -676,7 +676,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
-        # again do pi pulse but now remove omega1 (ie omega0 != omega1); verify swap does not occur
+        # again do pi pulse but now set omega_d1=0 (ie omega_d0 != omega_d1); verify swap does not occur
         omega_d1 = 0
         # Q0 drive amp -> pi pulse
         omega_a = np.pi/self.drive_samples
