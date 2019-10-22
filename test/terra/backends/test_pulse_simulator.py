@@ -33,13 +33,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     Mathematical expressions are formulated in latex in docstrings for this class.
 
     # pylint: disable=anomalous backslash in string
-    Uses Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_1
-    e^{i(\omega t+\phi)} \sigma_x`,
-    as it has a closed form solution under the rotating frame transformation. We make sure H is
-    Hermitian by taking the complex conjugate of the lower triangular piece (as done by the
-    simulator). To find the closed form, we apply the unitary `Urot = e^{-i \omega_0 t \sigma_z/2}`.
-    In this frame, the Hamiltonian becomes
-    `Hrot = \frac{1}{2} \omega_1 (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)`,
+    Uses single qubit Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
+    e^{i(\omega_{d0} t+\phi)} \sigma_x`, as it has a closed form solution under the rotating frame
+    transformation. We make sure H is Hermitian by taking the complex conjugate of the lower
+    triangular piece (as done by the simulator). To find the closed form, we apply the unitary
+    `Urot = e^{-i \omega_0 t \sigma_z/2}`. In this frame, the Hamiltonian becomes
+    `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)`,
     which is easily solvable.
     """
 
@@ -60,8 +59,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.qubit_1 = 1
         self.freq_qubit_1 = self.defaults.qubit_freq_est[self.qubit_1]
 
-        # define the measurement map (so can measure the qubits seperately)
-        self.meas_map = [[self.qubit_0], [self.qubit_1]]
+        # 1q measurement map (so can measure the qubits seperately)
+        self.meas_map_1q =  [[self.qubit_0], [self.qubit_1]]
+        # 2q measurement map
+        self.meas_map_2q = [[self.qubit_0, self.qubit_1]]
 
         # define the pulse time (# of samples)
         self.drive_samples = 100
@@ -70,6 +71,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         acq_cmd = pulse.Acquire(duration=self.drive_samples)
         self.acq_0 = acq_cmd(self.system.acquires[self.qubit_0],
                              self.system.memoryslots[self.qubit_0])
+        self.acq_01 = acq_cmd(self.system.acquires, self.system.memoryslots)
 
         #Get pulse simulator backend
         self.backend_sim = qiskit.Aer.get_backend('pulse_simulator')
@@ -81,7 +83,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Returns:
             schedule (pulse schedule): schedule for this test
         """
-         # drive pulse (just phase; omega1 included in Hamiltonian)
+         # drive pulse (just phase; omega_a included in Hamiltonian)
         const_pulse = np.ones(self.drive_samples)
         phase = np.exp(1j*phi)
         drive_pulse = SamplePulse(phase*const_pulse, name='drive_pulse')
@@ -89,6 +91,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # add commands to schedule
         schedule = pulse.Schedule(name='drive_pulse')
         schedule |= drive_pulse(self.system.qubits[self.qubit_0].drive)
+
         schedule |= self.acq_0 << schedule.duration
 
         return schedule
@@ -106,7 +109,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Returns:
             schedule (pulse schedule): schedule for frame change test
         """
-         # drive pulse (just phase; omega1 included in Hamiltonian)
+         # drive pulse (just phase; omega_a included in Hamiltonian)
         phase = np.exp(1j*phi)
         drive_pulse_1 = SamplePulse(phase*np.ones(fc_dur1), name='drive_pulse_1')
         drive_pulse_2 = SamplePulse(phase*np.ones(fc_dur2), name='drive_pulse_2')
@@ -123,19 +126,19 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-    def persistent_value_schedule(self, omega1_pv):
+    def persistent_value_schedule(self, omega_a_pv):
         """Creates schedule for persistent value experiment. Creates pv pulse w/ drive amplitude
-        omega1_pv. It does this by setting the omega1 term in the Hamiltonian = 1. Sets length of
-        the pv pulse = self.drive_samples. The product omega1_pv*self.drive_samples, then, controls
+        omega_a_pv. It does this by setting the omega_a term in the Hamiltonian = 1. Sets length of
+        the pv pulse = self.drive_samples. The product omega_a_pv*self.drive_samples, then, controls
         the resulting state.
         Args:
-            omega1_pv (float): drive amplitude from the pv pulse
+            omega_a_pv (float): drive amplitude from the pv pulse
 
         Returns:
             schedule (pulse schedule): schedule for pv experiment
         """
         # pv pulse
-        pv_pulse = PersistentValue(value=omega1_pv, name='pv')
+        pv_pulse = PersistentValue(value=omega_a_pv, name='pv')
 
         # add commands to schedule
         schedule = pulse.Schedule(name='pv_schedule')
@@ -144,14 +147,99 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-    def create_qobj(self, shots, omega0, omega1, omega, phi, meas_level, schedule_type=None,
-                    fc_phi=0, fc_dur1=0, fc_dur2=0, omega1_pv=0, qub_dim=2):
+    def schedule_2q(self):
+        """Creates schedule for testing two qubit interaction. Specifically, do a pi pulse on qub 0
+        so it starts in the `1` state (drive channel) and then apply constant pulses to each
+        qubit (on control channel 1). This will allow us to test a swap gate.
+        Returns:
+            schedule (pulse schedule): schedule for 2q experiment
+        """
+        # set up const pulse
+        const_pulse = SamplePulse(np.ones(self.drive_samples), name='const_pulse')
+
+        # set u channel
+        uchannel = 1 # gives omega1-omega0 (we will set equal, so don't need negation)
+
+        # add commands to schedule
+        schedule = pulse.Schedule(name='2q_schedule')
+        schedule |= const_pulse(self.system.qubits[self.qubit_0].drive) # pi pulse drive
+        schedule += const_pulse(self.system.controls[uchannel]) # u channel pulse
+        schedule |= self.acq_01 << schedule.duration
+
+        return schedule
+
+
+    def create_ham_1q(self, omega_0, omega_a, qub_dim):
+        """Create single qubit Hamiltonian as given in class docstring
+        Args:
+            omega_0 (float): qubit 0 frequency
+            omega_a (float): drive amplitude
+            qub_dim (int): dimension of qubit subspace
+        Returns:
+            hamiltonian (dict): dictionary representation of single qubit hamiltonian
+        """
+
+        # Create the hamiltonian
+        hamiltonian = {}
+        hamiltonian['h_str'] = []
+
+        # Q0 terms
+        hamiltonian['h_str'].append('-0.5*omega0*Z0')
+        hamiltonian['h_str'].append('0.5*omegaa*X0||D0')
+
+        # Q1 terms
+        # none
+
+        # Set variables in ham
+        hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a}
+
+        # set the qubit dimension to qub_dim
+        hamiltonian['qub'] = {'0': qub_dim}
+
+        return hamiltonian
+
+    def create_ham_2q(self, omega_0, omega_a, omega_i, qub_dim):
+        """Create two qubit Hamiltonian as given in comment of interaction test
+        Args:
+            omega_a (float): Q0 drive amplitude
+            omega_i (float): interaction amplitude
+            qub_dim (int): dimension of qubit subspace (same for both qubits)
+        Returns:
+            hamiltonian (dict): dictionary representation of two qubit hamiltonian
+        """
+
+         # Create the hamiltonian
+        hamiltonian = {}
+        hamiltonian['h_str'] = []
+
+        # Q0 single qubit term (used to pi pulse Q0)
+        hamiltonian['h_str'].append('-0.5*omega0*Z0')
+        hamiltonian['h_str'].append('0.5*omegaa*X0||D0')
+
+        # interaction term (uses U channels to get exponential piece)
+        hamiltonian['h_str'].append('omegai*Sp0*Sm1||U1')
+        hamiltonian['h_str'].append('omegai*Sm0*Sp1||U1')
+
+
+        # Set variables in ham
+        hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a, 'omegai': omega_i}
+
+        # set the qubit dimensions to qub_dim
+        hamiltonian['qub'] = {'0': qub_dim, '1': qub_dim}
+
+        return hamiltonian
+
+
+
+    def create_qobj(self, shots, omega_0, omega_a, omega_d0, phi, meas_level, schedule_type=None,
+                    fc_phi=0, fc_dur1=0, fc_dur2=0, omega_a_pv=0, qub_dim=2, omega_d1=0, omega_i=0,
+                    is2q=False):
         """Creates qobj for the specified pulse experiment. Uses Hamiltonian from class docstring.
         Args:
             shots (int): number of times to perform experiment
-            omega0 (float): qubit frequency
-            omega1 (float): drive power/amplitude
-            omega (float): drive frequency
+            omega_0 (float): qubit 0 frequency
+            omega_a (float): drive power/amplitude
+            omega_d0 (float): qubit 0 drive frequency
             phi (float): drive phase
             meas_level (int): how to return the data
             schedule_type (str): type of schedule. Default is single pulse, can also set to
@@ -159,9 +247,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             fc_phi (float): frame change phase (set to 0 unless fc experiment)
             fc_dur1 (int): duration of first pulse in fc experiment (set to 0 unless fc experiment)
             fc_dur2 (int): duration of second pulse in fc experiment (set to 0 unless fc experiment)
-            omega1_pv (float): drive amplitude in pv_experiment (set to 0 unless pv
+            omega_a_pv (float): drive amplitude in pv_experiment (set to 0 unless pv
             experiment)
             qub_dim (int): dimension of the qubit subspace (defaults to 2)
+            omega_d1 (float): qubit 1 drive frequency (defaults to 0)
+            omega_i (float): amplitude for interaction term
+            is2q (boolean): if true, use 2 qubit Hamiltonian given in interaction test comment
         Returns:
             Qobj: qobj representing this pulse experiment
         """
@@ -172,25 +263,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             schedule = self.frame_change_schedule(phi=phi, fc_phi=fc_phi,
                                                   fc_dur1=fc_dur1, fc_dur2=fc_dur2)
         elif schedule_type == 'pv':
-            omega1 = 1 # make sure omega1 is equal to 1 (so that drive amp is omega1_pv)
-            schedule = self.persistent_value_schedule(omega1_pv=omega1_pv)
+            omega_a = 1 # make sure omega_a is equal to 1 (so that drive amp is omega_a_pv)
+            schedule = self.persistent_value_schedule(omega_a_pv=omega_a_pv)
 
-        # Create the hamiltonian
-        hamiltonian = {}
-        hamiltonian['h_str'] = []
-
-        # Q0 terms
-        hamiltonian['h_str'].append('-0.5*omega0*Z0')
-        hamiltonian['h_str'].append('0.5*omega1*X0||D0')
-
-        # Q1 terms
-        # none for now
-
-        # Set variables in ham
-        hamiltonian['vars'] = {'omega0': omega0, 'omega1': omega1}
-
-        # set the qubit dimension to qub_dim
-        hamiltonian['qub'] = {'0': qub_dim}
+        # create the proper hamiltonian
+        hamiltonian = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a, qub_dim=qub_dim)
+        # if 2q, update hamiltonian and the schedule
+        if is2q:
+            hamiltonian = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a, omega_i=omega_i,
+                                             qub_dim=qub_dim)
+            schedule = self.schedule_2q()
 
         # update the back_end
         self.back_config['hamiltonian'] = hamiltonian
@@ -198,36 +280,51 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.back_config['dt'] = 1.0 # makes time = self.drive_samples
 
         self.back_config['ode_options'] = {} # optionally set ode settings
-        self.back_config['qubit_list'] = [self.qubit_0] # restrict qubit set to 0
 
+        # 1 qubit settings
+        qubit_list = [self.qubit_0]
+        memory_slots = 1
+        qubit_lo_freq = [omega_d0/(2*np.pi)]
+        meas_map = self.meas_map_1q
+        # update for 2 qubits
+        if is2q:
+            qubit_list.append(self.qubit_1)
+            memory_slots = 2
+            qubit_lo_freq.append(omega_d1/(2*np.pi))
+            meas_map = self.meas_map_2q
+
+
+        self.back_config['qubit_list'] = qubit_list
         qobj = assemble([schedule], self.backend_real,
                         meas_level=meas_level, meas_return='single',
-                        meas_map=self.meas_map, qubit_lo_freq=[omega/(2*np.pi)],
-                        memory_slots=1, shots=shots, sim_config=self.back_config)
+                        meas_map=meas_map, qubit_lo_freq=qubit_lo_freq,
+                        memory_slots=memory_slots, shots=shots, sim_config=self.back_config)
 
         return qobj
+
+    #### SINGLE QUBIT TESTS ########################################################################
 
     # ---------------------------------------------------------------------
     # Test gates (using meas level 2)
     # ---------------------------------------------------------------------
     def test_x_gate(self):
-        """Test x gate. Set omega=omega0 (drive on resonance), phi=0, omega1 = pi/time
+        """Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
         """
 
         # set variables
 
-        # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
-        # Require omega1*time = pi to implement pi pulse (x gate)
+        # Require omega_a*time = pi to implement pi pulse (x gate)
         # num of samples gives time
-        omega1 = np.pi/self.drive_samples
+        omega_a = np.pi/self.drive_samples
 
         phi = 0
 
-        x_qobj = self.create_qobj(shots=256, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                  meas_level=2)
+        x_qobj = self.create_qobj(shots=256, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                  phi=phi, meas_level=2)
         result = self.backend_sim.run(x_qobj).result()
         counts = result.get_counts()
 
@@ -236,36 +333,36 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_result)
 
     def test_hadamard_gate(self):
-        """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega=omega0
-        (drive on resonance), phi=-pi/2, omega1 = pi/2/time
+        """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega_d0=omega_0
+        (drive on resonance), phi=-pi/2, omega_a = pi/2/time
         """
 
         # set variables
 
-        # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
-        # Require omega1*time = pi/2 to implement pi/2 rotation pulse
+        # Require omega_a*time = pi/2 to implement pi/2 rotation pulse
         # num of samples gives time
-        omega1 = np.pi/2/self.drive_samples
+        omega_a = np.pi/2/self.drive_samples
 
         phi = -np.pi/2
-        shots = 100000 # large number of shots so get good probabilities
+        shots = 100000 # large number of shots so get good proportions
 
-        had_qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega,
-                                    phi=phi, meas_level=2)
+        had_qobj = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a,
+                                    omega_d0=omega_d0, phi=phi, meas_level=2)
         result = self.backend_sim.run(had_qobj).result()
         counts = result.get_counts()
 
-        # compare probs
-        prob = {}
+        # compare prop
+        prop = {}
         for key in counts.keys():
-            prob[key] = counts[key]/shots
+            prop[key] = counts[key]/shots
 
-        exp_prob = {'0':0.5, '1':0.5}
+        exp_prop = {'0':0.5, '1':0.5}
 
-        self.assertDictAlmostEqual(prob, exp_prob, delta=0.01)
+        self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
@@ -273,77 +370,77 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Gate 1
 
         # set variables
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0+0.01
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0+0.01
 
-        omega1 = 2*np.pi/3/self.drive_samples
+        omega_a = 2*np.pi/3/self.drive_samples
 
         phi = 5*np.pi/7
-        shots = 10000000 # large number of shots so get good probabilities
+        shots = 10000000 # large number of shots so get good proportions
 
-        # Run qobj and compare probs to expected result
-        qobj1 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega,
+        # Run qobj and compare prop to expected result
+        qobj1 = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
                                  phi=phi, meas_level=2)
         result1 = self.backend_sim.run(qobj1).result()
         counts1 = result1.get_counts()
 
-        prob1 = {}
+        prop1 = {}
         for key in counts1.keys():
-            prob1[key] = counts1[key]/shots
+            prop1[key] = counts1[key]/shots
 
-        exp_prob1 = {'0':0.315253, '1':1-0.315253}
+        exp_prop1 = {'0':0.315253, '1':1-0.315253}
 
-        self.assertDictAlmostEqual(prob1, exp_prob1, delta=0.001)
+        self.assertDictAlmostEqual(prop1, exp_prop1, delta=0.001)
 
         # Gate 2
 
         # set variables
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0+0.02
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0+0.02
 
-        omega1 = 7*np.pi/5/self.drive_samples
+        omega_a = 7*np.pi/5/self.drive_samples
 
         phi = 19*np.pi/14
-        shots = 10000000 # large number of shots so get good probabilities
+        shots = 10000000 # large number of shots so get good proportions
 
-        # Run qobj and compare probs to expected result
-        qobj2 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega,
+        # Run qobj and compare prop to expected result
+        qobj2 = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
                                  phi=phi, meas_level=2)
         result2 = self.backend_sim.run(qobj2).result()
         counts2 = result2.get_counts()
 
-        prob2 = {}
+        prop2 = {}
         for key in counts2.keys():
-            prob2[key] = counts2[key]/shots
+            prop2[key] = counts2[key]/shots
 
-        exp_prob2 = {'0':0.634952, '1':1-0.634952}
+        exp_prop2 = {'0':0.634952, '1':1-0.634952}
 
-        self.assertDictAlmostEqual(prob2, exp_prob2, delta=0.001)
+        self.assertDictAlmostEqual(prop2, exp_prop2, delta=0.001)
 
         # Gate 3
 
         # set variables
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0+0.005
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0+0.005
 
-        omega1 = 0.1
+        omega_a = 0.1
 
         phi = np.pi/4
-        shots = 10000000 # large number of shots so get good probabilities
+        shots = 10000000 # large number of shots so get good proportions
 
-        # Run qobj and compare probs to expected result
-        qobj3 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega,
+        # Run qobj and compare prop to expected result
+        qobj3 = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
                                  phi=phi, meas_level=2)
         result3 = self.backend_sim.run(qobj3).result()
         counts3 = result3.get_counts()
 
-        prob3 = {}
+        prop3 = {}
         for key in counts3.keys():
-            prob3[key] = counts3[key]/shots
+            prop3[key] = counts3[key]/shots
 
-        exp_prob3 = {'0':0.0861794, '1':1-0.0861794}
+        exp_prop3 = {'0':0.0861794, '1':1-0.0861794}
 
-        self.assertDictAlmostEqual(prob3, exp_prob3, delta=0.001)
+        self.assertDictAlmostEqual(prop3, exp_prop3, delta=0.001)
 
     # ---------------------------------------------------------------------
     # Test meas level 1
@@ -354,36 +451,36 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # perform hadamard setup (so get some 0's and some 1's), but use meas_level = 1
 
-         # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+         # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
-        # Require omega1*time = pi/2 to implement pi/2 rotation pulse
+        # Require omega_a*time = pi/2 to implement pi/2 rotation pulse
         # num of samples gives time
-        omega1 = np.pi/2/self.drive_samples
+        omega_a = np.pi/2/self.drive_samples
 
         phi = -np.pi/2
 
-        shots = 100000 # run large number of shots for good probs
+        shots = 100000 # run large number of shots for good proportions
 
-        qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                meas_level=1)
+        qobj = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                phi=phi, meas_level=1)
         result = self.backend_sim.run(qobj).result()
 
         # Verify that (about) half the IQ vals have abs val 1 and half have abs val 0
-        # (use probs for easier comparison)
+        # (use prop for easier comparison)
         mem = np.abs(result.get_memory()[:, self.qubit_0])
 
-        iq_prob = {'0': 0, '1': 0}
+        iq_prop = {'0': 0, '1': 0}
         for i in mem:
             if i == 0:
-                iq_prob['0'] += 1/shots
+                iq_prop['0'] += 1/shots
             else:
-                iq_prob['1'] += 1/shots
+                iq_prop['1'] += 1/shots
 
-        exp_prob = {'0': 0.5, '1': 0.5}
+        exp_prop = {'0': 0.5, '1': 0.5}
 
-        self.assertDictAlmostEqual(iq_prob, exp_prob, delta=0.01)
+        self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
 
     # ---------------------------------------------------------------------
     # Test FrameChange and PersistentValue commands
@@ -392,9 +489,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     def test_frame_change(self):
         """Test frame change command. """
         shots = 1000000
-        # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
         # set phi = 0
         phi = 0
@@ -403,12 +500,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # do pi/2 pulse, then pi phase change, then another pi/2 pulse. Verify left in |0> state
         fc_dur1 = self.drive_samples
         fc_dur2 = fc_dur1
-        omega1 = np.pi/2/fc_dur1
+        omega_a = np.pi/2/fc_dur1
 
         fc_phi = np.pi
 
-        fc_qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                   meas_level=2, schedule_type='fc', fc_phi=fc_phi,
+        fc_qobj = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, schedule_type='fc', fc_phi=fc_phi,
                                    fc_dur1=fc_dur1, fc_dur2=fc_dur2)
         result = self.backend_sim.run(fc_qobj).result()
         counts = result.get_counts()
@@ -417,45 +514,44 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_result)
 
         # Test 2
-        # do pi/4 pulse, then pi phase change, then do pi/8 pulse. Should get |0> w/ prob = 0.96194.
+        # do pi/4 pulse, then pi phase change, then do pi/8 pulse. Should get |0> w/ prop = 0.96194.
         fc_dur1 = self.drive_samples
         fc_dur2 = fc_dur1//2 # half time to do the pi/8 pulse (halves angle)
-        omega1 = np.pi/4/fc_dur1
+        omega_a = np.pi/4/fc_dur1
 
         fc_phi = np.pi
 
-        fc_qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                   meas_level=2, schedule_type='fc', fc_phi=fc_phi,
+        fc_qobj = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, schedule_type='fc', fc_phi=fc_phi,
                                    fc_dur1=fc_dur1, fc_dur2=fc_dur2)
         result = self.backend_sim.run(fc_qobj).result()
         counts = result.get_counts()
 
-        # verify probs
-        prob = {}
+        # verify props
+        prop = {}
         for key in counts.keys():
-            prob[key] = counts[key]/shots
+            prop[key] = counts[key]/shots
 
-        exp_prob = {'0':0.96194, '1':(1-0.96194)}
-        self.assertDictAlmostEqual(prob, exp_prob, delta=0.001)
+        exp_prop = {'0':0.96194, '1':(1-0.96194)}
+        self.assertDictAlmostEqual(prop, exp_prop, delta=0.001)
 
     def test_persistent_value(self):
         """Test persistent value command. """
 
         shots = 256
-        # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
         # set phi = 0 (so don't need to account for this in pv amplitude)
         phi = 0
 
-        # Set omega1 = 1 and do pi pulse w/ omega1_pv. Verify result is the |1> state
-        omega1 = 1
-        omega1_pv = np.pi/self.drive_samples # pi pulse
+        # Set omega_a = 1 and do pi pulse w/ omega_a_pv. Verify result is the |1> state
+        omega_a = 1
+        omega_a_pv = np.pi/self.drive_samples # pi pulse
 
-        pv_qobj = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                   meas_level=2, schedule_type='pv',
-                                   omega1_pv=omega1_pv)
+        pv_qobj = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, schedule_type='pv', omega_a_pv=omega_a_pv)
         result = self.backend_sim.run(pv_qobj).result()
         counts = result.get_counts()
         exp_result = {'1':shots}
@@ -470,27 +566,27 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def test_three_level(self):
         """Test 3 level system. Compare statevectors as counts only use bitstrings. Analytically, 
-        the expected statevector is `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_1 t)),
-        -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_1 t),
-        -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_1 t)^2)`.
+        the expected statevector is `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
+        -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
+        -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
         """
 
         # set qubit dimension to 3
         qub_dim = 3
 
         shots = 1000
-        # set omega0, omega equal (use qubit frequency) -> drive on resonance
-        omega0 = 2*np.pi*self.freq_qubit_0
-        omega = omega0
+        # set omega_0,omega_d0 (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
 
         # set phi = 0 for simplicity
         phi = 0
 
-        # Test omega1*t = pi
-        omega1 = np.pi/self.drive_samples
+        # Test omega_a*t = pi
+        omega_a = np.pi/self.drive_samples
 
-        qobj_1 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                  meas_level=2, qub_dim=qub_dim)
+        qobj_1 = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                  phi=phi, meas_level=2, qub_dim=qub_dim)
         result_1 = self.backend_sim.run(qobj_1).result()
         state_vector_1 = result_1.get_statevector()
 
@@ -500,11 +596,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for i, _ in enumerate(state_vector_1):
             self.assertAlmostEqual(state_vector_1[i], exp_state_vector_1[i], places=4)
 
-        # Test omega1*t = 2 pi
-        omega1 = 2*np.pi/self.drive_samples
+        # Test omega_a*t = 2 pi
+        omega_a = 2*np.pi/self.drive_samples
 
-        qobj_2 = self.create_qobj(shots=shots, omega0=omega0, omega1=omega1, omega=omega, phi=phi,
-                                  meas_level=2, qub_dim=qub_dim)
+        qobj_2 = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                  phi=phi, meas_level=2, qub_dim=qub_dim)
         result_2 = self.backend_sim.run(qobj_2).result()
         state_vector_2 = result_2.get_statevector()
 
@@ -514,6 +610,87 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for i, _ in enumerate(state_vector_2):
             self.assertAlmostEqual(state_vector_2[i], exp_state_vector_2[i], places=4)
 
+    #### TWO QUBIT TESTS ###########################################################################
+
+    # ----------------------------------------------------------------------------------------------
+    # Test qubit interaction (use 2 qubits for simplicity)
+    # For these tests, we use a different 2-qubit Hamiltonian that tests both
+    # interaction and control (U) channels. In the lab frame, it is given
+    # by `H = -\frac{1}{2} \omega_0 \sigma_z^0 + \frac{1}{2} \omega_a e^{i \omega_{d0} t} \sigma_x^0
+    # `+ \omega_i (e^{i (\omega_{d0}-\omega_{d1}) t} \sigma_p \otimes \sigma_{m1} + `
+    # `+ e^{-i (\omega_{d0}-\omega_{d1}) t} \sigma_m \otimes \sigma_p)`. First 2 terms allow us to
+    # excite the 0 qubit. Latter 2 terms define the interaction.
+    # ----------------------------------------------------------------------------------------------
+
+    def test_interaction(self):
+        """Test 2 qubit interaction. Set `\omega_d0 = \omega_d1` (for first two test) as this
+        removes the time dependence and makes the Hamiltonian easily solvable.
+        Using `U = e^{-i H t}` one can see that H defines a swap gate. """
+
+        shots = 1000000
+        # set omega_d0=omega_0 (resonance)
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
+
+        # Set omega_d0=omega_d1
+        omega_d1 = omega_d0
+
+         # set phi = 0
+        phi = 0
+
+        # do pi pulse on Q0 and verify state swaps from '01' to '10'
+
+        # Q0 drive amp -> pi pulse
+        omega_a = np.pi/self.drive_samples
+        # Interaction amp -> pi/2 pulse (creates the swap gate)
+        omega_i = np.pi/2/self.drive_samples
+
+        qobj_2q = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, omega_d1=omega_d1, omega_i=omega_i,
+                                   is2q=True)
+        result = self.backend_sim.run(qobj_2q).result()
+        counts = result.get_counts()
+
+        exp_counts = {'10': shots} # reverse ordering; after flip Q0, state is '01'
+        self.assertDictAlmostEqual(counts, exp_counts, delta=2)
+
+        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
+
+        # Q0 drive amp -> pi/2 pulse
+        omega_a = np.pi/2/self.drive_samples
+        # Interaction amp -> pi/2 pulse (creates the swap gate)
+        omega_i = np.pi/2/self.drive_samples
+
+        qobj_2q = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, omega_d1=omega_d1, omega_i=omega_i,
+                                   is2q=True)
+        result = self.backend_sim.run(qobj_2q).result()
+        counts = result.get_counts()
+
+        # compare proportions for improved accuracy
+        prop = {}
+        for key in counts.keys():
+            prop[key] = counts[key]/shots
+
+        exp_prop = {'00':0.5, '10':0.5}
+
+        self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
+
+        # again do pi pulse but now remove omega1 (ie omega0 != omega1); verify swap does not occur
+        omega_d1 = 0
+        # Q0 drive amp -> pi pulse
+        omega_a = np.pi/self.drive_samples
+        # Interaction amp -> pi/2 pulse (creates the swap gate)
+        omega_i = np.pi/2/self.drive_samples
+
+        qobj_2q = self.create_qobj(shots=shots, omega_0=omega_0, omega_a=omega_a, omega_d0=omega_d0,
+                                   phi=phi, meas_level=2, omega_d1=omega_d1, omega_i=omega_i,
+                                   is2q=True)
+        result = self.backend_sim.run(qobj_2q).result()
+        counts = result.get_counts()
+
+        swap_counts = {'10': shots}
+        self.assertNotEqual(counts, swap_counts)
 
 if __name__ == '__main__':
     unittest.main()
