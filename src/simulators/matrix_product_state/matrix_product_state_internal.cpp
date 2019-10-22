@@ -1,8 +1,15 @@
 /**
- * Copyright 2019, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -128,6 +135,8 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
 void MPS::initialize(uint_t num_qubits)
 {
   num_qubits_ = num_qubits;
+  q_reg_.clear();
+  lambda_reg_.clear();
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
   for(uint_t i = 0; i < num_qubits_-1; i++) {
@@ -529,7 +538,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
   return result;
 }
 
-  std::ostream& MPS::print(std::ostream& out) const
+std::ostream& MPS::print(std::ostream& out) const
 {
 	for(uint_t i=0; i<num_qubits_; i++)
 	{

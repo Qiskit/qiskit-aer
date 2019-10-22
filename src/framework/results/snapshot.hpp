@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_snapshot_hpp_
-#define _aer_framework_snapshot_hpp_
+#ifndef _aer_framework_results_snapshot_hpp_
+#define _aer_framework_results_snapshot_hpp_
 
 #include "framework/types.hpp"
 

@@ -1,8 +1,15 @@
 /**
- * Copyright 2019, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -37,15 +44,15 @@ using cmatrix_t = matrix<complex_t>;
 //============================================================================
 // MPS_Tensor class
 //============================================================================
-// The MPS_Tensor class is used to represent the data structure of a single 
-// Gamma-tensor (corresponding to a single qubit) in the MPS algorithm. 
-// In the stable state, each MPS_Tensor consists of two matrices - 
-// the matrix with index 0 (data_[0]) represents the amplitude of |0> and 
+// The MPS_Tensor class is used to represent the data structure of a single
+// Gamma-tensor (corresponding to a single qubit) in the MPS algorithm.
+// In the stable state, each MPS_Tensor consists of two matrices -
+// the matrix with index 0 (data_[0]) represents the amplitude of |0> and
 // the matrix with index 1 (data_[1]) represents the amplitude of |1>.
-// When applying a two-qubit gate, we temporarily create an MPS_Tensor of four matrices, 
+// When applying a two-qubit gate, we temporarily create an MPS_Tensor of four matrices,
 // corresponding to |00>, |01>, |10>, |11>.
 // These are later decomposed back to the stable state of two matrices MPS_Tensor (per qubit).
-//----------------------------------------------------------------	
+//----------------------------------------------------------------
 
 class MPS_Tensor
 {
@@ -73,7 +80,7 @@ public:
 
   // Destructor
   virtual ~MPS_Tensor(){}
-  
+
   // Assignment operator
   MPS_Tensor& operator=(const MPS_Tensor& rhs){
     if (this != &rhs){
@@ -125,7 +132,7 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  const MPS_Tensor &right_gamma,
 				  cmatrix_t &result);
 private:
-  void mul_Gamma_by_Lambda(const rvector_t &Lambda, 
+  void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
 			   bool mul    /* or div */);
 
@@ -139,30 +146,30 @@ private:
 //---------------------------------------------------------------
 // function name: print
 // Description: Prints the Tensor. All the submatrices are aligned by rows.
-//---------------------------------------------------------------
-std::ostream& MPS_Tensor::print(std::ostream& out) const {   
+//-------------------------------------------------------------
+std::ostream& MPS_Tensor::print(std::ostream& out) const {
     complex_t value;
-    
+
     out << "[" << std::endl;
     if (data_.size() > 0){
         //Printing the matrices row by row (i.e., not matrix by matrix)
-        
+
         for (uint_t row = 0; row < data_[0].GetRows(); row++){
             for(uint_t i = 0; i < data_.size(); i++)
             {
                 out << " |";
-                
+
                 for (uint_t column = 0; column < data_[0].GetColumns(); column++){
-                    
+
                     value = data_[i](row, column);
-                    
+
                     out << "(" << std::fixed << std::setprecision(NUMBER_OF_PRINTED_DIGITS) << value.real() << ", ";
                     out << std::fixed  << std::setprecision(NUMBER_OF_PRINTED_DIGITS) << value.imag() << ")," ;
-                }    
+                }
                 out << "| ,";
             }
             out << std::endl;
-        }        
+        }
     }
     out << "]" << std::endl;
 
@@ -182,7 +189,7 @@ reg_t MPS_Tensor::get_size() const
 	result.push_back(data_[0].GetColumns());
 	return result;
 }
- 
+
 //----------------------------------------------------------------
 // function name: get_data
 // Description: Get the data in some axis of the MPS_Tensor
@@ -262,7 +269,7 @@ void MPS_Tensor::apply_sdg()
 {
   data_[1] = data_[1] * complex_t(0, -1);
 }
-  
+
 void MPS_Tensor::apply_t()
 {
   data_[1] = data_[1] * complex_t(SQR_HALF, SQR_HALF);
@@ -334,7 +341,7 @@ void MPS_Tensor::div_Gamma_by_right_Lambda(const rvector_t &Lambda)
   mul_Gamma_by_Lambda(Lambda, true,/*right*/ false /*div*/);
 }
 
-void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda, 
+void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			 bool right, /* or left */
 			 bool mul    /* or div */)
 {
@@ -458,7 +465,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 #ifdef DEBUG
   std::cout << "Input matrix before SVD =" << std::endl << C ;
 #endif
-  
+
   csvd_wrapper(C, U, S, V);
   reduce_zeros(U, S, V);
 

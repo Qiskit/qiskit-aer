@@ -39,7 +39,7 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
@@ -54,7 +54,7 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
@@ -68,7 +68,7 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         # Test sampling was enabled
         for res in result.results:
@@ -84,7 +84,7 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
@@ -104,7 +104,7 @@ class QasmMeasureTests:
         result = self.SIMULATOR.run(
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_sampling_with_quantum_noise(self):
@@ -127,7 +127,7 @@ class QasmMeasureTests:
         result = self.SIMULATOR.run(
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         sampling = (self.BACKEND_OPTS.get("method") == "density_matrix")
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
@@ -151,7 +151,7 @@ class QasmMultiQubitMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
@@ -179,7 +179,7 @@ class QasmMultiQubitMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
@@ -192,6 +192,6 @@ class QasmMultiQubitMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)

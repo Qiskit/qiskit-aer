@@ -153,7 +153,7 @@ protected:
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  virtual OutputData run_circuit(const Circuit &circ,
+  virtual ExperimentData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel& noise,
                                  const json_t &config,
                                  uint_t shots,
@@ -187,7 +187,7 @@ protected:
 
   // Execute n-shots of a circuit on the input state
   template <class State_t, class Initstate_t>
-  OutputData run_circuit_helper(const Circuit &circ,
+  ExperimentData run_circuit_helper(const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 const json_t &config,
                                 uint_t shots,
@@ -202,7 +202,7 @@ protected:
   void run_single_shot(const Circuit &circ,
                        State_t &state,
                        const Initstate_t &initial_state,
-                       OutputData &data,
+                       ExperimentData &data,
                        RngEngine &rng) const;
 
   // Execute a n-shots of a circuit without noise.
@@ -215,7 +215,7 @@ protected:
                                  State_t &state,
                                  const Initstate_t &initial_state,
                                  const Method method,
-                                 OutputData &data,
+                                 ExperimentData &data,
                                  RngEngine &rng) const;
 
   // Execute n-shots of a circuit with noise by sampling a new noisy
@@ -226,7 +226,7 @@ protected:
                               uint_t shots,
                               State_t &state,
                               const Initstate_t &initial_state,
-                              OutputData &data,
+                              ExperimentData &data,
                               RngEngine &rng) const;
 
   //----------------------------------------------------------------
@@ -239,7 +239,7 @@ protected:
   void measure_sampler(const std::vector<Operations::Op> &meas_ops,
                        uint_t shots,
                        State_t &state,
-                       OutputData &data,
+                       ExperimentData &data,
                        RngEngine &rng) const;
 
   // Check if measure sampling optimization is valid for the input circuit
@@ -373,7 +373,7 @@ void QasmController::clear_config() {
 // Base class override
 //-------------------------------------------------------------------------
 
-OutputData QasmController::run_circuit(const Circuit &circ,
+ExperimentData QasmController::run_circuit(const Circuit &circ,
                                        const Noise::NoiseModel& noise,
                                        const json_t &config,
                                        uint_t shots,
@@ -636,7 +636,7 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
 //-------------------------------------------------------------------------
 
 template <class State_t, class Initstate_t>
-OutputData QasmController::run_circuit_helper(const Circuit &circ,
+ExperimentData QasmController::run_circuit_helper(const Circuit &circ,
                                               const Noise::NoiseModel &noise,
                                               const json_t &config,
                                               uint_t shots,
@@ -658,14 +658,12 @@ OutputData QasmController::run_circuit_helper(const Circuit &circ,
   rng.set_seed(rng_seed);
 
   // Output data container
-  OutputData data;
+  ExperimentData data;
   data.set_config(config);
-  data.add_additional_data("metadata",
-                           json_t::object({{"method", state.name()}}));
+  data.add_metadata("method", state.name());
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
-  data.add_additional_data("metadata",
-                            json_t::object({{"measure_sampling", false}}));
+  data.add_metadata("measure_sampling", false);
 
   // Choose execution method based on noise and method
   if (noise.is_ideal()) {
@@ -696,7 +694,7 @@ template <class State_t, class Initstate_t>
 void QasmController::run_single_shot(const Circuit &circ,
                                      State_t &state,
                                      const Initstate_t &initial_state,
-                                     OutputData &data,
+                                     ExperimentData &data,
                                      RngEngine &rng) const {
   initialize_state(circ, state, initial_state);
   state.apply_ops(circ.ops, data, rng);
@@ -710,7 +708,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             uint_t shots,
                                             State_t &state,
                                             const Initstate_t &initial_state,
-                                            OutputData &data,
+                                            ExperimentData &data,
                                             RngEngine &rng) const {
   // Sample a new noise circuit and optimize for each shot
   while(shots-- > 0) {
@@ -731,7 +729,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
                                                State_t &state,
                                                const Initstate_t &initial_state,
                                                const Method method,
-                                               OutputData &data,
+                                               ExperimentData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
@@ -760,8 +758,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos, opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
     // Add measure sampling metadata
-    data.add_additional_data("metadata",
-                             json_t::object({{"measure_sampling", true}}));
+    data.add_metadata("measure_sampling", true);
   }  
 }
 
@@ -817,7 +814,7 @@ template <class State_t>
 void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_roerror_ops,
                                      uint_t shots,
                                      State_t &state,
-                                     OutputData &data,
+                                     ExperimentData &data,
                                      RngEngine &rng) const {
 
   // Check if meas_circ is empty, and if so return initial creg

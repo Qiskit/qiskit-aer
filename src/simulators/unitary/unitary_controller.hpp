@@ -81,7 +81,7 @@ private:
 
   // This simulator will only return a single shot, regardless of the
   // input shot number
-  virtual OutputData run_circuit(const Circuit &circ,
+  virtual ExperimentData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel& noise,
                                  const json_t &config,
                                  uint_t shots,
@@ -133,7 +133,7 @@ size_t UnitaryController::required_memory_mb(const Circuit& circ,
 // Run circuit
 //-------------------------------------------------------------------------
 
-OutputData UnitaryController::run_circuit(const Circuit &circ,
+ExperimentData UnitaryController::run_circuit(const Circuit &circ,
                                           const Noise::NoiseModel& noise,
                                           const json_t &config,
                                           uint_t shots,
@@ -170,7 +170,7 @@ OutputData UnitaryController::run_circuit(const Circuit &circ,
   rng.set_seed(rng_seed);
 
   // Output data container
-  OutputData data;
+  ExperimentData data;
   data.set_config(config);
 
   // Run single shot collecting measure data or snapshots

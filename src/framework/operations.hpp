@@ -1024,7 +1024,6 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
           throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
                                       comp.dump() + " invalid).");
         }
-        Op::matrix_component_t param;
         for (const auto &subcomp : comp[1]) {
           if (!subcomp.is_array() || subcomp.size() != 2) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
@@ -1033,6 +1032,7 @@ Op json_to_op_snapshot_matrix(const json_t &js) {
           reg_t comp_qubits = subcomp[0];
           cmatrix_t comp_matrix = subcomp[1];
           // Check qubits are ok
+          // TODO: check that qubits are in range from 0 to Num of Qubits - 1 for instr
           std::unordered_set<uint_t> unique = {comp_qubits.begin(), comp_qubits.end()};
           if (unique.size() != comp_qubits.size()) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 

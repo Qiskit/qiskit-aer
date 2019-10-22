@@ -1,9 +1,20 @@
 /**
- * Copyright 2019, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
+
+/*
+ * Adapted from: P. A. Businger and G. H. Golub, Comm. ACM 12, 564 (1969)
+*/
 
 
 #include <iostream>
@@ -82,7 +93,7 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	return sum;
 }
 
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) { 
+void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   uint_t SV_num = num_of_SV(S, 1e-16);
   U.resize(U.GetRows(), SV_num);
   S.resize(SV_num);
@@ -541,7 +552,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
     ss << "SVD failed";
     throw std::runtime_error(ss.str());
   }
-  
+
   //Divide by mul_factor every singular value after we multiplied matrix a
   for(int k = 0; k < S.size(); k++)
     S[k] /= pow(mul_factor, times);
