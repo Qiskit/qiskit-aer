@@ -560,14 +560,14 @@ json_t ExperimentData::json() const {
   // Snapshot data
   if (return_snapshots_) {
     // Average snapshots
-    for (auto &pair : average_json_snapshots_) {
+    for (const auto &pair : average_json_snapshots_) {
       tmp["snapshots"][pair.first] = pair.second;
     }
 
     // Singleshot snapshot data
     // Note these will override the average snapshots
     // if they share the same type string
-    for (auto &pair : pershot_json_snapshots_) {
+    for (const auto &pair : pershot_json_snapshots_) {
       tmp["snapshots"][pair.first] = pair.second;
     }
     for (auto &pair : pershot_complex_snapshots_) {
