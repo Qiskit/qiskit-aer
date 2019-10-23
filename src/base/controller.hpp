@@ -657,8 +657,8 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
     exp_result.seed = circ.seed;
     // Move any metadata from the subclass run_circuit data
     // to the experiment resultmetadata field
-    for(auto& metadatum: exp_result.data.metadata().items()) {
-      exp_result.add_metadata(metadatum.key(), metadatum.value());
+    for(const auto& pair: exp_result.data.metadata()) {
+      exp_result.add_metadata(pair.first, pair.second);
     }
     // Remove the metatdata field from data
     exp_result.data.metadata().clear();

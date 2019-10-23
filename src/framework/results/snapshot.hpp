@@ -316,6 +316,18 @@ void AverageData::accum_helper(json_t &lhs, json_t &rhs, bool subtract) {
 }
 
 //------------------------------------------------------------------------------
+// JSON serialization
+//------------------------------------------------------------------------------
+
+void to_json(json_t &js, const AverageSnapshot &snapshot) {
+  js = snapshot.json();
+}
+
+void to_json(json_t &js, const SingleShotSnapshot &snapshot) {
+  js = snapshot.json();
+}
+
+//------------------------------------------------------------------------------
 } // end namespace AER
 //------------------------------------------------------------------------------
 #endif
