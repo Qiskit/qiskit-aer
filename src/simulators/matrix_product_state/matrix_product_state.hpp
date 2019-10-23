@@ -477,7 +477,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
     one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
     expval += coeff * one_expval;;
   }
-  data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
+  data.add_pershot_snapshot("expectation_value", op.string_params[0], expval);
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
@@ -497,7 +497,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
       const cmatrix_t &mat = pair.second;
       one_expval = qreg_.expectation_value(qubits, mat);
       expval += coeff * one_expval;
-      data.add_singleshot_snapshot("expectation_value", op.string_params[0], expval);
+      data.add_pershot_snapshot("expectation_value", op.string_params[0], expval);
     }
   }
 }
@@ -508,7 +508,7 @@ void State::snapshot_state(const Operations::Op &op,
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
 
-  data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+  data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -517,7 +517,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
   rvector_t prob_vector;
   qreg_.probabilities_vector(prob_vector);
-  data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
+  data.add_pershot_snapshot("probabilities", op.string_params[0], prob_vector);
 }
 
 void State::apply_gate(const Operations::Op &op) {

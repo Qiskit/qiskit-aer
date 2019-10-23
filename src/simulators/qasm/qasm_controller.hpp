@@ -888,9 +888,9 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_roe
 
     auto memory = creg.memory_hex();
     data.add_memory_count(memory);
-    data.add_memory_singleshot(memory);
+    data. add_pershot_memory(memory);
 
-    data.add_register_singleshot(creg.register_hex());
+    data. add_pershot_register(creg.register_hex());
 
     // pop off processed sample
     all_samples.pop_back();

@@ -605,7 +605,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::single_shot:
-      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
   // Revert to original state
@@ -665,7 +665,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::single_shot:
-      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
   // Revert to original state
