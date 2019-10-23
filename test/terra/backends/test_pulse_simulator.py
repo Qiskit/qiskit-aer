@@ -28,17 +28,17 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
 
 class TestPulseSimulator(common.QiskitAerTestCase):
-    """PulseSimulator tests.
+    r"""PulseSimulator tests.
 
     Mathematical expressions are formulated in latex in docstrings for this class.
 
     # pylint: disable=anomalous backslash in string
-    Uses single qubit Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
-    e^{i(\omega_{d0} t+\phi)} \sigma_x`, as it has a closed form solution under the rotating frame
+    Uses single qubit Hamiltonian "H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
+    e^{i(\omega_{d0} t+\phi)} \sigma_x", as it has a closed form solution under the rotating frame
     transformation. We make sure H is Hermitian by taking the complex conjugate of the lower
     triangular piece (as done by the simulator). To find the closed form, we apply the unitary
-    `Urot = e^{-i \omega_0 t \sigma_z/2}`. In this frame, the Hamiltonian becomes
-    `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)`,
+    "Urot = e^{-i \omega_0 t \sigma_z/2}". In this frame, the Hamiltonian becomes
+    "Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)",
     which is easily solvable.
     """
 
@@ -565,10 +565,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
 
     def test_three_level(self):
-        """Test 3 level system. Compare statevectors as counts only use bitstrings. Analytically, 
-        the expected statevector is `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
+        r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytically, 
+        the expected statevector is "(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
         -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
-        -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
+        -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)".
         """
 
         # set qubit dimension to 3
@@ -623,7 +623,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ----------------------------------------------------------------------------------------------
 
     def test_interaction(self):
-        """Test 2 qubit interaction. Set `\omega_d0 = \omega_d1` (for first two test) as this
+        r"""Test 2 qubit interaction. Set `\omega_d0 = \omega_d1` (for first two test) as this
         removes the time dependence and makes the Hamiltonian easily solvable.
         Using `U = e^{-i H t}` one can see that H defines a swap gate. """
 
