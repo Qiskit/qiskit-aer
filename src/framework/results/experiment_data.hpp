@@ -580,22 +580,22 @@ ExperimentData &ExperimentData::combine(ExperimentData &other) {
 
   // Combine pershot snapshots
   for (auto &pair : other.pershot_json_snapshots_) {
-    pershot_json_snapshots_[pair.first].combine(pair.second);
+    pershot_json_snapshots_[pair.first].combine(std::move(pair.second));
   }
   for (auto &pair : other.pershot_complex_snapshots_) {
-    pershot_complex_snapshots_[pair.first].combine(pair.second);
+    pershot_complex_snapshots_[pair.first].combine(std::move(pair.second));
   }
   for (auto &pair : other.pershot_cvector_snapshots_) {
-    pershot_cvector_snapshots_[pair.first].combine(pair.second);
+    pershot_cvector_snapshots_[pair.first].combine(std::move(pair.second));
   }
   for (auto &pair : other.pershot_cmatrix_snapshots_) {
-    pershot_cmatrix_snapshots_[pair.first].combine(pair.second);
+    pershot_cmatrix_snapshots_[pair.first].combine(std::move(pair.second));
   }
   for (auto &pair : other.pershot_cmap_snapshots_) {
-    pershot_cmap_snapshots_[pair.first].combine(pair.second);
+    pershot_cmap_snapshots_[pair.first].combine(std::move(pair.second));
   }
   for (auto &pair : other.pershot_rmap_snapshots_) {
-    pershot_rmap_snapshots_[pair.first].combine(pair.second);
+    pershot_rmap_snapshots_[pair.first].combine(std::move(pair.second));
   }
 
   // Combine average snapshots
@@ -605,7 +605,7 @@ ExperimentData &ExperimentData::combine(ExperimentData &other) {
 
   // Combine metadata
   for (auto &pair : other.metadata_) {
-    metadata_[pair.first] = pair.second;
+    metadata_[pair.first] = std::move(pair.second);
   }
 
   // Combine additional data
