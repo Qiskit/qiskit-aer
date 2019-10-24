@@ -279,14 +279,35 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           json_t &&datum) {
   if (return_snapshots_) {
     // use implicit to_json conversion function for T
-    pershot_json_snapshots_[type].add_data(label, datum);
+    pershot_json_snapshots_[type].add_data(label, std::move(datum));
   }
 }
 
 template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
+                                          const json_t &datum) {
+  if (return_snapshots_) {
+    // use implicit to_json conversion function for T
+    pershot_json_snapshots_[type].add_data(label, datum);
+  }
+}
+
+
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
                                           complex_t &&datum) {
+  if (return_snapshots_) {
+    // use implicit to_json conversion function for T
+    pershot_complex_snapshots_[type].add_data(label, std::move(datum));
+  }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
+                                          const complex_t &datum) {
   if (return_snapshots_) {
     // use implicit to_json conversion function for T
     pershot_complex_snapshots_[type].add_data(label, datum);
@@ -298,6 +319,15 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           cvector_t &&datum) {
   if (return_snapshots_) {
+    pershot_cvector_snapshots_[type].add_data(label, std::move(datum));
+  }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
+                                          const cvector_t &datum) {
+  if (return_snapshots_) {
     pershot_cvector_snapshots_[type].add_data(label, datum);
   }
 }
@@ -306,6 +336,15 @@ template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           cmatrix_t &&datum) {
+  if (return_snapshots_) {
+    pershot_cmatrix_snapshots_[type].add_data(label, std::move(datum));
+  }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
+                                          const cmatrix_t &datum) {
   if (return_snapshots_) {
     pershot_cmatrix_snapshots_[type].add_data(label, datum);
   }
@@ -316,6 +355,15 @@ void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
     std::map<std::string, complex_t> &&datum) {
   if (return_snapshots_) {
+    pershot_cmap_snapshots_[type].add_data(label, std::move(datum));
+  }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(
+    const std::string &type, const std::string &label,
+    const std::map<std::string, complex_t> &datum) {
+  if (return_snapshots_) {
     pershot_cmap_snapshots_[type].add_data(label, datum);
   }
 }
@@ -324,6 +372,15 @@ template <>
 void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
     std::map<std::string, double> &&datum) {
+  if (return_snapshots_) {
+    pershot_rmap_snapshots_[type].add_data(label, std::move(datum));
+  }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(
+    const std::string &type, const std::string &label,
+    const std::map<std::string, double> &datum) {
   if (return_snapshots_) {
     pershot_rmap_snapshots_[type].add_data(label, datum);
   }
