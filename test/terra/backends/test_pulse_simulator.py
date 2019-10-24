@@ -18,6 +18,7 @@ import unittest
 from test.terra import common
 
 import numpy as np
+from scipy.linalg import expm
 
 import qiskit
 import qiskit.pulse as pulse
@@ -36,8 +37,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     Uses single qubit Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
     e^{i(\omega_{d0} t+\phi)} \sigma_x`. We make sure H is Hermitian by taking the complex conjugate
     of the lower triangular piece (as done by the simulator). To find the closed form, we apply move
-    to a rotating frame via the unitary `Urot = e^{-i \omega_0 t \sigma_z/2}`. In this frame, the
-    Hamiltonian becomes `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x + \sin(\phi) \sigma_y)`.
+    to a rotating frame via the unitary `Urot = e^{-i \omega t \sigma_z/2}`. In this frame, the
+    Hamiltonian becomes `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x - \sin(\phi) \sigma_y)
+    + \frac{\omega_{d0}-\omega_0}{2} \sigma_z`.
     """
 
     def setUp(self):
@@ -166,7 +168,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-
     def create_ham_1q(self, omega_0, omega_a, qub_dim=2):
         """Create single qubit Hamiltonian as given in class docstring
         Args:
@@ -255,7 +256,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         qubit_lo_freq = [omega_d0/(2*np.pi), omega_d1/(2*np.pi)]
         meas_map = self.meas_map_2q
 
-        return [qubit_list, memory_slots, qubit_lo_freq, meas_map]
+        return (qubit_list, memory_slots, qubit_lo_freq, meas_map)
 
     def create_qobj(self, shots, meas_level, schedule, hamiltonian, qobj_params):
         """Creates qobj for the specified pulse experiment. Uses Hamiltonian from class docstring
@@ -333,7 +334,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """
 
         # set variables
-        shots = 10000 # large number of shots so get good proportions
+        shots = 100000 # large number of shots so get good proportions
 
         # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
         omega_0 = 2*np.pi*self.freq_qubit_0
@@ -363,6 +364,32 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop = {'0':0.5, '1':0.5}
 
         self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
+
+    def _analytic_prop_1q_gates(self, omega_0, omega_a, omega_d0, phi):
+        """Compute proportion for 0 and 1 states analytically for single qubit gates.
+        Args:
+            omega_0 (float): Q0 freq
+            omega_a (float): Q0 drive amplitude
+            omega_d0 (flaot): Q0 drive frequency
+            phi (float): drive phase
+        Returns:
+            exp_prop (dict): expected value of 0 and 1 proportions from analytic computation
+            """
+        time = self.drive_samples
+        # write Hrot analytically
+        Hrot = np.array([[(omega_d0-omega_0)/2, np.exp(1j*phi)*omega_a/2],
+                         [np.exp(-1j*phi)*omega_a/2, -(omega_d0-omega_0)/2]])
+        # exponentiate
+        Urot = expm(-1j*Hrot*time)
+        state0 = np.array([1, 0])
+
+        # compute analytic prob (proportion) of 0 state
+        mat_elem0 = np.vdot(state0, np.dot(Urot, state0))
+        prop0 = np.abs(mat_elem0)**2
+
+        # return expected proportion
+        exp_prop = {'0': prop0, '1': 1-prop0}
+        return exp_prop
 
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
@@ -394,7 +421,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts1.keys():
             prop1[key] = counts1[key]/shots
 
-        exp_prop1 = {'0':0.315253, '1':1-0.315253}
+        exp_prop1 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
 
         self.assertDictAlmostEqual(prop1, exp_prop1, delta=0.01)
 
@@ -422,7 +449,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts2.keys():
             prop2[key] = counts2[key]/shots
 
-        exp_prop2 = {'0':0.634952, '1':1-0.634952}
+        exp_prop2 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
 
         self.assertDictAlmostEqual(prop2, exp_prop2, delta=0.01)
 
@@ -451,7 +478,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts3.keys():
             prop3[key] = counts3[key]/shots
 
-        exp_prop3 = {'0':0.0861794, '1':1-0.0861794}
+        exp_prop3 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
 
         self.assertDictAlmostEqual(prop3, exp_prop3, delta=0.01)
 
@@ -501,6 +528,17 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test FrameChange and PersistentValue commands
     # ---------------------------------------------------------------------
+    def _analytic_prop_fc(self, phi_net):
+        """Compute analytic proportion of 0 and 1 from a given frame change. Analytically can show
+        that the 0 prop is given by `cos(phi_net/2)^2`
+        Args:
+            phi_net (float): net rotation on Bloch sphere due to the frame change schedule
+        Returns:
+            exp_prop (dict): expected proportion of 0, 1 counts as computed analytically
+        """
+        prop0 = np.cos(phi_net/2)**2
+        exp_prop = {'0': prop0, '1': 1-prop0}
+        return exp_prop
 
     def test_frame_change(self):
         """Test frame change command. """
@@ -535,7 +573,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_result)
 
         # Test 2
-        # do pi/4 pulse, then pi phase change, then do pi/8 pulse. Should get |0> w/ prop = 0.96194.
+        # do pi/4 pulse, then pi phase change, then do pi/8 pulse.
         fc_dur1 = self.drive_samples
         fc_dur2 = fc_dur1//2 # half time to do the pi/8 pulse (halves angle)
         omega_a = np.pi/4/fc_dur1
@@ -558,7 +596,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts.keys():
             prop[key] = counts[key]/shots
 
-        exp_prop = {'0':0.96194, '1':(1-0.96194)}
+        # net angle is given by pi/4-pi/8
+        exp_prop = self._analytic_prop_fc(np.pi/4-np.pi/8)
         self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
     def test_persistent_value(self):
@@ -591,12 +630,28 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # `\sigma_x \rightarrow a+\dagger{a}`,
     # `\sigma_y \rightarrow -\imag (a-\dagger{a})`, etc
     # ---------------------------------------------------------------------
-
-    def test_three_level(self):
-        r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytically, 
-        the expected statevector is `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
+    def _analytic_statevector_three_level(self, omega_a):
+        r"""Returns analytically computed statevecotr for 3 level system with our Hamiltonian. Is
+        given by `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
         -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
         -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
+        Args:
+            omega_a (float): Q0 drive amplitude
+        Returns:
+            exp_statevector (list): analytically computed statevector with from above
+        """
+        time = self.drive_samples
+        arg1 = np.sqrt(3)*omega_a*time/2 # cos arg for first component
+        arg2 = arg1 # sin arg for first component
+        arg3 = arg1/2 # sin arg for 3rd component
+        exp_statevector = [(2+np.cos(arg1))/3, -1j*np.sin(arg2)/np.sqrt(3),
+                           -2*np.sqrt(2)*np.sin(arg3)**2/3]
+
+        return exp_statevector
+
+    def test_three_level(self):
+        r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form
+        given in _analytic_statevector_3level function docstring.
         """
 
         shots = 1000
@@ -621,7 +676,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result1 = self.backend_sim.run(qobj1).result()
         state_vector1 = result1.get_statevector()
 
-        exp_state_vector1 = [0.362425, 0. - 0.235892j, -0.901667]
+        exp_state_vector1 = self._analytic_statevector_three_level(omega_a)
 
         # compare vectors element-wise
         for i, _ in enumerate(state_vector1):
@@ -641,7 +696,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result2 = self.backend_sim.run(qobj2).result()
         state_vector2 = result2.get_statevector()
 
-        exp_state_vector2 = [0.88871, 0.430608j, -0.157387]
+        exp_state_vector2 = self._analytic_statevector_three_level(omega_a)
 
         # compare vectors element-wise
         for i, _ in enumerate(state_vector2):
