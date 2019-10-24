@@ -96,23 +96,23 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-    def frame_change_schedule(self, phi, fc_phi, fc_dur1, fc_dur2):
-        """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur1,
-        then frame change of phase fc_phi, then another pulse of phase phi of duration dur2.
+    def frame_change_schedule(self, phi, fc_phi, dur_drive1, dur_drive2):
+        """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur_drive1,
+        then frame change of phase fc_phi, then another pulse of phase phi of duration dur_drive2.
         The different durations for the pulses allow manipulation of rotation angles on Bloch sphere
         Args:
             phi (float): drive phase (phi in Hamiltonian)
             fc_phi (float): phase for frame change
-            fc_dur1 (int): duration of first pulse
-            fc_dur2 (int): duration of second pulse
+            dur_drive1 (int): duration of first pulse
+            dur_drive2 (int): duration of second pulse
 
         Returns:
             schedule (pulse schedule): schedule for frame change test
         """
          # drive pulse (just phase; omega_a included in Hamiltonian)
         phase = np.exp(1j*phi)
-        drive_pulse_1 = SamplePulse(phase*np.ones(fc_dur1), name='drive_pulse_1')
-        drive_pulse_2 = SamplePulse(phase*np.ones(fc_dur2), name='drive_pulse_2')
+        drive_pulse_1 = SamplePulse(phase*np.ones(dur_drive1), name='drive_pulse_1')
+        drive_pulse_2 = SamplePulse(phase*np.ones(dur_drive2), name='drive_pulse_2')
 
         # frame change
         fc_pulse = FrameChange(phase=fc_phi, name='fc')
@@ -377,14 +377,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             """
         time = self.drive_samples
         # write Hrot analytically
-        Hrot = np.array([[(omega_d0-omega_0)/2, np.exp(1j*phi)*omega_a/2],
-                         [np.exp(-1j*phi)*omega_a/2, -(omega_d0-omega_0)/2]])
+        h_rot = np.array([[(omega_d0-omega_0)/2, np.exp(1j*phi)*omega_a/2],
+                          [np.exp(-1j*phi)*omega_a/2, -(omega_d0-omega_0)/2]])
         # exponentiate
-        Urot = expm(-1j*Hrot*time)
+        u_rot = expm(-1j*h_rot*time)
         state0 = np.array([1, 0])
 
         # compute analytic prob (proportion) of 0 state
-        mat_elem0 = np.vdot(state0, np.dot(Urot, state0))
+        mat_elem0 = np.vdot(state0, np.dot(u_rot, state0))
         prop0 = np.abs(mat_elem0)**2
 
         # return expected proportion
@@ -393,94 +393,97 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
-
         shots = 10000 # large number of shots so get good proportions
 
         # Gate 1
 
         # set variables
-        omega_0 = 2*np.pi*self.freq_qubit_0
-        omega_d0 = omega_0+0.01
+        omega_0_test1 = 2*np.pi*self.freq_qubit_0
+        omega_d0_test1 = omega_0_test1+0.01
 
-        omega_a = 2*np.pi/3/self.drive_samples
+        omega_a_test1 = 2*np.pi/3/self.drive_samples
 
-        phi = 5*np.pi/7
+        phi_test1 = 5*np.pi/7
 
-        schedule1 = self.single_pulse_schedule(phi)
-        hamiltonian1 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
-        qobj_params1 = self.qobj_params_1q(omega_d0=omega_d0)
+        schedule_test1 = self.single_pulse_schedule(phi_test1)
+        hamiltonian_test1 = self.create_ham_1q(omega_0=omega_0_test1, omega_a=omega_a_test1)
+        qobj_params_test1 = self.qobj_params_1q(omega_d0=omega_d0_test1)
 
-        qobj1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule1,
-                                 hamiltonian=hamiltonian1, qobj_params=qobj_params1)
+        qobj_test1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test1,
+                                      hamiltonian=hamiltonian_test1, qobj_params=qobj_params_test1)
 
         # Run qobj and compare prop to expected result
-        result1 = self.backend_sim.run(qobj1).result()
-        counts1 = result1.get_counts()
+        result_test1 = self.backend_sim.run(qobj_test1).result()
+        counts_test1 = result_test1.get_counts()
 
-        prop1 = {}
-        for key in counts1.keys():
-            prop1[key] = counts1[key]/shots
+        prop_test1 = {}
+        for key in counts_test1.keys():
+            prop_test1[key] = counts_test1[key]/shots
 
-        exp_prop1 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
+        exp_prop_test1 = self._analytic_prop_1q_gates(omega_0=omega_0_test1, omega_a=omega_a_test1,
+                                                      omega_d0=omega_d0_test1, phi=phi_test1)
 
-        self.assertDictAlmostEqual(prop1, exp_prop1, delta=0.01)
+        self.assertDictAlmostEqual(prop_test1, exp_prop_test1, delta=0.01)
 
         # Gate 2
 
         # set variables
-        omega_0 = 2*np.pi*self.freq_qubit_0
-        omega_d0 = omega_0+0.02
+        omega_0_test2 = 2*np.pi*self.freq_qubit_0
+        omega_d0_test2 = omega_0_test2+0.02
 
-        omega_a = 7*np.pi/5/self.drive_samples
+        omega_a_test2 = 7*np.pi/5/self.drive_samples
 
-        phi = 19*np.pi/14
+        phi_test2 = 19*np.pi/14
 
-        schedule2 = self.single_pulse_schedule(phi)
-        hamiltonian2 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
-        qobj_params2 = self.qobj_params_1q(omega_d0=omega_d0)
+        schedule_test2 = self.single_pulse_schedule(phi_test2)
+        hamiltonian_test2 = self.create_ham_1q(omega_0=omega_0_test2, omega_a=omega_a_test2)
+        qobj_params_test2 = self.qobj_params_1q(omega_d0=omega_d0_test2)
 
-        qobj2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule2,
-                                 hamiltonian=hamiltonian2, qobj_params=qobj_params2)
+        qobj_test2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test2,
+                                      hamiltonian=hamiltonian_test2, qobj_params=qobj_params_test2)
+
         # Run qobj and compare prop to expected result
-        result2 = self.backend_sim.run(qobj2).result()
-        counts2 = result2.get_counts()
+        result_test2 = self.backend_sim.run(qobj_test2).result()
+        counts_test2 = result_test2.get_counts()
 
-        prop2 = {}
-        for key in counts2.keys():
-            prop2[key] = counts2[key]/shots
+        prop_test2 = {}
+        for key in counts_test2.keys():
+            prop_test2[key] = counts_test2[key]/shots
 
-        exp_prop2 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
+        exp_prop_test2 = self._analytic_prop_1q_gates(omega_0=omega_0_test2, omega_a=omega_a_test2,
+                                                      omega_d0=omega_d0_test2, phi=phi_test2)
 
-        self.assertDictAlmostEqual(prop2, exp_prop2, delta=0.01)
+        self.assertDictAlmostEqual(prop_test2, exp_prop_test2, delta=0.01)
 
         # Gate 3
 
         # set variables
-        omega_0 = 2*np.pi*self.freq_qubit_0
-        omega_d0 = omega_0+0.005
+        omega_0_test3 = 2*np.pi*self.freq_qubit_0
+        omega_d0_test3 = omega_0_test3+0.005
 
-        omega_a = 0.1
+        omega_a_test3 = 0.1
 
-        phi = np.pi/4
+        phi_test3 = np.pi/4
 
-        schedule3 = self.single_pulse_schedule(phi)
-        hamiltonian3 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
-        qobj_params3 = self.qobj_params_1q(omega_d0=omega_d0)
+        schedule_test3 = self.single_pulse_schedule(phi_test3)
+        hamiltonian_test3 = self.create_ham_1q(omega_0=omega_0_test3, omega_a=omega_a_test3)
+        qobj_params_test3 = self.qobj_params_1q(omega_d0=omega_d0_test3)
 
-        qobj3 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule3,
-                                 hamiltonian=hamiltonian3, qobj_params=qobj_params3)
+        qobj_test3 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test3,
+                                      hamiltonian=hamiltonian_test3, qobj_params=qobj_params_test3)
 
         # Run qobj and compare prop to expected result
-        result3 = self.backend_sim.run(qobj3).result()
-        counts3 = result3.get_counts()
+        result_test3 = self.backend_sim.run(qobj_test3).result()
+        counts_test3 = result_test3.get_counts()
 
-        prop3 = {}
-        for key in counts3.keys():
-            prop3[key] = counts3[key]/shots
+        prop_test3 = {}
+        for key in counts_test3.keys():
+            prop_test3[key] = counts_test3[key]/shots
 
-        exp_prop3 = self._analytic_prop_1q_gates(omega_0, omega_a, omega_d0, phi)
+        exp_prop_test3 = self._analytic_prop_1q_gates(omega_0=omega_0_test3, omega_a=omega_a_test3,
+                                                      omega_d0=omega_d0_test3, phi=phi_test3)
 
-        self.assertDictAlmostEqual(prop3, exp_prop3, delta=0.01)
+        self.assertDictAlmostEqual(prop_test3, exp_prop_test3, delta=0.01)
 
     # ---------------------------------------------------------------------
     # Test meas level 1
@@ -550,55 +553,56 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set phi = 0
         phi = 0
 
-        # Test 1
-        # do pi/2 pulse, then pi phase change, then another pi/2 pulse. Verify left in |0> state
-        fc_dur1 = self.drive_samples
-        fc_dur2 = fc_dur1
-        omega_a = np.pi/2/fc_dur1
-
+        dur_drive1 = self.drive_samples # first pulse duration
         fc_phi = np.pi
 
-        schedule1 = self.frame_change_schedule(phi=phi, fc_phi=fc_phi, fc_dur1=fc_dur1,
-                                               fc_dur2=fc_dur2)
-        hamiltonian1 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
-        qobj_params1 = self.qobj_params_1q(omega_d0=omega_d0)
+        # Test frame change where no shift in state results
+        # specfically: do pi/2 pulse, then pi frame change, then another pi/2 pulse.
+        # Verify left in |0> state
+        dur_drive2_no_shift = dur_drive1 # same duration for both pulses
+        omega_a_no_shift = np.pi/2/dur_drive1 # pi/2 pulse amplitude
+        schedule_no_shift = self.frame_change_schedule(phi=phi, fc_phi=fc_phi,
+                                                       dur_drive1=dur_drive1,
+                                                       dur_drive2=dur_drive2_no_shift)
+        hamiltonian_no_shift = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a_no_shift)
+        qobj_params_no_shift = self.qobj_params_1q(omega_d0=omega_d0)
 
-        fc_qobj1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule1,
-                                    hamiltonian=hamiltonian1, qobj_params=qobj_params1)
+        qobj_no_shift = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_no_shift,
+                                         hamiltonian=hamiltonian_no_shift,
+                                         qobj_params=qobj_params_no_shift)
 
-        result = self.backend_sim.run(fc_qobj1).result()
-        counts = result.get_counts()
-        exp_result = {'0':shots}
+        result_no_shift = self.backend_sim.run(qobj_no_shift).result()
+        counts_no_shift = result_no_shift.get_counts()
+        exp_result_no_shift = {'0':shots}
 
-        self.assertDictAlmostEqual(counts, exp_result)
+        self.assertDictAlmostEqual(counts_no_shift, exp_result_no_shift)
 
-        # Test 2
-        # do pi/4 pulse, then pi phase change, then do pi/8 pulse.
-        fc_dur1 = self.drive_samples
-        fc_dur2 = fc_dur1//2 # half time to do the pi/8 pulse (halves angle)
-        omega_a = np.pi/4/fc_dur1
+        # Test frame change where a shift does result
+        # specifically: do pi/4 pulse, then pi phase change, then do pi/8 pulse.
+        # check that a net rotation of pi/4-pi/8 has occured on the Bloch sphere
+        dur_drive2_shift = dur_drive1//2 # half time for second pulse (halves angle)
+        omega_a_shift = np.pi/4/dur_drive1 # pi/4 pulse amplitude
 
-        fc_phi = np.pi
 
-        schedule2 = self.frame_change_schedule(phi=phi, fc_phi=fc_phi, fc_dur1=fc_dur1,
-                                               fc_dur2=fc_dur2)
-        hamiltonian2 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
-        qobj_params2 = self.qobj_params_1q(omega_d0=omega_d0)
+        schedule_shift = self.frame_change_schedule(phi=phi, fc_phi=fc_phi, dur_drive1=dur_drive1,
+                                                    dur_drive2=dur_drive2_shift)
+        hamiltonian_shift = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a_shift)
+        qobj_params_shift = self.qobj_params_1q(omega_d0=omega_d0)
 
-        fc_qobj2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule2,
-                                    hamiltonian=hamiltonian2, qobj_params=qobj_params2)
+        qobj_shift = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_shift,
+                                      hamiltonian=hamiltonian_shift, qobj_params=qobj_params_shift)
 
-        result = self.backend_sim.run(fc_qobj2).result()
-        counts = result.get_counts()
+        result_shift = self.backend_sim.run(qobj_shift).result()
+        counts_shift = result_shift.get_counts()
 
         # verify props
-        prop = {}
-        for key in counts.keys():
-            prop[key] = counts[key]/shots
+        prop_shift = {}
+        for key in counts_shift.keys():
+            prop_shift[key] = counts_shift[key]/shots
 
         # net angle is given by pi/4-pi/8
-        exp_prop = self._analytic_prop_fc(np.pi/4-np.pi/8)
-        self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
+        exp_prop_shift = self._analytic_prop_fc(np.pi/4-np.pi/8)
+        self.assertDictAlmostEqual(prop_shift, exp_prop_shift, delta=0.01)
 
     def test_persistent_value(self):
         """Test persistent value command. """
@@ -662,45 +666,45 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set phi = 0 for simplicity
         phi = 0
 
-        # Test omega_a*t = pi
-        omega_a = np.pi/self.drive_samples
+        # Test pi pulse
+        omega_a_pi = np.pi/self.drive_samples
 
-        schedule1 = self.single_pulse_schedule(phi)
+        schedule_pi = self.single_pulse_schedule(phi)
         # set qub_dim=3 in hamiltonian
-        hamiltonian1 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a, qub_dim=3)
-        qobj_params1 = self.qobj_params_1q(omega_d0=omega_d0)
+        hamiltonian_pi = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a_pi, qub_dim=3)
+        qobj_params_pi = self.qobj_params_1q(omega_d0=omega_d0)
 
-        qobj1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule1,
-                                 hamiltonian=hamiltonian1, qobj_params=qobj_params1)
+        qobj_pi = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_pi,
+                                   hamiltonian=hamiltonian_pi, qobj_params=qobj_params_pi)
 
-        result1 = self.backend_sim.run(qobj1).result()
-        state_vector1 = result1.get_statevector()
+        result_pi = self.backend_sim.run(qobj_pi).result()
+        statevector_pi = result_pi.get_statevector()
 
-        exp_state_vector1 = self._analytic_statevector_three_level(omega_a)
+        exp_statevector_pi = self._analytic_statevector_three_level(omega_a_pi)
 
         # compare vectors element-wise
-        for i, _ in enumerate(state_vector1):
-            self.assertAlmostEqual(state_vector1[i], exp_state_vector1[i], places=4)
+        for i, _ in enumerate(statevector_pi):
+            self.assertAlmostEqual(statevector_pi[i], exp_statevector_pi[i], places=4)
 
-        # Test omega_a*t = 2 pi
-        omega_a = 2*np.pi/self.drive_samples
+        # Test 2*pi pulse
+        omega_a_2pi = 2*np.pi/self.drive_samples
 
-        schedule2 = self.single_pulse_schedule(phi)
+        schedule_2pi = self.single_pulse_schedule(phi)
         # set qub_dim=3 in hamiltonian
-        hamiltonian2 = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a, qub_dim=3)
-        qobj_params2 = self.qobj_params_1q(omega_d0=omega_d0)
+        hamiltonian_2pi = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a_2pi, qub_dim=3)
+        qobj_params_2pi = self.qobj_params_1q(omega_d0=omega_d0)
 
-        qobj2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule2,
-                                 hamiltonian=hamiltonian2, qobj_params=qobj_params2)
+        qobj_2pi = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_2pi,
+                                    hamiltonian=hamiltonian_2pi, qobj_params=qobj_params_2pi)
 
-        result2 = self.backend_sim.run(qobj2).result()
-        state_vector2 = result2.get_statevector()
+        result_2pi = self.backend_sim.run(qobj_2pi).result()
+        statevector_2pi = result_2pi.get_statevector()
 
-        exp_state_vector2 = self._analytic_statevector_three_level(omega_a)
+        exp_statevector_2pi = self._analytic_statevector_three_level(omega_a_2pi)
 
         # compare vectors element-wise
-        for i, _ in enumerate(state_vector2):
-            self.assertAlmostEqual(state_vector2[i], exp_state_vector2[i], places=4)
+        for i, _ in enumerate(statevector_2pi):
+            self.assertAlmostEqual(statevector_2pi[i], exp_statevector_2pi[i], places=4)
 
     #### TWO QUBIT TESTS ###########################################################################
 
@@ -720,79 +724,83 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Using `U = e^{-i H t}` one can see that H defines a swap gate. """
 
         shots = 100000
+
+        # Interaction amp -> pi/2 pulse (creates the swap gate)
+        omega_i = np.pi/2/self.drive_samples
+
         # set omega_d0=omega_0 (resonance)
         omega_0 = 2*np.pi*self.freq_qubit_0
         omega_d0 = omega_0
 
-        # Set omega_d0=omega_d1
-        omega_d1 = omega_d0
+        # For swapping, set omega_d0=omega_d1
+        omega_d1_swap = omega_d0
 
         # do pi pulse on Q0 and verify state swaps from '01' to '10'
 
         # Q0 drive amp -> pi pulse
-        omega_a = np.pi/self.drive_samples
-        # Interaction amp -> pi/2 pulse (creates the swap gate)
-        omega_i = np.pi/2/self.drive_samples
+        omega_a_pi_swap = np.pi/self.drive_samples
 
-        schedule1 = self.schedule_2q()
-        hamiltonian1 = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a, omega_i=omega_i)
-        qobj_params1 = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1)
+        schedule_pi_swap = self.schedule_2q()
+        hamiltonian_pi_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_pi_swap,
+                                                 omega_i=omega_i)
+        qobj_params_pi_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_swap)
 
-        qobj2q_1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule1,
-                                    hamiltonian=hamiltonian1, qobj_params=qobj_params1)
+        qobj_pi_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_pi_swap,
+                                        hamiltonian=hamiltonian_pi_swap,
+                                        qobj_params=qobj_params_pi_swap)
 
-        result1 = self.backend_sim.run(qobj2q_1).result()
-        counts1 = result1.get_counts()
+        result_pi_swap = self.backend_sim.run(qobj_pi_swap).result()
+        counts_pi_swap = result_pi_swap.get_counts()
 
-        exp_counts1 = {'10': shots} # reverse ordering; after flip Q0, state is '01'
-        self.assertDictAlmostEqual(counts1, exp_counts1, delta=2)
+        exp_counts_pi_swap = {'10': shots} # reverse ordering; after flip Q0, state is '01'
+        self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
 
         # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
 
         # Q0 drive amp -> pi/2 pulse
-        omega_a = np.pi/2/self.drive_samples
-        # Interaction amp -> pi/2 pulse (creates the swap gate)
-        omega_i = np.pi/2/self.drive_samples
+        omega_a_pi2_swap = np.pi/2/self.drive_samples
 
-        schedule2 = self.schedule_2q()
-        hamiltonian2 = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a, omega_i=omega_i)
-        qobj_params2 = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1)
+        schedule_pi2_swap = self.schedule_2q()
+        hamiltonian_pi2_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_pi2_swap,
+                                                  omega_i=omega_i)
+        qobj_params_pi2_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_swap)
 
-        qobj2q_2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule2,
-                                    hamiltonian=hamiltonian2, qobj_params=qobj_params2)
+        qobj_pi2_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_pi2_swap,
+                                         hamiltonian=hamiltonian_pi2_swap,
+                                         qobj_params=qobj_params_pi2_swap)
 
-        result2 = self.backend_sim.run(qobj2q_2).result()
-        counts2 = result2.get_counts()
+        result_pi2_swap = self.backend_sim.run(qobj_pi2_swap).result()
+        counts_pi2_swap = result_pi2_swap.get_counts()
 
         # compare proportions for improved accuracy
-        prop2 = {}
-        for key in counts2.keys():
-            prop2[key] = counts2[key]/shots
+        prop_pi2_swap = {}
+        for key in counts_pi2_swap.keys():
+            prop_pi2_swap[key] = counts_pi2_swap[key]/shots
 
-        exp_prop2 = {'00':0.5, '10':0.5}
+        exp_prop_pi2_swap = {'00':0.5, '10':0.5}
 
-        self.assertDictAlmostEqual(prop2, exp_prop2, delta=0.01)
+        self.assertDictAlmostEqual(prop_pi2_swap, exp_prop_pi2_swap, delta=0.01)
 
         # again do pi pulse but now set omega_d1=0 (ie omega_d0 != omega_d1);
-        # verify swap does not occur
-        omega_d1 = 0
+        # verify swap does not occur (no swap)
+        omega_d1_no_swap = 0
         # Q0 drive amp -> pi pulse
-        omega_a = np.pi/self.drive_samples
-        # Interaction amp -> pi/2 pulse (creates the swap gate)
-        omega_i = np.pi/2/self.drive_samples
+        omega_a_no_swap = np.pi/self.drive_samples
 
-        schedule3 = self.schedule_2q()
-        hamiltonian3 = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a, omega_i=omega_i)
-        qobj_params3 = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1)
+        schedule_no_swap = self.schedule_2q()
+        hamiltonian_no_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_no_swap,
+                                                 omega_i=omega_i)
+        qobj_params_no_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_no_swap)
 
-        qobj2q_3 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule3,
-                                    hamiltonian=hamiltonian3, qobj_params=qobj_params3)
+        qobj_no_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_no_swap,
+                                        hamiltonian=hamiltonian_no_swap,
+                                        qobj_params=qobj_params_no_swap)
 
-        result3 = self.backend_sim.run(qobj2q_3).result()
-        counts3 = result3.get_counts()
+        result_no_swap = self.backend_sim.run(qobj_no_swap).result()
+        counts_no_swap = result_no_swap.get_counts()
 
-        swap_counts = {'10': shots}
-        self.assertNotEqual(counts3, swap_counts)
+        exp_counts_no_swap = {'10': shots}
+        self.assertNotEqual(counts_no_swap, exp_counts_no_swap)
 
 if __name__ == '__main__':
     unittest.main()
