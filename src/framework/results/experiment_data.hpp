@@ -446,6 +446,16 @@ void ExperimentData::add_additional_data(const std::string &key,
   check_reserved_key(key);
   if (return_additional_data_) {
     erase_additional_data(key);
+    additional_json_data_[key] = std::move(data);
+  }
+}
+
+template <>
+void ExperimentData::add_additional_data(const std::string &key,
+                                         const json_t &data) {
+  check_reserved_key(key);
+  if (return_additional_data_) {
+    erase_additional_data(key);
     additional_json_data_[key] = data;
   }
 }
@@ -456,6 +466,16 @@ void ExperimentData::add_additional_data(const std::string &key,
   check_reserved_key(key);
   if (return_additional_data_) {
     erase_additional_data(key);
+    additional_cvector_data_[key] = std::move(data);
+  }
+}
+
+template <>
+void ExperimentData::add_additional_data(const std::string &key,
+                                         const cvector_t &data) {
+  check_reserved_key(key);
+  if (return_additional_data_) {
+    erase_additional_data(key);
     additional_cvector_data_[key] = data;
   }
 }
@@ -463,6 +483,16 @@ void ExperimentData::add_additional_data(const std::string &key,
 template <>
 void ExperimentData::add_additional_data(const std::string &key,
                                          cmatrix_t &&data) {
+  check_reserved_key(key);
+  if (return_additional_data_) {
+    erase_additional_data(key);
+    additional_cmatrix_data_[key] = std::move(data);
+  }
+}
+
+template <>
+void ExperimentData::add_additional_data(const std::string &key,
+                                         const cmatrix_t &data) {
   check_reserved_key(key);
   if (return_additional_data_) {
     erase_additional_data(key);
@@ -483,6 +513,18 @@ void ExperimentData::add_metadata(const std::string &key, T &&data) {
 
 template <>
 void ExperimentData::add_metadata(const std::string &key, json_t &&data) {
+  auto elt = metadata_.find("key");
+  if (elt == metadata_.end()) {
+    // If key doesn't already exist add new data
+    metadata_[key] = std::move(data);
+  } else {
+    // If key already exists append with additional data
+    elt->second.update(data.begin(), data.end());
+  }
+}
+
+template <>
+void ExperimentData::add_metadata(const std::string &key, const json_t &data) {
   auto elt = metadata_.find("key");
   if (elt == metadata_.end()) {
     // If key doesn't already exist add new data
