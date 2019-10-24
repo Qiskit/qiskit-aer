@@ -280,7 +280,6 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           json_t &&datum) {
   if (return_snapshots_) {
-    // use implicit to_json conversion function for T
     pershot_json_snapshots_[type].add_data(label, std::move(datum));
   }
 }
@@ -290,7 +289,6 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           const json_t &datum) {
   if (return_snapshots_) {
-    // use implicit to_json conversion function for T
     pershot_json_snapshots_[type].add_data(label, datum);
   }
 }
@@ -299,8 +297,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           json_t &datum) {
-  const json_t &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_json_snapshots_[type].add_data(label, datum);
+  }
 }
 
 // Complex
@@ -309,7 +308,6 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           complex_t &&datum) {
   if (return_snapshots_) {
-    // use implicit to_json conversion function for T
     pershot_complex_snapshots_[type].add_data(label, std::move(datum));
   }
 }
@@ -319,7 +317,6 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           const complex_t &datum) {
   if (return_snapshots_) {
-    // use implicit to_json conversion function for T
     pershot_complex_snapshots_[type].add_data(label, datum);
   }
 }
@@ -328,8 +325,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           complex_t &datum) {
-  const complex_t &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_complex_snapshots_[type].add_data(label, datum);
+  }
 }
 
 // Complex vector
@@ -355,8 +353,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           cvector_t &datum) {
-  const cvector_t &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_cvector_snapshots_[type].add_data(label, datum);
+  }
 }
 
 // Complex matrix
@@ -382,8 +381,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
                                           cmatrix_t &datum) {
-  const cmatrix_t &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_cmatrix_snapshots_[type].add_data(label, datum);
+  }
 }
 
 // Complex map
@@ -409,8 +409,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
     std::map<std::string, complex_t> &datum) {
-  const std::map<std::string, complex_t> &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_cmap_snapshots_[type].add_data(label, datum);
+  }
 }
 
 // Real map
@@ -436,8 +437,9 @@ template <>
 void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
     std::map<std::string, double> &datum) {
-  const std::map<std::string, double> &const_datum = datum;
-  add_pershot_snapshot(type, label, const_datum);
+  if (return_snapshots_) {
+    pershot_rmap_snapshots_[type].add_data(label, datum);
+  }
 }
 
 //------------------------------------------------------------------
