@@ -263,6 +263,7 @@ void ExperimentData::add_pershot_register(const std::string &reg) {
 // Pershot Snapshots
 //------------------------------------------------------------------
 
+// Generic
 template <typename T>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label, T &&datum) {
@@ -273,6 +274,7 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
   }
 }
 
+// JSON
 template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
@@ -293,7 +295,15 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
   }
 }
 
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
+                                          json_t &datum) {
+  const json_t &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
+}
 
+// Complex
 template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
@@ -317,6 +327,15 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
 template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
+                                          complex_t &datum) {
+  const complex_t &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
+}
+
+// Complex vector
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
                                           cvector_t &&datum) {
   if (return_snapshots_) {
     pershot_cvector_snapshots_[type].add_data(label, std::move(datum));
@@ -335,6 +354,15 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
 template <>
 void ExperimentData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label,
+                                          cvector_t &datum) {
+  const cvector_t &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
+}
+
+// Complex matrix
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
                                           cmatrix_t &&datum) {
   if (return_snapshots_) {
     pershot_cmatrix_snapshots_[type].add_data(label, std::move(datum));
@@ -350,6 +378,15 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
   }
 }
 
+template <>
+void ExperimentData::add_pershot_snapshot(const std::string &type,
+                                          const std::string &label,
+                                          cmatrix_t &datum) {
+  const cmatrix_t &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
+}
+
+// Complex map
 template <>
 void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
@@ -371,6 +408,15 @@ void ExperimentData::add_pershot_snapshot(
 template <>
 void ExperimentData::add_pershot_snapshot(
     const std::string &type, const std::string &label,
+    std::map<std::string, complex_t> &datum) {
+  const std::map<std::string, complex_t> &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
+}
+
+// Real map
+template <>
+void ExperimentData::add_pershot_snapshot(
+    const std::string &type, const std::string &label,
     std::map<std::string, double> &&datum) {
   if (return_snapshots_) {
     pershot_rmap_snapshots_[type].add_data(label, std::move(datum));
@@ -384,6 +430,14 @@ void ExperimentData::add_pershot_snapshot(
   if (return_snapshots_) {
     pershot_rmap_snapshots_[type].add_data(label, datum);
   }
+}
+
+template <>
+void ExperimentData::add_pershot_snapshot(
+    const std::string &type, const std::string &label,
+    std::map<std::string, double> &datum) {
+  const std::map<std::string, double> &const_datum = datum;
+  add_pershot_snapshot(type, label, const_datum);
 }
 
 //------------------------------------------------------------------
@@ -461,6 +515,12 @@ void ExperimentData::add_additional_data(const std::string &key,
 }
 
 template <>
+void ExperimentData::add_additional_data(const std::string &key, json_t &data) {
+  const json_t &const_data = data;
+  add_additional_data(key, const_data);
+}
+
+template <>
 void ExperimentData::add_additional_data(const std::string &key,
                                          cvector_t &&data) {
   check_reserved_key(key);
@@ -482,6 +542,13 @@ void ExperimentData::add_additional_data(const std::string &key,
 
 template <>
 void ExperimentData::add_additional_data(const std::string &key,
+                                         cvector_t &data) {
+  const cvector_t &const_data = data;
+  add_additional_data(key, const_data);
+}
+
+template <>
+void ExperimentData::add_additional_data(const std::string &key,
                                          cmatrix_t &&data) {
   check_reserved_key(key);
   if (return_additional_data_) {
@@ -498,6 +565,13 @@ void ExperimentData::add_additional_data(const std::string &key,
     erase_additional_data(key);
     additional_cmatrix_data_[key] = data;
   }
+}
+
+template <>
+void ExperimentData::add_additional_data(const std::string &key,
+                                         cmatrix_t &data) {
+  const cmatrix_t &const_data = data;
+  add_additional_data(key, const_data);
 }
 
 //------------------------------------------------------------------
@@ -535,12 +609,17 @@ void ExperimentData::add_metadata(const std::string &key, const json_t &data) {
   }
 }
 
+template <>
+void ExperimentData::add_metadata(const std::string &key, json_t &data) {
+  const json_t &const_data = data;
+  add_metadata(key, const_data);
+}
+
 //------------------------------------------------------------------
 // Clear and combine
 //------------------------------------------------------------------
 
 void ExperimentData::clear() {
-
   // Clear measurement data
   counts_.clear();
   memory_.clear();
