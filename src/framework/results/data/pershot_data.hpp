@@ -32,7 +32,7 @@ class PershotData {
 
   // Add a new shot of data by appending to data vector
   // Uses move semantics
-  void add_data(T&& datum) { data_.push_back(std::move(datum)); }
+  void add_data(T&& datum) noexcept { data_.push_back(std::move(datum)); }
 
   // Combine with another pershot data by concatinating
   // Uses copy semantics
@@ -40,7 +40,7 @@ class PershotData {
 
   // Combine with another pershot data by concatinating
   // Uses move semantics
-  void combine(PershotData<T>&& other);
+  void combine(PershotData<T>&& other) noexcept;
 
   // Access data
   std::vector<T>& data() { return data_; }
@@ -76,12 +76,10 @@ void PershotData<T>::combine(const PershotData<T>& other) {
 }
 
 template <typename T>
-void PershotData<T>::combine(PershotData<T>&& other) {
+void PershotData<T>::combine(PershotData<T>&& other) noexcept {
   // Move data from other container
   data_.insert(data_.end(), std::make_move_iterator(other.data_.begin()),
                std::make_move_iterator(other.data_.end()));
-  // Since we have moved contents of other container we clear it
-  other.clear();
 }
 
 //------------------------------------------------------------------------------

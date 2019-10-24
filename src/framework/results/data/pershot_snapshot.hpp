@@ -36,7 +36,7 @@ class PershotSnapshot {
 
   // Add a new datum to the snapshot at the specified key
   // Uses move semantics
-  void add_data(const std::string &key, T &&datum);
+  void add_data(const std::string &key, T &&datum) noexcept;
 
   // Combine with another pershot snapshot container
   // Uses copy semantics
@@ -44,7 +44,7 @@ class PershotSnapshot {
 
   // Combine with another pershot snapshot container
   // Uses move semantics
-  void combine(PershotSnapshot<T> &&other);
+  void combine(PershotSnapshot<T> &&other) noexcept;
 
   // Clear all data from current snapshot container
   void clear() { data_.clear(); }
@@ -77,7 +77,7 @@ void PershotSnapshot<T>::add_data(const std::string &key, const T &datum) {
 }
 
 template <typename T>
-void PershotSnapshot<T>::add_data(const std::string &key, T &&datum) {
+void PershotSnapshot<T>::add_data(const std::string &key, T &&datum) noexcept {
   data_[key].add_data(std::move(datum));
 }
 
@@ -89,7 +89,7 @@ void PershotSnapshot<T>::combine(const PershotSnapshot<T> &other) {
 }
 
 template <typename T>
-void PershotSnapshot<T>::combine(PershotSnapshot<T> &&other) {
+void PershotSnapshot<T>::combine(PershotSnapshot<T> &&other) noexcept {
   for (auto &pair : other.data_) {
     data_[pair.first].combine(std::move(pair.second));
   }
