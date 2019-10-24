@@ -31,6 +31,8 @@
 #define tiny_factor 1e30
 #define THRESHOLD 1e-9
 #define NUM_SVD_TRIES 15
+#define APPROX_THRES 1e-4 // note that this is actually sqrt of actually cut-off value
+#define APPROX_LIMIT 10
 
 namespace AER {
 
@@ -94,10 +96,39 @@ uint_t num_of_SV(rvector_t S, double threshold)
 }
 
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-  uint_t SV_num = num_of_SV(S, 1e-16);
+  uint_t SV_num = num_of_SV(S, THRESHOLD);
+  // code for approximation
+  if (SV_num > APPROX_LIMIT) {
+    uint_t new_SV_num = num_of_SV(S, APPROX_THRES);
+    if (new_SV_num < SV_num) {
+      // debug prints
+      std::cout << "initial size of lambda = " << SV_num << ", new size = " << new_SV_num << std::endl;
+      std::cout << "original lambda: "<<std::endl;
+      for (uint i=0; i<S.size(); i++)
+	std::cout << S[i] << " ";
+      std::cout << std::endl;
+    }
+  }
+  // end of code for approximation
+
   U.resize(U.GetRows(), SV_num);
   S.resize(SV_num);
   V.resize(V.GetRows(), SV_num);
+
+  // normalize S - for approximation
+  double sum=0;
+  for (uint i=0; i<S.size(); i++) {
+    sum += pow(S[i], 2);
+  }
+  if (1- sum > THRESHOLD) {
+    for (uint i=0; i<S.size(); i++) {
+      std::cout <<"prev S[i]= " << S[i];
+      double square_i = pow(S[i], 2)/sum;
+      S[i] = sqrt(square_i);
+      std::cout << ", new S[i]= " << S[i] << std::endl;
+      
+    }
+  }
 }
 
 // added cut-off at the end
