@@ -129,7 +129,7 @@ class AerBackend(BaseBackend):
             config['max_memory_mb'] = max_memory_mb
         # Add noise model
         if noise_model is not None:
-            config["noise_model"] = noise_model
+            config["noise_model"] = noise_model.to_dict()
 
         # Add runtime config
         config['library_dir'] = LIBRARY_DIR

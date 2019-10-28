@@ -1,12 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
-#include <iostream>
-#include <type_traits>
-
+#include <complex>
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
-
+#include <pybind11/numpy.h>
+#include <pybind11/complex.h>
 #include <nlohmann_json.hpp>
+#include <iostream>
+#include <type_traits>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -15,9 +16,100 @@ namespace nl = nlohmann;
 
 using namespace pybind11::literals;
 
+template <typename T>
+json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
+    py::buffer_info buf = arr.request();
+    if (buf.ndim != 1) {
+        throw std::runtime_error("Number of dims must be 1");
+    }
+    //std::cout << "1-d conversion: " << std::endl;
+
+    T *ptr = (T *) buf.ptr;
+    size_t X = buf.shape[0];
+
+    std::vector<T> tbr;
+    for (size_t idx = 0; idx < X; idx++)
+        tbr.push_back(ptr[idx]);
+
+    return tbr;
+}
+
+template <typename T>
+json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
+    py::buffer_info buf = arr.request();
+    if (buf.ndim != 2) {
+        throw std::runtime_error("Number of dims must be 2");
+    }
+
+    T *ptr = (T *) buf.ptr;
+    size_t X = buf.shape[0];
+    size_t Y = buf.shape[1];
+
+    //std::cout << "2-d conversion: " << X << "x" << Y << std::endl;
+
+    std::vector<std::vector<T > > tbr;
+    for (size_t idx = 0; idx < X; idx++) {
+        std::vector<T> tbr1;
+        for (size_t jdx = 0; jdx < Y; jdx++) {
+            tbr1.push_back(ptr[idx + X*jdx]);
+        }
+        tbr.push_back(tbr1);
+    }
+
+    return tbr;
+
+}
+
+template <typename T>
+json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
+    py::buffer_info buf = arr.request();
+    if (buf.ndim != 3) {
+        throw std::runtime_error("Number of dims must be 3");
+    }
+    T *ptr = (T *) buf.ptr;
+    size_t X = buf.shape[0];
+    size_t Y = buf.shape[1];
+    size_t Z = buf.shape[2];
+
+    //std::cout << "3-d conversion: " << X << "x" << Y << "x" << Z << std::endl;
+
+    std::vector<std::vector<std::vector<T > > > tbr;
+    for (size_t idx = 0; idx < X; idx++) {
+        std::vector<std::vector<T> > tbr1;
+        for (size_t jdx = 0; jdx < Y; jdx++) {
+            std::vector<T> tbr2;
+            for (size_t kdx = 0; kdx < Z; kdx++) {
+                tbr2.push_back(ptr[kdx + Z*(jdx + Y*idx)]);
+            }
+            tbr1.push_back(tbr2);
+        }
+        tbr.push_back(tbr1);
+    }
+
+    return tbr;
+
+}
+
+template <typename T>
+json_t numpy_to_json(py::array_t<T, py::array::c_style> arr) {
+    py::buffer_info buf = arr.request();
+    //std::cout << "buff dim: " << buf.ndim << std::endl;
+
+    if (buf.ndim == 1) {
+        return numpy_to_json_1d(arr);
+    } else if (buf.ndim == 2) {
+        return numpy_to_json_2d(arr);
+    } else if (buf.ndim == 3) {
+        return numpy_to_json_3d(arr);
+    } else {
+        throw std::runtime_error("Invalid number of dimensions!");
+    }
+    json_t tbr;
+    return tbr;
+}
+
 namespace nlohmann
 {
-
     namespace detail
     {
         py::object from_json_impl(const json& j)
@@ -102,6 +194,22 @@ namespace nlohmann
                 {
                     out[key.cast<nl::json::string_t>()] = to_json_impl(obj[key]);
                 }
+                return out;
+            }
+            if (py::isinstance<py::array_t<double> >(obj))
+            {
+                return numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
+            }
+            if (py::isinstance<py::array_t<std::complex<double> > >(obj))
+            {
+                return numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
+            } 
+            if (std::string(py::str(obj.get_type())) == "<class \'complex\'>")
+            {
+                auto tmp = obj.cast<std::complex<double>>();
+                json out;
+                out.push_back(tmp.real());
+                out.push_back(tmp.imag());
                 return out;
             }
             throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
