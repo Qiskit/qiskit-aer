@@ -141,7 +141,7 @@ namespace nlohmann
                 py::list obj;
                 for (const auto& el: j)
                 {
-                    obj.attr("append")(from_json_impl(el));
+                    obj.append(from_json_impl(el));
                 }
                 return obj;
             }
@@ -158,6 +158,7 @@ namespace nlohmann
 
         json to_json_impl(py::handle obj)
         {
+            //std::cout << "Casting..." << obj.cast<py::object>() << std::endl;
             if (obj.is_none())
             {
                 return nullptr;
@@ -190,9 +191,9 @@ namespace nlohmann
             if (py::isinstance<py::dict>(obj))
             {
                 json out;
-                for (py::handle key: obj)
+                for (auto item : py::cast<py::dict>(obj))
                 {
-                    out[key.cast<nl::json::string_t>()] = to_json_impl(obj[key]);
+                    out[item.first.cast<nl::json::string_t>()] = to_json_impl(item.second);
                 }
                 return out;
             }

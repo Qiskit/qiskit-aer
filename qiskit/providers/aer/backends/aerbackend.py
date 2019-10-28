@@ -28,6 +28,7 @@ from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
+from ..utils.helpers import deprecation
 from ..aerjob import AerJob
 from ..aererror import AerError
 
@@ -122,17 +123,35 @@ class AerBackend(BaseBackend):
         # Add new parameters to config from backend options
         config = output["config"]
         if backend_options is not None:
+            deprecation("backend_options should be provided as part of the qobj")
             for key, val in backend_options.items():
-                config[key] = val
+                config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
+        # Add noise model to config
+        if noise_model is not None:
+            deprecation("noise_model should be provided as part of the qobj")
+            config["noise_model"] = noise_model
+        # Double-check noise_model is a dict type        
+        if not isinstance(config["noise_model"], dict):
+            if hasattr(config["noise_model"], 'to_dict'):
+                config["noise_model"] = config["noise_model"].to_dict()
+            else:
+                raise ValueError("qobj[\'config\'][\'noise_model\'] must be a dict : " + str(type(config["noise_model"])))
+        # Add runtime config
+        if 'library_dir' not in config:
+            config['library_dir'] = LIBRARY_DIR
         if "max_memory_mb" not in config:
             max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
             config['max_memory_mb'] = max_memory_mb
-        # Add noise model
-        if noise_model is not None:
-            config["noise_model"] = noise_model.to_dict()
 
-        # Add runtime config
-        config['library_dir'] = LIBRARY_DIR
+        # sanity checks on config- should be removed upon fixing of assemble w.r.t. backend_options
+        if 'backend_options' in config:
+            if isinstance(config['backend_options'],dict):
+                for key, val in config['backend_options'].items():
+                    if hasattr(val, 'to_dict'):
+                        config['backend_options'][key] = val.to_dict()
+            elif not isinstance(config['backend_options'], list):
+                raise ValueError("config[backend_options] must be a dict or list!")
+                
         # Return output
         return output
 
