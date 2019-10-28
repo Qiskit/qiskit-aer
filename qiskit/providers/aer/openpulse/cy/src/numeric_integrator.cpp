@@ -73,7 +73,22 @@ complex_t chan_value(
     return out;
 }
 
-PyObject * td_ode_rhs(
+
+PyArrayObject * create_py_array_from_vector(
+    const std::vector<complex_t>& out,
+    int num_rows){
+
+    complex_t * p = static_cast<complex_t *>(
+        PyDataMem_NEW_ZEROED(num_rows,sizeof(complex_t))
+    );
+    npy_intp dims = num_rows;
+
+    complex_t * array = static_cast<complex_t *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
+    PyArray_ENABLEFLAGS(arr_out, np.NPY_OWNDATA);
+
+}
+
+PyArrayObject * td_ode_rhs(
     double t,
     PyArrayObject * py_vec,
     PyObject * py_global_data,
@@ -177,10 +192,10 @@ PyObject * td_ode_rhs(
     auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
     auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
     auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-    auto datas = get_vec_from_dict_item<std::vector<NpArray<complex_t>>>(py_global_data, "h_ops_data");
-    auto idxs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ind");
-    auto ptrs = get_vec_from_dict_item<std::vector<long>>(py_global_data, "h_ops_ptr");
-    auto energy = get_vec_from_dict_item<complex_t>(py_global_data, "h_diag_elems");
+    auto datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
+    auto idxs = get_vec_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ind");
+    auto ptrs = get_vec_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ptr");
+    auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
     for(const auto& idx_sys : enumerate(systems)){
         auto sys_index = idx_sys.first;
         auto sys = idx_sys.second;
@@ -240,5 +255,5 @@ PyObject * td_ode_rhs(
     } /* End of systems */
 
     // TODO: Pass the out vector to Pyhton memory, and return it
-    return nullptr;
+    return create_py_array_from_vector(out, num_rows);
 }

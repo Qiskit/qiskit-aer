@@ -21,7 +21,7 @@
 #include <map>
 #include <Python.h>
 
-PyObject * td_ode_rhs(
+PyArrayObject * td_ode_rhs(
      double ,
      PyArrayObject * ,
      PyObject * ,

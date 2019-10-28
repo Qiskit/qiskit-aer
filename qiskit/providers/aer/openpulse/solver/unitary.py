@@ -94,7 +94,6 @@ def unitary_evolution(exp, op_system):
     # code = compile(_inst, '<string>', 'exec')
     # exec(code)  # pylint disable=exec-used
 
-
     # <JUAN> Pass arguments statically
     ODE.set_f_params(global_data, exp, op_system.system, register)
 
