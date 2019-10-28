@@ -3,7 +3,7 @@
 This simulates job using the open pulse format (see the spec).
 
 ## Example
-Consider the Hamiltonian `H=-w_0 * \sigma_z/2  + w_1 * cos(w t + \phi) * \sigma_x/2`. The Hamiltonian may be specified as:
+The Hamiltonian `H=-w_0 * \sigma_z/2  + w_1 * cos(w t + \phi) * \sigma_x/2` may be specified as:
 ```
 hamiltonian = {}
 hamiltonian['h_str'] = []
@@ -19,7 +19,7 @@ hamiltonian['qub'] = {'0': 2}
 ```
 This Hamiltonian has a closed form in the rotating frame (w/ RWA), which may be compared to the pulse simulator result.
 
-Note: Variable names must be lowercase (uppercase is reserved for operators) and cannot include underscores (`_`).
+Note: Variable names must be lowercase (uppercase is reserved for operators).
 
 ## Hamiltonian
 
@@ -80,3 +80,9 @@ frame that a resonant pulse is close to DC.
 
 The measurement operators are the projections onto the 1 excitation subsystem for qubit `l`
 where qubit `l` is defined by diagonalizing `H(t=0)` (i.e. the dressed basis). 
+
+There are three measurement levels that return the data.
+Measurement level `0` gives the raw data.
+Measurement level `1` gives complex numbers (IQ values).
+Measurement level `2` gives the discriminated states, `|0>` and `|1>`.
+
