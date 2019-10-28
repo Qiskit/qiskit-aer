@@ -36,12 +36,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # pylint: disable=anomalous backslash in string
     Uses single qubit Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
     e^{i(\omega_{d0} t+\phi)} \sigma_x`. We make sure H is Hermitian by taking the complex conjugate
-    of the lower triangular piece (as done by the simulator). To find the closed form, we apply move
-    to a rotating frame via the unitary `Urot = e^{-i \omega t \sigma_z/2}`. In this frame, the
-    Hamiltonian becomes `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x - \sin(\phi) \sigma_y)
+    of the lower triangular piece (as done by the simulator). To find the closed form, we move
+    to a rotating frame via the unitary `Urot = e^{-i \omega t \sigma_z/2}
+    (\ket{psi_{rot}}=Urot \ket{psi_{rot}})`. In this frame, the Hamiltonian becomes
+    `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x - \sin(\phi) \sigma_y)
     + \frac{\omega_{d0}-\omega_0}{2} \sigma_z`.
     """
-
     def setUp(self):
         """ Set configuration settings for pulse simulator """
         #Get a pulse configuration from the mock real device
@@ -161,7 +161,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # add commands to schedule
         schedule = pulse.Schedule(name='2q_schedule')
         schedule |= const_pulse(self.system.qubits[self.qubit_0].drive) # pi pulse drive
-        schedule += const_pulse(self.system.controls[uchannel]) # u channel pulse
+        schedule += const_pulse(self.system.controls[uchannel]) << schedule.duration # u chan pulse
         schedule |= self.acq_01 << schedule.duration
 
         return schedule
@@ -216,7 +216,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # interaction term (uses U channels to get exponential piece)
         hamiltonian['h_str'].append('omegai*Sp0*Sm1||U1')
-        hamiltonian['h_str'].append('omegai*Sm0*Sp1||U1')
+        hamiltonian['h_str'].append('omegai*Sm0*Sp1||U1') # U1 gives diff omega_d1-omega_d0
 
 
         # Set variables in ham
@@ -321,10 +321,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                   hamiltonian=x_hamiltonian, qobj_params=x_qobj_params)
         result = self.backend_sim.run(x_qobj).result()
         counts = result.get_counts()
+        exp_counts = {'1':256}
 
-        exp_result = {'1':256}
-
-        self.assertDictAlmostEqual(counts, exp_result)
+        self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_hadamard_gate(self):
         """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega_d0=omega_0
@@ -711,36 +710,35 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # For these tests, we use a different 2-qubit Hamiltonian that tests both
     # interaction and control (U) channels. In the lab frame, it is given
     # by `H = -\frac{1}{2} \omega_0 \sigma_z^0 + \frac{1}{2} \omega_a e^{i \omega_{d0} t} \sigma_x^0
-    # `+ \omega_i (e^{i (\omega_{d0}-\omega_{d1}) t} \sigma_p \otimes \sigma_{m1} + `
-    # `+ e^{-i (\omega_{d0}-\omega_{d1}) t} \sigma_m \otimes \sigma_p)`. First 2 terms allow us to
-    # excite the 0 qubit. Latter 2 terms define the interaction.
+    # `+ \omega_i (e^{i (\omega_{d0}-\omega_{d1}) t} \sigma_{p0} \otimes \sigma_{m1} + `
+    # `+ e^{-i (\omega_{d0}-\omega_{d1}) t} \sigma_{m0} \otimes \sigma_{p1})`. First 2 terms allow
+    # us to excite the 0 qubit. Latter 2 terms define the interaction.
     # ----------------------------------------------------------------------------------------------
 
     def test_interaction(self):
-        r"""Test 2 qubit interaction. Set `\omega_d0 = \omega_d1` (for first two test) as this
-        removes the time dependence and makes the Hamiltonian easily solvable.
-        Using `U = e^{-i H t}` one can see that H defines a swap gate. """
+        r"""Test 2 qubit interaction via swap gates."""
 
         shots = 100000
 
-        # Interaction amp -> pi/2 pulse (creates the swap gate)
-        omega_i = np.pi/2/self.drive_samples
+        # Do a standard SWAP gate
 
+        # Interaction amp (any non-zero creates the swap gate)
+        omega_i_swap = np.pi/2/self.drive_samples
         # set omega_d0=omega_0 (resonance)
         omega_0 = 2*np.pi*self.freq_qubit_0
         omega_d0 = omega_0
 
-        # For swapping, set omega_d0=omega_d1
-        omega_d1_swap = omega_d0
+        # For swapping, set omega_d1 = 0 (drive on Q0 resonance)
+        omega_d1_swap = 0
 
-        # do pi pulse on Q0 and verify state swaps from '01' to '10'
+        # do pi pulse on Q0 and verify state swaps from '10' to '01'
 
         # Q0 drive amp -> pi pulse
         omega_a_pi_swap = np.pi/self.drive_samples
 
         schedule_pi_swap = self.schedule_2q()
         hamiltonian_pi_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_pi_swap,
-                                                 omega_i=omega_i)
+                                                 omega_i=omega_i_swap)
         qobj_params_pi_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_swap)
 
         qobj_pi_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_pi_swap,
@@ -750,17 +748,17 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result_pi_swap = self.backend_sim.run(qobj_pi_swap).result()
         counts_pi_swap = result_pi_swap.get_counts()
 
-        exp_counts_pi_swap = {'10': shots} # reverse ordering; after flip Q0, state is '01'
+        exp_counts_pi_swap = {'01': shots}
         self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
 
-        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
+        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '01'
 
         # Q0 drive amp -> pi/2 pulse
         omega_a_pi2_swap = np.pi/2/self.drive_samples
 
         schedule_pi2_swap = self.schedule_2q()
         hamiltonian_pi2_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_pi2_swap,
-                                                  omega_i=omega_i)
+                                                  omega_i=omega_i_swap)
         qobj_params_pi2_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_swap)
 
         qobj_pi2_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_pi2_swap,
@@ -775,19 +773,22 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts_pi2_swap.keys():
             prop_pi2_swap[key] = counts_pi2_swap[key]/shots
 
-        exp_prop_pi2_swap = {'00':0.5, '10':0.5}
+        exp_prop_pi2_swap = {'00':0.5, '01':0.5}
 
         self.assertDictAlmostEqual(prop_pi2_swap, exp_prop_pi2_swap, delta=0.01)
 
-        # again do pi pulse but now set omega_d1=0 (ie omega_d0 != omega_d1);
-        # verify swap does not occur (no swap)
-        omega_d1_no_swap = 0
+        # Test that no SWAP occurs when omega_i=0 (no interaction)
+        omega_i_no_swap = 0
+
+        # Set arbitrary params for omega_d0, omega_d1
+        omega_d1_no_swap = omega_d0
+
         # Q0 drive amp -> pi pulse
         omega_a_no_swap = np.pi/self.drive_samples
 
         schedule_no_swap = self.schedule_2q()
         hamiltonian_no_swap = self.create_ham_2q(omega_0=omega_0, omega_a=omega_a_no_swap,
-                                                 omega_i=omega_i)
+                                                 omega_i=omega_i_no_swap)
         qobj_params_no_swap = self.qobj_params_2q(omega_d0=omega_d0, omega_d1=omega_d1_no_swap)
 
         qobj_no_swap = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_no_swap,
@@ -797,8 +798,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result_no_swap = self.backend_sim.run(qobj_no_swap).result()
         counts_no_swap = result_no_swap.get_counts()
 
-        exp_counts_no_swap = {'10': shots}
-        self.assertNotEqual(counts_no_swap, exp_counts_no_swap)
+        exp_counts_no_swap = {'10': shots} # non-swapped state
+        self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
 if __name__ == '__main__':
     unittest.main()
