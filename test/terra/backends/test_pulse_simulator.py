@@ -25,7 +25,7 @@ import qiskit.pulse as pulse
 
 from qiskit.compiler import assemble
 
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -44,13 +44,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def setUp(self):
         """ Set configuration settings for pulse simulator """
-        qiskit.IBMQ.load_account()
-
         #Get a pulse configuration from the mock real device
-        self.backend_real = FakeOpenPulse2Q()
-        self.back_config = self.backend_real.configuration().to_dict()
-        self.system = pulse.PulseChannelSpec.from_backend(self.backend_real)
-        self.defaults = self.backend_real.defaults()
+        self.backend_mock = FakeOpenPulse2Q()
+        self.back_config = self.backend_mock.configuration().to_dict()
+        self.system = pulse.PulseChannelSpec.from_backend(self.backend_mock)
+        self.defaults = self.backend_mock.defaults()
 
         # define the qubits
         self.qubit_0 = 0
@@ -287,7 +285,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.back_config['qubit_list'] = qubit_list
 
         # construct the qobj
-        qobj = assemble([schedule], self.backend_real,
+        qobj = assemble([schedule], self.backend_mock,
                         meas_level=meas_level, meas_return='single',
                         meas_map=meas_map, qubit_lo_freq=qubit_lo_freq,
                         memory_slots=memory_slots, shots=shots, sim_config=self.back_config)
