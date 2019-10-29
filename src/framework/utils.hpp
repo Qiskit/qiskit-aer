@@ -1540,21 +1540,6 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   return padleft_inplace(tmp, '0', minlen);
 }
 
-// No silver bullet for floating point comparison techniques.
-// With this function the user can at least specify the precision
-// If we have numbers closer to 0, then max_diff can be set to a value
-// way smaller than epsilon. For numbers larger than 1.0, epsilon will
-// scale (the bigger the number, the bigger the epsilon).
-template<typename T>
-typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
-    almost_equal(T f1, T f2, T max_diff = std::numeric_limits<T>::epsilon(), T max_relative_diff = std::numeric_limits<T>::epsilon())
-{
-  T diff = std::abs(f1 - f2);
-  if(diff <= max_diff)
-    return true;
-
-  return diff <= max_relative_diff * std::max(std::abs(f1), std::abs(f2));
-}
 
 //------------------------------------------------------------------------------
 } // end namespace Utils
