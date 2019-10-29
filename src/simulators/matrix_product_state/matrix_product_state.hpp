@@ -48,6 +48,8 @@ enum class Snapshots {
   expval_matrix//, //expval_matrix_var
 };
 
+// Enum class for different types of expectation values
+enum class SnapshotDataType {average, average_var, single_shot};
 
 //=========================================================================
 // Matrix Product State subclass
@@ -238,7 +240,7 @@ protected:
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               OutputData &data,
-                              bool variance);
+                              SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
@@ -511,17 +513,19 @@ void State::snapshot_state(const Operations::Op &op,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
-
   data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
 				   OutputData &data,
-				   bool variance) {
-  MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+				   SnapshotDataType type) {
   rvector_t prob_vector;
-  qreg_.probabilities_vector(prob_vector);
-  data.add_singleshot_snapshot("probabilities", op.string_params[0], prob_vector);
+  qreg_.probabilities_vector(prob_vector, op.qubits);
+  auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
+  bool variance = type == SnapshotDataType::average_var;
+  data.add_average_snapshot("probabilities", op.string_params[0], 
+			    BaseState::creg_.memory_hex(), 
+			    probs, variance);
 }
 
 void State::apply_gate(const Operations::Op &op) {
@@ -656,7 +660,9 @@ void State::apply_measure(const reg_t &qubits,
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
-  return qreg_.probabilities(qubits);
+  rvector_t probvector;
+  qreg_.probabilities_vector(probvector, qubits);
+  return probvector;
 }
 
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
@@ -679,7 +685,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 
 void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
   // Look for snapshot type in snapshotset
-
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
     throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" +
@@ -698,7 +703,7 @@ void State::apply_snapshot(const Operations::Op &op, OutputData &data) {
       */
   case Snapshots::probs: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, data, false);
+      snapshot_probabilities(op, data, SnapshotDataType::average);
       break;
     }
     case Snapshots::expval_pauli: {

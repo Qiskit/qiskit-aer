@@ -116,21 +116,11 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
-  void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
+  void apply_diagonal_matrix(const reg_t &qubits, const cvector_t &vmat);
 
-  //----------------------------------------------------------------
-  // function name: change_position
-  // Description: Move qubit from src to dst in the MPS. Used only
-  //   for expectation value calculations. Similar to swap, but doesn't
-  //   move qubit in dst back to src, therefore being used only on the temp MPS
-  //   in Expectation_value function.
-  // Parameters: uint_t src, source of the qubit.
-  //			 uint_t dst, destination of the qubit.
-  // Returns: none.
-  //----------------------------------------------------------------
-  void change_position(uint_t src, uint_t dst);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
+  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
   //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
   double expectation_value(const reg_t &qubits, const string &matrices) const;
@@ -149,19 +139,23 @@ public:
    vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
-  // function name: state_vec
+  // function name: state_vec_as_MPS
   // Description: Computes the state vector of a subset of qubits.
   // 	The regular use is with for all qubits. in this case the output is
   //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
   //  	If not used for all qubits,	the result tensor will contain a
   //   	2^(distance between edges) vector of matrices of some size. This
-  //	method is being used for computing expectation value of subset of qubits.
+  //	method is used for computing expectation value of a subset of qubits.
   // Parameters: none.
   // Returns: none.
   //----------------------------------------------------------------
-  MPS_Tensor state_vec(uint_t first_index, uint_t last_index) const;
+  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
+
+  // This function computes the state vector for all the consecutive qubits 
+  // between first_index and last_index
+  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
-  void probabilities_vector(rvector_t& probvector) const;
+  void probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -184,13 +178,6 @@ public:
 
   void enable_gate_opt() {
     cout << "enable_gate_opt not supported yet" <<endl;
-  }
-
-  rvector_t probabilities(const AER::reg_t &qubits) const
-  {
-    rvector_t probvector;
-    probabilities_vector(probvector);
-    return probvector;
   }
 
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
@@ -225,6 +212,33 @@ public:
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
 
 protected:
+  //----------------------------------------------------------------
+  // function name: centralize_qubits
+  // Description: Creates a new MPS where a subset of the qubits is
+  // moved to be in consecutive positions. Used for
+  // computations involving a subset of the qubits.
+  // Parameters: input: new_MPS - the MPS with the shifted qubits
+  //                    qubits - the subset of qubits
+  //            output: new_first, new_last - new positions of the 
+  //                    first and last qubits respectively
+  //                    ordered - are the qubits in ascending order
+  // Returns: none.
+  //----------------------------------------------------------------
+  void centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
+			 uint_t &new_first, uint_t &new_last, bool &ordered) const;
+  //----------------------------------------------------------------
+
+  // function name: change_position
+  // Description: Move qubit from src to dst in the MPS. Used only
+  //   for expectation value calculations. Similar to swap, but doesn't
+  //   move qubit in dst back to src, therefore being used only on the temp MPS
+  //   in Expectation_value function.
+  // Parameters: uint_t src, source of the qubit.
+  //			 uint_t dst, destination of the qubit.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void change_position(uint_t src, uint_t dst);
+
   uint_t num_qubits_;
   vector<MPS_Tensor> q_reg_;
   vector<rvector_t> lambda_reg_;
@@ -234,7 +248,7 @@ protected:
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  double json_chop_threshold_ = 0;  // Threshold for choping small values
+  double json_chop_threshold_ = 1E-8;  // Threshold for choping small values
                                     // in JSON serialization
 };
 
