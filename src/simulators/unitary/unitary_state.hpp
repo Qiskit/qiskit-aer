@@ -417,6 +417,7 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
+    data.add_pershot_snapshot("unitary", op.string_params[0], BaseState::qreg_.matrix());
     BaseState::snapshot_state(op, data);
   } else {
     throw std::invalid_argument("Unitary::State::invalid snapshot instruction \'" +

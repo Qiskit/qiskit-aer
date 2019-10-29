@@ -44,7 +44,7 @@ enum class Snapshots {
 };
 
 // Enum class for different types of expectation values
-enum class SnapshotDataType {average, average_var, single_shot};
+enum class SnapshotDataType {average, average_var, pershot};
 
 //=========================================================================
 // QubitVector State subclass
@@ -229,6 +229,11 @@ protected:
   // during snapshot, but after the snapshot is applied the simulator
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
+
+  // Snapshot current qubit probabilities for a measurement (average)
+  void snapshot_statevector(const Operations::Op &op,
+                            ExperimentData &data,
+                            SnapshotDataType type);
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
@@ -487,7 +492,7 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::statevector:
-      BaseState::snapshot_state(op, data, "statevector");
+      data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector());
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -516,10 +521,10 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
       snapshot_matrix_expval(op, data, SnapshotDataType::average_var);
     }  break;
     case Snapshots::expval_pauli_shot: {
-      snapshot_pauli_expval(op, data, SnapshotDataType::single_shot);
+      snapshot_pauli_expval(op, data, SnapshotDataType::pershot);
     } break;
     case Snapshots::expval_matrix_shot: {
-      snapshot_matrix_expval(op, data, SnapshotDataType::single_shot);
+      snapshot_matrix_expval(op, data, SnapshotDataType::pershot);
     }  break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
@@ -604,8 +609,8 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
       data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
-    case SnapshotDataType::single_shot:
-      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
   // Revert to original state
@@ -664,8 +669,8 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
-    case SnapshotDataType::single_shot:
-      data.add_singleshot_snapshot("expectation_values", op.string_params[0], expval);
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
   // Revert to original state
