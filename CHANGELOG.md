@@ -23,6 +23,7 @@ Added
 
 Changed
 -------
+- Improved pershot snapshot data container performance (\#405)
 
 Removed
 -------

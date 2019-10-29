@@ -47,7 +47,7 @@ public:
   // This assumes the metadata value is a dictionary and appends
   // any new values
   template <typename T>
-  void add_metadata(const std::string &key, const T &data);
+  void add_metadata(const std::string &key, T &&data);
 
   // Serialize engine data to JSON
   json_t json() const;
@@ -58,16 +58,36 @@ public:
 // Add metadata
 //------------------------------------------------------------------------------
 template <typename T>
-void ExperimentResult::add_metadata(const std::string &key, const T &meta) {
+void ExperimentResult::add_metadata(const std::string &key, T &&meta) {
+  // Use implicit to_json conversion function for T
+  json_t jdata = meta;
+  add_metadata(key, std::move(jdata));
+}
+
+template <>
+void ExperimentResult::add_metadata(const std::string &key, json_t &&meta) {
+  // Use implicit to_json conversion function for T
+  auto elt = metadata.find("key");
+  if (elt == metadata.end()) {
+    // If key doesn't already exist add new data
+    metadata[key] = std::move(meta);
+  } else {
+    // If key already exists append with additional data
+    elt->second.update(meta.begin(), meta.end());
+  }
+}
+
+template <>
+void ExperimentResult::add_metadata(const std::string &key, const json_t &meta) {
   // Use implicit to_json conversion function for T
   json_t jdata = meta;
   auto elt = metadata.find("key");
   if (elt == metadata.end()) {
     // If key doesn't already exist add new data
-    metadata[key] = std::move(jdata);
+    metadata[key] = meta;
   } else {
     // If key already exists append with additional data
-    elt->second.update(jdata.begin(), jdata.end());
+    elt->second.update(meta.begin(), meta.end());
   }
 }
 

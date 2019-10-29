@@ -20,48 +20,6 @@
 namespace AER {
 
 //------------------------------------------------------------------------------
-// Snapshot data storage class
-//------------------------------------------------------------------------------
-
-class SingleShotSnapshot {
-
-// Inner snapshot data map type
-
-public:
-
-  // Add a new datum to the snapshot at the specified key
-  // This uses the `to_json` function for convertion
-  template <typename T>
-  inline void add_data(const std::string &key, T &datum) {
-    json_t tmp = datum;
-    data_[key].push_back(tmp);
-  }
-
-  // Combine with another snapshot object clearing each inner map
-  // as it is copied, and then clearing the resulting object.
-  void combine(SingleShotSnapshot &snapshot);
-
-  // Clear all data from current snapshot
-  inline void clear() {data_.clear();}
-
-  // Clear all snapshot data for a given label
-  inline void erase(const std::string &label) {data_.erase(label);}
-
-  // Dump all snapshots to JSON;
-  json_t json() const;
-
-  // Return true if snapshot container is empty
-  inline bool empty() const {return data_.empty();}
-
-private:
-
-  // Internal Storage
-  // Map key is the snapshot label string
-  stringmap_t<std::vector<json_t>> data_;
-};
-
-
-//------------------------------------------------------------------------------
 // AverageData class for storage of averaged quantities
 //------------------------------------------------------------------------------
 
@@ -154,31 +112,6 @@ protected:
   // Inner map key is the memory value string
   stringmap_t<stringmap_t<AverageData>> data_;
 };
-
-
-//------------------------------------------------------------------------------
-// Implementation: SingleShotSnapshot class methods
-//------------------------------------------------------------------------------
-
-void SingleShotSnapshot::combine(SingleShotSnapshot &snapshot) {
-  for (auto &data : snapshot.data_) {
-    auto &slot = data_[data.first];
-    auto &new_data = data.second;
-    slot.insert(slot.end(), std::make_move_iterator(new_data.begin()), 
-                            std::make_move_iterator(new_data.end()));
-    new_data.clear();
-  }
-  snapshot.clear(); // clear added snapshot
-}
-
-
-json_t SingleShotSnapshot::json() const {
-  json_t result;
-  for (const auto &pair : data_) {
-    result[pair.first] = pair.second;
-  }
-  return result;
-}
 
 
 //------------------------------------------------------------------------------
@@ -320,10 +253,6 @@ void AverageData::accum_helper(json_t &lhs, json_t &rhs, bool subtract) {
 //------------------------------------------------------------------------------
 
 void to_json(json_t &js, const AverageSnapshot &snapshot) {
-  js = snapshot.json();
-}
-
-void to_json(json_t &js, const SingleShotSnapshot &snapshot) {
   js = snapshot.json();
 }
 
