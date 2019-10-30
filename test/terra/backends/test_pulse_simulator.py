@@ -402,96 +402,34 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
         shots = 10000 # large number of shots so get good proportions
+        num_tests = 3
+        # set variables for each test
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0_vals = [omega_0+1, omega_0+0.02, omega_0+0.005]
+        omega_a_vals = [2*np.pi/3/self.drive_samples, 7*np.pi/5/self.drive_samples, 0.1]
+        phi_vals = [5*np.pi/7, 19*np.pi/14, np.pi/4]
 
-        # Gate 1
+        for i in range(num_tests):
+            with self.subTest(i=i):
+                schedule = self.single_pulse_schedule(phi_vals[i])
+                hamiltonian = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a_vals[i])
+                qobj_params = self.qobj_params_1q(omega_d0=omega_d0_vals[i])
 
-        # set variables
-        omega_0_test1 = 2*np.pi*self.freq_qubit_0
-        omega_d0_test1 = omega_0_test1+0.01
+                qobj = self.create_qobj(shots=shots, meas_level=2, schedule=schedule,
+                                            hamiltonian=hamiltonian, qobj_params=qobj_params)
 
-        omega_a_test1 = 2*np.pi/3/self.drive_samples
+                # Run qobj and compare prop to expected result
+                result = self.backend_sim.run(qobj).result()
+                counts = result.get_counts()
 
-        phi_test1 = 5*np.pi/7
+                prop= {}
+                for key in counts.keys():
+                    prop[key] = counts[key]/shots
 
-        schedule_test1 = self.single_pulse_schedule(phi_test1)
-        hamiltonian_test1 = self.create_ham_1q(omega_0=omega_0_test1, omega_a=omega_a_test1)
-        qobj_params_test1 = self.qobj_params_1q(omega_d0=omega_d0_test1)
+                exp_prop = self._analytic_prop_1q_gates(omega_0=omega_0, omega_a=omega_a_vals[i],
+                                                        omega_d0=omega_d0_vals[i], phi=phi_vals[i])
 
-        qobj_test1 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test1,
-                                      hamiltonian=hamiltonian_test1, qobj_params=qobj_params_test1)
-
-        # Run qobj and compare prop to expected result
-        result_test1 = self.backend_sim.run(qobj_test1).result()
-        counts_test1 = result_test1.get_counts()
-
-        prop_test1 = {}
-        for key in counts_test1.keys():
-            prop_test1[key] = counts_test1[key]/shots
-
-        exp_prop_test1 = self._analytic_prop_1q_gates(omega_0=omega_0_test1, omega_a=omega_a_test1,
-                                                      omega_d0=omega_d0_test1, phi=phi_test1)
-
-        self.assertDictAlmostEqual(prop_test1, exp_prop_test1, delta=0.01)
-
-        # Gate 2
-
-        # set variables
-        omega_0_test2 = 2*np.pi*self.freq_qubit_0
-        omega_d0_test2 = omega_0_test2+0.02
-
-        omega_a_test2 = 7*np.pi/5/self.drive_samples
-
-        phi_test2 = 19*np.pi/14
-
-        schedule_test2 = self.single_pulse_schedule(phi_test2)
-        hamiltonian_test2 = self.create_ham_1q(omega_0=omega_0_test2, omega_a=omega_a_test2)
-        qobj_params_test2 = self.qobj_params_1q(omega_d0=omega_d0_test2)
-
-        qobj_test2 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test2,
-                                      hamiltonian=hamiltonian_test2, qobj_params=qobj_params_test2)
-
-        # Run qobj and compare prop to expected result
-        result_test2 = self.backend_sim.run(qobj_test2).result()
-        counts_test2 = result_test2.get_counts()
-
-        prop_test2 = {}
-        for key in counts_test2.keys():
-            prop_test2[key] = counts_test2[key]/shots
-
-        exp_prop_test2 = self._analytic_prop_1q_gates(omega_0=omega_0_test2, omega_a=omega_a_test2,
-                                                      omega_d0=omega_d0_test2, phi=phi_test2)
-
-        self.assertDictAlmostEqual(prop_test2, exp_prop_test2, delta=0.01)
-
-        # Gate 3
-
-        # set variables
-        omega_0_test3 = 2*np.pi*self.freq_qubit_0
-        omega_d0_test3 = omega_0_test3+0.005
-
-        omega_a_test3 = 0.1
-
-        phi_test3 = np.pi/4
-
-        schedule_test3 = self.single_pulse_schedule(phi_test3)
-        hamiltonian_test3 = self.create_ham_1q(omega_0=omega_0_test3, omega_a=omega_a_test3)
-        qobj_params_test3 = self.qobj_params_1q(omega_d0=omega_d0_test3)
-
-        qobj_test3 = self.create_qobj(shots=shots, meas_level=2, schedule=schedule_test3,
-                                      hamiltonian=hamiltonian_test3, qobj_params=qobj_params_test3)
-
-        # Run qobj and compare prop to expected result
-        result_test3 = self.backend_sim.run(qobj_test3).result()
-        counts_test3 = result_test3.get_counts()
-
-        prop_test3 = {}
-        for key in counts_test3.keys():
-            prop_test3[key] = counts_test3[key]/shots
-
-        exp_prop_test3 = self._analytic_prop_1q_gates(omega_0=omega_0_test3, omega_a=omega_a_test3,
-                                                      omega_d0=omega_d0_test3, phi=phi_test3)
-
-        self.assertDictAlmostEqual(prop_test3, exp_prop_test3, delta=0.01)
+                self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
     # ---------------------------------------------------------------------
     # Test meas level 1 (using square drive)
