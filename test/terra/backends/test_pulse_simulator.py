@@ -117,7 +117,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Returns:
             schedule (pulse schedule): schedule for frame change test
         """
-         # drive pulse (just phase; omega_a included in Hamiltonian)
+        # drive pulse (just phase; omega_a included in Hamiltonian)
         phase = np.exp(1j*phi)
         drive_pulse_1 = SamplePulse(phase*np.ones(dur_drive1), name='drive_pulse_1')
         drive_pulse_2 = SamplePulse(phase*np.ones(dur_drive2), name='drive_pulse_2')
