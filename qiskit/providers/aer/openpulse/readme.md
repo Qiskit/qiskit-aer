@@ -17,7 +17,7 @@ hamiltonian['vars'] = {'w0': (add w0 val here), 'w1': (add w1 value here)}
 # set the qubit dimension to 2
 hamiltonian['qub'] = {'0': 2}
 ```
-This Hamiltonian has a closed form in the rotating frame (w/ RWA), which may be compared to the pulse simulator result.
+This Hamiltonian has a closed form in the rotating frame specified in the solving section.
 
 Note: Variable names must be lowercase (uppercase is reserved for operators).
 
@@ -69,8 +69,8 @@ Available operators are:
 ## Solving
 
 The solver takes the Hamiltonian (`H(t=0)`) and sets all drive/control channels to zero. 
-Consider `H_d` to be the diagonal elements of `H(t=0)`, then the transformation applied is
-`U=e^{-i H_d t/hbar}`. For all drive/control channels, the LO is applied so
+Consider `H_d` to be the diagonal elements of `H(t=0)`, then the transformation applied to the statevector `\psi` is
+`U=e^{-i H_d t/hbar}` (`\psi \rightarrow U \psi). For all drive/control channels, the LO is applied so
 `d(t) -> D(t)e^{-i w t}`. The LO frequency `w` may be set in the pulse. If the drive is associated with some operator *B* then
 the upper triangular part of *B* is multiplied by `d(t)` and the lower triangular part
 by `d*(t)`. This ensures the Hamiltonian is Hermitian and also that in the transformed
