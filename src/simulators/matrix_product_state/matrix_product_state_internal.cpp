@@ -92,8 +92,25 @@ void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits,
 			std::vector<T>& new_probvector) {
   uint_t new_index;
   uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
-  for (uint_t i = 0; i < length; i++) {
-    new_index = reorder_qubits(qubits, i);
+  // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
+  // ordering
+  reg_t squeezed_qubits(qubits.size());
+  std::vector<uint_t> sorted_qubits;
+  for (uint_t index : qubits) {
+    sorted_qubits.push_back(index);
+  }
+  sort(sorted_qubits.begin(), sorted_qubits.end());
+  for (uint_t i=0; i<qubits.size(); i++) {
+    for (uint_t j=0; j<sorted_qubits.size(); j++) {
+      if (qubits[i] == sorted_qubits[j]) {
+	squeezed_qubits[i] = j;
+	break;
+      } 
+    }    
+  }
+
+  for (uint_t i=0; i < length; i++) {
+    new_index = reorder_qubits(squeezed_qubits, i);
     new_probvector[new_index] = orig_probvector[i];
   } 
 }
@@ -608,6 +625,15 @@ void MPS::probabilities_vector(rvector_t& probvector,
       break;
     }
   }
+
+  bool reverse_ordered = true;
+  for (uint_t index=0; index < qubits.size()-1; index++) {
+    if (qubits[index] < qubits[index+1]){
+      reverse_ordered = false;
+      break;
+    }
+  }
+
   if (qubits.size() == num_qubits_ && ordered){
     MPS_Tensor mps_vec = state_vec_as_MPS(0, qubits.size()-1);
 #pragma omp parallel for
@@ -616,12 +642,23 @@ void MPS::probabilities_vector(rvector_t& probvector,
       // reverse_bits to be consistent with output order in qasm
       probvector[i] = std::norm(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
     }
-  } else {
-    rvector_t ordered_probvector = trace_of_density_matrix(qubits);
-    reorder_all_qubits(ordered_probvector, qubits, probvector);
-      //rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());
- 
+    return;
   }
+  if (qubits.size() == num_qubits_ && reverse_ordered){
+    MPS_Tensor mps_vec = state_vec_as_MPS(0, qubits.size()-1);
+#pragma omp parallel for
+    for (int_t i = 0; i < static_cast<int_t>(length); i++) {
+      // in this case, take psi * psi_dagger
+      probvector[i] = std::norm(mps_vec.get_data(i)(0,0));
+    }
+    return;
+  }
+  // no ordering among the qubits
+  rvector_t ordered_probvector = trace_of_density_matrix(qubits);
+  reorder_all_qubits(ordered_probvector, qubits, probvector);
+  // decide whether to reverse after an answer to issue #413
+  //  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());  
+  //  probvector = rev_vec;
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
