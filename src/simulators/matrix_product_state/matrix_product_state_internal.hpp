@@ -116,8 +116,7 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
-  void apply_diagonal_matrix(const reg_t &qubits, const cvector_t &vmat);
-
+  void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
   rvector_t trace_of_density_matrix(const reg_t &qubits) const;
