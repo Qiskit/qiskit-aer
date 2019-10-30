@@ -49,7 +49,7 @@ enum class Snapshots {
 };
 
 // Enum class for different types of expectation values
-enum class SnapshotDataType {average, average_var, single_shot};
+enum class SnapshotDataType {average, average_var, pershot};
 
 //=========================================================================
 // Matrix Product State subclass
@@ -112,7 +112,7 @@ public:
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
-    return {"statevector", "memory", "register",
+    return {"statevector", "memory", "register", "probabilities",
             "expectation_value_pauli", //"expectation_value_pauli_with_variance",
             "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
             };
@@ -517,16 +517,11 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
   qreg_.probabilities_vector(prob_vector, op.qubits);
-  data.add_pershot_snapshot("probabilities", op.string_params[0], prob_vector);
+  auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
+  bool variance = type == SnapshotDataType::average_var;
+  data.add_average_snapshot("probabilities", op.string_params[0], 
+  			    BaseState::creg_.memory_hex(), probs, variance);
 
-  // do we need this now?
-  //  auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
-  //bool variance = type == SnapshotDataType::average_var;
-  //data.add_average_snapshot("probabilities", op.string_params[0], 
-  //			    BaseState::creg_.memory_hex(), 
-  //		    probs, variance);
-
-  // end - do we need this now
 }
 
 void State::apply_gate(const Operations::Op &op) {
