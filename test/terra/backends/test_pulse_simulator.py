@@ -19,6 +19,7 @@ from test.terra import common
 
 import numpy as np
 from scipy.linalg import expm
+from scipy.special import erf
 
 import qiskit
 import qiskit.pulse as pulse
@@ -65,7 +66,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # define the pulse time (# of samples)
         self.drive_samples = 100
 
-         # Define acquisition
+        # Define acquisition
         acq_cmd = pulse.Acquire(duration=self.drive_samples)
         self.acq_0 = acq_cmd(self.system.acquires[self.qubit_0],
                              self.system.memoryslots[self.qubit_0])
@@ -74,17 +75,25 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         #Get pulse simulator backend
         self.backend_sim = qiskit.Aer.get_backend('pulse_simulator')
 
-    def single_pulse_schedule(self, phi):
+    def single_pulse_schedule(self, phi, shape="square", gauss_sigma=0):
         """Creates schedule for single pulse test
         Args:
             phi (float): drive phase (phi in Hamiltonian)
+            shape (str): shape of the pulse; defaults to square pulse
+            gauss_sigma (float): std dev for gaussian pulse if shape=="gaussian"
         Returns:
             schedule (pulse schedule): schedule for this test
         """
-         # drive pulse (just phase; omega_a included in Hamiltonian)
+        # define default square drive pulse (add phase only; omega_a included in Hamiltonian)
         const_pulse = np.ones(self.drive_samples)
         phase = np.exp(1j*phi)
         drive_pulse = SamplePulse(phase*const_pulse, name='drive_pulse')
+
+        # create simple Gaussian drive if set this shape
+        if shape == "gaussian":
+            times = 1.0*np.arange(self.drive_samples)
+            gaussian = np.exp(-times**2/2/gauss_sigma**2)
+            drive_pulse = SamplePulse(gaussian, name='drive_pulse')
 
         # add commands to schedule
         schedule = pulse.Schedule(name='drive_pulse')
@@ -93,6 +102,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= self.acq_0 << schedule.duration
 
         return schedule
+
 
     def frame_change_schedule(self, phi, fc_phi, dur_drive1, dur_drive2):
         """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur_drive1,
@@ -295,8 +305,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     #### SINGLE QUBIT TESTS ########################################################################
 
     # ---------------------------------------------------------------------
-    # Test gates (using meas level 2)
+    # Test gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
+
     def test_x_gate(self):
         """Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
         """
@@ -483,7 +494,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(prop_test3, exp_prop_test3, delta=0.01)
 
     # ---------------------------------------------------------------------
-    # Test meas level 1
+    # Test meas level 1 (using square drive)
     # ---------------------------------------------------------------------
 
     def test_meas_level_1(self):
@@ -526,8 +537,65 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
 
     # ---------------------------------------------------------------------
+    # Test Gaussian drive (using meas_level=2)
+    # ---------------------------------------------------------------------
+
+    def _analytic_gaussian_statevector(self, gauss_sigma, omega_a):
+        r"""Computes analytic statevector for gaussian drive. Solving the Schrodinger equation in
+        the rotating frame leads to the analytic solution `(\cos(x), -i\sin(x)) with
+        `x = \frac{1}{2}\sqrt{\frac{\pi}{2}}\sigma\omega_a erf(\frac{t}{\sqrt{2}\sigma}).
+        Args:
+            gauss_sigma (float): std dev for the gaussian drive
+            omega_a (float): Q0 drive amplitude
+        Returns:
+            exp_statevector (list): analytic form of the statevector computed for gaussian drive
+                (Returned in the rotating frame)
+        """
+        time = self.drive_samples
+        arg = 1/2*np.sqrt(np.pi/2)*gauss_sigma*omega_a*erf(time/np.sqrt(2)/gauss_sigma)
+        exp_statevector = [np.cos(arg), -1j*np.sin(arg)]
+        return exp_statevector
+
+    def test_gaussian_drive(self):
+        """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
+        phi=0, omega_a = pi/time
+        """
+
+        # set variables
+
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2*np.pi*self.freq_qubit_0
+        omega_d0 = omega_0
+
+        # Require omega_a*time = pi to implement pi pulse (x gate)
+        # num of samples gives time
+        omega_a = np.pi/self.drive_samples
+
+        phi = 0
+
+        # Test gaussian drive results for a few different sigma
+        gauss_sigmas = {self.drive_samples/6, self.drive_samples/3, self.drive_samples}
+        for gauss_sigma in gauss_sigmas:
+            with self.subTest(gauss_sigma=gauss_sigma):
+                schedule = self.single_pulse_schedule(phi=phi, shape="gaussian",
+                                                      gauss_sigma=gauss_sigma)
+                hamiltonian = self.create_ham_1q(omega_0=omega_0, omega_a=omega_a)
+                qobj_params = self.qobj_params_1q(omega_d0=omega_d0)
+
+                qobj = self.create_qobj(shots=1000, meas_level=2, schedule=schedule,
+                                        hamiltonian=hamiltonian, qobj_params=qobj_params)
+                result = self.backend_sim.run(qobj).result()
+                statevector = result.get_statevector()
+                exp_statevector = self._analytic_gaussian_statevector(gauss_sigma=gauss_sigma,
+                                                                      omega_a=omega_a)
+                # compare statevectors element-wise (comparision only accurate to 1 dec place)
+                for i, _ in enumerate(statevector):
+                    self.assertAlmostEqual(statevector[i], exp_statevector[i], places=1)
+
+    # ---------------------------------------------------------------------
     # Test FrameChange and PersistentValue commands
     # ---------------------------------------------------------------------
+
     def _analytic_prop_fc(self, phi_net):
         """Compute analytic proportion of 0 and 1 from a given frame change. Analytically can show
         that the 0 prop is given by `cos(phi_net/2)^2`
@@ -627,19 +695,22 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_result)
 
     # ---------------------------------------------------------------------
-    # Test higher energy levels (take 3 level system for simplicity)
+    # Test higher energy levels (take 3 level system for simplicity,
+    # use square drive)
     # `\sigma_x \rightarrow a+\dagger{a}`,
     # `\sigma_y \rightarrow -\imag (a-\dagger{a})`, etc
     # ---------------------------------------------------------------------
+
     def _analytic_statevector_three_level(self, omega_a):
-        r"""Returns analytically computed statevecotr for 3 level system with our Hamiltonian. Is
+        r"""Returns analytically computed statevector for 3 level system with our Hamiltonian. Is
         given by `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
         -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
         -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
         Args:
             omega_a (float): Q0 drive amplitude
         Returns:
-            exp_statevector (list): analytically computed statevector with from above
+            exp_statevector (list): analytically computed statevector with Hamiltonian from above
+                (Returned in the rotating frame)
         """
         time = self.drive_samples
         arg1 = np.sqrt(3)*omega_a*time/2 # cos arg for first component
