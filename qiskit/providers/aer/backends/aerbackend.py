@@ -123,12 +123,10 @@ class AerBackend(BaseBackend):
         # Add new parameters to config from backend options
         config = output["config"]
         if backend_options is not None:
-            deprecation("backend_options should be provided as part of the qobj")
             for key, val in backend_options.items():
                 config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
         # Add noise model to config
         if noise_model is not None:
-            deprecation("noise_model should be provided as part of the qobj")
             config["noise_model"] = noise_model
 
         # Add runtime config

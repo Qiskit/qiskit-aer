@@ -138,12 +138,13 @@ namespace nlohmann
             }
             if (j.is_array())
             {
-                py::list obj;
-                for (const auto& el: j)
+                //py::list obj;
+                std::vector<py::object> obj(j.size());
+                for (auto i = 0; i < j.size(); i++)
                 {
-                    obj.append(from_json_impl(el));
+                    obj[i] = from_json_impl(j[i]);
                 }
-                return obj;
+                return py::cast(obj);
             }
             if (j.is_object())
             {
