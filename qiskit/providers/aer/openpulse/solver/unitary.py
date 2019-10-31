@@ -63,6 +63,8 @@ def unitary_evolution(exp, op_system):
     #<JUAN>
     global_data = op_system.global_data
     ode_options = op_system.ode_options
+    # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+    channels = dict(op_system.channels)
     #</JUAN>
 
     cy_rhs_func = global_data['rhs_func']
@@ -95,7 +97,7 @@ def unitary_evolution(exp, op_system):
     # exec(code)  # pylint disable=exec-used
 
     # <JUAN> Pass arguments statically
-    ODE.set_f_params(global_data, exp, op_system.system, register)
+    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
 
     if not ODE._y:
         ODE.t = 0.0

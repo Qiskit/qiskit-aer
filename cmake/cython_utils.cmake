@@ -26,7 +26,7 @@ function(add_cython_module module)
     get_filename_component(CYTHON_OUTPUT_FILE ${CYTHON_OUTPUT_FILE} DIRECTORY)
     set(CYTHON_OUTPUT_DIR ${CYTHON_OUTPUT_FILE} PARENT_SCOPE)
 
-    add_library(${module} MODULE ${module} ${ARGV1})
+    add_library(${module} MODULE ${module} ${ARGV1} ${MUPARSERX_SOURCES})
     set_target_properties(${module} PROPERTIES
         LINKER_LANGUAGE CXX
         CXX_STANDARD 14)

@@ -9,6 +9,13 @@
 #include "numeric_integrator.hpp"
 #include "helpers.hpp"
 
+class Unregister {
+  public:
+    ~Unregister(){
+        spdlog::drop_all();
+    }
+};
+
 complex_t chan_value(
     double t,
     unsigned int chan_num,
@@ -75,17 +82,17 @@ complex_t chan_value(
 
 
 PyArrayObject * create_py_array_from_vector(
-    const std::vector<complex_t>& out,
+    std::vector<complex_t>& out,
     int num_rows){
 
-    complex_t * p = static_cast<complex_t *>(
-        PyDataMem_NEW_ZEROED(num_rows,sizeof(complex_t))
-    );
+    // complex_t * new_array = static_cast<complex_t *>(
+    //     PyDataMem_NEW_ZEROED(num_rows,sizeof(complex_t))
+    // );
+    // std::copy(out.begin(), out.end(), new_array);
     npy_intp dims = num_rows;
-
-    complex_t * array = static_cast<complex_t *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
-    PyArray_ENABLEFLAGS(arr_out, np.NPY_OWNDATA);
-
+    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, &out[0]));
+    PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
+    return array;
 }
 
 PyArrayObject * td_ode_rhs(
@@ -94,9 +101,12 @@ PyArrayObject * td_ode_rhs(
     PyObject * py_global_data,
     PyObject * py_exp,
     PyObject * py_system,
+    PyObject * py_channels,
     PyObject * py_register){
 
     const static auto numpy_initialized = init_numpy();
+
+    const Unregister unregister;
 
     auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
     spdlog::set_default_logger(file_logger);
@@ -172,19 +182,21 @@ PyArrayObject * td_ode_rhs(
     jlog("reg: {}", reg);
 
 
-    std::vector<complex_t> chan_values;
+    // auto channels = get_value<std::unordered_map<long, std::string>>(py_channels);
+    std::unordered_map<std::string, complex_t> chan_values;
     chan_values.reserve(pulses.size());
     for(const auto& elem : enumerate(pulses)){
         /**
          * eleme is map of string as key type, and vector of vectors of doubles.
          * elem["D0"] = [[0.,1.,2.][0.,1.,2.]]
          **/
-        auto index = elem.first;
-        auto pulse = elem.second;
+        auto i = elem.first;
+        auto channel = elem.second.first;
+        auto pulse = elem.second.second;
 
-        auto val = chan_value(t, index, freqs[index], pulse.second[0], pulse_array,
-                              pulse_indices, pulse.second[1], reg);
-        chan_values.emplace_back(val);
+        auto val = chan_value(t, i, freqs[i], pulse[0], pulse_array,
+                              pulse_indices, pulse[1], reg);
+        chan_values.emplace(channel, val);
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
@@ -234,7 +246,7 @@ PyArrayObject * td_ode_rhs(
         //             dot += coef*osc_term*data0[jj]*vec[idx0[jj]];
         //         out[row] += dot;
         // td1 = np.pi*alpha0
-        auto td = evaluate_hamiltonian_expression(term, vars, vars_names);
+        auto td = evaluate_hamiltonian_expression(term, vars, vars_names, chan_values);
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){
                 complex_t dot = {0., 0.};

@@ -43,6 +43,8 @@ def monte_carlo(seed, exp, op_system):
     #<JUAN>
     global_data = op_system.global_data
     ode_options = op_system.ode_options
+     # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+    channels = dict(op_system.channels)
     #</JUAN>
 
 
@@ -72,7 +74,7 @@ def monte_carlo(seed, exp, op_system):
     ODE = ode(cy_rhs_func)
 
     # <JUAN> Pass arguemnts statically
-    ODE.set_f_params(global_data, exp, op_system.system, register)
+    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
 
     #_inst = 'ODE.set_f_params(%s)' % global_data['string']
     #print("Monte Carlo: {}\n\n".format(_inst))

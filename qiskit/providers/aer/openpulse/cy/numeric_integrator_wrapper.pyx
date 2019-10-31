@@ -23,8 +23,9 @@ cdef extern from "src/numeric_integrator.hpp":
         dict global_data,
         dict exp,
         list system,
+        dict channels,
         register
     ) except +
 
-def td_ode_rhs_static(t, vec, global_data, exp, system, register):
-    td_ode_rhs(t, vec, global_data, exp, system, register)
+def td_ode_rhs_static(t, vec, global_data, exp, system, channels, register):
+    td_ode_rhs(t, vec, global_data, exp, system, channels, register)

@@ -242,7 +242,7 @@ class OP_mcwf():
 
             all_results.append(results)
 
-        _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
+        #_cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
         return all_results
 
 
