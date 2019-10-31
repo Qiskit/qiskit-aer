@@ -455,7 +455,7 @@ void State::snapshot_stabilizer(const Operations::Op &op, ExperimentData &data) 
   // stabilizer part. First Convert simulator clifford table to JSON
   json_t clifford = BaseState::qreg_;
   // Then extract the stabilizer generator list
-  data.add_singleshot_snapshot("stabilizer",
+  data.add_pershot_snapshot("stabilizer",
                                op.string_params[0],
                                clifford["stabilizers"]);
 }
