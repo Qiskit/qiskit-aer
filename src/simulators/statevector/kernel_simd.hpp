@@ -159,6 +159,7 @@ inline void kernel3(std::complex<data_t> *data_, const areg_t<8> &inds, __m256d 
     vec[2] = loadbc((double *)&data_[inds[2]]);
     vec[3] = loadbc((double *)&data_[inds[3]]);
 
+
     temp[0] = _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3]))));
     temp[1] = _mm256_add_pd(mul(vec[0], mat_vec[8], mat_perm[8]), _mm256_add_pd(mul(vec[1], mat_vec[9], mat_perm[9]), _mm256_add_pd(mul(vec[2], mat_vec[10], mat_perm[10]), mul(vec[3], mat_vec[11], mat_perm[11]))));
     temp[2] = _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19]))));
@@ -176,217 +177,6 @@ inline void kernel3(std::complex<data_t> *data_, const areg_t<8> &inds, __m256d 
     _mm256_storeu2_m128d((double *)&data_[inds[7]], (double *)&data_[inds[6]], _mm256_add_pd(temp[3], _mm256_add_pd(mul(vec[0], mat_vec[28], mat_perm[28]), _mm256_add_pd(mul(vec[1], mat_vec[29], mat_perm[29]), _mm256_add_pd(mul(vec[2], mat_vec[30], mat_perm[30]), mul(vec[3], mat_vec[31], mat_perm[31]))))));
 }
 
-template<typename data_t=double>
-inline void kernel4(std::complex<data_t> *data_, const areg_t<16> &inds, __m256d *mat_vec, __m256d *mat_perm, const cvector_t<double> &mat){
-    __m256d vec[4];
-    __m256d temp[8];
-mat_vec[0] = loadu2((double *)&mat[0], (double *)&mat[1]);
-mat_vec[1] = loadu2((double *)&mat[16], (double *)&mat[17]);
-mat_vec[2] = loadu2((double *)&mat[32], (double *)&mat[33]);
-mat_vec[3] = loadu2((double *)&mat[48], (double *)&mat[49]);
-mat_vec[4] = loadu2((double *)&mat[2], (double *)&mat[3]);
-mat_vec[5] = loadu2((double *)&mat[18], (double *)&mat[19]);
-mat_vec[6] = loadu2((double *)&mat[34], (double *)&mat[35]);
-mat_vec[7] = loadu2((double *)&mat[50], (double *)&mat[51]);
-mat_vec[8] = loadu2((double *)&mat[4], (double *)&mat[5]);
-mat_vec[9] = loadu2((double *)&mat[20], (double *)&mat[21]);
-mat_vec[10] = loadu2((double *)&mat[36], (double *)&mat[37]);
-mat_vec[11] = loadu2((double *)&mat[52], (double *)&mat[53]);
-mat_vec[12] = loadu2((double *)&mat[6], (double *)&mat[7]);
-mat_vec[13] = loadu2((double *)&mat[22], (double *)&mat[23]);
-mat_vec[14] = loadu2((double *)&mat[38], (double *)&mat[39]);
-mat_vec[15] = loadu2((double *)&mat[54], (double *)&mat[55]);
-mat_vec[16] = loadu2((double *)&mat[8], (double *)&mat[9]);
-mat_vec[17] = loadu2((double *)&mat[24], (double *)&mat[25]);
-mat_vec[18] = loadu2((double *)&mat[40], (double *)&mat[41]);
-mat_vec[19] = loadu2((double *)&mat[56], (double *)&mat[57]);
-mat_vec[20] = loadu2((double *)&mat[10], (double *)&mat[11]);
-mat_vec[21] = loadu2((double *)&mat[26], (double *)&mat[27]);
-mat_vec[22] = loadu2((double *)&mat[42], (double *)&mat[43]);
-mat_vec[23] = loadu2((double *)&mat[58], (double *)&mat[59]);
-mat_vec[24] = loadu2((double *)&mat[12], (double *)&mat[13]);
-mat_vec[25] = loadu2((double *)&mat[28], (double *)&mat[29]);
-mat_vec[26] = loadu2((double *)&mat[44], (double *)&mat[45]);
-mat_vec[27] = loadu2((double *)&mat[60], (double *)&mat[61]);
-mat_vec[28] = loadu2((double *)&mat[14], (double *)&mat[15]);
-mat_vec[29] = loadu2((double *)&mat[30], (double *)&mat[31]);
-mat_vec[30] = loadu2((double *)&mat[46], (double *)&mat[47]);
-mat_vec[31] = loadu2((double *)&mat[62], (double *)&mat[63]);
-for (unsigned i = 0; i < 32; ++i) {
-    auto mat_tmp = _mm256_permute_pd(mat_vec[i], 5);
-    mat_perm[i] = _mm256_mul_pd(mat_tmp, neg);
-}
-
-vec[0] = loadbc((double *)&data_[inds[0]]);
-vec[1] = loadbc((double *)&data_[inds[1]]);
-vec[2] = loadbc((double *)&data_[inds[2]]);
-vec[3] = loadbc((double *)&data_[inds[3]]);
-
-temp[0] = _mm256_add_pd(temp[0], _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3])))));
-temp[1] = _mm256_add_pd(temp[1], _mm256_add_pd(mul(vec[0], mat_vec[4], mat_perm[4]), _mm256_add_pd(mul(vec[1], mat_vec[5], mat_perm[5]), _mm256_add_pd(mul(vec[2], mat_vec[6], mat_perm[6]), mul(vec[3], mat_vec[7], mat_perm[7])))));
-temp[2] = _mm256_add_pd(temp[2], _mm256_add_pd(mul(vec[0], mat_vec[8], mat_perm[8]), _mm256_add_pd(mul(vec[1], mat_vec[9], mat_perm[9]), _mm256_add_pd(mul(vec[2], mat_vec[10], mat_perm[10]), mul(vec[3], mat_vec[11], mat_perm[11])))));
-temp[3] = _mm256_add_pd(temp[3], _mm256_add_pd(mul(vec[0], mat_vec[12], mat_perm[12]), _mm256_add_pd(mul(vec[1], mat_vec[13], mat_perm[13]), _mm256_add_pd(mul(vec[2], mat_vec[14], mat_perm[14]), mul(vec[3], mat_vec[15], mat_perm[15])))));
-temp[4] = _mm256_add_pd(temp[4], _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19])))));
-temp[5] = _mm256_add_pd(temp[5], _mm256_add_pd(mul(vec[0], mat_vec[20], mat_perm[20]), _mm256_add_pd(mul(vec[1], mat_vec[21], mat_perm[21]), _mm256_add_pd(mul(vec[2], mat_vec[22], mat_perm[22]), mul(vec[3], mat_vec[23], mat_perm[23])))));
-temp[6] = _mm256_add_pd(temp[6], _mm256_add_pd(mul(vec[0], mat_vec[24], mat_perm[24]), _mm256_add_pd(mul(vec[1], mat_vec[25], mat_perm[25]), _mm256_add_pd(mul(vec[2], mat_vec[26], mat_perm[26]), mul(vec[3], mat_vec[27], mat_perm[27])))));
-temp[7] = _mm256_add_pd(temp[7], _mm256_add_pd(mul(vec[0], mat_vec[28], mat_perm[28]), _mm256_add_pd(mul(vec[1], mat_vec[29], mat_perm[29]), _mm256_add_pd(mul(vec[2], mat_vec[30], mat_perm[30]), mul(vec[3], mat_vec[31], mat_perm[31])))));
-
-mat_vec[0] = loadu2((double *)&mat[64], (double *)&mat[65]);
-mat_vec[1] = loadu2((double *)&mat[80], (double *)&mat[81]);
-mat_vec[2] = loadu2((double *)&mat[96], (double *)&mat[97]);
-mat_vec[3] = loadu2((double *)&mat[112], (double *)&mat[113]);
-mat_vec[4] = loadu2((double *)&mat[66], (double *)&mat[67]);
-mat_vec[5] = loadu2((double *)&mat[82], (double *)&mat[83]);
-mat_vec[6] = loadu2((double *)&mat[98], (double *)&mat[99]);
-mat_vec[7] = loadu2((double *)&mat[114], (double *)&mat[115]);
-mat_vec[8] = loadu2((double *)&mat[68], (double *)&mat[69]);
-mat_vec[9] = loadu2((double *)&mat[84], (double *)&mat[85]);
-mat_vec[10] = loadu2((double *)&mat[100], (double *)&mat[101]);
-mat_vec[11] = loadu2((double *)&mat[116], (double *)&mat[117]);
-mat_vec[12] = loadu2((double *)&mat[70], (double *)&mat[71]);
-mat_vec[13] = loadu2((double *)&mat[86], (double *)&mat[87]);
-mat_vec[14] = loadu2((double *)&mat[102], (double *)&mat[103]);
-mat_vec[15] = loadu2((double *)&mat[118], (double *)&mat[119]);
-mat_vec[16] = loadu2((double *)&mat[72], (double *)&mat[73]);
-mat_vec[17] = loadu2((double *)&mat[88], (double *)&mat[89]);
-mat_vec[18] = loadu2((double *)&mat[104], (double *)&mat[105]);
-mat_vec[19] = loadu2((double *)&mat[120], (double *)&mat[121]);
-mat_vec[20] = loadu2((double *)&mat[74], (double *)&mat[75]);
-mat_vec[21] = loadu2((double *)&mat[90], (double *)&mat[91]);
-mat_vec[22] = loadu2((double *)&mat[106], (double *)&mat[107]);
-mat_vec[23] = loadu2((double *)&mat[122], (double *)&mat[123]);
-mat_vec[24] = loadu2((double *)&mat[76], (double *)&mat[77]);
-mat_vec[25] = loadu2((double *)&mat[92], (double *)&mat[93]);
-mat_vec[26] = loadu2((double *)&mat[108], (double *)&mat[109]);
-mat_vec[27] = loadu2((double *)&mat[124], (double *)&mat[125]);
-mat_vec[28] = loadu2((double *)&mat[78], (double *)&mat[79]);
-mat_vec[29] = loadu2((double *)&mat[94], (double *)&mat[95]);
-mat_vec[30] = loadu2((double *)&mat[110], (double *)&mat[111]);
-mat_vec[31] = loadu2((double *)&mat[126], (double *)&mat[127]);
-for (unsigned i = 0; i < 32; ++i) {
-    auto mat_tmp = _mm256_permute_pd(mat_vec[i], 5);
-    mat_perm[i] = _mm256_mul_pd(mat_tmp, neg);
-}
-
-vec[0] = loadbc((double *)&data_[inds[4]]);
-vec[1] = loadbc((double *)&data_[inds[5]]);
-vec[2] = loadbc((double *)&data_[inds[6]]);
-vec[3] = loadbc((double *)&data_[inds[7]]);
-
-temp[0] = _mm256_add_pd(temp[0], _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3])))));
-temp[1] = _mm256_add_pd(temp[1], _mm256_add_pd(mul(vec[0], mat_vec[4], mat_perm[4]), _mm256_add_pd(mul(vec[1], mat_vec[5], mat_perm[5]), _mm256_add_pd(mul(vec[2], mat_vec[6], mat_perm[6]), mul(vec[3], mat_vec[7], mat_perm[7])))));
-temp[2] = _mm256_add_pd(temp[2], _mm256_add_pd(mul(vec[0], mat_vec[8], mat_perm[8]), _mm256_add_pd(mul(vec[1], mat_vec[9], mat_perm[9]), _mm256_add_pd(mul(vec[2], mat_vec[10], mat_perm[10]), mul(vec[3], mat_vec[11], mat_perm[11])))));
-temp[3] = _mm256_add_pd(temp[3], _mm256_add_pd(mul(vec[0], mat_vec[12], mat_perm[12]), _mm256_add_pd(mul(vec[1], mat_vec[13], mat_perm[13]), _mm256_add_pd(mul(vec[2], mat_vec[14], mat_perm[14]), mul(vec[3], mat_vec[15], mat_perm[15])))));
-temp[4] = _mm256_add_pd(temp[4], _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19])))));
-temp[5] = _mm256_add_pd(temp[5], _mm256_add_pd(mul(vec[0], mat_vec[20], mat_perm[20]), _mm256_add_pd(mul(vec[1], mat_vec[21], mat_perm[21]), _mm256_add_pd(mul(vec[2], mat_vec[22], mat_perm[22]), mul(vec[3], mat_vec[23], mat_perm[23])))));
-temp[6] = _mm256_add_pd(temp[6], _mm256_add_pd(mul(vec[0], mat_vec[24], mat_perm[24]), _mm256_add_pd(mul(vec[1], mat_vec[25], mat_perm[25]), _mm256_add_pd(mul(vec[2], mat_vec[26], mat_perm[26]), mul(vec[3], mat_vec[27], mat_perm[27])))));
-temp[7] = _mm256_add_pd(temp[7], _mm256_add_pd(mul(vec[0], mat_vec[28], mat_perm[28]), _mm256_add_pd(mul(vec[1], mat_vec[29], mat_perm[29]), _mm256_add_pd(mul(vec[2], mat_vec[30], mat_perm[30]), mul(vec[3], mat_vec[31], mat_perm[31])))));
-
-mat_vec[0] = loadu2((double *)&mat[128], (double *)&mat[129]);
-mat_vec[1] = loadu2((double *)&mat[144], (double *)&mat[145]);
-mat_vec[2] = loadu2((double *)&mat[160], (double *)&mat[161]);
-mat_vec[3] = loadu2((double *)&mat[176], (double *)&mat[177]);
-mat_vec[4] = loadu2((double *)&mat[130], (double *)&mat[131]);
-mat_vec[5] = loadu2((double *)&mat[146], (double *)&mat[147]);
-mat_vec[6] = loadu2((double *)&mat[162], (double *)&mat[163]);
-mat_vec[7] = loadu2((double *)&mat[178], (double *)&mat[179]);
-mat_vec[8] = loadu2((double *)&mat[132], (double *)&mat[133]);
-mat_vec[9] = loadu2((double *)&mat[148], (double *)&mat[149]);
-mat_vec[10] = loadu2((double *)&mat[164], (double *)&mat[165]);
-mat_vec[11] = loadu2((double *)&mat[180], (double *)&mat[181]);
-mat_vec[12] = loadu2((double *)&mat[134], (double *)&mat[135]);
-mat_vec[13] = loadu2((double *)&mat[150], (double *)&mat[151]);
-mat_vec[14] = loadu2((double *)&mat[166], (double *)&mat[167]);
-mat_vec[15] = loadu2((double *)&mat[182], (double *)&mat[183]);
-mat_vec[16] = loadu2((double *)&mat[136], (double *)&mat[137]);
-mat_vec[17] = loadu2((double *)&mat[152], (double *)&mat[153]);
-mat_vec[18] = loadu2((double *)&mat[168], (double *)&mat[169]);
-mat_vec[19] = loadu2((double *)&mat[184], (double *)&mat[185]);
-mat_vec[20] = loadu2((double *)&mat[138], (double *)&mat[139]);
-mat_vec[21] = loadu2((double *)&mat[154], (double *)&mat[155]);
-mat_vec[22] = loadu2((double *)&mat[170], (double *)&mat[171]);
-mat_vec[23] = loadu2((double *)&mat[186], (double *)&mat[187]);
-mat_vec[24] = loadu2((double *)&mat[140], (double *)&mat[141]);
-mat_vec[25] = loadu2((double *)&mat[156], (double *)&mat[157]);
-mat_vec[26] = loadu2((double *)&mat[172], (double *)&mat[173]);
-mat_vec[27] = loadu2((double *)&mat[188], (double *)&mat[189]);
-mat_vec[28] = loadu2((double *)&mat[142], (double *)&mat[143]);
-mat_vec[29] = loadu2((double *)&mat[158], (double *)&mat[159]);
-mat_vec[30] = loadu2((double *)&mat[174], (double *)&mat[175]);
-mat_vec[31] = loadu2((double *)&mat[190], (double *)&mat[191]);
-for (unsigned i = 0; i < 32; ++i) {
-    auto mat_tmp = _mm256_permute_pd(mat_vec[i], 5);
-    mat_perm[i] = _mm256_mul_pd(mat_tmp, neg);
-}
-
-vec[0] = loadbc((double *)&data_[inds[8]]);
-vec[1] = loadbc((double *)&data_[inds[9]]);
-vec[2] = loadbc((double *)&data_[inds[10]]);
-vec[3] = loadbc((double *)&data_[inds[11]]);
-
-temp[0] = _mm256_add_pd(temp[0], _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3])))));
-temp[1] = _mm256_add_pd(temp[1], _mm256_add_pd(mul(vec[0], mat_vec[4], mat_perm[4]), _mm256_add_pd(mul(vec[1], mat_vec[5], mat_perm[5]), _mm256_add_pd(mul(vec[2], mat_vec[6], mat_perm[6]), mul(vec[3], mat_vec[7], mat_perm[7])))));
-temp[2] = _mm256_add_pd(temp[2], _mm256_add_pd(mul(vec[0], mat_vec[8], mat_perm[8]), _mm256_add_pd(mul(vec[1], mat_vec[9], mat_perm[9]), _mm256_add_pd(mul(vec[2], mat_vec[10], mat_perm[10]), mul(vec[3], mat_vec[11], mat_perm[11])))));
-temp[3] = _mm256_add_pd(temp[3], _mm256_add_pd(mul(vec[0], mat_vec[12], mat_perm[12]), _mm256_add_pd(mul(vec[1], mat_vec[13], mat_perm[13]), _mm256_add_pd(mul(vec[2], mat_vec[14], mat_perm[14]), mul(vec[3], mat_vec[15], mat_perm[15])))));
-temp[4] = _mm256_add_pd(temp[4], _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19])))));
-temp[5] = _mm256_add_pd(temp[5], _mm256_add_pd(mul(vec[0], mat_vec[20], mat_perm[20]), _mm256_add_pd(mul(vec[1], mat_vec[21], mat_perm[21]), _mm256_add_pd(mul(vec[2], mat_vec[22], mat_perm[22]), mul(vec[3], mat_vec[23], mat_perm[23])))));
-temp[6] = _mm256_add_pd(temp[6], _mm256_add_pd(mul(vec[0], mat_vec[24], mat_perm[24]), _mm256_add_pd(mul(vec[1], mat_vec[25], mat_perm[25]), _mm256_add_pd(mul(vec[2], mat_vec[26], mat_perm[26]), mul(vec[3], mat_vec[27], mat_perm[27])))));
-temp[7] = _mm256_add_pd(temp[7], _mm256_add_pd(mul(vec[0], mat_vec[28], mat_perm[28]), _mm256_add_pd(mul(vec[1], mat_vec[29], mat_perm[29]), _mm256_add_pd(mul(vec[2], mat_vec[30], mat_perm[30]), mul(vec[3], mat_vec[31], mat_perm[31])))));
-
-mat_vec[0] = loadu2((double *)&mat[192], (double *)&mat[193]);
-mat_vec[1] = loadu2((double *)&mat[208], (double *)&mat[209]);
-mat_vec[2] = loadu2((double *)&mat[224], (double *)&mat[225]);
-mat_vec[3] = loadu2((double *)&mat[240], (double *)&mat[241]);
-mat_vec[4] = loadu2((double *)&mat[194], (double *)&mat[195]);
-mat_vec[5] = loadu2((double *)&mat[210], (double *)&mat[211]);
-mat_vec[6] = loadu2((double *)&mat[226], (double *)&mat[227]);
-mat_vec[7] = loadu2((double *)&mat[242], (double *)&mat[243]);
-mat_vec[8] = loadu2((double *)&mat[196], (double *)&mat[197]);
-mat_vec[9] = loadu2((double *)&mat[212], (double *)&mat[213]);
-mat_vec[10] = loadu2((double *)&mat[228], (double *)&mat[229]);
-mat_vec[11] = loadu2((double *)&mat[244], (double *)&mat[245]);
-mat_vec[12] = loadu2((double *)&mat[198], (double *)&mat[199]);
-mat_vec[13] = loadu2((double *)&mat[214], (double *)&mat[215]);
-mat_vec[14] = loadu2((double *)&mat[230], (double *)&mat[231]);
-mat_vec[15] = loadu2((double *)&mat[246], (double *)&mat[247]);
-mat_vec[16] = loadu2((double *)&mat[200], (double *)&mat[201]);
-mat_vec[17] = loadu2((double *)&mat[216], (double *)&mat[217]);
-mat_vec[18] = loadu2((double *)&mat[232], (double *)&mat[233]);
-mat_vec[19] = loadu2((double *)&mat[248], (double *)&mat[249]);
-mat_vec[20] = loadu2((double *)&mat[202], (double *)&mat[203]);
-mat_vec[21] = loadu2((double *)&mat[218], (double *)&mat[219]);
-mat_vec[22] = loadu2((double *)&mat[234], (double *)&mat[235]);
-mat_vec[23] = loadu2((double *)&mat[250], (double *)&mat[251]);
-mat_vec[24] = loadu2((double *)&mat[204], (double *)&mat[205]);
-mat_vec[25] = loadu2((double *)&mat[220], (double *)&mat[221]);
-mat_vec[26] = loadu2((double *)&mat[236], (double *)&mat[237]);
-mat_vec[27] = loadu2((double *)&mat[252], (double *)&mat[253]);
-mat_vec[28] = loadu2((double *)&mat[206], (double *)&mat[207]);
-mat_vec[29] = loadu2((double *)&mat[222], (double *)&mat[223]);
-mat_vec[30] = loadu2((double *)&mat[238], (double *)&mat[239]);
-mat_vec[31] = loadu2((double *)&mat[254], (double *)&mat[255]);
-for (unsigned i = 0; i < 32; ++i) {
-    auto mat_tmp = _mm256_permute_pd(mat_vec[i], 5);
-    mat_perm[i] = _mm256_mul_pd(mat_tmp, neg);
-}
-
-vec[0] = loadbc((double *)&data_[inds[12]]);
-vec[1] = loadbc((double *)&data_[inds[13]]);
-vec[2] = loadbc((double *)&data_[inds[14]]);
-vec[3] = loadbc((double *)&data_[inds[15]]);
-
- _mm256_storeu2_m128d((double *)&data_[inds[1]], (double *)&data_[inds[0]], _mm256_add_pd(temp[0], _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[3]], (double *)&data_[inds[2]], _mm256_add_pd(temp[1], _mm256_add_pd(mul(vec[0], mat_vec[4], mat_perm[4]), _mm256_add_pd(mul(vec[1], mat_vec[5], mat_perm[5]), _mm256_add_pd(mul(vec[2], mat_vec[6], mat_perm[6]), mul(vec[3], mat_vec[7], mat_perm[7]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[5]], (double *)&data_[inds[4]], _mm256_add_pd(temp[2], _mm256_add_pd(mul(vec[0], mat_vec[8], mat_perm[8]), _mm256_add_pd(mul(vec[1], mat_vec[9], mat_perm[9]), _mm256_add_pd(mul(vec[2], mat_vec[10], mat_perm[10]), mul(vec[3], mat_vec[11], mat_perm[11]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[7]], (double *)&data_[inds[6]], _mm256_add_pd(temp[3], _mm256_add_pd(mul(vec[0], mat_vec[12], mat_perm[12]), _mm256_add_pd(mul(vec[1], mat_vec[13], mat_perm[13]), _mm256_add_pd(mul(vec[2], mat_vec[14], mat_perm[14]), mul(vec[3], mat_vec[15], mat_perm[15]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[9]], (double *)&data_[inds[8]], _mm256_add_pd(temp[4], _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[11]], (double *)&data_[inds[10]], _mm256_add_pd(temp[5], _mm256_add_pd(mul(vec[0], mat_vec[20], mat_perm[20]), _mm256_add_pd(mul(vec[1], mat_vec[21], mat_perm[21]), _mm256_add_pd(mul(vec[2], mat_vec[22], mat_perm[22]), mul(vec[3], mat_vec[23], mat_perm[23]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[13]], (double *)&data_[inds[12]], _mm256_add_pd(temp[6], _mm256_add_pd(mul(vec[0], mat_vec[24], mat_perm[24]), _mm256_add_pd(mul(vec[1], mat_vec[25], mat_perm[25]), _mm256_add_pd(mul(vec[2], mat_vec[26], mat_perm[26]), mul(vec[3], mat_vec[27], mat_perm[27]))))));
- _mm256_storeu2_m128d((double *)&data_[inds[15]], (double *)&data_[inds[14]], _mm256_add_pd(temp[7], _mm256_add_pd(mul(vec[0], mat_vec[28], mat_perm[28]), _mm256_add_pd(mul(vec[1], mat_vec[29], mat_perm[29]), _mm256_add_pd(mul(vec[2], mat_vec[30], mat_perm[30]), mul(vec[3], mat_vec[31], mat_perm[31]))))));
-
-
-}
-#if 0
 inline void kernel4_init(__m256d *mat_vec, __m256d *mat_perm, const cvector_t<double> &mat)
 {
     mat_vec[0] = loadu2((double *)&mat[0], (double *)&mat[1]);
@@ -535,6 +325,15 @@ inline void kernel4(std::complex<data_t> *data_, const areg_t<16> &inds, __m256d
     vec[2] = loadbc((double *)&data_[inds[2]]);
     vec[3] = loadbc((double *)&data_[inds[3]]);
 
+    temp[0] = _mm256_set_pd(0,0,0,0);
+    temp[1] = _mm256_set_pd(0,0,0,0);
+    temp[2] = _mm256_set_pd(0,0,0,0);
+    temp[3] = _mm256_set_pd(0,0,0,0);
+    temp[4] = _mm256_set_pd(0,0,0,0);
+    temp[5] = _mm256_set_pd(0,0,0,0);
+    temp[6] = _mm256_set_pd(0,0,0,0);
+    temp[7] = _mm256_set_pd(0,0,0,0);
+
     temp[0] = _mm256_add_pd(temp[0], _mm256_add_pd(mul(vec[0], mat_vec[0], mat_perm[0]), _mm256_add_pd(mul(vec[1], mat_vec[1], mat_perm[1]), _mm256_add_pd(mul(vec[2], mat_vec[2], mat_perm[2]), mul(vec[3], mat_vec[3], mat_perm[3])))));
     temp[1] = _mm256_add_pd(temp[1], _mm256_add_pd(mul(vec[0], mat_vec[16], mat_perm[16]), _mm256_add_pd(mul(vec[1], mat_vec[17], mat_perm[17]), _mm256_add_pd(mul(vec[2], mat_vec[18], mat_perm[18]), mul(vec[3], mat_vec[19], mat_perm[19])))));
     temp[2] = _mm256_add_pd(temp[2], _mm256_add_pd(mul(vec[0], mat_vec[32], mat_perm[32]), _mm256_add_pd(mul(vec[1], mat_vec[33], mat_perm[33]), _mm256_add_pd(mul(vec[2], mat_vec[34], mat_perm[34]), mul(vec[3], mat_vec[35], mat_perm[35])))));
@@ -586,7 +385,6 @@ inline void kernel4(std::complex<data_t> *data_, const areg_t<16> &inds, __m256d
     _mm256_storeu2_m128d((double *)&data_[inds[13]], (double *)&data_[inds[12]], _mm256_add_pd(temp[6], _mm256_add_pd(mul(vec[0], mat_vec[108], mat_perm[108]), _mm256_add_pd(mul(vec[1], mat_vec[109], mat_perm[109]), _mm256_add_pd(mul(vec[2], mat_vec[110], mat_perm[110]), mul(vec[3], mat_vec[111], mat_perm[111]))))));
     _mm256_storeu2_m128d((double *)&data_[inds[15]], (double *)&data_[inds[14]], _mm256_add_pd(temp[7], _mm256_add_pd(mul(vec[0], mat_vec[124], mat_perm[124]), _mm256_add_pd(mul(vec[1], mat_vec[125], mat_perm[125]), _mm256_add_pd(mul(vec[2], mat_vec[126], mat_perm[126]), mul(vec[3], mat_vec[127], mat_perm[127]))))));
 }
-#endif
 
 } // namespace Kernel
 #endif
