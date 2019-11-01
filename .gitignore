@@ -28,3 +28,8 @@ contrib/standalone/version.hpp
 test/.asv
 
 .tox/
+
+docs/_build/
+docs/stubs/
+docs/api/
+
