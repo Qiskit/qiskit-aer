@@ -15,8 +15,45 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...HEAD)
 =======================================================================
+
+Added
+-----
+
+Changed
+-------
+- Improved pershot snapshot data container performance (\#405)
+- Add basic linear algebra functions for numeric STL classes (\#406)
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
+===============================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+- Fix sdist to always attempt to build (\#401)
+
+
+
+[0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15
+===============================================================================
+
 
 Added
 -----
@@ -25,9 +62,12 @@ Added
 - Added tests for statevector and stabilizer snapshots (\#355)
 - Added tests for density matrix snapshot (\#374)
 - Added tests for probabilities snapshot (\#380)
+- Added support for reset() in MPS simulation method (\#393)
+- Added tests for matrix and Pauli expectation value snapshot (\#386)
 
 Changed
 -------
+- Changes signature of SnapshotExpectationValue extension and the way qubit position parameters are parsed in expectation_value_matrix qobj instructions (\#386)
 - Change signature of SnapshotProbabilities extension (\#380)
 - Change signature of SnapshotDensityMatrix extension (\#374)
 - Stabilizer snapshot returns stabilizer instead of full Clifford table (\#355)
@@ -36,8 +76,6 @@ Changed
 - Update device noise model to consume asymmetric readout errors from backends (\#354)
 - Update device noise model to use gate_length (\#352)
 - Refactoring code and introducing floating point comparison func (\#338)
-
-
 
 Removed
 -------

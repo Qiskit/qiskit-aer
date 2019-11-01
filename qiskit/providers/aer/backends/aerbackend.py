@@ -161,17 +161,6 @@ class AerBackend(BaseBackend):
             if output:
                 logger.error('Output: %s', output)
             raise AerError("simulation terminated without returning valid output.")
-        # Check results
-        # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
-        #       is merged this should be updated to deal with errors using
-        #       the Result object methods
-        if not output.get("success", False):
-            # Check for error message in the failed circuit
-            for res in output.get('results', []):
-                if not res.get('success', False):
-                    raise AerError(res.get("status", None))
-            # If no error was found check for error message at qobj level
-            raise AerError(output.get("status", None))
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the qobj, backend_options, noise_model for the backend"""

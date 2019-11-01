@@ -33,7 +33,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const Operations::OpSet &opset,
-                        OutputData &data) const override;
+                        ExperimentData &data) const override;
 
 private:
   // check this optimization can be applied
@@ -80,7 +80,7 @@ void TruncateQubits::set_config(const json_t &config) {
 void TruncateQubits::optimize_circuit(Circuit& circ,
                                       Noise::NoiseModel& noise,
                                       const Operations::OpSet &allowed_opset,
-                                      OutputData &data) const {
+                                      ExperimentData &data) const {
   
   // Check if circuit operations allow remapping
   // Remapped circuits must return the same output data as the
@@ -112,10 +112,10 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
   noise.remap_qubits(mapping);
 
   if (verbose_) {
-    json_t metadata;
-    metadata["truncate_qubits"]["active_qubits"] = active_qubits;
-    metadata["truncate_qubits"]["mapping"] = mapping;
-    data.add_additional_data("metadata", metadata);
+    json_t truncate_metadata;
+    truncate_metadata["active_qubits"] = active_qubits;
+    truncate_metadata["mapping"] = mapping;
+    data.add_metadata("truncate_qubits", truncate_metadata);
   }
 }
 
