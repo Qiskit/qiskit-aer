@@ -828,14 +828,18 @@ void QubitVector<data_t>::revert(bool keep) {
   check_checkpoint();
   #endif
 
-  const int_t END = data_size_;    // end for k loop
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (int_t k = 0; k < END; ++k)
-    data_[k] = checkpoint_[k];
-
+  // If we aren't keeping checkpoint we don't need to copy memory
+  // we can simply swap the pointers and free discarded memory
   if (!keep) {
-    free(checkpoint_);
+    free(data_);
+    data_ = checkpoint_;
     checkpoint_ = nullptr;
+  } else {
+    // Otherwise we need to copy data
+    const int_t END = data_size_;    // end for k loop
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t k = 0; k < END; ++k)
+      data_[k] = checkpoint_[k];
   }
 }
 
