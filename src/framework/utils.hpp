@@ -17,6 +17,8 @@
 
 #include <algorithm>
 #include <sstream>
+#include <cmath>
+#include <limits>
 
 #include "framework/types.hpp"
 
@@ -1407,13 +1409,13 @@ reg_t hex2reg(std::string str) {
     size_t length = (str.size() % 8) + 32 * (str.size() / 8);
     reg.reserve(length);
     while (str.size() > 8) {
-      unsigned long hex = stoull(str.substr(str.size() - 8), 0, 16);
+      unsigned long hex = stoull(str.substr(str.size() - 8), nullptr, 16);
       reg_t tmp = int2reg(hex, 2, 32);
       std::move(tmp.begin(), tmp.end(), back_inserter(reg));
       str.erase(str.size() - 8);
     }
     if (str.size() > 0) {
-      reg_t tmp = int2reg(stoul(str, 0, 16), 2, 0);
+      reg_t tmp = int2reg(stoul(str, nullptr, 16), 2, 0);
       std::move(tmp.begin(), tmp.end(), back_inserter(reg));
     }
     return reg;

@@ -16,26 +16,54 @@ QasmSimulator Integration Tests
 
 import unittest
 from test.terra import common
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
-from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+
+# Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
+# Conditional instruction tests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
+# Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
-from test.terra.backends.qasm_simulator.qasm_extra import QasmExtraTests
+# Noise model simulation tests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+# Other tests
+from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
 class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmMethodTests,
                                   QasmMeasureTests,
+                                  QasmMultiQubitMeasureTests,
                                   QasmResetTests,
                                   QasmConditionalGateTests,
                                   QasmCliffordTests,
                                   QasmAlgorithmTests,
-                                  QasmExtraTests):
+                                  QasmReadoutNoiseTests,
+                                  QasmResetNoiseTests,
+                                  QasmPauliNoiseTests,
+                                  QasmSnapshotStatevectorTests,
+                                  QasmSnapshotDensityMatrixTests,
+                                  QasmSnapshotProbabilitiesTests,
+                                  QasmSnapshotExpValPauliTests,
+                                  QasmSnapshotExpValMatrixTests,
+                                  QasmSnapshotStabilizerTests):
     """QasmSimulator stabilizer method tests."""
 
-    BACKEND_OPTS = {"method": "stabilizer"}
+    BACKEND_OPTS = {
+        "seed_simulator": 1337,
+        "method": "stabilizer"
+    }
 
 
 if __name__ == '__main__':

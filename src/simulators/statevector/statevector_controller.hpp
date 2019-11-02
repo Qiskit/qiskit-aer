@@ -63,7 +63,8 @@ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
-  
+  StatevectorController();
+
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
   // Allowed config options:
@@ -87,7 +88,7 @@ private:
 
   // This simulator will only return a single shot, regardless of the
   // input shot number
-  virtual OutputData run_circuit(const Circuit &circ,
+  virtual ExperimentData run_circuit(const Circuit &circ,
                                  const Noise::NoiseModel& noise,
                                  const json_t &config,
                                  uint_t shots,
@@ -103,6 +104,10 @@ private:
 // Implementations
 //=========================================================================
 
+StatevectorController::StatevectorController() : Base::Controller() {
+  // Disable qubit truncation by default
+  Base::Controller::truncate_qubits_ = false;
+}
 
 //-------------------------------------------------------------------------
 // Config
@@ -135,7 +140,7 @@ size_t StatevectorController::required_memory_mb(const Circuit& circ,
 // Run circuit
 //-------------------------------------------------------------------------
 
-OutputData StatevectorController::run_circuit(const Circuit &circ,
+ExperimentData StatevectorController::run_circuit(const Circuit &circ,
                                               const Noise::NoiseModel& noise,
                                               const json_t &config,
                                               uint_t shots,
@@ -166,7 +171,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
   rng.set_seed(rng_seed);
 
   // Output data container
-  OutputData data;
+  ExperimentData data;
   data.set_config(config);
   
   // Run single shot collecting measure data or snapshots
@@ -179,7 +184,7 @@ OutputData StatevectorController::run_circuit(const Circuit &circ,
   state.add_creg_to_data(data);
   
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg());
+  data.add_additional_data("statevector", state.qreg().vector());
 
   return data;
 }

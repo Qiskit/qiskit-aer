@@ -59,19 +59,22 @@ Pauli::Pauli(const std::string &label) {
   const auto num_qubits = label.size();
   X = BV::BinaryVector(num_qubits);
   Z = BV::BinaryVector(num_qubits);
+  // The label corresponds to tensor product order
+  // So the first element of label is the last qubit and vice versa
   for (size_t i =0; i < num_qubits; i++) {
+    const auto qubit_i = num_qubits - 1 - i;
     switch (label[i]) {
       case 'I':
         break;
       case 'X':
-        X.set1(i);
+        X.set1(qubit_i);
         break;
       case 'Y':
-        X.set1(i);
-        Z.set1(i);
+        X.set1(qubit_i);
+        Z.set1(qubit_i);
         break;
       case 'Z':
-        Z.set1(i);
+        Z.set1(qubit_i);
         break;
       default:
         throw std::invalid_argument("Invalid Pauli label");
@@ -86,13 +89,14 @@ std::string Pauli::str() const {
     throw std::runtime_error("Pauli::str X and Z vectors are different length.");
   std::string label;
   for (size_t i =0; i < num_qubits; i++) {
-    if (!X[i] && !Z[i])
+    const auto qubit_i = num_qubits - 1 - i;
+    if (!X[qubit_i] && !Z[qubit_i])
       label.push_back('I');
-    else if (X[i] && !Z[i])
+    else if (X[qubit_i] && !Z[qubit_i])
       label.push_back('X');
-    else if (X[i] && Z[i])
+    else if (X[qubit_i] && Z[qubit_i])
       label.push_back('Y');
-    else if (!X[i] && Z[i])
+    else if (!X[qubit_i] && Z[qubit_i])
       label.push_back('Z');
   }
   return label;

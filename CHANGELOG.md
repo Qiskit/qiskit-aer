@@ -15,19 +15,95 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...HEAD)
 =======================================================================
 
 Added
 -----
--   New simulation method for qasm simulator: tensor_network (\#56)
--   Added superop qobj instruction and superoperator matrix utils (\# 289)
--   Added support for conditional unitary, kraus, superop qobj instructions (\# 291)
--   Add "validation_threshold" config parameter to Aer backends (\# 290)
+
+Changed
+-------
+- Improved pershot snapshot data container performance (\#405)
+- Add basic linear algebra functions for numeric STL classes (\#406)
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
+===============================================================================
+
+Added
+-----
 
 Changed
 -------
 
+Removed
+-------
+
+Fixed
+-----
+- Fix sdist to always attempt to build (\#401)
+
+
+
+[0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15
+===============================================================================
+
+
+Added
+-----
+- Added tests for the Fredkin gate (#357)
+- Added tests for the cu1 gate (#360)
+- Added tests for statevector and stabilizer snapshots (\#355)
+- Added tests for density matrix snapshot (\#374)
+- Added tests for probabilities snapshot (\#380)
+- Added support for reset() in MPS simulation method (\#393)
+- Added tests for matrix and Pauli expectation value snapshot (\#386)
+
+Changed
+-------
+- Changes signature of SnapshotExpectationValue extension and the way qubit position parameters are parsed in expectation_value_matrix qobj instructions (\#386)
+- Change signature of SnapshotProbabilities extension (\#380)
+- Change signature of SnapshotDensityMatrix extension (\#374)
+- Stabilizer snapshot returns stabilizer instead of full Clifford table (\#355)
+- Signature of SnapshotStatevector and SnapshotStabilizer (\#355)
+- Changed all names from tensor_network_state to matrix_product_state (\#356)
+- Update device noise model to consume asymmetric readout errors from backends (\#354)
+- Update device noise model to use gate_length (\#352)
+- Refactoring code and introducing floating point comparison func (\#338)
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.0](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...0.3.0) - 2019-08-21
+===============================================================================
+
+Added
+-----
+- New simulation method for qasm simulator: tensor_network (\#56)
+- Added superop qobj instruction and superoperator matrix utils (\#289)
+- Added support for conditional unitary, kraus, superop qobj instructions (\#291)
+- Add "validation_threshold" config parameter to Aer backends (\#290)
+- Added support for apply_measure in tensor_network_state. Also changed
+  sample_measure to use apply_measure (\#299)
+- Added density matrix simulation method to QasmSimulator (\#295, \#253)
+- Adds delay measure circuit optimization (\#317)
+- Added sampling for sampling with readout-errors (\#222)
+- Added support of single precision for statevector and density matrix simulation (\#286, \#315)
+- Noise model inserter module (\#239)
+
+Changed
+-------
+- Added density matrix method to automatic QasmSimulator methods (\#316)
 
 Removed
 -------
@@ -35,9 +111,9 @@ Removed
 
 Fixed
 -----
-- Bug in handling parallelization in matrix_product_state.cpp (PR \#292)
-
-- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR \#294)
+- Bug in handling parallelization in matrix_product_state.cpp (PR\#292)
+- Added support for multiplication by coeff in tensor_network_state expectation value snapshots (PR\#294)
+- Change name of qasm simulation method from tensor_network to matrix_product_state (\#320)
 
 
 [0.2.3](https://github.com/Qiskit/qiskit-aer/compare/0.2.2...0.2.3) - 2019-07-11

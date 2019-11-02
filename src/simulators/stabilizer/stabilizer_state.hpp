@@ -31,8 +31,9 @@ enum class Gates {id, x, y, z, h, s, sdg, cx, cz, swap};
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  cmemory, cregister,
-  probs, probs_var // TODO
+  stabilizer, cmemory, cregister,
+  probs, probs_var
+  /* TODO: the following snapshots still need to be implemented */
   //expval_pauli, expval_pauli_var, //  TODO
 };
 
@@ -75,13 +76,13 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"memory", "register"};
+    return {"stabilizer", "memory", "register"};
   }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit state to the all |0> state
@@ -94,7 +95,8 @@ public:
   // TODO: currently returns 0
   // Returns the required memory for storing an n-qubit state in megabytes.
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config) override;
@@ -131,7 +133,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -148,15 +150,19 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
+  // Snapshot the stabilizer state of the simulator.
+  // This returns a list of stabilizer generators
+  void snapshot_stabilizer(const Operations::Op &op, ExperimentData &data);
+                            
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              OutputData &data,
+                              ExperimentData &data,
                               bool variance);
 
   /* TODO
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             OutputData &data,
+                             ExperimentData &data,
                              bool variance);
   */
 
@@ -201,6 +207,7 @@ const stringmap_t<Gates> State::gateset_({
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
+  {"stabilizer", Snapshots::stabilizer},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister},
   {"probabilities", Snapshots::probs},
@@ -236,7 +243,8 @@ void State::initialize_qreg(uint_t num_qubits,
 //-------------------------------------------------------------------------
 
 size_t State::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) {
+                                 const std::vector<Operations::Op> &ops)
+                                 const  {
   (void)ops; // avoid unused variable compiler warning
   // The Clifford object requires very little memory.
   // A Pauli vector consists of 2 binary vectors each with
@@ -263,7 +271,7 @@ void State::set_config(const json_t &config) {
 //=========================================================================
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      OutputData &data,
+                      ExperimentData &data,
                       RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto op: ops) {
@@ -411,7 +419,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 //=========================================================================
 
 void State::apply_snapshot(const Operations::Op &op,
-                           OutputData &data) {
+                           ExperimentData &data) {
 
 // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -419,6 +427,9 @@ void State::apply_snapshot(const Operations::Op &op,
     throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
                                 op.name + "\'.");
   switch (it->second) {
+    case Snapshots::stabilizer:
+      snapshot_stabilizer(op, data);
+      break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
       break;
@@ -439,8 +450,19 @@ void State::apply_snapshot(const Operations::Op &op,
 }
 
 
+void State::snapshot_stabilizer(const Operations::Op &op, ExperimentData &data) {
+  // We don't want to snapshot the full Clifford table, only the
+  // stabilizer part. First Convert simulator clifford table to JSON
+  json_t clifford = BaseState::qreg_;
+  // Then extract the stabilizer generator list
+  data.add_pershot_snapshot("stabilizer",
+                               op.string_params[0],
+                               clifford["stabilizers"]);
+}
+
+
 void State::snapshot_probabilities(const Operations::Op &op,
-                                   OutputData &data,
+                                   ExperimentData &data,
                                    bool variance) {
   // Check number of qubits being measured is less than 64.
   // otherwise we cant use 64-bit int logic.

@@ -112,10 +112,6 @@ class QiskitAerTestCase(unittest.TestCase):
         if pos is not None:
             items.pop(pos)
 
-    def is_completed(self, result):
-        """Check a Result is completed"""
-        self.assertEqual(result.status, 'COMPLETED')
-
     def compare_statevector(self, result, circuits, targets,
                             global_phase=True, places=None):
         """Compare final statevectors to targets."""
@@ -165,9 +161,24 @@ class QiskitAerTestCase(unittest.TestCase):
                    " {} != {}".format(output, target))
             self.assertDictAlmostEqual(output, target, delta=delta, msg=msg)
 
+    def compare_memory(self, result, circuits, targets, hex_counts=True):
+        """Compare memory list to target."""
+        for pos, test_case in enumerate(zip(circuits, targets)):
+            circuit, target = test_case
+            self.assertIn("memory", result.data(circuit))
+            if hex_counts:
+                # Don't use get_counts method which converts hex
+                output = result.data(circuit)["memory"]
+            else:
+                # Use get counts method which converts hex
+                output = result.get_memory(circuit)
+            msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+                   " {} != {}".format(output, target))
+            self.assertEqual(output, target, msg=msg)
+
     def compare_result_metadata(self, result, circuits, key, targets):
         """Compare result metadata key value."""
-        if isinstance(targets, str):
+        if not isinstance(targets, (list, tuple)):
             targets = len(circuits) * [targets]
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case

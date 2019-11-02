@@ -80,7 +80,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         OutputData &data,
+                         ExperimentData &data,
                          RngEngine &rng) override;
 
   // Initializes an n-qubit unitary to the identity matrix
@@ -94,7 +94,8 @@ public:
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 2 * num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops) override;
+                                    const std::vector<Operations::Op> &ops)
+                                    const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -124,7 +125,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, OutputData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
@@ -209,7 +210,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 
 template <class data_t>
 void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                  OutputData &data,
+                                  ExperimentData &data,
                                   RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto op: ops) {
@@ -236,7 +237,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class data_t>
 size_t State<data_t>::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) {
+                                 const std::vector<Operations::Op> &ops)
+                                 const {
   // An n-qubit unitary as 2^2n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
@@ -412,9 +414,10 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
 
 template <class data_t>
 void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   OutputData &data) {
+                                   ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
+    data.add_pershot_snapshot("unitary", op.string_params[0], BaseState::qreg_.matrix());
     BaseState::snapshot_state(op, data);
   } else {
     throw std::invalid_argument("Unitary::State::invalid snapshot instruction \'" +
