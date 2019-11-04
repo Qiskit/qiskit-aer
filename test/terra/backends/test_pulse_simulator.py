@@ -416,13 +416,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 qobj_params = self.qobj_params_1q(omega_d0=omega_d0_vals[i])
 
                 qobj = self.create_qobj(shots=shots, meas_level=2, schedule=schedule,
-                                            hamiltonian=hamiltonian, qobj_params=qobj_params)
+                                        hamiltonian=hamiltonian, qobj_params=qobj_params)
 
                 # Run qobj and compare prop to expected result
                 result = self.backend_sim.run(qobj).result()
                 counts = result.get_counts()
 
-                prop= {}
+                prop = {}
                 for key in counts.keys():
                     prop[key] = counts[key]/shots
 
@@ -740,7 +740,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # For swapping, set omega_d1 = 0 (drive on Q0 resonance)
         omega_d1_swap = 0
 
-        # do pi pulse on Q0 and verify state swaps from '10' to '01'
+        # do pi pulse on Q0 and verify state swaps from '01' to '10' (reverse bit order)
 
         # Q0 drive amp -> pi pulse
         omega_a_pi_swap = np.pi/self.drive_samples
@@ -757,10 +757,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result_pi_swap = self.backend_sim.run(qobj_pi_swap).result()
         counts_pi_swap = result_pi_swap.get_counts()
 
-        exp_counts_pi_swap = {'01': shots}
+        exp_counts_pi_swap = {'10': shots} # reverse bit order (qiskit convention)
         self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
 
-        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '01'
+        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
 
         # Q0 drive amp -> pi/2 pulse
         omega_a_pi2_swap = np.pi/2/self.drive_samples
@@ -782,7 +782,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts_pi2_swap.keys():
             prop_pi2_swap[key] = counts_pi2_swap[key]/shots
 
-        exp_prop_pi2_swap = {'00':0.5, '01':0.5}
+        exp_prop_pi2_swap = {'00':0.5, '10':0.5} # reverse bit order
 
         self.assertDictAlmostEqual(prop_pi2_swap, exp_prop_pi2_swap, delta=0.01)
 
@@ -807,7 +807,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result_no_swap = self.backend_sim.run(qobj_no_swap).result()
         counts_no_swap = result_no_swap.get_counts()
 
-        exp_counts_no_swap = {'10': shots} # non-swapped state
+        exp_counts_no_swap = {'01': shots} # non-swapped state (reverse bit order)
         self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
 if __name__ == '__main__':
