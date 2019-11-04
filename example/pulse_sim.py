@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonw
+#!/usr/bin/env python
 # coding: utf-8
 
 # ##  Open Pulse Simulator - Rabi Example
@@ -28,19 +28,13 @@ from qiskit.test.mock import FakeOpenPulse2Q
 # In[2]:
 
 
-qiskit.IBMQ.load_account()
-
-
-# In[3]:
-
-
 #Get a pulse configuration from the fake backend
 backend_real = FakeOpenPulse2Q()
 back_config = backend_real.configuration().to_dict()
 system = pulse.PulseChannelSpec.from_backend(backend_real)
 
 
-# In[4]:
+# In[3]:
 
 
 #Get pulse simulator backend
@@ -72,7 +66,7 @@ backend_sim = qiskit.Aer.get_backend('pulse_simulator')
 
 # Build on qubit 0
 
-# In[5]:
+# In[4]:
 
 
 #qubit to use for exeperiment
@@ -122,7 +116,7 @@ for ii, drive_amp in enumerate(drive_amps):
 
 # Let's build a transmon Hamiltonian with anharmonicity to test the Rabi oscillation and CR
 
-# In[6]:
+# In[5]:
 
 
 hamiltonian = {}
@@ -137,7 +131,7 @@ hamiltonian['h_str'].append('2*np.pi*r*X1||U0')
 #Q1 terms
 hamiltonian['h_str'].append('np.pi*(2*v1-alpha1)*O1')
 hamiltonian['h_str'].append('np.pi*alpha1*O1*O1')
-hamiltonian['h_str'].append('2*np.pi*r*X0||D1')
+hamiltonian['h_str'].append('2*np.pi*r*X1||D1')
 
 #Exchange coupling betwene Q0 and Q1
 hamiltonian['h_str'].append('2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)')
@@ -157,7 +151,7 @@ back_config['dt'] = 1.0
 
 # Any solver settings also does into the back_config
 
-# In[7]:
+# In[6]:
 
 
 back_config['ode_options'] = {}
@@ -167,7 +161,7 @@ back_config['ode_options'] = {}
 
 # We can use a qubit whitelist (`qubit_list`) to restrict the set of qubits used in the solution. The pulse simulator will appropriately alter the Hamiltonian. To start let's assume the list contains the first 2 qubits.
 
-# In[8]:
+# In[7]:
 
 
 back_config['qubit_list'] = [0,1]
@@ -178,7 +172,7 @@ back_config['qubit_list'] = [0,1]
 
 # We have to do this step twice to get the dressed frequencies for setting the LO's. Note here that we set `meas_level=1` and `meas_return=avg` which will return the average probability for the qubit to be in the |1> state.
 
-# In[9]:
+# In[22]:
 
 
 rabi_qobj = assemble(schedules, backend_real, 
@@ -187,19 +181,19 @@ rabi_qobj = assemble(schedules, backend_real,
                      shots=shots, sim_config = back_config)
 
 
-# In[10]:
+# In[23]:
 
 
-evals = backend_sim.get_dressed_energies(rabi_qobj)
+evals, estates = backend_sim.get_dressed_energies(rabi_qobj)
 
 
-# In[11]:
+# In[24]:
 
 
 evals/2/np.pi
 
 
-# In[12]:
+# In[25]:
 
 
 rabi_qobj = assemble(schedules, backend_real, 
@@ -211,7 +205,7 @@ rabi_qobj = assemble(schedules, backend_real,
 
 # ### Simulate
 
-# In[13]:
+# In[26]:
 
 
 #Note: this is how to run bypassing the backend
@@ -219,15 +213,29 @@ rabi_qobj = assemble(schedules, backend_real,
 #simdata = qiskit.providers.aer.openpulse.solver.opsolve.opsolve(opsys)
 
 
-# In[14]:
+# In[27]:
 
 
 sim_result = backend_sim.run(rabi_qobj).result()
 
 
+# In[28]:
+
+
+#get the end time of the simulation in dt
+sim_result.results[0].header.ode_t
+
+
+# In[29]:
+
+
+#get the statevector IN THE FRAME OF THE ORIGINAL HAMILTONIAN
+sim_result.get_statevector(0)
+
+
 # Extract the qubit populations 
 
-# In[15]:
+# In[30]:
 
 
 amp_data_Q0 = []
@@ -239,7 +247,7 @@ for exp_idx in range(len(drive_amps)):
     amp_data_Q1.append(np.abs(exp_mem[1]))
 
 
-# In[16]:
+# In[31]:
 
 
 #Fit the data
@@ -267,7 +275,7 @@ print('Pi Amplitude %f'%(pi_amp))
 
 # Using the pulse amplitude calibrated above, do an experiment with no pulse and an experiment with a pi pulse and look at the measurement outcomes. 
 
-# In[17]:
+# In[32]:
 
 
 # Create schedule
@@ -303,7 +311,7 @@ excited_exp_schedules = [ground_exp, sup_exp, excited_exp]
 
 # Change the `meas_return=single` which will return each individual measurement
 
-# In[18]:
+# In[33]:
 
 
 readout_qobj = assemble(excited_exp_schedules, backend_real, 
@@ -313,7 +321,7 @@ readout_qobj = assemble(excited_exp_schedules, backend_real,
                      shots=shots, sim_config = back_config)
 
 
-# In[19]:
+# In[34]:
 
 
 sim_result = backend_sim.run(readout_qobj).result()
@@ -321,7 +329,7 @@ sim_result = backend_sim.run(readout_qobj).result()
 
 # Plot the data, there is no measurement error in the simulator data so the histographs will be all centered at the average point.
 
-# In[20]:
+# In[35]:
 
 
 ground_data = sim_result.get_memory(0)[:, qubit]
@@ -331,7 +339,7 @@ sup_data = sim_result.get_memory(1)[:, qubit]
 
 # Add some random noise to the data to better approximate the experiment
 
-# In[21]:
+# In[36]:
 
 
 for idx in range(len(ground_data)):
@@ -340,7 +348,7 @@ for idx in range(len(ground_data)):
     sup_data[idx] += random.gauss(0,0.1)+1j*random.gauss(0,0.1)
 
 
-# In[22]:
+# In[37]:
 
 
 
@@ -366,7 +374,7 @@ plt.ylabel('Q (a.u.)', fontsize=16)
 
 # Simulate cross-resonance by driving on U0. Note you need to run Rabi first to setup the hamiltonian.
 
-# In[23]:
+# In[38]:
 
 
 #qubit to use for exeperiment
@@ -399,7 +407,7 @@ for ii, cr_drive_amp in enumerate(cr_drive_amps):
     schedules.append(schedule)
 
 
-# In[24]:
+# In[39]:
 
 
 cr_rabi_qobj = assemble(schedules, backend_real, 
@@ -409,13 +417,13 @@ cr_rabi_qobj = assemble(schedules, backend_real,
                      shots=shots, sim_config = back_config)
 
 
-# In[25]:
+# In[40]:
 
 
 sim_result = backend_sim.run(cr_rabi_qobj).result()
 
 
-# In[26]:
+# In[41]:
 
 
 amp_data_Q0 = []
@@ -427,7 +435,7 @@ for exp_idx in range(len(cr_drive_amps)):
     amp_data_Q1.append(np.abs(exp_mem[1]))
 
 
-# In[27]:
+# In[42]:
 
 
 plt.plot(drive_amps, amp_data_Q0, label='Q0')
@@ -444,7 +452,7 @@ plt.grid(True)
 
 # Using the calibrated Pi pulse add a T1 decay channel and simulate a t1 experiment. This can take a while to run. The noise operators in pulse are still a work in progress.
 
-# In[28]:
+# In[43]:
 
 
 
@@ -459,7 +467,7 @@ for kk in range(len(t1_times)):
     T1_exps.append(schedule)
 
 
-# In[29]:
+# In[44]:
 
 
 # Add noise to the Hamiltonian on qubit '0'
@@ -470,7 +478,7 @@ back_config['noise'] = {"qubit":
 #back_config['noise'] = {}
 
 
-# In[30]:
+# In[45]:
 
 
 t1_qobj = assemble(T1_exps, backend_real, 
@@ -480,13 +488,13 @@ t1_qobj = assemble(T1_exps, backend_real,
                      shots=100, sim_config = back_config)
 
 
-# In[31]:
+# In[46]:
 
 
 sim_result_t1 = backend_sim.run(t1_qobj).result()
 
 
-# In[32]:
+# In[47]:
 
 
 t1_data_Q0 = []
@@ -499,7 +507,7 @@ for exp_idx in range(len(t1_times)):
     t1_data_Q1.append(np.abs(exp_mem[1]))
 
 
-# In[33]:
+# In[48]:
 
 
 #Fit the data

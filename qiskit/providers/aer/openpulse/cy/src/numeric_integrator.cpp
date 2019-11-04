@@ -162,6 +162,7 @@ PyArrayObject * td_ode_rhs(
 
     spdlog::debug("Getting pulses...");
     // TODO: Pass const & as keys to avoid copying
+    //auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     spdlog::debug("Getting freqs...");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
@@ -182,7 +183,7 @@ PyArrayObject * td_ode_rhs(
     jlog("reg: {}", reg);
 
 
-    // auto channels = get_value<std::unordered_map<long, std::string>>(py_channels);
+    // auto channels = get_value<std::map<long, std::string>>(py_channels);
     std::unordered_map<std::string, complex_t> chan_values;
     chan_values.reserve(pulses.size());
     for(const auto& elem : enumerate(pulses)){

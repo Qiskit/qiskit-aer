@@ -88,8 +88,8 @@ def digest_pulse_obj(qobj):
         out.global_data['memory'] = False
 
     out.global_data['n_registers'] = 0
-    if 'n_registers' in config_keys:
-        out.global_data['n_registers'] = config_dict['n_registers']
+    if 'n_registers' in config_keys_sim:
+        out.global_data['n_registers'] = config_dict_sim['n_registers']
 
     # which level to measure
     out.global_data['q_level_meas'] = 1
