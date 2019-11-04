@@ -699,20 +699,19 @@ class NoiseModel:
         """Return two lists of instruction name strings and label strings."""
         if not isinstance(instructions, (list, tuple)):
             instructions = [instructions]
-        inst_labels = []
-        inst_names = []
+        names_labels = []
         for inst in instructions:
             # If instruction does not have a label we use the name
             # as the label
             if isinstance(inst, Instruction):
-                inst_names.append(inst.name)
-                inst_labels.append(getattr(inst, 'label', inst.name))
+                name = inst.name
+                label = getattr(inst, 'label', inst.name)
+                names_labels.append((name, label))
             elif isinstance(inst, str):
-                inst_names.append(inst)
-                inst_labels.append(inst)
+                names_labels.append((inst, inst))
             else:
                 raise NoiseError('Invalid instruction type {}'.format(inst))
-        return list(zip(inst_names, inst_labels))
+        return names_labels
 
     def _check_number_of_qubits(self, error, name):
         """
