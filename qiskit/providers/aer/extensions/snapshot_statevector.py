@@ -21,38 +21,50 @@ from qiskit.providers.aer.extensions import Snapshot
 class SnapshotStatevector(Snapshot):
     """ Snapshot instruction for statevector snapshot type """
 
-    def __init__(self,
-                 label,
-                 num_qubits=0,
-                 num_clbits=0,
-                 params=None):
+    def __init__(self, label, num_qubits=0):
+        """Create a statevector state snapshot instruction.
 
-        super().__init__(label, 'statevector', num_qubits, num_clbits, params)
+        Args:
+            label (str): the snapshot label.
+            num_qubits (int): the instruction barrier size [Default: 0].
+
+        Raises:
+            ExtensionError: if snapshot is invalid.
+
+        Additional Information:
+            This snapshot is always performed on all qubits in a circuit.
+            The number of qubits parameter specifies the size of the
+            instruction as a barrier and should be set to the number of
+            qubits in the circuit.
+        """
+        super().__init__(label, snapshot_type='statevector', num_qubits=num_qubits)
 
 
-def snapshot_statevector(self,
-                         label,
-                         qubits=None,
-                         params=None):
-    """Take a statevector snapshot of the internal simulator representation.
-    Works on all qubits, and prevents reordering (like barrier).
+def snapshot_statevector(self, label):
+    """Take a statevector snapshot of the simulator state.
+
     Args:
-        label (str): a snapshot label to report the result
-        qubits (list or None): the qubits to apply snapshot to [Default: None].
-        params (list or None): the parameters for snapshot_type [Default: None].
-    Returns:
-        QuantumCircuit: with attached command
-    Raises:
-        ExtensionError: malformed command
-    """
+        label (str): a snapshot label to report the result.
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    Returns:
+        QuantumCircuit: with attached instruction.
+
+    Raises:
+        ExtensionError: if snapshot is invalid.
+
+    Additional Information:
+        This snapshot is always performed on all qubits in a circuit.
+        The number of qubits parameter specifies the size of the
+        instruction as a barrier and should be set to the number of
+        qubits in the circuit.
+    """
+    # Statevector snapshot acts as a barrier across all qubits in the
+    # circuit
+    snapshot_register = Snapshot.define_snapshot_register(self, label)
 
     return self.append(
-        SnapshotStatevector(
-            label,
-            num_qubits=len(snapshot_register),
-            params=params), snapshot_register)
+        SnapshotStatevector(label, num_qubits=len(snapshot_register)),
+        snapshot_register)
 
 
 QuantumCircuit.snapshot_statevector = snapshot_statevector

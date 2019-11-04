@@ -66,6 +66,6 @@ class QasmMatrixProductStateMethodTests:
                 targets  = test[1](shots)
                 job = execute(circuits, QasmSimulator(), backend_options=self.BACKEND_OPTS, shots=shots)
                 result = job.result()
-                self.is_completed(result)
+                self.assertTrue(getattr(result, 'success', False))
                 self.compare_counts(result, circuits, targets, delta = delta*shots)
 

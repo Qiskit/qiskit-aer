@@ -35,7 +35,7 @@ class QasmAlgorithmTests:
         targets = ref_algorithms.grovers_counts(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_default_basis_gates(self):
@@ -45,7 +45,7 @@ class QasmAlgorithmTests:
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -71,7 +71,7 @@ class QasmAlgorithmTestsWaltzBasis:
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_waltz_basis_gates(self):
@@ -85,7 +85,7 @@ class QasmAlgorithmTestsWaltzBasis:
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -107,7 +107,7 @@ class QasmAlgorithmTestsMinimalBasis:
         job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_minimal_basis_gates(self):
@@ -118,5 +118,5 @@ class QasmAlgorithmTestsMinimalBasis:
         job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

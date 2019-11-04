@@ -30,6 +30,13 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+# Snapshot tests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
@@ -44,10 +51,19 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmAlgorithmTests,
                                   QasmReadoutNoiseTests,
                                   QasmResetNoiseTests,
-                                  QasmPauliNoiseTests):
+                                  QasmPauliNoiseTests,
+                                  QasmSnapshotStatevectorTests,
+                                  QasmSnapshotDensityMatrixTests,
+                                  QasmSnapshotProbabilitiesTests,
+                                  QasmSnapshotExpValPauliTests,
+                                  QasmSnapshotExpValMatrixTests,
+                                  QasmSnapshotStabilizerTests):
     """QasmSimulator stabilizer method tests."""
 
-    BACKEND_OPTS = {"method": "stabilizer"}
+    BACKEND_OPTS = {
+        "seed_simulator": 1337,
+        "method": "stabilizer"
+    }
 
 
 if __name__ == '__main__':

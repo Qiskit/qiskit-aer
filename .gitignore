@@ -31,3 +31,7 @@ contrib/standalone/version.hpp
 test/.asv
 qiskit/providers/aer/backends/libomp.dylib
 .tox/
+
+docs/_build/
+docs/stubs/
+docs/api/
