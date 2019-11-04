@@ -316,8 +316,7 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},     // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-  // TODO: No Toffoli support?
-  //{"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
+   {"ccx", Gates::mcx}    // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -525,13 +524,19 @@ void State::snapshot_probabilities(const Operations::Op &op,
 }
 
 void State::apply_gate(const Operations::Op &op) {
+  std::cout <<"in apply_gate" << std::endl;
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
 
+  std::cout << "gate is " << it->first << " " << it->second <<std::endl;
   switch (it -> second) {
+  case Gates::mcx:
+    std::cout <<"found mcx" << std::endl;
+      qreg_.apply_ccx(op.qubits);
+      break;
     case Gates::u3:
       qreg_.apply_u3(op.qubits[0],
                     std::real(op.params[0]),

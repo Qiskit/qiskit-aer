@@ -121,6 +121,7 @@ public:
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
+  void apply_ccx();
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
@@ -289,7 +290,10 @@ void MPS_Tensor::apply_cz()
   data_[3] = data_[3] * (-1.0);
 }
 
-
+void MPS_Tensor::apply_ccx()
+{
+  swap(data_[6], data_[7]);
+}
 //-------------------------------------------------------------------------
 // The following functions mul/div Gamma by Lambda are used to keep the MPS in the
 // canonical form.

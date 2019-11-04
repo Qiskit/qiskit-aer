@@ -27,7 +27,8 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, cu1, swap, su4 // two qubit
+  cx, cz, cu1, swap, su4, // two qubit
+  mcx // three qubit
 };
 
 enum class Direction {RIGHT, LEFT};
@@ -107,7 +108,10 @@ public:
   void apply_swap(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
+			  const cmatrix_t &mat);
+  void apply_ccx(const reg_t &qubits);  
+  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat);
 
@@ -223,8 +227,8 @@ protected:
   //                    ordered - are the qubits in ascending order
   // Returns: none.
   //----------------------------------------------------------------
-  void centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
-			 uint_t &new_first, uint_t &new_last, bool &ordered) const;
+  void centralize_qubits(const reg_t &qubits, 
+			 reg_t &new_qubits, bool &ordered);
   //----------------------------------------------------------------
 
   // function name: change_position

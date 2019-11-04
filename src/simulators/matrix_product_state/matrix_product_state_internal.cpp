@@ -257,6 +257,11 @@ void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
   apply_2_qubit_gate(index_A, index_B, cu1, u1_matrix);
 }
 
+void MPS::apply_ccx(const reg_t &qubits)
+{
+  apply_3_qubit_gate(qubits, mcx, cmatrix_t(1));
+}
+
 void MPS::apply_swap(uint_t index_A, uint_t index_B)
 {
 	if(index_A > index_B)
@@ -312,74 +317,121 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
 
-void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat)
+void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat)
 {
-	//for MPS
-	if(index_A + 1 < index_B)
-	{
-		apply_swap(index_A,index_B-1);
-		apply_2_qubit_gate(index_B-1,index_B, gate_type, mat);
-		apply_swap(index_A,index_B-1);
-	  return;
-	}
-	else if(index_A > index_B + 1)
-	{
-		apply_swap(index_A-1,index_B);
-		apply_2_qubit_gate(index_A,index_A-1, gate_type, mat);
-		apply_swap(index_A-1,index_B);
-		return;
-	}
+  if (index_A+1 != index_B)
+    change_position(index_B, index_A+1);  // Move B to be right after A
 
-	bool swapped = false;
-	if(index_A >  index_B)
-	{
-	  std::swap(index_A, index_B);
-	  swapped = true;
-	}
+  MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_A+1];
+  rvector_t left_lambda, right_lambda;
+  //There is no lambda in the edges of the MPS
+  left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
+  right_lambda = (index_A+1 != num_qubits_-1) ? lambda_reg_[index_A+1  ] : rvector_t {1.0};
+  
+  q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
+  q_reg_[index_A+1].mul_Gamma_by_right_Lambda(right_lambda);
+  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_A+1]);
+  
+  switch (gate_type) {
+  case cx:
+    temp.apply_cnot(false);
+    break;
+  case cz:
+    temp.apply_cz();
+    break;
+  case id:
+    break;
+  case cu1:
+    {
+      cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
+      cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
+	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
+      cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
+      temp.apply_matrix(cu);
+      break;
+    }
+  case su4:
+    temp.apply_matrix(mat);
+    break;
+    
+  default:
+    throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
+  }
+  
+  MPS_Tensor left_gamma,right_gamma;
+  rvector_t lambda;
+  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
+  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
+  q_reg_[index_A] = left_gamma;
+  lambda_reg_[index_A] = lambda;
+  q_reg_[index_A+1] = right_gamma;
 
-	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
-	rvector_t left_lambda, right_lambda;
-	//There is no lambda in the edges of the MPS
-	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
+  if (index_A+1 != index_B)
+    change_position(index_A+1, index_B);  // Move B back to its original position
+  
+}
 
-	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
-	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
+void MPS::apply_3_qubit_gate(const reg_t &qubits,
+			     Gates gate_type, const cmatrix_t &mat)
+{
+  std::cout << " in apply_3_qubit_gate" <<std::endl;
+  if (qubits.size() != 3) {
+    std::stringstream ss;
+    ss << "error: apply_3_qubit gate must receive 3 qubits";
+    throw std::runtime_error(ss.str());
+  }
+  bool ordered = true;
+  reg_t new_qubits;
+  centralize_qubits(qubits, new_qubits, ordered);
+  if (!ordered) {
+    std::stringstream ss;
+    ss << "error: currently input qubits must be ordered";
+    throw std::runtime_error(ss.str());
+  }
 
-	switch (gate_type) {
-	case cx:
-	  temp.apply_cnot(swapped);
-	  break;
-	case cz:
-	  temp.apply_cz();
-	  break;
-	case id:
-	  break;
-	case cu1:
-	{
-	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
-	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
-		    temp2 = AER::Utils::concatenate(Zeros, mat, 1);
-	  cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
-	  temp.apply_matrix(cu);
-	  break;
-	}
-	case su4:
-	  temp.apply_matrix(mat);
-	  break;
+  uint_t first = new_qubits.front();
 
-	default:
-	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
-	}
-	MPS_Tensor left_gamma,right_gamma;
-	rvector_t lambda;
-	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-	q_reg_[index_A] = left_gamma;
-	lambda_reg_[index_A] = lambda;
-	q_reg_[index_B] = right_gamma;
+  MPS_Tensor first_tensor = q_reg_[first], last_tensor = q_reg_[first+2];
+  rvector_t left_lambda, right_lambda;
+  //There is no lambda in the edges of the MPS
+  left_lambda  = (first != 0) 	    ? lambda_reg_[first-1] : rvector_t {1.0};
+  right_lambda = (first+2 != num_qubits_-1) ? lambda_reg_[first+2] : rvector_t {1.0};
+  
+  q_reg_[first].mul_Gamma_by_left_Lambda(left_lambda);
+  q_reg_[first+2].mul_Gamma_by_right_Lambda(right_lambda);
+  MPS_Tensor temp = q_reg_[first];
+
+  for(uint_t i = first; i < first+2; i++) {
+    temp = MPS_Tensor::contract(temp, lambda_reg_[i], q_reg_[i+1]);
+  }
+
+  std::cout << "temp before gate"<<std::endl;
+  temp.print(std::cout);
+
+  switch (gate_type) {
+  case mcx:
+    temp.apply_ccx();
+    break;
+
+  default:
+    throw std::invalid_argument("illegal gate for apply_3_qubit_gate"); 
+  }
+  std::cout << "temp after gate"<<std::endl;
+  temp.print(std::cout);
+  /*
+  MPS_Tensor left_gamma,right_gamma;
+  rvector_t lambda;
+  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
+  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
+  q_reg_[index_A] = left_gamma;
+  lambda_reg_[index_A] = lambda;
+  q_reg_[index_A+1] = right_gamma;
+
+  if (index_A+1 != index_B)
+    change_position(index_A+1, index_B);  // Move B back to its original position
+  */
 }
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
@@ -408,14 +460,11 @@ void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat)
   apply_matrix(qubits, diag_mat);
 }
 
-void MPS::centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
-			    uint_t &new_first, uint_t &new_last, bool & ordered ) const {
-  new_MPS.initialize(*this);
+void MPS::centralize_qubits(const reg_t &qubits, 
+			    reg_t &new_indexes, bool & ordered) {
   ordered = true;
-
   if (qubits.size() == 1) {
-    new_first = qubits[0];
-    new_last = qubits[0];
+    new_indexes = qubits;
     return;
   }
   std::vector<uint_t> internalIndexes;
@@ -432,21 +481,19 @@ void MPS::centralize_qubits(MPS & new_MPS, const reg_t &qubits,
   if (!ordered)
       sort(internalIndexes.begin(), internalIndexes.end());
 
-  vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
+  new_indexes = calc_new_indexes(internalIndexes);
   
   uint_t avg = new_indexes[new_indexes.size()/2];
   vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
-    new_MPS.change_position(internalIndexes[i], new_indexes[i]);
+    change_position(internalIndexes[i], new_indexes[i]);
   }
   for(int i = mid-1; i >= 0; i--)
   {
-    new_MPS.change_position(internalIndexes[i], new_indexes[i]);
+    change_position(internalIndexes[i], new_indexes[i]);
   }
-  new_first = new_indexes[0];
-  new_last = new_indexes[new_indexes.size()-1];
 }
 
 void MPS::change_position(uint_t src, uint_t dst)
@@ -464,11 +511,13 @@ void MPS::change_position(uint_t src, uint_t dst)
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
   MPS temp_MPS;
-  uint_t new_first=0, new_last=0;
+  temp_MPS.initialize(*this);
+  reg_t new_qubits;
   bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
+  
+  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_first, new_last);
+  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
@@ -488,11 +537,12 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
 {
   MPS temp_MPS;
-  uint_t new_first=0, new_last=0;
+  temp_MPS.initialize(*this);
   bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
+  reg_t new_qubits;
+  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_first, new_last);
+  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
   uint_t size = psi.get_dim();
   rvector_t trace_rho(size);
 
@@ -569,10 +619,11 @@ vector<reg_t> MPS::get_matrices_sizes() const
 
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) const {
   MPS temp_MPS;
-  uint_t new_first=0, new_last=0;
+  temp_MPS.initialize(*this);
   bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
-  return temp_MPS.state_vec_as_MPS(new_first, new_last);
+  reg_t new_qubits;
+  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
+  return temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
@@ -657,8 +708,7 @@ void MPS::probabilities_vector(rvector_t& probvector,
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
   reorder_all_qubits(ordered_probvector, qubits, probvector);
   // decide whether to reverse after an answer to issue #413
-  //  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());  
-  //  probvector = rev_vec;
+  probvector = reverse_all_bits(ordered_probvector, qubits.size());  
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
