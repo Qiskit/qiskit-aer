@@ -190,8 +190,7 @@ class OP_mcwf():
                 # integer
                 # e.g. [1,0] -> 2
                 int_mem = memory.dot(np.power(2.0,
-                                              np.arange(memory.shape[1] - 1,
-                                                        -1, -1))).astype(int)
+                                              np.arange(memory.shape[1]))).astype(int)
 
                 # if the memory flag is set return each shot
                 if self.op_system.global_data['memory']:
