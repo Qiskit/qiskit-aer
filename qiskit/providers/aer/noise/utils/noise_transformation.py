@@ -92,7 +92,7 @@ def approximate_quantum_error(error, *,
                 no_info_error + " for {} qubits".format(error.number_of_qubits))
         operator_dict = operator_lists[error.number_of_qubits - 1]
     if operator_dict is not None:
-        names, operator_list = zip(*operator_dict.items())
+        _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
         op_matrix_list = [
             transformer.operator_matrix(operator) for operator in operator_list
