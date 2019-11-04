@@ -113,8 +113,8 @@ class HamiltonianParser:
 
         while any(ham_list):
             ham = ham_list.pop(0)
-            p_sums = [p for p in sum_str.finditer(ham)]
-            p_brks = [p for p in brk_str.finditer(ham)]
+            p_sums = list(sum_str.finditer(ham))
+            p_brks = list(brk_str.finditer(ham))
             if len(p_sums) != len(p_brks):
                 raise Exception('Missing correct number of brackets in %s' % ham)
 
