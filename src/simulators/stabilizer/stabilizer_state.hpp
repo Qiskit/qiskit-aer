@@ -159,6 +159,11 @@ protected:
                               ExperimentData &data,
                               bool variance);
 
+  void snapshot_probabilities_auxiliary(const reg_t& qubits,
+					std::string outcome,
+					double outcome_prob,
+					stringmap_t<double>& probs);
+
   /* TODO
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
@@ -479,7 +484,8 @@ void State::snapshot_probabilities(const Operations::Op &op,
   }
 
   stringmap_t<double> probs;
-  snapshot_probabilities_auxiliary(std::string(op.qubits.size(), 'X'),
+  snapshot_probabilities_auxiliary(op.qubits,
+				   std::string(op.qubits.size(), 'X'),
 				   1, probs);
 
   // Add snapshot to data
@@ -488,14 +494,15 @@ void State::snapshot_probabilities(const Operations::Op &op,
 }
 
 
-void State::snapshot_probabilities_auxiliary(std::string outcome,
+void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
+					     std::string outcome,
 					     double outcome_prob,
 					     stringmap_t<double>& probs) {
   uint_t qubit_for_branching = -1;
   for(const auto& qubit : qubits) {
     if(outcome[qubits.size()-qubit-1] == 'X') {
       if(BaseState::qreg_.is_deterministic_outcome(qubit)) {
-	bool single_qubit_outcome = BaseState::qreg_::measure_and_update(qubit, 0);
+	bool single_qubit_outcome = BaseState::qreg_.measure_and_update(qubit, 0);
 	if(single_qubit_outcome) {
 	  outcome[qubits.size()-qubit-1] = '1';
 	}
@@ -515,14 +522,14 @@ void State::snapshot_probabilities_auxiliary(std::string outcome,
   }
 
   for(uint_t single_qubit_outcome = 0; single_qubit_outcome<2; ++single_qubit_outcome) {
-    string new_outcome = outcome;
+    std::string new_outcome = outcome;
     if(single_qubit_outcome) {
       new_outcome[qubits.size()-qubit_for_branching-1] = '1';
     }
     else {
       new_outcome[qubits.size()-qubit_for_branching-1] = '0';
     }
-    snapshot_probabilities_auxiliary(new_outcome, 0.5*outcome_prob, probs);
+    snapshot_probabilities_auxiliary(qubits, new_outcome, 0.5*outcome_prob, probs);
   }
 
   auto copy_of_qreg = BaseState::qreg_;
