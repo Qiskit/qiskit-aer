@@ -655,7 +655,9 @@ void MPS::probabilities_vector(rvector_t& probvector,
   }
   // no ordering among the qubits
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
-  reorder_all_qubits(ordered_probvector, qubits, probvector);
+  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());
+  
+  reorder_all_qubits(rev_vec, qubits, probvector);
   // decide whether to reverse after an answer to issue #413
   //  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());  
   //  probvector = rev_vec;
