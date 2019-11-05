@@ -76,7 +76,7 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"stabilizer", "memory", "register"};
+    return {"stabilizer", "memory", "register", "probabilities"};
   }
 
   // Apply a sequence of operations by looping over list
@@ -478,56 +478,55 @@ void State::snapshot_probabilities(const Operations::Op &op,
     throw std::runtime_error(msg);
   }
 
-  // build X-stabilizer matrix for measure qubits
-  std::vector<uint_t> x_stab;
-  for(const auto& qubit : op.qubits){
-    reg_t row;
-    for(const auto& qubit2 : op.qubits){
-      row.push_back(qreg_.stabilizer(qubit).X[qubit2]);
-    }
-    x_stab.push_back(Utils::reg2int(row, 2));
-  }
-
-  // Make a copy of the clifford table
-  // and sample a single measurement outcome
-  // We don't need to use the RNG here since we will be
-  // enumerating over all outcomes later.
-  auto qreg_copy = BaseState::qreg_;
-  reg_t sample;
-  for (const auto& q : op.qubits) {
-    sample.push_back(qreg_copy.measure_and_update(q, 0));
-  }
-  const uint_t sample_outcome = Utils::reg2int(sample, 2); // convert to int
-  // All other non-zero outcomes are
-  // sample’= sample + b * x_stab (mod 2),
-  // where b is a bitstring, and occur with same probabilities
   stringmap_t<double> probs;
-
-  const uint_t num_outcomes = 1ULL << num_qubits;
-  for (uint_t b=0; b < num_outcomes; b++) {
-    uint_t outcome = sample_outcome;
-    for (size_t j=0; j < num_qubits; j++) {
-      // Check if j-th bit is 1
-      if (b & (1ULL << j))
-        outcome ^= x_stab[j];
-    }
-    // Check if outcome is in already in the probabilities
-    // map and if not add it. We will renormalize at the end.
-    const std::string outcome_hex = Utils::int2hex(outcome);
-    if (probs.find(outcome_hex) == probs.end()) {
-      probs[outcome_hex] = 1.0;
-    }
-  }
-
-  // Renormalize outcomes
-  auto renorm = probs.size();
-  for (auto &pair : probs) {
-    pair.second /= renorm;
-  }
+  snapshot_probabilities_auxiliary(std::string(op.qubits.size(), 'X'),
+				   1, probs);
 
   // Add snapshot to data
   data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(), probs, variance);
+}
+
+
+void State::snapshot_probabilities_auxiliary(std::string outcome,
+					     double outcome_prob,
+					     stringmap_t<double>& probs) {
+  uint_t qubit_for_branching = -1;
+  for(const auto& qubit : qubits) {
+    if(outcome[qubits.size()-qubit-1] == 'X') {
+      if(BaseState::qreg_.is_deterministic_outcome(qubit)) {
+	bool single_qubit_outcome = BaseState::qreg_::measure_and_update(qubit, 0);
+	if(single_qubit_outcome) {
+	  outcome[qubits.size()-qubit-1] = '1';
+	}
+	else {
+	  outcome[qubits.size()-qubit-1] = '0';
+	}
+      }
+      else {
+	qubit_for_branching = qubit;
+      }
+    }
+  }
+
+  if(qubit_for_branching == -1) {
+    probs[outcome] = outcome_prob;
+    return;
+  }
+
+  for(uint_t single_qubit_outcome = 0; single_qubit_outcome<2; ++single_qubit_outcome) {
+    string new_outcome = outcome;
+    if(single_qubit_outcome) {
+      new_outcome[qubits.size()-qubit_for_branching-1] = '1';
+    }
+    else {
+      new_outcome[qubits.size()-qubit_for_branching-1] = '0';
+    }
+    snapshot_probabilities_auxiliary(new_outcome, 0.5*outcome_prob, probs);
+  }
+
+  auto copy_of_qreg = BaseState::qreg_;
+  
 }
 
 
