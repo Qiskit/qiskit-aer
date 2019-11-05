@@ -375,7 +375,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
 void MPS::apply_3_qubit_gate(const reg_t &qubits,
 			     Gates gate_type, const cmatrix_t &mat)
 {
-  std::cout << " in apply_3_qubit_gate" <<std::endl;
   if (qubits.size() != 3) {
     std::stringstream ss;
     ss << "error: apply_3_qubit gate must receive 3 qubits";
@@ -400,34 +399,61 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   
   q_reg_[first].mul_Gamma_by_left_Lambda(left_lambda);
   q_reg_[first+2].mul_Gamma_by_right_Lambda(right_lambda);
-  MPS_Tensor temp = q_reg_[first];
+  MPS_Tensor temp_tensor = q_reg_[first];
 
   for(uint_t i = first; i < first+2; i++) {
-    temp = MPS_Tensor::contract(temp, lambda_reg_[i], q_reg_[i+1]);
+    temp_tensor = MPS_Tensor::contract(temp_tensor, lambda_reg_[i], q_reg_[i+1]);
   }
 
   std::cout << "temp before gate"<<std::endl;
-  temp.print(std::cout);
+  temp_tensor.print(std::cout);
 
   switch (gate_type) {
   case mcx:
-    temp.apply_ccx();
+    temp_tensor.apply_ccx();
     break;
 
   default:
     throw std::invalid_argument("illegal gate for apply_3_qubit_gate"); 
   }
   std::cout << "temp after gate"<<std::endl;
-  temp.print(std::cout);
+  temp_tensor.print(std::cout);
+
+  cmatrix_t U, V;
+  rvector_t S(1.0);
+  MPS_Tensor reshaped_temp_tensor;
+  MPS_Tensor::reshape_for_3_qubits_before_SVD(temp_tensor.get_data(), reshaped_temp_tensor);
+  //temp_matrix.SetOutputStyle(Matrix);
+  //std::cout << "temp_matrix = "<<std::endl;
+  std::cout << "reshaped_temp_tensor"<<std::endl;
+  reshaped_temp_tensor.print(std::cout);
+
+  // Create q_reg_[first] and lambda_reg_[first]
+  MPS_Tensor gamma_first, gamma_second, gamma_third, gamma_mid;
+  rvector_t lambda_first, lambda_second;
+  MPS_Tensor::Decompose(reshaped_temp_tensor, gamma_first, lambda_first, gamma_mid);
+
+  q_reg_[first] = gamma_first; 
+  q_reg_[first].div_Gamma_by_left_Lambda(left_lambda);
+  lambda_reg_[first] = lambda_first;
+
+  // Create q_reg_[first+1] and lambda_reg_[first+1] and q_reg_[first+2] 
+  gamma_mid.mul_Gamma_by_left_Lambda(lambda_first);
+  MPS_Tensor::Decompose(gamma_mid, gamma_second, lambda_second, gamma_third);
+
+  q_reg_[first+1] = gamma_second; 
+  q_reg_[first+1].div_Gamma_by_left_Lambda(lambda_second);
+  lambda_reg_[first+1] = lambda_second;
+  q_reg_[first+2] = gamma_third;
+  gamma_third.div_Gamma_by_right_Lambda(right_lambda);
+
+  std::cout << "final tensor without reordering:"<<std::endl;
+  print(std::cout);
+				      
+  
+
   /*
-  MPS_Tensor left_gamma,right_gamma;
-  rvector_t lambda;
-  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-  q_reg_[index_A] = left_gamma;
-  lambda_reg_[index_A] = lambda;
-  q_reg_[index_A+1] = right_gamma;
+
 
   if (index_A+1 != index_B)
     change_position(index_A+1, index_B);  // Move B back to its original position

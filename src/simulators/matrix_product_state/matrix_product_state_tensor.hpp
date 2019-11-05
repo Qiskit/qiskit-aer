@@ -78,6 +78,13 @@ public:
     data_.push_back(data1);
   }
 
+  MPS_Tensor(const vector<cmatrix_t> &data){
+    if (!data_.empty())
+      data_.clear();
+    for (uint_t i=0; i<data.size(); i++)
+      data_.push_back(data[i]);
+  }
+
   // Destructor
   virtual ~MPS_Tensor(){}
 
@@ -94,6 +101,9 @@ public:
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
+  }
+  const vector<cmatrix_t> get_data() const {
+    return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
@@ -128,7 +138,7 @@ public:
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
   static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma);
   static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
-
+  static void reshape_for_3_qubits_before_SVD(const vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
@@ -397,6 +407,33 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
   right_gamma.data_ = reshape_V_after_SVD(V);
+}
+
+void MPS_Tensor::reshape_for_3_qubits_before_SVD(const vector<cmatrix_t> data, 
+				     MPS_Tensor &reshaped_tensor)
+{
+// Turns 4 matrices A0,A1,A2,A3,A4,A5,A6,A7 to big matrix:
+//  A0 A1 A2 A3
+//  A4 A5 A6 A7
+/*  cmatrix_t temp0_1 = AER::Utils::concatenate(data[0], data[1], 1),
+            temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
+            temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
+            temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
+  cmatrix_t temp0_1_2_3 = AER::Utils::concatenate(temp0_1, temp2_3, 1);
+  cmatrix_t temp4_5_6_7 = AER::Utils::concatenate(temp4_5, temp6_7, 1);
+  
+  return AER::Utils::concatenate(temp0_1_2_3, temp4_5_6_7, 0);*/
+  cmatrix_t temp0_1 = AER::Utils::concatenate(data[0], data[1], 1),
+            temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
+            temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
+            temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
+  std::cout << temp0_1 ;
+  vector<cmatrix_t> new_data_vector;
+  new_data_vector.push_back(temp0_1);
+  new_data_vector.push_back(temp2_3);
+  new_data_vector.push_back(temp4_5);
+  new_data_vector.push_back(temp6_7);
+  reshaped_tensor = MPS_Tensor(new_data_vector);
 }
 
 //-------------------------------------------------------------------------
