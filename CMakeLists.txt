@@ -22,6 +22,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
+option(THRUST_BACKEND "Specify what backend will Thrust library use: CUDA, TBB, OMP" OMP)
 
 include(CTest)
 include(compiler_utils)
@@ -149,10 +150,12 @@ find_package(CUDA)
 if(CUDA_FOUND)
 	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
-
-	set_source_files_properties( ${AER_SIMULATOR_CPP_MAIN} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 endif(CUDA_FOUND)
 
+message(STATUS "Looking for Thrust library...")
+find_package(Thrust REQUIRED)
 
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
@@ -193,20 +196,20 @@ set(AER_LIBRARIES
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 		Threads::Threads
-		${CMAKE_DL_LIBS})
+		${CMAKE_DL_LIBS}
+		${THRUST_INCLUDE_DIR})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
-
-if(CUDA_FOUND)
-	cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
-	target_link_libraries(qasm_simulator ${AER_LIBRARIES})
-else(CUDA_FOUND)
-	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
-endif(CUDA_FOUND)
+	if(CUDA_FOUND)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+	else(CUDA_FOUND)
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	endif(CUDA_FOUND)
 
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
