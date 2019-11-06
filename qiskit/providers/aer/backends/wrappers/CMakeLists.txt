@@ -38,6 +38,8 @@ if(APPLE)
     set_target_properties(qasm_controller_wrapper PROPERTIES
         LINK_FLAGS ${AER_LINKER_FLAGS})
 endif()
+target_compile_definitions(qasm_controller_wrapper
+    PRIVATE ${AER_COMPILER_DEFINITIONS})
 # We only need to pass the linter once, as the codebase is the same for
 # all controllers
 add_linter(qasm_controller_wrapper)
@@ -68,6 +70,8 @@ if(APPLE)
     set_target_properties(statevector_controller_wrapper PROPERTIES
         LINK_FLAGS ${AER_LINKER_FLAGS})
 endif()
+target_compile_definitions(statevector_controller_wrapper
+    PRIVATE ${AER_COMPILER_DEFINITIONS})
 target_include_directories(statevector_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
@@ -95,6 +99,8 @@ if(APPLE)
     set_target_properties(unitary_controller_wrapper PROPERTIES
         LINK_FLAGS ${AER_LINKER_FLAGS})
 endif()
+target_compile_definitions(unitary_controller_wrapper
+    PRIVATE ${AER_COMPILER_DEFINITIONS})
 target_include_directories(unitary_controller_wrapper
     PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
     PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}

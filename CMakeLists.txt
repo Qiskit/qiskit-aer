@@ -42,6 +42,8 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
 
+set(AER_COMPILER_DEFINITIONS "")
+
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
 	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
@@ -146,16 +148,26 @@ else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
-find_package(CUDA)
-if(CUDA_FOUND)
-	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
-	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-endif(CUDA_FOUND)
-
-message(STATUS "Looking for Thrust library...")
-find_package(Thrust REQUIRED)
+if(THRUST_BACKEND MATCHES "CUDA")
+	message(STATUS "Thrust library: Loooking for CUDA backend...")
+	find_package(CUDA REQUIRED)
+	if(CUDA_FOUND)
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	endif()
+	set(THRUST_DEPENDANT_LIBS "")
+elseif(THRUST_BACKEND MATCHES "TBB")
+	message(STATUS "Thrust library: Loooking for TBB backend...")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
+	find_package(TBB REQUIRED)
+	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+else(THRUST_BACKEND MATCHES "OMP")
+	message(STATUS "Thrust library: OMP backend selected")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	# We don't need to add OMP because it's already an AER dependency
+endif()
 
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
@@ -197,7 +209,7 @@ set(AER_LIBRARIES
 	    nlohmann_json
 		Threads::Threads
 		${CMAKE_DL_LIBS}
-		${THRUST_INCLUDE_DIR})
+		${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
@@ -218,6 +230,7 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
+	target_compile_definitions(qasm_simulator PRIVATE ${AER_COMPILER_DEFINITIONS})
 
 	# Linter
 	# This will add the linter as part of the compiling build target
