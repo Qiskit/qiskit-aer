@@ -54,8 +54,6 @@ template<typename T> struct is_error_condition_enum : public thrust::detail::fal
 namespace errc
 {
 
-/*! An enum containing common error codes.
- */
 enum errc_t
 {
   address_family_not_supported       = detail::eafnosupport,

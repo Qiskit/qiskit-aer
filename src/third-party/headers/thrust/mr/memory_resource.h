@@ -33,8 +33,10 @@ namespace thrust
 namespace mr
 {
 
-/** \addtogroup memory_resources Memory Resources
- *  \ingroup memory_management_classes
+/*! \addtogroup memory_management Memory Management
+ *  \addtogroup memory_management_classes Memory Management Classes
+ *  \addtogroup memory_resources Memory Resources
+ *  \ingroup memory_management
  *  \{
  */
 
@@ -126,6 +128,8 @@ public:
     }
 };
 
+/*! The specialization of \p memory_resource for <tt>void *</tt>.
+ */
 template<>
 class memory_resource<void *>
 #ifdef THRUST_STD_MR_NS

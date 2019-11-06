@@ -25,7 +25,7 @@
 namespace thrust
 {
 
-/*! \addtogroup system
+/*! \addtogroup system System Access
  *  \{
  */
 

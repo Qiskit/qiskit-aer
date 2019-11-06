@@ -15,7 +15,7 @@
  */
 
 
-/*! \file thrust/transform.h
+/*! \file transform.h
  *  \brief Transforms input ranges using a function object
  */
 
@@ -52,7 +52,7 @@ namespace thrust
  *  \param first The beginning of the input sequence.
  *  \param last The end of the input sequence.
  *  \param result The beginning of the output sequence.
- *  \param op The transformation operation.
+ *  \param op The tranformation operation.
  *  \return The end of the output sequence.
  *
  *  \tparam DerivedPolicy The name of the derived execution policy.

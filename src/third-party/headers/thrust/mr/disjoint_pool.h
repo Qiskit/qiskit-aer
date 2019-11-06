@@ -25,7 +25,6 @@
 
 #include <thrust/host_vector.h>
 #include <thrust/binary_search.h>
-#include <thrust/detail/seq.h>
 
 #include <thrust/mr/memory_resource.h>
 #include <thrust/mr/allocator.h>
@@ -38,8 +37,10 @@ namespace thrust
 namespace mr
 {
 
-/** \addtogroup memory_resources Memory Resources
- *  \ingroup memory_management_classes
+/*! \addtogroup memory_management Memory Management
+ *  \addtogroup memory_management_classes Memory Management Classes
+ *  \addtogroup memory_resources Memory Resources
+ *  \ingroup memory_resources
  *  \{
  */
 
@@ -113,8 +114,8 @@ public:
         m_smallest_block_log2(detail::log2_ri(m_options.smallest_block_size)),
         m_pools(m_bookkeeper),
         m_allocated(m_bookkeeper),
-        m_cached_oversized(m_bookkeeper),
-        m_oversized(m_bookkeeper)
+        m_oversized(m_bookkeeper),
+        m_cached_oversized(m_bookkeeper)
     {
         assert(m_options.validate());
 
@@ -136,8 +137,8 @@ public:
         m_smallest_block_log2(detail::log2_ri(m_options.smallest_block_size)),
         m_pools(m_bookkeeper),
         m_allocated(m_bookkeeper),
-        m_cached_oversized(m_bookkeeper),
-        m_oversized(m_bookkeeper)
+        m_oversized(m_bookkeeper),
+        m_cached_oversized(m_bookkeeper)
     {
         assert(m_options.validate());
 

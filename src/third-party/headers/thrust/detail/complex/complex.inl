@@ -24,14 +24,20 @@ namespace thrust
 
 /* --- Constructors --- */
 
-#if THRUST_CPP_DIALECT < 2011
 template <typename T>
 __host__ __device__
 complex<T>::complex()
+#if THRUST_CPP_DIALECT >= 2011
+  // Initialize the storage in the member initializer list using C++ unicorn
+  // initialization. This allows `complex<T const>` to work.
+  // We do a functional-style cast here to suppress conversion warnings.
+  : data{T(), T()}
+{}
+#else
 {
   real(T());
   imag(T());
-}
+} 
 #endif
 
 template <typename T>
@@ -46,7 +52,7 @@ complex<T>::complex(const T& re)
 {
   real(re);
   imag(T());
-}
+} 
 #endif
 
 
@@ -63,20 +69,25 @@ complex<T>::complex(const T& re, const T& im)
   real(re);
   imag(im);
 }
-#endif
+#endif 
 
-#if THRUST_CPP_DIALECT < 2011
 template <typename T>
 __host__ __device__
 complex<T>::complex(const complex<T>& z)
+#if THRUST_CPP_DIALECT >= 2011
+  // Initialize the storage in the member initializer list using C++ unicorn
+  // initialization. This allows `complex<T const>` to work.
+  : data{z.real(), z.imag()}
+{}
+#else
 {
   real(z.real());
   imag(z.imag());
 }
-#endif
+#endif 
 
 template <typename T>
-template <typename U>
+template <typename U> 
 __host__ __device__
 complex<T>::complex(const complex<U>& z)
 #if THRUST_CPP_DIALECT >= 2011
@@ -90,7 +101,7 @@ complex<T>::complex(const complex<U>& z)
   real(T(z.real()));
   imag(T(z.imag()));
 }
-#endif
+#endif 
 
 template <typename T>
 __host__ THRUST_STD_COMPLEX_DEVICE
@@ -137,7 +148,6 @@ complex<T>& complex<T>::operator=(const T& re)
   return *this;
 }
 
-#if THRUST_CPP_DIALECT < 2011
 template <typename T>
 __host__ __device__
 complex<T>& complex<T>::operator=(const complex<T>& z)
@@ -146,7 +156,6 @@ complex<T>& complex<T>::operator=(const complex<T>& z)
   imag(z.imag());
   return *this;
 }
-#endif
 
 template <typename T>
 template <typename U>

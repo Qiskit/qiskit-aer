@@ -556,8 +556,7 @@ template<typename T, typename Alloc>
     ::~vector_base(void)
 {
   // destroy every living thing
-  if (!empty())
-    m_storage.destroy(begin(),end());
+  m_storage.destroy(begin(),end());
 } // end vector_base::~vector_base()
 
 template<typename T, typename Alloc>
@@ -1029,7 +1028,7 @@ template<typename T, typename Alloc>
   {
     *current = *first;
   } // end for
-
+  
   // either just the input was exhausted or both
   // the input and vector elements were exhausted
   if(first == last)
@@ -1080,7 +1079,7 @@ template<typename T, typename Alloc>
   {
     // range fits inside allocated storage, but some elements
     // have not been constructed yet
-
+    
     // XXX TODO we could possibly implement this with one call
     // to transform rather than copy + uninitialized_copy
 
@@ -1162,7 +1161,7 @@ template<typename T, typename Alloc>
   } // end try
   catch(...)
   {
-    // something went wrong, so destroy & deallocate the new storage
+    // something went wrong, so destroy & deallocate the new storage 
     // XXX seems like this destroys too many elements -- should just be last - first instead of requested_size
     iterator new_storage_end = new_storage.begin();
     thrust::advance(new_storage_end, requested_size);
@@ -1188,7 +1187,7 @@ template<typename T, typename Alloc>
 
 namespace detail
 {
-
+    
 // iterator tags match
 template <typename InputIterator1, typename InputIterator2>
 bool vector_equal(InputIterator1 first1, InputIterator1 last1,
@@ -1244,7 +1243,7 @@ bool operator==(const detail::vector_base<T1,Alloc1>& lhs,
 {
     return lhs.size() == rhs.size() && detail::vector_equal(lhs.begin(), lhs.end(), rhs.begin());
 }
-
+    
 template<typename T1, typename Alloc1,
          typename T2, typename Alloc2>
 bool operator==(const detail::vector_base<T1,Alloc1>& lhs,
@@ -1268,7 +1267,7 @@ bool operator!=(const detail::vector_base<T1,Alloc1>& lhs,
 {
     return !(lhs == rhs);
 }
-
+    
 template<typename T1, typename Alloc1,
          typename T2, typename Alloc2>
 bool operator!=(const detail::vector_base<T1,Alloc1>& lhs,

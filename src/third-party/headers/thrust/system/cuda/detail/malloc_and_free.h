@@ -23,7 +23,7 @@
 #include <thrust/memory.h>
 #include <thrust/system/cuda/config.h>
 #ifdef THRUST_CACHING_DEVICE_MALLOC
-#include <cub/util_allocator.cuh>
+#include <thrust/system/cuda/detail/cub/util_allocator.cuh>
 #endif
 #include <thrust/system/cuda/detail/util.h>
 #include <thrust/system/detail/bad_alloc.h>
@@ -62,9 +62,9 @@ void *malloc(execution_policy<DerivedPolicy> &, std::size_t n)
 
   if(status != cudaSuccess)
   {
-    cudaGetLastError(); // Clear global CUDA error state.
+  //  cuda_cub::throw_on_error(status, "device malloc failed");
     thrust::system::detail::bad_alloc(thrust::cuda_category().message(status).c_str());
-  }
+  } 
 #else
   result = thrust::raw_pointer_cast(thrust::malloc(thrust::seq, n));
 #endif

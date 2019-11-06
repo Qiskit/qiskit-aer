@@ -14,10 +14,6 @@
  *  limitations under the License.
  */
 
-/*! \file cuda/memory_resource.h
- *  \brief Memory resources for the CUDA system.
- */
-
 #pragma once
 
 #include <thrust/mr/memory_resource.h>
@@ -35,8 +31,6 @@ namespace system
 {
 namespace cuda
 {
-
-//! \cond
 namespace detail
 {
 
@@ -56,7 +50,6 @@ namespace detail
 
             if (status != cudaSuccess)
             {
-                cudaGetLastError(); // Clear the CUDA global error state.
                 throw thrust::system::detail::bad_alloc(thrust::cuda_category().message(status).c_str());
             }
 
@@ -93,13 +86,9 @@ namespace detail
         pinned_memory_resource;
 
 } // end detail
-//! \endcond
 
-/*! The memory resource for the CUDA system. Uses <tt>cudaMalloc</tt> and wraps the result with \p cuda::pointer. */
 typedef detail::device_memory_resource memory_resource;
-/*! The universal memory resource for the CUDA system. Uses <tt>cudaMallocManaged</tt> and wraps the result with \p cuda::pointer. */
 typedef detail::managed_memory_resource universal_memory_resource;
-/*! The host pinned memory resource for the CUDA system. Uses <tt>cudaMallocHost</tt> and wraps the result with \p cuda::pointer. */
 typedef detail::pinned_memory_resource universal_host_pinned_memory_resource;
 
 } // end cuda

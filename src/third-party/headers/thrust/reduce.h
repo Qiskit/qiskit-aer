@@ -15,7 +15,7 @@
  */
 
 
-/*! \file thrust/reduce.h
+/*! \file reduce.h
  *  \brief Functions for reducing a range to a single value
  */
 

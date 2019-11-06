@@ -22,9 +22,6 @@
 
 #include <thrust/detail/config.h>
 #include <thrust/system/omp/detail/execution_policy.h>
-#include <thrust/detail/type_traits.h>
-#include <thrust/detail/pointer.h>
-#include <thrust/detail/reference.h>
 
 namespace thrust
 {
@@ -330,7 +327,7 @@ template<typename T>
 
 /*! Exchanges the values of two objects referred to by \p reference.
  *  \p x The first \p reference of interest.
- *  \p y The second \p reference of interest.
+ *  \p y The second \p reference ot interest.
  */
 template<typename T>
 __host__ __device__

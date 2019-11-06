@@ -36,9 +36,7 @@
 
 #include <thrust/system/cuda/config.h>
 
-#include <thrust/system/cuda/detail/util.h>
 #include <thrust/system/cuda/detail/execution_policy.h>
-#include <thrust/system/cuda/detail/util.h>
 
 #include <mutex>
 #include <unordered_map>

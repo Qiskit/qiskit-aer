@@ -17,8 +17,6 @@
 #include <thrust/detail/config.h>
 #include <thrust/system/tbb/detail/execution_policy.h>
 #include <thrust/detail/type_traits.h>
-#include <thrust/detail/pointer.h>
-#include <thrust/detail/reference.h>
 
 namespace thrust
 {
@@ -331,9 +329,6 @@ __host__ __device__
 void swap(reference<T> x, reference<T> y);
 
 } // end tbb
-
-/*! \}
- */
 
 } // end system
 

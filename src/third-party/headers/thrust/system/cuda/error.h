@@ -32,16 +32,18 @@ namespace thrust
 namespace system
 {
 
-namespace cuda
+namespace cuda_cub
 {
+
+/*! \addtogroup system
+ *  \{
+ */
 
 // To construct an error_code after a CUDA Runtime error:
 //
 //   error_code(::cudaGetLastError(), cuda_category())
 
 // XXX N3000 prefers enum class errc { ... }
-/*! Namespace for CUDA Runtime errors.
- */
 namespace errc
 {
 
@@ -148,32 +150,39 @@ inline const error_category &cuda_category(void);
 
 /*! Specialization of \p is_error_code_enum for \p cuda::errc::errc_t
  */
-template<> struct is_error_code_enum<cuda::errc::errc_t> : thrust::detail::true_type {};
+template<> struct is_error_code_enum<cuda_cub::errc::errc_t> : thrust::detail::true_type {};
 
 
 // XXX replace cuda::errc::errc_t with cuda::errc upon c++0x
 /*! \return <tt>error_code(static_cast<int>(e), cuda::error_category())</tt>
  */
-inline error_code make_error_code(cuda::errc::errc_t e);
+inline error_code make_error_code(cuda_cub::errc::errc_t e);
 
 
 // XXX replace cuda::errc::errc_t with cuda::errc upon c++0x
 /*! \return <tt>error_condition(static_cast<int>(e), cuda::error_category())</tt>.
  */
-inline error_condition make_error_condition(cuda::errc::errc_t e);
+inline error_condition make_error_condition(cuda_cub::errc::errc_t e);
+
+/*! \} // end system
+ */
+
 
 } // end system
 
-namespace cuda_cub
-{
-namespace errc = system::cuda::errc;
-} // end cuda_cub
+namespace system {
+namespace cuda {
+namespace errc {
+using system::cuda_cub::errc::errc_t;
+} // namespace errc
+} // namespace cuda
+} // namespace system
 
 namespace cuda
 {
 // XXX replace with using system::cuda_errc upon c++0x
 namespace errc = system::cuda::errc;
-} // end cuda
+} // end cuda_cub
 
 using system::cuda_category;
 

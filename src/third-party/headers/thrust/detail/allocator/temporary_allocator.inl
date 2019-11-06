@@ -20,7 +20,7 @@
 #include <thrust/system/detail/bad_alloc.h>
 #include <cassert>
 
-#if defined(__CUDA_ARCH__) && THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#ifdef __CUDACC__
 #include <thrust/system/cuda/detail/terminate.h>
 #endif
 
@@ -47,7 +47,7 @@ __host__ __device__
 
 #if !defined(__CUDA_ARCH__)
     throw thrust::system::detail::bad_alloc("temporary_buffer::allocate: get_temporary_buffer failed");
-#elif THRUST_DEVICE_SYSTEM == THRUST_DEVICE_SYSTEM_CUDA
+#else
     thrust::system::cuda::detail::terminate_with_message("temporary_buffer::allocate: get_temporary_buffer failed");
 #endif
   } // end if

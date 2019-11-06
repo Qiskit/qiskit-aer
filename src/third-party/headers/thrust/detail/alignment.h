@@ -26,7 +26,7 @@
 #include <cstddef> // For `std::size_t` and `std::max_align_t`.
 
 #if __cplusplus >= 201103L
-    #include <type_traits> // For `std::alignment_of` and `std::aligned_storage`.
+    #include <type_traits> // For `std::alignment_of`.
 #endif
 
 namespace thrust
@@ -100,7 +100,7 @@ struct aligned_type;
 #if __cplusplus >= 201103L                                                     \
   && (THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_GCC)                        \
   && (THRUST_GCC_VERSION >= 40800)
-    // C++11 implementation, excluding GCC 4.7, which doesn't have `alignas`.
+    // GCC 4.7 doesn't have `alignas`.
     template <std::size_t Align>
     struct aligned_type
     {
@@ -108,45 +108,40 @@ struct aligned_type;
     };
 #elif  (THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_MSVC)                    \
     || (   (THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_GCC)                 \
-        && (THRUST_GCC_VERSION < 40600))
-    // C++03 implementation for MSVC and GCC <= 4.5.
-    // 
+        && (THRUST_GCC_VERSION < 40300))
     // We have to implement `aligned_type` with specializations for MSVC
     // and GCC 4.2.x and older because they require literals as arguments to 
     // their alignment attribute.
 
     #if (THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_MSVC)
-        // MSVC implementation.
-        #define THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(X)                  \
+        #define THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(X)                  \
             template <>                                                       \
-            struct aligned_type<X>                                            \
+            struct aligned_type<X>                                    \
             {                                                                 \
                 __declspec(align(X)) struct type {};                          \
             };                                                                \
             /**/
     #else
-        // GCC <= 4.2 implementation.
-        #define THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(X)                  \
+        #define THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(X)                  \
             template <>                                                       \
-            struct aligned_type<X>                                            \
+            struct aligned_type<X>                                    \
             {                                                                 \
                 struct type {} __attribute__((aligned(X)));                   \
             };                                                                \
             /**/
     #endif
     
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(1);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(2);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(4);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(8);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(16);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(32);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(64);
-    THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION(128);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(1);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(2);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(4);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(8);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(16);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(32);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(64);
+    THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION(128);
 
-    #undef THRUST_DEFINE_ALIGNED_TYPE_SPECIALIZATION
+    #undef THRUST_DEFINE_ALIGNED_BYTE_SPECIALIZATION
 #else
-    // C++03 implementation for GCC > 4.5, Clang, PGI, ICPC, and xlC.
     template <std::size_t Align>
     struct aligned_type
     {
@@ -160,7 +155,7 @@ struct aligned_type;
 /// 
 /// The behavior is undefined if `Len` is 0 or `Align` is not a power of 2.
 ///
-/// It is an implementation of C++11's \p std::aligned_storage.
+/// It is an implementation of C++11's \p std::alignment_of.
 #if __cplusplus >= 201103L
     template <std::size_t Len, std::size_t Align>
     using aligned_storage = std::aligned_storage<Len, Align>;
@@ -213,13 +208,11 @@ struct aligned_type;
 /// \p aligned_reinterpret_cast is responsible for ensuring that the alignment
 /// requirements are actually satisified.
 template <typename T, typename U>
-__host__ __device__
 T aligned_reinterpret_cast(U u)
 {
   return reinterpret_cast<T>(reinterpret_cast<void*>(u));
 }
 
-__host__ __device__
 inline std::size_t aligned_storage_size(std::size_t n, std::size_t align)
 {
   return ((n + align - 1) / align) * align;

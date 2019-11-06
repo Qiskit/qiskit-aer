@@ -15,7 +15,7 @@
  */
 
 
-/*! \file thrust/sort.h
+/*! \file sort.h
  *  \brief Functions for reorganizing ranges into sorted order
  */
 
