@@ -8,6 +8,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include "numeric_integrator.hpp"
 #include "helpers.hpp"
+#include "ordered_map.hpp"
 
 class Unregister {
   public:
@@ -163,7 +164,7 @@ PyArrayObject * td_ode_rhs(
     spdlog::debug("Getting pulses...");
     // TODO: Pass const & as keys to avoid copying
     //auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
-    auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
+    auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     spdlog::debug("Getting freqs...");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
     spdlog::debug("Getting pulse_array...");

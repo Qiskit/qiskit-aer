@@ -25,6 +25,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
 #include "helpers.hpp"
+#include "ordered_map.hpp"
 
 bool cpp_test_py_list_to_cpp_vec(PyObject * val){
     // val = [1., 2., 3.]
@@ -73,16 +74,29 @@ bool cpp_test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_
 }
 
 bool cpp_test_np_array_of_doubles(PyArrayObject * val){
-    // arg = np.array([0., 1., 2., 3.])
+    // val = np.array([0., 1., 2., 3.])
     auto vec = get_value<NpArray<double>>(val);
     auto expected = NpArray<double>{{0., 1., 2., 3.}, {4}};
     return vec == expected;
 }
 
 bool cpp_test_evaluate_hamiltonians(PyObject * val){
-    //std::raise(SIGTRAP);
+    // TODO: Add tests!
     return false;
 }
 
+bool cpp_test_ordered_map(PyObject * val){
+    // Ordered map should guarantee insertion order.
+    // val = {"D0": 1, "U0": 2, "D1": 3, "U1": 4}
+    // std::vector<std::string> order = {"D0", "U0", "D1", "U1"};
+    // auto ordered = get_value<ordered_map<std::string, long>>(val);
+    // size_t i = 0;
+    // for(const auto& elem: order) {
+    //     auto key = elem.first;
+    //     if(key != order[i])
+    //         return false;
+    // }
+    // return true;
+}
 
 #endif // _TEST_HELPERS_HPP

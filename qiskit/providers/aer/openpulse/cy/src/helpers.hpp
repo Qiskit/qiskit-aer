@@ -27,6 +27,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
+#include "ordered_map.hpp"
 
 
 /**
@@ -34,7 +35,6 @@
  * to C++ stl containers. We can avoid this by wrapping the former and avoiding
  * copies
  **/
-
 
 
 
@@ -277,7 +277,7 @@ void jlog(const std::string& msg, const std::vector<T>& values){
 }
 
 template<>
-void jlog(const std::string& msg, const std::map<std::string, std::vector<std::vector<double>>>& values){
+void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
     spdlog::debug("{}", msg);
     for(const auto& val : values){
         for(const auto& inner: val.second){
@@ -289,7 +289,7 @@ void jlog(const std::string& msg, const std::map<std::string, std::vector<std::v
 }
 
 template<>
-void jlog(const std::string& msg, const std::map<std::string, double>& values){
+void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
     spdlog::debug("{}", msg);
     for(const auto& val : values){
         spdlog::debug("{}:{} ", val.first, val.second);
@@ -297,7 +297,7 @@ void jlog(const std::string& msg, const std::map<std::string, double>& values){
 }
 
 template<>
-void jlog(const std::string& msg, const std::map<std::string, std::vector<NpArray<double>>>& values){
+void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<NpArray<double>>>& values){
     spdlog::debug("{}", msg);
     for(const auto& val : values){
         for(const auto& inner: val.second){
@@ -306,18 +306,11 @@ void jlog(const std::string& msg, const std::map<std::string, std::vector<NpArra
     }
 }
 
-
-
-
-
-
-
+template <typename T>
+struct iterator_extractor { using type = typename T::iterator; };
 
 template <typename T>
-struct iterator_extractor { typedef typename T::iterator type; };
-
-template <typename T>
-struct iterator_extractor<T const> { typedef typename T::const_iterator type; };
+struct iterator_extractor<T const> { using type = typename T::const_iterator; };
 
 /**
  * Python-like `enumerate()` for C++14 ranged-for
@@ -335,10 +328,10 @@ template <typename T>
 class Indexer {
 public:
     class _Iterator {
-        typedef typename iterator_extractor<T>::type inner_iterator;
-        typedef typename std::iterator_traits<inner_iterator>::reference inner_reference;
+        using inner_iterator =  typename iterator_extractor<T>::type;
+        using inner_reference = typename std::iterator_traits<inner_iterator>::reference;
     public:
-        typedef std::pair<size_t, inner_reference> reference;
+        using reference = std::pair<size_t, inner_reference>;
 
         _Iterator(inner_iterator it): _pos(0), _it(it) {}
 
@@ -490,18 +483,32 @@ std::pair<T, U> get_value(type<std::pair<T, U>> _, PyObject * value){
 }
 
 template<typename ValueType>
-std::map<std::string, ValueType> get_value(type<std::map<std::string, ValueType>> _, PyObject * value){
+std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
     if(!_check_is_dict(value))
         throw std::invalid_argument("PyObject is not a dictonary!!");
 
-    struct channel_order {
-        bool operator()(const std::string& a, const std::string& b){
+    auto size = PyDict_Size(value);
+    std::unordered_map<std::string, ValueType> map;
+    map.reserve(size);
 
+    PyObject *key, *val;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(value, &pos, &key, &val)) {
+        auto inner_key = get_value<std::string>(key);
+        auto inner_value = get_value<ValueType>(val);
+        map.emplace(inner_key, inner_value);
+    }
+    return map;
+}
 
-        }
-    };
+template<typename ValueType>
+ordered_map<std::string, ValueType> get_value(type<ordered_map<std::string, ValueType>> _, PyObject * value){
+    if(!_check_is_dict(value))
+        throw std::invalid_argument("PyObject is not a dictonary!!");
 
-    std::map<std::string, ValueType, channel_order> map;
+    auto size = PyDict_Size(value);
+    ordered_map<std::string, ValueType> map;
+    map.reserve(size);
 
     PyObject *key, *val;
     Py_ssize_t pos = 0;
@@ -571,7 +578,7 @@ const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::st
 }
 
 /**
- * Returns a C++ map from a Python dictionary that is inside another Pyhton
+ * Returns a C++ unordered_map from a Python dictionary that is inside another Pyhton
  * dictionary under a key.
  *
  * We assume that the item indexed by the key, it's a dictionary:
@@ -589,12 +596,19 @@ const std::vector<VecType> get_vec_from_dict_item(PyObject * dict, const std::st
  * ```
  *
  * @param dict PyObject* A pointer to a PyObject type representing a dictionary
- * @return A map of type <KeyType,ValueType> from the Pyhton's dictionary key.
+ * @return An unordered map of type <KeyType,ValueType> from the Pyhton's dictionary key.
  **/
 template<typename KeyType, typename ValueType>
-const std::map<KeyType, ValueType> get_map_from_dict_item(PyObject * dict, const std::string& item_key){
+const std::unordered_map<KeyType, ValueType> get_map_from_dict_item(PyObject * dict, const std::string& item_key){
     PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
-    return get_value<std::map<KeyType, ValueType>>(py_value);
+    return get_value<std::unordered_map<KeyType, ValueType>>(py_value);
+}
+
+
+template<typename KeyType, typename ValueType>
+const ordered_map<KeyType, ValueType> get_ordered_map_from_dict_item(PyObject * dict, const std::string& item_key){
+    PyObject * py_value = _get_py_value_from_py_dict(dict, item_key);
+    return get_value<ordered_map<KeyType, ValueType>>(py_value);
 }
 
 /**
@@ -633,7 +647,7 @@ ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key)
 // complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
 //                                   const std::vector<double>& vars,
 //                                   const std::vector<std::string>& vars_names,
-//                                   const std::map<std::string, complex_t>& chan_values){
+//                                   const std::unordered_map<std::string, complex_t>& chan_values){
 //     exprtk::symbol_table<complex_t> symbol_table;
 //     auto pi = M_PI;
 //     auto complex_pi = static_cast<complex_t>(pi);
