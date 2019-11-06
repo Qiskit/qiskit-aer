@@ -145,6 +145,15 @@ else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
+find_package(CUDA)
+if(CUDA_FOUND)
+	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
+
+	set_source_files_properties( ${AER_SIMULATOR_CPP_MAIN} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+endif(CUDA_FOUND)
+
+
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
@@ -190,7 +199,15 @@ set(AER_LIBRARIES
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
+
+if(CUDA_FOUND)
+	cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+else(CUDA_FOUND)
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+endif(CUDA_FOUND)
+
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14)
@@ -198,7 +215,7 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+
 	# Linter
 	# This will add the linter as part of the compiling build target
 	add_linter(qasm_simulator)
@@ -208,3 +225,7 @@ endif()
 if(BUILD_TESTS)
 	add_subdirectory(test)
 endif()
+
+
+
+
