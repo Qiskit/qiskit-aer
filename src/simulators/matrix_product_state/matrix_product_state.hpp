@@ -453,6 +453,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
       }
+      std::cout <<"after gate " << op.name << std::endl;
+      qreg_.print(std::cout);
     }
   }
 }

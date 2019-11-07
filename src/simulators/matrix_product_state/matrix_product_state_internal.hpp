@@ -212,7 +212,15 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
+    cmatrix_t statevector_as_matrix(1, state_vector.size());
+#pragma omp parallel for
+    for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
+      statevector_as_matrix(0, i) = state_vector[i];
+    }
+    initialize_from_matrix(num_qubits, statevector_as_matrix);
+  }
+  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
 protected:
   //----------------------------------------------------------------

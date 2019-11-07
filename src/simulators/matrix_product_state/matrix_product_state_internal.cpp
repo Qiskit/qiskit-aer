@@ -388,24 +388,14 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     ss << "error: currently input qubits must be ordered";
     throw std::runtime_error(ss.str());
   }
+  std::cout << "tensor before ccx" << std::endl;
+  print(std::cout);
 
+  //MPS_Tensor  temp_tensor;
+  //temp_tensor.initialize(*this);
   uint_t first = new_qubits.front();
-
-  MPS_Tensor first_tensor = q_reg_[first], last_tensor = q_reg_[first+2];
-  rvector_t left_lambda, right_lambda;
-  //There is no lambda in the edges of the MPS
-  left_lambda  = (first != 0) 	    ? lambda_reg_[first-1] : rvector_t {1.0};
-  right_lambda = (first+2 != num_qubits_-1) ? lambda_reg_[first+2] : rvector_t {1.0};
-  
-  q_reg_[first].mul_Gamma_by_left_Lambda(left_lambda);
-  q_reg_[first+2].mul_Gamma_by_right_Lambda(right_lambda);
-  MPS_Tensor temp_tensor = q_reg_[first];
-
-  for(uint_t i = first; i < first+2; i++) {
-    temp_tensor = MPS_Tensor::contract(temp_tensor, lambda_reg_[i], q_reg_[i+1]);
-  }
-
-  std::cout << "temp before gate"<<std::endl;
+  MPS_Tensor temp_tensor(state_vec_as_MPS(first, first+2));
+  std::cout << "temp_tensor before ccx"<<std::endl;
   temp_tensor.print(std::cout);
 
   switch (gate_type) {
@@ -419,35 +409,32 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   std::cout << "temp after gate"<<std::endl;
   temp_tensor.print(std::cout);
 
-  cmatrix_t U, V;
-  rvector_t S(1.0);
-  MPS_Tensor reshaped_temp_tensor;
-  MPS_Tensor::reshape_for_3_qubits_before_SVD(temp_tensor.get_data(), reshaped_temp_tensor);
-  //temp_matrix.SetOutputStyle(Matrix);
-  //std::cout << "temp_matrix = "<<std::endl;
-  std::cout << "reshaped_temp_tensor"<<std::endl;
-  reshaped_temp_tensor.print(std::cout);
+  cmatrix_t state_mat = temp_tensor.get_data(0);
+  for (uint_t i=1; i<temp_tensor.get_data().size(); i++)
+    state_mat = AER::Utils::concatenate(state_mat, temp_tensor.get_data(i), 1) ;
+  state_mat.SetOutputStyle(Matrix);
+  std::cout << "state_mat = " <<std::endl;
+  std::cout << state_mat;
+    //state_vector.push_back(temp_tensor.get_data(i)(0,0));
 
-  // Create q_reg_[first] and lambda_reg_[first]
-  MPS_Tensor gamma_first, gamma_second, gamma_third, gamma_mid;
-  rvector_t lambda_first, lambda_second;
-  MPS_Tensor::Decompose(reshaped_temp_tensor, gamma_first, lambda_first, gamma_mid);
+  //  std::cout <<"state_vector = ";
 
-  q_reg_[first] = gamma_first; 
-  q_reg_[first].div_Gamma_by_left_Lambda(left_lambda);
-  lambda_reg_[first] = lambda_first;
+  //  for (uint_t i=0; i<state_vector.size(); i++) 
+  //    std::cout<< state_vector[i] << " ";
+  //  std::cout << std::endl;
 
-  // Create q_reg_[first+1] and lambda_reg_[first+1] and q_reg_[first+2] 
-  gamma_mid.mul_Gamma_by_left_Lambda(lambda_first);
-  MPS_Tensor::Decompose(gamma_mid, gamma_second, lambda_second, gamma_third);
+  MPS sub_MPS;
+  sub_MPS.initialize_from_matrix(3, state_mat);
+  std::cout << "sub_MPS" << std::endl;
+  sub_MPS.print(std::cout);
 
-  q_reg_[first+1] = gamma_second; 
-  q_reg_[first+1].div_Gamma_by_left_Lambda(lambda_second);
-  lambda_reg_[first+1] = lambda_second;
-  q_reg_[first+2] = gamma_third;
-  gamma_third.div_Gamma_by_right_Lambda(right_lambda);
+  for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
+    q_reg_[first+i] = sub_MPS.q_reg_[i];
+  }
+  lambda_reg_[first] = sub_MPS.lambda_reg_[first];
+  lambda_reg_[first+1] = sub_MPS.lambda_reg_[first+1];
 
-  std::cout << "final tensor without reordering:"<<std::endl;
+   std::cout << "final tensor without reordering:"<<std::endl;
   print(std::cout);
 				      
   
@@ -794,19 +781,13 @@ uint_t MPS::apply_measure(uint_t qubit,
   return measurement;
 }
 
-void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_vector) {
+void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
   if (!q_reg_.empty())
     q_reg_.clear();
   if (!lambda_reg_.empty())
     lambda_reg_.clear();
   num_qubits_ = 0;
-
-  cmatrix_t statevector_as_matrix(1, state_vector.size());
-  #pragma omp parallel for
-  for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-    statevector_as_matrix(0, i) = state_vector[i];
-  }
-  
+ 
   // remaining_matrix is the matrix that remains after each iteration
   // It is initialized to the input statevector after reshaping
   cmatrix_t remaining_matrix, reshaped_matrix; 
@@ -814,18 +795,22 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
   rvector_t S(1.0);
   bool first_iter = true;
 
+  std::cout << "mat = " << mat << std::endl;
   for (uint_t i=0; i<num_qubits-1; i++) {
 
     // step 1 - prepare matrix for next iteration (except for first iteration):
     //    (i) mul remaining matrix by left lambda 
     //    (ii) dagger and reshape
     if (first_iter) {
-      remaining_matrix = statevector_as_matrix;
+      remaining_matrix = mat;
     } else {
       cmatrix_t temp = mul_matrix_by_lambda(V, S); 
       remaining_matrix = AER::Utils::dagger(temp);
     }
     reshaped_matrix = reshape_matrix(remaining_matrix);
+    std::cout << "reshaped matrix = " <<std::endl;
+    reshaped_matrix.SetOutputStyle(Matrix);
+    std::cout << reshaped_matrix;
 
     // step 2 - SVD
     S.clear();
