@@ -22,6 +22,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
+option(THRUST_BACKEND "Specify what backend will Thrust library use: CUDA, TBB, OMP" OMP)
 
 include(CTest)
 include(compiler_utils)
@@ -40,6 +41,8 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
+
+set(AER_COMPILER_DEFINITIONS "")
 
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
@@ -145,14 +148,26 @@ else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
-find_package(CUDA)
-if(CUDA_FOUND)
-	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
-
-	set_source_files_properties( ${AER_SIMULATOR_CPP_MAIN} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
-endif(CUDA_FOUND)
-
+if(THRUST_BACKEND MATCHES "CUDA")
+	message(STATUS "Thrust library: Loooking for CUDA backend...")
+	find_package(CUDA REQUIRED)
+	if(CUDA_FOUND)
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DQASM_THRUST -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	endif()
+	set(THRUST_DEPENDANT_LIBS "")
+elseif(THRUST_BACKEND MATCHES "TBB")
+	message(STATUS "Thrust library: Loooking for TBB backend...")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
+	find_package(TBB REQUIRED)
+	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+else(THRUST_BACKEND MATCHES "OMP")
+	message(STATUS "Thrust library: OMP backend selected")
+	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	# We don't need to add OMP because it's already an AER dependency
+endif()
 
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
@@ -193,20 +208,20 @@ set(AER_LIBRARIES
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 		Threads::Threads
-		${CMAKE_DL_LIBS})
+		${CMAKE_DL_LIBS}
+		${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 else() # Standalone build
-
-if(CUDA_FOUND)
-	cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
-	target_link_libraries(qasm_simulator ${AER_LIBRARIES})
-else(CUDA_FOUND)
-	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
-endif(CUDA_FOUND)
+	if(CUDA_FOUND)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+	else(CUDA_FOUND)
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	endif(CUDA_FOUND)
 
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
@@ -215,6 +230,7 @@ endif(CUDA_FOUND)
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
+	target_compile_definitions(qasm_simulator PRIVATE ${AER_COMPILER_DEFINITIONS})
 
 	# Linter
 	# This will add the linter as part of the compiling build target
