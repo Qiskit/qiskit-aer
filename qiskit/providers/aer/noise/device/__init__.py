@@ -34,20 +34,13 @@ based on:
   all measurements.
 
 The Error error parameters are tuned for each individual qubit based on
-the $T_1$, $T_2$, frequency and readout error parameters for each qubit,
-and the gate error and gate time parameters for each gate obtained from
-the device backend properties.
+the :math:`T_1`, :math:`T_2`, frequency and readout error parameters for
+each qubit, and the gate error and gate time parameters for each gate
+obtained from the device backend properties.
 
-To generate the device noise model with *only* readout errors and no
-gate errors :func:`basic_device_readout_errors` can be used. Similarly
-:func:`basic_device_gate_errors` can be used to generate a noise model
-with only gate errors and no readout errors.
 
 Functions
 =========
-
-The following functions return a :class:`~qiskit.providers.aer.noise.NoiseModel`
-object from a device backend ``BackendProperties`` object.
 
 .. autosummary::
     :toctree: ../stubs/

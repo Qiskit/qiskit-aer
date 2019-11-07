@@ -55,10 +55,10 @@ class NoiseModel:
 
         Additional Information
         ----------------------
-        Errors added to the noise model will have thier instruction appended to
+        Errors added to the noise model will have their instruction appended to
         the noise model basis_gates if the instruction is in the QasmSimulator
         basis_gates. If the instruction is not in the QasmSimulator basis_gates
-        it is assumbed to be a label for a standard gate, and that gate should
+        it is assumed to be a label for a standard gate, and that gate should
         be added to the NoiseModel basis_gates either using the init method, or
         the `add_basis_Gates` method.
         """
@@ -246,7 +246,7 @@ class NoiseModel:
             instructions (str or list[str] or
                           Instruction or
                           list[Instruction]): the instructions error applies to.
-            warnings (bool): Display warning if appending to an instruciton that
+            warnings (bool): Display warning if appending to an instruction that
                              already has an error (Default: True).
 
         Raises:
@@ -302,7 +302,7 @@ class NoiseModel:
                           Instruction or
                           list[Instruction]): the instructions error applies to.
             qubits (list[int]): qubits instruction error applies to.
-            warnings (bool): Display warning if appending to an instruciton that
+            warnings (bool): Display warning if appending to an instruction that
                              already has an error (Default: True).
 
         Raises:
@@ -385,7 +385,7 @@ class NoiseModel:
             noise_qubits (list[int]): Specify the exact qubits the error
                                       should be applied to if different
                                       to the instruction qubits.
-            warnings (bool): Display warning if appending to an instruciton that
+            warnings (bool): Display warning if appending to an instruction that
                              already has an error (Default: True).
 
         Raises:
@@ -446,7 +446,7 @@ class NoiseModel:
 
         Args:
             error (ReadoutError): the quantum error object.
-            warnings (bool): Display warning if appending to an instruciton that
+            warnings (bool): Display warning if appending to an instruction that
                              already has an error (Default: True)
 
         Raises:
@@ -496,7 +496,7 @@ class NoiseModel:
         Args:
             error (ReadoutError): the quantum error object.
             qubits (list[int]): qubits instruction error applies to.
-            warnings (bool): Display warning if appending to an instruciton that
+            warnings (bool): Display warning if appending to an instruction that
                              already has an error [Default: True]
 
         Raises:

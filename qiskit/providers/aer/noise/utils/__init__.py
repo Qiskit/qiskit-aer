@@ -21,6 +21,9 @@ This module contains utilities for modifying
 :class:`~qiskit.providers.aer.noise.NoiseModel` objects and ``QuantumCircuits``
 using noise models.
 
+Functions
+=========
+
 .. autosummary::
     :toctree: ../stubs/
 
@@ -28,6 +31,14 @@ using noise models.
     insert_noise
     approximate_quantum_error
     approximate_noise_model
+
+
+Classes
+=======
+
+.. autosummary::
+    :toctree: ../stubs/
+
     NoiseTransformer
 """
 

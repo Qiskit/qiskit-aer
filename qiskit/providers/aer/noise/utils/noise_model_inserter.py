@@ -12,23 +12,29 @@
 """
 Noise model inserter module
 The goal of this module is to add QuantumError gates (Kraus gates) to a circuit
-based on a given noise model. The resulting circuit cannot be ran on a quantum computer
-but can be handled correctly by simulators
+based on a given noise model. 
 """
 import qiskit.compiler
 
 
 def insert_noise(circuits, noise_model, transpile=False):
+    """Return a noisy version of a QuantumCircuit.
+
+    Args:
+        circuits (QuantumCircuit or list[QuantumCircuit]): Input noise-free circuits.
+        noise_model (NoiseModel):  The noise model containing the errors to add
+        transpile (Boolean): Should the circuit be transpiled into the noise model basis gates
+
+    Returns:
+        QuantumCircuit: The new circuit with the Kraus noise instructions inserted.
+
+    Additional Information:
+        The noisy circuit return by this function will consist of the
+        original circuit with ``Kraus`` instructions inserted after all
+        instructions referenced in the ``noise_model``. The resulting circuit
+        cannot be ran on a quantum computer but can be executed on the
+        :class:`~qiskit.providers.aer.QasmSimulator`.
     """
-        This function gets a circuit and a noise model and returns a new circuit
-        with the noises from the noise model inserted as Kraus gates in the new circuit
-        Args:
-            circuits (QuantumCircuit or list[QuantumCircuit]): The circuits to add noises to
-            noise_model (NoiseModel):  The noise model containing the errors to add
-            transpile (Boolean): Should the circuit be transpiled into the noise model basis gates
-        Returns:
-            QuantumCircuit: The new circuit with the added Kraus gates
-        """
     is_circuits_list = isinstance(circuits, (list, tuple))
     circuits = circuits if is_circuits_list else [circuits]
     result_circuits = []

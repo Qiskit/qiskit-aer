@@ -43,13 +43,14 @@ def approximate_quantum_error(error, *,
                               operator_string=None,
                               operator_dict=None,
                               operator_list=None):
-    """Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
+    """
+    Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
 
     Currently this is only implemented for 1-qubit QuantumErrors.
 
     Args:
         error (QuantumError): the error to be approximated.
-        operator_string (string or None): a name for a premade set of
+        operator_string (string or None): a name for a pre-made set of
             building blocks for the output channel (Default: None).
         operator_dict (dict or None): a dictionary whose values are the
             building blocks for the output channel (Default: None).
@@ -61,15 +62,15 @@ def approximate_quantum_error(error, *,
 
     Raises:
         NoiseError: if number of qubits is not supported or approximation
-                    failsed.
-        RuntimeError: If there's no information about the noise type
+                    failed.
+        RuntimeError: If there's no information about the noise type.
 
-    Additional Information
-    ----------------------
-    The operator input precedence is as follows: list < dict < string
-    if a string is given, dict is overwritten; if a dict is given, list is
-    overwritten possible values for string are 'pauli', 'reset', 'clifford'
-    For further information see `NoiseTransformer.named_operators`.
+    Additional Information:
+        The operator input precedence is: ``list`` < ``dict`` < ``str``.
+        If a string is given, dict is overwritten; if a dict is given, list is
+        overwritten. Oossible values for string are ``'pauli'``, ``'reset'``,
+        ``'clifford'``.
+        For further information see :meth:`NoiseTransformer.named_operators`.
     """
 
     if not isinstance(error, QuantumError):
@@ -120,11 +121,12 @@ def approximate_noise_model(model, *,
                             operator_string=None,
                             operator_dict=None,
                             operator_list=None):
-    """Return an approximate noise model.
+    """
+    Return an approximate noise model.
 
     Args:
         model (NoiseModel): the noise model to be approximated.
-        operator_string (string or None): a name for a premade set of
+        operator_string (string or None): a name for a pre-made set of
             building blocks for the output channel (Default: None).
         operator_dict (dict or None): a dictionary whose values are the
             building blocks for the output channel (Default: None).
@@ -136,14 +138,14 @@ def approximate_noise_model(model, *,
 
     Raises:
         NoiseError: if number of qubits is not supported or approximation
-        failsed.
+        failed.
 
-    Additional Information
-    ----------------------
-    The operator input precedence is as follows: list < dict < string
-    if a string is given, dict is overwritten; if a dict is given, list is
-    overwritten possible values for string are 'pauli', 'reset', 'clifford'
-    For further information see `NoiseTransformer.named_operators`.
+    Additional Information:
+        The operator input precedence is: ``list`` < ``dict`` < ``str``.
+        If a string is given, dict is overwritten; if a dict is given, list is
+        overwritten. Oossible values for string are ``'pauli'``, ``'reset'``,
+        ``'clifford'``.
+        For further information see :meth:`NoiseTransformer.named_operators`.
     """
 
     # We need to iterate over all the errors in the noise model.
@@ -220,11 +222,8 @@ def approximate_noise_model(model, *,
 
 
 def pauli_operators():
-    """
-    Returns:
-        list: a list of Pauli operators for 1 and 2 qubits
+    """Return a list of Pauli operators for 1 and 2 qubits."""
 
-    """
     pauli_1_qubit = {
         'X': [{'name': 'x', 'qubits': [0]}],
         'Y': [{'name': 'y', 'qubits': [0]}],
@@ -251,11 +250,8 @@ def pauli_operators():
 
 
 def reset_operators():
-    """
-    Returns:
-        list: a list of reset operators for 1 and 2 qubits
+    """Return a list of reset operators for 1 and 2 qubits."""
 
-    """
     reset_0_to_0 = [{'name': 'reset', 'qubits': [0]}]
     reset_0_to_1 = [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]
     reset_1_to_0 = [{'name': 'reset', 'qubits': [1]}]
@@ -334,7 +330,9 @@ class NoiseTransformer:
     # transformation interface methods
     def transform_by_operator_list(self, transform_channel_operators,
                                    noise_kraus_operators):
-        """
+        r"""
+        Transform input Kraus operators.
+
         Args:
             noise_kraus_operators (List): a list of matrices (Kraus operators) for the input channel
             transform_channel_operators (List): a list of matrices or tuples of matrices
@@ -358,8 +356,8 @@ class NoiseTransformer:
 
                 More generally, if the input is a list of tuples (not neccesarily of the same size):
                 [(A1, B1, ...), (A2, B2, ...), ... (An, Bn, ...)] then the output is
-                still a list [p1, p2, ..., pn] and now the output channel is defined by theo
-                perators:
+                still a list [p1, p2, ..., pn] and now the output channel is defined by the
+                operators:
                 [sqrt(p1)A1, sqrt(p1)B1, ..., sqrt(pn)An, sqrt(pn)Bn, ..., sqrt(1-(p1 + ... + pn))I]
         """
         self.noise_kraus_operators = noise_kraus_operators
@@ -427,7 +425,7 @@ class NoiseTransformer:
 
     # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
-        """
+        r"""
         Generates a list of 4x4 symbolic matrices describing the channel defined from the given
         operators
 
@@ -689,7 +687,7 @@ class NoiseTransformer:
             q (list): A vector representing the q component of the objective function
 
         Returns:
-            list: The solution of the quadratic program (represents probabilites)
+            list: The solution of the quadratic program (represents probabilities)
 
         Raises:
             ImportError: If cvxopt external module is not installed

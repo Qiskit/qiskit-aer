@@ -42,24 +42,30 @@ class ReadoutError:
         Args:
             probabilities (matrix): List of outcome assignment probabilities.
             atol (double): Threshold for checking probabilities are normalized
-                           [Default: 1e-8]
+                           (Default: 1e-8).
 
         Additional Information:
-            For an N-qubit readout error probabilites are entered as vectors:
-                probabilities[j] = [P(j|0), P(j|1), ..., P(j|2 ** N - 1)]
-            where P(j|m) is the probability of recording a measurement outcome
-            of `m` as the value `j`. Where `j` and `m` are integer
-            representations of bitstrings.
+            For an N-qubit readout error probabilities are entered as vectors:
+                ``probabilities[j] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]``
+            where ``P(j|m)`` is the probability of recording a measurement outcome
+            of ``m`` as the value ``j``. Where ``j`` and ``m`` are integer
+            representations of bit-strings.
 
             Example: 1-qubit
-                probabilities[0] = [P("0"|"0"), P("1"|"0")
-                probabilities[1] = [P("0"|"1"), P("1"|"1")
+
+            .. code-block:: python
+
+                probabilities[0] = [P("0"|"0"), P("1"|"0")]
+                probabilities[1] = [P("0"|"1"), P("1"|"1")]
 
             Example: 2-qubit
+
+            .. code-block:: python
+
                 probabilities[0] = [P("00"|"00"), P("01"|"00"), P("10"|"00"), P("11"|"00")]
                 probabilities[1] = [P("00"|"01"), P("01"|"01"), P("10"|"01"), P("11"|"01")]
-                probabilities[1] = [P("00"|"10"), P("01"|"10"), P("10"|"10"), P("11"|"10")]
-                probabilities[1] = [P("00"|"11"), P("01"|"11"), P("10"|"11"), P("11"|"11")]
+                probabilities[2] = [P("00"|"10"), P("01"|"10"), P("10"|"10"), P("11"|"10")]
+                probabilities[3] = [P("00"|"11"), P("01"|"11"), P("10"|"11"), P("11"|"11")]
         """
         self._check_probabilities(probabilities, atol)
         self._probabilities = np.array(probabilities, dtype=float)
@@ -104,12 +110,12 @@ class ReadoutError:
 
     @property
     def atol(self):
-        """The absolute tolerence parameter for float comparisons."""
+        """The absolute tolerance parameter for float comparisons."""
         return self.ATOL
 
     @atol.setter
     def atol(self, atol):
-        """Set the absolute tolerence parameter for float comparisons."""
+        """Set the absolute tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if atol < 0:
             raise NoiseError("Invalid atol: must be non-negative.")
@@ -120,12 +126,12 @@ class ReadoutError:
 
     @property
     def rtol(self):
-        """The relative tolerence parameter for float comparisons."""
+        """The relative tolerance parameter for float comparisons."""
         return self.RTOL
 
     @rtol.setter
     def rtol(self, rtol):
-        """Set the relative tolerence parameter for float comparisons."""
+        """Set the relative tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if rtol < 0:
             raise NoiseError("Invalid rtol: must be non-negative.")

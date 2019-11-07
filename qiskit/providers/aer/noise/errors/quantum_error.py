@@ -69,8 +69,8 @@ class QuantumError:
 
         Additional Information:
             Noise ops may either be specified as list of Kraus operators
-            for a general CPTP map, or as a list of `(circuit, p)` pairs
-            where `circuit` is a qobj circuit for the noise, and `p` is
+            for a general CPTP map, or as a list of ``(circuit, p)`` pairs
+            where ``circuit`` is a qobj circuit for the noise, and ``p`` is
             the probability of the error circuit. If the input is Kraus
             operators they will be converted to the circuit format, with
             checks applied for determining if any Kraus operators are
@@ -78,16 +78,19 @@ class QuantumError:
 
         Example:
             An example noise_ops for a bit-flip error with error probability
-            p = 0.1 is:
-            ```
-            noise_ops = [([{"name": "id", "qubits": 0}], 0.9),
-                         ([{"name": "x", "qubits": 0}], 0.1)]
-            ```
+            ``p = 0.1`` is:
+
+            .. code-block:: python
+
+                noise_ops = [([{"name": "id", "qubits": 0}], 0.9),
+                             ([{"name": "x", "qubits": 0}], 0.1)]
+
             The same error represented as a Kraus channel can be input as:
-            ```
-            noise_ops = [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]),
-                         np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
-            ```
+
+            .. code-block:: python
+
+                noise_ops = [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]),
+                             np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
         """
 
         # Shallow copy constructor
@@ -186,12 +189,12 @@ class QuantumError:
 
     @property
     def atol(self):
-        """The absolute tolerence parameter for float comparisons."""
+        """The absolute tolerance parameter for float comparisons."""
         return self.ATOL
 
     @atol.setter
     def atol(self, atol):
-        """Set the absolute tolerence parameter for float comparisons."""
+        """Set the absolute tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if atol < 0:
             raise NoiseError("Invalid atol: must be non-negative.")
@@ -202,12 +205,12 @@ class QuantumError:
 
     @property
     def rtol(self):
-        """The relative tolerence parameter for float comparisons."""
+        """The relative tolerance parameter for float comparisons."""
         return self.RTOL
 
     @rtol.setter
     def rtol(self, rtol):
-        """Set the relative tolerence parameter for float comparisons."""
+        """Set the relative tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if rtol < 0:
             raise NoiseError("Invalid rtol: must be non-negative.")
@@ -248,7 +251,7 @@ class QuantumError:
         return False
 
     def to_quantumchannel(self):
-        """Convet the QuantumError to a SuperOp quantum channel."""
+        """Convert the QuantumError to a SuperOp quantum channel."""
         # Initialize as an empty superoperator of the correct size
         dim = 2**self.number_of_qubits
         channel = SuperOp(np.zeros([dim * dim, dim * dim]))
@@ -259,7 +262,7 @@ class QuantumError:
         return channel
 
     def to_instruction(self):
-        """Convet the QuantumError to a circuit Instruction."""
+        """Convert the QuantumError to a circuit Instruction."""
         return self.to_quantumchannel().to_instruction()
 
     def error_term(self, position):
@@ -423,7 +426,7 @@ class QuantumError:
     def kron(self, other):
         """Return the tensor product quantum error channel self ⊗ other.
 
-        DEPRECIATED: use QuantumError.tensor instead.
+        DEPRECATED: use QuantumError.tensor instead.
 
         Args:
             other (QuantumError): a quantum error or channel.
