@@ -45,7 +45,7 @@ class StateInfo:
              
     def set_result(self, job_id, result):
 
-        result["backend_name"] = "qasm_simulator"
+        result["backend_name"] = "remote_qasm_simulator"
         result["backend_version"] = "0.3.0"
         result["date"] = datetime.datetime.now().isoformat()
         result["job_id"] = job_id

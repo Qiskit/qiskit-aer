@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 DEFAULT_CONFIGURATION = {
     'allow_q_object': True,
-    'backend_name': 'qasm_simulator', 
+    'backend_name': 'remote_qasm_simulator', 
     'backend_version': '0.1.547',
     'n_qubits': 32,
     'simulator': True,
@@ -68,7 +68,7 @@ def user_login():
 
     return jsonify(dummy_id)
 
-@app.route("/Backends/qasm_simulator/defaults", methods=['GET'])
+@app.route("/Backends/remote_qasm_simulator/defaults", methods=['GET'])
 def get_default_backend():
     backends = []
     backends.append(DEFAULT_CONFIGURATION)
@@ -146,7 +146,7 @@ def post_job():
     post_data = request.json
     backend = post_data["backend"]
 
-    if (backend["name"] == "qasm_simulator"):
+    if (backend["name"] == "remote_qasm_simulator"):
         return_data = create_job_data(post_data)
         job_id = return_data["id"]
         state_info.create_job(job_id, return_data["creationData"]) 
