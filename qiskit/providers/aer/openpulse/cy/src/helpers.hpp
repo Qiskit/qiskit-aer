@@ -306,6 +306,17 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
     }
 }
 
+template<>
+void jlog(const std::string& msg, const ordered_map<std::string, std::vector<NpArray<double>>>& values){
+    spdlog::debug("{}", msg);
+    using order_map_t = ordered_map<std::string, std::vector<NpArray<double>>>;
+    for(const auto& val : const_cast<order_map_t&>(values)){
+        for(const auto& inner: val.second){
+            jlog(val.first, inner);
+        }
+    }
+}
+
 template <typename T>
 struct iterator_extractor { using type = typename T::iterator; };
 
@@ -696,15 +707,14 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
         parser.DefineVar(vars_names[index], Variable(&values[values.size()-1]));
     }
 
-    for(const auto& idx_channel : enumerate(chan_values)){
-        auto index = idx_channel.first;
-        auto channel = idx_channel.second.first; // The std::string of the map
-        auto var = idx_channel.second.second; // The complex_t of the map
+    for(const auto& idx_channel : chan_values){
+        auto channel = idx_channel.first; // The string of the channel
+        auto var = idx_channel.second; // The complex_t of the map
         values.emplace_back(Value(var));
         parser.DefineVar(channel, Variable(&values[values.size()-1]));
     }
 
-    const auto replace = [](const std::string& from, const std::string& to, std::string& where) -> std::string {
+    const auto replace = [](const std::string& from, const std::string& to, std::string where) -> std::string {
         size_t start_pos = 0;
         while((start_pos = where.find(from, start_pos)) != std::string::npos) {
             where.replace(start_pos, from.length(), to);
@@ -713,7 +723,9 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
         return where;
     };
 
-    parser.SetExpr(replace("np.pi", "npi", const_cast<std::string&>(expr_string)));
+    // This is needed because muparserx doesn't support . as part of the var name
+    auto filtered_expr = replace("np.pi", "npi", expr_string);
+    parser.SetExpr(filtered_expr);
     Value result = parser.Eval();
 
     return result.GetComplex();

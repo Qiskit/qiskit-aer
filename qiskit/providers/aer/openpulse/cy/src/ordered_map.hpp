@@ -28,6 +28,10 @@ template<
     class Allocator = std::allocator<std::pair<const Key, T>>
 > class ordered_map {
   public:
+
+    using unordered_map_t = std::unordered_map<Key, T, Hash, KeyEqual, Allocator>;
+    using vector_t = std::vector<Key>;
+
 	auto reserve(size_t size){
 		order.reserve(size);
 		return internal_map.reserve(size);
@@ -49,67 +53,77 @@ template<
     }
 
 	// This is needed so we can use the container in an iterator context like ranged fors.
-    class iterator {
+    template<class _map_t, class _vec_t>
+    class ordered_map_iterator_t {
+		using unordered_map_iter_t = typename _map_t::iterator;
+    	using vec_iter_t = typename _vec_t::iterator;
 
-		using map_iter_t = typename std::unordered_map<Key, T, Hash, KeyEqual, Allocator>::iterator;
-    	using vector_iter_t = typename std::vector<Key>::iterator;
+		_map_t& map;
+		_vec_t& vec;
 
-		std::unordered_map<Key, T, Hash, KeyEqual, Allocator>& map;
-		std::vector<Key>& vec;
-
-        map_iter_t map_iter;
-        vector_iter_t vec_iter;
+        unordered_map_iter_t map_iter;
+        vec_iter_t vec_iter;
 
 	  public:
 
-    	using reference = typename map_iter_t::reference;
+    	using reference = typename unordered_map_iter_t::reference;
+        using difference_type = typename unordered_map_iter_t::difference_type;
+        using value_type = typename unordered_map_iter_t::value_type;
+        using pointer = typename unordered_map_iter_t::reference;
+        using iterator_category = typename unordered_map_iter_t::iterator_category;
 
-        iterator(std::unordered_map<std::string, int>& map,
-               std::vector<std::string>& vec) : map(map), vec(vec){
+        ordered_map_iterator_t(_map_t& map,
+                 _vec_t& vec) : map(map), vec(vec){
         }
 
-
-        iterator begin(){
+        ordered_map_iterator_t begin() {
             vec_iter = vec.begin();
             map_iter = map.find(*vec_iter);
             return *this;
         }
 
-        iterator end(){
+        ordered_map_iterator_t end() {
             vec_iter = vec.end();
-            map_iter = map.end();
+            map_iter = map.find(*(vec_iter - 1));
             return *this;
         }
 
-        iterator operator ++(){
-            vec_iter++;
-            map_iter = map.find(*vec_iter);
+        ordered_map_iterator_t operator ++(){
+            auto tmp = ++vec_iter;
+            tmp = (tmp == vec.end()? --tmp: tmp);
+            map_iter = map.find(*tmp);
             return *this;
         }
 
-        bool operator !=(const iterator& rhs){
+        bool operator ==(const ordered_map_iterator_t& rhs) const {
+            return vec_iter == rhs.vec_iter;
+        }
+
+        bool operator !=(const ordered_map_iterator_t& rhs) const {
             return vec_iter != rhs.vec_iter;
         }
 
-        T& operator *(){
-            return map[*vec_iter];
+        reference operator *() const {
+            return *map_iter;
         }
     };
 
+    using iterator = ordered_map_iterator_t<unordered_map_t, vector_t>;
+    using const_iterator = ordered_map_iterator_t<unordered_map_t, vector_t>;
+
     iterator it{internal_map, order};
 
-    iterator begin(){
+    const_iterator begin() {
         return it.begin();
     }
 
-    iterator end(){
+    const_iterator end() {
         return it.end();
     }
 
-
   private:
-    std::unordered_map<Key, T, Hash, KeyEqual, Allocator> internal_map;
-	std::vector<Key> order;
+    unordered_map_t internal_map;
+	vector_t order;
 
 };
 

@@ -188,6 +188,8 @@ if(APPLE OR UNIX)
 		message(FATAL_ERROR "No muparserx library found")
 	endif()
 	message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+	# I keep this disabled on purpose, just in case I need to debug muparserx related problems
+	# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
 endif()
 
 # Set dependent libraries
