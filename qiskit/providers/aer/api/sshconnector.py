@@ -97,7 +97,7 @@ class SshConnector:
 
         if ssh_error:
             usr_msg = 'scp failed'
-            dev_msg = usr_msg + ":" + ssh_error
+            dev_msg = usr_msg + ":" + str(ssh_error)
             raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
 
         result = json.loads(result_string)
@@ -185,7 +185,7 @@ class SshConnector:
 
         if ssh_error:
             usr_msg = 'Command execution failed'
-            dev_msg = usr_msg + ":" + ssh_error
+            dev_msg = usr_msg + ":" + str(ssh_error)
             raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
 
         config = json.loads(config_string)
