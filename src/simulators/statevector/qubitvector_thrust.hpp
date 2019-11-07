@@ -15,13 +15,12 @@
 
 #ifndef _qv_qubit_vector_thrust_hpp_
 #define _qv_qubit_vector_thrust_hpp_
-#ifdef QASM_THRUST
 
+#ifdef QASM_THRUST_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
+#endif
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #include <thrust/for_each.h>
 #include <thrust/complex.h>
 #include <thrust/inner_product.h>
@@ -30,7 +29,6 @@
 #include <thrust/binary_search.h>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
-#include <thrust/system/cuda/pointer.h>
 #include <thrust/tuple.h>
 #include <thrust/iterator/constant_iterator.h>
 
@@ -71,6 +69,12 @@ double mysecond()
 
 #define QASM_DEFAULT_MATRIX_BITS		8
 
+
+#ifdef QASM_THRUST_CUDA
+#define QASM_THRUST_EXECUTION			thrust::device
+#else
+#define QASM_THRUST_EXECUTION			thrust::host
+#endif
 
 namespace QV {
 
@@ -548,13 +552,23 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
 			free(data_);
 		}
 		else{
+#ifdef QASM_THRUST_CUDA
 			cudaFree(data_);
+#else
+			free(data_);
+#endif
 		}
 	}
 	if(m_matBits > 0){
+#ifdef QASM_THRUST_CUDA
 		cudaFree(m_pMatDev);
 		cudaFree(m_pUintBuf);
 		cudaFree(m_ppBuffer);
+#else
+		free(m_pMatDev);
+		free(m_pUintBuf);
+		free(m_ppBuffer);
+#endif
 	}
 
   if (checkpoint_)
@@ -757,7 +771,11 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
     		free(data_);
     	}
     	else{
+#ifdef QASM_THRUST_CUDA
 	    	cudaFree(data_);
+#else
+    		free(data_);
+#endif
     	}
     	data_ = nullptr;
     }
@@ -768,12 +786,17 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 
 	nid = omp_get_num_threads();
 	tid = omp_get_thread_num();
+	m_nDev = 1;
+#ifdef QASM_THRUST_CUDA
 	cudaGetDeviceCount(&m_nDev);
+#endif
 
 	m_iDev = 0;
 	if(nid > 1){
 		m_iDev = tid % m_nDev;
+#ifdef QASM_THRUST_CUDA
 		cudaSetDevice(m_iDev);
+#endif
 		m_nDevParallel = 1;
 	}
 	else{
@@ -782,6 +805,17 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 		if(str != NULL){
 			m_nDevParallel = m_nDev;
 		}
+
+#ifndef QASM_THRUST_CUDA
+#pragma omp parallel private(nid)
+		{
+			nid = omp_get_num_threads();
+#pragma omp master
+			{
+				m_nDevParallel = nid;
+			}
+		}
+#endif
 	}
 
 	// Allocate memory for new vector
@@ -792,6 +826,8 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 		TimeReset();
 		TimeStart(QS_GATE_INIT);
 #endif
+
+#ifdef QASM_THRUST_CUDA
 		str = getenv("QASM_USE_ATS");
 		if(str != NULL){
 			posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
@@ -808,6 +844,9 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 			}
 			m_useATS = 0;
 		}
+#else
+		posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
+#endif
 		data_ = reinterpret_cast<std::complex<data_t>*>(pData);
 
 #ifdef QASM_TIMING
@@ -827,14 +866,26 @@ void QubitVectorThrust<data_t>::allocate_buffers(int nq)
 		matSize = 1ull << nq;
 		m_matSize = matSize;
 		if(m_matBits > 0){
+#ifdef QASM_THRUST_CUDA
 			cudaFree(m_pMatDev);
 			cudaFree(m_ppBuffer);
 			cudaFree(m_pUintBuf);
+#else
+			free(m_pMatDev);
+			free(m_ppBuffer);
+			free(m_pUintBuf);
+#endif
 		}
 		m_matBits = nq;
-		cudaMallocManaged(&m_pMatDev,sizeof(thrust::complex<data_t>) * matSize*matSize);
-		cudaMallocManaged(&m_ppBuffer,sizeof(thrust::complex<data_t>) * matSize);
+#ifdef QASM_THRUST_CUDA
+		cudaMallocManaged(&m_pMatDev,sizeof(thrust::complex<double>) * matSize*matSize);
+		cudaMallocManaged(&m_ppBuffer,sizeof(thrust::complex<data_t>*) * matSize);
 		cudaMallocManaged(&m_pUintBuf,sizeof(uint_t) * matSize * 4);
+#else
+		m_pMatDev = (thrust::complex<double>*)malloc(sizeof(thrust::complex<double>) * matSize*matSize);
+		m_ppBuffer =(thrust::complex<data_t>**)malloc(sizeof(thrust::complex<data_t>) * matSize);
+		m_pUintBuf = (uint_t*)malloc(sizeof(uint_t) * matSize * 4);
+#endif
 	}
 }
 
@@ -1519,7 +1570,7 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		thrust::for_each(thrust::device, chunkIter, chunkIter + size, func);
+		thrust::for_each(QASM_THRUST_EXECUTION, chunkIter, chunkIter + size, func);
 	}
 	else{
 		int iDev;
@@ -1530,8 +1581,10 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 			is = size * iDev / m_nDevParallel;
 			ie = size * (iDev+1) / m_nDevParallel;
 
+#ifdef QASM_THRUST_CUDA
 			cudaSetDevice(iDev);
-			thrust::for_each(thrust::device, chunkIter + is, chunkIter + ie, func);
+#endif
+			thrust::for_each(QASM_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func);
 		}
 	}
 }
@@ -1576,7 +1629,7 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		ret = thrust::transform_reduce(thrust::device, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+		ret = thrust::transform_reduce(QASM_THRUST_EXECUTION, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	else{
 		int iDev;
@@ -1587,8 +1640,10 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 			is = size * iDev / m_nDevParallel;
 			ie = size * (iDev+1) / m_nDevParallel;
 
+#ifdef QASM_THRUST_CUDA
 			cudaSetDevice(iDev);
-			ret += thrust::transform_reduce(thrust::device, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
+#endif
+			ret += thrust::transform_reduce(QASM_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
 		}
 	}
 
@@ -2737,6 +2792,8 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	data_t* pVec = (data_t*)&data_[0];
 	uint_t n = data_size_*2;
 	int i;
+	double* pRnd;
+	uint_t* pSamp;
 
 #ifdef QASM_TIMING
 	TimeStart(QS_GATE_MEASURE);
@@ -2745,27 +2802,35 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	samples.assign(SHOTS, 0);
 
 	if(m_nDevParallel == 1){
-		thrust::device_vector<double> vRnd(SHOTS);
-		thrust::device_vector<unsigned long> vSamp(SHOTS);
-		thrust::host_vector<double> hvRnd(SHOTS);
-		thrust::host_vector<unsigned long> hvSamp(SHOTS);
+#ifdef QASM_THRUST_CUDA
+		cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
+		cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
+#else
+		pRnd = (double*)malloc(sizeof(double)*SHOTS);
+		pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
+#endif
 
-		thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
-
-#pragma omp parallel for
-		for(i=0;i<SHOTS;i++){
-			hvRnd[i] = rnds[i];
-		}
-		vRnd = hvRnd;
-
-		thrust::lower_bound(thrust::device, pVec, pVec + n, vRnd.begin(), vRnd.end(), vSamp.begin());
-
-		hvSamp = vSamp;
+		thrust::transform_inclusive_scan(QASM_THRUST_EXECUTION,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
 
 #pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
-			samples[i] = hvSamp[i]/2;
+			pRnd[i] = rnds[i];
 		}
+
+		thrust::lower_bound(QASM_THRUST_EXECUTION, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
+
+#pragma omp parallel for
+		for(i=0;i<SHOTS;i++){
+			samples[i] = pSamp[i]/2;
+		}
+
+#ifdef QASM_THRUST_CUDA
+		cudaFree(pRnd);
+		cudaFree(pSamp);
+#else
+		free(pRnd);
+		free(pSamp);
+#endif
 	}
 	else{
 		int iDev;
@@ -2777,26 +2842,29 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 			is = n * iDev / m_nDevParallel;
 			ie = n * (iDev+1) / m_nDevParallel;
 
+#ifdef QASM_THRUST_CUDA
 			cudaSetDevice(iDev);
-
-			thrust::transform_inclusive_scan(thrust::device,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
+#endif
+			thrust::transform_inclusive_scan(QASM_THRUST_EXECUTION,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
 
 			pDevSum[iDev] = pVec[ie-1];
 		}
 
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i,pRnd,pSamp)
 		for(iDev=0;iDev<m_nDevParallel;iDev++){
 			uint_t is,ie;
 			double low,high;
 			is = n * iDev / m_nDevParallel;
 			ie = n * (iDev+1) / m_nDevParallel;
 
+#ifdef QASM_THRUST_CUDA
 			cudaSetDevice(iDev);
-
-			thrust::device_vector<double> vRnd(SHOTS);
-			thrust::device_vector<unsigned long> vSamp(SHOTS);
-			thrust::host_vector<double> hvRnd(SHOTS);
-			thrust::host_vector<unsigned long> hvSamp(SHOTS);
+			cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
+			cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
+#else
+			pRnd = (double*)malloc(sizeof(double)*SHOTS);
+			pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
+#endif
 
 			low = 0.0;
 			for(i=0;i<iDev;i++){
@@ -2806,22 +2874,27 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 			for(i=0;i<SHOTS;i++){
 				if(rnds[i] < low || rnds[i] >= high){
-					hvRnd[i] = 10.0;
+					pRnd[i] = 10.0;
 				}
 				else{
-					hvRnd[i] = rnds[i] - low;
+					pRnd[i] = rnds[i] - low;
 				}
 			}
-			vRnd = hvRnd;
 
-			thrust::lower_bound(thrust::device, pVec + is, pVec + ie, vRnd.begin(), vRnd.end(), vSamp.begin());
+			thrust::lower_bound(QASM_THRUST_EXECUTION, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
 
-			hvSamp = vSamp;
 			for(i=0;i<SHOTS;i++){
-				if(hvSamp[i] < ie-is){
-					samples[i] = (is + hvSamp[i])/2;
+				if(pSamp[i] < ie-is){
+					samples[i] = (is + pSamp[i])/2;
 				}
 			}
+#ifdef QASM_THRUST_CUDA
+			cudaFree(pRnd);
+			cudaFree(pSamp);
+#else
+			free(pRnd);
+			free(pSamp);
+#endif
 		}
 
 		delete[] pDevSum;
@@ -2909,7 +2982,6 @@ inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorThrust<d
 }
 
 //------------------------------------------------------------------------------
-#endif	//#ifdef QASM_THRUST
 #endif // end module
 
 

@@ -21,14 +21,11 @@
 #include "transpile/delay_measure.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/statevector_gpu_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
-
-#ifdef QASM_THRUST
-#include "simulators/statevector/statevector_gpu_state.hpp"
-#endif
 
 namespace AER {
 namespace Simulator {
@@ -411,7 +408,6 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
       }
     case Method::statevector_gpu:
-#ifdef QASM_THRUST
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
       	return run_circuit_helper<StatevectorThrust::State<QV::QubitVectorThrust<double>>>(
@@ -433,9 +429,6 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       initial_statevector_,
                                                       Method::statevector_gpu);
       }
-#else
-      throw std::runtime_error("QasmController: GPU statevector backend has not been compiled.");
-#endif
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision density matrix simulation
