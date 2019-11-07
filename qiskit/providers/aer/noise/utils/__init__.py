@@ -11,7 +11,24 @@
 # that they have been altered from the originals.
 
 """
-Noise utils for Qiskit Aer.
+=========================================================
+Noise Utilities (:mod:`qiskit.providers.aer.noise.utils`)
+=========================================================
+
+.. currentmodule:: qiskit.providers.aer.noise.utils
+
+This module contains utilities for modifying
+:class:`~qiskit.providers.aer.noise.NoiseModel` objects and ``QuantumCircuits``
+using noise models.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    remap_noise_model
+    insert_noise
+    approximate_quantum_error
+    approximate_noise_model
+    NoiseTransformer
 """
 
 from .noise_remapper import remap_noise_model
