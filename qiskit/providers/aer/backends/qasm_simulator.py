@@ -29,11 +29,32 @@ class QasmSimulator(AerBackend):
     """
     Noisy quantum circuit simulator backend
 
+    The `QasmSimulator` supports multiple simulation methods and
+    configurable options for each simulation method. These options are
+    specified in a dictionary which may be passed to the simulator using
+    the ``backend_options`` kwarg for :meth:`QasmSimulator.run` or
+    ``qiskit.execute``.
+
+    The default behavior chooses a simulation method automatically based on
+    the input circuit and noise model. A custom method can be specified using the
+    ``"method"`` field in ``backend_options`` as illustrated in the following
+    example. Available simulation methods and additional backend options are
+    listed below.
+
+    Example:
+        .. code-block:: python
+
+            backend = QasmSimulator()
+            backend_options = {"method": "statevector"}
+
+            # Circuit execution
+            job = execute(circuits, backend, backend_options=backend_options)
+
+            # Qobj execution
+            job = backend.run(qobj, backend_options=backend_options)
+
     Simulation method:
-        The `QasmSimulator` supports multiple simulation methods. The default
-        behavior chooses a simulation method automatically based on the input
-        circuit and noise model. A custom method can be specified using the
-        ``"method"`` field in ``backend_options``. Available methods are:
+        Available simulation methods are:
 
         * ``"statevector"``: A dense statevector simulation that can sample
           measurement outcomes from *ideal* circuits with all measurements at
@@ -61,7 +82,7 @@ class QasmSimulator(AerBackend):
           automatically for each circuit based on the circuit instructions,
           number of qubits, and noise model.
 
-    Backend options:
+    Backend options (All methods):
         The following backend options may be used with in the
         ``backend_options`` kwarg for :meth:`QasmSimulator.run` or
         ``qiskit.execute``
