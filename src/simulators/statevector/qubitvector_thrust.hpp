@@ -16,7 +16,7 @@
 #ifndef _qv_qubit_vector_thrust_hpp_
 #define _qv_qubit_vector_thrust_hpp_
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
@@ -45,7 +45,7 @@
 
 #include "framework/json.hpp"
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 
 #include <sys/time.h>
 double mysecond()
@@ -67,13 +67,13 @@ double mysecond()
 
 #endif
 
-#define QASM_DEFAULT_MATRIX_BITS		8
+#define AER_DEFAULT_MATRIX_BITS		8
 
 
-#ifdef QASM_THRUST_CUDA
-#define QASM_THRUST_EXECUTION			thrust::device
+#ifdef AER_THRUST_CUDA
+#define AER_THRUST_EXECUTION			thrust::device
 #else
-#define QASM_THRUST_EXECUTION			thrust::host
+#define AER_THRUST_EXECUTION			thrust::host
 #endif
 
 namespace QV {
@@ -399,7 +399,7 @@ protected:
 	int m_matBits;							//max number of fusion bits
 	uint_t m_matSize;
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	mutable uint_t m_gateCounts[QS_NUM_GATES];
 	mutable double m_gateTime[QS_NUM_GATES];
 	mutable double m_gateStartTime[QS_NUM_GATES];
@@ -543,7 +543,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust() : QubitVectorThrust(0) {
 
 template <typename data_t>
 QubitVectorThrust<data_t>::~QubitVectorThrust() {
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimePrint();
 #endif
 
@@ -552,7 +552,7 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
 			free(data_);
 		}
 		else{
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaFree(data_);
 #else
 			free(data_);
@@ -560,7 +560,7 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
 		}
 	}
 	if(m_matBits > 0){
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 		cudaFree(m_pMatDev);
 		cudaFree(m_pUintBuf);
 		cudaFree(m_ppBuffer);
@@ -681,7 +681,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 
 	thrust::complex<double>* pMat;
 
-#ifdef QASM_HAS_ATS
+#ifdef AER_HAS_ATS
 	pMat = (thrust::complex<double>*)&state0;
 #else
 	uint_t i,matSize;
@@ -771,7 +771,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
     		free(data_);
     	}
     	else{
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 	    	cudaFree(data_);
 #else
     		free(data_);
@@ -787,26 +787,26 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 	nid = omp_get_num_threads();
 	tid = omp_get_thread_num();
 	m_nDev = 1;
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 	cudaGetDeviceCount(&m_nDev);
 #endif
 
 	m_iDev = 0;
 	if(nid > 1){
 		m_iDev = tid % m_nDev;
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 		cudaSetDevice(m_iDev);
 #endif
 		m_nDevParallel = 1;
 	}
 	else{
 		m_nDevParallel = 1;
-		str = getenv("QASM_MULTI_GPU");
+		str = getenv("AER_MULTI_GPU");
 		if(str != NULL){
 			m_nDevParallel = m_nDev;
 		}
 
-#ifndef QASM_THRUST_CUDA
+#ifndef AER_THRUST_CUDA
 #pragma omp parallel private(nid)
 		{
 			nid = omp_get_num_threads();
@@ -822,19 +822,19 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 	if (data_ == nullptr){
 		void* pData;
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 		TimeReset();
 		TimeStart(QS_GATE_INIT);
 #endif
 
-#ifdef QASM_THRUST_CUDA
-		str = getenv("QASM_USE_ATS");
+#ifdef AER_THRUST_CUDA
+		str = getenv("AER_USE_ATS");
 		if(str != NULL){
 			posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
 			m_useATS = 1;
 		}
 		else{
-			str = getenv("QASM_USE_DEVMEM");
+			str = getenv("AER_USE_DEVMEM");
 			if(str != NULL){
 				cudaMalloc(&pData,sizeof(thrust::complex<data_t>) * data_size_);
 				m_useDevMem = 1;
@@ -849,12 +849,12 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 #endif
 		data_ = reinterpret_cast<std::complex<data_t>*>(pData);
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 		TimeEnd(QS_GATE_INIT);
 #endif
 	}
 
-	allocate_buffers(QASM_DEFAULT_MATRIX_BITS);
+	allocate_buffers(AER_DEFAULT_MATRIX_BITS);
 }
 
 template <typename data_t>
@@ -866,7 +866,7 @@ void QubitVectorThrust<data_t>::allocate_buffers(int nq)
 		matSize = 1ull << nq;
 		m_matSize = matSize;
 		if(m_matBits > 0){
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaFree(m_pMatDev);
 			cudaFree(m_ppBuffer);
 			cudaFree(m_pUintBuf);
@@ -877,7 +877,7 @@ void QubitVectorThrust<data_t>::allocate_buffers(int nq)
 #endif
 		}
 		m_matBits = nq;
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 		cudaMallocManaged(&m_pMatDev,sizeof(thrust::complex<double>) * matSize*matSize);
 		cudaMallocManaged(&m_ppBuffer,sizeof(thrust::complex<data_t>*) * matSize);
 		cudaMallocManaged(&m_pUintBuf,sizeof(uint_t) * matSize * 4);
@@ -1570,7 +1570,7 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		thrust::for_each(QASM_THRUST_EXECUTION, chunkIter, chunkIter + size, func);
+		thrust::for_each(AER_THRUST_EXECUTION, chunkIter, chunkIter + size, func);
 	}
 	else{
 		int iDev;
@@ -1581,10 +1581,10 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 			is = size * iDev / m_nDevParallel;
 			ie = size * (iDev+1) / m_nDevParallel;
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			thrust::for_each(QASM_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func);
+			thrust::for_each(AER_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func);
 		}
 	}
 }
@@ -1629,7 +1629,7 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		ret = thrust::transform_reduce(QASM_THRUST_EXECUTION, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+		ret = thrust::transform_reduce(AER_THRUST_EXECUTION, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	else{
 		int iDev;
@@ -1640,10 +1640,10 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 			is = size * iDev / m_nDevParallel;
 			ie = size * (iDev+1) / m_nDevParallel;
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			ret += thrust::transform_reduce(QASM_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
+			ret += thrust::transform_reduce(AER_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
 		}
 	}
 
@@ -1656,7 +1656,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 {
 	const size_t N = qubits.size();
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_MULT);
 #endif
 	if(N == 1){
@@ -1691,7 +1691,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 		}
 	}
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_MULT);
 #endif
 
@@ -1806,7 +1806,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 	const int_t N = qubits.size();
 
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
 	if(N == 1){
@@ -1815,7 +1815,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 	else{
 		thrust::complex<double>* pMat;
 
-#ifdef QASM_HAS_ATS
+#ifdef AER_HAS_ATS
 		pMat = (thrust::complex<double>*)&diag[0];
 #else
 
@@ -1834,7 +1834,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 		apply_function(diagMultNxN_func<data_t>(pMat,m_pUintBuf,qubits), qubits);
 	}
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_DIAG);
 #endif
 }
@@ -1989,13 +1989,13 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) 
 {
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 		TimeStart(QS_GATE_CX);
 #endif
 
 	apply_function(CX_func<data_t>(qubits), qubits);
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 		TimeEnd(QS_GATE_CX);
 #endif
 }
@@ -2347,18 +2347,18 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 {
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
   	const std::vector<std::complex<double>> diag = {{mat[0], mat[3]}};
     apply_diagonal_matrix(qubit, diag);
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_DIAG);
 #endif
   	return;
   }
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_MULT);
 #endif
 
@@ -2366,7 +2366,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 	apply_function(matMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
 
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_MULT);
 #endif
 }
@@ -2376,13 +2376,13 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t<double>& diag) 
 {
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
 	reg_t qubits = {qubit};
 	apply_function(diagMult2x2_func<data_t>((thrust::complex<double>*)&diag[0],qubits[0]), qubits);
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_DIAG);
 #endif
 }
@@ -2584,7 +2584,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 	else{
 		thrust::complex<double>* pMat;
 
-#ifdef QASM_HAS_ATS
+#ifdef AER_HAS_ATS
 		pMat = (thrust::complex<double>*)&mat[0];
 #else
 
@@ -2795,14 +2795,14 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	double* pRnd;
 	uint_t* pSamp;
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeStart(QS_GATE_MEASURE);
 #endif
 
 	samples.assign(SHOTS, 0);
 
 	if(m_nDevParallel == 1){
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 		cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
 		cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
 #else
@@ -2810,21 +2810,21 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
 #endif
 
-		thrust::transform_inclusive_scan(QASM_THRUST_EXECUTION,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
+		thrust::transform_inclusive_scan(AER_THRUST_EXECUTION,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
 
 #pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
 			pRnd[i] = rnds[i];
 		}
 
-		thrust::lower_bound(QASM_THRUST_EXECUTION, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
+		thrust::lower_bound(AER_THRUST_EXECUTION, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
 
 #pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
 			samples[i] = pSamp[i]/2;
 		}
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 		cudaFree(pRnd);
 		cudaFree(pSamp);
 #else
@@ -2842,10 +2842,10 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 			is = n * iDev / m_nDevParallel;
 			ie = n * (iDev+1) / m_nDevParallel;
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			thrust::transform_inclusive_scan(QASM_THRUST_EXECUTION,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
+			thrust::transform_inclusive_scan(AER_THRUST_EXECUTION,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
 
 			pDevSum[iDev] = pVec[ie-1];
 		}
@@ -2857,7 +2857,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 			is = n * iDev / m_nDevParallel;
 			ie = n * (iDev+1) / m_nDevParallel;
 
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 			cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
 			cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
@@ -2881,14 +2881,14 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 				}
 			}
 
-			thrust::lower_bound(QASM_THRUST_EXECUTION, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
+			thrust::lower_bound(AER_THRUST_EXECUTION, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
 
 			for(i=0;i<SHOTS;i++){
 				if(pSamp[i] < ie-is){
 					samples[i] = (is + pSamp[i])/2;
 				}
 			}
-#ifdef QASM_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 			cudaFree(pRnd);
 			cudaFree(pSamp);
 #else
@@ -2900,14 +2900,14 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		delete[] pDevSum;
 	}
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 	TimeEnd(QS_GATE_MEASURE);
 #endif
 
 	return samples;
 }
 
-#ifdef QASM_TIMING
+#ifdef AER_TIMING
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::TimeReset(void)
