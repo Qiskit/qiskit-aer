@@ -87,20 +87,20 @@ class AerBackend(BaseBackend):
         """Run a qobj on the backend.
 
         Args:
-            qobj (QasmQobj): 
+            qobj (QasmQobj): The Qobj to be executed.
             backend_options (dict or None): dictionary of backend options
                                             for the execution (default: None).
             noise_model (NoiseModel or None): noise model to use for
                                               simulation (default: None).
-            validate (bool): validate the qobj before running (default: True).
+            validate (bool): validate the Qobj before running (default: True).
 
         Additional Information:
             * The entries in the ``backend_options`` will be combined with
-              the ``qobj.config`` dictionary with the values of entries in
+              the ``Qobj.config`` dictionary with the values of entries in
               ``backend_options`` taking precedence.
 
             * If present the ``noise_model`` will override any noise model
-              specified in the ``backend_options`` or ``qobj.config``.
+              specified in the ``backend_options`` or ``Qobj.config``.
         """
         # Submit job
         job_id = str(uuid.uuid4())
