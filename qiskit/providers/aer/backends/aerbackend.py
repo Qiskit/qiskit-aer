@@ -94,6 +94,9 @@ class AerBackend(BaseBackend):
                                               simulation (default: None).
             validate (bool): validate the Qobj before running (default: True).
 
+        Returns:
+            AerJob: The simulation job.
+
         Additional Information:
             * The entries in the ``backend_options`` will be combined with
               the ``Qobj.config`` dictionary with the values of entries in
