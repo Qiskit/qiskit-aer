@@ -49,9 +49,9 @@ def basic_device_noise_model(properties,
                                    (Default: True).
         temperature (double): qubit temperature in milli-Kelvin (mK) for
                               thermal relaxation errors (Default: 0).
-        gate_length (list): Custom gate times for thermal relaxation errors.
-                            Used to extend or override the gate times in
-                            the backend properties (Default: None))
+        gate_lengths (list): Custom gate times for thermal relaxation errors.
+                             Used to extend or override the gate times in
+                             the backend properties (Default: None))
         gate_times (list): DEPRECATED -- use gate_lengths.
         standard_gates (bool): If true return errors as standard
                                qobj gates. If false return as unitary
@@ -82,7 +82,7 @@ def basic_device_noise_model(properties,
 
             * Multi-qubit depolarizing gate errors.
 
-        * If ``gate_error=False`` and ``thermal_relaxation=True`` include 
+        * If ``gate_error=False`` and ``thermal_relaxation=True`` include
           single-qubit thermal relaxation errors for all qubits
           participating in a multi-qubit gate.
 
@@ -105,7 +105,7 @@ def basic_device_noise_model(properties,
         gate time value from the backend properties.
         If non-default values are used gate_lengths should be a list
     """
-    # Decrecation warning for change of name field in device model
+    # Deprecation warning for change of name field in device model
     # from gate_times to gate_lengths
     if gate_times:
         warnings.warn(
