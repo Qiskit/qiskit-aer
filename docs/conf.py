@@ -66,8 +66,6 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
     'jupyter_sphinx.execute',
-    'sphinx_autodoc_typehints',
-    'reno.sphinxext',
 ]
 html_static_path = ['_static']
 templates_path = ['_templates']
