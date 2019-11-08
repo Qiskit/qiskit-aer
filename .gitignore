@@ -11,6 +11,7 @@
 *.o
 out/*
 *.so
+rhs*_op.pyx
 *.pyc
 *_skbuild*
 *_cmake_test_compile*
