@@ -52,7 +52,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  virtual void set_num_qubits(size_t num_qubits) override;
+  void set_num_qubits(size_t num_qubits);
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}

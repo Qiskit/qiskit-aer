@@ -34,7 +34,7 @@ class NoiseModel:
     # Get the default basis gates for the Qiskit Aer Qasm Simulator
     # this is used to decide what are instructions for a noise model
     # and what are labels for other named instructions
-    QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION[
+    _QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION[
         'basis_gates']
 
     # Checks for standard 1-3 qubit instructions
@@ -42,8 +42,8 @@ class NoiseModel:
         "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
         "t", "tdg"
     ])
-    _2qubit_instructions = set(["CX", "cx", "cz", "swap"])
-    _3qubit_instructions = set(["ccx"])
+    _2qubit_instructions = set(["CX", "cx", "cz", "cu1", "cu2", "cu3", "swap"])
+    _3qubit_instructions = set(["ccx", "cswap"])
 
     def __init__(self, basis_gates=None):
         """Initialize an empty noise model.
@@ -68,7 +68,8 @@ class NoiseModel:
             # and identities won't be unrolled to u3.
             self._basis_gates = set(['id', 'u3', 'cx'])
         else:
-            self._basis_gates = set(self._instruction_names(basis_gates))
+            self._basis_gates = set(
+                name for name, _ in self._instruction_names_labels(basis_gates))
         # Store gates with a noise model defined
         self._noise_instructions = set()
         # Store qubits referenced in noise model.
@@ -208,17 +209,16 @@ class NoiseModel:
             warnings (bool): display warning if instruction is not in
                              QasmSimulator basis_gates (Default: True).
         """
-        names = self._instruction_names(instructions)
-        for inst in names:
+        for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
-            if inst in self.QASMSIMULATOR_BASIS_GATES:
-                if inst not in ['measure', 'reset']:
-                    self._basis_gates.add(inst)
+            if name in self._QASMSIMULATOR_BASIS_GATES:
+                if name not in ['measure', 'reset']:
+                    self._basis_gates.add(name)
             elif warnings:
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
-                    "not in QasmSimulator basis_gates.", inst)
+                    "not in QasmSimulator basis_gates.", name)
 
     def set_x90_single_qubit_gates(self, instructions):
         """
@@ -231,11 +231,10 @@ class NoiseModel:
         Raises:
             NoiseError: if the input instructions are not valid.
         """
-        names = self._instruction_names(instructions)
-        for inst in names:
+        for name, label in self._instruction_names_labels(instructions):
             # Add X-90 based gate to noisy gates
-            self._noise_instructions.add(inst)
-            self._basis_gates.add(inst)
+            self._noise_instructions.add(label)
+            self._basis_gates.add(name)
         self._x90_gates = instructions
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
@@ -257,7 +256,6 @@ class NoiseModel:
         ----------------------
         If the error object is ideal it will not be added to the model.
         """
-        instruction_names = self._instruction_names(instructions)
         # Format input as QuantumError
         if not isinstance(error, QuantumError):
             try:
@@ -269,30 +267,30 @@ class NoiseModel:
             return
 
         # Add instructions
-        for inst in instruction_names:
-            self._check_number_of_qubits(error, inst)
-            if inst in self._default_quantum_errors:
-                new_error = self._default_quantum_errors[inst].compose(error)
-                self._default_quantum_errors[inst] = new_error
+        for name, label in self._instruction_names_labels(instructions):
+            self._check_number_of_qubits(error, name)
+            if label in self._default_quantum_errors:
+                new_error = self._default_quantum_errors[label].compose(error)
+                self._default_quantum_errors[label] = new_error
                 if warnings:
                     logger.warning(
                         "WARNING: all-qubit error already exists for "
                         "instruction \"%s\", "
-                        "composing with additional error.", inst)
+                        "composing with additional error.", label)
             else:
-                self._default_quantum_errors[inst] = error
+                self._default_quantum_errors[label] = error
             # Check if a specific qubit error has been applied for this instruction
-            if inst in self._local_quantum_errors:
+            if label in self._local_quantum_errors:
                 local_qubits = self._keys2str(
-                    self._local_quantum_errors[inst].keys())
+                    self._local_quantum_errors[label].keys())
                 if warnings:
                     logger.warning(
                         "WARNING: all-qubit error for instruction "
                         "\"%s\" will not apply to qubits: "
-                        "%s as specific error already exists.", inst,
+                        "%s as specific error already exists.", label,
                         local_qubits)
-            self._noise_instructions.add(inst)
-            self.add_basis_gates(inst, warnings=False)
+            self._noise_instructions.add(label)
+            self.add_basis_gates(name, warnings=False)
 
     def add_quantum_error(self, error, instructions, qubits, warnings=True):
         """
@@ -314,7 +312,6 @@ class NoiseModel:
         ----------------------
         If the error object is ideal it will not be added to the model.
         """
-        instruction_names = self._instruction_names(instructions)
         if not isinstance(qubits, (list, tuple)):
             raise NoiseError("Qubits must be a list of integers.")
         # Error checking
@@ -330,13 +327,14 @@ class NoiseModel:
         for qubit in qubits:
             self._noise_qubits.add(qubit)
         # Add instructions
-        for inst in instruction_names:
-            if not isinstance(inst, str):
+        for name, label in self._instruction_names_labels(instructions):
+            self._check_number_of_qubits(error, name)
+            if not isinstance(label, str):
                 raise NoiseError("Qobj invalid instructions.")
             # Check number of qubits is correct for standard instructions
-            self._check_number_of_qubits(error, inst)
-            if inst in self._local_quantum_errors:
-                qubit_dict = self._local_quantum_errors[inst]
+            self._check_number_of_qubits(error, name)
+            if label in self._local_quantum_errors:
+                qubit_dict = self._local_quantum_errors[label]
             else:
                 qubit_dict = {}
 
@@ -353,21 +351,21 @@ class NoiseModel:
                     logger.warning(
                         "WARNING: quantum error already exists for "
                         "instruction \"%s\" on qubits %s "
-                        ", appending additional error.", inst, qubits)
+                        ", appending additional error.", label, qubits)
             else:
                 qubit_dict[qubits_str] = error
             # Add updated dictionary
-            self._local_quantum_errors[inst] = qubit_dict
+            self._local_quantum_errors[label] = qubit_dict
 
             # Check if all-qubit error is already defined for this instruction
-            if inst in self._default_quantum_errors:
+            if label in self._default_quantum_errors:
                 if warnings:
                     logger.warning(
                         "WARNING: Specific error for instruction \"%s\" "
                         "on qubits %s overrides previously defined "
-                        "all-qubit error for these qubits.", inst, qubits)
-            self._noise_instructions.add(inst)
-            self.add_basis_gates(inst, warnings=False)
+                        "all-qubit error for these qubits.", label, qubits)
+            self._noise_instructions.add(label)
+            self.add_basis_gates(name, warnings=False)
 
     def add_nonlocal_quantum_error(self,
                                    error,
@@ -396,7 +394,6 @@ class NoiseModel:
         Additional Information:
             If the error object is ideal it will not be added to the model.
         """
-        instruction_names = self._instruction_names(instructions)
         if not isinstance(noise_qubits, (list, tuple)):
             raise NoiseError("Noise qubits must be a list of integers.")
         # Error checking
@@ -416,9 +413,9 @@ class NoiseModel:
         for qubit in noise_qubits:
             self._noise_qubits.add(qubit)
         # Add instructions
-        for inst in instruction_names:
-            if inst in self._nonlocal_quantum_errors:
-                gate_qubit_dict = self._nonlocal_quantum_errors[inst]
+        for name, label in self._instruction_names_labels(instructions):
+            if label in self._nonlocal_quantum_errors:
+                gate_qubit_dict = self._nonlocal_quantum_errors[label]
             else:
                 gate_qubit_dict = {}
             qs_str = self._qubits2str(qubits)
@@ -435,13 +432,13 @@ class NoiseModel:
                     logger.warning(
                         "Warning: nonlocal error already exists for "
                         "instruction \"%s\" on qubits %s."
-                        "Composing additional error.", inst, qubits)
+                        "Composing additional error.", label, qubits)
             else:
                 gate_qubit_dict[qs_str] = {nqs_str: error}
             # Add updated dictionary
-            self._nonlocal_quantum_errors[inst] = gate_qubit_dict
-            self._noise_instructions.add(inst)
-            self.add_basis_gates(inst, warnings=False)
+            self._nonlocal_quantum_errors[label] = gate_qubit_dict
+            self._noise_instructions.add(label)
+            self.add_basis_gates(name, warnings=False)
 
     def add_all_qubit_readout_error(self, error, warnings=True):
         """
@@ -698,19 +695,23 @@ class NoiseModel:
                 raise NoiseError("Invalid error type: {}".format(error_type))
         return noise_model
 
-    def _instruction_names(self, instructions):
-        """Return a list of instruction name strings for input instructions."""
+    def _instruction_names_labels(self, instructions):
+        """Return two lists of instruction name strings and label strings."""
         if not isinstance(instructions, (list, tuple)):
             instructions = [instructions]
-        inst_names = []
+        names_labels = []
         for inst in instructions:
+            # If instruction does not have a label we use the name
+            # as the label
             if isinstance(inst, Instruction):
-                inst_names.append(inst.name)
+                name = inst.name
+                label = getattr(inst, 'label', inst.name)
+                names_labels.append((name, label))
             elif isinstance(inst, str):
-                inst_names.append(inst)
+                names_labels.append((inst, inst))
             else:
                 raise NoiseError('Invalid instruction type {}'.format(inst))
-        return inst_names
+        return names_labels
 
     def _check_number_of_qubits(self, error, name):
         """

@@ -32,13 +32,13 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &opset,
-                        OutputData &data) const override;
+                        ExperimentData &data) const override;
 };
 
 void ReduceBarrier::optimize_circuit(Circuit& circ,
                                      Noise::NoiseModel& noise,
                                      const opset_t &allowed_opset,
-                                     OutputData &data) const {
+                                     ExperimentData &data) const {
 
   size_t idx = 0;
   for (size_t i = 0; i < circ.ops.size(); ++i) {
@@ -58,13 +58,13 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &opset,
-                        OutputData &data) const override;
+                        ExperimentData &data) const override;
 };
 
 void Debug::optimize_circuit(Circuit& circ,
                              Noise::NoiseModel& noise,
                              const opset_t &allowed_opset,
-                             OutputData &data) const {
+                             ExperimentData &data) const {
 
   oplist_t::iterator it = circ.ops.begin();
   while (it != circ.ops.end()) {

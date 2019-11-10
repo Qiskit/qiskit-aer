@@ -24,7 +24,7 @@ namespace Noise {
 // Quantum Error class
 //=========================================================================
 
-// Quantum error class that can model any error that is expressed as a 
+// Quantum error class that can model any error that is expressed as a
 // qobj instruction acting on qubits.
 
 class QuantumError {
@@ -146,15 +146,15 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
       if (r + 1 > circuits_.size()) {
         throw std::invalid_argument(
           "QuantumError: probability outcome (" + std::to_string(r) + ")"
-          ") is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
+          " is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
         );
       }
       NoiseOps noise_ops = circuits_[r];
       // Add qubits to noise op commands;
       for (auto &op : noise_ops) {
         // Update qubits based on position in qubits list
-        for (size_t q=0; q < op.qubits.size(); q++) {
-          op.qubits[q] = qubits[op.qubits[q]];
+        for (auto &qubit: op.qubits) {
+          qubit = qubits[qubit];
         }
       }
       return noise_ops;
@@ -219,7 +219,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
 
   // Get number of qubits from first Kraus operator
   size_t mat_dim = mats[0].GetRows();
-  unsigned num_qubits = unsigned(std::log2(mat_dim));
+  auto num_qubits = static_cast<unsigned>(std::log2(mat_dim));
   set_num_qubits(num_qubits);
   if (mat_dim != 1UL << num_qubits)
     throw std::invalid_argument("QuantumError: Kraus channel input is a multi-qubit channel.");
@@ -333,7 +333,7 @@ void QuantumError::compute_superoperator() {
     superop.initialize_qreg(get_num_qubits());
     // Apply each gate in the circuit
     // We don't need output data or RNG for this
-    OutputData data;
+    ExperimentData data;
     RngEngine rng;
     superop.apply_ops(circuits_[j], data, rng);
     superoperator_ += probabilities_[j] * superop.qreg().matrix();

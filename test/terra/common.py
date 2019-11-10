@@ -112,10 +112,6 @@ class QiskitAerTestCase(unittest.TestCase):
         if pos is not None:
             items.pop(pos)
 
-    def is_completed(self, result):
-        """Check a Result is completed"""
-        self.assertEqual(result.status, 'COMPLETED')
-
     def compare_statevector(self, result, circuits, targets,
                             global_phase=True, places=None):
         """Compare final statevectors to targets."""

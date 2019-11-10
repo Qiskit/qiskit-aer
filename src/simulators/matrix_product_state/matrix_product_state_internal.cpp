@@ -1,8 +1,15 @@
 /**
- * Copyright 2018, IBM.
+ * This code is part of Qiskit.
  *
- * This source code is licensed under the Apache License, Version 2.0 found in
- * the LICENSE.txt file in the root directory of this source tree.
+ * (C) Copyright IBM 2018, 2019.
+ *
+ * This code is licensed under the Apache License, Version 2.0. You may
+ * obtain a copy of this license in the LICENSE.txt file in the root directory
+ * of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Any modifications or derivative works of this code must retain this
+ * copyright notice, and modified files need to carry a notice indicating
+ * that they have been altered from the originals.
  */
 
 
@@ -106,8 +113,8 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   #else
      #pragma omp parallel for collapse(2)
   #endif
-  for(int_t row = 0; row < num_rows; row++) {
-      for(int_t col = 0; col < num_cols; col++) {
+  for(int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
+    for(int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
       }
   }
@@ -128,6 +135,8 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
 void MPS::initialize(uint_t num_qubits)
 {
   num_qubits_ = num_qubits;
+  q_reg_.clear();
+  lambda_reg_.clear();
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
   for(uint_t i = 0; i < num_qubits_-1; i++) {

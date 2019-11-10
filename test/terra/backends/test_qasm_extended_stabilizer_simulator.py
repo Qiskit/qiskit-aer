@@ -33,6 +33,17 @@ logger = logging.getLogger(__name__)
 class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     """QasmSimulator extended_stabilizer method tests."""
 
+    BACKEND_OPTS = {
+        "seed_simulator": 1984,
+        "method": "extended_stabilizer"
+    }
+
+    BACKEND_OPTS_SAMPLING = {
+        "seed_simulator": 1984,
+        "method": "extended_stabilizer",
+        "extended_stabilizer_measure_sampling": True
+    }
+
     # ---------------------------------------------------------------------
     # Test reset
     # ---------------------------------------------------------------------
@@ -44,10 +55,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         circuits = ref_reset.reset_circuits_deterministic(final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj, backend_options={"method": "extended_stabilizer"})
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_reset_nondeterministic(self):
@@ -59,14 +69,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_reset.reset_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
@@ -79,14 +84,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_deterministic_without_sampling(self):
@@ -96,10 +96,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=False)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj, backend_options={"method": "extended_stabilizer"})
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_nondeterministic_with_sampling(self):
@@ -109,14 +108,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_measure_nondeterministic_without_sampling(self):
@@ -126,10 +120,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=False)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj, backend_options={"method": "extended_stabilizer"})
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
@@ -142,14 +135,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_deterministic_multi_qubit_without_sampling(self):
@@ -159,13 +147,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_deterministic(shots)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer"
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
@@ -175,14 +159,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
@@ -192,13 +171,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer"
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # # ---------------------------------------------------------------------
@@ -211,14 +186,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_1bit(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_conditional_2bit(self):
@@ -228,14 +198,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_conditionals.conditional_counts_2bit(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
@@ -248,14 +213,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_h_gate_nondeterministic_default_basis_gates(self):
@@ -265,14 +225,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.h_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -285,14 +240,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.x_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
@@ -305,14 +255,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.z_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
@@ -325,14 +270,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.y_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
@@ -345,14 +285,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_s_gate_nondeterministic_default_basis_gates(self):
@@ -362,14 +297,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.s_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -382,14 +312,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_sdg_gate_nondeterministic_default_basis_gates(self):
@@ -399,14 +324,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -419,14 +339,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cx_gate_nondeterministic_default_basis_gates(self):
@@ -436,14 +351,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cx_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -456,14 +366,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cz_gate_nondeterministic_default_basis_gates(self):
@@ -473,14 +378,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.cz_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -493,14 +393,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_swap_gate_nondeterministic_default_basis_gates(self):
@@ -510,14 +405,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_measure_sampling": True
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS_SAMPLING)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -530,13 +420,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer"
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
@@ -546,14 +432,11 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                'extended_stabilizer_mixing_time': 50
-            })
+        opts = self.BACKEND_OPTS.copy()
+        opts["extended_stabilizer_mixing_time"] = 50
+        job = QasmSimulator().run(qobj, backend_options=opts)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     # ---------------------------------------------------------------------
@@ -566,13 +449,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer"
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
 
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
@@ -583,14 +462,11 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_mixing_time": 50
-            })
+        opts = self.BACKEND_OPTS.copy()
+        opts["extended_stabilizer_mixing_time"] = 50
+        job = QasmSimulator().run(qobj, backend_options=opts)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     # ---------------------------------------------------------------------
@@ -603,14 +479,11 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_mixing_time": 100
-            })
+        opts = self.BACKEND_OPTS.copy()
+        opts["extended_stabilizer_mixing_time"] = 100
+        job = QasmSimulator().run(qobj, backend_options=opts)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
@@ -620,14 +493,11 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_mixing_time": 100
-            })
+        opts = self.BACKEND_OPTS.copy()
+        opts["extended_stabilizer_mixing_time"] = 100
+        job = QasmSimulator().run(qobj, backend_options=opts)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.10 * shots)
 
     # # ---------------------------------------------------------------------
@@ -640,14 +510,11 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True, allow_sampling=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.grovers_counts(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer",
-                "extended_stabilizer_mixing_time": 100,
-            })
+        opts = self.BACKEND_OPTS.copy()
+        opts["extended_stabilizer_mixing_time"] = 100
+        job = QasmSimulator().run(qobj, backend_options=opts)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     def test_teleport_default_basis_gates(self):
@@ -656,13 +523,9 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         circuits = ref_algorithms.teleport_circuit()
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.teleport_counts(shots)
-        job = QasmSimulator().run(
-            qobj,
-            backend_options={
-                "method": "extended_stabilizer"
-            })
+        job = QasmSimulator().run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.is_completed(result)
+        self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 

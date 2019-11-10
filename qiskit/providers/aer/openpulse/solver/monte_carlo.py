@@ -138,7 +138,8 @@ def monte_carlo(seed, exp, op_system):
                     if (abs(rand_vals[0] - norm2_guess) <
                             ode_options.norm_tol * rand_vals[0]):
                         break
-                    elif norm2_guess < rand_vals[0]:
+
+                    if norm2_guess < rand_vals[0]:
                         # t_guess is still > t_jump
                         t_final = t_guess
                         norm2_psi = norm2_guess

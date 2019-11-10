@@ -62,7 +62,7 @@ auto _apple_get_loaded_openmp_library = [](const std::string& default_path) -> s
 auto _apple_maybe_load_openmp = [](const std::string& library_path) -> void {
     // dlopen() will return a handle to the library if this is already loaded
     void * handle = dlopen(_apple_get_loaded_openmp_library(library_path).c_str(), RTLD_LAZY);
-    if(handle == NULL){
+    if(handle == nullptr){
         fprintf(stderr, "WARNING: Couldn't load libomp.dylib but we needed to. Error: %s\n", dlerror());
         fprintf(stderr, "Make sure you have libomp.dylib or libiomp5.dylib accesible to the program\n");
     }

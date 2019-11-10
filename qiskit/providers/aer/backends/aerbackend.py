@@ -24,7 +24,7 @@ from numpy import ndarray
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
-from qiskit.qobj import QasmQobjConfig
+from qiskit.qobj import QasmQobjConfig, validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
@@ -108,6 +108,7 @@ class AerBackend(BaseBackend):
         """Run a qobj job"""
         start = time.time()
         if validate:
+            validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
         qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
         output = json.loads(self._controller(qobj_str).decode('UTF-8'))
@@ -160,18 +161,6 @@ class AerBackend(BaseBackend):
             if output:
                 logger.error('Output: %s', output)
             raise AerError("simulation terminated without returning valid output.")
-        # Check results
-        # TODO: Once https://github.com/Qiskit/qiskit-terra/issues/1023
-        #       is merged this should be updated to deal with errors using
-        #       the Result object methods
-        if not output.get("success", False):
-            logger.error("%s: simulation failed", self.name())
-            # Check for error message in the failed circuit
-            for res in output.get('results', []):
-                if not res.get('success', False):
-                    raise AerError(res.get("status", None))
-            # If no error was found check for error message at qobj level
-            raise AerError(output.get("status", None))
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the qobj, backend_options, noise_model for the backend"""

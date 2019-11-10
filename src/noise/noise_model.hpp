@@ -601,16 +601,15 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
       // for gate operations we use the qubits as specified
       qubit_keys.push_back(op_qubits);
     }
-    for (size_t qs=0; qs < qubit_keys.size(); ++qs) {
-      auto iter_qubits = qubit_map.find(qubit_keys[qs]);
+    for(auto qubit_key: qubit_keys){
+      auto iter_qubits = qubit_map.find(qubit_key);
       if (iter_qubits != qubit_map.end() ||
           iter_default != qubit_map.end()) {
         auto &error_positions = (iter_qubits != qubit_map.end())
           ? iter_qubits->second
           : iter_default->second;
         for (auto &pos : error_positions) {
-          auto noise_ops = quantum_errors_[pos].sample_noise(string2reg(qubit_keys[qs]), rng,
-                                                             method_);
+          auto noise_ops = quantum_errors_[pos].sample_noise(string2reg(qubit_key), rng, method_);
           // Duplicate same sampled error operations
           if (quantum_errors_[pos].errors_after())
             noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());

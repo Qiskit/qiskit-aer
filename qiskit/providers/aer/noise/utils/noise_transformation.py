@@ -30,7 +30,6 @@ used in a Clifford simulator.
 
 import itertools
 import numpy
-import sympy
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
@@ -92,7 +91,7 @@ def approximate_quantum_error(error, *,
                 no_info_error + " for {} qubits".format(error.number_of_qubits))
         operator_dict = operator_lists[error.number_of_qubits - 1]
     if operator_dict is not None:
-        names, operator_list = zip(*operator_dict.items())
+        _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
         op_matrix_list = [
             transformer.operator_matrix(operator) for operator in operator_list
@@ -387,13 +386,14 @@ class NoiseTransformer:
         """
         # convert to sympy matrices and verify that each singleton is
         # in a tuple; also add identity matrix
+        from sympy import Matrix, eye
         result = []
         for ops in ops_list:
             if not isinstance(ops, tuple) and not isinstance(ops, list):
                 ops = [ops]
-            result.append([sympy.Matrix(op) for op in ops])
+            result.append([Matrix(op) for op in ops])
         n = result[0][0].shape[0]  # grab the dimensions from the first element
-        result = [[sympy.eye(n)]] + result
+        result = [[eye(n)]] + result
         return result
 
     # pylint: disable=invalid-name
@@ -457,18 +457,19 @@ class NoiseTransformer:
             combinatorial optimization.
         """
 
+        from sympy import symbols as sp_symbols, sqrt
         symbols_string = " ".join([
             "x{}".format(i)
             for i in range(len(transform_channel_operators_list))
         ])
-        symbols = sympy.symbols(symbols_string, real=True, positive=True)
+        symbols = sp_symbols(symbols_string, real=True, positive=True)
         exp = symbols[
             1]  # exp will contain the symbolic expression "x1 +...+ xn"
         for i in range(2, len(symbols)):
             exp = symbols[i] + exp
         # symbolic_operators_list is a list of lists; we flatten it the next line
         symbolic_operators_list = [[
-            sympy.sqrt(symbols[i]) * op for op in ops
+            sqrt(symbols[i]) * op for op in ops
         ] for (i, ops) in enumerate(transform_channel_operators_list)]
         symbolic_operators = [
             op for ops in symbolic_operators_list for op in ops
@@ -494,8 +495,9 @@ class NoiseTransformer:
         Returns:
             number: The result of applying the list of operators
         """
+        from sympy import zeros
         return sum([E * rho * E.H for E in operators],
-                   sympy.zeros(operators[0].rows))
+                   zeros(operators[0].rows))
 
     @staticmethod
     def flatten_matrix(m):
@@ -520,15 +522,16 @@ class NoiseTransformer:
         Returns:
             sympy.Matrix: The matrx representation of the operators
         """
+        from sympy import Matrix, zeros
         shape = operators[0].shape
         standard_base = []
         for i in range(shape[0]):
             for j in range(shape[1]):
-                basis_element_ij = sympy.zeros(*shape)
+                basis_element_ij = zeros(*shape)
                 basis_element_ij[(i, j)] = 1
                 standard_base.append(basis_element_ij)
 
-        return (sympy.Matrix([
+        return (Matrix([
             self.flatten_matrix(
                 self.compute_channel_operation(rho, operators))
             for rho in standard_base
@@ -568,11 +571,12 @@ class NoiseTransformer:
         be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
         entry in the output numeric matrix is ai.
         """
+        from sympy import Poly
         n = channel.rows
         M = numpy.zeros((n, n), dtype=numpy.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
             M[i, j] = numpy.complex(
-                sympy.Poly(channel[i, j], symbol).coeff_monomial(symbol))
+                Poly(channel[i, j], symbol).coeff_monomial(symbol))
         return M
 
     @staticmethod
@@ -594,11 +598,12 @@ class NoiseTransformer:
         be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
         entry in the output numeric matrix is c.
         """
+        from sympy import Poly
         n = channel.rows
         M = numpy.zeros((n, n), dtype=numpy.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
             M[i, j] = numpy.complex(
-                sympy.Poly(channel[i, j], symbols).coeff_monomial(1))
+                Poly(channel[i, j], symbols).coeff_monomial(1))
         return M
 
     def transform_by_given_channel(self, channel_matrices,
@@ -641,9 +646,10 @@ class NoiseTransformer:
         Returns:
             matrix: The matrix P for the description of the quadaric program
         """
+        from sympy import zeros
         vs = [numpy.array(A).flatten() for A in As]
         n = len(vs)
-        P = sympy.zeros(n, n)
+        P = zeros(n, n)
         for (i, j) in itertools.product(range(n), range(n)):
             P[i, j] = 2 * numpy.real(numpy.dot(vs[i], numpy.conj(vs[j])))
         return P
@@ -660,10 +666,11 @@ class NoiseTransformer:
         Returns:
             list: The vector q for the description of the quadaric program
         """
+        from sympy import zeros
         vs = [numpy.array(A).flatten() for A in As]
         vC = numpy.array(C).flatten()
         n = len(vs)
-        q = sympy.zeros(1, n)
+        q = zeros(1, n)
         for i in range(n):
             q[i] = 2 * numpy.real(numpy.dot(numpy.conj(vC), vs[i]))
         return q
