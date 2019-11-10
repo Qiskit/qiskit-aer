@@ -382,7 +382,8 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   }
   bool ordered = true;
   reg_t new_qubits;
-  centralize_qubits(qubits, new_qubits, ordered);
+  //centralize_qubits(qubits, new_qubits, ordered);
+  new_qubits = qubits; // temporary
   if (!ordered) {
     std::stringstream ss;
     ss << "error: currently input qubits must be ordered";
@@ -400,7 +401,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
 
   switch (gate_type) {
   case mcx:
-    temp_tensor.apply_ccx();
+       temp_tensor.apply_ccx();
     break;
 
   default:
@@ -415,6 +416,8 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   state_mat.SetOutputStyle(Matrix);
   std::cout << "state_mat = " <<std::endl;
   std::cout << state_mat;
+  std::cout << "state_mat num rows = " << state_mat.GetRows() << std::endl; 
+  std::cout << "state_mat num cols = " << state_mat.GetColumns() << std::endl; 
     //state_vector.push_back(temp_tensor.get_data(i)(0,0));
 
   //  std::cout <<"state_vector = ";
@@ -431,8 +434,12 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
     q_reg_[first+i] = sub_MPS.q_reg_[i];
   }
-  lambda_reg_[first] = sub_MPS.lambda_reg_[first];
-  lambda_reg_[first+1] = sub_MPS.lambda_reg_[first+1];
+  lambda_reg_[first] = sub_MPS.lambda_reg_[0];
+  lambda_reg_[first+1] = sub_MPS.lambda_reg_[1];
+  if (first > 0)
+    q_reg_[first].div_Gamma_by_left_Lambda(lambda_reg_[first-1]);
+  if (first+2 < num_qubits_-1)
+    q_reg_[first+2].div_Gamma_by_right_Lambda(lambda_reg_[first+2]);
 
    std::cout << "final tensor without reordering:"<<std::endl;
   print(std::cout);
@@ -655,10 +662,11 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	  
 	for(uint_t i = first_index+1; i < last_index+1; i++) {
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
+	  std::cout <<"tensor after contract = " << i << std::endl;
+	  temp.print(std::cout);
 	}
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
-
 	return temp;
 }
 
@@ -829,6 +837,9 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     num_qubits_++;
 
     first_iter = false;
+    std::cout << "left_gamma = " << std::endl;
+    left_gamma.print(std::cout);
+    
   }
 
   // step 4 - create the rightmost gamma and update q_reg_

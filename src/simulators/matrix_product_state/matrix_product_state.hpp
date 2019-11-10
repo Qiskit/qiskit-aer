@@ -421,6 +421,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
+    std::cout <<"before gate " << op << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
