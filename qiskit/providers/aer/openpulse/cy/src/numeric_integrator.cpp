@@ -62,7 +62,7 @@ complex_t chan_value(
             if(t >= fc_array[3 * i]){
                 bool do_fc = true;
                 if(fc_array[3 * i + 2] >= 0){
-                    if(!reg[static_cast<int>(fc_array[3 * i +2])]){
+                    if(!reg[static_cast<int>(fc_array[3 * i + 2])]){
                        do_fc = false;
                     }
                 }
@@ -249,6 +249,9 @@ PyArrayObject * td_ode_rhs(
         //         out[row] += dot;
         // td1 = np.pi*alpha0
         auto td = evaluate_hamiltonian_expression(term, vars, vars_names, chan_values);
+        // std::cout << "<JUAN> td:" << td << "     term: " << term << "\n";
+        // std::cout << "<JUAN> D0:" << chan_values["D0"] << "\n";
+        // std::cout << "<JUAN> r: " << vars[std::find(vars_names.begin(), vars_names.end(), "r") - vars_names.begin()]<< "\n";
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){
                 complex_t dot = {0., 0.};
