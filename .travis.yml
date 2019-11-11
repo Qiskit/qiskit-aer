@@ -102,6 +102,12 @@ jobs:
 
     # "test" stage
     ###########################################################################
+    # GNU/Linux, Python 3.8
+    - stage: test
+      name: Python 3.8 Tests Linux
+      <<: *stage_linux
+      python: 3.8
+
     # GNU/Linux, Python 3.7
     - stage: test
       name: Python 3.7 Tests Linux
@@ -121,6 +127,13 @@ jobs:
       name: Python 3.5 Tests Linux
       <<: *stage_linux
       python: 3.5
+
+    - stage: test
+      name: Python 3.8 Tests Linux
+      if: type = cron
+      <<: *stage_osx
+      python: 3.8
+        - PYTHON_VERSION=3.8.0
 
     # OSX, Python 3.7.2 (via pyenv)
     - stage: test
