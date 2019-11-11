@@ -30,7 +30,6 @@ used in a Clifford simulator.
 
 import itertools
 import numpy
-import cvxpy
 
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise import NoiseModel
@@ -697,6 +696,8 @@ class NoiseTransformer:
         This method is the only place in the code where we rely on the cvpy library
         should we consider another library, only this method needs to change
         """
+        import cvxpy
+
         P = numpy.array(P).astype(float)
         q = numpy.array(q).astype(float).T
         n = len(q)
