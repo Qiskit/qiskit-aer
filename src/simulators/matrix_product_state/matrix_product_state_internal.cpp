@@ -251,72 +251,70 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat)
 {
-	//for MPS
-	if(index_A + 1 < index_B)
-	{
-		apply_swap(index_A,index_B-1);
-		apply_2_qubit_gate(index_B-1,index_B, gate_type, mat);
-		apply_swap(index_A,index_B-1);
-	  return;
-	}
-	else if(index_A > index_B + 1)
-	{
-		apply_swap(index_A-1,index_B);
-		apply_2_qubit_gate(index_A,index_A-1, gate_type, mat);
-		apply_swap(index_A-1,index_B);
-		return;
-	}
+  uint_t A = index_A;
+  bool swapped = false;
+  bool greater = false, smaller = false;
+  if (index_B == index_A-1) {
+    A = index_A - 1;
+    swapped = true;
+  } else if (index_B > index_A+1) {
+    greater = true;
+    change_position(index_B, index_A+1);  // Move B to be right after A
+  } else if (index_A > 0 && index_B < index_A-1) {
+    smaller = true;
+    change_position(index_B, index_A-1);  // Move B to be right before A
+    A = index_A - 1;
+    swapped = true;
+  }
+  //  MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_A+1];
+  rvector_t left_lambda, right_lambda;
+  //There is no lambda in the edges of the MPS
+  left_lambda  = (A != 0) 	    ? lambda_reg_[A-1] : rvector_t {1.0};
+  right_lambda = (A+1 != num_qubits_-1) ? lambda_reg_[A+1] : rvector_t {1.0};
+  
+  q_reg_[A].mul_Gamma_by_left_Lambda(left_lambda);
+  q_reg_[A+1].mul_Gamma_by_right_Lambda(right_lambda);
+  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
+  
+  switch (gate_type) {
+  case cx:
+    temp.apply_cnot(swapped);
+    break;
+  case cz:
+    temp.apply_cz();
+    break;
+  case id:
+    break;
+  case cu1:
+    {
+      cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
+      cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
+	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
+      cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
+      temp.apply_matrix(cu);
+      break;
+    }
+  case su4:
+    temp.apply_matrix(mat);
+    break;
+    
+  default:
+    throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
+  }
+  MPS_Tensor left_gamma,right_gamma;
+  rvector_t lambda;
+  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
+  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
+  q_reg_[A] = left_gamma;
+  lambda_reg_[A] = lambda;
+  q_reg_[A+1] = right_gamma;
 
-	bool swapped = false;
-	if(index_A >  index_B)
-	{
-	  std::swap(index_A, index_B);
-	  swapped = true;
-	}
-
-	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
-	rvector_t left_lambda, right_lambda;
-	//There is no lambda in the edges of the MPS
-	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
-
-	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
-	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
-
-	switch (gate_type) {
-	case cx:
-	  temp.apply_cnot(swapped);
-	  break;
-	case cz:
-	  temp.apply_cz();
-	  break;
-	case id:
-	  break;
-	case cu1:
-	{
-	  cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
-	  cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
-		    temp2 = AER::Utils::concatenate(Zeros, mat, 1);
-	  cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
-	  temp.apply_matrix(cu);
-	  break;
-	}
-	case su4:
-	  temp.apply_matrix(mat);
-	  break;
-
-	default:
-	  throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
-	}
-	MPS_Tensor left_gamma,right_gamma;
-	rvector_t lambda;
-	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-	q_reg_[index_A] = left_gamma;
-	lambda_reg_[index_A] = lambda;
-	q_reg_[index_B] = right_gamma;
+  if (greater) {
+    change_position(index_A+1, index_B);  // Move B back to its original position
+  } else if (smaller) {
+    change_position(index_A-1, index_B);
+  }
 }
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
