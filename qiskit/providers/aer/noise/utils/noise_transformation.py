@@ -373,7 +373,7 @@ class NoiseTransformer:
                 of matrices representing Kraus operators that can construct the output channel.
 
         Returns:
-            List: A list of amplitudes that define the output channel.                
+            List: A list of amplitudes that define the output channel.
         """
         self.noise_kraus_operators = noise_kraus_operators
         # pylint: disable=invalid-name
@@ -569,7 +569,8 @@ class NoiseTransformer:
     def generate_channel_quadratic_programming_matrices(
             self, channel, symbols):
         """
-        Generate 
+        Generate matrices for quadratic program.
+
         Args:
              channel (Matrix): a 4x4 symbolic matrix
              symbols (list): the symbols x1, ..., xn which may occur in the matrix
