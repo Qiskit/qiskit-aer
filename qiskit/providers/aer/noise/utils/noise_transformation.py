@@ -98,7 +98,7 @@ def approximate_quantum_error(error, *,
         ]
         probabilities = transformer.transform_by_operator_list(
             op_matrix_list, error_kraus_operators)
-        identity_prob = numpy.round(1 - sum(probabilities), 7)
+        identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
                 "Channel probabilities sum to {}".format(1 - identity_prob))
