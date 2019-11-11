@@ -40,6 +40,51 @@ def basic_device_noise_model(properties,
     """
     Return a NoiseModel derived from a devices BackendProperties.
 
+    The noise model includes the following errors:
+
+    * If ``readout_error=True`` include single qubit readout
+      errors on measurements.
+
+    * If ``gate_error=True`` and ``thermal_relaxation=True`` include:
+
+        * Single-qubit gate errors consisting of a depolarizing error
+          followed by a thermal relaxation error for the qubit the gate
+          acts on.
+
+        * Two-qubit gate errors consisting of a 2-qubit depolarizing
+          error followed by single qubit thermal relaxation errors for
+          all qubits participating in the gate.
+
+    * If ``gate_error=True`` is ``True`` and ``thermal_relaxation=False``:
+
+        * Single-qubit depolarizing gate errors.
+
+        * Multi-qubit depolarizing gate errors.
+
+    * If ``gate_error=False`` and ``thermal_relaxation=True`` include
+      single-qubit thermal relaxation errors for all qubits
+      participating in a multi-qubit gate.
+
+    For best practice in simulating a backend make sure that the
+    circuit is compiled using the set of basis gates in the noise
+    module by setting ``basis_gates=noise_model.basis_gates``
+    and using the device coupling map with
+    ``coupling_map=backend.configuration().coupling_map``
+
+    **Specifying custom gate times**
+
+    The ``gate_lengths`` kwarg can be used to specify custom gate times
+    to add gate errors using the :math:`T_1` and :math:`T_2` values from
+    the backend properties. This should be passed as a list of tuples
+    ``gate_lengths=[(name, value), ...]``
+    where ``name`` is the gate name string, and ``value`` is the gate time
+    in nanoseconds.
+
+    If a custom gate is specified that already exists in
+    the backend properties, the ``gate_lengths`` value will override the
+    gate time value from the backend properties.
+    If non-default values are used gate_lengths should be a list
+
     Args:
         properties (BackendProperties): backend properties.
         gate_error (bool): Include depolarizing gate errors (Default: True).
@@ -59,51 +104,6 @@ def basic_device_noise_model(properties,
 
     Returns:
         NoiseModel: An approximate noise model for the device backend.
-
-    Additional Information:
-        The noise model includes the following errors:
-
-        * If ``readout_error=True`` include single qubit readout
-          errors on measurements.
-
-        * If ``gate_error=True`` and ``thermal_relaxation=True`` include:
-
-            * Single-qubit gate errors consisting of a depolarizing error
-              followed by a thermal relaxation error for the qubit the gate
-              acts on.
-
-            * Two-qubit gate errors consisting of a 2-qubit depolarizing
-              error followed by single qubit thermal relaxation errors for
-              all qubits participating in the gate.
-
-        * If ``gate_error=True`` is ``True`` and ``thermal_relaxation=False``:
-
-            * Single-qubit depolarizing gate errors.
-
-            * Multi-qubit depolarizing gate errors.
-
-        * If ``gate_error=False`` and ``thermal_relaxation=True`` include
-          single-qubit thermal relaxation errors for all qubits
-          participating in a multi-qubit gate.
-
-        For best practice in simulating a backend make sure that the
-        circuit is compiled using the set of basis gates in the noise
-        module by setting ``basis_gates=noise_model.basis_gates``
-        and using the device coupling map with
-        ``coupling_map=backend.configuration().coupling_map``
-
-    Specifying custom gate times:
-        The ``gate_lengths`` kwarg can be used to specify custom gate times
-        to add gate errors using the :math:`T_1` and :math:`T_2` values from
-        the backend properties. This should be passed as a list of tuples
-        ``gate_lengths=[(name, value), ...]``
-        where ``name`` is the gate name string, and ``value`` is the gate time
-        in nanoseconds.
-
-        If a custom gate is specified that already exists in
-        the backend properties, the ``gate_lengths`` value will override the
-        gate time value from the backend properties.
-        If non-default values are used gate_lengths should be a list
     """
     # Deprecation warning for change of name field in device model
     # from gate_times to gate_lengths
@@ -167,6 +167,12 @@ def basic_device_gate_errors(properties,
     """
     Return QuantumErrors derived from a devices BackendProperties.
 
+    If non-default values are used gate_lengths should be a list
+    of tuples ``(name, qubits, value)`` where ``name`` is the gate
+    name string, ``qubits`` is either a list of qubits or ``None``
+    to apply gate time to this gate one any set of qubits,
+    and ``value`` is the gate time in nanoseconds.
+
     Args:
         properties (BackendProperties): device backend properties
         gate_error (bool): Include depolarizing gate errors (Default: True).
@@ -186,13 +192,6 @@ def basic_device_gate_errors(properties,
         dict: A dictionary of pairs name: ``(qubits, error)``. If gate
         error information is not available ``None`` will be returned for
         value.
-
-    Additional Information:
-        If non-default values are used gate_lengths should be a list
-        of tuples ``(name, qubits, value)`` where ``name`` is the gate
-        name string, ``qubits`` is either a list of qubits or ``None``
-        to apply gate time to this gate one any set of qubits,
-        and ``value`` is the gate time in nanoseconds.
     """
     # Decrecation warning for change of name field in device model
     # from gate_times to gate_lengths

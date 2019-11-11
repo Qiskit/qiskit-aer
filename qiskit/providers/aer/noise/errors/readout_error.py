@@ -39,33 +39,36 @@ class ReadoutError:
         """
         Create a readout error for a noise model.
 
+        For an N-qubit readout error probabilities are entered as vectors:
+
+        .. code-block:: python
+
+            probabilities[j] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]
+
+        where ``P(j|m)`` is the probability of recording a measurement outcome
+        of ``m`` as the value ``j``. Where ``j`` and ``m`` are integer
+        representations of bit-strings.
+
+        **Example: 1-qubit**
+
+        .. code-block:: python
+
+            probabilities[0] = [P("0"|"0"), P("1"|"0")]
+            probabilities[1] = [P("0"|"1"), P("1"|"1")]
+
+        **Example: 2-qubit**
+
+        .. code-block:: python
+
+            probabilities[0] = [P("00"|"00"), P("01"|"00"), P("10"|"00"), P("11"|"00")]
+            probabilities[1] = [P("00"|"01"), P("01"|"01"), P("10"|"01"), P("11"|"01")]
+            probabilities[2] = [P("00"|"10"), P("01"|"10"), P("10"|"10"), P("11"|"10")]
+            probabilities[3] = [P("00"|"11"), P("01"|"11"), P("10"|"11"), P("11"|"11")]
+
         Args:
             probabilities (matrix): List of outcome assignment probabilities.
             atol (double): Threshold for checking probabilities are normalized
                            (Default: 1e-8).
-
-        Additional Information:
-            For an N-qubit readout error probabilities are entered as vectors:
-                ``probabilities[j] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]``
-            where ``P(j|m)`` is the probability of recording a measurement outcome
-            of ``m`` as the value ``j``. Where ``j`` and ``m`` are integer
-            representations of bit-strings.
-
-            Example: 1-qubit
-
-            .. code-block:: python
-
-                probabilities[0] = [P("0"|"0"), P("1"|"0")]
-                probabilities[1] = [P("0"|"1"), P("1"|"1")]
-
-            Example: 2-qubit
-
-            .. code-block:: python
-
-                probabilities[0] = [P("00"|"00"), P("01"|"00"), P("10"|"00"), P("11"|"00")]
-                probabilities[1] = [P("00"|"01"), P("01"|"01"), P("10"|"01"), P("11"|"01")]
-                probabilities[2] = [P("00"|"10"), P("01"|"10"), P("10"|"10"), P("11"|"10")]
-                probabilities[3] = [P("00"|"11"), P("01"|"11"), P("10"|"11"), P("11"|"11")]
         """
         self._check_probabilities(probabilities, atol)
         self._probabilities = np.array(probabilities, dtype=float)
@@ -149,14 +152,14 @@ class ReadoutError:
         return False
 
     def to_instruction(self):
-        """Convet the ReadoutError to a circuit Instruction."""
+        """Convert the ReadoutError to a circuit Instruction."""
         return Instruction("roerror", 0, self.number_of_qubits, self._probabilities)
 
     def as_dict(self):
         """
-        DEPRECATED: Use to_dict()
-        Returns:
-            dict: The current error as a dictionary.
+        Return the current error as a dictionary (DEPRECATED).
+
+        DEPRECATED: use :meth:`to_dict`.
         """
         deprecation("ReadoutError::as_dict() method is deprecated and will be removed after 0.3."
                     "Use '.to_dict()' instead")

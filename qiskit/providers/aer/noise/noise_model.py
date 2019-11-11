@@ -53,14 +53,15 @@ class NoiseModel:
                 for the noise model. If None a default value of ['id', 'u3', 'cx']
                 is used (Default: None).
 
-        Additional Information
-        ----------------------
-        Errors added to the noise model will have their instruction appended to
-        the noise model basis_gates if the instruction is in the QasmSimulator
-        basis_gates. If the instruction is not in the QasmSimulator basis_gates
-        it is assumed to be a label for a standard gate, and that gate should
-        be added to the NoiseModel basis_gates either using the init method, or
-        the `add_basis_Gates` method.
+        Additional Information:
+        Errors added to the noise model will have their instruction
+        appended to the noise model basis_gates if the instruction is in
+        the :class:`~qiskit.providers.aer.QasmSimulator` basis_gates. If
+        the instruction is not in the
+        :class:`~qiskit.providers.aer.QasmSimulator` basis_gates it is
+        assumed to be a label for a standard gate, and that gate should be
+        added to the `NoiseModel` basis_gates either using the init method,
+        or the :meth:`add_basis_gates` method.
         """
         if basis_gates is None:
             # Default basis gates is id, u3, cx so that all standard
@@ -252,9 +253,8 @@ class NoiseModel:
         Raises:
             NoiseError: if the input parameters are invalid.
 
-        Additional Information
-        ----------------------
-        If the error object is ideal it will not be added to the model.
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
         # Format input as QuantumError
         if not isinstance(error, QuantumError):
@@ -308,9 +308,8 @@ class NoiseModel:
         Raises:
             NoiseError: if the input parameters are invalid.
 
-        Additional Information
-        ----------------------
-        If the error object is ideal it will not be added to the model.
+        Additional Information:
+            If the error object is ideal it will not be added to the model.
         """
         if not isinstance(qubits, (list, tuple)):
             raise NoiseError("Qubits must be a list of integers.")
@@ -549,8 +548,9 @@ class NoiseModel:
 
     def as_dict(self, serializable=False):
         """
-        DEPRECATED: Use to_dict()
-        Returns a dictionary for noise model.
+        Return the noise model as a dictionary (DEPRECATED).
+
+        DEPRECATED: Use :meth:`to_dict`
 
         Args:
             serializable (bool): if `True`, return a dict containing only types
@@ -565,7 +565,7 @@ class NoiseModel:
 
     def to_dict(self, serializable=False):
         """
-        Return dictionary for noise model.
+        Return the noise model as a dictionary.
 
         Args:
             serializable (bool): if `True`, return a dict containing only types

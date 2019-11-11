@@ -41,154 +41,156 @@ class QasmSimulator(AerBackend):
     example. Available simulation methods and additional backend options are
     listed below.
 
-    Example:
-        .. code-block:: python
+    **Example**
 
-            backend = QasmSimulator()
-            backend_options = {"method": "statevector"}
+    .. code-block:: python
 
-            # Circuit execution
-            job = execute(circuits, backend, backend_options=backend_options)
+        backend = QasmSimulator()
+        backend_options = {"method": "statevector"}
 
-            # Qobj execution
-            job = backend.run(qobj, backend_options=backend_options)
+        # Circuit execution
+        job = execute(circuits, backend, backend_options=backend_options)
 
-    Simulation method:
-        Available simulation methods are:
+        # Qobj execution
+        job = backend.run(qobj, backend_options=backend_options)
 
-        * ``"statevector"``: A dense statevector simulation that can sample
-          measurement outcomes from *ideal* circuits with all measurements at
-          end of the circuit. For noisy simulations each shot samples a
-          randomly sampled noisy circuit from the noise model.
+    **Simulation method**
 
-        * ``"density_matrix"``: A dense density matrix simulation that may
-          sample measurement outcomes from *noisy* circuits with all
-          measurements at end of the circuit. It can only simulate half the
-          number of qubits as the statevector method.
+    Available simulation methods are:
 
-        * ``"stabilizer"``: An efficient Clifford stabilizer state simulator
-          that can simulate noisy Clifford circuits if all errors in the noise model are also
-          Clifford errors.
+    * ``"statevector"``: A dense statevector simulation that can sample
+      measurement outcomes from *ideal* circuits with all measurements at
+      end of the circuit. For noisy simulations each shot samples a
+      randomly sampled noisy circuit from the noise model.
 
-        * ``"extended_stabilizer"``: An approximate simulated based on a
-          ranked-stabilizer decomposition that decomposes circuits into stabilizer
-          state terms. The number of terms grows with the number of
-          non-Clifford gates.
+    * ``"density_matrix"``: A dense density matrix simulation that may
+      sample measurement outcomes from *noisy* circuits with all
+      measurements at end of the circuit. It can only simulate half the
+      number of qubits as the statevector method.
 
-        * ``"matrix_product_state"``: A tensor-network statevector simulator that
-          uses a Matrix Product State (MPS) representation for the state.
+    * ``"stabilizer"``: An efficient Clifford stabilizer state simulator
+      that can simulate noisy Clifford circuits if all errors in the noise model are also
+      Clifford errors.
 
-        * ``"automatic"``: The default behavior where the method is chosen
-          automatically for each circuit based on the circuit instructions,
-          number of qubits, and noise model.
+    * ``"extended_stabilizer"``: An approximate simulated based on a
+      ranked-stabilizer decomposition that decomposes circuits into stabilizer
+      state terms. The number of terms grows with the number of
+      non-Clifford gates.
 
-    Backend options (All methods):
-        The following backend options may be used with in the
-        ``backend_options`` kwarg for :meth:`QasmSimulator.run` or
-        ``qiskit.execute``
+    * ``"matrix_product_state"``: A tensor-network statevector simulator that
+      uses a Matrix Product State (MPS) representation for the state.
 
-        * ``"method"`` (str): Set the simulation method. See backend methods
-          for additional information (Default: "automatic").
+    * ``"automatic"``: The default behavior where the method is chosen
+      automatically for each circuit based on the circuit instructions,
+      number of qubits, and noise model.
 
-        * ``"precision"`` (str): Set the floating point precision for
-          certain simulation methods to either "single" or "double"
-          precision (default: "Double").
+    **Backend options**
 
-        * ``"zero_threshold"`` (double): Sets the threshold for truncating
-          small values to zero in the result data (Default: 1e-10).
+    The following backend options may be used with in the
+    ``backend_options`` kwarg for :meth:`QasmSimulator.run` or
+    ``qiskit.execute``:
 
-        * ``"validation_threshold"`` (double): Sets the threshold for checking
-          if initial states are valid (Default: 1e-8).
+    * ``"method"`` (str): Set the simulation method. See backend methods
+      for additional information (Default: "automatic").
 
-        * ``"max_parallel_threads"`` (int): Sets the maximum number of CPU
-          cores used by OpenMP for parallelization. If set to 0 the
-          maximum will be set to the number of CPU cores (Default: 0).
+    * ``"precision"`` (str): Set the floating point precision for
+      certain simulation methods to either "single" or "double"
+      precision (default: "Double").
 
-        * ``"max_parallel_experiments"`` (int): Sets the maximum number of
-          qobj experiments that may be executed in parallel up to the
-          max_parallel_threads value. If set to 1 parallel circuit
-          execution will be disabled. If set to 0 the maximum will be
-          automatically set to max_parallel_threads (Default: 1).
+    * ``"zero_threshold"`` (double): Sets the threshold for truncating
+      small values to zero in the result data (Default: 1e-10).
 
-        * ``"max_parallel_shots"`` (int): Sets the maximum number of
-          shots that may be executed in parallel during each experiment
-          execution, up to the max_parallel_threads value. If set to 1
-          parallel shot execution will be disabled. If set to 0 the
-          maximum will be automatically set to max_parallel_threads.
-          Note that this cannot be enabled at the same time as parallel
-          experiment execution (Default: 1).
+    * ``"validation_threshold"`` (double): Sets the threshold for checking
+      if initial states are valid (Default: 1e-8).
 
-        * ``"max_memory_mb"`` (int): Sets the maximum size of memory
-          to store a state vector. If a state vector needs more, an error
-          is thrown. In general, a state vector of n-qubits uses 2^n complex
-          values (16 Bytes). If set to 0, the maximum will be automatically
-          set to half the system memory size (Default: 0).
+    * ``"max_parallel_threads"`` (int): Sets the maximum number of CPU
+      cores used by OpenMP for parallelization. If set to 0 the
+      maximum will be set to the number of CPU cores (Default: 0).
 
-        * ``"optimize_ideal_threshold"`` (int): Sets the qubit threshold for
-          applying circuit optimization passes on ideal circuits.
-          Passes include gate fusion and truncation of unused qubits
-          (Default: 5).
+    * ``"max_parallel_experiments"`` (int): Sets the maximum number of
+      qobj experiments that may be executed in parallel up to the
+      max_parallel_threads value. If set to 1 parallel circuit
+      execution will be disabled. If set to 0 the maximum will be
+      automatically set to max_parallel_threads (Default: 1).
 
-        * ``"optimize_noise_threshold"`` (int): Sets the qubit threshold for
-          applying circuit optimization passes on ideal circuits.
-          Passes include gate fusion and truncation of unused qubits
-          (Default: 12).
+    * ``"max_parallel_shots"`` (int): Sets the maximum number of
+      shots that may be executed in parallel during each experiment
+      execution, up to the max_parallel_threads value. If set to 1
+      parallel shot execution will be disabled. If set to 0 the
+      maximum will be automatically set to max_parallel_threads.
+      Note that this cannot be enabled at the same time as parallel
+      experiment execution (Default: 1).
 
-    Backend options (``statevector"`` method):
-        These backend options only apply when using the
-        ``"statevector"`` simulation method.
+    * ``"max_memory_mb"`` (int): Sets the maximum size of memory
+      to store a state vector. If a state vector needs more, an error
+      is thrown. In general, a state vector of n-qubits uses 2^n complex
+      values (16 Bytes). If set to 0, the maximum will be automatically
+      set to half the system memory size (Default: 0).
 
-        * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
-          the number of qubits must be greater than to enable OpenMP
-          parallelization for matrix multiplication during execution of
-          an experiment. If parallel circuit or shot execution is enabled
-          this will only use unallocated CPU cores up to
-          max_parallel_threads. Note that setting this too low can reduce
-          performance (Default: 14).
+    * ``"optimize_ideal_threshold"`` (int): Sets the qubit threshold for
+      applying circuit optimization passes on ideal circuits.
+      Passes include gate fusion and truncation of unused qubits
+      (Default: 5).
 
-        * ``"statevector_sample_measure_opt"`` (int): Sets the threshold that
-          the number of qubits must be greater than to enable a large
-          qubit optimized implementation of measurement sampling. Note
-          that setting this two low can reduce performance (Default: 10)
+    * ``"optimize_noise_threshold"`` (int): Sets the qubit threshold for
+      applying circuit optimization passes on ideal circuits.
+      Passes include gate fusion and truncation of unused qubits
+      (Default: 12).
 
-    Backend options (``"stabilizer"`` method):
-        These backend options only apply when using the
-        ``"stabilizer"`` simulation method.
+    These backend options only apply when using the ``"statevector"``
+    simulation method:
 
-        * ``"stabilizer_max_snapshot_probabilities"`` (int): (Default: 32)
+    * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
+      the number of qubits must be greater than to enable OpenMP
+      parallelization for matrix multiplication during execution of
+      an experiment. If parallel circuit or shot execution is enabled
+      this will only use unallocated CPU cores up to
+      max_parallel_threads. Note that setting this too low can reduce
+      performance (Default: 14).
 
+    * ``"statevector_sample_measure_opt"`` (int): Sets the threshold that
+      the number of qubits must be greater than to enable a large
+      qubit optimized implementation of measurement sampling. Note
+      that setting this two low can reduce performance (Default: 10)
 
-    Backend options (``"extended_stabilizer"`` method):
-        These backend options only apply when using the
-        ``"extended_stabilizer"`` simulation method.
+    These backend options only apply when using the ``"stabilizer"``
+    simulation method:
 
-        * ``"extended_stabilizer_measure_sampling"`` (bool): Enable measure
-          sampling optimization on supported circuits. This prevents the
-          simulator from re-running the measure monte-carlo step for each
-          shot. Enabling measure sampling may reduce accuracy of the
-          measurement counts if the output distribution is strongly
-          peaked. (Default: False)
+    * ``"stabilizer_max_snapshot_probabilities"`` (int): set the maximum
+      qubit number for the
+      `~qiskit.providers.aer.extensions.SnapshotProbabilities`
+      instruction (Default: 32).
 
-        * ``"extended_stabilizer_mixing_time"`` (int): Set how long the
-          monte-carlo method runs before performing measurements. If the
-          output distribution is strongly peaked, this can be decreased
-          alongside setting extended_stabilizer_disable_measurement_opt
-          to True. (Default: 5000)
+    These backend options only apply when using the ``"extended_stabilizer"``
+    simulation method:
 
-        * ``"extended_stabilizer_approximation_error"`` (double): Set the error
-          in the approximation for the extended_stabilizer method. A
-          smaller error needs more memory and computational time.
-          (Default: 0.05)
+    * ``"extended_stabilizer_measure_sampling"`` (bool): Enable measure
+      sampling optimization on supported circuits. This prevents the
+      simulator from re-running the measure monte-carlo step for each
+      shot. Enabling measure sampling may reduce accuracy of the
+      measurement counts if the output distribution is strongly
+      peaked (Default: False).
 
-        * ``"extended_stabilizer_norm_estimation_samples"`` (int): Number of
-          samples used to compute the correct normalization for a
-          statevector snapshot. (Default: 100)
+    * ``"extended_stabilizer_mixing_time"`` (int): Set how long the
+      monte-carlo method runs before performing measurements. If the
+      output distribution is strongly peaked, this can be decreased
+      alongside setting extended_stabilizer_disable_measurement_opt
+      to True (Default: 5000).
 
-        * ``"extended_stabilizer_parallel_threshold"`` (int): Set the minimum
-          size of the extended stabilizer decomposition before we enable
-          OpenMP parallelization. If parallel circuit or shot execution
-          is enabled this will only use unallocated CPU cores up to
-          max_parallel_threads. (Default: 100)
+    * ``"extended_stabilizer_approximation_error"`` (double): Set the error
+      in the approximation for the extended_stabilizer method. A
+      smaller error needs more memory and computational time
+      (Default: 0.05).
+
+    * ``"extended_stabilizer_norm_estimation_samples"`` (int): Number of
+      samples used to compute the correct normalization for a
+      statevector snapshot (Default: 100).
+
+    * ``"extended_stabilizer_parallel_threshold"`` (int): Set the minimum
+      size of the extended stabilizer decomposition before we enable
+      OpenMP parallelization. If parallel circuit or shot execution
+      is enabled this will only use unallocated CPU cores up to
+      max_parallel_threads (Default: 100).
     """
 
     MAX_QUBIT_MEMORY = int(

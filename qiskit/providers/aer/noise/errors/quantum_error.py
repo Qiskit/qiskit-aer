@@ -55,6 +55,31 @@ class QuantumError:
         """
         Create a quantum error for a noise model.
 
+        Noise ops may either be specified as list of Kraus operators
+        for a general CPTP map, or as a list of ``(circuit, p)`` pairs
+        where ``circuit`` is a qobj circuit for the noise, and ``p`` is
+        the probability of the error circuit. If the input is Kraus
+        operators they will be converted to the circuit format, with
+        checks applied for determining if any Kraus operators are
+        unitary matrices.
+
+        **Example**
+
+        An example noise_ops for a bit-flip error with error probability
+        ``p = 0.1`` is:
+
+        .. code-block:: python
+
+            noise_ops = [([{"name": "id", "qubits": 0}], 0.9),
+                         ([{"name": "x", "qubits": 0}], 0.1)]
+
+        The same error represented as a Kraus channel can be input as:
+
+        .. code-block:: python
+
+            noise_ops = [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]),
+                         np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
+
         Args:
             noise_ops (list): A list of noise ops. See additional information.
             number_of_qubits (int): specify the number of qubits for the
@@ -66,31 +91,6 @@ class QuantumError:
 
         Raises:
             NoiseError: If input noise_ops are not a CPTP map.
-
-        Additional Information:
-            Noise ops may either be specified as list of Kraus operators
-            for a general CPTP map, or as a list of ``(circuit, p)`` pairs
-            where ``circuit`` is a qobj circuit for the noise, and ``p`` is
-            the probability of the error circuit. If the input is Kraus
-            operators they will be converted to the circuit format, with
-            checks applied for determining if any Kraus operators are
-            unitary matrices.
-
-        Example:
-            An example noise_ops for a bit-flip error with error probability
-            ``p = 0.1`` is:
-
-            .. code-block:: python
-
-                noise_ops = [([{"name": "id", "qubits": 0}], 0.9),
-                             ([{"name": "x", "qubits": 0}], 0.1)]
-
-            The same error represented as a Kraus channel can be input as:
-
-            .. code-block:: python
-
-                noise_ops = [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]),
-                             np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
         """
 
         # Shallow copy constructor
@@ -289,9 +289,9 @@ class QuantumError:
 
     def as_dict(self):
         """
-        DEPRECATED: Use to_dict()
-        Returns:
-            dict: The current error as a dictionary.
+        Return the current error as a dictionary (DEPRECATED).
+
+        DEPRECATED: use :meth:`to_dict`.
         """
         deprecation("QuantumError::as_dict() method is deprecated and will be removed after 0.3."
                     "Use '.to_dict()' instead")
@@ -424,9 +424,10 @@ class QuantumError:
         return self._tensor_product(other, reverse=True)
 
     def kron(self, other):
-        """Return the tensor product quantum error channel self ⊗ other.
+        """
+        Return the tensor product quantum error channel self ⊗ other (DEPRECATED).
 
-        DEPRECATED: use QuantumError.tensor instead.
+        DEPRECATED: use :meth:`tensor` instead.
 
         Args:
             other (QuantumError): a quantum error or channel.

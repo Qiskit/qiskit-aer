@@ -34,44 +34,45 @@ logger = logging.getLogger(__name__)
 class UnitarySimulator(AerBackend):
     """Ideal quantum circuit unitary simulator.
 
-    Backend options:
-        The following backend options may be used with in the
-        ``backend_options`` kwarg for :meth:`UnitarySimulator.run` or
-        ``qiskit.execute``.
+    **Backend options**
 
-        * ``"initial_unitary"`` (matrix_like): Sets a custom initial unitary
-          matrix for the simulation instead of identity (Default: None).
+    The following backend options may be used with in the
+    ``backend_options`` kwarg for :meth:`UnitarySimulator.run` or
+    ``qiskit.execute``.
 
-        * ``"validation_threshold"`` (double): Sets the threshold for checking
-          if initial unitary and target unitary are unitary matrices.
-          (Default: 1e-8).
+    * ``"initial_unitary"`` (matrix_like): Sets a custom initial unitary
+      matrix for the simulation instead of identity (Default: None).
 
-        * ``"zero_threshold"`` (double): Sets the threshold for truncating
-          small values to zero in the result data (Default: 1e-10).
+    * ``"validation_threshold"`` (double): Sets the threshold for checking
+      if initial unitary and target unitary are unitary matrices.
+      (Default: 1e-8).
 
-        * ``"max_parallel_threads"`` (int): Sets the maximum number of CPU
-          cores used by OpenMP for parallelization. If set to 0 the
-          maximum will be set to the number of CPU cores (Default: 0).
+    * ``"zero_threshold"`` (double): Sets the threshold for truncating
+      small values to zero in the result data (Default: 1e-10).
 
-        * ``"max_parallel_experiments"`` (int): Sets the maximum number of
-          qobj experiments that may be executed in parallel up to the
-          max_parallel_threads value. If set to 1 parallel circuit
-          execution will be disabled. If set to 0 the maximum will be
-          automatically set to max_parallel_threads (Default: 1).
+    * ``"max_parallel_threads"`` (int): Sets the maximum number of CPU
+      cores used by OpenMP for parallelization. If set to 0 the
+      maximum will be set to the number of CPU cores (Default: 0).
 
-        * ``"max_memory_mb"`` (int): Sets the maximum size of memory
-          to store a state vector. If a state vector needs more, an error
-          is thrown. In general, a state vector of n-qubits uses 2^n complex
-          values (16 Bytes). If set to 0, the maximum will be automatically
-          set to half the system memory size (Default: 0).
+    * ``"max_parallel_experiments"`` (int): Sets the maximum number of
+      qobj experiments that may be executed in parallel up to the
+      max_parallel_threads value. If set to 1 parallel circuit
+      execution will be disabled. If set to 0 the maximum will be
+      automatically set to max_parallel_threads (Default: 1).
 
-        * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
-          2 * "n_qubits" must be greater than to enable OpenMP
-          parallelization for matrix multiplication during execution of
-          an experiment. If parallel circuit or shot execution is enabled
-          this will only use unallocated CPU cores up to
-          max_parallel_threads. Note that setting this too low can reduce
-          performance (Default: 14).
+    * ``"max_memory_mb"`` (int): Sets the maximum size of memory
+      to store a state vector. If a state vector needs more, an error
+      is thrown. In general, a state vector of n-qubits uses 2^n complex
+      values (16 Bytes). If set to 0, the maximum will be automatically
+      set to half the system memory size (Default: 0).
+
+    * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
+      2 * "n_qubits" must be greater than to enable OpenMP
+      parallelization for matrix multiplication during execution of
+      an experiment. If parallel circuit or shot execution is enabled
+      this will only use unallocated CPU cores up to
+      max_parallel_threads. Note that setting this too low can reduce
+      performance (Default: 14).
     """
 
     MAX_QUBIT_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))

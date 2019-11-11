@@ -60,6 +60,10 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
     """
     Return a mixed unitary quantum error channel.
 
+    The input should be a list of pairs ``(U[j], p[j])``, where
+    ``U[j]`` is a unitary matrix and ``p[j]`` is a probability. All
+    probabilities must sum to 1 for the input ops to be valid.
+
     Args:
         noise_ops (list[pair[matrix, double]]): unitary error matrices.
         standard_gates (bool): Check if input matrices are standard gates.
@@ -69,11 +73,6 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
 
     Raises:
         NoiseError: if error parameters are invalid.
-
-    Additional Information:
-        The input should be a list of pairs ``(U[j], p[j])``, where
-        ``U[j]`` is a unitary matrix and ``p[j]`` is a probability. All
-        probabilities must sum to 1 for the input ops to be valid.
     """
 
     # Error checking
@@ -127,6 +126,11 @@ def pauli_error(noise_ops, standard_gates=True):
     """
     Return a mixed Pauli quantum error channel.
 
+    The input should be a list of pairs ``(P[j], p[j])``, where
+    ``P[j]`` is a ``Pauli`` object or string label, and ``p[j]`` is a
+    probability. All probabilities must sum to 1 for the input ops to
+    be valid.
+
     Args:
         noise_ops (list[pair[Pauli, double]]): Pauli error terms.
         standard_gates (bool): if True return the operators as standard qobj
@@ -139,12 +143,6 @@ def pauli_error(noise_ops, standard_gates=True):
 
     Raises:
         NoiseError: If depolarizing probability is less than 0 or greater than 1.
-
-    Additional Information:
-        The input should be a list of pairs ``(P[j], p[j])``, where
-        ``P[j]`` is a ``Pauli`` object or string label, and ``p[j]`` is a
-        probability. All probabilities must sum to 1 for the input ops to
-        be valid.
     """
 
     # Error checking
@@ -275,6 +273,24 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     r"""
     Return a depolarizing quantum error channel.
 
+    The depolarizing channel is defined as:
+
+    .. math::
+
+        E(ρ) = (1 - λ) ρ + λ \text{Tr}[ρ] \frac{I}{2^n}
+
+    with :math:`0 \le λ \le 4^n / (4^n - 1)`
+
+    where :math:`λ` is the depolarizing error param and :math`n` is the
+    number of qubits.
+
+    * If :math:`λ = 0` this is the identity channel :math:`E(ρ) = ρ`
+    * If :math:`λ = 1` this is a completely depolarizing channel
+      :math:`E(ρ) = I / 2^n`
+    * If :math:`λ = 4^n / (4^n - 1)` this is a uniform Pauli
+      error channel: :math:`E(ρ) = \sum_j P_j ρ P_j / (4^n - 1)` for
+      all :math:`P_j != I`.
+
     Args:
         param (double): depolarizing error parameter.
         num_qubits (int): the number of qubits for the error channel.
@@ -288,25 +304,6 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
 
     Raises:
         NoiseError: If noise parameters are invalid.
-
-    Additional Information:
-        The depolarizing channel is defined as:
-
-        .. math::
-
-            E(ρ) = (1 - λ) ρ + λ \text{Tr}[ρ] \frac{I}{2^n}
-
-        with :math:`0 \le λ \le 4^n / (4^n - 1)`
-
-        where :math:`λ` is the depolarizing error param and :math`n` is the
-        number of qubits.
-
-        * If :math:`λ = 0` this is the identity channel :math:`E(ρ) = ρ`
-        * If :math:`λ = 1` this is a completely depolarizing channel
-          :math:`E(ρ) = I / 2^n`
-        * If :math:`λ = 4^n / (4^n - 1)` this is a uniform Pauli
-          error channel: :math:`E(ρ) = \sum_j P_j ρ P_j / (4^n - 1)` for
-          all :math:`P_j != I`.
     """
     if not isinstance(num_qubits, int) or num_qubits < 1:
         raise NoiseError("num_qubits must be a positive integer.")
@@ -335,6 +332,16 @@ def reset_error(prob0, prob1=0):
     r"""
     Return a single qubit reset quantum error channel.
 
+    The error channel returned is given by the map
+
+    .. math::
+
+        E(ρ) = (1 - p_0 - p_1) ρ + \text{Tr}[ρ] \left(
+                p_0 |0 \rangle\langle 0|
+                + p_1 |1 \rangle\langle 1| \right)
+
+    where the probability of no reset is given by :math:`1 - p_0 - p_1`.
+
     Args:
         prob0 (double): reset probability to :math:`|0\rangle`.
         prob1 (double): reset probability to :math:`|1\rangle`.
@@ -344,17 +351,6 @@ def reset_error(prob0, prob1=0):
 
     Raises:
         NoiseError: If noise parameters are invalid.
-
-    Additional Information:
-        The error channel returned is given by the map
-
-        .. math::
-
-            E(ρ) = (1 - p_0 - p_1) ρ + \text{Tr}[ρ] \left(
-                   p_0 |0 \rangle\langle 0|
-                   + p_1 |1 \rangle\langle 1| \right)
-
-        where the probability of no reset is given by :math:`1 - p_0 - p_1`.
     """
     if prob0 < 0 or prob1 < 0 or prob0 > 1 or prob1 > 1:
         raise NoiseError("Invalid reset probabilities.")
@@ -483,6 +479,26 @@ def phase_amplitude_damping_error(param_amp,
     r"""
     Return a single-qubit combined phase and amplitude damping quantum error channel.
 
+    The single-qubit combined phase and amplitude damping channel is
+    described by the following Kraus matrices:
+
+    .. code-block:: python
+
+        A0 = sqrt(1 - p1) * [[1, 0], [0, sqrt(1 - a - b)]]
+        A1 = sqrt(1 - p1) * [[0, sqrt(a)], [0, 0]]
+        A2 = sqrt(1 - p1) * [[0, 0], [0, sqrt(b)]]
+        B0 = sqrt(p1) * [[sqrt(1 - a - b), 0], [0, 1]]
+        B1 = sqrt(p1) * [[0, 0], [sqrt(a), 0]]
+        B2 = sqrt(p1) * [[sqrt(b), 0], [0, 0]]
+
+    where ``a = param_amp``, ``b = param_phase``, and
+    ``p1 = excited_state_population``. The equilibrium state after infinitely
+    many applications of the channel is:
+
+    .. code-block:: python
+
+        rho_eq = [[1 - p1, 0]], [0, p1]]
+
     Args:
         param_amp (double): the amplitude damping error parameter.
         param_phase (double): the phase damping error parameter.
@@ -496,27 +512,6 @@ def phase_amplitude_damping_error(param_amp,
 
     Raises:
         NoiseError: If noise parameters are invalid.
-
-    Additional information:
-        The single-qubit combined phase and amplitude damping channel is
-        described by the following Kraus matrices:
-
-        .. code-block:: python
-
-            A0 = sqrt(1 - p1) * [[1, 0], [0, sqrt(1 - a - b)]]
-            A1 = sqrt(1 - p1) * [[0, sqrt(a)], [0, 0]]
-            A2 = sqrt(1 - p1) * [[0, 0], [0, sqrt(b)]]
-            B0 = sqrt(p1) * [[sqrt(1 - a - b), 0], [0, 1]]
-            B1 = sqrt(p1) * [[0, 0], [sqrt(a), 0]]
-            B2 = sqrt(p1) * [[sqrt(b), 0], [0, 0]]
-
-        where ``a = param_amp``, ``b = param_phase``, and
-        ``p1 = excited_state_population``. The equilibrium state after infinitely
-        many applications of the channel is:
-
-        .. code-block:: python
-
-            rho_eq = [[1 - p1, 0]], [0, p1]]
     """
 
     if param_amp < 0:
@@ -558,6 +553,24 @@ def amplitude_damping_error(param_amp,
     r"""
     Return a single-qubit generalized amplitude damping quantum error channel.
 
+    The single-qubit amplitude damping channel is described by the
+    following Kraus matrices:
+
+    .. code-block:: python
+
+        A0 = sqrt(1 - p1) * [[1, 0], [0, sqrt(1 - a)]]
+        A1 = sqrt(1 - p1) * [[0, sqrt(a)], [0, 0]]
+        B0 = sqrt(p1) * [[sqrt(1 - a), 0], [0, 1]]
+        B1 = sqrt(p1) * [[0, 0], [sqrt(a), 0]]
+
+    where ``a = param_amp``, ``p1 = excited_state_population``.
+    The equilibrium state after infinitely many applications of the
+    channel is:
+
+    .. code-block:: python
+
+        rho_eq = [[1 - p1, 0]], [0, p1]]
+
     Args:
         param_amp (double): the amplitude damping parameter.
         excited_state_population (double): the population of :math:`|0\rangle`
@@ -567,25 +580,6 @@ def amplitude_damping_error(param_amp,
 
     Returns:
         QuantumError: a quantum error object for a noise model.
-
-    Additional information:
-        The single-qubit amplitude damping channel is
-        described by the following Kraus matrices:
-
-        .. code-block:: python
-
-            A0 = sqrt(1 - p1) * [[1, 0], [0, sqrt(1 - a)]]
-            A1 = sqrt(1 - p1) * [[0, sqrt(a)], [0, 0]]
-            B0 = sqrt(p1) * [[sqrt(1 - a), 0], [0, 1]]
-            B1 = sqrt(p1) * [[0, 0], [sqrt(a), 0]]
-
-        where ``a = param_amp``, ``p1 = excited_state_population``.
-        The equilibrium state after infinitely many applications of the
-        channel is:
-
-        .. code-block:: python
-
-            rho_eq = [[1 - p1, 0]], [0, p1]]
     """
     return phase_amplitude_damping_error(
         param_amp,
@@ -598,6 +592,24 @@ def phase_damping_error(param_phase, canonical_kraus=True):
     r"""
     Return a single-qubit combined phase and amplitude damping quantum error channel.
 
+    The single-qubit combined phase and amplitude damping channel is
+    described by the following Kraus matrices:
+
+    .. code-block:: python
+
+        A0 = [[1, 0], [0, sqrt(1 - b)]]
+        A2 = [[0, 0], [0, sqrt(b)]]
+
+    where ``b = param_phase``.
+    The equilibrium state after infinitely many applications of the
+    channel is:
+
+    .. code-block:: python
+
+        rho_eq = [[rho_init[0, 0], 0]], [0, rho_init[1, 1]]]
+
+    where ``rho_init`` is the input state ρ.
+
     Args:
         param_phase (double): the phase damping parameter.
         canonical_kraus (bool): Convert input Kraus matrices into the
@@ -605,25 +617,6 @@ def phase_damping_error(param_phase, canonical_kraus=True):
 
     Returns:
         QuantumError: a quantum error object for a noise model.
-
-    Additional information:
-        The single-qubit combined phase and amplitude damping channel is
-        described by the following Kraus matrices:
-
-        .. code-block:: python
-
-            A0 = [[1, 0], [0, sqrt(1 - b)]]
-            A2 = [[0, 0], [0, sqrt(b)]]
-
-        where ``b = param_phase``.
-        The equilibrium state after infinitely many applications of the
-        channel is:
-
-        .. code-block:: python
-
-            rho_eq = [[rho_init[0, 0], 0]], [0, rho_init[1, 1]]]
-
-        where ``rho_init`` is the input state ρ.
     """
 
     return phase_amplitude_damping_error(
