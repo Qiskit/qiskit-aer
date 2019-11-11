@@ -3,7 +3,6 @@ cmake
 scikit-build
 cython
 asv
-cvxopt
 pylint
 pycodestyle
 Sphinx>=1.8.3

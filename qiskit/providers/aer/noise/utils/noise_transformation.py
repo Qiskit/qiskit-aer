@@ -694,10 +694,9 @@ class NoiseTransformer:
         Raises:
             ImportError: If cvxopt external module is not installed
 
-        Additional information
-        ======================
-        This method is the only place in the code where we rely on the cvxopt library
-        should we consider another library, only this method needs to change
+        Additional information:
+            This method requires the `cvxopt` library which must be
+            installed separately.
         """
         try:
             import cvxopt
