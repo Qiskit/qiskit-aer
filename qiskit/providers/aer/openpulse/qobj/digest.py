@@ -46,10 +46,17 @@ def digest_pulse_obj(qobj):
     # Output data object
     out = OPSystem()
 
-    # get the config settings from the qobj
-    config_dict_sim = qobj['config']['sim_config']
+    # Get the config settings from the qobj
     config_dict = qobj['config']
+    if 'backend_options' not in config_dict:
+        raise ValueError('Pulse Qobj must have "sim_config".')
+    config_dict_sim = config_dict['backend_options']
+    noise_dict = config_dict_sim.get('noise_model', {})
+    if 'hamiltonian' not in config_dict_sim:
+        raise ValueError('Qobj must have hamiltonian in config to simulate.')
+    hamiltonian = config_dict_sim['hamiltonian']
 
+    # Get qubit number
     qubit_list = config_dict_sim.get('qubit_list', None)
     if qubit_list is None:
         qubit_list = list(range(config_dict_sim['n_qubits']))
@@ -109,28 +116,23 @@ def digest_pulse_obj(qobj):
     out.ode_options = OPoptions(**user_set_ode_options)
 
     # Step #1: Parse hamiltonian representation
-    if 'hamiltonian' not in config_keys_sim:
-        raise ValueError('Qobj must have hamiltonian in config to simulate.')
-
-    ham = config_dict_sim['hamiltonian']
-
-    out.vars = OrderedDict(ham['vars'])
+    out.vars = OrderedDict(hamiltonian['vars'])
     out.global_data['vars'] = list(out.vars.values())
 
     # Get qubit subspace dimensions
-    if 'qub' in ham.keys():
-        dim_qub = ham['qub']
+    if 'qub' in hamiltonian.keys():
+        dim_qub = hamiltonian['qub']
         _dim_qub = {}
         # Convert str keys to int keys
-        for key, val in ham['qub'].items():
+        for key, val in hamiltonian['qub'].items():
             _dim_qub[int(key)] = val
         dim_qub = _dim_qub
     else:
         dim_qub = {}.fromkeys(range(config_dict_sim['n_qubits']), 2)
 
     # Get oscillator subspace dimensions
-    if 'osc' in ham.keys():
-        dim_osc = ham['osc']
+    if 'osc' in hamiltonian.keys():
+        dim_osc = hamiltonian['osc']
         _dim_osc = {}
         # Convert str keys to int keys
         for key, val in dim_osc.items():
@@ -140,14 +142,14 @@ def digest_pulse_obj(qobj):
         dim_osc = {}
 
     # Parse the Hamiltonian
-    system = HamiltonianParser(h_str=ham['h_str'],
+    system = HamiltonianParser(h_str=hamiltonian['h_str'],
                                dim_osc=dim_osc,
                                dim_qub=dim_qub)
     system.parse(qubit_list)
     out.system = system.compiled
 
-    if 'noise' in config_dict_sim.keys():
-        noise = NoiseParser(noise_dict=config_dict_sim['noise'],
+    if noise_dict:
+        noise = NoiseParser(noise_dict=noise_dict,
                             dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
