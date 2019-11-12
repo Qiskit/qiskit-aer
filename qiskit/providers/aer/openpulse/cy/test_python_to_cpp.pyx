@@ -23,7 +23,7 @@ import numpy as np
 cimport numpy as np
 
 # These definitions are only for testing the C++ wrappers over Python C API
-cdef extern from "src/test_helpers.hpp":
+cdef extern from "src/test_python_to_cpp.hpp":
     cdef bool cpp_test_py_list_to_cpp_vec(list val)
     cdef bool cpp_test_py_list_of_lists_to_cpp_vector_of_vectors(list val)
     cdef bool cpp_test_py_list_of_np_arrays(list val)

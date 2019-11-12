@@ -24,8 +24,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
-#include "helpers.hpp"
-#include "ordered_map.hpp"
+#include "python_to_cpp.hpp"
 
 // TODO: Test QuantumObj
 // TODO: Test Hamiltonian

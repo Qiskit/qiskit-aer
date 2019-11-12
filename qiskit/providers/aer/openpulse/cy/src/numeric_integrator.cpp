@@ -8,8 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include "numeric_integrator.hpp"
-#include "helpers.hpp"
-#include "ordered_map.hpp"
+#include "python_to_cpp.hpp"
 
 class Unregister {
   public:
@@ -33,8 +32,6 @@ complex_t chan_value(
     };
 
     complex_t out = {0., 0.};
-
-    //1. cdef unsigned int num_times = chan_pulse_times.shape[0] // 4
     auto num_times = static_cast<int>(chan_pulse_times.shape[0]) / 4;
 
     for(auto i=0; i < num_times; ++i){
@@ -103,7 +100,8 @@ PyArrayObject * td_ode_rhs(
 
     const static auto numpy_initialized = init_numpy();
 
-    // I left this commented on porpose just in case we need logs in the future
+    // I left this commented on porpose so we can use logging eventually
+    // This is just a RAII for the logger
     //const Unregister unregister;
     //auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
     //spdlog::set_default_logger(file_logger);
@@ -124,28 +122,10 @@ PyArrayObject * td_ode_rhs(
            throw std::invalid_argument(msg);
     }
 
-    // 1. Get vec
     auto vec = get_value<NpArray<complex_t>>(py_vec);
-
-    // deal with non 1D arrays as well (through PyArrayObject)
-    // unsigned int num_rows = vec.shape[0]
     auto num_rows = vec.shape[0];
-
-    // 2. double complex * out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))
     auto out = static_cast<complex_t *>(PyDataMem_NEW_ZEROED(num_rows, sizeof(complex_t)));
 
-    // 3. Compute complex channel values at time `t`
-    // D0 = chan_value(t, 0, (double)D0_freq, ([doubles])D0_pulses,  pulse_array, pulse_indices, D0_fc, )
-    // U0 = chan_value(t, 1, U0_freq, U0_pulses,  pulse_array, pulse_indices, U0_fc, )
-    // D1 = chan_value(t, 2, D1_freq, D1_pulses,  pulse_array, pulse_indices, D1_fc, )
-    // U1 = chan_value(t, 3, U1_freq, U1_pulses,  pulse_array, pulse_indices, U1_fc, )
-    ////
-    // for chan, idx in self.op_system.channels.items():
-    // chan_str = "%s = chan_value(t, %s, %s_freq, " % (chan, idx, chan) + \
-    //            "%s_pulses,  pulse_array, pulse_indices, " % chan + \
-    //            "%s_fc, )" % (chan)
-
-    // TODO: Pass const & as keys to avoid copying
     auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
     auto pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
@@ -180,15 +160,6 @@ PyArrayObject * td_ode_rhs(
     for(const auto& idx_sys : enumerate(systems)){
         auto sys_index = idx_sys.first;
         auto sys = idx_sys.second;
-        // 4.1
-        // if (idx == len(self.op_system.system) and
-        //    (len(self.op_system.system) < self.num_ham_terms)):
-        //     # this is the noise term
-        //         term = [1.0, 1.0]
-        //     elif idx < len(self.op_system.system):
-        //         term = self.op_system.system[idx]
-        //     else:
-        //         continue
         // TODO: Refactor
         std::string term;
         if(sys_index == systems.size() && num_h_terms > systems.size()){
@@ -199,22 +170,6 @@ PyArrayObject * td_ode_rhs(
             continue;
         }
 
-        // 4.2
-        // td0 = np.pi*(2*v0-alpha0)
-        // if abs(td0) > 1e-15:
-        //     for row in range(num_rows):
-        //         dot = 0;
-        //         row_start = ptr0[row];
-        //         row_end = ptr0[row+1];
-        //         for jj in range(row_start,row_end):
-        //             osc_term = exp(1j * (energ[row] - energ[idx0[jj]]) * t)
-        //             if row<idx0[jj]:
-        //                 coef = conj(td0)
-        //             else:
-        //                 coef = td0
-        //             dot += coef*osc_term*data0[jj]*vec[idx0[jj]];
-        //         out[row] += dot;
-        // td1 = np.pi*alpha0
         auto td = evaluate_hamiltonian_expression(term, vars, vars_names, chan_values);
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){

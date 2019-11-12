@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _HELPERS_HPP
-#define _HELPERS_HPP
+#ifndef _PYTHON_TO_CPP_HPP
+#define _PYTHON_TO_CPP_HPP
 
 #include <utility>
 #include <unordered_map>
@@ -22,21 +22,14 @@
 #include <complex>
 #include <type_traits>
 #include <Python.h>
-#include <exprtk.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
 #include "ordered_map.hpp"
-
-
-/**
- * TODO: There's a lot of copying due to converting from Pyhton C strucutres
- * to C++ stl containers. We can avoid this by wrapping the former and avoiding
- * copies
- **/
-
-
+#include "types.hpp"
+#include "iterators.hpp"
+#include "eval_hamiltonian.hpp"
 
 static bool init_numpy(){
     static bool initialized = false;
@@ -46,7 +39,7 @@ static bool init_numpy(){
     }
 };
 
-bool _check_is_integer(PyObject * value){
+bool check_is_integer(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
 
@@ -57,7 +50,7 @@ bool _check_is_integer(PyObject * value){
     return true;
 }
 
-bool _check_is_string(PyObject * value){
+bool check_is_string(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
 
@@ -67,7 +60,7 @@ bool _check_is_string(PyObject * value){
     return true;
 }
 
-bool _check_is_floating_point(PyObject * value){
+bool check_is_floating_point(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
 
@@ -77,7 +70,7 @@ bool _check_is_floating_point(PyObject * value){
     return true;
 }
 
-bool _check_is_complex(PyObject * value){
+bool check_is_complex(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
 
@@ -87,7 +80,7 @@ bool _check_is_complex(PyObject * value){
     return true;
 }
 
-bool _check_is_list(PyObject * value){
+bool check_is_list(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Pyhton list is null!");
 
@@ -98,7 +91,7 @@ bool _check_is_list(PyObject * value){
     return true;
 }
 
-bool _check_is_tuple(PyObject * value){
+bool check_is_tuple(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Pyhton tuple is null!");
 
@@ -109,7 +102,7 @@ bool _check_is_tuple(PyObject * value){
     return true;
 }
 
-bool _check_is_dict(PyObject * value){
+bool check_is_dict(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Pyhton dict is null!");
 
@@ -120,7 +113,7 @@ bool _check_is_dict(PyObject * value){
     return true;
 }
 
-bool _check_is_np_array(PyArrayObject * value){
+bool check_is_np_array(PyArrayObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Numpy ndarray is null!");
     init_numpy();
@@ -130,12 +123,6 @@ bool _check_is_np_array(PyArrayObject * value){
 
     return true;
 }
-
-
-
-
-
-
 
 
 // Simon Brand technique to achive partial specialization on function templates
@@ -163,10 +150,149 @@ const T get_value(PyArrayObject * value){
 // </JUAN>
 
 
-/**
- * Helper Types
- **/
-using complex_t = std::complex<double>;
+template<>
+uint8_t get_value(type<uint8_t> _, PyObject * value){
+    return get_value<long>(value);
+}
+
+template<>
+long get_value(type<long> _, PyObject * value){
+    if(!check_is_integer(value))
+        throw std::invalid_argument("PyObject is not a long!");
+
+    long c_value = PyLong_AsLong(value);
+    auto ex = PyErr_Occurred();
+    if(ex)
+        throw ex;
+
+    return c_value;
+}
+
+template<>
+double get_value(type<double> _, PyObject * value){
+    if(!check_is_floating_point(value)){
+        // it's not a floating point, but maybe an integer?
+        if(check_is_integer(value))
+            return static_cast<double>(get_value<long>(value));
+
+        throw std::invalid_argument("PyObject is not a double!");
+    }
+
+    double c_value = PyFloat_AsDouble(value);
+    auto ex = PyErr_Occurred();
+    if(ex)
+        throw ex;
+
+    return c_value;
+}
+
+template<>
+std::complex<double> get_value(type<std::complex<double>> _, PyObject * value){
+    if(!check_is_complex(value))
+        throw std::invalid_argument("PyObject is not a complex number!");
+
+    Py_complex c_value = PyComplex_AsCComplex(value);
+    auto ex = PyErr_Occurred();
+    if(ex)
+        throw ex;
+
+    return std::complex<double>(c_value.real, c_value.imag);
+}
+
+template<>
+std::string get_value(type<std::string> _, PyObject * value){
+    if(!check_is_string(value))
+        throw std::invalid_argument("PyObject is not a string!");
+
+    auto bytes_str = PyUnicode_AsUTF8String(value);
+    auto c_str = PyBytes_AsString(bytes_str);
+
+    if(c_str == nullptr)
+        throw std::invalid_argument("Conversion to utf-8 has failed!");
+
+    return std::string(c_str);
+}
+
+template<typename T>
+std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
+    if(!check_is_list(value))
+        throw std::invalid_argument("PyObject is not a List!");
+
+    auto size = PyList_Size(value);
+    std::vector<T> vector;
+    vector.reserve(size);
+    for(auto i=0; i<size; ++i){
+        auto py_item = PyList_GetItem(value, i);
+        if(py_item == nullptr)
+            continue;
+        auto item = get_value<T>(py_item);
+        vector.emplace_back(item);
+    }
+    return vector;
+}
+
+/* WARNING: There's no support for variadic templates in Cython, so
+   we use a std::pair because there's no more than two types in the Python
+   tuples so far, so as we are fine for now... */
+template<typename T, typename U>
+std::pair<T, U> get_value(type<std::pair<T, U>> _, PyObject * value){
+    if(!check_is_tuple(value))
+        throw std::invalid_argument("PyObject is not a Tuple!");
+
+    if(PyTuple_Size(value) > 2)
+        throw std::invalid_argument("Tuples with more than 2 elements are not supported yet!!");
+
+    auto first_py_item = PyTuple_GetItem(value, 0);
+    if(first_py_item == nullptr)
+        throw std::invalid_argument("The tuple must have a first element");
+
+    auto second_py_item = PyTuple_GetItem(value, 1);
+    if(second_py_item == nullptr)
+        throw std::invalid_argument("The tuple must have a second element");
+
+    auto first_item = get_value<T>(first_py_item);
+    auto second_item = get_value<U>(second_py_item);
+
+    return std::make_pair(first_item, second_item);
+}
+
+template<typename ValueType>
+std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
+    if(!check_is_dict(value))
+        throw std::invalid_argument("PyObject is not a dictonary!!");
+
+    auto size = PyDict_Size(value);
+    std::unordered_map<std::string, ValueType> map;
+    map.reserve(size);
+
+    PyObject *key, *val;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(value, &pos, &key, &val)) {
+        auto inner_key = get_value<std::string>(key);
+        auto inner_value = get_value<ValueType>(val);
+        map.emplace(inner_key, inner_value);
+    }
+    return map;
+}
+
+template<typename ValueType>
+const ordered_map<std::string, ValueType> get_value(type<ordered_map<std::string, ValueType>> _, PyObject * value){
+    if(!check_is_dict(value))
+        throw std::invalid_argument("PyObject is not a dictonary!!");
+
+    auto size = PyDict_Size(value);
+    ordered_map<std::string, ValueType> map;
+    map.reserve(size);
+
+    PyObject *key, *val;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(value, &pos, &key, &val)) {
+        auto inner_key = get_value<std::string>(key);
+        auto inner_value = get_value<ValueType>(val);
+        map.emplace(inner_key, inner_value);
+    }
+    return map;
+}
 
 template<typename VecType>
 class NpArray {
@@ -217,9 +343,8 @@ class NpArray {
         return true;
     }
   private:
-
 	void _populate_shape(PyArrayObject * array){
-		if(!_check_is_np_array(array))
+		if(!check_is_np_array(array))
 			throw std::invalid_argument("PyArrayObject is not a numpy array!");
 
 		auto p_dims = PyArray_SHAPE(array);
@@ -246,312 +371,22 @@ class NpArray {
 };
 
 template<typename T>
-void jlog(const std::string& msg, const T& value){
-    spdlog::debug("{}: {}", msg, value);
-}
-
-template<>
-void jlog(const std::string& msg, const complex_t& values){
-    spdlog::debug("{}: [{},{}i]", msg, values.real(), values.imag());
-}
-
-template<typename T>
-void jlog(const std::string& msg, const NpArray<T>& values){
-    spdlog::debug("{}", msg);
-    spdlog::debug(".shape: ");
-    for(const auto& shape : values.shape)
-        spdlog::debug("{} ", shape);
-
-    spdlog::debug("\n.data: ");
-    for(const auto& val : values.data){
-        jlog("", val);
-    }
-}
-
-template<typename T>
-void jlog(const std::string& msg, const std::vector<T>& values){
-    spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        jlog("", val);
-    }
-}
-
-template<>
-void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
-    spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        for(const auto& inner: val.second){
-            for(const auto& inner2: inner){
-                spdlog::debug("{}:{} ", val.first, inner2);
-            }
-        }
-    }
-}
-
-template<>
-void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
-    spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        spdlog::debug("{}:{} ", val.first, val.second);
-    }
-}
-
-template<>
-void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<NpArray<double>>>& values){
-    spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        for(const auto& inner: val.second){
-            jlog(val.first, inner);
-        }
-    }
-}
-
-template<>
-void jlog(const std::string& msg, const ordered_map<std::string, std::vector<NpArray<double>>>& values){
-    spdlog::debug("{}", msg);
-    using order_map_t = ordered_map<std::string, std::vector<NpArray<double>>>;
-    for(const auto& val : const_cast<order_map_t&>(values)){
-        for(const auto& inner: val.second){
-            jlog(val.first, inner);
-        }
-    }
-}
-
-template <typename T>
-struct iterator_extractor { using type = typename T::iterator; };
-
-template <typename T>
-struct iterator_extractor<T const> { using type = typename T::const_iterator; };
-
-/**
- * Python-like `enumerate()` for C++14 ranged-for
- *
- * I wish I'd had this included in the STL :)
- *
- * Usage:
- * ```c++
- * for(auto& elem: index(vec)){
- *     std::cout << "Index: " << elem.first << " Element: " << elem.second;
- * }
- * ```
- **/
-template <typename T>
-class Indexer {
-public:
-    class _Iterator {
-        using inner_iterator =  typename iterator_extractor<T>::type;
-        using inner_reference = typename std::iterator_traits<inner_iterator>::reference;
-    public:
-        using reference = std::pair<size_t, inner_reference>;
-
-        _Iterator(inner_iterator it): _pos(0), _it(it) {}
-
-        reference operator*() const {
-            return reference(_pos, *_it);
-        }
-
-        _Iterator& operator++() {
-            ++_pos;
-            ++_it;
-            return *this;
-        }
-
-        _Iterator operator++(int) {
-            _Iterator tmp(*this);
-            ++*this;
-            return tmp;
-        }
-
-        bool operator==(_Iterator const& it) const {
-            return _it == it._it;
-        }
-        bool operator!=(_Iterator const& it) const {
-            return !(*this == it);
-        }
-
-    private:
-        size_t _pos;
-        inner_iterator _it;
-    };
-
-    Indexer(T& t): _container(t) {}
-
-    _Iterator begin() const {
-        return _Iterator(_container.begin());
-    }
-    _Iterator end() const {
-        return _Iterator(_container.end());
-    }
-
-private:
-    T& _container;
-}; // class Indexer
-
-template <typename T>
-Indexer<T> enumerate(T& t) { return Indexer<T>(t); }
-
-
-
-template<>
-uint8_t get_value(type<uint8_t> _, PyObject * value){
-    return get_value<long>(value);
-}
-
-template<>
-long get_value(type<long> _, PyObject * value){
-    if(!_check_is_integer(value))
-        throw std::invalid_argument("PyObject is not a long!");
-
-    long c_value = PyLong_AsLong(value);
-    auto ex = PyErr_Occurred();
-    if(ex)
-        throw ex;
-
-    return c_value;
-}
-
-template<>
-double get_value(type<double> _, PyObject * value){
-    if(!_check_is_floating_point(value)){
-        // it's not a floating point, but maybe an integer?
-        if(_check_is_integer(value))
-            return static_cast<double>(get_value<long>(value));
-
-        throw std::invalid_argument("PyObject is not a double!");
-    }
-
-    double c_value = PyFloat_AsDouble(value);
-    auto ex = PyErr_Occurred();
-    if(ex)
-        throw ex;
-
-    return c_value;
-}
-
-template<>
-std::complex<double> get_value(type<std::complex<double>> _, PyObject * value){
-    if(!_check_is_complex(value))
-        throw std::invalid_argument("PyObject is not a complex number!");
-
-    Py_complex c_value = PyComplex_AsCComplex(value);
-    auto ex = PyErr_Occurred();
-    if(ex)
-        throw ex;
-
-    return std::complex<double>(c_value.real, c_value.imag);
-}
-
-template<>
-std::string get_value(type<std::string> _, PyObject * value){
-    if(!_check_is_string(value))
-        throw std::invalid_argument("PyObject is not a string!");
-
-    auto bytes_str = PyUnicode_AsUTF8String(value);
-    auto c_str = PyBytes_AsString(bytes_str);
-
-    if(c_str == nullptr)
-        throw std::invalid_argument("Conversion to utf-8 has failed!");
-
-    return std::string(c_str);
-}
-
-template<typename T>
-std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
-    if(!_check_is_list(value))
-        throw std::invalid_argument("PyObject is not a List!");
-
-    auto size = PyList_Size(value);
-    std::vector<T> vector;
-    vector.reserve(size);
-    for(auto i=0; i<size; ++i){
-        auto py_item = PyList_GetItem(value, i);
-        if(py_item == nullptr)
-            continue;
-        auto item = get_value<T>(py_item);
-        vector.emplace_back(item);
-    }
-    return vector;
-}
-
-/* WARNING: There's no support for variadic templates in Cython, so
-   we use a std::pair because there's no more than two types in the Python
-   tuples so far, so as we are fine for now... */
-template<typename T, typename U>
-std::pair<T, U> get_value(type<std::pair<T, U>> _, PyObject * value){
-    if(!_check_is_tuple(value))
-        throw std::invalid_argument("PyObject is not a Tuple!");
-
-    if(PyTuple_Size(value) > 2)
-        throw std::invalid_argument("Tuples with more than 2 elements are not supported yet!!");
-
-    auto first_py_item = PyTuple_GetItem(value, 0);
-    if(first_py_item == nullptr)
-        throw std::invalid_argument("The tuple must have a first element");
-
-    auto second_py_item = PyTuple_GetItem(value, 1);
-    if(second_py_item == nullptr)
-        throw std::invalid_argument("The tuple must have a second element");
-
-    auto first_item = get_value<T>(first_py_item);
-    auto second_item = get_value<U>(second_py_item);
-
-    return std::make_pair(first_item, second_item);
-}
-
-template<typename ValueType>
-std::unordered_map<std::string, ValueType> get_value(type<std::unordered_map<std::string, ValueType>> _, PyObject * value){
-    if(!_check_is_dict(value))
-        throw std::invalid_argument("PyObject is not a dictonary!!");
-
-    auto size = PyDict_Size(value);
-    std::unordered_map<std::string, ValueType> map;
-    map.reserve(size);
-
-    PyObject *key, *val;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(value, &pos, &key, &val)) {
-        auto inner_key = get_value<std::string>(key);
-        auto inner_value = get_value<ValueType>(val);
-        map.emplace(inner_key, inner_value);
-    }
-    return map;
-}
-
-template<typename ValueType>
-ordered_map<std::string, ValueType> get_value(type<ordered_map<std::string, ValueType>> _, PyObject * value){
-    if(!_check_is_dict(value))
-        throw std::invalid_argument("PyObject is not a dictonary!!");
-
-    auto size = PyDict_Size(value);
-    ordered_map<std::string, ValueType> map;
-    map.reserve(size);
-
-    PyObject *key, *val;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(value, &pos, &key, &val)) {
-        auto inner_key = get_value<std::string>(key);
-        auto inner_value = get_value<ValueType>(val);
-        map.emplace(inner_key, inner_value);
-    }
-    return map;
-}
-
-template<typename T>
 const NpArray<T> get_value(type<NpArray<T>> _, PyArrayObject * value){
-    if(!_check_is_np_array(value))
+    if(!check_is_np_array(value))
         throw std::invalid_argument("PyArrayObject is not a numpy array!");
 
     return NpArray<T>(value);
 }
 
 template<typename T>
-const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value){
+const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value) {
     PyArrayObject * array = reinterpret_cast<PyArrayObject *>(value);
     return get_value<NpArray<T>>(array);
 }
 
+
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
-    if(!_check_is_dict(dict))
+    if(!check_is_dict(dict))
         throw std::invalid_argument("Python dictionary is null!");
 
     PyObject * tmp_key;
@@ -657,85 +492,6 @@ ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key)
 }
 
 
-/**
- * Math expression evaluator for the Hamiltonian terms
- **/
-// complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
-//                                   const std::vector<double>& vars,
-//                                   const std::vector<std::string>& vars_names,
-//                                   const std::unordered_map<std::string, complex_t>& chan_values){
-//     exprtk::symbol_table<complex_t> symbol_table;
-//     auto pi = M_PI;
-//     auto complex_pi = static_cast<complex_t>(pi);
-//     symbol_table.add_variable("np.pi", complex_pi);
-
-//     for(const auto& idx_var : enumerate(vars)){
-//         auto index = idx_var.first;
-//         auto var = static_cast<complex_t>(idx_var.second);
-//         symbol_table.add_variable(vars_names[index], var);
-//     }
-
-//     for(const auto& idx_channel : enumerate(chan_values)){
-//         auto index = idx_channel.first;
-//         auto channel = idx_channel.second.first; // The std::string of the map
-//         auto val = idx_channel.second.second; // The complex_t of the map
-//         symbol_table.add_variable(channel, val);
-//     }
-
-//     exprtk::expression<complex_t> expression;
-//     expression.register_symbol_table(symbol_table);
-
-//     exprtk::parser<complex_t> parser;
-
-//     if (!parser.compile(expr_string, expression)){
-//         throw std::invalid_argument("Cannot evaluate hamiltonian expression: " + expr_string);
-//     }
-
-//     return expression.value();
-// }
-
-complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
-                                  const std::vector<double>& vars,
-                                  const std::vector<std::string>& vars_names,
-                                  const std::unordered_map<std::string, complex_t>& chan_values){
-    using namespace mup;
-    ParserX parser;
-    Value pi(M_PI);
-    parser.DefineVar("npi", Variable(&pi));
-
-    std::vector<Value> values;
-    values.reserve(vars.size() + chan_values.size());
-    for(const auto& idx_var : enumerate(vars)){
-        auto index = idx_var.first;
-        auto var = static_cast<complex_t>(idx_var.second);
-        values.emplace_back(Value(var));
-        parser.DefineVar(vars_names[index], Variable(&values[values.size()-1]));
-    }
-
-    for(const auto& idx_channel : chan_values){
-        auto channel = idx_channel.first; // The string of the channel
-        auto var = idx_channel.second; // The complex_t of the map
-        values.emplace_back(Value(var));
-        parser.DefineVar(channel, Variable(&values[values.size()-1]));
-    }
-
-    const auto replace = [](const std::string& from, const std::string& to, std::string where) -> std::string {
-        size_t start_pos = 0;
-        while((start_pos = where.find(from, start_pos)) != std::string::npos) {
-            where.replace(start_pos, from.length(), to);
-            start_pos += to.length();
-        }
-        return where;
-    };
-
-    // This is needed because muparserx doesn't support . as part of the var name
-    auto filtered_expr = replace("np.pi", "npi", expr_string);
-    parser.SetExpr(filtered_expr);
-    Value result = parser.Eval();
-
-    return result.GetComplex();
-}
-
 
 /**
  * Fast CSR Matrix representation
@@ -755,16 +511,10 @@ class FastCsrMatrix{
     NpArray<long> indptr;
 };
 
-template<>
-FastCsrMatrix get_value(type<FastCsrMatrix>_, PyObject * value) {
-    return FastCsrMatrix(value);
-}
-
-
 /**
  * This is the Qutip Quantum Object repesentation
  **/
-struct QuantumObj {
+class QuantumObj {
     public:
 	QuantumObj(){}
 	QuantumObj(PyObject * obj){
@@ -785,11 +535,16 @@ struct QuantumObj {
     std::vector<std::vector<long>> dims;
 };
 
+
 template<>
 QuantumObj get_value(type<QuantumObj>_, PyObject * value) {
     return QuantumObj(value);
 }
 
+template<>
+FastCsrMatrix get_value(type<FastCsrMatrix>_, PyObject * value) {
+    return FastCsrMatrix(value);
+}
 
 
-#endif // _HELPERS_HPP
+#endif //_PYTHON_TO_CPP_HPP
