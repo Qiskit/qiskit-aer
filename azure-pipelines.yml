@@ -55,7 +55,7 @@ jobs:
           conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
         displayName: Install Anaconda packages
         condition: ne(variables['python.version'], '3.5')
-      - script: |
+           - script: |
           call activate qiskit-aer-$(Build.BuildNumber)
           conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy<1.17.4
         displayName: Install Anaconda packages
