@@ -412,8 +412,13 @@ long get_value(type<long> _, PyObject * value){
 
 template<>
 double get_value(type<double> _, PyObject * value){
-    if(!_check_is_floating_point(value))
+    if(!_check_is_floating_point(value)){
+        // it's not a floating point, but maybe an integer?
+        if(_check_is_integer(value))
+            return static_cast<double>(get_value<long>(value));
+
         throw std::invalid_argument("PyObject is not a double!");
+    }
 
     double c_value = PyFloat_AsDouble(value);
     auto ex = PyErr_Occurred();

@@ -2,6 +2,7 @@
 #include <vector>
 #include <complex>
 #include <iostream>
+#include <memory>
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <spdlog/spdlog.h>
@@ -35,7 +36,6 @@ complex_t chan_value(
 
     //1. cdef unsigned int num_times = chan_pulse_times.shape[0] // 4
     auto num_times = static_cast<int>(chan_pulse_times.shape[0]) / 4;
-    spdlog::debug("num_times: {}", num_times);
 
     for(auto i=0; i < num_times; ++i){
         auto start_time = chan_pulse_times[4 * i];
@@ -83,15 +83,11 @@ complex_t chan_value(
 
 
 PyArrayObject * create_py_array_from_vector(
-    std::vector<complex_t>& out,
+    complex_t * out,
     int num_rows){
 
-    // complex_t * new_array = static_cast<complex_t *>(
-    //     PyDataMem_NEW_ZEROED(num_rows,sizeof(complex_t))
-    // );
-    // std::copy(out.begin(), out.end(), new_array);
     npy_intp dims = num_rows;
-    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, &out[0]));
+    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
     PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
     return array;
 }
@@ -107,14 +103,12 @@ PyArrayObject * td_ode_rhs(
 
     const static auto numpy_initialized = init_numpy();
 
-    const Unregister unregister;
-
-    auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
-    spdlog::set_default_logger(file_logger);
-    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-    spdlog::flush_on(spdlog::level::debug);
-
-    spdlog::debug("td_ode_rhs!");
+    // I left this commented on porpose just in case we need logs in the future
+    //const Unregister unregister;
+    //auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
+    //spdlog::set_default_logger(file_logger);
+    //spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+    //spdlog::flush_on(spdlog::level::debug);
 
     if(py_vec == nullptr ||
        py_global_data == nullptr ||
@@ -130,25 +124,15 @@ PyArrayObject * td_ode_rhs(
            throw std::invalid_argument(msg);
     }
 
-    spdlog::debug("Printing vec...");
     // 1. Get vec
     auto vec = get_value<NpArray<complex_t>>(py_vec);
-    jlog("vec", vec);
-
-
 
     // deal with non 1D arrays as well (through PyArrayObject)
     // unsigned int num_rows = vec.shape[0]
     auto num_rows = vec.shape[0];
-    spdlog::debug("num_rows: {}", num_rows);
-
 
     // 2. double complex * out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))
-    // auto out = std::make_unique<complex_t>(
-    //     PyDataMem_NEW_ZEROED(num_rows, sizeof(complex_t))
-    // );
-    std::vector<complex_t> out;
-    out.reserve(num_rows);
+    auto out = static_cast<complex_t *>(PyDataMem_NEW_ZEROED(num_rows, sizeof(complex_t)));
 
     // 3. Compute complex channel values at time `t`
     // D0 = chan_value(t, 0, (double)D0_freq, ([doubles])D0_pulses,  pulse_array, pulse_indices, D0_fc, )
@@ -161,30 +145,13 @@ PyArrayObject * td_ode_rhs(
     //            "%s_pulses,  pulse_array, pulse_indices, " % chan + \
     //            "%s_fc, )" % (chan)
 
-    spdlog::debug("Getting pulses...");
     // TODO: Pass const & as keys to avoid copying
-    //auto pulses = get_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
-    spdlog::debug("Getting freqs...");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
-    spdlog::debug("Getting pulse_array...");
     auto pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
-    spdlog::debug("Getting pulse_indices...");
     auto pulse_indices = get_value_from_dict_item<NpArray<long>>(py_global_data, "pulse_indices");
-    spdlog::debug("Getting reg...");
     auto reg = get_value<NpArray<uint8_t>>(py_register);
 
-    spdlog::debug("Printing pulses...");
-    jlog("pulses: ", pulses);
-    spdlog::debug("Printing freqs... ");
-    jlog("freqs:", freqs);
-    spdlog::debug("Printing pulse_array... ");
-    jlog("pulse_array: ",  pulse_array);
-    spdlog::debug("Printing reg...");
-    jlog("reg: {}", reg);
-
-
-    // auto channels = get_value<std::map<long, std::string>>(py_channels);
     std::unordered_map<std::string, complex_t> chan_values;
     chan_values.reserve(pulses.size());
     for(const auto& elem : enumerate(pulses)){
@@ -249,9 +216,6 @@ PyArrayObject * td_ode_rhs(
         //         out[row] += dot;
         // td1 = np.pi*alpha0
         auto td = evaluate_hamiltonian_expression(term, vars, vars_names, chan_values);
-        // std::cout << "<JUAN> td:" << td << "     term: " << term << "\n";
-        // std::cout << "<JUAN> D0:" << chan_values["D0"] << "\n";
-        // std::cout << "<JUAN> r: " << vars[std::find(vars_names.begin(), vars_names.end(), "r") - vars_names.begin()]<< "\n";
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){
                 complex_t dot = {0., 0.};
@@ -261,16 +225,20 @@ PyArrayObject * td_ode_rhs(
                     auto tmp_idx = idxs[sys_index][j];
                     auto osc_term =
                         std::exp(
-                            complex_t(0.,1.) * (energy[i] - energy[tmp_idx] * t)
+                            complex_t(0.,1.) * (energy[i] - energy[tmp_idx]) * t
                         );
                     complex_t coef = (i < tmp_idx ? std::conj(td) : td);
                     dot += coef * osc_term * datas[sys_index][j] * vec[tmp_idx];
+
                 }
                 out[i] += dot;
             }
         }
     } /* End of systems */
 
-    // TODO: Pass the out vector to Pyhton memory, and return it
+    for(auto i=0; i < num_rows; ++i){
+        out[i] += complex_t(0.,1.) * energy[i] * vec[i];
+    }
+
     return create_py_array_from_vector(out, num_rows);
 }

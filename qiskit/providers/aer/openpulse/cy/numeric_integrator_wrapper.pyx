@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern from "src/numeric_integrator.hpp":
-    cdef void td_ode_rhs(
+    cdef np.ndarray td_ode_rhs(
         double t,
         np.ndarray vec,
         dict global_data,
@@ -28,4 +28,5 @@ cdef extern from "src/numeric_integrator.hpp":
     ) except +
 
 def td_ode_rhs_static(t, vec, global_data, exp, system, channels, register):
-    td_ode_rhs(t, vec, global_data, exp, system, channels, register)
+    return td_ode_rhs(t, vec, global_data, exp, system, channels, register)
+

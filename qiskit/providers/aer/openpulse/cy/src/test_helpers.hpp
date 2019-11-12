@@ -27,6 +27,9 @@
 #include "helpers.hpp"
 #include "ordered_map.hpp"
 
+// TODO: Test QuantumObj
+// TODO: Test Hamiltonian
+
 bool cpp_test_py_list_to_cpp_vec(PyObject * val){
     // val = [1., 2., 3.]
     auto vec = get_value<std::vector<double>>(val);
@@ -88,15 +91,15 @@ bool cpp_test_evaluate_hamiltonians(PyObject * val){
 bool cpp_test_ordered_map(PyObject * val){
     // Ordered map should guarantee insertion order.
     // val = {"D0": 1, "U0": 2, "D1": 3, "U1": 4}
-    // std::vector<std::string> order = {"D0", "U0", "D1", "U1"};
-    // auto ordered = get_value<ordered_map<std::string, long>>(val);
-    // size_t i = 0;
-    // for(const auto& elem: order) {
-    //     auto key = elem.first;
-    //     if(key != order[i])
-    //         return false;
-    // }
-    // return true;
+    std::vector<std::string> order = {"D0", "U0", "D1", "U1"};
+    auto ordered = get_value<ordered_map<std::string, long>>(val);
+    size_t i = 0;
+    for(const auto& elem: ordered) {
+        auto key = elem.first;
+        if(key != order[i])
+            return false;
+    }
+    return true;
 }
 
 #endif // _TEST_HELPERS_HPP

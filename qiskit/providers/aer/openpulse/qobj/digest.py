@@ -60,41 +60,16 @@ def digest_pulse_obj(qobj):
     config_keys = config_dict.keys()
 
     # Look for config keys
-    out.global_data['shots'] = 1024
-    if 'shots' in config_keys:
-        out.global_data['shots'] = int(config_dict['shots'])
-
-    out.global_data['meas_level'] = 1
-    if 'meas_level' in config_keys:
-        out.global_data['meas_level'] = int(config_dict['meas_level'])
-
-    out.global_data['meas_return'] = 'avg'
-    if 'meas_return' in config_keys:
-        out.global_data['meas_return'] = config_dict['meas_return']
-
-    out.global_data['seed'] = None
-    if 'seed' in config_keys:
-        out.global_data['seed'] = int(config_dict['seed'])
-
-    if 'memory_slots' in config_keys:
-        out.global_data['memory_slots'] = config_dict['memory_slots']
-    else:
-        err_str = 'Number of memory_slots must be specific in Qobj config'
-        raise ValueError(err_str)
-
-    if 'memory' in config_keys:
-        out.global_data['memory'] = config_dict['memory']
-    else:
-        out.global_data['memory'] = False
-
-    out.global_data['n_registers'] = 0
-    if 'n_registers' in config_keys_sim:
-        out.global_data['n_registers'] = config_dict_sim['n_registers']
-
-    # which level to measure
-    out.global_data['q_level_meas'] = 1
-    if 'q_level_meas' in config_keys_sim:
-        out.global_data['q_level_meas'] = int(config_dict_sim['q_level_meas'])
+    out.global_data['shots'] = int(config_dict.get('shots', 1024))
+    out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
+    out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
+    out.global_data['seed'] = config_dict.get('seed', None)
+    if not 'memory_slots' in config_keys:
+        raise ValueError('Number of memory_slots must be specific in Qobj config')
+    out.global_data['memory_slots'] = config_dict['memory_slots']
+    out.global_data['memory'] = config_dict.get('memory', False)
+    out.global_data['n_registers'] = config_dict_sim.get('n_registers', 0)
+    out.global_data['q_level_meas'] = int(config_dict_sim.get('q_level_meas', 1))
 
     # Attach the ODE options
     allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
@@ -116,7 +91,7 @@ def digest_pulse_obj(qobj):
 
     out.vars = OrderedDict(ham['vars'])
     out.global_data['vars'] = list(out.vars.values())
-    # <JUAN> I may gonna need this info for evaluating the hamiltonian vars
+    # <JUAN> Need this info for evaluating the hamiltonian vars
     out.global_data['vars_names'] = list(out.vars.keys())
 
     # Get qubit subspace dimensions
@@ -199,6 +174,7 @@ def digest_pulse_obj(qobj):
 
     out.global_data['freqs'] = list(out.freqs.values())
 
+    breakpoint()
     # Step #3: Build pulse arrays
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj)
 
@@ -251,6 +227,8 @@ def digest_pulse_obj(qobj):
         out.experiments.append(exp_struct)
         if not exp_struct['can_sample']:
             out.can_sample = False
+
+        out.use_cpp_ode_func = config_dict.get('use_cpp_ode_func', True)
     return out
 
 

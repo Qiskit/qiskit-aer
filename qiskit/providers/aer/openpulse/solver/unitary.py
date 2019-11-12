@@ -17,6 +17,8 @@
 """Module for unitary pulse evolution.
 """
 
+import logging
+logging.basicConfig(format=None, level=logging.DEBUG)
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
@@ -60,12 +62,8 @@ def unitary_evolution(exp, op_system):
         Exception: Error in ODE solver.
     """
 
-    #<JUAN>
     global_data = op_system.global_data
     ode_options = op_system.ode_options
-    # Don't know how to use OrderedDict type on Cython, so transforming it to dict
-    channels = dict(op_system.channels)
-    #</JUAN>
 
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])
@@ -81,6 +79,16 @@ def unitary_evolution(exp, op_system):
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
+    if op_system.use_cpp_ode_func:
+        # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+        channels = dict(op_system.channels)
+        ODE.set_f_params(global_data, exp, op_system.system, channels, register)
+    else:
+        _inst = 'ODE.set_f_params(%s)' % global_data['string']
+        logging.debug("Unitary Evolution: %s\n\n", _inst)
+        code = compile(_inst, '<string>', 'exec')
+        exec(code)  # pylint disable=exec-used
+
     ODE.set_integrator('zvode',
                        method=ode_options.method,
                        order=ode_options.order,
@@ -91,14 +99,6 @@ def unitary_evolution(exp, op_system):
                        min_step=ode_options.min_step,
                        max_step=ode_options.max_step)
 
-    # _inst = 'ODE.set_f_params(%s)' % global_data['string']
-    # print("Unitary Evolution: {}\n\n".format(_inst))
-    # code = compile(_inst, '<string>', 'exec')
-    # exec(code)  # pylint disable=exec-used
-
-    # <JUAN> Pass arguments statically
-    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
-
     if not ODE._y:
         ODE.t = 0.0
         ODE._y = np.array([0.0], complex)
@@ -107,6 +107,7 @@ def unitary_evolution(exp, op_system):
     # Since all experiments are defined to start at zero time.
     ODE.set_initial_value(global_data['initial_state'], 0)
     for time in tlist[1:]:
+        logging.info("time: %s", time)
         ODE.integrate(time, step=0)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)

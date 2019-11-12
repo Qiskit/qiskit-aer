@@ -19,7 +19,8 @@ from qiskit.providers.aer.openpulse.cy.test_py_to_cpp_helpers import \
     test_py_dict_string_numeric_to_cpp_map_string_numeric,\
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
     test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles,\
-    test_np_array_of_doubles, test_evaluate_hamiltonians, test_pass_qutip_qobj_to_cpp
+    test_np_array_of_doubles, test_evaluate_hamiltonians, test_pass_qutip_qobj_to_cpp, \
+    test_py_ordered_map
 
 class QutipFake:
     def __init__(self, arr):
@@ -64,4 +65,9 @@ class TestPythonToCpp(unittest.TestCase):
     def test_evaluate_hamiltonians(self):
         """ Evaluate different hamiltonina expressions"""
         self.assertEqual(True, False)
+
+    def test_ordered_map(self):
+        # Since Python 3.6 dict insertion order is guaranted
+        arg = {"D0": 1, "U0": 2, "D1": 3, "U1": 4}
+        self.assertTrue(test_py_ordered_map(arg))
 

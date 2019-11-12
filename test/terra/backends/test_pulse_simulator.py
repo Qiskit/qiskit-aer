@@ -45,7 +45,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     """
     def setUp(self):
         """ Set configuration settings for pulse simulator """
-        #Get a pulse configuration from the mock real device
+        # Get a pulse configuration from the mock real device
         self.backend_mock = FakeOpenPulse2Q()
         self.back_config = self.backend_mock.configuration().to_dict()
         self.system = pulse.PulseChannelSpec.from_backend(self.backend_mock)
@@ -421,6 +421,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 # Run qobj and compare prop to expected result
                 result = self.backend_sim.run(qobj).result()
                 counts = result.get_counts()
+
 
                 prop = {}
                 for key in counts.keys():

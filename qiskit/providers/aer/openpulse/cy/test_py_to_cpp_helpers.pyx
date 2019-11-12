@@ -32,6 +32,7 @@ cdef extern from "src/test_helpers.hpp":
     cdef bool cpp_test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(dict val)
     cdef bool cpp_test_np_array_of_doubles(np.ndarray val)
     cdef bool cpp_test_evaluate_hamiltonians(list val)
+    cdef bool cpp_test_ordered_map(dict val)
 
 def test_py_list_to_cpp_vec(val):
     return cpp_test_py_list_to_cpp_vec(val)
@@ -56,3 +57,6 @@ def test_np_array_of_doubles(val):
 
 def test_evaluate_hamiltonians(val):
     return cpp_test_evaluate_hamiltonians(val)
+
+def test_test_ordered_map(val):
+    return cpp_test_ordered_map(val)
