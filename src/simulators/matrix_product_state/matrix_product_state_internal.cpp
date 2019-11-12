@@ -251,24 +251,28 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat)
 {
+  // We first move the two qubits to be in consecutive positions
+  // If index_B > index_A, we move the qubit at index_B to index_A+1
+  // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
+  // swap between the qubits
   uint_t A = index_A;
-  bool swapped = false;
-  bool greater = false, smaller = false;
-  if (index_B == index_A-1) {
-    A = index_A - 1;
-    swapped = true;
-  } else if (index_B > index_A+1) {
+  bool swapped = false, greater = false, smaller = false;
+
+  if (index_B > index_A+1) {
     greater = true;
     change_position(index_B, index_A+1);  // Move B to be right after A
   } else if (index_A > 0 && index_B < index_A-1) {
     smaller = true;
     change_position(index_B, index_A-1);  // Move B to be right before A
+  }
+  if (index_B < index_A) {
     A = index_A - 1;
     swapped = true;
   }
-  //  MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_A+1];
+  // After we moved the qubits as necessary, 
+  // the operation is always between qubits A and A+1
   rvector_t left_lambda, right_lambda;
-  //There is no lambda in the edges of the MPS
+  //There is no lambda on the edges of the MPS
   left_lambda  = (A != 0) 	    ? lambda_reg_[A-1] : rvector_t {1.0};
   right_lambda = (A+1 != num_qubits_-1) ? lambda_reg_[A+1] : rvector_t {1.0};
   
