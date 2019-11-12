@@ -48,18 +48,12 @@ jobs:
     steps:
       - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         displayName: Add conda to PATH
-      - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
+      - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
         displayName: Create Anaconda environment
       - script: |
           call activate qiskit-aer-$(Build.BuildNumber)
           conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
         displayName: Install Anaconda packages
-        condition: ne(variables['python.version'], '3.5')
-           - script: |
-          call activate qiskit-aer-$(Build.BuildNumber)
-          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy<1.17.4
-        displayName: Install Anaconda packages
-        condition: eq(variables['python.version'], '3.5')
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
