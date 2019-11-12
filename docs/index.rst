@@ -3,12 +3,11 @@ Qiskit Aer documentation
 ##########################
 
 .. toctree::
-  :maxdepth: 2
-  :hidden:
+    :maxdepth: 2
 
-  API References <apidocs/aer>
+    API Documentation <apidocs/qiskit_aer>
 
 .. Hiding - Indices and tables
-   :ref:`genindex`
-   :ref:`modindex`
-   :ref:`search`
+    :ref:`genindex`
+    :ref:`modindex`
+    :ref:`search`

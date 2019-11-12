@@ -213,11 +213,11 @@ private:
   std::string remap_string(const std::string key,
                            const std::unordered_map<uint_t, uint_t> &mapping) const;
 
-  // Helper function to try and convert an instruciton to superop matrix
+  // Helper function to try and convert an instruction to superop matrix
   // If conversion isn't possible this returns an empty matrix
   cmatrix_t op2superop(const Operations::Op &op) const;
 
-  // Try and convert an instruciton to unitary matrix
+  // Try and convert an instruction to unitary matrix
   // If conversion isn't possible this returns an empty matrix
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
