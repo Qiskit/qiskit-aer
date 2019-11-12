@@ -66,6 +66,7 @@ jobs:
       - script: |
           call activate qiskit-aer-$(Build.BuildNumber)
           conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy scipy
+          conda install --yes --quiet --name qiskit-aer-$(Build. BuildNumber) python=%PYTHON_VERSION% jupyter
         displayName: Install Anaconda packages
         condition: eq(variables['python.version'], '3.8')
       - bash: |
