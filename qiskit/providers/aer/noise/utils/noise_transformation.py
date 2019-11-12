@@ -98,7 +98,7 @@ def approximate_quantum_error(error, *,
         ]
         probabilities = transformer.transform_by_operator_list(
             op_matrix_list, error_kraus_operators)
-        identity_prob = 1 - sum(probabilities)
+        identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
                 "Channel probabilities sum to {}".format(1 - identity_prob))
@@ -691,22 +691,15 @@ class NoiseTransformer:
         Returns:
             list: The solution of the quadratic program (represents probabilites)
 
-        Raises:
-            ImportError: If cvxopt external module is not installed
-
         Additional information
         ======================
-        This method is the only place in the code where we rely on the cvxopt library
+        This method is the only place in the code where we rely on the cvpy library
         should we consider another library, only this method needs to change
         """
-        try:
-            import cvxopt
-        except ImportError:
-            raise ImportError(
-                "The CVXOPT library is required to use this module")
+        import cvxpy
 
-        P = cvxopt.matrix(numpy.array(P).astype(float))
-        q = cvxopt.matrix(numpy.array(q).astype(float)).T
+        P = numpy.array(P).astype(float)
+        q = numpy.array(q).astype(float).T
         n = len(q)
         # G and h constrain:
         #   1) sum of probs is less then 1
@@ -718,7 +711,11 @@ class NoiseTransformer:
         if self.fidelity_data is not None:
             G_data.append(self.fidelity_data['coefficients'])
             h_data.append(self.fidelity_data['goal'])
-        G = cvxopt.matrix(numpy.array(G_data).astype(float))
-        h = cvxopt.matrix(numpy.array(h_data).astype(float))
-        cvxopt.solvers.options['show_progress'] = False
-        return cvxopt.solvers.qp(P, q, G, h)['x']
+        G = numpy.array(G_data).astype(float)
+        h = numpy.array(h_data).astype(float)
+        x = cvxpy.Variable(n)
+        prob = cvxpy.Problem(
+            cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T@x),
+            [G@x <= h])
+        prob.solve()
+        return x.value
