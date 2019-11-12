@@ -98,6 +98,7 @@ def approximate_quantum_error(error, *,
         ]
         probabilities = transformer.transform_by_operator_list(
             op_matrix_list, error_kraus_operators)
+        probabilities = numpy.round(probabilities, decimals=10)
         identity_prob = 1 - sum(probabilities)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
@@ -692,21 +693,20 @@ class NoiseTransformer:
             list: The solution of the quadratic program (represents probabilites)
 
         Raises:
-            ImportError: If cvxopt external module is not installed
+            ImportError: If cvxpy external module is not installed
 
         Additional information
         ======================
-        This method is the only place in the code where we rely on the cvxopt library
+        This method is the only place in the code where we rely on the cvxpy library
         should we consider another library, only this method needs to change
         """
         try:
-            import cvxopt
+            import cvxpy as cp
         except ImportError:
             raise ImportError(
-                "The CVXOPT library is required to use this module")
-
-        P = cvxopt.matrix(numpy.array(P).astype(float))
-        q = cvxopt.matrix(numpy.array(q).astype(float)).T
+                "The CVXPY library is required to use this module")
+        P = numpy.array(P).astype(float)
+        q = numpy.array(q).astype(float).T
         n = len(q)
         # G and h constrain:
         #   1) sum of probs is less then 1
@@ -718,7 +718,10 @@ class NoiseTransformer:
         if self.fidelity_data is not None:
             G_data.append(self.fidelity_data['coefficients'])
             h_data.append(self.fidelity_data['goal'])
-        G = cvxopt.matrix(numpy.array(G_data).astype(float))
-        h = cvxopt.matrix(numpy.array(h_data).astype(float))
-        cvxopt.solvers.options['show_progress'] = False
-        return cvxopt.solvers.qp(P, q, G, h)['x']
+        G = numpy.array(G_data).astype(float)
+        h = numpy.array(h_data).astype(float)
+
+        x = cp.Variable(n)
+        prob = cp.Problem(cp.Minimize((1 / 2) * cp.quad_form(x, P) + q.T @ x), [G @ x <= h])
+        prob.solve()
+        return x.value
