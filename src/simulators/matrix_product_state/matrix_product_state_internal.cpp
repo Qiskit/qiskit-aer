@@ -299,7 +299,9 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cm
       break;
     }
   case su4:
-    temp.apply_matrix(mat);
+    // We reverse the order of the qubits, according to the Qiskit convention.
+    // Effectively, this reverses swap for 2-qubit gates
+    temp.apply_matrix(mat, !swapped);
     break;
     
   default:
