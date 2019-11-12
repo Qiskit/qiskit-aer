@@ -23,15 +23,16 @@ _GHZ_UNITS = {'Hz': 1e-9, 'KHz': 1e-6, 'MHz': 1e-3, 'GHz': 1, 'THz': 1e3}
 
 
 def gate_param_values(properties):
-    """Get gate error values for backend gate from backend properties
+    """
+    Return parameter error values from a devices BackendProperties.
 
     Args:
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of tuples (name, qubits, time, error). If gate
-              error or gate_length information is not available None
-              will be returned for value.
+        list: A list of tuples ``(name, qubits, time, error)``. If gate
+        error or gate_length information is not available ``None``
+        will be returned for value.
     """
     values = []
     for gate in properties.gates:
@@ -56,15 +57,16 @@ def gate_param_values(properties):
 
 
 def gate_error_values(properties):
-    """Get gate error values for backend gate from backend properties
+    """
+    Return gate error values from a devices BackendProperties.
 
     Args:
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of tuples (name, qubits, value). If gate
-              error information is not available None will be returned for
-              value.
+        list: A list of tuples ``(name, qubits, value)``. If gate
+        error information is not available ``None`` will be returned
+        for value.
     """
     values = []
     for gate in properties.gates:
@@ -79,17 +81,18 @@ def gate_error_values(properties):
 
 
 def gate_length_values(properties):
-    """Get gate length values for backend gate from backend properties
-
-    Gate length values are returned in nanosecond (ns) units.
+    """
+    Return gate length values from a devices BackendProperties.
 
     Args:
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of tuples (name, qubits, value). If gate
-              time information is not available None will be returned for
-              value.
+        list: A list of tuples ``(name, qubits, value)``. If gate length
+        information is not available ``None`` will be returned for value.
+
+    Additional Information:
+        Gate length values are returned in nanosecond (ns) units.
     """
     values = []
     for gate in properties.gates:
@@ -107,15 +110,16 @@ def gate_length_values(properties):
 
 
 def readout_error_values(properties):
-    """Get readout error values for each qubit from backend properties
+    """
+    Return readout error values from a devices BackendProperties.
 
     Args:
         properties (BackendProperties): device backend properties
 
     Returns:
         list: A list of readout error values for qubits. If readout
-              error information is not available None will be returned
-              for value.
+        error information is not available None will be returned
+        for value.
     """
     values = []
     for qubit_props in properties.qubits:
@@ -134,19 +138,20 @@ def readout_error_values(properties):
 
 
 def thermal_relaxation_values(properties):
-    """Return list of T1, T2 and frequency values from backend properties.
-
-    T1 and T2 values are returned in microsecond (µs) units.
-    Frequency is returned in gigahertz (GHz) units.
+    """
+    Return  T1, T2 and frequency values from a devices BackendProperties.
 
     Args:
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of tuples (T1, T2, freq) for each qubit in the device
-        where T1 and T2 are in microsecond units, and frequency is in GHz.
-        If T1, T2, of frequency cannot be loaded for qubit a value of
-        Numpy.inf will be used.
+        list: A list of tuples ``(T1, T2, freq)`` for each qubit in the device.
+        If :math:`T_1`, :math:`T_2`, or frequency cannot be found for qubit a
+        value of ``Numpy.inf`` will be used.
+
+    Additional Information:
+        :math:`T_1` and :math:`T_2` values are returned in microsecond
+        (µs) units. Frequency is returned in gigahertz (GHz) units.
     """
     values = []
     for qubit_props in properties.qubits:
@@ -176,8 +181,8 @@ def thermal_relaxation_values(properties):
                 # Convert to Gigahertz
                 freq *= _GHZ_UNITS.get(freq_params.unit, 1)
 
-        # NOTE: T2 cannot be larged than 2 * T1 for a physical noise
-        # channel, however if a backend eroneously reports such a value we
+        # NOTE: T2 cannot be larger than 2 * T1 for a physical noise
+        # channel, however if a backend erroneously reports such a value we
         # truncated it here:
         t2 = min(2 * t1, t2)
 
