@@ -57,7 +57,8 @@ jobs:
         condition: ne(variables['python.version'], '3.5')
       - script: |
           call activate qiskit-aer-$(Build.BuildNumber)
-          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas mkl
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% mkl
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas
         displayName: Install Anaconda packages
         condition: eq(variables['python.version'], '3.5')
       - bash: |
