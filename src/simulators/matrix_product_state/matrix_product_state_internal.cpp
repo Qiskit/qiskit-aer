@@ -249,7 +249,6 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
-  std::cout <<" in apply_cz" << std::endl;
   apply_2_qubit_gate(index_A, index_B, cz, cmatrix_t(1));
 }
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
@@ -408,48 +407,33 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     ss << "error: currently input qubits must be ordered";
     throw std::runtime_error(ss.str());
   }
-  std::cout << "tensor before ccx" << std::endl;
-  print(std::cout);
 
-  //MPS_Tensor  temp_tensor;
-  //temp_tensor.initialize(*this);
+  // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
-  MPS_Tensor temp_tensor(state_vec_as_MPS(first, first+2));
-  std::cout << "temp_tensor before ccx"<<std::endl;
-  temp_tensor.print(std::cout);
+  MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+2));
 
+  // apply the gate to sub_tensor
   switch (gate_type) {
   case mcx:
-       temp_tensor.apply_ccx();
+       sub_tensor.apply_ccx();
     break;
 
   default:
     throw std::invalid_argument("illegal gate for apply_3_qubit_gate"); 
   }
-  std::cout << "temp after gate"<<std::endl;
-  temp_tensor.print(std::cout);
 
-  cmatrix_t state_mat = temp_tensor.get_data(0);
-  for (uint_t i=1; i<temp_tensor.get_data().size(); i++)
-    state_mat = AER::Utils::concatenate(state_mat, temp_tensor.get_data(i), 1) ;
-  state_mat.SetOutputStyle(Matrix);
-  std::cout << "state_mat = " <<std::endl;
-  std::cout << state_mat;
-  std::cout << "state_mat num rows = " << state_mat.GetRows() << std::endl; 
-  std::cout << "state_mat num cols = " << state_mat.GetColumns() << std::endl; 
-    //state_vector.push_back(temp_tensor.get_data(i)(0,0));
+  // state_mat is a matrix containing the flattened representation of the sub-tensor 
+  // into a single matrix. Note that sub_tensor will contain 8 matrices for 3-qubit
+  // gates. state_mat will be the concatenation of them all.
+  cmatrix_t state_mat = sub_tensor.get_data(0);
+  for (uint_t i=1; i<sub_tensor.get_data().size(); i++)
+    state_mat = AER::Utils::concatenate(state_mat, sub_tensor.get_data(i), 1) ;
 
-  //  std::cout <<"state_vector = ";
-
-  //  for (uint_t i=0; i<state_vector.size(); i++) 
-  //    std::cout<< state_vector[i] << " ";
-  //  std::cout << std::endl;
-
+  // We convert the matrix back into a 3-qubit MPS structure
   MPS sub_MPS;
-  sub_MPS.initialize_from_matrix(3, state_mat);
-  std::cout << "sub_MPS" << std::endl;
-  sub_MPS.print(std::cout);
+  sub_MPS.initialize_from_matrix(sub_MPS.num_qubits(), state_mat);
 
+  // copy the 3-qubit MPS back to the corresponding positions in the original MPS
   for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
     q_reg_[first+i] = sub_MPS.q_reg_[i];
   }
@@ -459,18 +443,6 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     q_reg_[first].div_Gamma_by_left_Lambda(lambda_reg_[first-1]);
   if (first+2 < num_qubits_-1)
     q_reg_[first+2].div_Gamma_by_right_Lambda(lambda_reg_[first+2]);
-
-   std::cout << "final tensor without reordering:"<<std::endl;
-  print(std::cout);
-				      
-  
-
-  /*
-
-
-  if (index_A+1 != index_B)
-    change_position(index_A+1, index_B);  // Move B back to its original position
-  */
 }
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
@@ -681,8 +653,6 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	  
 	for(uint_t i = first_index+1; i < last_index+1; i++) {
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
-	  std::cout <<"tensor after contract = " << i << std::endl;
-	  temp.print(std::cout);
 	}
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
@@ -822,7 +792,6 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
   rvector_t S(1.0);
   bool first_iter = true;
 
-  std::cout << "mat = " << mat << std::endl;
   for (uint_t i=0; i<num_qubits-1; i++) {
 
     // step 1 - prepare matrix for next iteration (except for first iteration):
@@ -835,9 +804,6 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
       remaining_matrix = AER::Utils::dagger(temp);
     }
     reshaped_matrix = reshape_matrix(remaining_matrix);
-    std::cout << "reshaped matrix = " <<std::endl;
-    reshaped_matrix.SetOutputStyle(Matrix);
-    std::cout << reshaped_matrix;
 
     // step 2 - SVD
     S.clear();
@@ -856,9 +822,6 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     num_qubits_++;
 
     first_iter = false;
-    std::cout << "left_gamma = " << std::endl;
-    left_gamma.print(std::cout);
-    
   }
 
   // step 4 - create the rightmost gamma and update q_reg_

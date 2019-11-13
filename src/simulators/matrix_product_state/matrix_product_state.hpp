@@ -421,7 +421,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto op: ops) {
-    std::cout <<"before gate " << op << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -454,8 +453,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
       }
-      std::cout <<"after gate " << op.name << std::endl;
-      qreg_.print(std::cout);
     }
   }
 }
@@ -527,17 +524,14 @@ void State::snapshot_probabilities(const Operations::Op &op,
 }
 
 void State::apply_gate(const Operations::Op &op) {
-  std::cout <<"in apply_gate" << std::endl;
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
 
-  std::cout << "gate is " << it->first << " " << it->second <<std::endl;
   switch (it -> second) {
   case Gates::mcx:
-    std::cout <<"found mcx" << std::endl;
       qreg_.apply_ccx(op.qubits);
       break;
     case Gates::u3:

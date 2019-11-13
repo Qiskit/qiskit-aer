@@ -292,6 +292,14 @@ void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped)
     swap(data_[1], data_[2]);
 }
 
+void MPS_Tensor::apply_cnot(bool swapped)
+{
+  if(!swapped)
+    swap(data_[2],data_[3]);
+  else
+    swap(data_[1],data_[3]);
+}
+
 void MPS_Tensor::apply_swap()
 {
   swap(data_[1],data_[2]);
