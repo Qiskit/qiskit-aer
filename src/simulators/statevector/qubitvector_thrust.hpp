@@ -70,12 +70,6 @@ double mysecond()
 #define AER_DEFAULT_MATRIX_BITS		8
 
 
-#ifdef AER_THRUST_CUDA
-#define AER_THRUST_EXECUTION			thrust::device
-#else
-#define AER_THRUST_EXECUTION			thrust::host
-#endif
-
 namespace QV {
 
 // Type aliases
@@ -631,7 +625,7 @@ public:
 
 	initialize_component_func(thrust::complex<double>* pS,uint_t* pBuf,const reg_t &qb)
 	{
-		int k;
+		uint_t k;
 		nqubits = qb.size();
 		matSize = 1ull << nqubits;
 		qubits = pBuf;
@@ -1576,7 +1570,7 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		thrust::for_each(AER_THRUST_EXECUTION, chunkIter, chunkIter + size, func);
+		thrust::for_each(thrust::device, chunkIter, chunkIter + size, func);
 	}
 	else{
 		int iDev;
@@ -1590,7 +1584,7 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 #ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			thrust::for_each(AER_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func);
+			thrust::for_each(thrust::device, chunkIter + is, chunkIter + ie, func);
 		}
 	}
 }
@@ -1635,7 +1629,7 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
 	if(m_nDevParallel == 1){
-		ret = thrust::transform_reduce(AER_THRUST_EXECUTION, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+		ret = thrust::transform_reduce(thrust::device, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	else{
 		int iDev;
@@ -1649,7 +1643,7 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 #ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			ret += thrust::transform_reduce(AER_THRUST_EXECUTION, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
+			ret += thrust::transform_reduce(thrust::device, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
 		}
 	}
 
@@ -1860,7 +1854,6 @@ public:
 	permutation_func(uint_t* pBuf,const reg_t& qb,const std::vector<std::pair<uint_t, uint_t>> &pairs_in)
 	{
 		uint_t j;
-		uint_t add;
 
 		nqubits = qb.size();
 		qubits = pBuf;
@@ -2516,7 +2509,6 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 		thrust::complex<double>* pMat;
 
 		int_t i,matSize;
-		uint_t size;
 		matSize = 1ull << N;
 
 		pMat = m_pMatDev;
@@ -2526,7 +2518,6 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 			m_pMatDev[i] = mat[i];
 		}
 
-		size = data_size_ >> N;
 		return apply_sum_function(norm_matMultNxN_func<data_t>(pMat,m_pUintBuf,qubits), qubits);
 	}
 }
@@ -2817,14 +2808,14 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
 #endif
 
-		thrust::transform_inclusive_scan(AER_THRUST_EXECUTION,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
+		thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
 
 #pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
 			pRnd[i] = rnds[i];
 		}
 
-		thrust::lower_bound(AER_THRUST_EXECUTION, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
+		thrust::lower_bound(thrust::device, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
 
 #pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
@@ -2852,7 +2843,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 #ifdef AER_THRUST_CUDA
 			cudaSetDevice(iDev);
 #endif
-			thrust::transform_inclusive_scan(AER_THRUST_EXECUTION,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
+			thrust::transform_inclusive_scan(thrust::device,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
 
 			pDevSum[iDev] = pVec[ie-1];
 		}
@@ -2888,7 +2879,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 				}
 			}
 
-			thrust::lower_bound(AER_THRUST_EXECUTION, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
+			thrust::lower_bound(thrust::device, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
 
 			for(i=0;i<SHOTS;i++){
 				if(pSamp[i] < ie-is){

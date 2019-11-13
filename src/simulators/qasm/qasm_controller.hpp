@@ -21,7 +21,9 @@
 #include "transpile/delay_measure.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#ifndef AER_THRUST_NOT_SUPPORTED
 #include "simulators/statevector/statevector_gpu_state.hpp"
+#endif
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/densitymatrix/densitymatrix_state.hpp"
@@ -408,6 +410,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
       }
     case Method::statevector_gpu:
+#ifndef AER_THRUST_NOT_SUPPORTED
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
       	return run_circuit_helper<StatevectorThrust::State<QV::QubitVectorThrust<double>>>(
@@ -429,6 +432,9 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       initial_statevector_,
                                                       Method::statevector_gpu);
       }
+#else
+      throw std::runtime_error("QasmController: method statevector_gpu is not supported");
+#endif
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision density matrix simulation
