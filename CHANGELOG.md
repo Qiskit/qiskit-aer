@@ -25,6 +25,7 @@ Changed
 -------
 - Improved pershot snapshot data container performance (\#405)
 - Add basic linear algebra functions for numeric STL classes (\#406)
+- Improved average snapshot data container performance (\#407)
 
 Removed
 -------

@@ -32,7 +32,7 @@ struct is_numeric_scalar
                                  typename std::remove_cv<T>::type>::value> {};
 
 template <class T>
-using enable_if_numeric = std::enable_if_t<is_numeric_scalar<T>::value>;
+using enable_if_numeric_t = std::enable_if_t<is_numeric_scalar<T>::value>;
 
 //------------------------------------------------------------------------------
 #endif
