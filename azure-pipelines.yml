@@ -66,8 +66,12 @@ jobs:
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          git clean -fdX
           python -m pip install -v --disable-pip-version-check pip==18
+        condition: ne(variables['python.version'], '3.8')
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          git clean -fdX
           pip install -v cython
           pip install -v git+https://github.com/Qiskit/qiskit-terra.git
           pip install -v --ignore-installed -r requirements-dev.txt
