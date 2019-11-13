@@ -24,6 +24,7 @@
 #include "framework/json.hpp"
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
+#include "framework/linalg/enable_if_numeric.hpp"
 
 namespace AER {
 namespace Linalg {
@@ -36,14 +37,14 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 
 // Return entrywise square of a vector
-template <class T, size_t N, typename = enable_if_numeric<T>>
+template <class T, size_t N, typename = enable_if_numeric_t<T>>
 std::array<T, N> square(const std::array<T, N>& data) {
   std::array<T, N> result = data;
   return isquare(result);
 }
 
 // Return inplace entrywise square of a vector
-template <class T, size_t N, typename = enable_if_numeric<T>>
+template <class T, size_t N, typename = enable_if_numeric_t<T>>
 std::array<T, N>& isquare(std::array<T, N>& data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
@@ -55,7 +56,7 @@ std::array<T, N>& isquare(std::array<T, N>& data) {
 //----------------------------------------------------------------------------
 
 // Return entrywise square of a vector
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T> square(const std::vector<T>& data) {
   std::vector<T> result;
   result.reserve(data.size());
@@ -65,7 +66,7 @@ std::vector<T> square(const std::vector<T>& data) {
 }
 
 // Return inplace entrywise square of a vector
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T>& isquare(std::vector<T>& data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
@@ -76,17 +77,17 @@ std::vector<T>& isquare(std::vector<T>& data) {
 // Entrywise square of std::map
 //----------------------------------------------------------------------------
 
-template <class T1, class T2, class T3, typename = enable_if_numeric<T2>>
-std::map<T1, T2, T3> square(const std::map<T1, T2, T3>& data) {
-  std::map<T1, T2, T3> result;
+template <class T1, class T2, class T3, class T4, typename = enable_if_numeric_t<T2>>
+std::map<T1, T2, T3, T4> square(const std::map<T1, T2, T3, T4>& data) {
+  std::map<T1, T2, T3, T4> result;
   for (const auto& pair : data) {
     result[pair.first] = pair.second * pair.second;
   }
   return result;
 }
 
-template <class T1, class T2, class T3, typename = enable_if_numeric<T2>>
-std::map<T1, T2, T3>& isquare(std::map<T1, T2, T3>& data) {
+template <class T1, class T2, class T3, class T4, typename = enable_if_numeric_t<T2>>
+std::map<T1, T2, T3, T4>& isquare(std::map<T1, T2, T3, T4>& data) {
   for (auto& pair : data) {
     pair.second *= pair.second;
   }
@@ -97,18 +98,18 @@ std::map<T1, T2, T3>& isquare(std::map<T1, T2, T3>& data) {
 // Entrywise square of std::unordered_map
 //----------------------------------------------------------------------------
 
-template <class T1, class T2, class T3, typename = enable_if_numeric<T2>>
-std::unordered_map<T1, T2, T3> square(
-    const std::unordered_map<T1, T2, T3>& data) {
-  std::unordered_map<T1, T2, T3> result;
+template <class T1, class T2, class T3, class T4, class T5, typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5> square(
+    const std::unordered_map<T1, T2, T3, T4, T5>& data) {
+  std::unordered_map<T1, T2, T3, T4, T5> result;
   for (const auto& pair : data) {
     result[pair.first] = pair.second * pair.second;
   }
   return result;
 }
 
-template <class T1, class T2, class T3, typename = enable_if_numeric<T2>>
-std::unordered_map<T1, T2, T3>& isquare(std::unordered_map<T1, T2, T3>& data) {
+template <class T1, class T2, class T3, class T4, class T5, typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5>& isquare(std::unordered_map<T1, T2, T3, T4, T5>& data) {
   for (auto& pair : data) {
     pair.second *= pair.second;
   }
@@ -119,7 +120,7 @@ std::unordered_map<T1, T2, T3>& isquare(std::unordered_map<T1, T2, T3>& data) {
 // Entrywise square of matrix
 //----------------------------------------------------------------------------
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T>& isquare(matrix<T>& data) {
   for (size_t j = 0; j < data.size(); j++) {
     data[j] *= data[j];
@@ -127,7 +128,7 @@ matrix<T>& isquare(matrix<T>& data) {
   return data;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T> square(const matrix<T>& data) {
   matrix<T> result = data;
   return isquare(result);
