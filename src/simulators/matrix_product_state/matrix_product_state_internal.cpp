@@ -249,6 +249,7 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
+  std::cout <<" in apply_cz" << std::endl;
   apply_2_qubit_gate(index_A, index_B, cz, cmatrix_t(1));
 }
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
@@ -316,25 +317,40 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 //    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
-
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat)
 {
-  if (index_A+1 != index_B)
-    change_position(index_B, index_A+1);  // Move B to be right after A
+  // We first move the two qubits to be in consecutive positions
+  // If index_B > index_A, we move the qubit at index_B to index_A+1
+  // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
+  // swap between the qubits
+  uint_t A = index_A;
+  bool swapped = false, greater = false, smaller = false;
 
-  MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_A+1];
+  if (index_B > index_A+1) {
+    greater = true;
+    change_position(index_B, index_A+1);  // Move B to be right after A
+  } else if (index_A > 0 && index_B < index_A-1) {
+    smaller = true;
+    change_position(index_B, index_A-1);  // Move B to be right before A
+  }
+  if (index_B < index_A) {
+    A = index_A - 1;
+    swapped = true;
+  }
+  // After we moved the qubits as necessary, 
+  // the operation is always between qubits A and A+1
   rvector_t left_lambda, right_lambda;
-  //There is no lambda in the edges of the MPS
-  left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-  right_lambda = (index_A+1 != num_qubits_-1) ? lambda_reg_[index_A+1  ] : rvector_t {1.0};
+  //There is no lambda on the edges of the MPS
+  left_lambda  = (A != 0) 	    ? lambda_reg_[A-1] : rvector_t {1.0};
+  right_lambda = (A+1 != num_qubits_-1) ? lambda_reg_[A+1] : rvector_t {1.0};
   
-  q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
-  q_reg_[index_A+1].mul_Gamma_by_right_Lambda(right_lambda);
-  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_A+1]);
+  q_reg_[A].mul_Gamma_by_left_Lambda(left_lambda);
+  q_reg_[A+1].mul_Gamma_by_right_Lambda(right_lambda);
+  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
   
   switch (gate_type) {
   case cx:
-    temp.apply_cnot(false);
+    temp.apply_cnot(swapped);
     break;
   case cz:
     temp.apply_cz();
@@ -351,25 +367,28 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
       break;
     }
   case su4:
-    temp.apply_matrix(mat);
+    // We reverse the order of the qubits, according to the Qiskit convention.
+    // Effectively, this reverses swap for 2-qubit gates
+    temp.apply_matrix(mat, !swapped);
     break;
     
   default:
     throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
   }
-  
   MPS_Tensor left_gamma,right_gamma;
   rvector_t lambda;
   MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
   left_gamma.div_Gamma_by_left_Lambda(left_lambda);
   right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-  q_reg_[index_A] = left_gamma;
-  lambda_reg_[index_A] = lambda;
-  q_reg_[index_A+1] = right_gamma;
+  q_reg_[A] = left_gamma;
+  lambda_reg_[A] = lambda;
+  q_reg_[A+1] = right_gamma;
 
-  if (index_A+1 != index_B)
+  if (greater) {
     change_position(index_A+1, index_B);  // Move B back to its original position
-  
+  } else if (smaller) {
+    change_position(index_A-1, index_B);
+  }
 }
 
 void MPS::apply_3_qubit_gate(const reg_t &qubits,
