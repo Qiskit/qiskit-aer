@@ -67,15 +67,15 @@ jobs:
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
           git clean -fdX
-          python -m pip install --disable-pip-version-check pip==18
-          pip install cython
-          pip install git+https://github.com/Qiskit/qiskit-terra.git
-          pip install --ignore-installed -r requirements-dev.txt
+          python -m pip install -v --disable-pip-version-check pip==18
+          pip install -v cython
+          pip install -v git+https://github.com/Qiskit/qiskit-terra.git
+          pip install -v --ignore-installed -r requirements-dev.txt
           python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
         displayName: 'Install Dependencies and Build Aer'
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          pip install dist/qiskit_aer*.whl
+          pip install -v dist/qiskit_aer*.whl
           python -m unittest discover -s test/terra -v
         displayName: 'Install Aer and Run Tests'
