@@ -684,7 +684,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 #ifdef AER_HAS_ATS
 	pMat = (thrust::complex<double>*)&state0;
 #else
-	uint_t i,matSize;
+	int_t i,matSize;
 	matSize = 1ull << N;
 
 	allocate_buffers(N);
@@ -938,7 +938,7 @@ void QubitVectorThrust<data_t>::revert(bool keep) {
 template <typename data_t>
 std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 {
-	uint_t i;
+	int_t i;
 	double dr=0.0,di=0.0;
 
 #pragma omp parallel for reduction(+:dr,di)
@@ -1674,7 +1674,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 	else{
 		thrust::complex<double>* pMat;
 
-		uint_t i,matSize;
+		int_t i,matSize;
 		matSize = 1ull << N;
 
 		allocate_buffers(N);
@@ -1825,7 +1825,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 		pMat = (thrust::complex<double>*)&diag[0];
 #else
 
-		uint_t i,matSize;
+		int_t i,matSize;
 		matSize = 1ull << N;
 
 		allocate_buffers(N);
@@ -2515,7 +2515,8 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 	else{
 		thrust::complex<double>* pMat;
 
-		uint_t i,matSize,size;
+		int_t i,matSize;
+		uint_t size;
 		matSize = 1ull << N;
 
 		pMat = m_pMatDev;
