@@ -54,23 +54,23 @@ T& isub(T& lhs, const T& rhs) {
 //----------------------------------------------------------------------------
 // Affine operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T add(const T& data, const Scalar& val) {
   return std::plus<T>()(data, val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T& iadd(T& data, const Scalar& val) {
   data = std::plus<T>()(data, val);
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T sub(const T& data, const Scalar& val) {
   return std::minus<T>()(data, val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T& isub(T& data, const Scalar& val) {
   data = std::minus<T>()(data, val);
   return data;
@@ -79,33 +79,33 @@ T& isub(T& data, const Scalar& val) {
 //----------------------------------------------------------------------------
 // Scalar operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T mul(const T& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   return std::multiplies<T>()(data, val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T& imul(T& data, const Scalar& val) {
-  if (!almost_equal(val, 1)) {
+  if (!almost_equal<Scalar>(val, 1)) {
     data = std::multiplies<T>()(data, val);
   }
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T div(const T& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   return std::divides<T>()(data, val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
 T& idiv(T& data, const Scalar& val) {
-  if (!almost_equal(val, 1)) {
+  if (!almost_equal<Scalar>(val, 1)) {
     data = std::divides<T>()(data, val);
   }
   return data;

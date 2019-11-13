@@ -30,9 +30,10 @@ namespace Linalg {
 // Linear operations
 //----------------------------------------------------------------------------
 template <class T1, class T2, class T3, class T4, class T5,
-          typename = enable_if_numeric<T2>>
-decltype(auto) add(const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
-                   const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5> add(
+    const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
+    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
   std::unordered_map<T1, T2, T3, T4, T5> result = lhs;
   for (const auto& pair : rhs) {
     result[pair.first] = std::plus<T2>()(result[pair.first], pair.second);
@@ -41,9 +42,10 @@ decltype(auto) add(const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
-          typename = enable_if_numeric<T2>>
-decltype(auto) iadd(std::unordered_map<T1, T2, T3, T4, T5>& lhs,
-                    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5>& iadd(
+    std::unordered_map<T1, T2, T3, T4, T5>& lhs,
+    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
   for (const auto& pair : rhs) {
     lhs[pair.first] = std::plus<T2>()(lhs[pair.first], pair.second);
   }
@@ -51,9 +53,10 @@ decltype(auto) iadd(std::unordered_map<T1, T2, T3, T4, T5>& lhs,
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
-          typename = enable_if_numeric<T2>>
-decltype(auto) sub(const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
-                   const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5> sub(
+    const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
+    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
   std::unordered_map<T1, T2, T3, T4, T5> result = lhs;
   for (const auto& pair : rhs) {
     result[pair.first] = std::minus<T2>()(result[pair.first], pair.second);
@@ -62,9 +65,10 @@ decltype(auto) sub(const std::unordered_map<T1, T2, T3, T4, T5>& lhs,
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
-          typename = enable_if_numeric<T2>>
-decltype(auto) isub(std::unordered_map<T1, T2, T3, T4, T5>& lhs,
-                    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5>& isub(
+    std::unordered_map<T1, T2, T3, T4, T5>& lhs,
+    const std::unordered_map<T1, T2, T3, T4, T5>& rhs) {
   for (const auto& pair : rhs) {
     lhs[pair.first] = std::minus<T2>()(lhs[pair.first], pair.second);
   }
@@ -75,10 +79,10 @@ decltype(auto) isub(std::unordered_map<T1, T2, T3, T4, T5>& lhs,
 // Affine operations
 //----------------------------------------------------------------------------
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) add(const std::unordered_map<T1, T2, T3, T4, T5>& data,
-                   const Scalar& val) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5> add(
+    const std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
   std::unordered_map<T1, T2, T3, T4, T5> result;
   for (const auto& pair : data) {
     result[pair.first] = std::plus<T2>()(pair.second, val);
@@ -87,10 +91,10 @@ decltype(auto) add(const std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) iadd(std::unordered_map<T1, T2, T3, T4, T5>& data,
-                    const Scalar& val) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5>& iadd(
+    std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
   for (const auto& pair : data) {
     data[pair.first] = std::plus<T2>()(data[pair.first], val);
   }
@@ -98,10 +102,10 @@ decltype(auto) iadd(std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) sub(const std::unordered_map<T1, T2, T3, T4, T5>& data,
-                   const Scalar& val) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5> sub(
+    const std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
   std::unordered_map<T1, T2, T3, T4, T5> result;
   for (const auto& pair : data) {
     result[pair.first] = std::minus<T2>()(pair.second, val);
@@ -110,10 +114,10 @@ decltype(auto) sub(const std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) isub(std::unordered_map<T1, T2, T3, T4, T5>& data,
-                    const Scalar& val) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5>& isub(
+    std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
   for (const auto& pair : data) {
     data[pair.first] = std::plus<T2>()(data[pair.first], val);
   }
@@ -125,11 +129,11 @@ decltype(auto) isub(std::unordered_map<T1, T2, T3, T4, T5>& data,
 //----------------------------------------------------------------------------
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) mul(const std::unordered_map<T1, T2, T3, T4, T5>& data,
-                   const Scalar& val) {
-  if (almost_equal(val, 1)) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5> mul(
+    const std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::unordered_map<T1, T2, T3, T4, T5> result;
@@ -140,11 +144,11 @@ decltype(auto) mul(const std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) imul(std::unordered_map<T1, T2, T3, T4, T5>& data,
-                    const Scalar& val) {
-  if (almost_equal(val, 1)) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5>& imul(
+    std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   for (const auto& pair : data) {
@@ -154,11 +158,11 @@ decltype(auto) imul(std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) div(const std::unordered_map<T1, T2, T3, T4, T5>& data,
-                   const Scalar& val) {
-  if (almost_equal(val, 1)) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5> div(
+    const std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::unordered_map<T1, T2, T3, T4, T5> result;
@@ -169,11 +173,11 @@ decltype(auto) div(const std::unordered_map<T1, T2, T3, T4, T5>& data,
 }
 
 template <class T1, class T2, class T3, class T4, class T5, class Scalar,
-          typename = enable_if_numeric<T2>,
-          typename = enable_if_numeric<Scalar>>
-decltype(auto) idiv(std::unordered_map<T1, T2, T3, T4, T5>& data,
-                    const Scalar& val) {
-  if (almost_equal(val, 1)) {
+          typename = enable_if_numeric_t<T2>,
+          typename = enable_if_numeric_t<Scalar>>
+std::unordered_map<T1, T2, T3, T4, T5>& idiv(
+    std::unordered_map<T1, T2, T3, T4, T5>& data, const Scalar& val) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   for (const auto& pair : data) {
