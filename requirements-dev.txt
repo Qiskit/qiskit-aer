@@ -9,4 +9,4 @@ pycodestyle
 Sphinx>=1.8.3
 sphinx-rtd-theme>=0.4.0
 sphinx-tabs>=1.1.11
-jupyter-sphinx
+jupyter-sphinx;python_version<'3.8'
