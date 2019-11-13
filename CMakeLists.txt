@@ -179,7 +179,15 @@ endif()
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 message(STATUS "Looking for spdlog library...")
-find_package(spdlog REQUIRED)
+find_package(spdlog)
+if(spdlog_FOUND)
+	message(INFO "spdlog found.")
+	set(SPDLOG_LIB spdlog::spdlog)
+else()
+	message(INFO "spdlog not found.")
+	set(SPDLOG_LIB "")
+endif()
+
 
 if(APPLE OR UNIX)
 	message(STATUS "Looking for muparserx library...")
@@ -198,7 +206,7 @@ set(AER_LIBRARIES
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 		Threads::Threads
-		spdlog::spdlog
+		${SPDLOG_LIB}
 		${CMAKE_DL_LIBS}
 		${MUPARSERX_LIB})
 
