@@ -79,6 +79,7 @@ def unitary_evolution(exp, op_system):
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
+    breakpoint()
     if op_system.use_cpp_ode_func:
         # Don't know how to use OrderedDict type on Cython, so transforming it to dict
         channels = dict(op_system.channels)

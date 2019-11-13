@@ -228,7 +228,8 @@ def digest_pulse_obj(qobj):
         if not exp_struct['can_sample']:
             out.can_sample = False
 
-        out.use_cpp_ode_func = config_dict.get('use_cpp_ode_func', True)
+        # This is a temporary flag while stabilizing cpp func ODE solver
+        out.use_cpp_ode_func = config_dict_sim.get('use_cpp_ode_func', True)
     return out
 
 

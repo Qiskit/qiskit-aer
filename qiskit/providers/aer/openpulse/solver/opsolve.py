@@ -51,9 +51,9 @@ def opsolve(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-    # compile Cython RHS
-    # <JUAN> No more dynamically generated cython 
-    #_op_generate_rhs(op_system)
+    if not op_system.use_cpp_ode_func:
+        # compile Cython RHS
+        _op_generate_rhs(op_system)
     # Load cython function
     _op_func_load(op_system)
     # load monte carlo class
