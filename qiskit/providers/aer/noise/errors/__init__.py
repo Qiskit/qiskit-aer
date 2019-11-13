@@ -10,7 +10,48 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Standard error module for Qiskit Aer."""
+"""
+==================================================================
+Errors for Noise Models (:mod:`qiskit.providers.aer.noise.errors`)
+==================================================================
+
+.. currentmodule:: qiskit.providers.aer.noise.errors
+
+
+Classes
+=======
+
+The following are the base classes used to represented error terms in a
+Qiskit Aer :class:`NoiseModel`.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    QuantumError
+    ReadoutError
+
+
+Generator Functions
+===================
+
+The following functions can be used to generate many common types of
+:class:`QuantumError` objects for inclusion in a :class:`~qiskit.providers.aer.noise.NoiseModel`.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    pauli_error
+    depolarizing_error
+    pauli_error
+    mixed_unitary_error
+    coherent_unitary_error
+    reset_error
+    amplitude_damping_error
+    phase_damping_error
+    phase_amplitude_damping_error
+    thermal_relaxation_error
+    kraus_error
+"""
 
 from .readout_error import ReadoutError
 from .quantum_error import QuantumError
