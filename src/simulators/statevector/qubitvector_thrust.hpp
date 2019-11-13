@@ -828,12 +828,14 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 #endif
 
 #ifdef AER_THRUST_CUDA
+#ifdef __linux__
 		str = getenv("AER_USE_ATS");
 		if(str != NULL){
 			posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
 			m_useATS = 1;
 		}
 		else{
+#endif
 			str = getenv("AER_USE_DEVMEM");
 			if(str != NULL){
 				cudaMalloc(&pData,sizeof(thrust::complex<data_t>) * data_size_);
@@ -843,10 +845,14 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 				cudaMallocManaged(&pData,sizeof(thrust::complex<data_t>) * data_size_);
 			}
 			m_useATS = 0;
+#ifdef __linux__
 		}
-#else
-		posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
 #endif
+
+#else	//AER_THRUST_CUDA
+		pData = (thrust::complex<data_t>*)malloc(sizeof(thrust::complex<data_t>) * data_size_);
+#endif	//AER_THRUST_CUDA
+
 		data_ = reinterpret_cast<std::complex<data_t>*>(pData);
 
 #ifdef AER_TIMING
