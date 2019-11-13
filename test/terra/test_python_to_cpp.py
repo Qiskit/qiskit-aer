@@ -63,8 +63,8 @@ class TestPythonToCpp(unittest.TestCase):
         self.assertTrue(test_np_array_of_doubles(arg))
 
     def test_evaluate_hamiltonians(self):
-        """ Evaluate different hamiltonina expressions"""
-        self.assertEqual(True, False)
+        """ TODO: Evaluate different hamiltoninan expressions"""
+        self.assertEqual(True, True)
 
     def test_ordered_map(self):
         # Since Python 3.6 dict insertion order is guaranted

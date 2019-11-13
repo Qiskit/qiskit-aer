@@ -116,13 +116,6 @@ class OP_mcwf():
         # into one of the qubit states (usually |1>)
         if self.op_system.can_sample:
             start = time.time()
-            # exp_results = parallel_map(unitary_evolution,
-            #                            self.op_system.experiments,
-            #                            task_args=(self.op_system.global_data,
-            #                                       self.op_system.ode_options
-            #                                       ),
-            #                            **map_kwargs
-            #                            )
             exp_results = parallel_map(unitary_evolution,
                                        self.op_system.experiments,
                                        task_args=(self.op_system,),
@@ -142,14 +135,6 @@ class OP_mcwf():
                 rng = np.random.RandomState(exp['seed'])
                 seeds = rng.randint(np.iinfo(np.int32).max - 1,
                                     size=self.op_system.global_data['shots'])
-                # exp_res = parallel_map(monte_carlo,
-                #                        seeds,
-                #                        task_args=(exp,
-                #                                   self.op_system.global_data,
-                #                                   self.op_system.ode_options
-                #                                   ),
-                #                        **map_kwargs
-                #                        )
                 exp_res = parallel_map(monte_carlo,
                         seeds,
                         task_args=(exp,
@@ -241,7 +226,9 @@ class OP_mcwf():
 
             all_results.append(results)
 
-        #_cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
+        if not self.op_system.use_cpp_ode_func:
+            _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
+
         return all_results
 
 

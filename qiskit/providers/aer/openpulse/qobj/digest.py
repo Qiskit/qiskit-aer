@@ -91,7 +91,7 @@ def digest_pulse_obj(qobj):
 
     out.vars = OrderedDict(ham['vars'])
     out.global_data['vars'] = list(out.vars.values())
-    # <JUAN> Need this info for evaluating the hamiltonian vars
+    # Need this info for evaluating the hamiltonian vars in the c++ solver
     out.global_data['vars_names'] = list(out.vars.keys())
 
     # Get qubit subspace dimensions
@@ -174,7 +174,8 @@ def digest_pulse_obj(qobj):
 
     out.global_data['freqs'] = list(out.freqs.values())
 
-    breakpoint()
+    # TODO: Here is the crash! pulses_idx is a list of indexes for
+    # pulses, but this is empty.
     # Step #3: Build pulse arrays
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj)
 

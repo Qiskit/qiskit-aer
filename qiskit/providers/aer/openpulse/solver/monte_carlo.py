@@ -34,7 +34,6 @@ from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-#def monte_carlo(seed, exp, global_data, ode_options):
 def monte_carlo(seed, exp, op_system):
     """
     Monte Carlo algorithm returning state-vector or expectation values

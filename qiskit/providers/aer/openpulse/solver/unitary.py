@@ -18,7 +18,6 @@
 """
 
 import logging
-logging.basicConfig(format=None, level=logging.DEBUG)
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
@@ -27,24 +26,6 @@ from ..cy.measure import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-#def unitary_evolution(exp, global_data, ode_options):
-    # """
-    # Calculates evolution when there is no noise,
-    # or any measurements that are not at the end
-    # of the experiment.
-
-    # Args:
-    #     exp (dict): Dictionary of experimental pulse and fc
-    #         data.
-    #     global_data (dict): Data that applies to all experiments.
-    #     ode_options (OPoptions): Options for the underlying ODE solver.
-
-    # Returns:
-    #     array: Memory of shots.
-
-    # Raises:
-    #     Exception: Error in ODE solver.
-    # """
 def unitary_evolution(exp, op_system):
     """
     Calculates evolution when there is no noise,
@@ -79,7 +60,6 @@ def unitary_evolution(exp, op_system):
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
-    breakpoint()
     if op_system.use_cpp_ode_func:
         # Don't know how to use OrderedDict type on Cython, so transforming it to dict
         channels = dict(op_system.channels)
@@ -108,7 +88,6 @@ def unitary_evolution(exp, op_system):
     # Since all experiments are defined to start at zero time.
     ODE.set_initial_value(global_data['initial_state'], 0)
     for time in tlist[1:]:
-        logging.info("time: %s", time)
         ODE.integrate(time, step=0)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
