@@ -433,6 +433,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     # ---------------------------------------------------------------------
     # Test meas level 1 (using square drive)
+    # Note: the simulator does not currently support full IQ data; instead,
+    # it casts the bit counts to floats.
     # ---------------------------------------------------------------------
 
     def test_meas_level_1(self):
