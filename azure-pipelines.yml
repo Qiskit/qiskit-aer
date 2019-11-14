@@ -7,39 +7,73 @@ trigger:
 - master
 - stable
 
-pool:
-  vmImage: 'vs2017-win2016'
-strategy:
-  matrix:
-    Python35:
-      python.version: '3.5'
-    Python36:
-      python.version: '3.6'
-    Python37:
-      python.version: '3.7'
-
-steps:
-  - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-    displayName: Add conda to PATH
-  - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
-    displayName: Create Anaconda environment
-  - script: |
-      call activate qiskit-aer-$(Build.BuildNumber)
-      conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
-    displayName: Install Anaconda packages
-  - bash: |
-      set -e
-      source activate qiskit-aer-$(Build.BuildNumber)
-      git clean -fdX
-      python -m pip install --disable-pip-version-check pip==18
-      pip install cython
-      pip install git+https://github.com/Qiskit/qiskit-terra.git
-      pip install --ignore-installed -r requirements-dev.txt
-      python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-    displayName: 'Install Dependencies and Build Aer'
-  - bash: |
-      set -e
-      source activate qiskit-aer-$(Build.BuildNumber)
-      pip install dist/qiskit_aer*.whl
-      python -m unittest discover -s test/terra -v
-    displayName: 'Install Aer and Run Tests'
+jobs:
+  - job: 'Docs'
+    pool: {vmImage: 'ubuntu-16.04'}
+    strategy:
+      matrix:
+        Python37:
+          python.version: '3.7'
+    steps:
+     - checkout: self
+     - task: UsePythonVersion@0
+       inputs:
+         versionSpec: '$(python.version)'
+       displayName: 'Use Python $(python.version)'
+     - bash: |
+         set -e
+         python -m pip install --upgrade pip virtualenv
+         pip install -U tox
+         sudo apt-get update
+         sudo apt-get install -y build-essential libopenblas-dev
+       displayName: 'Install dependencies'
+     - bash: |
+         tox -edocs -- -j auto
+       displayName: 'Run Docs build'
+     - task: PublishBuildArtifacts@1
+       displayName: 'Publish docs'
+       inputs:
+         pathtoPublish: 'docs/_build/html'
+         artifactName: 'html_docs'
+  - job: 'Windows'
+    pool: {vmImage: 'vs2017-win2016'}
+    strategy:
+      matrix:
+        Python35:
+          python.version: '3.5'
+        Python36:
+          python.version: '3.6'
+        Python37:
+          python.version: '3.7'
+    steps:
+      - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+        displayName: Add conda to PATH
+      - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
+        displayName: Create Anaconda environment
+      - script: |
+          call activate qiskit-aer-$(Build.BuildNumber)
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
+        displayName: Install Anaconda packages
+        condition: ne(variables['python.version'], '3.5')
+      - script: |
+          call activate qiskit-aer-$(Build.BuildNumber)
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% mkl
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas
+        displayName: Install Anaconda packages
+        condition: eq(variables['python.version'], '3.5')
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          git clean -fdX
+          python -m pip install --disable-pip-version-check pip==18
+          pip install cython
+          pip install git+https://github.com/Qiskit/qiskit-terra.git
+          pip install --ignore-installed -r requirements-dev.txt
+          python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+        displayName: 'Install Dependencies and Build Aer'
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          pip install dist/qiskit_aer*.whl
+          python -m unittest discover -s test/terra -v
+        displayName: 'Install Aer and Run Tests'

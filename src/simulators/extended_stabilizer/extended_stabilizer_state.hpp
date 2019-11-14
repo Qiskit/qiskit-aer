@@ -672,7 +672,7 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentData &data,
   {
     sum += std::pow(std::abs(statevector[i]), 2);
   }
-  data.add_singleshot_snapshot("statevector", op.string_params[0], statevector);
+  data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentData &data, RngEngine &rng)

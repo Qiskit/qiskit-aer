@@ -67,9 +67,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy", "mcu1", "mcu2", "mcu3", "mcswap"};
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "cu2", "cu3", "swap",
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx", "cswap",
+            "mcx", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -188,19 +188,23 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"u2", Gates::mcu2},  // single-X90 pulse waltz gate
   {"u3", Gates::mcu3},  // two X90 pulse waltz gate
   // Two-qubit gates
-  {"cx", Gates::mcx},   // Controlled-X gate (CNOT)
-  {"cy", Gates::mcy},   // Controlled-Z gate
-  {"cz", Gates::mcz},   // Controlled-Z gate
-  {"cu1", Gates::mcu1}, // Controlled-u1 gate
-  {"swap", Gates::mcswap}, // SWAP gate
+  {"cx", Gates::mcx},       // Controlled-X gate (CNOT)
+  {"cy", Gates::mcy},       // Controlled-Z gate
+  {"cz", Gates::mcz},       // Controlled-Z gate
+  {"cu1", Gates::mcu1},     // Controlled-u1 gate
+  {"cu2", Gates::mcu2},    // Controlled-u2
+  {"cu3", Gates::mcu1},     // Controlled-u3 gate
+  {"swap", Gates::mcswap},  // SWAP gate
   // Three-qubit gates
-  {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
-  {"mcx", Gates::mcx},   // Multi-controlled-X gate
-  {"mcy", Gates::mcy},   // Multi-controlled-Y gate
-  {"mcz", Gates::mcz},    // Multi-controlled-Z gate
-  {"mcu1", Gates::mcu1}, // Multi-controlled-u1
-  {"mcu2", Gates::mcu2}, // Multi-controlled-u2
-  {"mcu3", Gates::mcu3},  // Multi-controlled-u3
+  {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+  {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
+  // Multi-qubit controlled gates
+  {"mcx", Gates::mcx},      // Multi-controlled-X gate
+  {"mcy", Gates::mcy},      // Multi-controlled-Y gate
+  {"mcz", Gates::mcz},      // Multi-controlled-Z gate
+  {"mcu1", Gates::mcu1},    // Multi-controlled-u1
+  {"mcu2", Gates::mcu2},    // Multi-controlled-u2
+  {"mcu3", Gates::mcu3},    // Multi-controlled-u3
   {"mcswap", Gates::mcswap} // Multi-controlled-SWAP gate
 });
 
@@ -417,6 +421,7 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
+    data.add_pershot_snapshot("unitary", op.string_params[0], BaseState::qreg_.matrix());
     BaseState::snapshot_state(op, data);
   } else {
     throw std::invalid_argument("Unitary::State::invalid snapshot instruction \'" +

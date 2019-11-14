@@ -2,7 +2,7 @@ import os
 try:
     from skbuild import setup
 except ImportError:
-    import subprocess
+    import subprocess, sys
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
     from skbuild import setup
 from setuptools import find_packages
