@@ -48,6 +48,8 @@ static const cmatrix_t one_measure =
 //    Sometimes, we need to provide a different ordering of the amplitudes, such as 
 //    in snapshot_probabilities. For example, instead of [2, 1, 0] the user requests 
 //    the probabilities of [1, 0, 2].
+//    Note that the ordering in the qubits vector is the same as that of the mps solver,
+//    i.e., qubits are numbered from left to right, e.g., 210
 // Input: orig_probvector - the ordered vector of probabilities
 //        qubits - a list containing the new ordering
 // Returns: new_probvector - the vector in the new ordering
@@ -710,15 +712,17 @@ void MPS::probabilities_vector(rvector_t& probvector,
 #pragma omp parallel for
     for (int_t i = 0; i < static_cast<int_t>(length); i++) {
       // in this case, take psi * psi_dagger
+      // no need to reverse in this case
       probvector[i] = std::norm(mps_vec.get_data(i)(0,0));
     }
     return;
   }
   // no ordering among the qubits
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
-  reorder_all_qubits(ordered_probvector, qubits, probvector);
-  // decide whether to reverse after an answer to issue #413
-  probvector = reverse_all_bits(ordered_probvector, qubits.size());  
+
+  // reverse_bits to be consistent with output order in qasm
+  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());
+  reorder_all_qubits(rev_vec, qubits, probvector);
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
