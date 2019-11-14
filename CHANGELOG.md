@@ -20,6 +20,10 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added controlled gates (``cu1``, ``cu2``, ``cu3``) to simulator basis_gates (\#417)
+- Added multi-controlled gates (``mcx``, ``mcy``, ``mcz``, ``mcu1``, ``mcu2``, ``mcu3``)
+  to simulator basis gates (\#417)
+- Added gate definitions to simulator backend configurations (\#417)
 
 Changed
 -------
