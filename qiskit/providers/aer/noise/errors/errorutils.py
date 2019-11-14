@@ -557,6 +557,7 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     for mat in kraus_ops:
         # Get the value of the maximum diagonal element
         # of op.H * op for rescaling
+        # pylint: disable=no-member
         prob = abs(max(np.diag(np.conj(np.transpose(mat)).dot(mat))))
         if prob > 0.0:
             if abs(prob - 1) > 0.0:

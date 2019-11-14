@@ -19,7 +19,6 @@ from .codegen import OPCodegen
 from . import settings as op_set
 
 
-
 def _op_generate_rhs(op_system):
     """ Generates the RHS Cython file for solving the sytem
     described in op_system
@@ -43,6 +42,7 @@ def _op_func_load(op_system):
     """
 
     if op_system.use_cpp_ode_func:
+        # pylint: disable=no-name-in-module, import-error, import-outside-toplevel
         from ..cy.numeric_integrator_wrapper import td_ode_rhs_static
         op_system.global_data['rhs_func'] = td_ode_rhs_static
     else:
@@ -52,4 +52,3 @@ def _op_func_load(op_system):
         exec(code, globals())
         # pylint: disable=undefined-variable
         op_system.global_data['rhs_func'] = cy_td_ode_rhs
-

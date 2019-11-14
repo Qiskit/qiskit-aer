@@ -136,12 +136,9 @@ class OP_mcwf():
                 seeds = rng.randint(np.iinfo(np.int32).max - 1,
                                     size=self.op_system.global_data['shots'])
                 exp_res = parallel_map(monte_carlo,
-                        seeds,
-                        task_args=(exp,
-                                    self.op_system,
-                                    ),
-                        **map_kwargs
-                        )
+                                       seeds,
+                                       task_args=(exp, self.op_system,),
+                                       **map_kwargs)
 
                 # exp_results is a list for each shot
                 # so transform back to an array of shots

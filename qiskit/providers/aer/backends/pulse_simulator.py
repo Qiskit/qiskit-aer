@@ -49,7 +49,7 @@ class PulseSimulator(AerBackend):
         'description': 'A pulse-based Hamiltonian simulator',
         'gates': [],
         'basis_gates': [],
-        'use_cpp_ode_func': True # Use the C++ ODE func or the Cyhton one
+        'use_cpp_ode_func': True  # Use the C++ ODE func or the Cyhton one
     }
 
     def __init__(self, configuration=None, provider=None):

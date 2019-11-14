@@ -43,7 +43,6 @@ def monte_carlo(seed, exp, op_system):
     global_data = op_system.global_data
     ode_options = op_system.ode_options
 
-
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
@@ -77,7 +76,7 @@ def monte_carlo(seed, exp, op_system):
         _inst = 'ODE.set_f_params(%s)' % global_data['string']
         logging.debug("Monte Carlo: %s\n\n", _inst)
         code = compile(_inst, '<string>', 'exec')
-        #pylint: disable=exec-used
+        # pylint: disable=exec-used
         exec(code)
 
     # initialize ODE solver for RHS

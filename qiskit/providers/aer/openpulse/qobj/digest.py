@@ -64,7 +64,7 @@ def digest_pulse_obj(qobj):
     out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
     out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
     out.global_data['seed'] = config_dict.get('seed', None)
-    if not 'memory_slots' in config_keys:
+    if 'memory_slots' not in config_keys:
         raise ValueError('Number of memory_slots must be specific in Qobj config')
     out.global_data['memory_slots'] = config_dict['memory_slots']
     out.global_data['memory'] = config_dict.get('memory', False)
