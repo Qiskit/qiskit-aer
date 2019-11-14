@@ -433,6 +433,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     # ---------------------------------------------------------------------
     # Test meas level 1 (using square drive)
+    # Note: the simulator generates approximate IQ data with the proper
+    # data structure; it should not, however, be compared with an actual
+    # device.
     # ---------------------------------------------------------------------
 
     def test_meas_level_1(self):
