@@ -75,5 +75,5 @@ jobs:
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
           pip install dist/qiskit_aer*.whl
-          python -m unittest discover -s test/terra -v
+          stestr run
         displayName: 'Install Aer and Run Tests'
