@@ -178,13 +178,37 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
+message(STATUS "Looking for spdlog library...")
+find_package(spdlog)
+if(spdlog_FOUND)
+	message(STATUS "spdlog found.")
+	set(SPDLOG_LIB spdlog::spdlog)
+else()
+	message(STATUS "spdlog not found.")
+	set(SPDLOG_LIB "")
+endif()
+
+
+if(APPLE OR UNIX)
+	message(STATUS "Looking for muparserx library...")
+	find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+	if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
+		message(FATAL_ERROR "No muparserx library found")
+	endif()
+	message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+	# I keep this disabled on purpose, just in case I need to debug muparserx related problems
+	# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+endif()
+
 # Set dependent libraries
 set(AER_LIBRARIES
 		${OPENMP_EXTERNAL_LIB}
 	    ${BLAS_LIBRARIES}
 	    nlohmann_json
 		Threads::Threads
-		${CMAKE_DL_LIBS})
+		${SPDLOG_LIB}
+		${CMAKE_DL_LIBS}
+		${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
