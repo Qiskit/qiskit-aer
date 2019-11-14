@@ -53,7 +53,7 @@ stage_linux: &stage_linux
   script:
     - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
     - pip install dist/qiskit_aer*whl
-    - stestr run
+    - stestr run --slowest
 
 stage_osx: &stage_osx
   <<: *stage_generic
@@ -89,7 +89,7 @@ stage_osx: &stage_osx
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
-    - stestr run
+    - stestr run --slowest
 
 ###############################################################################
 # Stage-related definitions
