@@ -25,14 +25,7 @@ from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 
-try:
-    import cvxopt
-    has_cvxopt = True
-except ImportError:
-    has_cvxopt = False
 
-
-@unittest.skipUnless(has_cvxopt, "Needs cvxopt to test")
 class TestNoiseTransformer(unittest.TestCase):
     def setUp(self):
         self.ops = {
@@ -295,15 +288,6 @@ class TestNoiseTransformer(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,
                                     "No information about noise type seven"):
             approximate_quantum_error(error, operator_string="seven")
-
-        # let's pretend cvxopt does not exist; the script should raise ImportError with proper message
-        import unittest.mock
-        import sys
-        with unittest.mock.patch.dict(sys.modules, {'cvxopt': None}):
-            with self.assertRaisesRegex(
-                    ImportError,
-                    "The CVXOPT library is required to use this module"):
-                approximate_quantum_error(error, operator_string="reset")
 
 
 if __name__ == '__main__':
