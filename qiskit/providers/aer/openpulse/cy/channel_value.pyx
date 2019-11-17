@@ -87,7 +87,7 @@ cdef complex chan_value(double t,
             break
     # Compute the frame change up to time t
     if out != 0:
-        num_times = fc_array.shape[0]
+        num_times = fc_array.shape[0] // 3
         for kk in range(num_times):
             if t >= fc_array[3*kk]:
                 do_fc = 1
