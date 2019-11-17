@@ -7,6 +7,7 @@
 #include <numpy/arrayobject.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <callgrind/callgrind.h>
 #include "numeric_integrator.hpp"
 #include "python_to_cpp.hpp"
 
@@ -96,6 +97,9 @@ PyArrayObject * create_py_array_from_vector(
     npy_intp dims = num_rows;
     PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
     PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
+    //ProfilerStop();
+    CALLGRIND_STOP_INSTRUMENTATION;
+    CALLGRIND_DUMP_STATS;
     return array;
 }
 
@@ -107,6 +111,9 @@ PyArrayObject * td_ode_rhs(
     PyObject * py_system,
     PyObject * py_channels,
     PyObject * py_register){
+
+    //ProfilerStart("cpp_ode_profile");
+    CALLGRIND_START_INSTRUMENTATION;
 
     const static auto numpy_initialized = init_numpy();
 
