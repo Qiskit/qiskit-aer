@@ -17,6 +17,16 @@ class Unregister {
     }
 };
 
+/**
+ * Python // operator-like division
+ */
+int32_t floor_div(int32_t a, int32_t b) {
+    int32_t q = a / b;
+    int32_t r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+
 complex_t chan_value(
     double t,
     unsigned int chan_num,
@@ -32,7 +42,7 @@ complex_t chan_value(
     };
 
     complex_t out = {0., 0.};
-    auto num_times = static_cast<int>(chan_pulse_times.shape[0]) / 4;
+    auto num_times = floor_div(static_cast<int>(chan_pulse_times.shape[0]), 4);
 
     for(auto i=0; i < num_times; ++i){
         auto start_time = chan_pulse_times[4 * i];
@@ -53,7 +63,7 @@ complex_t chan_value(
     // Seems like this is equivalent to: out != complex_t(0., 0.)
     if(out != 0.){
         double phase = 0.;
-        num_times = fc_array.shape[0];
+        num_times = floor_div(fc_array.shape[0], 3);
         for(auto i = 0; i < num_times; ++i){
             // TODO floating point comparison
             if(t >= fc_array[3 * i]){

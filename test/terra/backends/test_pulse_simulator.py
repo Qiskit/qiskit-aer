@@ -286,8 +286,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.back_config['ode_options'] = {} # optionally set ode settings
 
-        self.back_config['use_cpp_ode_func'] = True
-
         # set qobj params
         qubit_list = qobj_params[0]
         memory_slots = qobj_params[1]
@@ -295,6 +293,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         meas_map = qobj_params[3]
 
         self.back_config['qubit_list'] = qubit_list
+
+        self.back_config['use_cpp_ode_func'] = True
 
         # construct the qobj
         qobj = assemble([schedule], self.backend_mock,
