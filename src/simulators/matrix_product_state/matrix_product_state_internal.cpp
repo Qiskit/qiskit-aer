@@ -41,6 +41,19 @@ static const cmatrix_t one_measure =
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
+
+//------------------------------------------------------------------------
+// Function name: squeeze_qubits
+// Description: Takes a list of qubits, and squeezes them into a list of the same size,
+//     that begins at 0, and where all qubits are consecutive. Note that relative 
+//     order between qubits is preserved.
+//     Example: [8, 4, 6, 0, 9] -> [3, 1, 2, 0, 4]
+// Input: original_qubits 
+// Returns: squeezed_qubits
+//
+//------------------------------------------------------------------------
+  void squeeze_qubits(const reg_t &original_qubits, reg_t &squeezed_qubits);
+
 //------------------------------------------------------------------------
 // Function name: reorder_all_qubits
 // Description: The ordering of the amplitudes in the statevector in this module is 
@@ -76,8 +89,7 @@ template <class T>
 std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits);
 uint_t reverse_bits(uint_t num, uint_t len);
 
-
-vector<uint_t> calc_new_indexes(vector<uint_t> indexes);
+reg_t calc_new_indexes(const reg_t &indexes);
 
 // The following two functions are helper functions used by 
 // initialize_from_statevector
@@ -89,6 +101,22 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
+void squeeze_qubits(const reg_t &original_qubits, reg_t &squeezed_qubits) {
+  std::vector<uint_t> sorted_qubits;
+  for (uint_t index : original_qubits) {
+    sorted_qubits.push_back(index);
+  }
+  sort(sorted_qubits.begin(), sorted_qubits.end());
+  for (uint_t i=0; i<original_qubits.size(); i++) {
+    for (uint_t j=0; j<sorted_qubits.size(); j++) {
+      if (original_qubits[i] == sorted_qubits[j]) {
+	squeezed_qubits[i] = j;
+	break;
+      } 
+    }    
+  }
+}
+
 template <class T>
 void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits,
 			std::vector<T>& new_probvector) {
@@ -97,19 +125,7 @@ void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits,
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
   // ordering
   reg_t squeezed_qubits(qubits.size());
-  std::vector<uint_t> sorted_qubits;
-  for (uint_t index : qubits) {
-    sorted_qubits.push_back(index);
-  }
-  sort(sorted_qubits.begin(), sorted_qubits.end());
-  for (uint_t i=0; i<qubits.size(); i++) {
-    for (uint_t j=0; j<sorted_qubits.size(); j++) {
-      if (qubits[i] == sorted_qubits[j]) {
-	squeezed_qubits[i] = j;
-	break;
-      } 
-    }    
-  }
+  squeeze_qubits(qubits, squeezed_qubits);
 
   for (uint_t i=0; i < length; i++) {
     new_index = reorder_qubits(squeezed_qubits, i);
@@ -156,13 +172,14 @@ std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qu
   return output_vector;
 }
 
-vector<uint_t> calc_new_indexes(vector<uint_t> indexes)
-{
-	uint_t n = indexes.size();
-	uint_t avg = round(accumulate( indexes.begin(), indexes.end(), 0.0)/ n );
-	vector<uint_t> new_indexes( n );
-	std::iota( std::begin( new_indexes ), std::end( new_indexes ), avg-n/2);
-	return new_indexes;
+vector<uint_t> calc_new_indexes(const reg_t &indexes) {
+  // assumes indexes vector is sorted
+  uint_t n = indexes.size();
+  uint_t mid_index = indexes[(n-1)/2];
+  uint_t first = mid_index - (n-1)/2;
+  vector<uint_t> new_indexes(n);
+  std::iota( std::begin( new_indexes ), std::end( new_indexes ), first);
+  return new_indexes;
 }
 
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
@@ -401,14 +418,21 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     throw std::runtime_error(ss.str());
   }
   bool ordered = true;
-  reg_t new_qubits;
-  //centralize_qubits(qubits, new_qubits, ordered);
-  new_qubits = qubits; // temporary
-  if (!ordered) {
-    std::stringstream ss;
-    ss << "error: currently input qubits must be ordered";
-    throw std::runtime_error(ss.str());
-  }
+  reg_t new_qubits(qubits.size());
+  reg_t sorted_qubits(qubits.size());
+
+  centralize_and_sort_qubits(qubits, sorted_qubits, new_qubits, ordered);
+
+  // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
+  // the relative position of the controlled qubit will be 0, 1, or 2 depending on
+  // where qubit[2] was moved to in new_qubits
+  uint_t target=0;
+  if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
+    target = 2;
+  else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
+    target = 0;
+  else
+    target = 1;
 
   // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
@@ -417,7 +441,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   // apply the gate to sub_tensor
   switch (gate_type) {
   case mcx:
-       sub_tensor.apply_ccx();
+       sub_tensor.apply_ccx(target);
     break;
 
   default:
@@ -433,7 +457,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
 
   // We convert the matrix back into a 3-qubit MPS structure
   MPS sub_MPS;
-  sub_MPS.initialize_from_matrix(sub_MPS.num_qubits(), state_mat);
+  sub_MPS.initialize_from_matrix(qubits.size(), state_mat);
 
   // copy the 3-qubit MPS back to the corresponding positions in the original MPS
   for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
@@ -445,6 +469,10 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     q_reg_[first].div_Gamma_by_left_Lambda(lambda_reg_[first-1]);
   if (first+2 < num_qubits_-1)
     q_reg_[first+2].div_Gamma_by_right_Lambda(lambda_reg_[first+2]);
+
+  // This is the reverse of centralize_qubits which we did at the beginning
+  if (!ordered)
+    move_qubits_to_original_location(first, qubits, sorted_qubits);
 }
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) 
@@ -473,52 +501,73 @@ void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat)
   apply_matrix(qubits, diag_mat);
 }
 
-void MPS::centralize_qubits(const reg_t &qubits, 
+void MPS::centralize_qubits(const reg_t &qubits,
 			    reg_t &new_indexes, bool & ordered) {
-  ordered = true;
-  if (qubits.size() == 1) {
+  reg_t sorted_indexes;
+  centralize_and_sort_qubits(qubits, sorted_indexes, new_indexes, ordered);
+}
+
+void MPS::centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indices,
+			    reg_t &new_indexes, bool & ordered) {
+  sorted_indices = qubits;
+  uint_t num_qubits = qubits.size();
+
+  ordered = false;
+  if (num_qubits == 1) {
     new_indexes = qubits;
+    ordered = true;
     return;
   }
-  std::vector<uint_t> internalIndexes;
-  for (uint_t index : qubits) {
-    internalIndexes.push_back(index);
-  }
-  
-  for (uint_t index=0; index < qubits.size()-1; index++) {
+
+  for (uint_t index=0; index < num_qubits-1; index++) {
     if (qubits[index] > qubits[index+1]){
       ordered = false;
       break;
     }
   }
   if (!ordered)
-      sort(internalIndexes.begin(), internalIndexes.end());
+      sort(sorted_indices.begin(), sorted_indices.end());
 
-  new_indexes = calc_new_indexes(internalIndexes);
+  new_indexes = calc_new_indexes(sorted_indices);
+  uint_t mid_index = (num_qubits-1)/2;
   
-  uint_t avg = new_indexes[new_indexes.size()/2];
-  vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
-  int mid = std::distance(internalIndexes.begin(), it);
-  for(uint_t i = mid; i < internalIndexes.size(); i++)
+  for(uint_t i = mid_index; i < sorted_indices.size(); i++)
   {
-    change_position(internalIndexes[i], new_indexes[i]);
+    change_position(sorted_indices[i], new_indexes[i]);
   }
-  for(int i = mid-1; i >= 0; i--)
+  for(int i = mid_index-1; i >= 0; i--)
   {
-    change_position(internalIndexes[i], new_indexes[i]);
+    change_position(sorted_indices[i], new_indexes[i]);
   }
 }
 
-void MPS::change_position(uint_t src, uint_t dst)
-{
-	if(src == dst)
-		return;
-	else if(src < dst)
-		for(uint_t i = src; i < dst; i++)
-			apply_swap(i,i+1);
-	else
-		for(uint_t i = src; i > dst; i--)
-			apply_swap(i,i-1);
+void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_qubits,
+					   const reg_t &sorted_qubits) {
+  uint_t num_qubits = original_qubits.size();
+  uint_t mid_index = (num_qubits-1)/2;
+
+  for(uint_t i = 0; i < mid_index; i++)
+  {
+    change_position(first+i, sorted_qubits[i]);
+  }
+
+  for(uint_t i = num_qubits-1; i > mid_index; i--)
+  {
+    change_position(first+i, sorted_qubits[i]);
+  }
+  // note that the qubit at mid_index does not need to move, because we didn't move it
+  // during centralize_qubits
+}
+
+void MPS::change_position(uint_t src, uint_t dst) {
+  if(src == dst)
+    return;
+  else if(src < dst)
+    for(uint_t i = src; i < dst; i++)
+      apply_swap(i,i+1);
+  else
+    for(uint_t i = src; i > dst; i--)
+      apply_swap(i,i-1);
 }
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const

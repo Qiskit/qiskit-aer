@@ -131,7 +131,7 @@ public:
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
-  void apply_ccx();
+  void apply_ccx(uint_t target_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
@@ -310,9 +310,21 @@ void MPS_Tensor::apply_cz()
   data_[3] = data_[3] * (-1.0);
 }
 
-void MPS_Tensor::apply_ccx()
+void MPS_Tensor::apply_ccx(uint_t target_qubit)
 {
-  swap(data_[6], data_[7]);
+  switch (target_qubit) {
+  case 0:
+    swap(data_[3], data_[7]);
+    break;
+  case 1:
+    swap(data_[5], data_[7]);
+    break;
+  case 2:
+    swap(data_[6], data_[7]);
+    break;
+  default:
+   throw std::invalid_argument("Target qubit for cxx must be 0, 1, or 2"); 
+  }
 }
 //-------------------------------------------------------------------------
 // The following functions mul/div Gamma by Lambda are used to keep the MPS in the
