@@ -30,23 +30,23 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 // Linear operations
 //----------------------------------------------------------------------------
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T> add(const matrix<T>& lhs, const matrix<T>& rhs) {
   return lhs + rhs;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T>& iadd(matrix<T>& lhs, const matrix<T>& rhs) {
   lhs = lhs + rhs;
   return lhs;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T> sub(const matrix<T>& lhs, const matrix<T>& rhs) {
   return lhs - rhs;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 matrix<T>& isub(matrix<T>& lhs, const matrix<T>& rhs) {
   lhs = lhs - rhs;
   return lhs;
@@ -55,8 +55,8 @@ matrix<T>& isub(matrix<T>& lhs, const matrix<T>& rhs) {
 //----------------------------------------------------------------------------
 // Affine operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T>& iadd(matrix<T>& data, const Scalar& val) {
   if (val == 0) {
     return data;
@@ -67,21 +67,21 @@ matrix<T>& iadd(matrix<T>& data, const Scalar& val) {
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T> add(const matrix<T>& data, const Scalar& val) {
   matrix<T> result(data);
   return iadd(result, val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T> sub(const matrix<T>& data, const Scalar& val) {
   return add(data, -val);
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T>& isub(matrix<T>& data, const Scalar& val) {
   return iadd(data, -val);
 }
@@ -90,10 +90,10 @@ matrix<T>& isub(matrix<T>& data, const Scalar& val) {
 // Scalar operations
 //----------------------------------------------------------------------------
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T>& imul(matrix<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   for (size_t j = 0; j < data.size(); j++) {
@@ -102,10 +102,10 @@ matrix<T>& imul(matrix<T>& data, const Scalar& val) {
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T> mul(const matrix<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   matrix<T> result = data;
@@ -113,10 +113,10 @@ matrix<T> mul(const matrix<T>& data, const Scalar& val) {
   return result;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T>& idiv(matrix<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   for (size_t j = 0; j < data.size(); j++) {
@@ -125,10 +125,10 @@ matrix<T>& idiv(matrix<T>& data, const Scalar& val) {
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 matrix<T> div(const matrix<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   matrix<T> result = data;
