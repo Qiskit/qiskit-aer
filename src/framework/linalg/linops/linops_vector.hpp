@@ -30,7 +30,7 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 // Linear operations
 //----------------------------------------------------------------------------
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T> add(const std::vector<T>& lhs, const std::vector<T>& rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
@@ -42,7 +42,7 @@ std::vector<T> add(const std::vector<T>& lhs, const std::vector<T>& rhs) {
   return result;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T>& iadd(std::vector<T>& lhs, const std::vector<T>& rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
@@ -52,7 +52,7 @@ std::vector<T>& iadd(std::vector<T>& lhs, const std::vector<T>& rhs) {
   return lhs;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T> sub(const std::vector<T>& lhs, const std::vector<T>& rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
@@ -64,7 +64,7 @@ std::vector<T> sub(const std::vector<T>& lhs, const std::vector<T>& rhs) {
   return result;
 }
 
-template <class T, typename = enable_if_numeric<T>>
+template <class T, typename = enable_if_numeric_t<T>>
 std::vector<T>& isub(std::vector<T>& lhs, const std::vector<T>& rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
@@ -77,8 +77,8 @@ std::vector<T>& isub(std::vector<T>& lhs, const std::vector<T>& rhs) {
 //----------------------------------------------------------------------------
 // Affine operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T> add(const std::vector<T>& data, const Scalar& val) {
   std::vector<T> result;
   result.reserve(data.size());
@@ -87,16 +87,16 @@ std::vector<T> add(const std::vector<T>& data, const Scalar& val) {
   return result;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T>& iadd(std::vector<T>& data, const Scalar& val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::plus<T>(), std::placeholders::_1, val));
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T> sub(const std::vector<T>& data, const Scalar& val) {
   std::vector<T> result;
   result.reserve(data.size());
@@ -105,8 +105,8 @@ std::vector<T> sub(const std::vector<T>& data, const Scalar& val) {
   return result;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T>& isub(std::vector<T>& data, const Scalar& val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::minus<T>(), std::placeholders::_1, val));
@@ -116,10 +116,10 @@ std::vector<T>& isub(std::vector<T>& data, const Scalar& val) {
 //----------------------------------------------------------------------------
 // Scalar operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T> mul(const std::vector<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::vector<T> result;
@@ -129,10 +129,10 @@ std::vector<T> mul(const std::vector<T>& data, const Scalar& val) {
   return result;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T>& imul(std::vector<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::transform(data.begin(), data.end(), data.begin(),
@@ -140,10 +140,10 @@ std::vector<T>& imul(std::vector<T>& data, const Scalar& val) {
   return data;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T> div(const std::vector<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::vector<T> result;
@@ -153,10 +153,10 @@ std::vector<T> div(const std::vector<T>& data, const Scalar& val) {
   return result;
 }
 
-template <class T, class Scalar, typename = enable_if_numeric<T>,
-          typename = enable_if_numeric<Scalar>>
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 std::vector<T>& idiv(std::vector<T>& data, const Scalar& val) {
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   std::transform(data.begin(), data.end(), data.begin(),

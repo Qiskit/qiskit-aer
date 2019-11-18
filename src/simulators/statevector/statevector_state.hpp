@@ -84,9 +84,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "cu2", "cu3", "swap", 
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx", "cswap",
+            "mcx", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -316,16 +316,20 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"cy", Gates::mcy},        // Controlled-Y gate
   {"cz", Gates::mcz},        // Controlled-Z gate
   {"cu1", Gates::mcu1},      // Controlled-u1 gate
+  {"cu2", Gates::mcu2},      // Controlled-u2 gate
+  {"cu3", Gates::mcu3},      // Controlled-u3 gate
   {"swap", Gates::mcswap},   // SWAP gate
-  {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
+  // 3-qubit gates
+  {"ccx", Gates::mcx},       // Controlled-CX gate (Toffoli)
+  {"cswap", Gates::mcswap},  // Controlled SWAP gate (Fredkin)
   // Multi-qubit controlled gates
-  {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
-  {"mcx", Gates::mcx},   // Multi-controlled-X gate
-  {"mcy", Gates::mcy},   // Multi-controlled-Y gate
-  {"mcz", Gates::mcz},   // Multi-controlled-Z gate
-  {"mcu1", Gates::mcu1}, // Multi-controlled-u1
-  {"mcu2", Gates::mcu2}, // Multi-controlled-u2
-  {"mcu3", Gates::mcu3}  // Multi-controlled-u3
+  {"mcx", Gates::mcx},      // Multi-controlled-X gate
+  {"mcy", Gates::mcy},      // Multi-controlled-Y gate
+  {"mcz", Gates::mcz},      // Multi-controlled-Z gate
+  {"mcu1", Gates::mcu1},    // Multi-controlled-u1
+  {"mcu2", Gates::mcu2},    // Multi-controlled-u2
+  {"mcu3", Gates::mcu3},    // Multi-controlled-u3
+  {"mcswap", Gates::mcswap} // Multi-controlled SWAP gate
 
 });
 
