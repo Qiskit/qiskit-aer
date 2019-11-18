@@ -55,7 +55,7 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
 
     std::cout << "Getting parser " << std::hex << parser << "\n";
 
-    static std::unordered_map<std::string, std::unique_ptr<Value>> var_values;
+    static std::unordered_map<ParserX&, std::pair<std::string, Value>> var_values;
     auto maybe_update_value = [&parser](const std::string& var_name, const complex_t& var_value){
         if(var_values.find(var_name) == var_values.end()){
             var_values.emplace(var_name, std::make_unique<Value>(var_value));
