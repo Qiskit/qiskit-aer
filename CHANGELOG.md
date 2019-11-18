@@ -15,8 +15,65 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.3...HEAD)
 =======================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+
+[0.3.3](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...0.3.3) - 2019-11-14
+====================================================================================
+
+Added
+-----
+- Added controlled gates (``cu1``, ``cu2``, ``cu3``) to simulator basis_gates (\#417)
+- Added multi-controlled gates (``mcx``, ``mcy``, ``mcz``, ``mcu1``, ``mcu2``, ``mcu3``)
+  to simulator basis gates (\#417)
+- Added gate definitions to simulator backend configurations (\#417)
+
+Changed
+-------
+- Improved pershot snapshot data container performance (\#405)
+- Add basic linear algebra functions for numeric STL classes (\#406)
+- Improved average snapshot data container performance (\#407)
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
+===============================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+- Fix sdist to always attempt to build (\#401)
+
+
+
+[0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15
+===============================================================================
+
 
 Added
 -----
@@ -39,8 +96,6 @@ Changed
 - Update device noise model to consume asymmetric readout errors from backends (\#354)
 - Update device noise model to use gate_length (\#352)
 - Refactoring code and introducing floating point comparison func (\#338)
-
-
 
 Removed
 -------

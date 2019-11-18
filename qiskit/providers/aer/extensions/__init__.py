@@ -11,7 +11,29 @@
 # that they have been altered from the originals.
 
 """
-Snapshot extensions for Quantum Circuits
+===========================================================
+Circuit Extensions (:mod:`qiskit.providers.aer.extensions`)
+===========================================================
+
+.. currentmodule:: qiskit.providers.aer.extensions
+
+Snapshots
+=========
+
+Snapshot instructions allow taking a snapshot of the current state of the
+simulator without effecting the outcome of the simulation. These can be
+used with the `QasmSimulator` backend to return the expectation value of
+an operator or the probability of measurement outcomes.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    Snapshot
+    SnapshotProbabilities
+    SnapshotExpectationValue
+    SnapshotStatevector
+    SnapshotDensityMatrix
+    SnapshotStabilizer
 """
 
 from .snapshot import *

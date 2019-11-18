@@ -85,7 +85,27 @@ class AerBackend(BaseBackend):
 
     # pylint: disable=arguments-differ
     def run(self, qobj, backend_options=None, noise_model=None, validate=True):
-        """Run a qobj on the backend."""
+        """Run a qobj on the backend.
+
+        Args:
+            qobj (QasmQobj): The Qobj to be executed.
+            backend_options (dict or None): dictionary of backend options
+                                            for the execution (default: None).
+            noise_model (NoiseModel or None): noise model to use for
+                                              simulation (default: None).
+            validate (bool): validate the Qobj before running (default: True).
+
+        Returns:
+            AerJob: The simulation job.
+
+        Additional Information:
+            * The entries in the ``backend_options`` will be combined with
+              the ``Qobj.config`` dictionary with the values of entries in
+              ``backend_options`` taking precedence.
+
+            * If present the ``noise_model`` will override any noise model
+              specified in the ``backend_options`` or ``Qobj.config``.
+        """
         # Submit job
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj,
