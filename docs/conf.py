@@ -60,7 +60,6 @@ release = '0.12.0'
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
-    'sphinx_automodapi.automodapi',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
@@ -123,7 +122,7 @@ add_module_names = False
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 # This can be handy if you document a project that consists of a single
 # package. Works only for the HTML builder currently.
-modindex_common_prefix = ['qiskit.']
+modindex_common_prefix = ['qiskit.providers']
 
 # -- Configuration for extlinks extension ------------------------------------
 # Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
@@ -147,3 +146,5 @@ html_theme_options = {
     'style_external_links': True,
     'style_nav_header_background': '#212121',
 }
+
+autoclass_content = 'both'

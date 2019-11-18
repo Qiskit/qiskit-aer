@@ -32,12 +32,12 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
     Args:
         noise_model (NoiseModel): a noise model to remap qubits.
         remapping (list): list or remappings of old qubit to new qubit.
-            See Additional Information.
+                          See Additional Information.
         discard_qubits (bool): if True discard qubits not in remapping keys,
-            if False an identity mapping wil be assumed for unnamed qubits
-            (default: False).
+                               if False an identity mapping wil be assumed
+                               for unnamed qubits (Default: False).
         warnings (bool): display warnings if qubits being remapped are not
-            in the input noise model (Default: True).
+                         in the input noise model (Default: True).
 
     Returns:
         NoiseModel: a new noise model with the same errors but remapped
@@ -46,15 +46,15 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
     Raises:
         NoiseError: if remapping has duplicate qubits in the remapped qubits.
 
-    Additional Information
-    ----------------------
-    The remapping map be specified as either a list of pairs:
-        [(old, new), ...]
-    Or a list of old qubits where the new qubit is inffered from the position:
-        [old0, old1, ...] -> [(old0, 0), (old1, 1), ...]
-    If `discard_qubits` is False, any qubits in the noise model not specified in
-    the list of old qubits will be added to the remapping as a trivial
-    mapping (qubit, qubit).
+    Additional Information:
+        * The remapping map be specified as either a list of pairs:
+          ``[(old, new), ...]``, or a list of old qubits where the new qubit is
+          inferred from the position: ``[old0, old1, ...]`` is treated as
+          ``[(old0, 0), (old1, 1), ...]``.
+
+        * If ``discard_qubits`` is ``False``, any qubits in the noise model not
+          specified in the list of old qubits will be added to the remapping as
+          a trivial mapping ``(qubit, qubit)``.
     """
     if not isinstance(noise_model, NoiseModel):
         raise NoiseError("Input must be a NoiseModel.")
