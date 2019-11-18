@@ -29,16 +29,14 @@ namespace Linalg {
 // If we have numbers closer to 0, then max_diff can be set to a value
 // way smaller than epsilon. For numbers larger than 1.0, epsilon will
 // scale (the bigger the number, the bigger the epsilon).
-template <typename T1, typename T2, typename = enable_if_numeric<T1>,
-          typename = enable_if_numeric<T2>>
-bool almost_equal(T1 f1, T2 f2,
-                  T1 max_diff = std::numeric_limits<T1>::epsilon(),
-                  T1 max_relative_diff = std::numeric_limits<T1>::epsilon()) {
-  T1 diff = std::abs<T1>(f1 - f2);
+template <typename T, typename = enable_if_numeric_t<T>>
+bool almost_equal(T f1, T f2,
+                  T max_diff = std::numeric_limits<T>::epsilon(),
+                  T max_relative_diff = std::numeric_limits<T>::epsilon()) {
+  T diff = std::abs(f1 - f2);
   if (diff <= max_diff) return true;
-
   return diff <=
-         max_relative_diff * std::max<T1>(std::abs<T1>(f1), std::abs<T2>(f2));
+         max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
 
 //------------------------------------------------------------------------------
