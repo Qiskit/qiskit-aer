@@ -235,8 +235,29 @@ protected:
   //                    ordered - are the qubits in ascending order
   // Returns: none.
   //----------------------------------------------------------------
-  void centralize_qubits(const reg_t &qubits, 
+  void centralize_qubits(const reg_t &qubits,
 			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: centralize_and_sort_qubits
+  // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
+  //----------------------------------------------------------------
+  void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
+			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: move_qubits_to_original_location
+  // Description: This function reverses the effect of centralize_qubits.
+  //      It returns the qubits that were previously centralized, to their original positions.
+  // Parameters: input: first - the index of the first qubit that was moved
+  //                    original_qubits - the subset of qubits that were moved
+  //                    sorted_qubits - the original_qubits in sorted order
+  //            output: the MPS (this) where the qubits have been moved back to their original
+  //                 position.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
+					const reg_t &sorted_qubits);
   //----------------------------------------------------------------
 
   // function name: change_position
