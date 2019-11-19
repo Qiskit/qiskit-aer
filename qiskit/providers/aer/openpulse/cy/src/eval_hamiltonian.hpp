@@ -24,6 +24,21 @@
 
 using namespace mup;
 
+struct ParserValues {
+    std::unique_ptr<ParserX> parser;
+    std::string expr;
+    std::unordered_map<std::string, Value> var_values;
+};
+
+namespace std {
+  template <>
+  struct hash<ParserValues>{
+    std::size_t operator()(const ParserValues& p) const {
+      return std::hash<std::string>(p.expr);
+    }
+  };
+}
+
 // TODO: Document
 complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
                                   const std::vector<double>& vars,
