@@ -7,9 +7,9 @@ API Documentation
 .. toctree::
     :maxdepth: 1
 
-    provider
-    extensions
-    noise
-    noise_errors
-    noise_device
-    noise_utils
+    aer_provider
+    aer_extensions
+    aer_noise
+    aer_noise_errors
+    aer_noise_device
+    aer_noise_utils
