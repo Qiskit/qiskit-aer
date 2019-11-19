@@ -96,7 +96,7 @@ json_t sub(const T& lhs, const json_t& rhs) {
 //----------------------------------------------------------------------------
 // Affine operations
 //----------------------------------------------------------------------------
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t& iadd(json_t& data, const Scalar& val) {
   // Null case
   if (val == 0) {
@@ -122,13 +122,13 @@ json_t& iadd(json_t& data, const Scalar& val) {
   return data;
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t add(const json_t& data, const Scalar& val) {
   json_t result = data;
   return iadd(result, val);
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t& isub(json_t& data, const Scalar& val) {
   // Null case
   if (val == 0) {
@@ -155,7 +155,7 @@ json_t& isub(json_t& data, const Scalar& val) {
   return data;
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t sub(const json_t& data, const Scalar& val) {
   json_t result = data;
   return isub(result, val);
@@ -165,10 +165,10 @@ json_t sub(const json_t& data, const Scalar& val) {
 // Scalar operations
 //----------------------------------------------------------------------------
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t& imul(json_t& data, const Scalar& val) {
   // Trival case
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   // Terminating case
@@ -193,17 +193,17 @@ json_t& imul(json_t& data, const Scalar& val) {
       "Input JSON does not support scalar multiplication.");
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t mul(const json_t& data, const Scalar& val) {
   // Null case
   json_t result = data;
   return imul(result, val);
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t& idiv(json_t& data, const Scalar& val) {
   // Trival case
-  if (almost_equal(val, 1)) {
+  if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
   // Terminating case
@@ -227,7 +227,7 @@ json_t& idiv(json_t& data, const Scalar& val) {
   throw std::invalid_argument("Input JSON does not support scalar division.");
 }
 
-template <class Scalar, typename = enable_if_numeric<Scalar>>
+template <class Scalar, typename = enable_if_numeric_t<Scalar>>
 json_t div(const json_t& data, const Scalar& val) {
   // Null case
   json_t result = data;
