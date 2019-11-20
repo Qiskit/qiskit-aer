@@ -525,7 +525,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
 	m_pMatDev = NULL;
 	m_matBits = 0;
 	m_useATS = 0;
-  set_num_qubits(num_qubits);
+//  set_num_qubits(num_qubits);
 }
 
 template <typename data_t>
