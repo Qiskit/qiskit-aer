@@ -128,6 +128,7 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index) {
   }
   return new_index;
 }
+
 uint_t reverse_bits(uint_t num, uint_t len) {
   uint_t sum = 0;
   //  std::assert(num < pow(2, len));
@@ -627,7 +628,6 @@ void MPS::probabilities_vector(rvector_t& probvector,
       break;
     }
   }
-
   bool reverse_ordered = true;
   for (uint_t index=0; index < qubits.size()-1; index++) {
     if (qubits[index] < qubits[index+1]){
@@ -635,7 +635,6 @@ void MPS::probabilities_vector(rvector_t& probvector,
       break;
     }
   }
-
   if (qubits.size() == num_qubits_ && ordered){
     MPS_Tensor mps_vec = state_vec_as_MPS(0, qubits.size()-1);
 #pragma omp parallel for
@@ -659,8 +658,7 @@ void MPS::probabilities_vector(rvector_t& probvector,
   // no ordering among the qubits
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
   // reverse_bits to be consistent with output order in qasm
-  rvector_t rev_vec = reverse_all_bits(probvector, qubits.size());
-  
+  rvector_t rev_vec = reverse_all_bits(ordered_probvector, qubits.size());
   reorder_all_qubits(rev_vec, qubits, probvector);
 }
 
