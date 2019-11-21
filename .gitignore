@@ -28,6 +28,7 @@ contrib/standalone/version.hpp
 test/.asv
 
 .tox/
+.stestr/
 
 docs/_build/
 docs/stubs/
