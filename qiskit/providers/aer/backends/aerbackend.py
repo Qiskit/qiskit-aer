@@ -28,7 +28,6 @@ from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
-from ..utils.helpers import deprecation
 from ..aerjob import AerJob
 from ..aererror import AerError
 
