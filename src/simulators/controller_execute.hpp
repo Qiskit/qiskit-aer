@@ -27,7 +27,7 @@
 // by handling the parsing of std::string input into JSON objects.
 namespace AER { 
 template <class controller_t>
-std::string controller_execute(const std::string &qobj_str) {
+std::string controller_execute_json(const std::string &qobj_str) {
   controller_t controller;
   auto qobj_js = json_t::parse(qobj_str);
 
@@ -43,7 +43,7 @@ std::string controller_execute(const std::string &qobj_str) {
 }
 
 template <class controller_t>
-json_t controller_execute_new(const json_t &qobj_js) {
+json_t controller_execute(const json_t &qobj_js) {
   controller_t controller;
 
   // Fix for MacOS and OpenMP library double initialization crash.

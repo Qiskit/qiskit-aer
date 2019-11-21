@@ -3,6 +3,7 @@ include(Linter)
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
@@ -26,28 +27,10 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
-set(_find_pybind_includes_command "
-import sys
-import pybind11
-sys.stdout.write(pybind11.get_include())
-")
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c "${_find_pybind_includes_command}"
-                OUTPUT_VARIABLE _py_output
-                RESULT_VARIABLE _py_result)
-if(_py_result EQUAL "0")
-    message(STATUS "PYCOMM RAW: ${_py_output}")
-    set(PYBIND_INCLUDE_DIRS "${_py_output}")
-    message(STATUS "PYBIND INCLUDES FOUND: ${PYBIND_INCLUDE_DIRS}")
-else()
-    message(FATAL_ERROR "COULD NOT FIND PYBIND!")
-endif()
-
 # QASM Controller
 
 add_library(qasm_controller_wrapper MODULE qasm_bindings.cc)
 
-#add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
-#add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
 set_target_properties(qasm_controller_wrapper PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
@@ -79,8 +62,6 @@ install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer
 
 add_library(statevector_controller_wrapper MODULE statevector_bindings.cc)
 
-#add_cython_target(statevector_controller_wrapper statevector_controller_wrapper.pyx CXX)
-#add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
 set_target_properties(statevector_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
@@ -109,8 +90,6 @@ install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/provid
 
 add_library(unitary_controller_wrapper MODULE unitary_bindings.cc)
 
-#add_cython_target(unitary_controller_wrapper unitary_controller_wrapper.pyx CXX)
-#add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
 set_target_properties(unitary_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
