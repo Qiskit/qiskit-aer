@@ -183,20 +183,42 @@ def digest_pulse_obj(qobj):
 
     # Setup freqs for the channels
     out.freqs = OrderedDict()
+
+    # determine whether to compute qubit_lo_freq from hamiltonian
+    if 'qubit_lo_freq' in config_dict_sim and \
+       config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian' and \
+       len(dim_osc) == 0:
+       qubit_lo_from_ham = True
+    else:
+       qubit_lo_from_ham = False
+
+    # if qubit_lo_from_ham == True, compute frequencies
+    q_lo_freq = np.zeros(len(dim_qub))
+    if qubit_lo_from_ham == True:
+        min_eval = np.min(evals)/2/np.pi
+        for q_idx in range(len(dim_qub)):
+            single_excite = _first_excited_state(q_idx, dim_qub)
+            dressed_eval = _eval_for_max_espace_overlap(single_excite, evals, estates)/2/np.pi
+            q_lo_freq[q_idx] = dressed_eval - min_eval
+    else:
+        for q_idx in range(len(dim_qub)):
+            q_lo_freq[q_idx] = config_dict['qubit_lo_freq'][q_idx]
+
+    # set freqs
     for key in out.channels.keys():
         chidx = int(key[1:])
         if key[0] == 'D':
-            out.freqs[key] = config_dict['qubit_lo_freq'][chidx]
+            out.freqs[key] = q_lo_freq[chidx]
         elif key[0] == 'U':
             out.freqs[key] = 0
             for u_lo_idx in config_dict_sim['u_channel_lo'][chidx]:
-                if u_lo_idx['q'] < len(config_dict['qubit_lo_freq']):
-                    qfreq = config_dict['qubit_lo_freq'][u_lo_idx['q']]
+                if u_lo_idx['q'] < len(q_lo_freq):
+                    qfreq = q_lo_freq[u_lo_idx['q']]
                     qscale = u_lo_idx['scale'][0]
                     out.freqs[key] += qfreq * qscale
         else:
             raise ValueError("Channel is not D or U")
-
+    print(out.freqs)
     out.global_data['freqs'] = list(out.freqs.values())
 
     # Step #3: Build pulse arrays
@@ -252,7 +274,6 @@ def digest_pulse_obj(qobj):
         if not exp_struct['can_sample']:
             out.can_sample = False
     return out
-
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
 
@@ -575,3 +596,97 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
         structs['can_sample'] = False
 
     return structs
+
+def _first_excited_state(qubit_idx, dim_qub):
+    """
+    Returns the vector corresponding to all qubits in the 0 state, except for
+    qubit_idx in the 1 state.
+
+    Assumption: the keys in dim_qub consist exactly of the str version of the int
+                in range(len(dim_qub)). They don't need to be in order, but they
+                need to be of this format
+
+    Parameters:
+        qubit_idx (int): the qubit to be in the 1 state
+
+        dim_qub (dict): a dictionary with keys being qubit index as a string, and
+                        value being the dimension of the qubit
+
+    Returns:
+        vector: the state with qubit_idx in state 1, and the rest in state 0
+    """
+    vector = np.array([1.])
+
+    # iterate through qubits, tensoring on the state
+    for idx in range(len(dim_qub)):
+        new_vec = np.zeros(dim_qub[idx])
+        if idx == qubit_idx:
+            new_vec[1] = 1
+        else:
+            new_vec[0] = 1
+
+        vector = np.kron(new_vec, vector)
+
+    return vector
+
+def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
+    """ Given an eigenvalue decomposition evals, evecs, as output from
+    get_diag_hamiltonian, returns the eigenvalue from evals corresponding
+    to the eigenspace that the vector vec has the maximum overlap with.
+
+    Parameters:
+        u (numpy.array): the vector of interest
+
+        evals (numpy.array): list of eigenvalues
+
+        evecs (numpy.array): eigenvectors corresponding to evals
+
+        decimals (int): rounding option, to try to handle numerical
+                        error if two evals should be the same but are
+                        slightly different
+
+    Returns:
+        eval: eigenvalue corresponding to eigenspace for which vec has
+              maximal overlap
+
+    Raises:
+    """
+
+    # get unique evals (with rounding for numerical error)
+    rounded_evals = evals.copy().round(decimals=decimals)
+    unique_evals = np.unique(rounded_evals)
+
+    # compute overlaps to unique evals
+    overlaps = np.zeros(len(unique_evals))
+    for idx in range(len(unique_evals)):
+        overlaps[idx] = _proj_norm(evecs[:,unique_evals[idx] == rounded_evals], u)
+
+    # return eval with largest overlap
+    return unique_evals[np.argmax(overlaps)]
+
+def _proj_norm(A, b):
+    """
+    Given a matrix A and vector b, computes the norm of the projection of
+    b onto the column space of A using least squares.
+
+    Note: A can also be specified as a 1d numpy.array, in which case it will
+    convert it into a matrix with one column
+
+    Parameters:
+        A (numpy.array): 2d array, a matrix
+
+        b (numpy.array): 1d array, a vector
+
+    Returns:
+        norm: the norm of the projection
+
+    Raises:
+    """
+
+    # if specified as a single vector, turn it into a column vector
+    if A.ndim == 1:
+        A = np.array([A]).T
+
+    x = la.lstsq(A, b, rcond=None)[0]
+
+    return la.norm(A@x)
