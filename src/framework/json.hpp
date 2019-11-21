@@ -491,7 +491,9 @@ void std::from_json(const json_t &js, py::object &o) {
         std::vector<py::object> obj(js.size());
         for (auto i = 0; i < js.size(); i++)
         {
-            obj[i] = js[i];
+            py::object tmp;
+            from_json(js[i], tmp);
+            obj[i] = tmp;
         }
         o = py::cast(obj);
     }
@@ -500,7 +502,9 @@ void std::from_json(const json_t &js, py::object &o) {
         py::dict obj;
         for (json_t::const_iterator it = js.cbegin(); it != js.cend(); ++it)
         {
-            obj[py::str(it.key())] = it.value();
+            py::object tmp;
+            from_json(it.value(), tmp);
+            obj[py::str(it.key())] = tmp;
         }
         o = std::move(obj);
     }
