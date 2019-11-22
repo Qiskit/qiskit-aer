@@ -406,74 +406,46 @@ json_t numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
-    if (obj.is_none())
-    {
+    if (obj.is_none()) {
         return;
-    }
-    if (py::isinstance<py::bool_>(obj))
-    {
+    } else if (py::isinstance<py::bool_>(obj)) {
         js = obj.cast<nl::json::boolean_t>();
-    }
-    if (py::isinstance<py::int_>(obj))
-    {
+        //js = obj.cast<bool>();
+    } else if (py::isinstance<py::int_>(obj)) {
         js = obj.cast<nl::json::number_integer_t>();
-    }
-    if (py::isinstance<py::float_>(obj))
-    {
+    } else if (py::isinstance<py::float_>(obj)) {
         js = obj.cast<nl::json::number_float_t>();
-    }
-    if (py::isinstance<py::str>(obj))
-    {
+    } else if (py::isinstance<py::str>(obj)) {
         js = obj.cast<nl::json::string_t>();
-    }
-    if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj))
-    {
-        json_t out;
+    } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
         for (py::handle value: obj)
         {
-            out.push_back(value);
+            js.push_back(value);
         }
-        js = out;
-    }
-    if (py::isinstance<py::dict>(obj))
-    {
-        json_t out;
+    } else if (py::isinstance<py::dict>(obj)) {
         for (auto item : py::cast<py::dict>(obj))
         {
-            out[item.first.cast<nl::json::string_t>()] = item;
+            js[item.first.cast<nl::json::string_t>()] = item.second;
         }
-        js = out;
-    }
-    if (py::isinstance<py::array_t<double> >(obj))
-    {
+    } else if (py::isinstance<py::array_t<double> >(obj)) {
         js = numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
-    }
-    if (py::isinstance<py::array_t<std::complex<double> > >(obj))
-    {
+    } else if (py::isinstance<py::array_t<std::complex<double> > >(obj)) {
         js = numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
-    }
-    if (std::string(py::str(obj.get_type())) == "<class \'complex\'>")
-    {
+    } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>") {
         auto tmp = obj.cast<std::complex<double>>();
-        json_t out;
-        out.push_back(tmp.real());
-        out.push_back(tmp.imag());
-        js = out;
+        js.push_back(tmp.real());
+        js.push_back(tmp.imag());
+    } else {
+        throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
     }
-    //throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
 }
 
 void std::from_json(const json_t &js, py::object &o) {
-    if (js.is_null())
-    {
+    if (js.is_null()) {
         o = py::none();
-    }
-    if (js.is_boolean())
-    {
+    } else if (js.is_boolean()) {
         o = py::bool_(js.get<nl::json::boolean_t>());
-    }
-    if (js.is_number())
-    {
+    } else if (js.is_number()) {
         if (js.is_number_float()) {
             o = py::float_(js.get<nl::json::number_float_t>());
         } else if (js.is_number_unsigned()) {
@@ -481,13 +453,9 @@ void std::from_json(const json_t &js, py::object &o) {
         } else {
             o = py::int_(js.get<nl::json::number_integer_t>());
         }
-    }
-    if (js.is_string())
-    {
+    } else if (js.is_string()) {
         o = py::str(js.get<nl::json::string_t>());
-    }
-    if (js.is_array())
-    {
+    } else if (js.is_array()) {
         std::vector<py::object> obj(js.size());
         for (auto i = 0; i < js.size(); i++)
         {
@@ -496,9 +464,7 @@ void std::from_json(const json_t &js, py::object &o) {
             obj[i] = tmp;
         }
         o = py::cast(obj);
-    }
-    if (js.is_object())
-    {
+    } else if (js.is_object()) {
         py::dict obj;
         for (json_t::const_iterator it = js.cbegin(); it != js.cend(); ++it)
         {
