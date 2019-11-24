@@ -87,10 +87,9 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-	  PRINT_TRACE
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
-            "mcx", "mcz", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
+    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "cu2", "cu3", "swap", 
+            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx", "cswap",
+            "mcx", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
   }
 
   // Return the set of qobj snapshot types supported by the State
