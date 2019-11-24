@@ -10,7 +10,45 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Main Terra addon public interface """
+"""
+==========================================
+Aer Provider (:mod:`qiskit.providers.aer`)
+==========================================
+
+.. currentmodule:: qiskit.providers.aer
+
+Simulator Provider
+==================
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    AerProvider
+
+Simulator Backends
+==================
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    QasmSimulator
+    StatevectorSimulator
+    UnitarySimulator
+
+Job Class
+=========
+.. autosummary::
+   :toctree: ../stubs/
+
+   AerJob
+
+Exceptions
+==========
+.. autosummary::
+   :toctree: ../stubs/
+
+   AerError
+"""
 
 # https://github.com/Qiskit/qiskit-aer/issues/1
 # Because of this issue, we need to make sure that Numpy's OpenMP library is initialized

@@ -66,7 +66,6 @@ void ExperimentResult::add_metadata(const std::string &key, T &&meta) {
 
 template <>
 void ExperimentResult::add_metadata(const std::string &key, json_t &&meta) {
-  // Use implicit to_json conversion function for T
   auto elt = metadata.find("key");
   if (elt == metadata.end()) {
     // If key doesn't already exist add new data
@@ -79,8 +78,6 @@ void ExperimentResult::add_metadata(const std::string &key, json_t &&meta) {
 
 template <>
 void ExperimentResult::add_metadata(const std::string &key, const json_t &meta) {
-  // Use implicit to_json conversion function for T
-  json_t jdata = meta;
   auto elt = metadata.find("key");
   if (elt == metadata.end()) {
     // If key doesn't already exist add new data
@@ -89,6 +86,12 @@ void ExperimentResult::add_metadata(const std::string &key, const json_t &meta) 
     // If key already exists append with additional data
     elt->second.update(meta.begin(), meta.end());
   }
+}
+
+template <>
+void ExperimentResult::add_metadata(const std::string &key, json_t &meta) {
+  const json_t &const_meta = meta;
+  add_metadata(key, const_meta);
 }
 
 //------------------------------------------------------------------------------

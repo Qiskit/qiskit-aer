@@ -328,16 +328,20 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"cy", Gates::mcy},        // Controlled-Y gate
   {"cz", Gates::mcz},        // Controlled-Z gate
   {"cu1", Gates::mcu1},      // Controlled-u1 gate
+  {"cu2", Gates::mcu2},      // Controlled-u2 gate
+  {"cu3", Gates::mcu3},      // Controlled-u3 gate
   {"swap", Gates::mcswap},   // SWAP gate
-  {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
+  // 3-qubit gates
+  {"ccx", Gates::mcx},       // Controlled-CX gate (Toffoli)
+  {"cswap", Gates::mcswap},  // Controlled SWAP gate (Fredkin)
   // Multi-qubit controlled gates
-  {"ccx", Gates::mcx},   // Controlled-CX gate (Toffoli)
-  {"mcx", Gates::mcx},   // Multi-controlled-X gate
-  {"mcy", Gates::mcy},   // Multi-controlled-Y gate
-  {"mcz", Gates::mcz},   // Multi-controlled-Z gate
-  {"mcu1", Gates::mcu1}, // Multi-controlled-u1
-  {"mcu2", Gates::mcu2}, // Multi-controlled-u2
-  {"mcu3", Gates::mcu3}  // Multi-controlled-u3
+  {"mcx", Gates::mcx},      // Multi-controlled-X gate
+  {"mcy", Gates::mcy},      // Multi-controlled-Y gate
+  {"mcz", Gates::mcz},      // Multi-controlled-Z gate
+  {"mcu1", Gates::mcu1},    // Multi-controlled-u1
+  {"mcu2", Gates::mcu2},    // Multi-controlled-u2
+  {"mcu3", Gates::mcu3},    // Multi-controlled-u3
+  {"mcswap", Gates::mcswap} // Multi-controlled SWAP gate
 
 });
 
