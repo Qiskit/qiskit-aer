@@ -28,6 +28,7 @@
 // TODO: remove the following debug pring before final push
 #define PRINT_TRACE  std::cout << __FILE__ << ":" << __FUNCTION__ << "." << __LINE__ << std::endl;
 
+
 namespace AER {
 namespace Statevector {
 
@@ -280,6 +281,7 @@ protected:
 	  for (int i = 0; i < BaseState::qreg_.size(); ++i)
 		  std::cout << "#> " << BaseState::qreg()[i].real() << " " << BaseState::qreg()[i].imag() << std::endl;
   }
+
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -453,6 +455,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  ExperimentData &data,
                                  RngEngine &rng) {
 	PRINT_TRACE
+
   // Simple loop over vector of input operations
   for (const auto & op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
@@ -647,7 +650,6 @@ template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
                                                ExperimentData &data,
                                                SnapshotDataType type) {
-	PRINT_TRACE
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -712,7 +714,6 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
 template <class statevec_t>
 void State<statevec_t>::apply_gate(const Operations::Op &op) {
 	PRINT_TRACE
-
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -782,7 +783,6 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
-	PRINT_TRACE
   if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
     BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
@@ -791,7 +791,6 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg
 
 template <class statevec_t>
 void State<statevec_t>::apply_matrix(const Operations::Op &op) {
-	PRINT_TRACE
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
       BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
@@ -803,7 +802,6 @@ void State<statevec_t>::apply_matrix(const Operations::Op &op) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
-	PRINT_TRACE
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     BaseState::qreg_.apply_diagonal_matrix(qubits, vmat);
@@ -818,7 +816,6 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
                                         double theta,
                                         double phi,
                                         double lambda) {
-	PRINT_TRACE
   BaseState::qreg_.apply_mcu(qubits, Utils::VMatrix::u3(theta, phi, lambda));
 }
 
@@ -841,12 +838,10 @@ void State<statevec_t>::apply_measure(const reg_t &qubits,
                                       RngEngine &rng) {
 	PRINT_TRACE
 	std::cout << "In apply measure" << std::endl;
-
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits, rng);
   std::cout << "Measure probabilities " << meas.first << " " << meas.second << std::endl;
   // Implement measurement update
-
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   BaseState::creg_.store_measure(outcome, cmemory, cregister);
@@ -917,10 +912,8 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
-	std::cout << "#Qs " << qubits.size() << std::endl;
   // Single-qubit case
   if (qubits.size() == 1) {
-
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
