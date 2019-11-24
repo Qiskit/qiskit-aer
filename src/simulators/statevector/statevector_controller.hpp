@@ -18,6 +18,10 @@
 #include "base/controller.hpp"
 #include "statevector_state.hpp"
 
+// TODO: remove the following debug pring before final push
+#define PRINT_TRACE  std::cout << __FILE__ << ":" << __FUNCTION__ << "." << __LINE__ << std::endl;
+
+
 namespace AER {
 namespace Simulator {
 
@@ -105,6 +109,7 @@ private:
 //=========================================================================
 
 StatevectorController::StatevectorController() : Base::Controller() {
+	PRINT_TRACE
   // Disable qubit truncation by default
   Base::Controller::truncate_qubits_ = false;
 }
@@ -114,6 +119,7 @@ StatevectorController::StatevectorController() : Base::Controller() {
 //-------------------------------------------------------------------------
 
 void StatevectorController::set_config(const json_t &config) {
+	PRINT_TRACE
   // Set base controller config
   Base::Controller::set_config(config);
 
@@ -126,12 +132,14 @@ void StatevectorController::set_config(const json_t &config) {
 }
 
 void StatevectorController::clear_config() {
+	PRINT_TRACE
   Base::Controller::clear_config();
   initial_state_ = cvector_t();
 }
 
 size_t StatevectorController::required_memory_mb(const Circuit& circ,
                                                  const Noise::NoiseModel& noise) const {
+	PRINT_TRACE
   Statevector::State<> state;
   return state.required_memory_mb(circ.num_qubits, circ.ops);
 }
@@ -145,6 +153,9 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
                                               const json_t &config,
                                               uint_t shots,
                                               uint_t rng_seed) const {
+	PRINT_TRACE
+	std::cout <<" " << std::endl;
+
   // Initialize  state
   Statevector::State<> state;
 

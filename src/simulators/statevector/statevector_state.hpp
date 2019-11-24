@@ -25,6 +25,9 @@
 #include "qubitvector.hpp"
 
 
+// TODO: remove the following debug pring before final push
+#define PRINT_TRACE  std::cout << __FILE__ << ":" << __FUNCTION__ << "." << __LINE__ << std::endl;
+
 namespace AER {
 namespace Statevector {
 
@@ -84,6 +87,7 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
+	  PRINT_TRACE
     return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "swap",
             "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx",
             "mcx", "mcz", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
@@ -91,6 +95,7 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
+	  PRINT_TRACE
     return {"statevector", "memory", "register",
             "probabilities", "probabilities_with_variance",
             "expectation_value_pauli",
@@ -148,7 +153,7 @@ protected:
   // Apply instructions
   //-----------------------------------------------------------------------
 
-  // Applies a sypported Gate operation to the state class.
+  // Applies a supported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
@@ -269,6 +274,13 @@ protected:
                        const double phi,
                        const double lambda);
 
+  void print_state(){
+	  std::cout << "STATE" << std::endl;
+	  std::cout << BaseState::qreg_.size() << std::endl;
+
+	  for (int i = 0; i < BaseState::qreg_.size(); ++i)
+		  std::cout << "#> " << BaseState::qreg()[i].real() << " " << BaseState::qreg()[i].imag() << std::endl;
+  }
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -356,6 +368,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
+	PRINT_TRACE
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
@@ -364,6 +377,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits,
                                    const statevec_t &state) {
+	PRINT_TRACE
   // Check dimension of state
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
@@ -376,6 +390,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits,
                                         const cvector_t &state) {
+	PRINT_TRACE
   if (state.size() != 1ULL << num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
@@ -386,6 +401,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::initialize_omp() {
+	PRINT_TRACE
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in qubitvector
@@ -399,6 +415,7 @@ template <class statevec_t>
 size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
                                              const std::vector<Operations::Op> &ops)
                                              const {
+	PRINT_TRACE
   // An n-qubit state vector as 2^n complex doubles
   // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
@@ -407,6 +424,7 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
+	PRINT_TRACE
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
@@ -431,10 +449,11 @@ template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  ExperimentData &data,
                                  RngEngine &rng) {
-
+	PRINT_TRACE
   // Simple loop over vector of input operations
   for (const auto & op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
+    	print_state();
       switch (op.type) {
         case Operations::OpType::barrier:
           break;
@@ -474,6 +493,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
   }
+  print_state();
 }
 
 
@@ -484,6 +504,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
 template <class statevec_t>
 void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                        ExperimentData &data) {
+	PRINT_TRACE
 
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -537,6 +558,7 @@ template <class statevec_t>
 void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
                                                ExperimentData &data,
                                                SnapshotDataType type) {
+	PRINT_TRACE
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
@@ -550,6 +572,7 @@ template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
                                               ExperimentData &data,
                                               SnapshotDataType type) {
+	PRINT_TRACE
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -621,6 +644,7 @@ template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
                                                ExperimentData &data,
                                                SnapshotDataType type) {
+	PRINT_TRACE
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -684,6 +708,8 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
 
 template <class statevec_t>
 void State<statevec_t>::apply_gate(const Operations::Op &op) {
+	PRINT_TRACE
+
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -753,6 +779,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cmatrix_t &mat) {
+	PRINT_TRACE
   if (control_qubits.empty() == false && target_qubits.empty() == false && mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
     BaseState::qreg_.apply_multiplexer(control_qubits, target_qubits, vmat);
@@ -761,6 +788,7 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg
 
 template <class statevec_t>
 void State<statevec_t>::apply_matrix(const Operations::Op &op) {
+	PRINT_TRACE
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
       BaseState::qreg_.apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
@@ -772,6 +800,7 @@ void State<statevec_t>::apply_matrix(const Operations::Op &op) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+	PRINT_TRACE
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     BaseState::qreg_.apply_diagonal_matrix(qubits, vmat);
@@ -786,11 +815,13 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
                                         double theta,
                                         double phi,
                                         double lambda) {
+	PRINT_TRACE
   BaseState::qreg_.apply_mcu(qubits, Utils::VMatrix::u3(theta, phi, lambda));
 }
 
 template <class statevec_t>
 void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
+	PRINT_TRACE
   cvector_t diag = {{1., phase}};
   apply_matrix(reg_t({qubit}), diag);
 }
@@ -805,9 +836,14 @@ void State<statevec_t>::apply_measure(const reg_t &qubits,
                                       const reg_t &cmemory,
                                       const reg_t &cregister,
                                       RngEngine &rng) {
+	PRINT_TRACE
+	std::cout << "In apply measure" << std::endl;
+
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits, rng);
+  std::cout << "Measure probabilities " << meas.first << " " << meas.second << std::endl;
   // Implement measurement update
+
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   BaseState::creg_.store_measure(outcome, cmemory, cregister);
@@ -815,6 +851,7 @@ void State<statevec_t>::apply_measure(const reg_t &qubits,
 
 template <class statevec_t>
 rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const {
+	PRINT_TRACE
   return BaseState::qreg_.probabilities(qubits);
 }
 
@@ -822,6 +859,7 @@ template <class statevec_t>
 std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) {
+	PRINT_TRACE
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -849,6 +887,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_reset(const reg_t &qubits,
                                     RngEngine &rng) {
+	PRINT_TRACE
   // Simulate unobserved measurement
   const auto meas = sample_measure_with_prob(qubits, rng);
   // Apply update to reset state
@@ -859,6 +898,7 @@ template <class statevec_t>
 std::pair<uint_t, double>
 State<statevec_t>::sample_measure_with_prob(const reg_t &qubits,
                                             RngEngine &rng) {
+	PRINT_TRACE
   rvector_t probs = measure_probs(qubits);
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);
@@ -870,11 +910,14 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
                                  const uint_t final_state,
                                  const uint_t meas_state,
                                  const double meas_prob) {
+	PRINT_TRACE
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
+	std::cout << "#Qs " << qubits.size() << std::endl;
   // Single-qubit case
   if (qubits.size() == 1) {
+
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
@@ -914,6 +957,7 @@ template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
                                          const cvector_t &params,
                                          RngEngine &rng) {
+	PRINT_TRACE
 
    if (qubits.size() == BaseState::qreg_.num_qubits()) {
    // If qubits is all ordered qubits in the statevector
@@ -937,6 +981,7 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
 
 template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat) {
+	PRINT_TRACE
 	// (1) Pack vector of matrices into single (stacked) matrix ... note: matrix dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
 	cmatrix_t multiplexer_matrix = Utils::stacked_matrix(mmat);
 
@@ -952,6 +997,7 @@ template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats,
                                     RngEngine &rng) {
+	PRINT_TRACE
 
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())

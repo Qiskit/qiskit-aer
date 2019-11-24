@@ -30,6 +30,9 @@
 
 #include "framework/json.hpp"
 
+// TODO: remove the following debug pring before final push
+#define PRINT_TRACE  std::cout << __FILE__ << ":" << __FUNCTION__ << "." << __LINE__ << std::endl;
+
 namespace QV {
 
 // Type aliases
@@ -544,6 +547,7 @@ inline void to_json(json_t &js, const QubitVector<data_t> &qv) {
 
 template <typename data_t>
 json_t QubitVector<data_t>::json() const {
+	PRINT_TRACE
   const int_t END = data_size_;
   const json_t ZERO = std::complex<data_t>(0.0, 0.0);
   json_t js = json_t(data_size_, ZERO);
@@ -572,6 +576,7 @@ json_t QubitVector<data_t>::json() const {
 
 template <typename data_t>
 void QubitVector<data_t>::check_qubit(const uint_t qubit) const {
+	PRINT_TRACE
   if (qubit + 1 > num_qubits_) {
     std::string error = "QubitVector: qubit index " + std::to_string(qubit) +
                         " > " + std::to_string(num_qubits_);
@@ -581,6 +586,7 @@ void QubitVector<data_t>::check_qubit(const uint_t qubit) const {
 
 template <typename data_t>
 void QubitVector<data_t>::check_matrix(const cvector_t<data_t> &vec, uint_t nqubits) const {
+	PRINT_TRACE
   const size_t DIM = BITS[nqubits];
   const auto SIZE = vec.size();
   if (SIZE != DIM * DIM) {
@@ -592,6 +598,7 @@ void QubitVector<data_t>::check_matrix(const cvector_t<data_t> &vec, uint_t nqub
 
 template <typename data_t>
 void QubitVector<data_t>::check_vector(const cvector_t<data_t> &vec, uint_t nqubits) const {
+	PRINT_TRACE
   const size_t DIM = BITS[nqubits];
   const auto SIZE = vec.size();
   if (SIZE != DIM) {
@@ -603,6 +610,7 @@ void QubitVector<data_t>::check_vector(const cvector_t<data_t> &vec, uint_t nqub
 
 template <typename data_t>
 void QubitVector<data_t>::check_dimension(const QubitVector &qv) const {
+	PRINT_TRACE
   if (data_size_ != qv.size_) {
     std::string error = "QubitVector: vectors are different shape " +
                          std::to_string(data_size_) + " != " +
@@ -613,6 +621,7 @@ void QubitVector<data_t>::check_dimension(const QubitVector &qv) const {
 
 template <typename data_t>
 void QubitVector<data_t>::check_checkpoint() const {
+	PRINT_TRACE
   if (!checkpoint_) {
     throw std::runtime_error("QubitVector: checkpoint must exist for inner_product() or revert()");
   }
@@ -624,6 +633,7 @@ void QubitVector<data_t>::check_checkpoint() const {
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits) : num_qubits_(0), data_(nullptr), checkpoint_(0){
+	PRINT_TRACE
   set_num_qubits(num_qubits);
 }
 
@@ -645,6 +655,7 @@ QubitVector<data_t>::~QubitVector() {
 
 template <typename data_t>
 std::complex<data_t> &QubitVector<data_t>::operator[](uint_t element) {
+	PRINT_TRACE
   // Error checking
   #ifdef DEBUG
   if (element > data_size_) {
@@ -671,6 +682,7 @@ std::complex<data_t> QubitVector<data_t>::operator[](uint_t element) const {
 
 template <typename data_t>
 cvector_t<data_t> QubitVector<data_t>::vector() const {
+	PRINT_TRACE
   cvector_t<data_t> ret(data_size_, 0.);
   const int_t END = data_size_;
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
@@ -687,6 +699,7 @@ cvector_t<data_t> QubitVector<data_t>::vector() const {
 template <typename data_t>
 template <typename list_t>
 uint_t QubitVector<data_t>::index0(const list_t &qubits_sorted, const uint_t k) const {
+	PRINT_TRACE
   uint_t lowbits, retval = k;
   for (size_t j = 0; j < qubits_sorted.size(); j++) {
     lowbits = retval & MASKS[qubits_sorted[j]];
@@ -702,6 +715,7 @@ template <size_t N>
 areg_t<1ULL << N> QubitVector<data_t>::indexes(const areg_t<N> &qs,
                                                const areg_t<N> &qubits_sorted,
                                                const uint_t k) const {
+	PRINT_TRACE
   areg_t<1ULL << N> ret;
   ret[0] = index0(qubits_sorted, k);
   for (size_t i = 0; i < N; i++) {
@@ -717,6 +731,7 @@ template <typename data_t>
 indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
                                        const reg_t& qubits_sorted,
                                        const uint_t k) const {
+	PRINT_TRACE
   const auto N = qubits_sorted.size();
   indexes_t ret(new uint_t[BITS[N]]);
   // Get index0
@@ -735,6 +750,7 @@ indexes_t QubitVector<data_t>::indexes(const reg_t& qubits,
 //------------------------------------------------------------------------------
 template <typename data_t>
 void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) {
+	PRINT_TRACE
 
   cvector_t<data_t> state = convert(state0);
 
@@ -757,6 +773,8 @@ void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvecto
 
 template <typename data_t>
 void QubitVector<data_t>::zero() {
+
+	PRINT_TRACE
   const int_t END = data_size_;    // end for k loop
 
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
@@ -767,6 +785,7 @@ void QubitVector<data_t>::zero() {
 
 template <typename data_t>
 cvector_t<data_t> QubitVector<data_t>::convert(const cvector_t<double>& v) const {
+	PRINT_TRACE
   cvector_t<data_t> ret(v.size());
   for (size_t i = 0; i < v.size(); ++i)
     ret[i] = v[i];
@@ -776,6 +795,7 @@ cvector_t<data_t> QubitVector<data_t>::convert(const cvector_t<double>& v) const
 
 template <typename data_t>
 void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
+	PRINT_TRACE
 
   size_t prev_num_qubits = num_qubits_;
   num_qubits_ = num_qubits;
@@ -801,6 +821,7 @@ void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
 
 template <typename data_t>
 size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
+	PRINT_TRACE
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
@@ -811,6 +832,7 @@ size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
 
 template <typename data_t>
 void QubitVector<data_t>::checkpoint() {
+	PRINT_TRACE
   if (!checkpoint_)
     checkpoint_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
 
@@ -823,6 +845,7 @@ void QubitVector<data_t>::checkpoint() {
 
 template <typename data_t>
 void QubitVector<data_t>::revert(bool keep) {
+	PRINT_TRACE
 
   #ifdef DEBUG
   check_checkpoint();
@@ -845,6 +868,7 @@ void QubitVector<data_t>::revert(bool keep) {
 
 template <typename data_t>
 std::complex<double> QubitVector<data_t>::inner_product() const {
+	PRINT_TRACE
 
   #ifdef DEBUG
   check_checkpoint();
@@ -870,6 +894,7 @@ void QubitVector<data_t>::initialize() {
 
 template <typename data_t>
 void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
+	PRINT_TRACE
   if (data_size_ != statevec.size()) {
     std::string error = "QubitVector::initialize input vector is incorrect length (" + 
                         std::to_string(data_size_) + "!=" +
@@ -886,6 +911,7 @@ void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statev
 
 template <typename data_t>
 void QubitVector<data_t>::initialize_from_data(const std::complex<data_t>* statevec, const size_t num_states) {
+	PRINT_TRACE
   if (data_size_ != num_states) {
     std::string error = "QubitVector::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" + std::to_string(num_states) + ")";
@@ -908,18 +934,21 @@ void QubitVector<data_t>::initialize_from_data(const std::complex<data_t>* state
 
 template <typename data_t>
 void QubitVector<data_t>::set_omp_threads(int n) {
+	PRINT_TRACE
   if (n > 0)
     omp_threads_ = n;
 }
 
 template <typename data_t>
 void QubitVector<data_t>::set_omp_threshold(int n) {
+	PRINT_TRACE
   if (n > 0)
     omp_threshold_ = n;
 }
 
 template <typename data_t>
 void QubitVector<data_t>::set_json_chop_threshold(double threshold) {
+	PRINT_TRACE
   json_chop_threshold_ = threshold;
 }
 
@@ -937,6 +966,7 @@ void QubitVector<data_t>::set_json_chop_threshold(double threshold) {
 template <typename data_t>
 template<typename Lambda>
 void QubitVector<data_t>::apply_lambda(Lambda&& func) {
+	PRINT_TRACE
   const int_t END = data_size_;
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   {
@@ -950,6 +980,7 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func) {
 template <typename data_t>
 template<typename Lambda, typename list_t>
 void QubitVector<data_t>::apply_lambda(Lambda&& func, const list_t &qubits) {
+	PRINT_TRACE
 
   // Error checking
   #ifdef DEBUG
@@ -977,6 +1008,7 @@ template<typename Lambda, typename list_t, typename param_t>
 void QubitVector<data_t>::apply_lambda(Lambda&& func,
                                        const list_t &qubits,
                                        const param_t &params) {
+	PRINT_TRACE
 
   // Error checking
   #ifdef DEBUG
@@ -1007,6 +1039,7 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
 template <typename data_t>
 template<typename Lambda>
 std::complex<double> QubitVector<data_t>::apply_reduction_lambda(Lambda &&func) const {
+	PRINT_TRACE
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
@@ -1028,6 +1061,7 @@ template<typename Lambda, typename list_t>
 std::complex<double>
 QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
                                             const list_t &qubits) const {
+	PRINT_TRACE
 
   // Error checking
   #ifdef DEBUG
@@ -1062,6 +1096,7 @@ std::complex<double>
 QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
                                             const list_t &qubits,
                                             const param_t &params) const {
+	PRINT_TRACE
 
   const auto NUM_QUBITS = qubits.size();
   // Error checking
@@ -1098,6 +1133,7 @@ QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat) {
+	PRINT_TRACE
 
   const size_t N = qubits.size();
   // Error checking
@@ -1185,6 +1221,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
                                             const reg_t &target_qubits,
                                             const cvector_t<double>  &mat) {
+	PRINT_TRACE
   
   // General implementation
   const size_t control_count = control_qubits.size();
@@ -1218,6 +1255,7 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
+	PRINT_TRACE
 
   const int_t N = qubits.size();
   // Error checking
@@ -1247,6 +1285,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
                                                    const std::vector<std::pair<uint_t, uint_t>> &pairs) {
+	PRINT_TRACE
   const size_t N = qubits.size();
 
   // Error checking
@@ -1343,6 +1382,7 @@ void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
+	PRINT_TRACE
   // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
   const size_t pos0 = MASKS[N - 1];
@@ -1385,6 +1425,7 @@ void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
+	PRINT_TRACE
   // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
   const size_t pos0 = MASKS[N - 1];
@@ -1436,6 +1477,7 @@ void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
+	PRINT_TRACE
   // Calculate the swap positions for the last two qubits.
   // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP gate.
   const size_t N = qubits.size();
@@ -1471,6 +1513,7 @@ void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase) {
+	PRINT_TRACE
   const size_t N = qubits.size();
   switch (N) {
     case 1: {
@@ -1510,6 +1553,7 @@ void QubitVector<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<
 template <typename data_t>
 void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
                                     const cvector_t<double> &mat) {
+	PRINT_TRACE
 
   // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
@@ -1618,6 +1662,7 @@ template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t<double>& mat) {
 
+
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const cvector_t<double> diag = {{mat[0], mat[3]}};
@@ -1682,6 +1727,7 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t<double>& diag) {
+	PRINT_TRACE
 
   // TODO: This should be changed so it isn't checking doubles with ==
   if (diag[0] == 1.0) {  // [[1, 0], [0, z]] matrix
@@ -1793,6 +1839,7 @@ template <typename data_t>
 double QubitVector<data_t>::norm() const {
   // Lambda function for norm
   auto lambda = [&](int_t k, double &val_re, double &val_im)->void {
+	  PRINT_TRACE
     (void)val_im; // unused
     val_re += std::real(data_[k] * std::conj(data_[k]));
   };
@@ -1801,6 +1848,7 @@ double QubitVector<data_t>::norm() const {
 
 template <typename data_t>
 double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t<double> &mat) const {
+	PRINT_TRACE
 
   const uint_t N = qubits.size();
 
@@ -1879,6 +1927,7 @@ double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t<double> &m
 
 template <typename data_t>
 double QubitVector<data_t>::norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const {
+	PRINT_TRACE
 
   const uint_t N = qubits.size();
 
@@ -1952,6 +2001,7 @@ double QubitVector<data_t>::norm_diagonal(const reg_t &qubits, const cvector_t<d
 //------------------------------------------------------------------------------
 template <typename data_t>
 double QubitVector<data_t>::norm(const uint_t qubit, const cvector_t<double> &mat) const {
+	PRINT_TRACE
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 2);
@@ -1978,6 +2028,7 @@ double QubitVector<data_t>::norm(const uint_t qubit, const cvector_t<double> &ma
 
 template <typename data_t>
 double QubitVector<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const {
+	PRINT_TRACE
   // Error handling
   #ifdef DEBUG
   check_vector(mat, 1);
@@ -2008,6 +2059,7 @@ double QubitVector<data_t>::probability(const uint_t outcome) const {
 
 template <typename data_t>
 std::vector<double> QubitVector<data_t>::probabilities() const {
+	PRINT_TRACE
   const int_t END = 1LL << num_qubits();
   std::vector<double> probs(END, 0.);
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
@@ -2019,6 +2071,7 @@ std::vector<double> QubitVector<data_t>::probabilities() const {
 
 template <typename data_t>
 std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) const {
+	PRINT_TRACE
 
   const size_t N = qubits.size();
   const int_t DIM = BITS[N];
@@ -2060,6 +2113,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 //------------------------------------------------------------------------------
 template <typename data_t>
 reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const {
+	PRINT_TRACE
 
   const int_t END = 1LL << num_qubits();
   const int_t SHOTS = rnds.size();
@@ -2143,6 +2197,7 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::QubitVector<data_t>&qv) {
+	PRINT_TRACE
 
   out << "[";
   size_t last = qv.size() - 1;
