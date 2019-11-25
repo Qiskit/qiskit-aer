@@ -185,16 +185,13 @@ def digest_pulse_obj(qobj):
     out.freqs = OrderedDict()
 
     # determine whether to compute qubit_lo_freq from hamiltonian
-    if 'qubit_lo_freq' in config_dict_sim and \
-       config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian' and \
-       len(dim_osc) == 0:
-       qubit_lo_from_ham = True
-    else:
-       qubit_lo_from_ham = False
+    qubit_lo_from_ham = ('qubit_lo_freq' in config_dict_sim) and \
+                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and \
+                        (len(dim_osc) == 0)
 
     # set frequencies based on qubit_lo_from_ham value
     q_lo_freq = np.zeros(len(dim_qub))
-    if qubit_lo_from_ham == True:
+    if qubit_lo_from_ham:
         min_eval = np.min(evals)/2/np.pi
         for q_idx in range(len(dim_qub)):
             single_excite = _first_excited_state(q_idx, dim_qub)
@@ -659,7 +656,7 @@ def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
     # compute overlaps to unique evals
     overlaps = np.zeros(len(unique_evals))
     for idx in range(len(unique_evals)):
-        overlaps[idx] = _proj_norm(evecs[:,unique_evals[idx] == rounded_evals], u)
+        overlaps[idx] = _proj_norm(evecs[:, unique_evals[idx] == rounded_evals], u)
 
     # return eval with largest overlap
     return unique_evals[np.argmax(overlaps)]

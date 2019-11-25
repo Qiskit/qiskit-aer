@@ -121,9 +121,9 @@ class PulseSimulator(AerBackend):
         return qobj_dict
 
     def compute_lo_freqs_from_hamiltonian(self,
-                                         qobj=None,
-                                         backend_options=None,
-                                         noise_model=None):
+                                          qobj=None,
+                                          backend_options=None,
+                                          noise_model=None):
         """Digest the pulse qobj and determine the qubit_lo_freq from
         the hamiltonian"""
         be_options_copy = backend_options.copy()
