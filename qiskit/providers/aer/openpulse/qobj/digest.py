@@ -657,8 +657,8 @@ def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
 
     # compute overlaps to unique evals
     overlaps = np.zeros(len(unique_evals))
-    for idx in range(len(unique_evals)):
-        overlaps[idx] = _proj_norm(evecs[:, unique_evals[idx] == rounded_evals], u)
+    for idx, val in enumerate(unique_evals):
+        overlaps[idx] = _proj_norm(evecs[:, val == rounded_evals], u)
 
     # return eval with largest overlap
     return unique_evals[np.argmax(overlaps)]
