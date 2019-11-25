@@ -192,7 +192,7 @@ def digest_pulse_obj(qobj):
     else:
        qubit_lo_from_ham = False
 
-    # if qubit_lo_from_ham == True, compute frequencies
+    # set frequencies based on qubit_lo_from_ham value
     q_lo_freq = np.zeros(len(dim_qub))
     if qubit_lo_from_ham == True:
         min_eval = np.min(evals)/2/np.pi
@@ -218,7 +218,7 @@ def digest_pulse_obj(qobj):
                     out.freqs[key] += qfreq * qscale
         else:
             raise ValueError("Channel is not D or U")
-    print(out.freqs)
+
     out.global_data['freqs'] = list(out.freqs.values())
 
     # Step #3: Build pulse arrays
