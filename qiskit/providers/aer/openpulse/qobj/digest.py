@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name
+# pylint: disable=eval-used, exec-used, invalid-name, consider-using-enumerate
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
