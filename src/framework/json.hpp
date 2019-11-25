@@ -406,9 +406,7 @@ json_t numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
-    if (obj.is_none()) {
-        return;
-    } else if (py::isinstance<py::bool_>(obj)) {
+    if (py::isinstance<py::bool_>(obj)) {
         js = obj.cast<nl::json::boolean_t>();
         //js = obj.cast<bool>();
     } else if (py::isinstance<py::int_>(obj)) {
@@ -418,6 +416,7 @@ void std::to_json(json_t &js, const py::handle &obj) {
     } else if (py::isinstance<py::str>(obj)) {
         js = obj.cast<nl::json::string_t>();
     } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
+        js = nl::json::array();
         for (py::handle value: obj)
         {
             js.push_back(value);
@@ -435,15 +434,15 @@ void std::to_json(json_t &js, const py::handle &obj) {
         auto tmp = obj.cast<std::complex<double>>();
         js.push_back(tmp.real());
         js.push_back(tmp.imag());
+    } else if (obj.is_none()) {
+        return;
     } else {
         throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
     }
 }
 
 void std::from_json(const json_t &js, py::object &o) {
-    if (js.is_null()) {
-        o = py::none();
-    } else if (js.is_boolean()) {
+    if (js.is_boolean()) {
         o = py::bool_(js.get<nl::json::boolean_t>());
     } else if (js.is_number()) {
         if (js.is_number_float()) {
@@ -473,6 +472,10 @@ void std::from_json(const json_t &js, py::object &o) {
             obj[py::str(it.key())] = tmp;
         }
         o = std::move(obj);
+    } else if (js.is_null()) {
+        o = py::none();
+    } else {
+        throw std::runtime_error("from_json not implemented for this json::type: " + js.dump());
     }
 }
 

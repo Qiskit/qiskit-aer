@@ -33,12 +33,8 @@ function(basic_pybind11_add_module target_name)
     add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
     target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
-    #    PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-    #    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
-    #    PRIVATE ${PYTHON_INCLUDE_DIRS}
 
-    #target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
-    #    ${AER_LIBRARIES}
+    # This sets various properties (python include dirs) and links to python libs
     python_extension_module(${target_name})
 
     set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
