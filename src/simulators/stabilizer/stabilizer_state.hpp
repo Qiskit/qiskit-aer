@@ -499,19 +499,19 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
 					     double outcome_prob,
 					     stringmap_t<double>& probs) {
   uint_t qubit_for_branching = -1;
-  for(const auto& qubit : qubits) {
-    if(outcome[qubits.size()-qubit-1] == 'X') {
-      if(BaseState::qreg_.is_deterministic_outcome(qubit)) {
-	bool single_qubit_outcome = BaseState::qreg_.measure_and_update(qubit, 0);
+  for(uint_t i=qubits.size()-1; i>=0; --i) {
+    if(outcome[i] == 'X') {
+      if(BaseState::qreg_.is_deterministic_outcome(qubits[i])) {
+	bool single_qubit_outcome = BaseState::qreg_.measure_and_update(qubits[i], 0);
 	if(single_qubit_outcome) {
-	  outcome[qubits.size()-qubit-1] = '1';
+	  outcome[i] = '1';
 	}
 	else {
-	  outcome[qubits.size()-qubit-1] = '0';
+	  outcome[i] = '0';
 	}
       }
       else {
-	qubit_for_branching = qubit;
+	qubit_for_branching = i;
       }
     }
   }
@@ -524,10 +524,10 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
   for(uint_t single_qubit_outcome = 0; single_qubit_outcome<2; ++single_qubit_outcome) {
     std::string new_outcome = outcome;
     if(single_qubit_outcome) {
-      new_outcome[qubits.size()-qubit_for_branching-1] = '1';
+      new_outcome[qubit_for_branching] = '1';
     }
     else {
-      new_outcome[qubits.size()-qubit_for_branching-1] = '0';
+      new_outcome[qubit_for_branching] = '0';
     }
     snapshot_probabilities_auxiliary(qubits, new_outcome, 0.5*outcome_prob, probs);
   }
