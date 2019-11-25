@@ -10,6 +10,9 @@ find_package(pybind11 CONFIG REQUIRED)
 # dependencies we can, so some of these dependencies are linked statically into our
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+if(APPLE OR LINUX) 
+    string(CONCAT CMAKE_CXX_FLAGS "-fvisibility=hidden")
+endif()
 
 # Set some general flags
 if(APPLE)
@@ -29,89 +32,29 @@ endif()
 
 # QASM Controller
 
-add_library(qasm_controller_wrapper MODULE qasm_bindings.cc)
-
-set_target_properties(qasm_controller_wrapper PROPERTIES
-    LINKER_LANGUAGE CXX
-    CXX_STANDARD 14)
-if(APPLE)
-    set_target_properties(qasm_controller_wrapper PROPERTIES
-        LINK_FLAGS ${AER_LINKER_FLAGS})
-endif()
-# We only need to pass the linter once, as the codebase is the same for
-# all controllers
+basic_pybind11_add_module(qasm_controller_wrapper qasm_bindings.cc)
+target_include_directories(qasm_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+target_link_libraries(qasm_controller_wrapper ${AER_LIBRARIES})
 add_linter(qasm_controller_wrapper)
-target_include_directories(qasm_controller_wrapper
-    PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
-    PRIVATE ${PYTHON_INCLUDE_DIRS}
-    PRIVATE ${PYBIND_INCLUDE_DIRS})
-target_link_libraries(qasm_controller_wrapper
-    ${AER_LIBRARIES}
-    ${PYTHON_LIBRARIES})
-
-python_extension_module(qasm_controller_wrapper
-    FORWARD_DECL_MODULES_VAR fdecl_module_list)
-
-python_modules_header(modules
-    FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
-include_directories(${modules_INCLUDE_DIRS})
 install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # StateVector Controller
 
-add_library(statevector_controller_wrapper MODULE statevector_bindings.cc)
-
-set_target_properties(statevector_controller_wrapper PROPERTIES
-	LINKER_LANGUAGE CXX
-    CXX_STANDARD 14)
-if(APPLE)
-    set_target_properties(statevector_controller_wrapper PROPERTIES
-        LINK_FLAGS ${AER_LINKER_FLAGS})
-endif()
-target_include_directories(statevector_controller_wrapper
-    PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
-    PRIVATE ${PYTHON_INCLUDE_DIRS}
-    PRIVATE ${PYBIND_INCLUDE_DIRS})
-target_link_libraries(statevector_controller_wrapper
-    ${AER_LIBRARIES}
-    ${PYTHON_LIBRARIES})
-
-python_extension_module(statevector_controller_wrapper
-    FORWARD_DECL_MODULES_VAR fdecl_module_list)
-
-python_modules_header(modules
-    FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
-include_directories(${modules_INCLUDE_DIRS})
+basic_pybind11_add_module(statevector_controller_wrapper statevector_bindings.cc)
+target_include_directories(statevector_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+target_link_libraries(statevector_controller_wrapper ${AER_LIBRARIES})
+add_linter(statevector_controller_wrapper)
 install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Unitary Controller
 
-add_library(unitary_controller_wrapper MODULE unitary_bindings.cc)
-
-set_target_properties(unitary_controller_wrapper PROPERTIES
-	LINKER_LANGUAGE CXX
-    CXX_STANDARD 14)
-if(APPLE)
-    set_target_properties(unitary_controller_wrapper PROPERTIES
-        LINK_FLAGS ${AER_LINKER_FLAGS})
-endif()
-target_include_directories(unitary_controller_wrapper
-    PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
-    PRIVATE ${PYTHON_INCLUDE_DIRS}
-    PRIVATE ${PYBIND_INCLUDE_DIRS})
-target_link_libraries(unitary_controller_wrapper
-    ${AER_LIBRARIES}
-    ${PYTHON_LIBRARIES})
-
-python_extension_module(unitary_controller_wrapper
-    FORWARD_DECL_MODULES_VAR fdecl_module_list)
-
-python_modules_header(modules
-    FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
-include_directories(${modules_INCLUDE_DIRS})
+basic_pybind11_add_module(unitary_controller_wrapper unitary_bindings.cc)
+target_include_directories(unitary_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+target_link_libraries(unitary_controller_wrapper ${AER_LIBRARIES})
+add_linter(unitary_controller_wrapper)
 install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Install redistributable dependencies
