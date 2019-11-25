@@ -133,7 +133,6 @@ class PulseSimulator(AerBackend):
 
         return openpulse_system.freqs
 
-
     def get_dressed_energies(self, qobj,
                              backend_options=None,
                              noise_model=None):

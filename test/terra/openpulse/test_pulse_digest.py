@@ -32,6 +32,7 @@ class BaseTestDigest(QiskitAerTestCase):
         self.system = pulse.PulseChannelSpec.from_backend(self.backend)
         self.backend_sim = qiskit.Aer.get_backend('pulse_simulator')
 
+
 class TestDigestHamiltonian(BaseTestDigest):
     r"""Tests for Hamiltonian options and processing."""
 
@@ -108,50 +109,35 @@ class TestDigestHamiltonian(BaseTestDigest):
                                                        noise_model=None)
         return digest_pulse_obj(qobj_dict)
 
-
     def _valid_2q_schedule(self):
         """ Helper method to make a valid 2 qubit schedule
         Returns:
             schedule (pulse schedule): schedule for 2q experiment
         """
-        #qubit to use for exeperiment
-        qubit = 0
-
-        # Rabi pulse
-        drive_amp = 0.5
-        drive_samples = 128
-        drive_sigma = 16
-
-        # Measurement pulse
-        meas_amp = 0.025
-        meas_samples = 1200
-        meas_sigma = 4
-        meas_risefall = 25
-
-        # Measurement pulse (common for all experiment)
-        meas_pulse = pulse_lib.gaussian_square(duration=meas_samples,
-                                               amp=meas_amp,
-                                               sigma=meas_sigma,
-                                               risefall=meas_risefall,
+        rabi_pulse = pulse_lib.gaussian(duration=128,
+                                        amp=0.5,
+                                        sigma=16,
+                                        name='rabi_pulse')
+        meas_pulse = pulse_lib.gaussian_square(duration=1200,
+                                               amp=0.025,
+                                               sigma=4,
+                                               risefall=25,
                                                name='meas_pulse')
-        acq_cmd = pulse.Acquire(duration=meas_samples)
+        acq_cmd = pulse.Acquire(duration=10)
 
         # create measurement schedule
         measure_and_acquire = \
-            meas_pulse(self.system.qubits[qubit].measure) | acq_cmd(self.system.acquires,
+            meas_pulse(self.system.qubits[0].measure) | acq_cmd(self.system.acquires,
                        self.system.memoryslots)
 
         # add commands to schedule
-        schedule = pulse.Schedule(name='rabi_exp_amp_%s' % drive_amp)
+        schedule = pulse.Schedule(name='rabi_exp')
 
-        rabi_pulse = pulse_lib.gaussian(duration=drive_samples,
-                                        amp=drive_amp,
-                                        sigma=drive_sigma,
-                                        name='rabi_pulse')
-        schedule += rabi_pulse(self.system.qubits[qubit].drive)
+        schedule += rabi_pulse(self.system.qubits[0].drive)
         schedule += measure_and_acquire << schedule.duration
 
         return schedule
+
 
 def _create_2q_ham(v0=5.0,
                    v1=5.1,
@@ -168,27 +154,28 @@ def _create_2q_ham(v0=5.0,
 
     hamiltonian = {}
     hamiltonian['h_str'] = []
-    #Q0 terms
+    # Q0 terms
     hamiltonian['h_str'].append('np.pi*(2*v0-alpha0)*O0')
     hamiltonian['h_str'].append('np.pi*alpha0*O0*O0')
     hamiltonian['h_str'].append('2*np.pi*r*X0||D0')
     hamiltonian['h_str'].append('2*np.pi*r*X0||U1')
     hamiltonian['h_str'].append('2*np.pi*r*X1||U0')
 
-    #Q1 terms
+    # Q1 terms
     hamiltonian['h_str'].append('np.pi*(2*v1-alpha1)*O1')
     hamiltonian['h_str'].append('np.pi*alpha1*O1*O1')
     hamiltonian['h_str'].append('2*np.pi*r*X1||D1')
 
-    #Exchange coupling betwene Q0 and Q1
+    # Exchange coupling betwene Q0 and Q1
     hamiltonian['h_str'].append('2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)')
     hamiltonian['vars'] = {'v0': v0, 'v1': v1, 'j': j,
                            'r': r, 'alpha0': alpha0, 'alpha1': alpha1}
 
-    #set the qubit dimensions to 3
+    # set the qubit dimensions to 3
     hamiltonian['qub'] = {'0': qub_dim, '1': qub_dim}
 
     return hamiltonian
+
 
 if __name__ == '__main__':
     unittest.main()

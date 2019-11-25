@@ -192,11 +192,11 @@ def digest_pulse_obj(qobj):
     # set frequencies based on qubit_lo_from_ham value
     q_lo_freq = np.zeros(len(dim_qub))
     if qubit_lo_from_ham:
-        min_eval = np.min(evals)/2/np.pi
+        min_eval = np.min(evals)
         for q_idx in range(len(dim_qub)):
             single_excite = _first_excited_state(q_idx, dim_qub)
-            dressed_eval = _eval_for_max_espace_overlap(single_excite, evals, estates)/2/np.pi
-            q_lo_freq[q_idx] = dressed_eval - min_eval
+            dressed_eval = _eval_for_max_espace_overlap(single_excite, evals, estates)
+            q_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
     else:
         for q_idx in range(len(dim_qub)):
             q_lo_freq[q_idx] = config_dict['qubit_lo_freq'][q_idx]
@@ -272,8 +272,8 @@ def digest_pulse_obj(qobj):
             out.can_sample = False
     return out
 
-def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
 
+def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     """ Get the diagonal elements of the hamiltonian and get the
     dressed frequencies and eigenstates
 
@@ -594,6 +594,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
 
     return structs
 
+
 def _first_excited_state(qubit_idx, dim_qub):
     """
     Returns the vector corresponding to all qubits in the 0 state, except for
@@ -625,6 +626,7 @@ def _first_excited_state(qubit_idx, dim_qub):
         vector = np.kron(new_vec, vector)
 
     return vector
+
 
 def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
     """ Given an eigenvalue decomposition evals, evecs, as output from
@@ -660,6 +662,7 @@ def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
 
     # return eval with largest overlap
     return unique_evals[np.argmax(overlaps)]
+
 
 def _proj_norm(A, b):
     """
