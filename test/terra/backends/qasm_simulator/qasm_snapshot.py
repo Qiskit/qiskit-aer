@@ -48,7 +48,8 @@ class QasmSnapshotStatevectorTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu',
+        'statevector_fake_gpu', 'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -510,7 +511,8 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
+        'density_matrix', 'matrix_product_state', 'stabilizer'
     ]
     BACKEND_OPTS = {}
 
@@ -590,7 +592,8 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
+        'matrix_product_state', 'stabilizer'
     ]
     BACKEND_OPTS = {}
 
@@ -669,12 +672,14 @@ class QasmSnapshotExpValPauliTests:
                         target = value_targets[j].get(label, {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
+
 class QasmSnapshotExpValMatrixTests:
     """QasmSimulator snapshot pauli expectation value tests."""
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
