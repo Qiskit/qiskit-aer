@@ -18,24 +18,41 @@ import unittest
 import multiprocessing
 
 from qiskit import QuantumCircuit, assemble, execute
-from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerProvider, QasmSimulator
 from qiskit.providers.aer import AerError
 
 
-def is_qasm_method_available(method):
+def is_method_available(backend, method):
     """Check if input method is available for the qasm simulator."""
     # Simple test circuit that should work on all simulators.
+    if isinstance(backend, str):
+        backend = AerProvider().get_backend(backend)
     dummy_circ = QuantumCircuit(1)
     dummy_circ.iden(0)
     qobj = assemble(dummy_circ, optimization_level=0)
     backend_options = {"method": method}
     try:
-        job = QasmSimulator().run(qobj, backend_options=backend_options)
+        job = backend.run(qobj, backend_options=backend_options)
         result = job.result()
         return result.success
     except AerError:
         return False
     return True
+
+
+def requires_method(backend, method):
+    """Decorator that skips test if a simulation method is unavailable.
+
+    Args:
+        backend (str or AerBackend): backend to check method for.
+        method (str): the method string
+
+    Returns:
+        decorator: the decorator for testing input method.
+    """
+    reason = 'method "{}" is unavailable, skipping test'.format(method)
+    skip = not is_method_available(backend, method)
+    return unittest.skipIf(skip, reason)
 
 
 def requires_omp(test_item):
@@ -66,18 +83,4 @@ def requires_multiprocessing(test_item):
     """
     skip = multiprocessing.cpu_count() <= 1
     reason = 'Multicore CPU not available, skipping test'
-    return unittest.skipIf(skip, reason)(test_item)
-
-
-def requires_gpu(test_item):
-    """Decorator that skips test if GPU statevector method is not available.
-
-    Args:
-        test_item (callable): function or class to be decorated.
-
-    Returns:
-        callable: the decorated function.
-    """
-    reason = 'GPU not available, skipping test'
-    skip = not is_qasm_method_available("statevector_gpu")
     return unittest.skipIf(skip, reason)(test_item)
