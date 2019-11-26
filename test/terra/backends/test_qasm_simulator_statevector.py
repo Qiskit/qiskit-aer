@@ -9,13 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 QasmSimulator Integration Tests
 """
 
 import unittest
 from test.terra import common
+from test.terra.decorators import requires_method
 
 # Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
@@ -51,43 +51,52 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValP
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
+from test.terra.backends.qasm_simulator.qasm_delay_measure import QasmDelayMeasureTests
+from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
+from test.terra.backends.qasm_simulator.qasm_basics import QasmBasicsTests
 
 
-class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
-                                   QasmMethodTests,
-                                   QasmMeasureTests,
-                                   QasmMultiQubitMeasureTests,
-                                   QasmResetTests,
-                                   QasmConditionalGateTests,
-                                   QasmConditionalUnitaryTests,
-                                   QasmConditionalKrausTests,
-                                   QasmCliffordTests,
-                                   QasmCliffordTestsWaltzBasis,
-                                   QasmCliffordTestsMinimalBasis,
-                                   QasmNonCliffordTests,
-                                   QasmNonCliffordTestsWaltzBasis,
-                                   QasmNonCliffordTestsMinimalBasis,
-                                   QasmAlgorithmTests,
-                                   QasmAlgorithmTestsWaltzBasis,
-                                   QasmAlgorithmTestsMinimalBasis,
-                                   QasmUnitaryGateTests,
-                                   QasmInitializeTests,
-                                   QasmReadoutNoiseTests,
-                                   QasmPauliNoiseTests,
-                                   QasmResetNoiseTests,
-                                   QasmKrausNoiseTests,
-                                   QasmSnapshotStatevectorTests,
-                                   QasmSnapshotDensityMatrixTests,
-                                   QasmSnapshotProbabilitiesTests,
-                                   QasmSnapshotExpValPauliTests,
-                                   QasmSnapshotExpValMatrixTests,
-                                   QasmSnapshotStabilizerTests):
+class StatevectorTests(
+        QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
+        QasmResetTests, QasmInitializeTests, QasmConditionalGateTests,
+        QasmConditionalUnitaryTests, QasmConditionalKrausTests,
+        QasmCliffordTests, QasmCliffordTestsWaltzBasis,
+        QasmCliffordTestsMinimalBasis, QasmNonCliffordTests,
+        QasmNonCliffordTestsWaltzBasis, QasmNonCliffordTestsMinimalBasis,
+        QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
+        QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests,
+        QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmThreadManagementTests,
+        QasmFusionTests, QasmDelayMeasureTests, QasmQubitsTruncateTests,
+        QasmResetNoiseTests, QasmKrausNoiseTests, QasmBasicsTests,
+        QasmSnapshotStatevectorTests, QasmSnapshotDensityMatrixTests,
+        QasmSnapshotProbabilitiesTests, QasmSnapshotExpValPauliTests,
+        QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):
+    """Container class of statevector method tests."""
+    pass
+
+
+class TestQasmSimulatorStatevector(common.QiskitAerTestCase, StatevectorTests):
     """QasmSimulator statevector method tests."""
 
-    BACKEND_OPTS = {
-        "seed_simulator": 271828,
-        "method": "statevector"
-    }
+    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector"}
+
+
+@requires_method("qasm_simulator", "statevector_gpu")
+class TestQasmSimulatorStatevectorThrustGPU(common.QiskitAerTestCase,
+                                            StatevectorTests):
+    """QasmSimulator statevector_gpu method tests."""
+
+    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector_gpu"}
+
+
+@requires_method("qasm_simulator", "statevector_thrust")
+class TestQasmSimulatorStatevectorThrustCPU(common.QiskitAerTestCase,
+                                            StatevectorTests):
+    """QasmSimulator statevector_thrust method tests."""
+
+    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector_thrust"}
 
 
 if __name__ == '__main__':
