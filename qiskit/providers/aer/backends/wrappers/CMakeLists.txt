@@ -36,25 +36,22 @@ basic_pybind11_add_module(qasm_controller_wrapper qasm_bindings.cc)
 target_include_directories(qasm_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                    PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(qasm_controller_wrapper ${AER_LIBRARIES})
-add_linter(qasm_controller_wrapper)
 install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # StateVector Controller
 
 basic_pybind11_add_module(statevector_controller_wrapper statevector_bindings.cc)
 target_include_directories(statevector_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+                                                          PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(statevector_controller_wrapper ${AER_LIBRARIES})
-add_linter(statevector_controller_wrapper)
 install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Unitary Controller
 
 basic_pybind11_add_module(unitary_controller_wrapper unitary_bindings.cc)
 target_include_directories(unitary_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+                                                      PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(unitary_controller_wrapper ${AER_LIBRARIES})
-add_linter(unitary_controller_wrapper)
 install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Install redistributable dependencies
