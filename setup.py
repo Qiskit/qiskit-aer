@@ -58,7 +58,7 @@ if "--with-openpulse" in sys.argv:
     # Add Cython OP extensions here
     OP_EXTS = ['channel_value', 'measure', 'memory', 'utils']
     # Add qutip_lite extensions here
-    Q_EXTS = ['spmatfuncs', 'sparse_utils', 'spmath', 'math', 'spconvert']
+    Q_EXTS = ['spmatfuncs', 'sparse_utils', 'spmath', 'spconvert']
 
     # Extra link args
     link_flags = []
