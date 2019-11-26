@@ -499,10 +499,11 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
 					     double outcome_prob,
 					     stringmap_t<double>& probs) {
   uint_t qubit_for_branching = -1;
-  for(uint_t i=qubits.size()-1; i>=0; --i) {
+  for(uint_t i=0; i<qubits.size(); ++i) {
+    uint_t qubit = qubits[qubits.size()-i-1];
     if(outcome[i] == 'X') {
-      if(BaseState::qreg_.is_deterministic_outcome(qubits[i])) {
-	bool single_qubit_outcome = BaseState::qreg_.measure_and_update(qubits[i], 0);
+      if(BaseState::qreg_.is_deterministic_outcome(qubit)) {
+	bool single_qubit_outcome = BaseState::qreg_.measure_and_update(qubit, 0);
 	if(single_qubit_outcome) {
 	  outcome[i] = '1';
 	}
@@ -517,7 +518,7 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
   }
 
   if(qubit_for_branching == -1) {
-    probs[outcome] = outcome_prob;
+    probs[Utils::bin2hex(outcome)] = outcome_prob;
     return;
   }
 
@@ -529,11 +530,11 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
     else {
       new_outcome[qubit_for_branching] = '0';
     }
+    auto copy_of_qreg = BaseState::qreg_;
+    BaseState::qreg_.measure_and_update(qubits[qubits.size()-qubit_for_branching-1], single_qubit_outcome);
     snapshot_probabilities_auxiliary(qubits, new_outcome, 0.5*outcome_prob, probs);
+    BaseState::qreg_ = copy_of_qreg;
   }
-
-  auto copy_of_qreg = BaseState::qreg_;
-  
 }
 
 
