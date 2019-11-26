@@ -24,7 +24,6 @@ endif()
 
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/openpulse/qutip_lite/cy")
 add_cython_module(spconvert src/zspmv.cpp)
-add_cython_module(math src/zspmv.cpp)
 add_cython_module(spmath src/zspmv.cpp)
 add_cython_module(sparse_utils src/zspmv.cpp)
 add_cython_module(spmatfuncs src/zspmv.cpp)
