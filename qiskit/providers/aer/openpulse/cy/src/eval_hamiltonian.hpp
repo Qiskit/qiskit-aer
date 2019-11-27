@@ -22,19 +22,20 @@
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
 
-using namespace mup;
-
 struct ParserValues {
-    std::unique_ptr<ParserX> parser;
+    ParserValues(std::unique_ptr<mup::ParserX> parser, const std::string& expr):
+        parser(std::move(parser)), expr(expr) {
+    }
+    std::unique_ptr<mup::ParserX> parser;
     std::string expr;
-    std::unordered_map<std::string, Value> var_values;
+    std::unordered_map<std::string, std::unique_ptr<mup::Value>> var_values;
 };
 
 namespace std {
   template <>
   struct hash<ParserValues>{
     std::size_t operator()(const ParserValues& p) const {
-      return std::hash<std::string>(p.expr);
+      return std::hash<std::string>()(p.expr);
     }
   };
 }
@@ -46,15 +47,12 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
                                   const std::unordered_map<std::string, complex_t>& chan_values){
 
 
-    static std::unordered_map<std::string, std::unique_ptr<ParserX>> expr_strings_parser;
-    auto parser_iter = expr_strings_parser.find(expr_string);
-    if(parser_iter == expr_strings_parser.end()){
-        auto parser = std::make_unique<ParserX>();
+    static std::unordered_map<std::string, std::unique_ptr<ParserValues>> parser_expr;
+    auto parser_iter = parser_expr.find(expr_string);
+    if(parser_iter == parser_expr.end()){
+        auto parserx = std::make_unique<mup::ParserX>();
         //Value pi(M_PI);
         //parser->DefineVar("npi", Variable(&pi));
-
-        std::cout << "Creating parser: " << std::hex << parser << " for expr: " << expr_string << "\n";
-
         const auto replace = [](const std::string& from, const std::string& to, std::string where) -> std::string {
             size_t start_pos = 0;
             while((start_pos = where.find(from, start_pos)) != std::string::npos) {
@@ -63,22 +61,24 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
             }
             return where;
         };
-        parser->SetExpr(replace("np.pi", "pi", expr_string));
-        expr_strings_parser.emplace(expr_string, std::move(parser));
+        parserx->SetExpr(replace("np.pi", "pi", expr_string));
+        auto parser = std::make_unique<ParserValues>(std::move(parserx), expr_string);
+        //std::cout << "Creating parser: " << std::hex << parser.get() << " for expr: " << expr_string << "\n";
+        parser_expr.emplace(expr_string, std::move(parser));
     }
-    auto& parser = expr_strings_parser[expr_string];
+    auto * parser = parser_expr[expr_string].get();
 
-    std::cout << "Getting parser " << std::hex << parser << "\n";
+    //std::cout << "Getting parser " << std::hex << parser << "\n";
 
-    static std::unordered_map<ParserX&, std::pair<std::string, Value>> var_values;
-    auto maybe_update_value = [&parser](const std::string& var_name, const complex_t& var_value){
-        if(var_values.find(var_name) == var_values.end()){
-            var_values.emplace(var_name, std::make_unique<Value>(var_value));
-            parser->DefineVar(var_name, Variable(&(*var_values[var_name])));
-        }else{
-            std::cout << var_name << " is now: " << std::to_string(var_value.real()) << "," << std::to_string(var_value.imag()) << "\n";
-            auto& ref = var_values[var_name];
-            ref = var_value;
+    auto maybe_update_value = [parser](const std::string& var_name, const complex_t& var_value){
+        if(parser->var_values.find(var_name) == parser->var_values.end()){
+            parser->var_values.emplace(var_name, std::make_unique<mup::Value>(var_value));
+            parser->parser->DefineVar(var_name, mup::Variable(parser->var_values[var_name].get()));
+        }else{ // There's already a variable defined for this expresion
+            //std::cout << var_name << " is now: " << std::to_string(var_value.real()) << "," << std::to_string(var_value.imag()) << "\n";
+            auto * ref = parser->var_values[var_name].get();
+            // Update the value from the container
+            *ref = var_value;
         }
     };
 
@@ -95,7 +95,7 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
     }
 
     try{
-        Value result = parser->Eval();
+        mup::Value result = parser->parser->Eval();
         return result.GetComplex();
     }catch(std::exception ex){
         std::cout << ex.what();

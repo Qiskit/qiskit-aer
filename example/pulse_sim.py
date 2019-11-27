@@ -30,7 +30,7 @@ from qiskit.test.mock import FakeOpenPulse2Q
 
 #Get a pulse configuration from the fake backend
 backend_real = FakeOpenPulse2Q()
-back_config = backend_real.configuration().to_dict()
+configuration = backend_real.configuration()
 system = pulse.PulseChannelSpec.from_backend(backend_real)
 
 
@@ -141,20 +141,18 @@ hamiltonian['vars'] =  {'v0': 5.00, 'v1': 5.1, 'j': 0.01,
 #set the qubit dimensions to 3
 hamiltonian['qub'] = {'0': 3, '1': 3}
 
-#update the back_end
-back_config['hamiltonian'] = hamiltonian
-back_config['noise'] = {}
-back_config['dt'] = 1.0
 
+# ### Setup backend_options for simulation
 
-# ### Add Solver Settings
-
-# Any solver settings also does into the back_config
+# First copy the real-device configuration to our backend options, then override the Hamiltonian with our custom Hamiltonian, and add any additional solver options.
 
 # In[6]:
 
 
-back_config['ode_options'] = {}
+backend_options = configuration.to_dict()
+backend_options['hamiltonian'] = hamiltonian
+backend_options['dt'] = 1.0
+backend_options['ode_options'] = {}
 
 
 # ### Restrict the Qubits Used in the Simulation 
@@ -164,48 +162,50 @@ back_config['ode_options'] = {}
 # In[7]:
 
 
-back_config['qubit_list'] = [0,1]
-#back_config['qubit_list'] = None
+backend_options['qubit_list'] = [0, 1]
+#backend_options['qubit_list'] = None
 
 
 # ### Assemble the qobj with the backend config file and the qubit_list
 
 # We have to do this step twice to get the dressed frequencies for setting the LO's. Note here that we set `meas_level=1` and `meas_return=avg` which will return the average probability for the qubit to be in the |1> state.
 
-# In[22]:
+# In[8]:
 
 
-rabi_qobj = assemble(schedules, backend_real, 
-                     meas_level=1, meas_return='avg', 
-                     memory_slots=2,
-                     shots=shots, sim_config = back_config)
+rabi_qobj_no_lo = assemble(schedules, backend_real, 
+                           meas_level=1, meas_return='avg', 
+                           memory_slots=2,
+                           shots=shots)
 
 
-# In[23]:
+# In[9]:
 
 
-evals, estates = backend_sim.get_dressed_energies(rabi_qobj)
+evals, estates = backend_sim.get_dressed_energies(rabi_qobj_no_lo,
+                                                  backend_options=backend_options)
 
 
-# In[24]:
+# In[10]:
 
 
 evals/2/np.pi
 
 
-# In[25]:
+# In[11]:
 
+
+qubit_lo_freq = [evals[1]/2/np.pi, evals[3]/2/np.pi]
 
 rabi_qobj = assemble(schedules, backend_real, 
                      meas_level=1, meas_return='avg', 
-                     memory_slots=2, qubit_lo_freq = [evals[1]/2/np.pi,
-                                                      evals[3]/2/np.pi],
-                     shots=shots, sim_config = back_config)
+                     memory_slots=2, qubit_lo_freq=qubit_lo_freq,
+                     shots=shots)
 
 
 # ### Simulate
 
-# In[26]:
+# In[12]:
 
 
 #Note: this is how to run bypassing the backend
@@ -213,20 +213,20 @@ rabi_qobj = assemble(schedules, backend_real,
 #simdata = qiskit.providers.aer.openpulse.solver.opsolve.opsolve(opsys)
 
 
-# In[27]:
+# In[13]:
 
 
-sim_result = backend_sim.run(rabi_qobj).result()
+sim_result = backend_sim.run(rabi_qobj, backend_options=backend_options).result()
 
 
-# In[28]:
+# In[14]:
 
 
 #get the end time of the simulation in dt
 sim_result.results[0].header.ode_t
 
 
-# In[29]:
+# In[15]:
 
 
 #get the statevector IN THE FRAME OF THE ORIGINAL HAMILTONIAN
@@ -235,7 +235,7 @@ sim_result.get_statevector(0)
 
 # Extract the qubit populations 
 
-# In[30]:
+# In[16]:
 
 
 amp_data_Q0 = []
@@ -247,7 +247,7 @@ for exp_idx in range(len(drive_amps)):
     amp_data_Q1.append(np.abs(exp_mem[1]))
 
 
-# In[31]:
+# In[17]:
 
 
 #Fit the data
@@ -275,7 +275,7 @@ print('Pi Amplitude %f'%(pi_amp))
 
 # Using the pulse amplitude calibrated above, do an experiment with no pulse and an experiment with a pi pulse and look at the measurement outcomes. 
 
-# In[32]:
+# In[18]:
 
 
 # Create schedule
@@ -311,25 +311,24 @@ excited_exp_schedules = [ground_exp, sup_exp, excited_exp]
 
 # Change the `meas_return=single` which will return each individual measurement
 
-# In[33]:
+# In[19]:
 
 
 readout_qobj = assemble(excited_exp_schedules, backend_real, 
                      meas_level=1, meas_return='single', 
-                     memory_slots=2, qubit_lo_freq = [evals[1]/2/np.pi,
-                                                      evals[3]/2/np.pi],
-                     shots=shots, sim_config = back_config)
+                     memory_slots=2, qubit_lo_freq=qubit_lo_freq,
+                     shots=shots)
 
 
-# In[34]:
+# In[20]:
 
 
-sim_result = backend_sim.run(readout_qobj).result()
+sim_result = backend_sim.run(readout_qobj, backend_options=backend_options).result()
 
 
 # Plot the data, there is no measurement error in the simulator data so the histographs will be all centered at the average point.
 
-# In[35]:
+# In[21]:
 
 
 ground_data = sim_result.get_memory(0)[:, qubit]
@@ -339,7 +338,7 @@ sup_data = sim_result.get_memory(1)[:, qubit]
 
 # Add some random noise to the data to better approximate the experiment
 
-# In[36]:
+# In[22]:
 
 
 for idx in range(len(ground_data)):
@@ -348,7 +347,7 @@ for idx in range(len(ground_data)):
     sup_data[idx] += random.gauss(0,0.1)+1j*random.gauss(0,0.1)
 
 
-# In[37]:
+# In[23]:
 
 
 
@@ -374,7 +373,7 @@ plt.ylabel('Q (a.u.)', fontsize=16)
 
 # Simulate cross-resonance by driving on U0. Note you need to run Rabi first to setup the hamiltonian.
 
-# In[38]:
+# In[24]:
 
 
 #qubit to use for exeperiment
@@ -407,23 +406,22 @@ for ii, cr_drive_amp in enumerate(cr_drive_amps):
     schedules.append(schedule)
 
 
-# In[39]:
+# In[25]:
 
 
 cr_rabi_qobj = assemble(schedules, backend_real, 
                      meas_level=1, meas_return='avg', 
-                     memory_slots=2, qubit_lo_freq = [evals[1]/2/np.pi,
-                                                      evals[3]/2/np.pi],
-                     shots=shots, sim_config = back_config)
+                     memory_slots=2, qubit_lo_freq=qubit_lo_freq,
+                     shots=shots)
 
 
-# In[40]:
+# In[26]:
 
 
-sim_result = backend_sim.run(cr_rabi_qobj).result()
+sim_result = backend_sim.run(cr_rabi_qobj, backend_options=backend_options).result()
 
 
-# In[41]:
+# In[27]:
 
 
 amp_data_Q0 = []
@@ -435,7 +433,7 @@ for exp_idx in range(len(cr_drive_amps)):
     amp_data_Q1.append(np.abs(exp_mem[1]))
 
 
-# In[42]:
+# In[28]:
 
 
 plt.plot(drive_amps, amp_data_Q0, label='Q0')
@@ -452,7 +450,7 @@ plt.grid(True)
 
 # Using the calibrated Pi pulse add a T1 decay channel and simulate a t1 experiment. This can take a while to run. The noise operators in pulse are still a work in progress.
 
-# In[43]:
+# In[29]:
 
 
 
@@ -467,68 +465,28 @@ for kk in range(len(t1_times)):
     T1_exps.append(schedule)
 
 
-# In[44]:
+# In[30]:
 
 
 # Add noise to the Hamiltonian on qubit '0'
-back_config['noise'] = {"qubit": 
-                        {"0": 
-                         {"Sm": 0.006
-                         }}}
-#back_config['noise'] = {}
+noise_model = {"qubit": {"0": {"Sm": 0.006}}}
 
 
-# In[45]:
+# In[31]:
 
 
 t1_qobj = assemble(T1_exps, backend_real, 
                      meas_level=1, meas_return='avg', 
-                     memory_slots=2, qubit_lo_freq = [evals[1]/2/np.pi,
-                                                      evals[3]/2/np.pi],
-                     shots=100, sim_config = back_config)
+                     memory_slots=2, qubit_lo_freq=qubit_lo_freq,
+                     shots=100)
 
 
-# In[46]:
+# In[32]:
 
 
-sim_result_t1 = backend_sim.run(t1_qobj).result()
-
-
-# In[47]:
-
-
-t1_data_Q0 = []
-t1_data_Q1 = []
-
-
-for exp_idx in range(len(t1_times)):
-    exp_mem = sim_result_t1.get_memory(exp_idx)
-    t1_data_Q0.append(np.abs(exp_mem[0]))
-    t1_data_Q1.append(np.abs(exp_mem[1]))
-
-
-# In[48]:
-
-
-#Fit the data
-fit_func_t1 = lambda x,A,B,T: (A*np.exp(-x/T)+B)
-fitparams, conv = curve_fit(fit_func_t1, t1_times, t1_data_Q0, [0.5,0.5,100])
-
-
-plt.plot(t1_times, t1_data_Q0, label='Q0')
-plt.plot(t1_times, t1_data_Q1, label='Q1')
-plt.plot(t1_times, fit_func_t1(t1_times, *fitparams), color='black', linestyle='dashed', label='Fit')
-
-plt.legend()
-plt.xlabel('Wait Time (dt)', fontsize=20)
-plt.ylabel('Signal, a.u.', fontsize=20)
-plt.ylim([0,1.05])
-plt.title('T1 on Q0', fontsize=20)
-plt.grid(True)
-
-
-# In[ ]:
-
+sim_result_t1 = backend_sim.run(t1_qobj,
+                                backend_options=backend_options,
+                                noise_model=noise_model).result()
 
 
 
