@@ -76,7 +76,7 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"stabilizer", "memory", "register", "probabilities"};
+    return {"stabilizer", "memory", "register", "probabilities", "probabilities_with_variance"};
   }
 
   // Apply a sequence of operations by looping over list
