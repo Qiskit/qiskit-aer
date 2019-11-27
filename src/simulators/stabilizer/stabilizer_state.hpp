@@ -118,7 +118,7 @@ protected:
   void apply_gate(const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
-  // If a state subclass supports this function it then "measure"
+  // If a state subclass supports this function then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   virtual void apply_measure(const reg_t &qubits,

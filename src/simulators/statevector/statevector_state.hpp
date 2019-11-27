@@ -103,7 +103,7 @@ public:
   }
 
   // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
+  // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
                          RngEngine &rng) override;
