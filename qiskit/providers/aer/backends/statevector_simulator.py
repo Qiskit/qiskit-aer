@@ -19,9 +19,9 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
-# pylint: disable=no-name-in-module
+# pylint: disable=import-error,no-name-in-module
 from .statevector_controller_wrapper import statevector_controller_execute
-# pylint: enable=no-name-in-module
+# pylint: enable=import-error,no-name-in-module
 from ..aererror import AerError
 from ..version import __version__
 

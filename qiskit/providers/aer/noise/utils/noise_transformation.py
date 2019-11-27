@@ -25,6 +25,7 @@ a simulation. To enable noisy Clifford simulation one can transform the
 given noise channel into the closest one, Hilbert-Schmidt wise, that can be
 used in a Clifford simulator.
 """
+# pylint: disable=import-outside-toplevel
 
 import itertools
 import numpy
