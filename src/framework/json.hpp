@@ -319,14 +319,15 @@ json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
     if (buf.ndim != 1) {
         throw std::runtime_error("Number of dims must be 1");
     }
-    //std::cout << "1-d conversion: " << std::endl;
 
     T *ptr = (T *) buf.ptr;
-    size_t X = buf.shape[0];
+    size_t D0 = buf.shape[0];
+
+    //std::cout << "1-d conversion: " << X << std::endl;
 
     std::vector<T> tbr;
-    for (size_t idx = 0; idx < X; idx++)
-        tbr.push_back(ptr[idx]);
+    for (size_t n0 = 0; n0 < D0; n0++)
+        tbr.push_back(ptr[n0]);
 
     return std::move(tbr);
 }
@@ -339,16 +340,16 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
     }
 
     T *ptr = (T *) buf.ptr;
-    size_t X = buf.shape[0];
-    size_t Y = buf.shape[1];
+    size_t D0 = buf.shape[0];
+    size_t D1 = buf.shape[1];
 
-    //std::cout << "2-d conversion: " << X << "x" << Y << std::endl;
+    //std::cout << "2-d conversion: " << D0 << "x" << D1 << std::endl;
 
     std::vector<std::vector<T > > tbr;
-    for (size_t idx = 0; idx < X; idx++) {
+    for (size_t n0 = 0; n0 < D0; n0++) {
         std::vector<T> tbr1;
-        for (size_t jdx = 0; jdx < Y; jdx++) {
-            tbr1.push_back(ptr[idx + X*jdx]);
+        for (size_t n1 = 0; n1 < D1; n1++) {
+            tbr1.push_back(ptr[n1 + D1*n0]);
         }
         tbr.push_back(tbr1);
     }
@@ -364,19 +365,19 @@ json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
         throw std::runtime_error("Number of dims must be 3");
     }
     T *ptr = (T *) buf.ptr;
-    size_t X = buf.shape[0];
-    size_t Y = buf.shape[1];
-    size_t Z = buf.shape[2];
+    size_t D0 = buf.shape[0];
+    size_t D1 = buf.shape[1];
+    size_t D2 = buf.shape[2];
 
-    //std::cout << "3-d conversion: " << X << "x" << Y << "x" << Z << std::endl;
+    //std::cout << "3-d conversion: " << D0 << "x" << D1 << "x" << D2 << std::endl;
 
     std::vector<std::vector<std::vector<T > > > tbr;
-    for (size_t idx = 0; idx < X; idx++) {
+    for (size_t n0 = 0; n0 < D0; n0++) {
         std::vector<std::vector<T> > tbr1;
-        for (size_t jdx = 0; jdx < Y; jdx++) {
+        for (size_t n1 = 0; n1 < D1; n1++) {
             std::vector<T> tbr2;
-            for (size_t kdx = 0; kdx < Z; kdx++) {
-                tbr2.push_back(ptr[kdx + Z*(jdx + Y*idx)]);
+            for (size_t n2 = 0; n2 < D2; n2++) {
+                tbr2.push_back(ptr[n2 + D2*(n1 + D1*n0)]);
             }
             tbr1.push_back(tbr2);
         }
