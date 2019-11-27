@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Qiskit Aer statevector simulator backend.
 """
@@ -21,8 +19,9 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
-# pylint: disable=import-error
+# pylint: disable=no-name-in-module
 from .statevector_controller_wrapper import statevector_controller_execute
+# pylint: enable=no-name-in-module
 from ..aererror import AerError
 from ..version import __version__
 
