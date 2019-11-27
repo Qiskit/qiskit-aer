@@ -30,7 +30,14 @@ endif()
 # QASM Controller
 
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
-add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
+
+if(CUDA_FOUND)
+	set_source_files_properties(${qasm_controller_wrapper} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	cuda_add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
+else()
+	add_library(qasm_controller_wrapper MODULE ${qasm_controller_wrapper})
+endif()
+
 set_target_properties(qasm_controller_wrapper PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
@@ -62,7 +69,12 @@ install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer
 # StateVector Controller
 
 add_cython_target(statevector_controller_wrapper statevector_controller_wrapper.pyx CXX)
-add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
+if(CUDA_FOUND)
+	set_source_files_properties(${statevector_controller_wrapper} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	cuda_add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
+else()
+	add_library(statevector_controller_wrapper MODULE ${statevector_controller_wrapper})
+endif()
 set_target_properties(statevector_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
@@ -91,7 +103,12 @@ install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/provid
 # Unitary Controller
 
 add_cython_target(unitary_controller_wrapper unitary_controller_wrapper.pyx CXX)
-add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
+if(CUDA_FOUND)
+	set_source_files_properties(${unitary_controller_wrapper} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+	cuda_add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
+else()
+	add_library(unitary_controller_wrapper MODULE ${unitary_controller_wrapper})
+endif()
 set_target_properties(unitary_controller_wrapper PROPERTIES
 	LINKER_LANGUAGE CXX
     CXX_STANDARD 14)
