@@ -185,21 +185,21 @@ def digest_pulse_obj(qobj):
     out.freqs = OrderedDict()
 
     # determine whether to compute qubit_lo_freq from hamiltonian
-    qubit_lo_from_ham = ('qubit_lo_freq' in config_dict_sim) and \
-                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and \
-                        (len(dim_osc) == 0)
+    qubit_lo_from_ham = (('qubit_lo_freq' in config_dict_sim) and \
+                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian')) or \
+                        (len(dim_osc) == 0)) or not config_dict['qubit_lo_freq']
 
     # set frequencies based on qubit_lo_from_ham value
-    q_lo_freq = np.zeros(len(dim_qub))
+    q_lo_freq = None
     if qubit_lo_from_ham:
+        q_lo_freq = np.zeros(len(dim_qub))
         min_eval = np.min(evals)
         for q_idx in range(len(dim_qub)):
             single_excite = _first_excited_state(q_idx, dim_qub)
             dressed_eval = _eval_for_max_espace_overlap(single_excite, evals, estates)
             q_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
     else:
-        for q_idx in range(len(dim_qub)):
-            q_lo_freq[q_idx] = config_dict['qubit_lo_freq'][q_idx]
+        q_lo_freq = config_dict['qubit_lo_freq']
 
     # set freqs
     for key in out.channels.keys():
