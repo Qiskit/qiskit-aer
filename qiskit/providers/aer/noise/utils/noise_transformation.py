@@ -43,13 +43,14 @@ def approximate_quantum_error(error, *,
                               operator_string=None,
                               operator_dict=None,
                               operator_list=None):
-    """Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
+    """
+    Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
 
     Currently this is only implemented for 1-qubit QuantumErrors.
 
     Args:
         error (QuantumError): the error to be approximated.
-        operator_string (string or None): a name for a premade set of
+        operator_string (string or None): a name for a pre-made set of
             building blocks for the output channel (Default: None).
         operator_dict (dict or None): a dictionary whose values are the
             building blocks for the output channel (Default: None).
@@ -61,15 +62,15 @@ def approximate_quantum_error(error, *,
 
     Raises:
         NoiseError: if number of qubits is not supported or approximation
-                    failsed.
-        RuntimeError: If there's no information about the noise type
+                    failed.
+        RuntimeError: If there's no information about the noise type.
 
-    Additional Information
-    ----------------------
-    The operator input precedence is as follows: list < dict < string
-    if a string is given, dict is overwritten; if a dict is given, list is
-    overwritten possible values for string are 'pauli', 'reset', 'clifford'
-    For further information see `NoiseTransformer.named_operators`.
+    Additional Information:
+        The operator input precedence is: ``list`` < ``dict`` < ``str``.
+        If a string is given, dict is overwritten; if a dict is given, list is
+        overwritten. Oossible values for string are ``'pauli'``, ``'reset'``,
+        ``'clifford'``.
+        For further information see :meth:`NoiseTransformer.named_operators`.
     """
 
     if not isinstance(error, QuantumError):
@@ -98,7 +99,7 @@ def approximate_quantum_error(error, *,
         ]
         probabilities = transformer.transform_by_operator_list(
             op_matrix_list, error_kraus_operators)
-        identity_prob = 1 - sum(probabilities)
+        identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise RuntimeError(
                 "Channel probabilities sum to {}".format(1 - identity_prob))
@@ -120,11 +121,12 @@ def approximate_noise_model(model, *,
                             operator_string=None,
                             operator_dict=None,
                             operator_list=None):
-    """Return an approximate noise model.
+    """
+    Return an approximate noise model.
 
     Args:
         model (NoiseModel): the noise model to be approximated.
-        operator_string (string or None): a name for a premade set of
+        operator_string (string or None): a name for a pre-made set of
             building blocks for the output channel (Default: None).
         operator_dict (dict or None): a dictionary whose values are the
             building blocks for the output channel (Default: None).
@@ -136,14 +138,14 @@ def approximate_noise_model(model, *,
 
     Raises:
         NoiseError: if number of qubits is not supported or approximation
-        failsed.
+        failed.
 
-    Additional Information
-    ----------------------
-    The operator input precedence is as follows: list < dict < string
-    if a string is given, dict is overwritten; if a dict is given, list is
-    overwritten possible values for string are 'pauli', 'reset', 'clifford'
-    For further information see `NoiseTransformer.named_operators`.
+    Additional Information:
+        The operator input precedence is: ``list`` < ``dict`` < ``str``.
+        If a string is given, dict is overwritten; if a dict is given, list is
+        overwritten. Oossible values for string are ``'pauli'``, ``'reset'``,
+        ``'clifford'``.
+        For further information see :meth:`NoiseTransformer.named_operators`.
     """
 
     # We need to iterate over all the errors in the noise model.
@@ -220,11 +222,8 @@ def approximate_noise_model(model, *,
 
 
 def pauli_operators():
-    """
-    Returns:
-        list: a list of Pauli operators for 1 and 2 qubits
+    """Return a list of Pauli operators for 1 and 2 qubits."""
 
-    """
     pauli_1_qubit = {
         'X': [{'name': 'x', 'qubits': [0]}],
         'Y': [{'name': 'y', 'qubits': [0]}],
@@ -251,11 +250,8 @@ def pauli_operators():
 
 
 def reset_operators():
-    """
-    Returns:
-        list: a list of reset operators for 1 and 2 qubits
+    """Return a list of reset operators for 1 and 2 qubits."""
 
-    """
     reset_0_to_0 = [{'name': 'reset', 'qubits': [0]}]
     reset_0_to_1 = [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]
     reset_1_to_0 = [{'name': 'reset', 'qubits': [1]}]
@@ -312,7 +308,8 @@ class NoiseTransformer:
         return operator
 
     def operator_circuit(self, operator):
-        """Converts an operator representation to noise circuit
+        """Converts an operator representation to noise circuit.
+
         Args:
             operator (operator): operator representation. Can be a noise
                 circuit or a matrix or a list of matrices.
@@ -334,33 +331,49 @@ class NoiseTransformer:
     # transformation interface methods
     def transform_by_operator_list(self, transform_channel_operators,
                                    noise_kraus_operators):
-        """
+        r"""
+        Transform input Kraus operators.
+
+        Allows approximating a set of input Kraus operators as in terms of
+        a different set of Kraus matrices.
+
+        For example, setting :math:`[X, Y, Z]` allows approximating by a
+        Pauli channel, and :math:`[(|0 \langle\rangle 0|,
+        |0\langle\rangle 1|), |1\langle\rangle 0|, |1 \langle\rangle 1|)]`
+        represents the relaxation channel
+
+        In the case the input is a list :math:`[A_1, A_2, ..., A_n]` of
+        transform matrices and :math:`[E_0, E_1, ..., E_m]` of noise Kraus
+        operators, the output is a list :math:`[p_1, p_2, ..., p_n]` of
+        probabilities such that:
+
+        1. :math:`p_i \ge 0`
+        2. :math:`p_1 + ... + p_n \le 1`
+        3. :math:`[\sqrt(p_1) A_1, \sqrt(p_2) A_2, ..., \sqrt(p_n) A_n,
+           \sqrt(1-(p_1 + ... + p_n))I]` is a list of Kraus operators that
+           define the output channel (which is "close" to the input channel
+           given by :math:`[E_0, ..., E_m]`.)
+
+        This channel can be thought of as choosing the operator :math:`A_i`
+        in probability :math:`p_i` and applying this operator to the
+        quantum state.
+
+        More generally, if the input is a list of tuples (not necessarily
+        of the same size): :math:`[(A_1, B_1, ...), (A_2, B_2, ...),
+        ..., (A_n, B_n, ...)]` then the output is still a list
+        :math:`[p_1, p_2, ..., p_n]` and now the output channel is defined
+        by the operators:
+        :math:`[\sqrt(p_1)A1, \sqrt(p_1)B_1, ..., \sqrt(p_n)A_n,
+        \sqrt(p_n)B_n, ..., \sqrt(1-(p_1 + ... + p_n))I]`
+
         Args:
-            noise_kraus_operators (List): a list of matrices (Kraus operators) for the input channel
-            transform_channel_operators (List): a list of matrices or tuples of matrices
-                representing Kraus operators that can construct the output channel
-                e.g. [X,Y,Z] represent the Pauli channel
-                and [(|0><0|, |0><1|), |1><0|, |1><1|)] represents the relaxation channel
+            noise_kraus_operators (List): a list of matrices (Kraus operators)
+                for the input channel.
+            transform_channel_operators (List): a list of matrices or tuples
+                of matrices representing Kraus operators that can construct the output channel.
 
         Returns:
             List: A list of amplitudes that define the output channel.
-                In the case the input is a list [A1, A2, ..., An] of transform matrices
-                and [E0, E1, ..., Em] of noise kraus operators, the output is
-                a list [p1, p2, ..., pn] of probabilities such that:
-                1) p_i >= 0
-                2) p1 + ... + pn <= 1
-                3) [sqrt(p1)A1, sqrt(p2)A2, ..., sqrt(pn)An, sqrt(1-(p1 + ... + pn))I] is
-                    a list of kraus operators that define the output channel
-                    (which is "close" to the input chanel given by [E0, ..., Em])
-
-                This channel can be thought of as choosing the operator Ai in probability pi and
-                applying this operator to the quantum state.
-
-                More generally, if the input is a list of tuples (not neccesarily of the same size):
-                [(A1, B1, ...), (A2, B2, ...), ... (An, Bn, ...)] then the output is
-                still a list [p1, p2, ..., pn] and now the output channel is defined by theo
-                perators:
-                [sqrt(p1)A1, sqrt(p1)B1, ..., sqrt(pn)An, sqrt(pn)Bn, ..., sqrt(1-(p1 + ... + pn))I]
         """
         self.noise_kraus_operators = noise_kraus_operators
         # pylint: disable=invalid-name
@@ -377,7 +390,8 @@ class NoiseTransformer:
     @staticmethod
     def prepare_channel_operator_list(ops_list):
         """
-        Prepares a list of channel operators
+        Prepares a list of channel operators.
+
         Args:
             ops_list (List): The list of operators to prepare
 
@@ -399,7 +413,7 @@ class NoiseTransformer:
     # pylint: disable=invalid-name
     def prepare_honesty_constraint(self, transform_channel_operators_list):
         """
-        Prepares the honesty constraint
+        Prepares the honesty constraint.
 
         Args:
             transform_channel_operators_list (list): A list of tuples of matrices which represent
@@ -427,34 +441,49 @@ class NoiseTransformer:
 
     # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
-        """
-        Generates a list of 4x4 symbolic matrices describing the channel defined from the given
-        operators
+        r"""
+        Generate symbolic channel matrices.
+
+        Generates a list of 4x4 symbolic matrices describing the channel
+        defined from the given operators. The identity matrix is assumed
+        to be the first element in the list:
+
+        .. code-block:: python
+
+            [(I, ), (A1, B1, ...), (A2, B2, ...), ..., (An, Bn, ...)]
+
+        E.g. for a Pauli channel, the matrices are:
+
+        .. code-block:: python
+
+            [(I,), (X,), (Y,), (Z,)]
+
+        For relaxation they are:
+
+        .. code-block:: python
+
+            [(I, ), (|0><0|, |0><1|), |1><0|, |1><1|)]
+
+        We consider this input to symbolically represent a channel in the
+        following manner: define indeterminates :math:`x_0, x_1, ..., x_n`
+        which are meant to represent probabilities such that
+        :math:`x_i \ge 0` and :math:`x0 = 1-(x_1 + ... + x_n)`.
+
+        Now consider the quantum channel defined via the Kraus operators
+        :math:`{\sqrt(x_0)I, \sqrt(x_1) A_1, \sqrt(x1) B_1, ...,
+        \sqrt(x_m)A_n, \sqrt(x_n) B_n, ...}`
+        This is the channel C symbolically represented by the operators.
 
         Args:
-             transform_channel_operators_list (list): A list of tuples of matrices which represent
-             Kraus operators.
-             The identity matrix is assumed to be the first element in the list
-             [(I, ), (A1, B1, ...), (A2, B2, ...), ..., (An, Bn, ...)]
-             e.g. for a Pauli channel, the matrices are:
-             [(I,), (X,), (Y,), (Z,)]
-             for relaxation they are:
-             [(I, ), (|0><0|, |0><1|), |1><0|, |1><1|)]
-
-        We consider this input to symbolically represent a channel in the following manner:
-        define indeterminates x0, x1, ..., xn which are meant to represent probabilities
-        such that xi >=0 and x0 = 1-(x1 + ... + xn)
-        Now consider the quantum channel defined via the Kraus operators
-        {sqrt(x0)I, sqrt(x1)A1, sqrt(x1)B1, ..., sqrt(xn)An, sqrt(xn)Bn, ...}
-        This is the channel C symbolically represented by the operators
-
+            transform_channel_operators_list (list): A list of tuples of
+                matrices which represent Kraus operators.
 
         Returns:
-            list: A list of 4x4 complex matrices ([D1, D2, ..., Dn], E) such that:
-            The matrix x1*D1 + ... + xn*Dn + E represents the operation of the channel C
-            on the density operator.
-            we find it easier to work with this representation of C when performing the
-            combinatorial optimization.
+            list: A list of 4x4 complex matrices ``([D1, D2, ..., Dn], E)``
+            such that the matrix :math:`x_1 D_1 + ... + x_n D_n + E`
+            represents the operation of the channel C on the density
+            operator. we find it easier to work with this representation
+            of C when performing the combinatorial optimization.
         """
 
         from sympy import symbols as sp_symbols, sqrt
@@ -540,6 +569,8 @@ class NoiseTransformer:
     def generate_channel_quadratic_programming_matrices(
             self, channel, symbols):
         """
+        Generate matrices for quadratic program.
+
         Args:
              channel (Matrix): a 4x4 symbolic matrix
              symbols (list): the symbols x1, ..., xn which may occur in the matrix
@@ -565,11 +596,10 @@ class NoiseTransformer:
         Returns:
             matrix: a 4x4 numeric matrix.
 
-        Additional Information
-        ----------------------
-        Each entry of the 4x4 symbolic input channel matrix is assumed to
-        be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
-        entry in the output numeric matrix is ai.
+        Additional Information:
+            Each entry of the 4x4 symbolic input channel matrix is assumed to
+            be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
+            entry in the output numeric matrix is ai.
         """
         from sympy import Poly
         n = channel.rows
@@ -592,11 +622,10 @@ class NoiseTransformer:
         Returns:
             matrix: a 4x4 numeric matrix.
 
-        Additional Information
-        ----------------------
-        Each entry of the 4x4 symbolic input channel matrix is assumed to
-        be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
-        entry in the output numeric matrix is c.
+        Additional Information:
+            Each entry of the 4x4 symbolic input channel matrix is assumed to
+            be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
+            entry in the output numeric matrix is c.
         """
         from sympy import Poly
         n = channel.rows
@@ -609,6 +638,8 @@ class NoiseTransformer:
     def transform_by_given_channel(self, channel_matrices,
                                    const_channel_matrix):
         """
+        Transform by by quantum channels.
+
         This method creates objective function representing the
         Hilbert-Schmidt norm of the matrix (A-B) obtained
         as the difference of the input noise channel and the output
@@ -677,6 +708,8 @@ class NoiseTransformer:
 
     def solve_quadratic_program(self, P, q):
         """
+        Solve the quadratic program optimization problem.
+
         This function solved the quadratic program to minimize the objective function
         f(x) = 1/2(x*P*x)+q*x
         subject to the additional constraints
@@ -689,24 +722,16 @@ class NoiseTransformer:
             q (list): A vector representing the q component of the objective function
 
         Returns:
-            list: The solution of the quadratic program (represents probabilites)
+            list: The solution of the quadratic program (represents probabilities)
 
-        Raises:
-            ImportError: If cvxopt external module is not installed
-
-        Additional information
-        ======================
-        This method is the only place in the code where we rely on the cvxopt library
-        should we consider another library, only this method needs to change
+        Additional information:
+            This method is the only place in the code where we rely on the cvxpy library
+            should we consider another library, only this method needs to change.
         """
-        try:
-            import cvxopt
-        except ImportError:
-            raise ImportError(
-                "The CVXOPT library is required to use this module")
+        import cvxpy
 
-        P = cvxopt.matrix(numpy.array(P).astype(float))
-        q = cvxopt.matrix(numpy.array(q).astype(float)).T
+        P = numpy.array(P).astype(float)
+        q = numpy.array(q).astype(float).T
         n = len(q)
         # G and h constrain:
         #   1) sum of probs is less then 1
@@ -718,7 +743,11 @@ class NoiseTransformer:
         if self.fidelity_data is not None:
             G_data.append(self.fidelity_data['coefficients'])
             h_data.append(self.fidelity_data['goal'])
-        G = cvxopt.matrix(numpy.array(G_data).astype(float))
-        h = cvxopt.matrix(numpy.array(h_data).astype(float))
-        cvxopt.solvers.options['show_progress'] = False
-        return cvxopt.solvers.qp(P, q, G, h)['x']
+        G = numpy.array(G_data).astype(float)
+        h = numpy.array(h_data).astype(float)
+        x = cvxpy.Variable(n)
+        prob = cvxpy.Problem(
+            cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T@x),
+            [G@x <= h])
+        prob.solve()
+        return x.value

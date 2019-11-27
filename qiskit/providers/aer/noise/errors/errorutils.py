@@ -156,7 +156,7 @@ def standard_gate_instruction(instruction, ignore_phase=True):
 
 
 def single_qubit_clifford_gates(j):
-    """Return a QASM gate names for a single qubit clifford.
+    """Return a QASM gate names for a single qubit Clifford.
 
     The labels are returned in a basis set consisting of
     ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
@@ -211,7 +211,7 @@ def single_qubit_clifford_gates(j):
 
 
 def single_qubit_clifford_matrix(j):
-    """Return Numpy array for a single qubit clifford.
+    """Return Numpy array for a single qubit Clifford.
 
     Args:
         j (int): Clifford index 0, ..., 23.
@@ -244,7 +244,7 @@ def single_qubit_clifford_matrix(j):
 
 # pylint: disable=invalid-name
 def single_qubit_clifford_instructions(index, qubit=0):
-    """Return a list of qobj instructions for a single qubit cliffords.
+    """Return a list of qobj instructions for a single qubit Cliffords.
 
     The instructions are returned in a basis set consisting of
     ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
