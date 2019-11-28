@@ -358,15 +358,36 @@ class NpArray {
 		}
 	}
 
+	//void _populate_data(PyArrayObject * array){
+	//	/* Handle zero-sized arrays specially */
+	//	if (PyArray_SIZE(array) == 0){
+	//		data = {};
+	//		return;
+	//	}
+	//	/* TODO This is faster if we deal with PyObject directly */
+	//	PyObject * py_list = PyArray_ToList(array);
+	//	data = get_value<std::vector<VecType>>(py_list);
+	//}
+	
 	void _populate_data(PyArrayObject * array){
-		/* Handle zero-sized arrays specially */
-		if (PyArray_SIZE(array) == 0){
-			data = {};
-			return;
-		}
-		/* TODO This is faster if we deal with PyObject directly */
-		PyObject * py_list = PyArray_ToList(array);
-		data = get_value<std::vector<VecType>>(py_list);
+	    /* Handle zero-sized arrays specially */
+	    auto num_elem = PyArray_SIZE(array);
+	    if(num_elem == 0){
+                data = {};
+		return;
+	    }
+	    auto item_size = PyArray_ITEMSIZE(array);
+	    auto size = num_elem * item_size;
+	    data.resize(num_elem);
+
+	    auto dims = array->dimensions[0];
+	    npy_intp* stride = array->strides; 
+	    auto jump = (*stride) / item_size;
+	    VecType * _data = (VecType *)(array->data);
+	    for(int i = 0; i < dims; i++){
+		    data[i] = *_data;
+		    _data += jump;
+	    }
 	}
 };
 

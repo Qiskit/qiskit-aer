@@ -34,7 +34,7 @@ complex_t chan_value(
     const double freq_ch,
     const NpArray<double>& chan_pulse_times,
     const NpArray<complex_t>& pulse_array,
-    const NpArray<long>& pulse_indexes,
+    const NpArray<int>& pulse_indexes,
     const NpArray<double>& fc_array,
     const NpArray<uint8_t>& reg){
 
@@ -112,7 +112,6 @@ PyArrayObject * td_ode_rhs(
     PyObject * py_channels,
     PyObject * py_register){
 
-    //ProfilerStart("cpp_ode_profile");
     CALLGRIND_START_INSTRUMENTATION;
 
     const static auto numpy_initialized = init_numpy();
@@ -146,8 +145,8 @@ PyArrayObject * td_ode_rhs(
     auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
     auto pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
-    auto pulse_indices = get_value_from_dict_item<NpArray<long>>(py_global_data, "pulse_indices");
-    auto reg = get_value<NpArray<uint8_t>>(py_register);
+    auto pulse_indices = get_value_from_dict_item<NpArray<int>>(py_global_data, "pulse_indices");
+    static auto reg = get_value<NpArray<uint8_t>>(py_register);
 
     std::unordered_map<std::string, complex_t> chan_values;
     chan_values.reserve(pulses.size());
@@ -166,14 +165,14 @@ PyArrayObject * td_ode_rhs(
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-    auto systems = get_value<std::vector<std::pair<QuantumObj, std::string>>>(py_system);
-    auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
-    auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
-    auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-    auto datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
-    auto idxs = get_vec_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ind");
-    auto ptrs = get_vec_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ptr");
-    auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
+    static auto systems = get_value<std::vector<std::pair<QuantumObj, std::string>>>(py_system);
+    static auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
+    static auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
+    static auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
+    static auto datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
+    static auto idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
+    static auto ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
+    static auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
     for(const auto& idx_sys : enumerate(systems)){
         auto sys_index = idx_sys.first;
         auto sys = idx_sys.second;

@@ -210,8 +210,7 @@ set(AER_LIBRARIES
 		Threads::Threads
 		${SPDLOG_LIB}
 		${CMAKE_DL_LIBS}
-		${MUPARSERX_LIB}
-		/usr/local/Cellar/gperftools/2.7/lib/libprofiler.dylib)
+		${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
