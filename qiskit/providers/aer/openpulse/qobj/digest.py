@@ -29,12 +29,14 @@ from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 
-def digest_pulse_obj(qobj):
+def digest_pulse_obj(qobj_input, backend_options, noise_model):
     """Takes an input PULSE obj an disgests it into
     things we can actually make use of.
 
     Args:
-        qobj (Qobj): Qobj of PULSE type.
+        qobj_input (Qobj): Qobj of PULSE type.
+        backend_options (dict): backend simulation options
+        noise_model:
 
     Returns:
         OPSystem: The parsed qobj.
@@ -45,6 +47,9 @@ def digest_pulse_obj(qobj):
     """
     # Output data object
     out = OPSystem()
+
+    # take inputs and format into a single dictionary
+    qobj = _format_qobj_dict(qobj_input, backend_options, noise_model)
 
     # Get the config settings from the qobj
     config_dict = qobj['config']
@@ -185,8 +190,8 @@ def digest_pulse_obj(qobj):
     out.freqs = OrderedDict()
 
     # determine whether to compute qubit_lo_freq from hamiltonian
-    qubit_lo_from_ham = (('qubit_lo_freq' in config_dict_sim) and \
-                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian')) or \
+    qubit_lo_from_ham = (('qubit_lo_freq' in config_dict_sim) and
+                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and
                         (len(dim_osc) == 0)) or not config_dict['qubit_lo_freq']
 
     # set frequencies based on qubit_lo_from_ham value
@@ -272,6 +277,27 @@ def digest_pulse_obj(qobj):
             out.can_sample = False
     return out
 
+def _format_qobj_dict(qobj, backend_options, noise_model):
+    """Add additional fields to qobj dictionary"""
+    # Convert qobj to dict and add additional fields
+    qobj_dict = qobj.to_dict()
+    if 'backend_options' not in qobj_dict['config']:
+        qobj_dict['config']['backend_options'] = {}
+
+    # Temp backwards compatibility
+    if 'sim_config' in qobj_dict['config']:
+        for key, val in qobj_dict['config']['sim_config'].items():
+            qobj_dict['config']['backend_options'][key] = val
+        qobj_dict['config'].pop('sim_config')
+
+    # Add additional backend options
+    if backend_options is not None:
+        for key, val in backend_options.items():
+            qobj_dict['config']['backend_options'][key] = val
+    # Add noise model
+    if noise_model is not None:
+        qobj_dict['config']['backend_options']['noise_model'] = noise_model
+    return qobj_dict
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     """ Get the diagonal elements of the hamiltonian and get the
