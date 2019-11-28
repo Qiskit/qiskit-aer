@@ -96,18 +96,6 @@ class PulseSimulator(AerBackend):
         output["time_taken"] = time_taken
         return Result.from_dict(output)
 
-    def compute_lo_freqs_from_hamiltonian(self,
-                                          qobj=None,
-                                          backend_options=None,
-                                          noise_model=None):
-        """Digest the pulse qobj and determine the qubit_lo_freq from
-        the hamiltonian"""
-        be_options_copy = backend_options.copy()
-        be_options_copy['qubit_lo_freq'] = 'from_hamiltonian'
-        openpulse_system = digest_pulse_obj(qobj, be_options_copy, noise_model)
-
-        return openpulse_system.freqs
-
     def get_dressed_energies(self, qobj,
                              backend_options=None,
                              noise_model=None):
