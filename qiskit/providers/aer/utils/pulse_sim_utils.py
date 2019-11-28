@@ -16,11 +16,9 @@ Helper functions for the pulse simulator
 
 from ..openpulse.qobj.digest import digest_pulse_obj
 
-def compute_lo_freqs_from_hamiltonian(qobj=None,
-                                      backend_options=None,
-                                      noise_model=None):
-    """Digest the pulse qobj and determine the qubit_lo_freq from
-    the hamiltonian"""
+
+def lo_from_hamiltonian(qobj=None, backend_options=None, noise_model=None):
+    """Digest the pulse qobj and determine the qubit_lo_freq from the hamiltonian"""
     be_options_copy = backend_options.copy()
     be_options_copy['qubit_lo_freq'] = 'from_hamiltonian'
     openpulse_system = digest_pulse_obj(qobj, be_options_copy, noise_model)

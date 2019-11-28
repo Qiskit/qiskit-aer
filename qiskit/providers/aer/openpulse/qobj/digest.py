@@ -36,7 +36,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     Args:
         qobj_input (Qobj): Qobj of PULSE type.
         backend_options (dict): backend simulation options
-        noise_model:
+        noise_model (dict): currently not supported
 
     Returns:
         OPSystem: The parsed qobj.
@@ -191,8 +191,8 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
 
     # determine whether to compute qubit_lo_freq from hamiltonian
     qubit_lo_from_ham = (('qubit_lo_freq' in config_dict_sim) and
-                        (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and
-                        (len(dim_osc) == 0)) or not config_dict['qubit_lo_freq']
+                         (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and
+                         (len(dim_osc) == 0)) or not config_dict['qubit_lo_freq']
 
     # set frequencies based on qubit_lo_from_ham value
     q_lo_freq = None
@@ -277,6 +277,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
             out.can_sample = False
     return out
 
+
 def _format_qobj_dict(qobj, backend_options, noise_model):
     """Add additional fields to qobj dictionary"""
     # Convert qobj to dict and add additional fields
@@ -298,6 +299,7 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
     if noise_model is not None:
         qobj_dict['config']['backend_options']['noise_model'] = noise_model
     return qobj_dict
+
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     """ Get the diagonal elements of the hamiltonian and get the
