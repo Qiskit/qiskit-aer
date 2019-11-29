@@ -307,6 +307,7 @@ class NpArray {
 	}
 
     std::vector<VecType> data;
+
     /**
      * The shape of the array: like
      * ```pyhton
@@ -343,6 +344,7 @@ class NpArray {
         return true;
     }
   private:
+
 	void _populate_shape(PyArrayObject * array){
 		if(!check_is_np_array(array))
 			throw std::invalid_argument("PyArrayObject is not a numpy array!");
@@ -358,36 +360,33 @@ class NpArray {
 		}
 	}
 
-	//void _populate_data(PyArrayObject * array){
-	//	/* Handle zero-sized arrays specially */
-	//	if (PyArray_SIZE(array) == 0){
-	//		data = {};
-	//		return;
-	//	}
-	//	/* TODO This is faster if we deal with PyObject directly */
-	//	PyObject * py_list = PyArray_ToList(array);
-	//	data = get_value<std::vector<VecType>>(py_list);
-	//}
-	
 	void _populate_data(PyArrayObject * array){
 	    /* Handle zero-sized arrays specially */
 	    auto num_elem = PyArray_SIZE(array);
 	    if(num_elem == 0){
-                data = {};
-		return;
+            data = {};
+		    return;
 	    }
 	    auto item_size = PyArray_ITEMSIZE(array);
-	    auto size = num_elem * item_size;
 	    data.resize(num_elem);
 
 	    auto dims = array->dimensions[0];
-	    npy_intp* stride = array->strides; 
+	    npy_intp* stride = array->strides;
 	    auto jump = (*stride) / item_size;
 	    VecType * _data = (VecType *)(array->data);
 	    for(int i = 0; i < dims; i++){
 		    data[i] = *_data;
 		    _data += jump;
 	    }
+
+        // if(item_size == 4 || item_size == 8 || item_size == 1){
+        //     std::cout << "item_size: " << item_size << "\n";
+        //     std::cout << "num_elem: " << num_elem << "\n";
+        //     for(const auto& e: data){
+        //         std::cout << e << " ";
+        //     }
+        //     std::cout << "\n\n";
+        // }
 	}
 };
 
