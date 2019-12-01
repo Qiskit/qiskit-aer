@@ -148,6 +148,15 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  void print_state(){
+	  std::cout << "STATE" << std::endl;
+	  std::cout << BaseState::qreg_.size() << std::endl;
+
+	  for (uint_t i = 0; i < BaseState::qreg_.size(); ++i)
+		  std::cout << "#> " << BaseState::qreg()[i].real() << " " << BaseState::qreg()[i].imag() << std::endl;
+  }
+
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -275,13 +284,6 @@ protected:
                        const double phi,
                        const double lambda);
 
-  void print_state(){
-	  std::cout << "STATE" << std::endl;
-	  std::cout << BaseState::qreg_.size() << std::endl;
-
-	  for (uint_t i = 0; i < BaseState::qreg_.size(); ++i)
-		  std::cout << "#> " << BaseState::qreg()[i].real() << " " << BaseState::qreg()[i].imag() << std::endl;
-  }
 
   //-----------------------------------------------------------------------
   // Config Settings

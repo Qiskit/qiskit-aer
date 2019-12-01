@@ -117,7 +117,7 @@ private:
           uint_t shots,
           uint_t rng_seed) const;
 
-  void run_circuit_many_worlds_aux(ManyWorldNode &curr_world, const cvector_t &initial_state,
+  void run_circuit_many_worlds_aux(ManyWorldNode &curr_world,
   				const Circuit &circ,
 					std::list<Operations::Op> ops, // Call-by-value as it's going to change during the recursion
 					const Noise::NoiseModel& noise,
@@ -206,9 +206,10 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
     }
   }
 
+
   // Set config
-  state.set_config(config);
-  state.set_parallalization(parallel_state_update_);
+//  state.set_config(config);
+//  state.set_parallalization(parallel_state_update_);
   
   // Rng engine
   RngEngine rng;
@@ -217,7 +218,10 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
   // Output data container
   ExperimentData data;
   data.set_config(config);
-  
+
+  run_circuit_many_worlds(circ, noise, config, shots, rng_seed);
+  return data;
+
   // Run single shot collecting measure data or snapshots
   if (initial_state_.empty())
     state.initialize_qreg(circ.num_qubits);
@@ -278,7 +282,7 @@ ExperimentData StatevectorController::run_circuit_many_worlds(const Circuit &cir
   for (auto const &op : circ.ops )
   	root_world_ops.push_back( op );
 
-  run_circuit_many_worlds_aux(*root_world, initial_state_, circ, root_world_ops, noise, config, data, rng);
+  run_circuit_many_worlds_aux(*root_world, circ, root_world_ops, noise, config, data, rng);
 
  // state.add_creg_to_data(data); // TODO: uncomment & what to do with this ?
 
@@ -291,31 +295,55 @@ ExperimentData StatevectorController::run_circuit_many_worlds(const Circuit &cir
 }
 
 void StatevectorController::run_circuit_many_worlds_aux(StatevectorController::ManyWorldNode &curr_world,
-				const cvector_t &initial_state, const Circuit &circ,
+				const Circuit &circ,
 				std::list<Operations::Op> ops,
         const Noise::NoiseModel& noise,
         const json_t &config,
 				ExperimentData &data,
 				RngEngine &rng) const {
 
-  // Simulating all the ops up to the first measure op
+  // Extracting all the ops up to the first measure op
   std::vector<Operations::Op> curr_world_ops;
   while ( not ops.empty() and (ops.begin()->type != Operations::OpType::measure) ) {
   	curr_world_ops.push_back( ops.front() );
   	ops.pop_front();
   }
 
+  // Simulating the non-measure ops
   curr_world.statevec_.apply_ops(curr_world_ops, data, rng);
 
+
   // Handling the measure op
-    // TODO: complete
+  if ( not ops.empty() )
+  {
+  	assert( ops.front().type == Operations::OpType::measure );
 
+  	Operations::Op &op = ops.front();
+  	assert( op.qubits.size() == 1 );
 
-  // Split into 2 worlds and continue
-//  ManyWorldNode *_0_world = initialize_world(circ, , noise, config);
-//  ManyWorldNode *_1_world = initialize_world(circ, , noise, config);
+  	rvector_t probs = curr_world.statevec_.qreg().probabilities(op.qubits);
 
+  	std::cout << "_++++_" << std::endl;
+  	for (auto p : probs)
+  		std::cout << "prob: " << p << std::endl;
 
+  	ops.pop_front();
+
+    // Splitting into 2 worlds, by initializing the 2 clones with the current world state
+    cvector_t curr_state = curr_world.statevec_.qreg().vector();
+    curr_world._0_outcome_ = initialize_world(circ, curr_state, noise, config);
+    curr_world._0_outcome_prob_ = probs[0];
+    // TODO: apply the measurement update on the 0 outcome
+
+    curr_world._1_outcome_ = initialize_world(circ, curr_state, noise, config);
+    curr_world._1_outcome_prob_ = probs[1];
+    // TODO: apply the measurement update on the 1 outcome
+
+    // Continue with the many-worlds sim on the child-worlds
+    run_circuit_many_worlds_aux(*curr_world._0_outcome_, circ, ops, noise, config, data, rng);
+    run_circuit_many_worlds_aux(*curr_world._1_outcome_, circ, ops, noise, config, data, rng);
+
+  }
 }
 
 
