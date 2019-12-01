@@ -17,6 +17,7 @@
 
 #include "base/controller.hpp"
 #include "statevector_state.hpp"
+#include <list>
 
 // TODO: remove the following debug pring before final push
 #define PRINT_TRACE  std::cout << __FILE__ << ":" << __FUNCTION__ << "." << __LINE__ << std::endl;
@@ -80,6 +81,17 @@ public:
   void virtual clear_config() override;
 
 protected:
+  struct ManyWorldNode {
+  	~ManyWorldNode() {delete _0_outcome_; delete _1_outcome_; } // TODO: test the recursive deletion
+
+	  Statevector::State<> statevec_;
+	  ManyWorldNode *_0_outcome_ = NULL;
+	  ManyWorldNode *_1_outcome_ = NULL;
+	  double _0_outcome_prob_ = 0;  // TODO: what if we're at a different measurement basis ?
+	  double _1_outcome_prob_ = 0; // TODO: what if we're at a different measurement basis ?
+	  // TODO: store also the split qubit
+  };
+
 
   virtual size_t required_memory_mb(const Circuit& circuit,
                                     const Noise::NoiseModel& noise) const override;
@@ -97,6 +109,27 @@ private:
                                  const json_t &config,
                                  uint_t shots,
                                  uint_t rng_seed) const override;
+
+
+  ExperimentData run_circuit_many_worlds(const Circuit &circ,
+          const Noise::NoiseModel& noise,
+          const json_t &config,
+          uint_t shots,
+          uint_t rng_seed) const;
+
+  void run_circuit_many_worlds_aux(ManyWorldNode &curr_world, const cvector_t &initial_state,
+  				const Circuit &circ,
+					std::list<Operations::Op> ops, // Call-by-value as it's going to change during the recursion
+					const Noise::NoiseModel& noise,
+          const json_t &config,
+					ExperimentData &data,
+					RngEngine &rng
+          ) const;
+
+  ManyWorldNode* initialize_world(const Circuit &circ,
+			const cvector_t &initial_state,
+      const Noise::NoiseModel& noise,
+      const json_t &config) const;
 
   //-----------------------------------------------------------------------
   // Custom initial state
@@ -199,6 +232,93 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
 
   return data;
 }
+
+StatevectorController::ManyWorldNode*
+StatevectorController::initialize_world(const Circuit &circ,
+						const cvector_t &initial_state,
+		        const Noise::NoiseModel& noise,
+		        const json_t &config) const {
+	ManyWorldNode *node = new ManyWorldNode;
+
+	// Initializing the current world state
+	node->statevec_.set_config(config);
+	node->statevec_.set_parallalization(parallel_state_update_);
+
+  // Run single shot collecting measure data or snapshots
+  if (initial_state.empty())
+  	node->statevec_.initialize_qreg(circ.num_qubits);
+  else
+  	node->statevec_.initialize_qreg(circ.num_qubits, initial_state);
+
+  node->statevec_.initialize_creg(circ.num_memory, circ.num_registers);
+
+  return node;
+}
+
+
+ExperimentData StatevectorController::run_circuit_many_worlds(const Circuit &circ,
+        const Noise::NoiseModel& noise,
+        const json_t &config,
+        uint_t shots,
+        uint_t rng_seed) const {
+
+
+  // Rng engine
+  RngEngine rng;
+  rng.set_seed(rng_seed);
+
+  // Output data container
+  ExperimentData data;
+  data.set_config(config);
+
+  ManyWorldNode *root_world = initialize_world(circ, initial_state_, noise, config);
+
+
+  std::list<Operations::Op> root_world_ops;
+  for (auto const &op : circ.ops )
+  	root_world_ops.push_back( op );
+
+  run_circuit_many_worlds_aux(*root_world, initial_state_, circ, root_world_ops, noise, config, data, rng);
+
+ // state.add_creg_to_data(data); // TODO: uncomment & what to do with this ?
+
+  // Add final state to the data
+  // data.add_additional_data("statevector", state.qreg().vector()); // TODO: uncomment & what to do with this ?
+
+  delete root_world;
+
+  return data;
+}
+
+void StatevectorController::run_circuit_many_worlds_aux(StatevectorController::ManyWorldNode &curr_world,
+				const cvector_t &initial_state, const Circuit &circ,
+				std::list<Operations::Op> ops,
+        const Noise::NoiseModel& noise,
+        const json_t &config,
+				ExperimentData &data,
+				RngEngine &rng) const {
+
+  // Simulating all the ops up to the first measure op
+  std::vector<Operations::Op> curr_world_ops;
+  while ( not ops.empty() and (ops.begin()->type != Operations::OpType::measure) ) {
+  	curr_world_ops.push_back( ops.front() );
+  	ops.pop_front();
+  }
+
+  curr_world.statevec_.apply_ops(curr_world_ops, data, rng);
+
+  // Handling the measure op
+    // TODO: complete
+
+
+  // Split into 2 worlds and continue
+//  ManyWorldNode *_0_world = initialize_world(circ, , noise, config);
+//  ManyWorldNode *_1_world = initialize_world(circ, , noise, config);
+
+
+}
+
+
 
 //-------------------------------------------------------------------------
 } // end namespace Simulator

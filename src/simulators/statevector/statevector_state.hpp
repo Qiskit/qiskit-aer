@@ -113,12 +113,6 @@ public:
                          ExperimentData &data,
                          RngEngine &rng) override;
 
-  // Auxiliary function called by apply_ops. Primary usage when doing
-  // many worlds simulation
-  virtual void apply_ops_aux(statevec_t &qreg, const std::vector<Operations::Op> &ops,
-		  std::vector<Operations::Op>::const_iterator itOps,
-		  ExperimentData &data,
-		  RngEngine &rng);
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -155,21 +149,13 @@ public:
   void initialize_omp();
 
 protected:
-  struct ManyWorldNode {
-	  statevec_t qreg_;
-	  ManyWorldNode *_0_outcome_ = NULL;
-	  ManyWorldNode *_1_outcome_ = NULL;
-	  double _0_outcome_prob_ = 0;
-	  double _1_outcome_prob_ = 0;
-	  // TODO: store also the split qubit
-  };
 
   //-----------------------------------------------------------------------
   // Apply instructions
   //-----------------------------------------------------------------------
 
   // Applies a supported Gate operation to the state class.
-  // If the input is not in allowed_gates an exeption will be raised.
+  // If the input is not in allowed_gates an exception will be raised.
   void apply_gate(const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
@@ -180,15 +166,6 @@ protected:
                              const reg_t &cmemory,
                              const reg_t &cregister,
                              RngEngine &rng);
-
-  // Handles the apply_measure functionality in the many worlds simulation case.
-  // Splits the state vector into the 0-outcome and 1-oucome cases, populating the
-  // current world data and handling the proper child ManyWorldNode objects
-  virtual void apply_measure_and_split(ManyWorldNode &currWorld,
-		  const reg_t &qubits,
-		  const reg_t &cmemory,
-          const reg_t &cregister,
-          RngEngine &rng);
 
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
@@ -202,14 +179,14 @@ protected:
   void apply_initialize(const reg_t &qubits, const cvector_t &params, RngEngine &rng);
 
   // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
+  // If the input is not in allowed_snapshots an exception will be raised.
   virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const Operations::Op &op);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cvector_t & vmat); 
+  void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a vector of control matrices to given qubits (identity on all other qubits)
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat);
@@ -302,7 +279,7 @@ protected:
 	  std::cout << "STATE" << std::endl;
 	  std::cout << BaseState::qreg_.size() << std::endl;
 
-	  for (int i = 0; i < BaseState::qreg_.size(); ++i)
+	  for (uint_t i = 0; i < BaseState::qreg_.size(); ++i)
 		  std::cout << "#> " << BaseState::qreg()[i].real() << " " << BaseState::qreg()[i].imag() << std::endl;
   }
 
@@ -327,9 +304,6 @@ protected:
 
   // Flag to indicate whether or not we're doing many world simulation
   bool many_worlds_ = true; // TODO: make false by default, add setter/getter
-
-  // Holds the many world tree root in case of a many world simulation
-  ManyWorldNode *many_world_root_ = NULL; // TODO: add proper garbage collection in case this is not NULL
 
 };
 
@@ -486,20 +460,8 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  RngEngine &rng) {
 	PRINT_TRACE
 
-	apply_ops_aux(BaseState::qreg_, ops, ops.begin(), data, rng);
-}
-
-template <class statevec_t>
-void State<statevec_t>::apply_ops_aux(statevec_t &qreg,
-		const std::vector<Operations::Op> &ops,
-		std::vector<Operations::Op>::const_iterator itOps,
-		ExperimentData &data,
-		RngEngine &rng){
-	PRINT_TRACE
-
 	  // Simple loop over vector of input operations
-	  for (; itOps != ops.end(); ++itOps) {
-		  const Operations::Op &op = *itOps;
+	  for (const auto & op: ops) {
 	    if(BaseState::creg_.check_conditional(op)) {
 	    	print_state();
 	      switch (op.type) {
@@ -512,38 +474,7 @@ void State<statevec_t>::apply_ops_aux(statevec_t &qreg,
 	          apply_initialize(op.qubits, op.params, rng);
 	          break;
 	        case Operations::OpType::measure:
-	        	if (many_worlds_) {
-	        		// TODO: put all the book keeping code in a different function
-	        		ManyWorldNode *currWorld = new ManyWorldNode;
-	        		if ( many_world_root_ == NULL )	// First split in this simulation
-	        			many_world_root_ = currWorld;
-
-	        		apply_measure_and_split(*currWorld, op.qubits, op.memory, op.registers, rng);
-
-	        		PRINT_TRACE
-	        		// Advancing the iterator to skip the current measurement gate
-	        		++itOps;
-	        		PRINT_TRACE
-	        		// Now calling recursively on the 2 newly created worlds
-	        		if ( currWorld->_0_outcome_ != NULL )
-	        		{
-	        			PRINT_TRACE
-	        			apply_ops_aux(currWorld->_0_outcome_->qreg_, ops, itOps, data, rng);
-	        		}
-
-	        		if ( currWorld->_1_outcome_ != NULL )
-	        		{
-	        			PRINT_TRACE
-	        			apply_ops_aux(currWorld->_1_outcome_->qreg_, ops, itOps, data, rng);
-	        		}
-
-	        		PRINT_TRACE
-
-	        		itOps = ops.end();	// Effectively terminating the for-loop
-	        	}
-	        	else
 	        		apply_measure(op.qubits, op.memory, op.registers, rng);
-	          break;
 	        case Operations::OpType::bfunc:
 	          BaseState::creg_.apply_bfunc(op);
 	          break;
@@ -922,17 +853,6 @@ void State<statevec_t>::apply_measure(const reg_t &qubits,
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   BaseState::creg_.store_measure(outcome, cmemory, cregister);
 }
-
-template <class statevec_t>
-void State<statevec_t>::apply_measure_and_split(ManyWorldNode &currWorld,
-		const reg_t &qubits,
-		const reg_t &cmemory,
-		const reg_t &cregister,
-		RngEngine &rng) {
-	PRINT_TRACE
-
-}
-
 
 template <class statevec_t>
 rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const {
