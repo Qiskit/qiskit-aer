@@ -1,7 +1,6 @@
 include(Linter)
 
 find_package(PythonExtensions REQUIRED)
-find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
@@ -56,5 +55,8 @@ install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/
 
 # Install redistributable dependencies
 if(APPLE)
+    set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
+    set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
+    set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
     install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()

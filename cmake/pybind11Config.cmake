@@ -14,6 +14,9 @@ else()
     message(FATAL_ERROR "COULD NOT FIND PYBIND!")
 endif()
 
+find_package(PythonExtensions REQUIRED)
+find_package(PythonLibs REQUIRED)
+
 function(basic_pybind11_add_module target_name)
     set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
     cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
@@ -32,18 +35,22 @@ function(basic_pybind11_add_module target_name)
 
     add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
-    target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
-
     # This sets various properties (python include dirs) and links to python libs
-    python_extension_module(${target_name})
+    #python_extension_module(${target_name}) # FORWARD_DECL_MODULES_VAR fdecl_module_list))
+    #target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
+    target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS}) 
+    set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
+    set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}")
 
+    target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
     set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
     set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
     set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+    set_target_properties(${target_name} PROPERTIES CXX_STANDARD 14)
 
     if(WIN32 OR CYGWIN)
         # Link against the Python shared library on Windows
-        target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
+        target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
     elseif(APPLE)
         # It's quite common to have multiple copies of the same Python version
         # installed on one's system. E.g.: one copy from the OS and another copy
@@ -58,13 +65,9 @@ function(basic_pybind11_add_module target_name)
         # link against the Python library. The resulting shared library will have
         # missing symbols, but that's perfectly fine -- they will be resolved at
         # import time.
-        target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
+	    target_link_libraries(${target_name} "-undefined dynamic_lookup")
 
         set_target_properties(${target_name} PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-
-        if(ARG_SHARED)
-            # Suppress CMake >= 3.0 warning for shared libraries
-            set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
-        endif()
+        set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
     endif()
 endfunction()
