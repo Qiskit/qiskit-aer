@@ -590,7 +590,7 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 

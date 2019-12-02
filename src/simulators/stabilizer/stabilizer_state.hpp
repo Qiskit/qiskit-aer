@@ -32,10 +32,12 @@ enum class Gates {id, x, y, z, h, s, sdg, cx, cz, swap};
 // Allowed snapshots enum class
 enum class Snapshots {
   stabilizer, cmemory, cregister,
-  probs, probs_var
-  /* TODO: the following snapshots still need to be implemented */
-  //expval_pauli, expval_pauli_var, //  TODO
+    probs, probs_var,
+    expval_pauli, expval_pauli_var, expval_pauli_shot
 };
+
+// Enum class for different types of expectation values
+enum class SnapshotDataType {average, average_var, pershot};
 
 //============================================================================
 // Stabilizer Table state class
@@ -76,7 +78,12 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-    return {"stabilizer", "memory", "register", "probabilities", "probabilities_with_variance"};
+    return {"stabilizer", "memory", "register", 
+	"probabilities", "probabilities_with_variance",
+	"expectation_value_pauli",
+	"expectation_value_pauli_with_variance",
+	"expectation_value_pauli_single_shot"
+	};
   }
 
   // Apply a sequence of operations by looping over list
@@ -164,12 +171,10 @@ protected:
 					double outcome_prob,
 					stringmap_t<double>& probs);
 
-  /* TODO
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
                              ExperimentData &data,
-                             bool variance);
-  */
+                             SnapshotDataType type);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -216,9 +221,10 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister},
   {"probabilities", Snapshots::probs},
-  {"probabilities_with_variance", Snapshots::probs_var}
-  //{"expectation_value_pauli", Snapshots::expval_pauli}, // TODO
-  //{"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var} // TODO
+  {"probabilities_with_variance", Snapshots::probs_var},
+  {"expectation_value_pauli", Snapshots::expval_pauli}, 
+  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot}
 });
 
 
@@ -447,6 +453,15 @@ void State::apply_snapshot(const Operations::Op &op,
     case Snapshots::probs_var: {
       snapshot_probabilities(op, data, true);
     } break;
+    case Snapshots::expval_pauli: {
+      snapshot_pauli_expval(op, data, SnapshotDataType::average);
+    } break;
+    case Snapshots::expval_pauli_var: {
+      snapshot_pauli_expval(op, data, SnapshotDataType::average_var);
+    } break;
+    case Snapshots::expval_pauli_shot: {
+      snapshot_pauli_expval(op, data, SnapshotDataType::pershot);
+    } break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
       throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" +
@@ -530,10 +545,92 @@ void State::snapshot_probabilities_auxiliary(const reg_t& qubits,
     else {
       new_outcome[qubit_for_branching] = '0';
     }
+
     auto copy_of_qreg = BaseState::qreg_;
     BaseState::qreg_.measure_and_update(qubits[qubits.size()-qubit_for_branching-1], single_qubit_outcome);
     snapshot_probabilities_auxiliary(qubits, new_outcome, 0.5*outcome_prob, probs);
     BaseState::qreg_ = copy_of_qreg;
+  }
+}
+
+void State::snapshot_pauli_expval(const Operations::Op &op,
+				  ExperimentData &data,
+				  SnapshotDataType type) {
+  // Check empty edge case
+  if (op.params_expval_pauli.empty()) {
+    throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
+  }
+
+  // Compute expval components
+  auto copy_of_qreg = BaseState::qreg_;
+  complex_t expval(0., 0.);
+  for (const auto &param : op.params_expval_pauli) {
+    const auto& coeff = param.first;
+    const auto& pauli = param.second;
+    reg_t measured_qubits;
+    for (uint_t pos=0; pos < op.qubits.size(); ++pos) {
+      uint_t qubit = op.qubits[pos];
+      switch (pauli[pauli.size() - 1 - pos]) {
+        case 'I':
+          break;
+        case 'X':
+	  BaseState::qreg_.append_h(qubit);
+	  measured_qubits.push_back(qubit);
+          break;
+        case 'Y':
+	  BaseState::qreg_.append_s(qubit);
+	  BaseState::qreg_.append_z(qubit);
+	  measured_qubits.push_back(qubit);
+          break;
+        case 'Z':
+	  measured_qubits.push_back(qubit);
+          break;
+        default: {
+          std::stringstream msg;
+          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos] << "\'.";
+          throw std::invalid_argument(msg.str());
+        }
+      }      
+    }
+
+    stringmap_t<double> probs;
+    snapshot_probabilities_auxiliary(measured_qubits,
+				     std::string(measured_qubits.size(), 'X'),
+				     1, probs);
+
+    complex_t local_val(0., 0.);
+    for(auto it = probs.begin(); it != probs.end(); ++it) {
+      std::string outcome = Utils::hex2bin(it->first);
+      int_t parity = 0;
+      for(uint_t pos=0; pos < measured_qubits.size(); ++pos) {
+	// first two characters of outcome are always 0b
+	int_t bit = ((outcome[pos+2] == '1') ? 1 : 0);
+	parity = ((parity + bit) % 2);
+      }
+      local_val += (it->second * ((-parity*2)+1));
+    }
+
+    // Pauli expecation values should always be real for a valid state
+    // so we truncate the imaginary part
+    expval += coeff * std::real(local_val);
+
+    BaseState::qreg_ = copy_of_qreg;
+  }
+
+  // add to snapshot
+  Utils::chop_inplace(expval, json_chop_threshold_);
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, true);
+      break;
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      break;
   }
 }
 
