@@ -640,7 +640,7 @@ class QasmSnapshotExpValPauliTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_pauli_post_measure(self):
-        """Test snapshot expectation value (pauli) before final measurement"""
+        """Test snapshot expectation value (pauli) after final measurement"""
         shots = 1000
         labels = snapshot_expval_labels()
         counts_targets = snapshot_expval_counts(shots)
@@ -723,7 +723,7 @@ class QasmSnapshotExpValMatrixTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_matrix_post_measure(self):
-        """Test snapshot expectation value (matrix) before final measurement"""
+        """Test snapshot expectation value (matrix) after final measurement"""
         shots = 1000
         labels = snapshot_expval_labels()
         counts_targets = snapshot_expval_counts(shots)
