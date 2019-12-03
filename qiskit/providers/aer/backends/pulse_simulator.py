@@ -96,14 +96,6 @@ class PulseSimulator(AerBackend):
         output["time_taken"] = time_taken
         return Result.from_dict(output)
 
-    def get_dressed_energies(self, qobj,
-                             backend_options=None,
-                             noise_model=None):
-        """Digest the pulse qobj and return the eigenenergies
-        of the Hamiltonian"""
-        openpulse_system = digest_pulse_obj(qobj, backend_options, noise_model)
-        return openpulse_system.evals, openpulse_system.estates
-
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the pulse object. Make sure a
         config has been attached in the proper location"""
