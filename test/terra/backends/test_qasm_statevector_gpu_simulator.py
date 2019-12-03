@@ -56,7 +56,7 @@ from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 @requires_gpu
 class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
-                                   QasmMethodTests,
+#                                   QasmMethodTests,
                                    QasmMeasureTests,
                                    QasmMultiQubitMeasureTests,
                                    QasmResetTests,
