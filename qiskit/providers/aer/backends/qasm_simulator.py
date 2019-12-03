@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -18,8 +19,9 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
-# pylint: disable=import-error
+# pylint: disable=import-error,no-name-in-module
 from .qasm_controller_wrapper import qasm_controller_execute
+# pylint: enable=import-error,no-name-in-module
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
