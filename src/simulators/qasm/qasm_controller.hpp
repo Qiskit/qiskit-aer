@@ -516,10 +516,10 @@ QasmController::simulation_method(const Circuit &circ,
     case Method::statevector_gpu: {
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-          Statevector::State<QV::QubitVector<float>> state; 
+          StatevectorThrust::State<QV::QubitVectorThrust<float>> state; 
           validate_state(state, circ, noise_model, true);
         } else {
-          Statevector::State<QV::QubitVector<>> state; 
+          StatevectorThrust::State<QV::QubitVectorThrust<>> state; 
           validate_state(state, circ, noise_model, true);
         }
       }
