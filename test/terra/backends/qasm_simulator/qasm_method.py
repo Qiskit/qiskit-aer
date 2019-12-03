@@ -48,6 +48,8 @@ class QasmMethodTests:
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method != 'automatic':
+            if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                method = 'statevector_fake_gpu'
             self.compare_result_metadata(result, circuits, 'method', method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
@@ -83,6 +85,8 @@ class QasmMethodTests:
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method != 'automatic':
+            if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                method = 'statevector_fake_gpu'
             self.compare_result_metadata(result, circuits, 'method', method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
@@ -107,6 +111,8 @@ class QasmMethodTests:
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method != 'automatic':
+            if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                method = 'statevector_fake_gpu'
             self.compare_result_metadata(result, circuits, 'method', method)
         else:
             self.compare_result_metadata(result, circuits, 'method',
@@ -137,7 +143,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -168,7 +177,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -195,7 +207,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'statevector'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -235,7 +250,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -265,7 +283,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -295,7 +316,10 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
 
@@ -326,6 +350,9 @@ class QasmMethodTests:
             if method == 'automatic':
                 target_method = 'density_matrix'
             else:
-                target_method = method
+                if result.get('method', 'automatic') == 'statevector_fake_gpu':
+                    target_method = 'statevector_fake_gpu'
+                else
+                    target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
