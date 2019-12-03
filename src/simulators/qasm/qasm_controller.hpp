@@ -515,6 +515,7 @@ QasmController::simulation_method(const Circuit &circ,
     }
     case Method::statevector_gpu: {
       if (validate) {
+#ifndef AER_THRUST_NOT_SUPPORTED
         if (simulation_precision_ == Precision::single_precision) {
           StatevectorThrust::State<QV::QubitVectorThrust<float>> state; 
           validate_state(state, circ, noise_model, true);
@@ -524,6 +525,9 @@ QasmController::simulation_method(const Circuit &circ,
         }
       }
       return Method::statevector_gpu;
+#else
+      return Method::statevector;
+#endif
     }
     case Method::density_matrix: {
       if (validate)
