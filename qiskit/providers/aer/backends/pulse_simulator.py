@@ -107,7 +107,7 @@ class PulseSimulator(AerBackend):
 
         # Temp backwards compatibility
         if 'sim_config' in qobj_dict['config']:
-            for key, val in qobj_dict['config']['sim_config'].itmes():
+            for key, val in qobj_dict['config']['sim_config'].items():
                 qobj_dict['config']['backend_options'][key] = val
             qobj_dict['config'].pop('sim_config')
 
