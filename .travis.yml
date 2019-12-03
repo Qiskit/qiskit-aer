@@ -144,9 +144,10 @@ jobs:
       python: 3.5
 
     - stage: test
-      name: Python 3.8 Tests Linux
+      name: Python 3.8 Tests OSX
       <<: *stage_osx
       python: 3.8
+      env:
         - PYTHON_VERSION=3.8.0
 
     # OSX, Python 3.7.2 (via pyenv)
