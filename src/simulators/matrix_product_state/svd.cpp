@@ -24,6 +24,10 @@
 #include <cmath>
 #include <complex>
 #include <cassert>
+
+#include <limits>
+#include <type_traits>
+
 #include "svd.hpp"
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
@@ -127,7 +131,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
       z = sqrt( z );
       b[k] = z;
       w = abs( A(k,k) );
-      if ( w == 0.0 ) {
+      if (Linalg::almost_equal(static_cast<long double>(w), 
+			       static_cast<long double>(0.0))) {
 	q = complex_t( 1.0, 0.0 );
       } else {
 	q = A(k,k) / w;
@@ -167,9 +172,10 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
     if ( tol < z ) {
       z = sqrt( z );
       c[k1] = z;
-      w = abs( A(k,k1) );
+      w = abs( A(k, k1) );
       
-      if ( w == 0.0 ) {
+      if (Linalg::almost_equal(static_cast<long double>(w), 
+			       static_cast<long double>(0.0))) {
 	q = complex_t( 1.0, 0.0 );
       }	else{
 	q = A(k,k1) / w;
@@ -274,7 +280,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
       h = t[k];
       f = ( ( y - w ) * ( y + w ) + ( g - h ) * ( g + h ) )/ ( 2.0 * h * y );
       g = sqrt( f * f + 1.0 );
-      if ( f < THRESHOLD_FOR_TINY) { //if ( f < 0.0){ //didn't work when f was negative very close to 0 (because of numerical reasons)
+      if ( f < -THRESHOLD_FOR_TINY) { //if ( f < 0.0){ //didn't work when f was negative very close to 0 (because of numerical reasons)
 	g = -g;
       }
       f = ( ( x - w ) * ( x + w ) + ( y / ( f + g ) - h ) * h ) / x;
@@ -287,7 +293,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 	h = sn * g;
 	g = cs * g;
 	w = sqrt( h * h + f * f );
-	if (w == 0) {
+
+	if (Linalg::almost_equal(static_cast<long double>(w), 
+				 static_cast<long double>(0.0))) {
 #ifdef DEBUG
 	  cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << endl;
 	  cout << " w = " << w << endl;
@@ -299,7 +307,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 	f = x * cs + g * sn; // might be 0
 	
 	long double large_f = 0;
-	if (f==0) {
+	if (Linalg::almost_equal(static_cast<long double>(f), 
+				 static_cast<long double>(0.0))) {
 #ifdef DEBUG
 	  cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<endl;
 #endif
@@ -332,14 +341,17 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 	cout << " h = " << h << " f = " << f << " large_f = " << large_f << endl;
 #endif
 	if (abs(h) < THRESHOLD_FOR_TINY &&
-	    abs(f) < THRESHOLD_FOR_TINY && 
-	    large_f != 0) {
+	    abs(f) < THRESHOLD_FOR_TINY &&
+	    (!Linalg::almost_equal(large_f, 
+				   static_cast<long double>(0.0))) ) {
 	  tiny_w = true;
 	} else {
 	  w = sqrt( h * h + f * f );
 	}
 	w = sqrt( h * h + f * f );
-	if (w == 0 && !tiny_w) {
+	if (Linalg::almost_equal(static_cast<long double>(w), 
+				 static_cast<long double>(0.0)) && 
+	    !tiny_w) {
 	  
 #ifdef DEBUG
 	  cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << endl;
@@ -371,7 +383,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
       S[k] = x;
     }
     
-    if ( w < THRESHOLD_FOR_TINY ) {
+    if ( w < -THRESHOLD_FOR_TINY ) {
       S[k] = - w;
       for( j = 0; j < n; j++){
 	V(j,k) = - V(j,k);
@@ -411,7 +423,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   }
 
   for( k = n-1 ; k >= 0; k--) {
-    if ( b[k] != 0.0 ) {
+      if (!Linalg::almost_equal(static_cast<long double>(b[k]), 
+				static_cast<long double>(0.0))) {
       q = -A(k,k) / abs( A(k,k) );
       for( j = 0; j < m; j++){
 	U(k,j) = q * U(k,j);
@@ -431,7 +444,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 
   for( k = n-1 -1; k >= 0; k--) {
       k1 = k + 1;
-      if ( c[k1] != 0.0 ) {
+      if (!Linalg::almost_equal(static_cast<long double>(c[k1]), 
+				static_cast<long double>(0.0))) {
 	q = -conj( A(k,k1) ) / abs( A(k,k1) );
 	
 	for( j = 0; j < n; j++) {
@@ -459,9 +473,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   const auto ncols = temp_A.GetColumns();
   bool equal = true;
   
-  for (i=0; i < nrows; i++)
-    for (j=0; j < ncols; j++)
-      if (std::real(std::abs(temp_A(i, j) - temp(i, j))) > THRESHOLD) {
+  for (uint_t row=0; row < nrows; row++)
+    for (uint_t col=0; col < ncols; col++)
+      if (std::real(std::abs(temp_A(row, col) - temp(row, col))) > THRESHOLD) {
 	equal = false;
       }
   if( ! equal ) {
@@ -509,8 +523,8 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   }
 
   //Divide by mul_factor every singular value after we multiplied matrix a
-  for(int k = 0; k < S.size(); k++)
-    S[k] /= pow(mul_factor, times);
+  for(uint_t kk = 0; kk < S.size(); kk++)
+    S[kk] /= pow(mul_factor, times);
 
 }
 
