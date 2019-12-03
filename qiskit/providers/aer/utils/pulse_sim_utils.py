@@ -25,9 +25,7 @@ def lo_from_hamiltonian(qobj=None, backend_options=None, noise_model=None):
 
     return openpulse_system.freqs
 
-def get_dressed_energies(qobj,
-                         backend_options=None,
-                         noise_model=None):
+def get_dressed_energies(qobj, backend_options=None, noise_model=None):
     """Digest the pulse qobj and return the eigenenergies
     of the Hamiltonian"""
     openpulse_system = digest_pulse_obj(qobj, backend_options, noise_model)
