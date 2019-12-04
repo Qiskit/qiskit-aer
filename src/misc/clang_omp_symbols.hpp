@@ -185,6 +185,18 @@ extern "C" {
         return _hook__kmpc_end_critical(id, global_tid, lck);
     }
 
+    using __kmpc_master_t = kmp_int32(*)(ident_t *, kmp_int32);
+    __kmpc_master_t _hook__kmpc_master;
+    kmp_int32 __kmpc_master(ident_t *id, kmp_int32 global_tid){
+        return _hook__kmpc_master(id, global_tid);
+    }
+
+    using __kmpc_end_master_t = void(*)(ident_t *, kmp_int32);
+    __kmpc_end_master_t _hook__kmpc_end_master;
+    void __kmpc_end_master(ident_t *id, kmp_int32 global_tid){
+        return _hook__kmpc_end_master(id, global_tid);
+    }
+
     #define __KAI_KMPC_CONVENTION
     using omp_get_max_threads_t = int(*)(void);
     omp_get_max_threads_t _hook_omp_get_max_threads;
@@ -292,6 +304,8 @@ void populate_hooks(void * handle){
     _hook__kmpc_global_thread_num = reinterpret_cast<decltype(&__kmpc_global_thread_num)>(dlsym(handle, "__kmpc_global_thread_num"));
     _hook__kmpc_critical = reinterpret_cast<decltype(&__kmpc_critical)>(dlsym(handle, "__kmpc_critical"));
     _hook__kmpc_end_critical = reinterpret_cast<decltype(&__kmpc_end_critical)>(dlsym(handle, "__kmpc_end_critical"));
+    _hook__kmpc_master = reinterpret_cast<decltype(&__kmpc_master)>(dlsym(handle, "__kmpc_master"));
+    _hook__kmpc_end_master = reinterpret_cast<decltype(&__kmpc_end_master)>(dlsym(handle, "__kmpc_end_master"));
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
 }

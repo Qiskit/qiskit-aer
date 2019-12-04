@@ -49,13 +49,19 @@ stage_linux: &stage_linux
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
+    # Install Thrust headers
+    - pushd src/third-party/headers
+    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
+    - popd
+    # Move thrust headers into build path
+    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
         rm -rf .stestr
       fi
-    # Build and install qiskit-aer package
-    - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    # Build with Thrust OpenMP CPU backend
+    - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
     - pip install dist/qiskit_aer*whl
   script:
     - stestr run --slowest
@@ -89,17 +95,26 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
+    # Install Thrust headers
+    - pushd src/third-party/headers
+    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
+    - popd
+    # Move thrust headers into build path
+    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
         rm -rf .stestr
       fi
-    # Build and install qiskit-aer package
+    # Build with Thrust OpenMP CPU backend
+    - python setup.py bdist_wheel -- -DAER_THRUST_BACKEND=OMP -- -j4
+    - pip install dist/qiskit_aer*whl
+  script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
   script:
     - stestr run --slowest
-
+  
 ###############################################################################
 # Stage-related definitions
 ###############################################################################
@@ -134,7 +149,7 @@ jobs:
       <<: *stage_linux
       before_script: true
       script:
-        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
     # MacOS Wheel
     - stage: compile
       name: Python Wheel Build MacOS
@@ -155,29 +170,30 @@ jobs:
 
     # "test" stage
     ###########################################################################
+
     # GNU/Linux, Python 3.8
     - stage: test
-      name: Python 3.8 Tests Linux
+      name: Python 3.8 Tests Linux (Thrust OMP)
       <<: *stage_linux
       python: 3.8
 
     # GNU/Linux, Python 3.7
     - stage: test
-      name: Python 3.7 Tests Linux
+      name: Python 3.7 Tests Linux (Thrust OMP)
       <<: *stage_linux
       python: 3.7
 
     # GNU/Linux, Python 3.6
     - stage: test
       if: type = cron
-      name: Python 3.6 Tests Linux
+      name: Python 3.6 Tests Linux (Thrust OMP)
       <<: *stage_linux
       python: 3.6
 
     # GNU/Linux, Python 3.5
     - stage: test
       if: type = cron
-      name: Python 3.5 Tests Linux
+      name: Python 3.5 Tests Linux (Thrust OMP)
       <<: *stage_linux
       python: 3.5
 
@@ -228,7 +244,7 @@ jobs:
       <<: *stage_linux
       before_script: true
       script:
-        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
     # Linux Standalone
     - stage: compile
       name: Standalone Build Linux (Power)

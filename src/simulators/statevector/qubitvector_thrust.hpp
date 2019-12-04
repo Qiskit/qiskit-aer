@@ -46,8 +46,7 @@
 
 #include "framework/json.hpp"
 
-#ifdef AER_TIMING
-
+#ifdef DEBUG
 #include <sys/time.h>
 double mysecond()
 {
@@ -65,8 +64,7 @@ double mysecond()
 #define QS_GATE_CX						2
 #define QS_GATE_DIAG					3
 #define QS_GATE_MEASURE					4
-
-#endif
+#endif //DEBUG
 
 #define AER_DEFAULT_MATRIX_BITS		8
 
@@ -208,7 +206,7 @@ public:
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat);
-  
+
   // Swap pairs of indicies in the underlying vector
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
@@ -228,7 +226,7 @@ public:
   // If N=2 this implements an optimized CY gate
   // If N=3 this implements an optimized CCY gate
   void apply_mcy(const reg_t &qubits);
-  
+
   // Apply a general multi-controlled single-qubit phase gate
   // with diagonal [1, ..., 1, phase]
   // If N=1 this implements an optimized single-qubit phase gate
@@ -273,7 +271,7 @@ public:
   //-----------------------------------------------------------------------
   // Norms
   //-----------------------------------------------------------------------
-  
+
   // Returns the norm of the current vector
   double norm() const;
 
@@ -351,7 +349,7 @@ protected:
 
   //-----------------------------------------------------------------------
   // Config settings
-  //----------------------------------------------------------------------- 
+  //-----------------------------------------------------------------------
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
@@ -391,7 +389,7 @@ protected:
 	int m_matBits;							//max number of fusion bits
 	uint_t m_matSize;
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	mutable uint_t m_gateCounts[QS_NUM_GATES];
 	mutable double m_gateTime[QS_NUM_GATES];
 	mutable double m_gateStartTime[QS_NUM_GATES];
@@ -400,9 +398,7 @@ protected:
 	void TimeEnd(int i) const;
 	void TimeReset(void);
 	void TimePrint(void);
-#endif
 
-#ifdef AER_DEBUG
 	//for debugging
 	mutable FILE* debug_fp;
 	mutable uint_t debug_count;
@@ -420,7 +416,7 @@ protected:
 
 
 //base class of gate functions
-class gateFuncBase 
+class GateFuncBase
 {
 public:
 	virtual bool IsDiagonal(void)
@@ -457,7 +453,7 @@ json_t QubitVectorThrust<data_t>::json() const {
   const int_t END = data_size_;
   const json_t ZERO = std::complex<data_t>(0.0, 0.0);
   json_t js = json_t(data_size_, ZERO);
-  
+
   if (json_chop_threshold_ > 0) {
     #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     for (int_t j=0; j < END; j++) {
@@ -543,14 +539,14 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits)
 
 	set_num_qubits(num_qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	debug_fp = NULL;
 	debug_count = 0;
 #endif
 }
 
 template <typename data_t>
-QubitVectorThrust<data_t>::QubitVectorThrust() 
+QubitVectorThrust<data_t>::QubitVectorThrust()
 {
 	m_pMatDev = NULL;
 	m_matBits = 0;
@@ -558,7 +554,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust()
 	data_ = NULL;
 	checkpoint_ = NULL;
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	debug_fp = NULL;
 	debug_count = 0;
 #endif
@@ -566,7 +562,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust()
 
 template <typename data_t>
 QubitVectorThrust<data_t>::~QubitVectorThrust() {
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimePrint();
 #endif
 
@@ -597,7 +593,7 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
   if (checkpoint_)
     free(checkpoint_);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	if(debug_fp != NULL){
 		fflush(debug_fp);
 		fclose(debug_fp);
@@ -637,7 +633,7 @@ std::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) const
 
 template <typename data_t>
 cvector_t<data_t> QubitVectorThrust<data_t>::vector() const {
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("vector");
 #endif
   cvector_t<data_t> ret(data_size_, 0.);
@@ -653,7 +649,7 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const {
 // State initialize component
 //------------------------------------------------------------------------------
 template <typename data_t>
-class initialize_component_func : public gateFuncBase
+class initialize_component_func : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* state;
@@ -707,7 +703,7 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
+void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0)
 {
 	const size_t N = qubits.size();
 	thrust::complex<double>* pMat;
@@ -721,7 +717,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 	allocate_buffers(N);
 
 	pMat = m_pMatDev;
-#pragma omp parallel for 
+#pragma omp parallel for
 	for(i=0;i<matSize;i++){
 		m_pMatDev[i] = state0[i];
 	}
@@ -732,7 +728,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 
 	apply_function(initialize_component_func<data_t>(pMat,m_pUintBuf,qubits_sorted), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("initialize_component",qubits);
 	DebugDump();
 #endif
@@ -744,7 +740,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-class fill_func : public gateFuncBase
+class fill_func : public GateFuncBase
 {
 protected:
 	thrust::complex<data_t> val;
@@ -784,7 +780,7 @@ void QubitVectorThrust<data_t>::zero()
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) 
+void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 {
 	size_t prev_num_qubits = num_qubits_;
 	num_qubits_ = num_qubits;
@@ -853,45 +849,45 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	if (data_ == nullptr){
 		void* pData;
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 		TimeReset();
 		TimeStart(QS_GATE_INIT);
 #endif
 
 #ifdef AER_THRUST_CUDA
-#ifdef __linux__
-		str = getenv("AER_USE_ATS");
-		if(str != NULL){
-			posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
-			m_useATS = 1;
-		}
-		else{
-#endif
-			str = getenv("AER_USE_DEVMEM");
+	#ifdef __linux__
+			str = getenv("AER_USE_ATS");
 			if(str != NULL){
-				cudaMalloc(&pData,sizeof(thrust::complex<data_t>) * data_size_);
-				m_useDevMem = 1;
+				posix_memalign(&pData,128,sizeof(thrust::complex<data_t>) * data_size_);
+				m_useATS = 1;
 			}
 			else{
-				cudaMallocManaged(&pData,sizeof(thrust::complex<data_t>) * data_size_);
+	#endif
+				str = getenv("AER_USE_DEVMEM");
+				if(str != NULL){
+					cudaMalloc(&pData,sizeof(thrust::complex<data_t>) * data_size_);
+					m_useDevMem = 1;
+				}
+				else{
+					cudaMallocManaged(&pData,sizeof(thrust::complex<data_t>) * data_size_);
+				}
+				m_useATS = 0;
+	#ifdef __linux__
 			}
-			m_useATS = 0;
-#ifdef __linux__
-		}
-#endif
-
+	#endif
 #else	//AER_THRUST_CUDA
 		pData = (thrust::complex<data_t>*)malloc(sizeof(thrust::complex<data_t>) * data_size_);
 #endif	//AER_THRUST_CUDA
 
 		data_ = reinterpret_cast<std::complex<data_t>*>(pData);
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 		TimeEnd(QS_GATE_INIT);
 #endif
 	}
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
+	//TODO Migrate to SpdLog
 	if(debug_fp == NULL && tid == 0){
 		char filename[1024];
 		sprintf(filename,"logs/debug_%d.txt",getpid());
@@ -948,11 +944,11 @@ size_t QubitVectorThrust<data_t>::required_memory_mb(uint_t num_qubits) const {
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::checkpoint() {
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("checkpoint");
 	DebugDump();
 #endif
-	
+
   if (!checkpoint_)
     checkpoint_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
 
@@ -979,7 +975,7 @@ void QubitVectorThrust<data_t>::revert(bool keep) {
     free(checkpoint_);
     checkpoint_ = nullptr;
   }
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("revert");
 	DebugDump();
 #endif
@@ -995,7 +991,7 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 	for(i=0;i<data_size_;i++){
 		d += std::real(data_[i]) * std::real(checkpoint_[i]) + std::imag(data_[i]) * std::imag(checkpoint_[i]);
 	}
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("inner_product",std::complex<double>(d,0.0));
 #endif
 
@@ -1007,9 +1003,9 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize() 
+void QubitVectorThrust<data_t>::initialize()
 {
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("initialize");
 #endif
   zero();
@@ -1019,7 +1015,7 @@ void QubitVectorThrust<data_t>::initialize()
 template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
   if (data_size_ != statevec.size()) {
-    std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" + 
+    std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" +
                         std::to_string(statevec.size()) + ")";
     throw std::runtime_error(error);
@@ -1031,7 +1027,7 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
   for (int_t k = 0; k < END; ++k)
     data_[k] = statevec[k];
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("initialize_from_vector");
 	DebugDump();
 #endif
@@ -1048,12 +1044,12 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 
   const int_t END = data_size_;    // end for k loop
 
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
     data_[k] = statevec[k];
 
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("initialize_from_data");
 	DebugDump();
 #endif
@@ -1090,7 +1086,7 @@ void QubitVectorThrust<data_t>::set_json_chop_threshold(double threshold) {
  *
  ******************************************************************************/
 template <typename data_t>
-class matMult2x2_func : public gateFuncBase
+class MatrixMult2x2 : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1,m2,m3;
@@ -1098,7 +1094,7 @@ protected:
 	uint_t mask;
 
 public:
-	matMult2x2_func(thrust::complex<double>* pMat,int q)
+	MatrixMult2x2(thrust::complex<double>* pMat,int q)
 	{
 		qubit = q;
 		m0 = pMat[0];
@@ -1136,7 +1132,7 @@ public:
 
 
 template <typename data_t>
-class matMult4x4_func : public gateFuncBase
+class MatrixMult4x4 : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m00,m10,m20,m30;
@@ -1149,7 +1145,7 @@ protected:
 	uint_t mask1;
 
 public:
-	matMult4x4_func(thrust::complex<double>* pMat,int q0,int q1)
+	MatrixMult4x4(thrust::complex<double>* pMat,int q0,int q1)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
@@ -1210,7 +1206,7 @@ public:
 };
 
 template <typename data_t>
-class matMult8x8_func : public gateFuncBase
+class MatrxMult8x8 : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -1222,7 +1218,7 @@ protected:
 	uint_t mask2;
 
 public:
-	matMult8x8_func(thrust::complex<double>* pM,int q0,int q1,int q2)
+	MatrxMult8x8(thrust::complex<double>* pM,int q0,int q1,int q2)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
@@ -1354,7 +1350,7 @@ public:
 };
 
 template <typename data_t>
-class matMult16x16_func : public gateFuncBase
+class MatrixMult16x16 : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -1367,7 +1363,7 @@ protected:
 	uint_t mask2;
 	uint_t mask3;
 public:
-	matMult16x16_func(thrust::complex<double>* pM,int q0,int q1,int q2,int q3)
+	MatrixMult16x16(thrust::complex<double>* pM,int q0,int q1,int q2,int q3)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
@@ -1450,7 +1446,7 @@ public:
 
 //in-place NxN matrix multiplication using LU factorization
 template <typename data_t>
-class matMultNxN_LU_func : public gateFuncBase
+class MatrixMultNxN_LU : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -1461,7 +1457,7 @@ protected:
 	uint_t matSize;
 	int nswap;
 public:
-	matMultNxN_LU_func(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
+	MatrixMultNxN_LU(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
 	{
 		uint_t i,j,k,imax;
 		thrust::complex<double> c0,c1;
@@ -1620,8 +1616,7 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 		size = data_size_;
 		nBuf = 1;
 		m_ppBuffer[0] = (thrust::complex<data_t>*)&data_[0];
-	}
-	else{
+	}else{
 		ncb = func.NumControlBits();
 		size = data_size_ >> (N - ncb);
 		nBuf = 1ull << (N - ncb);
@@ -1646,11 +1641,10 @@ void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &q
 
 	if(m_nDevParallel == 1){
 		thrust::for_each(thrust::device, chunkIter, chunkIter + size, func);
-	}
-	else{
+	}else{
 		int iDev;
 
-#pragma omp parallel for
+		#pragma omp parallel for
 		for(iDev=0;iDev<m_nDevParallel;iDev++){
 			uint_t is,ie;
 			is = size * iDev / m_nDevParallel;
@@ -1679,8 +1673,7 @@ double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const re
 		size = data_size_;
 		nBuf = 1;
 		m_ppBuffer[0] = (thrust::complex<data_t>*)&data_[0];
-	}
-	else{
+	}else{
 		ncb = func.NumControlBits();
 		size = data_size_ >> (N - ncb);
 		nBuf = 1ull << (N - ncb);
@@ -1733,7 +1726,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 	auto qubits_sorted = qubits;
 	std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_MULT);
 #endif
 	if(N == 1){
@@ -1752,7 +1745,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 
 		pMat = m_pMatDev;
 
-#pragma omp parallel for 
+		#pragma omp parallel for
 		for(i=0;i<matSize*matSize;i++){
 			m_pMatDev[i] = mat[i];
 		}
@@ -1768,11 +1761,11 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 		}
 	}
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_MULT);
 #endif
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_matrix",qubits);
 	DebugDump();
 #endif
@@ -1781,7 +1774,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
                                             const reg_t &target_qubits,
-                                            const cvector_t<double>  &mat) 
+                                            const cvector_t<double>  &mat)
 {
 	const size_t control_count = control_qubits.size();
 	const size_t target_count  = target_qubits.size();
@@ -1804,9 +1797,9 @@ void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
 			}
 		}
 	}
-	
 
-#ifdef AER_DEBUG
+
+#ifdef DEBUG
 	DebugMsg("apply_multiplexer",control_qubits);
 	DebugMsg("                 ",target_qubits);
 #endif
@@ -1815,14 +1808,14 @@ void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
 }
 
 template <typename data_t>
-class diagMult2x2_func : public gateFuncBase
+class DiagonalMult2x2 : public GetFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
 	int qubit;
 public:
 
-	diagMult2x2_func(thrust::complex<double>* pMat,int q)
+	DiagonalMult2x2(thrust::complex<double>* pMat,int q)
 	{
 		qubit = q;
 		m0 = pMat[0];
@@ -1859,7 +1852,7 @@ public:
 };
 
 template <typename data_t>
-class diagMultNxN_func : public gateFuncBase
+class DiagonalMultNxN : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -1867,7 +1860,7 @@ protected:
 	uint_t* qubits;
 
 public:
-	diagMultNxN_func(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
+	DiagonalMultNxN(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
 	{
 		int i;
 		pMat = pM;
@@ -1915,13 +1908,12 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 {
 	const int_t N = qubits.size();
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_DIAG);
 #endif
 	if(N == 1){
-		apply_function(diagMult2x2_func<data_t>((thrust::complex<double>*)&diag[0],qubits[0]), qubits);
-	}
-	else{
+		apply_function(DiagonalMult2x2<data_t>((thrust::complex<double>*)&diag[0],qubits[0]), qubits);
+	}else{
 		thrust::complex<double>* pMat;
 
 #ifdef AER_HAS_ATS
@@ -1933,30 +1925,27 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 
 		allocate_buffers(N);
 
-#pragma omp parallel for 
+#pragma omp parallel for
 		for(i=0;i<matSize;i++){
 			m_pMatDev[i] = diag[i];
 		}
 		pMat = m_pMatDev;
 #endif
 
-		apply_function(diagMultNxN_func<data_t>(pMat,m_pUintBuf,qubits), qubits);
+		apply_function(DiagonalMultNxN<data_t>(pMat,m_pUintBuf,qubits), qubits);
 	}
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_DIAG);
-#endif
-
-#ifdef AER_DEBUG
 	DebugMsg("apply_diagonal_matrix",qubits);
 	DebugDump();
 #endif
 
 }
 
-	
+
 template <typename data_t>
-class permutation_func : public gateFuncBase
+class Permutation : public GetFuncBase
 {
 protected:
 	uint_t* pairs;
@@ -1966,7 +1955,7 @@ protected:
 	int npairs;
 
 public:
-	permutation_func(uint_t* pBuf,const reg_t& qb,const std::vector<std::pair<uint_t, uint_t>> &pairs_in)
+	Permutation(uint_t* pBuf,const reg_t& qb,const std::vector<std::pair<uint_t, uint_t>> &pairs_in)
 	{
 		uint_t j;
 
@@ -2029,9 +2018,9 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
 
 	allocate_buffers(N);
 
-	apply_function(permutation_func<data_t>(m_pUintBuf,qubits,pairs), qubits);
+	apply_function(Permutation<data_t>(m_pUintBuf,qubits,pairs), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_permutation_matrix",qubits);
 	DebugDump();
 #endif
@@ -2050,7 +2039,7 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-class CX_func : public gateFuncBase
+class CX_func : public GateFuncBase
 {
 protected:
 	uint_t mask;
@@ -2106,20 +2095,17 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) 
+void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
 {
 
-#ifdef AER_TIMING
-		TimeStart(QS_GATE_CX);
+#ifdef DEBUG
+	TimeStart(QS_GATE_CX);
 #endif
 
 	apply_function(CX_func<data_t>(qubits), qubits);
 
-#ifdef AER_TIMING
-		TimeEnd(QS_GATE_CX);
-#endif
-
-#ifdef AER_DEBUG
+#ifdef DEBUG
+	TimeEnd(QS_GATE_CX);
 	DebugMsg("apply_mcx",qubits);
 	DebugDump();
 #endif
@@ -2128,7 +2114,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
 
 
 template <typename data_t>
-class CY_func : public gateFuncBase
+class CY_func : public GetFuncBase
 {
 protected:
 	uint_t mask;
@@ -2183,12 +2169,12 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
+void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
 {
 
 	apply_function(CY_func<data_t>(qubits), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_mcy",qubits);
 	DebugDump();
 #endif
@@ -2196,7 +2182,7 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
 }
 
 template <typename data_t>
-class CSwap_func : public gateFuncBase
+class CSwap_func : public GetFuncBase
 {
 protected:
 	uint_t mask0;
@@ -2263,7 +2249,7 @@ void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 
 	apply_function(CSwap_func<data_t>(qubits), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_mcswap",qubits);
 	DebugDump();
 #endif
@@ -2271,7 +2257,7 @@ void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 }
 
 template <typename data_t>
-class phase_func : public gateFuncBase 
+class phase_func : public GetFuncBase
 {
 protected:
 	thrust::complex<double> phase;
@@ -2320,7 +2306,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
 {
 	apply_function(phase_func<data_t>(qubits,phase), qubits );
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_mcphase",qubits);
 	DebugDump();
 #endif
@@ -2328,7 +2314,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
 }
 
 template <typename data_t>
-class diagMult2x2_controlled_func : public gateFuncBase 
+class DiagonalMult2x2Controlled : public GetFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
@@ -2336,7 +2322,7 @@ protected:
 	uint_t cmask;
 	int nqubits;
 public:
-	diagMult2x2_controlled_func(thrust::complex<double>* pMat,const reg_t &qubits)
+	DiagonalMult2x2Controlled(thrust::complex<double>* pMat,const reg_t &qubits)
 	{
 		int i;
 		nqubits = qubits.size();
@@ -2374,8 +2360,7 @@ public:
 		if(((i) & cmask) == cmask){
 			if((i) & mask){
 				m = m1;
-			}
-			else{
+			}else{
 				m = m0;
 			}
 
@@ -2386,7 +2371,7 @@ public:
 };
 
 template <typename data_t>
-class matMult2x2_controlled_func : public gateFuncBase 
+class MatrixMult2x2Controlled : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1,m2,m3;
@@ -2394,7 +2379,7 @@ protected:
 	uint_t cmask;
 	int nqubits;
 public:
-	matMult2x2_controlled_func(thrust::complex<double>* pMat,const reg_t &qubits)
+	MatrixMult2x2Controlled(thrust::complex<double>* pMat,const reg_t &qubits)
 	{
 		int i;
 		m0 = pMat[0];
@@ -2441,15 +2426,15 @@ public:
 		}
 	}
 };
-	
+
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
-                                    const cvector_t<double> &mat) 
+                                    const cvector_t<double> &mat)
 {
 	// Calculate the permutation positions for the last qubit.
 	const size_t N = qubits.size();
 
-	// Check if matrix is actually diagonal and if so use 
+	// Check if matrix is actually diagonal and if so use
 	// diagonal matrix lambda function
 	// TODO: this should be changed to not check doubles with ==
 	if (mat[1] == 0.0 && mat[2] == 0.0) {
@@ -2467,7 +2452,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 			return;
 		}
 		else{
-			apply_function(diagMult2x2_controlled_func<data_t>((thrust::complex<double>*)&diag[0],qubits), qubits );
+			apply_function(DiagonalMult2x2Controlled<data_t>((thrust::complex<double>*)&diag[0],qubits), qubits );
 		}
 	}
 	else{
@@ -2477,11 +2462,11 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 			return;
 		}
 		else{
-			apply_function(matMult2x2_controlled_func<data_t>((thrust::complex<double>*)&mat[0],qubits), qubits );
+			apply_function(MatrixMult2x2Controlled<data_t>((thrust::complex<double>*)&mat[0],qubits), qubits );
 		}
 	}
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("apply_mcu",qubits);
 	DebugDump();
 #endif
@@ -2494,34 +2479,31 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
-                                       const cvector_t<double>& mat) 
+                                       const cvector_t<double>& mat)
 {
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_DIAG);
 #endif
   	const std::vector<std::complex<double>> diag = {{mat[0], mat[3]}};
     apply_diagonal_matrix(qubit, diag);
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_DIAG);
 #endif
   	return;
   }
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_MULT);
 #endif
 
 	reg_t qubits = {qubit};
-	apply_function(matMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
+	apply_function(MatrixMult2x2<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
 
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_MULT);
-#endif
-
-#ifdef AER_DEBUG
 	DebugMsg("apply_matrix",(int)qubit);
 	DebugDump();
 #endif
@@ -2530,19 +2512,16 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
-                                                const cvector_t<double>& diag) 
+                                                const cvector_t<double>& diag)
 {
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_DIAG);
 #endif
 	reg_t qubits = {qubit};
-	apply_function(diagMult2x2_func<data_t>((thrust::complex<double>*)&diag[0],qubits[0]), qubits);
+	apply_function(DiagonalMult2x2<data_t>((thrust::complex<double>*)&diag[0],qubits[0]), qubits);
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_DIAG);
-#endif
-
-#ifdef AER_DEBUG
 	DebugMsg("apply_diagonal_matrix",(int)qubit);
 	DebugDump();
 #endif
@@ -2554,18 +2533,15 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
  *
  ******************************************************************************/
 template <typename data_t>
-class norm_func : public gateFuncBase
+class Norm : public GateFuncBase
 {
 protected:
 
 public:
-	norm_func()
-	{
+	Norm()
+	{}
 
-	}
-
-	bool IsDiagonal(void)
-	{
+	bool IsDiagonal(void){
 		return true;
 	}
 
@@ -2595,14 +2571,14 @@ double QubitVectorThrust<data_t>::norm() const
 	double ret;
 	ret = apply_sum_function(norm_func<data_t>(),qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("norm",ret);
 #endif
 	return ret;
 }
 
 template <typename data_t>
-class norm_matMultNxN_func : public gateFuncBase
+class NormMatrixMultNxN : public GetFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -2611,7 +2587,7 @@ protected:
 	int nqubits;
 	uint_t matSize;
 public:
-	norm_matMultNxN_func(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
+	NormMatrixMultNxN(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
 	{
 		uint_t k;
 
@@ -2667,14 +2643,13 @@ public:
 };
 
 template <typename data_t>
-double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<double> &mat) const 
+double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<double> &mat) const
 {
 	const size_t N = qubits.size();
 
 	if(N == 1){
 		return norm(qubits[0], mat);
-	}
-	else{
+	}else{
 		thrust::complex<double>* pMat;
 		double ret;
 
@@ -2683,14 +2658,14 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 
 		pMat = m_pMatDev;
 
-#pragma omp parallel for 
+		#pragma omp parallel for
 		for(i=0;i<matSize*matSize;i++){
 			m_pMatDev[i] = mat[i];
 		}
 
-		ret = apply_sum_function(norm_matMultNxN_func<data_t>(pMat,m_pUintBuf,qubits), qubits);
+		ret = apply_sum_function(NormMatrixMultNxN<data_t>(pMat,m_pUintBuf,qubits), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 		DebugMsg("norm",qubits);
 		DebugMsg("    ",ret);
 #endif
@@ -2699,14 +2674,14 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 }
 
 template <typename data_t>
-class norm_diagMultNxN_func : public gateFuncBase
+class NormDiagonalMultNxN : public GetFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
 	int nqubits;
 	uint_t* qubits;
 public:
-	norm_diagMultNxN_func(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
+	NormDiagonalMultNxN(thrust::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
 	{
 		int i;
 		pMat = pM;
@@ -2754,8 +2729,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 
 	if(N == 1){
 		return norm_diagonal(qubits[0], mat);
-	}
-	else{
+	}else{
 		thrust::complex<double>* pMat;
 		double ret;
 
@@ -2766,14 +2740,14 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 		uint_t i,matSize;
 		matSize = 1ull << N;
 
-#pragma omp parallel for 
+		#pragma omp parallel for
 		for(i=0;i<matSize;i++){
 			m_pMatDev[i] = mat[i];
 		}
 		pMat = m_pMatDev;
 #endif
-		ret = apply_sum_function(norm_diagMultNxN_func<data_t>(pMat,m_pUintBuf,qubits), qubits );
-#ifdef AER_DEBUG
+		ret = apply_sum_function(NormDiagonalMultNxN<data_t>(pMat,m_pUintBuf,qubits), qubits );
+#ifdef DEBUG
 		DebugMsg("norm_diagonal",qubits);
 		DebugMsg("             ",ret);
 #endif
@@ -2785,14 +2759,14 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 // Single-qubit specialization
 //------------------------------------------------------------------------------
 template <typename data_t>
-class norm_matMult2x2_func : public gateFuncBase
+class NormMatrixMult2x2 : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1,m2,m3;
 	int qubit;
 	uint_t mask;
 public:
-	norm_matMult2x2_func(thrust::complex<double>* pMat,int q)
+	NormMatrixMult2x2(thrust::complex<double>* pMat,int q)
 	{
 		qubit = q;
 		m0 = pMat[0];
@@ -2837,7 +2811,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 
 	ret = apply_sum_function(norm_matMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 		DebugMsg("norm2x2",qubits);
 		DebugMsg("       ",ret);
 #endif
@@ -2846,13 +2820,13 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 
 
 template <typename data_t>
-class norm_diagMult2x2_func : public gateFuncBase
+class NormDiagonalMult2x2 : public GetFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
 	int qubit;
 public:
-	norm_diagMult2x2_func(thrust::complex<double>* pMat,int q)
+	NormDiagonalMult2x2(thrust::complex<double>* pMat,int q)
 	{
 		qubit = q;
 		m0 = pMat[0];
@@ -2877,8 +2851,7 @@ public:
 		q = ppV[0][i];
 		if((((i) >> qubit) & 1) == 0){
 			m = m0;
-		}
-		else{
+		}else{
 			m = m1;
 		}
 
@@ -2894,9 +2867,9 @@ double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvecto
 	reg_t qubits = {qubit};
 	double ret;
 
-	ret = apply_sum_function(norm_diagMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
+	ret = apply_sum_function(NormDiagonalMult2x2<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 		DebugMsg("norm_diagonal",qubits);
 		DebugMsg("             ",ret);
 #endif
@@ -2925,7 +2898,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
     probs[j] = probability(j);
   }
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("probabilities",probs);
 #endif
 	return probs;
@@ -2933,7 +2906,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
 
 
 template <typename data_t>
-class dot_func : public gateFuncBase
+class dot_func : public GetFuncBase
 {
 protected:
 	uint64_t mask;
@@ -2983,7 +2956,7 @@ public:
 
 
 template <typename data_t>
-std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits) const 
+std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits) const
 {
 	const size_t N = qubits.size();
 	const int_t DIM = 1 << N;
@@ -3000,7 +2973,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 		probs[i] = apply_sum_function(dot_func<data_t>(qubits,qubits_sorted,i), qubits_sorted);
 	}
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("probabilities",qubits);
 	DebugMsg("             ",probs);
 #endif
@@ -3022,7 +2995,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	double* pRnd;
 	uint_t* pSamp;
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeStart(QS_GATE_MEASURE);
 #endif
 
@@ -3039,14 +3012,14 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 		thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
 
-#pragma omp parallel for
+		#pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
 			pRnd[i] = rnds[i];
 		}
 
 		thrust::lower_bound(thrust::device, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
 
-#pragma omp parallel for
+		#pragma omp parallel for
 		for(i=0;i<SHOTS;i++){
 			samples[i] = pSamp[i]/2;
 		}
@@ -3067,7 +3040,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		int iDev;
 		double* pDevSum = new double[m_nDevParallel];
 
-#pragma omp parallel for private(i)
+		#pragma omp parallel for private(i)
 		for(iDev=0;iDev<m_nDevParallel;iDev++){
 			uint_t is,ie;
 			is = n * iDev / m_nDevParallel;
@@ -3081,7 +3054,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 			pDevSum[iDev] = pVec[ie-1];
 		}
 
-#pragma omp parallel for private(i,pRnd,pSamp)
+		#pragma omp parallel for private(i,pRnd,pSamp)
 		for(iDev=0;iDev<m_nDevParallel;iDev++){
 			uint_t is,ie;
 			double low,high;
@@ -3136,19 +3109,18 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		delete[] pDevSum;
 	}
 
-#ifdef AER_TIMING
+#ifdef DEBUG
 	TimeEnd(QS_GATE_MEASURE);
 #endif
 
-#ifdef AER_DEBUG
+#ifdef DEBUG
 	DebugMsg("sample_measure",samples);
 #endif
 
 	return samples;
 }
 
-#ifdef AER_TIMING
-
+#ifdef DEBUG
 template <typename data_t>
 void QubitVectorThrust<data_t>::TimeReset(void)
 {
@@ -3199,10 +3171,6 @@ void QubitVectorThrust<data_t>::TimePrint(void)
 	printf("   ======================================================= \n");
 
 }
-
-#endif
-
-#ifdef AER_DEBUG
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::DebugMsg(const char* str,const reg_t &qubits) const
@@ -3267,7 +3235,7 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 		fprintf(debug_fp," >\n");
 	}
 	debug_count++;
-	
+
 }
 
 
@@ -3286,8 +3254,7 @@ void QubitVectorThrust<data_t>::DebugDump(void)
 		}
 	}
 }
-
-#endif	//AER_DEBUG
+#endif	//DEBUG
 
 //------------------------------------------------------------------------------
 } // end namespace QV
