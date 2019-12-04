@@ -57,7 +57,8 @@ static const cmatrix_t one_measure =
 //
 //------------------------------------------------------------------------
 template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits, 
+void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+			reg_t qubits, 
 			std::vector<T>& new_probvector);
 uint_t reorder_qubits(const reg_t qubits, uint_t index);
 
@@ -90,7 +91,8 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 // local function implementations
 //------------------------------------------------------------------------
 template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits,
+void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+			reg_t qubits,
 			std::vector<T>& new_probvector) {
   uint_t new_index;
   uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
@@ -119,12 +121,24 @@ void reorder_all_qubits(const std::vector<T>& orig_probvector, reg_t qubits,
 
 uint_t reorder_qubits(const reg_t qubits, uint_t index) {
   uint_t new_index = 0;
-  for (uint_t i=0; i<qubits.size(); i++) {
-    uint_t current_pos = 1 << qubits[i];
-    uint_t shift = qubits.size()-1-i;
 
-    if ((index & current_pos) != 0) // is qubit[i] == 1 at this index
-      new_index += (0x1<< shift);
+  int_t current_pos = 0, current_val = 0, new_pos = 0, shift =0;
+  uint_t num_qubits = qubits.size();
+  for (uint_t i=0; i<num_qubits; i++) {
+    current_pos = num_qubits-1-qubits[i];
+    current_val = 0x1 << current_pos;
+    new_pos = num_qubits-1-i;
+    shift = new_pos - current_pos;
+    if (index & current_val) {
+      if (shift > 0) {
+	new_index += current_val << shift;
+      } else if (shift < 0) {
+	new_index += current_val >> -shift; 
+      } else {
+	new_index += current_val;
+      }
+      
+    }
   }
   return new_index;
 }
@@ -619,25 +633,30 @@ void MPS::probabilities_vector(rvector_t& probvector,
 			       const reg_t &qubits) const
 {
   cvector_t state_vec;
-  uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
+  uint_t num_qubits = qubits.size();
+  uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
   probvector.resize(length);
+
   bool ordered = true;
-  for (uint_t index=0; index < qubits.size()-1; index++) {
+  for (uint_t index=0; index < num_qubits-1; index++) {
     if (qubits[index] > qubits[index+1]){
       ordered = false;
       break;
     }
   }
   bool reverse_ordered = true;
-  for (uint_t index=0; index < qubits.size()-1; index++) {
+  for (uint_t index=0; index < num_qubits-1; index++) {
     if (qubits[index] < qubits[index+1]){
       reverse_ordered = false;
       break;
     }
   }
-  if (qubits.size() == num_qubits_ && ordered){
-    MPS_Tensor mps_vec = state_vec_as_MPS(0, qubits.size()-1);
-#pragma omp parallel for
+
+  // 1. cases where all qubits are considered for the probabilities
+  // 1.1 qubits are ordered
+  if (num_qubits == num_qubits_ && ordered){
+    MPS_Tensor mps_vec = state_vec_as_MPS(0, num_qubits-1);
+    #pragma omp parallel for
     for (int_t i = 0; i < static_cast<int_t>(length); i++) {
       // in this case, take psi * psi_dagger
       // reverse_bits to be consistent with output order in qasm
@@ -645,21 +664,39 @@ void MPS::probabilities_vector(rvector_t& probvector,
     }
     return;
   }
-  if (qubits.size() == num_qubits_ && reverse_ordered){
-    MPS_Tensor mps_vec = state_vec_as_MPS(0, qubits.size()-1);
-#pragma omp parallel for
+  // 1.2 qubits are reverse-ordered
+  if (num_qubits == num_qubits_ && reverse_ordered){
+    MPS_Tensor mps_vec = state_vec_as_MPS(0, num_qubits-1);
+    #pragma omp parallel for
     for (int_t i = 0; i < static_cast<int_t>(length); i++) {
       // in this case, take psi * psi_dagger
       // no need to reverse in this case
       probvector[i] = std::norm(mps_vec.get_data(i)(0,0));
-    }
+     }
+
     return;
   }
-  // no ordering among the qubits
+  // 2. cases where we have a subset of the qubits
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
+
+  // 2.1 subset of qubits is ordered
   // reverse_bits to be consistent with output order in qasm
-  rvector_t rev_vec = reverse_all_bits(ordered_probvector, qubits.size());
-  reorder_all_qubits(rev_vec, qubits, probvector);
+  if (ordered) {
+    probvector = reverse_all_bits(ordered_probvector, num_qubits);
+    return;
+  }
+  // 2.1 subset of qubits is reverse-ordered
+  else if (reverse_ordered) {
+    probvector = ordered_probvector;
+    return;
+  }
+
+  // 3. no ordering among the qubits, can be all qubits or a subset
+  rvector_t temp_probvector(ordered_probvector.size()); 
+  reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
+  probvector = ordered_probvector;
+
+  probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
