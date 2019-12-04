@@ -22,7 +22,6 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
-option(THRUST_BACKEND "Specify what backend will Thrust library use: CUDA, TBB, OMP" OMP)
 
 include(CTest)
 include(compiler_utils)
@@ -132,14 +131,13 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 		include_directories("${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
 		set(OPENMP_FOUND TRUE)
 	endif()
-	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		set(AER_THRUST_NOT_SUPPORTED TRUE)
-	endif()
 endif()
 
 if(OPENMP_FOUND)
 	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -153,56 +151,6 @@ if(OPENMP_FOUND)
 	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
 	message(STATUS "WARNING: No OpenMP support found!")
-endif()
-
-if(AER_THRUST_BACKEND MATCHES "CUDA")
-	message(STATUS "Thrust library: Looking for CUDA backend...")
-	find_package(CUDA REQUIRED)
-	if(CUDA_FOUND)
-		message(STATUS "Thrust library: CUDA found!")
-	else()
-		message(STATUS "Thrust library: No CUDA found on the system, using OpenMP backend")
-		set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
-	endif()
-elseif(AER_THRUST_BACKEND MATCHES "TBB")
-	message(STATUS "Thrust library: Looking for TBB backend...")
-	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
-	find_package(TBB REQUIRED)
-	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-elseif(AER_THRUST_BACKEND MATCHES "OMP")
-	message(STATUS "Thrust library: OMP backend selected")
-	set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
-	# We don't need to add OMP because it's already an AER dependency
-else()
-	message(STATUS "Thrust library: Looking for CUDA toolkit...")
-	find_package(CUDA)
-	if(CUDA_FOUND)
-		message(STATUS "Thrust library: CUDA found!")
-	else()
-		message(STATUS "Thrust library: No CUDA found on the system, using OpenMP backend")
-		set(AER_COMPILER_DEFINITIONS "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
-	endif()
-endif()
-
-if(CUDA_FOUND)
-	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-
-	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-	set(THRUST_DEPENDANT_LIBS "")
-endif()
-
-if(AER_TIMING)
-	set(AER_COMPILER_DEFINITIONS "AER_TIMING")
-endif()
-if(AER_DEBUG)
-	set(AER_COMPILER_DEFINITIONS "AER_DEBUG")
-endif()
-
-if(AER_THRUST_NOT_SUPPORTED)
-	message(STATUS "Disabling Thrust support")
-	set(AER_COMPILER_DEFINITIONS "AER_THRUST_NOT_SUPPORTED")
 endif()
 
 message(STATUS "Looking for NLOHMANN Json library...")
@@ -276,6 +224,42 @@ if(NOT MSVC)
 	endif()
 endif()
 
+# GPU support through Thrust library (CPU fallbacks)
+# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
+set(AER_THRUST_SUPPORTED TRUE)
+if(AER_THRUST_SUPPORTED)
+	if(AER_THRUST_BACKEND STREQUAL "CUDA")
+		message(STATUS "Thrust library: Looking for CUDA backend...")
+		find_package(CUDA REQUIRED)
+		message(STATUS "Thrust library: CUDA found!")
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		set(THRUST_DEPENDANT_LIBS "")
+	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
+		message(STATUS "Thrust library: Looking for TBB backend...")
+		find_package(TBB REQUIRED)
+		message(STATUS "TBB Support found!")
+		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB AER_THRUST_CPU=TRUE)
+	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
+		message(STATUS "Thrust library: Setting OMP backend")
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		# We don't need to add OMP because it's already an AER dependency
+		set(THRUST_DEPENDANT_LIBS "")
+	else()
+		message(STATUS "No Thrust supported backend")
+		set(AER_THRUST_SUPPORTED FALSE)
+	endif()
+endif()
+
+if(AER_THRUST_SUPPORTED)
+	list(APPEND AER_COMPILER_DEFINITIONS AER_THRUST_SUPPORTED=TRUE)
+else()
+	message(STATUS "No Thrust support enabled")
+endif()
+
 # Set dependent libraries
 set(AER_LIBRARIES
 	${OPENMP_EXTERNAL_LIB}
@@ -328,7 +312,3 @@ if(BUILD_TESTS)
 	# have real C++ tests in the codebase.
 	# add_subdirectory(test)
 endif()
-
-
-
-

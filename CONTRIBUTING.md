@@ -290,6 +290,18 @@ CMAKE_CXX_COMPILER
     Default: Depends on the running platform and the toolchains installed
     Example: ``cmake -DCMAKE_CXX_COMPILER=g++``
 
+AER_THRUST_BACKEND
+    We use Thrust library for GPU support through CUDA. If we want to build a version of Aer with GPU acceleration, we need to install CUDA and set this variable to the value: "CUDA".
+    There are other values that will use different CPU methods depending on the kind of backend we want to use:
+    - "OMP": For OpenMP support
+    - "TBB": For Intel Threading Building Blocks
+
+    Values: CUDA|OMP|TTB
+    Default: No value
+    Example: ``cmake -DAER_THRUST_BACKEND=CUDA``
+
+
+
 
 ## Tests
 
