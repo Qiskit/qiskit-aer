@@ -117,7 +117,7 @@ public:
   void apply_u1(double lambda);
   void apply_u2(double phi, double lambda);
   void apply_u3(double theta, double phi, double lambda);
-  void apply_matrix(const cmatrix_t &mat);
+  void apply_matrix(const cmatrix_t &mat, bool swapped=false);
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
@@ -259,16 +259,26 @@ void MPS_Tensor::apply_tdg()
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
 
-void MPS_Tensor::apply_matrix(const cmatrix_t &mat)
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped)
 {
-  cvector_t temp;
-  for (uint_t a1 = 0; a1 < data_[0].GetRows(); a1++)
-    for (uint_t a2 = 0; a2 < data_[0].GetColumns(); a2++)
-    {
-	  temp = get_data(a1,a2);
-	  temp = mat * temp;
-	  insert_data(a1,a2,temp);
+  if (swapped)
+    swap(data_[1], data_[2]);
+
+  MPS_Tensor new_tensor;
+  // initialize by multiplying first column of mat by data_[0]
+  for (uint_t i=0; i<mat.GetRows(); i++) 
+    new_tensor.data_.push_back(mat(i, 0) * data_[0]);
+
+  // add all other columns 
+  for (uint_t i=0; i<mat.GetRows(); i++) {
+    for (uint_t j=1; j<mat.GetColumns(); j++) {
+      new_tensor.data_[i] += mat(i, j) * data_[j];
     }
+  }
+  *this = new_tensor;
+   
+  if (swapped)
+    swap(data_[1], data_[2]);
 }
 
 void MPS_Tensor::apply_cnot(bool swapped)
