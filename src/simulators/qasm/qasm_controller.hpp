@@ -21,7 +21,7 @@
 #include "transpile/delay_measure.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
-#ifndef AER_THRUST_NOT_SUPPORTED
+#ifdef AER_THRUST_SUPPORTED
 #include "simulators/statevector/statevector_gpu_state.hpp"
 #endif
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -42,7 +42,7 @@ namespace Simulator {
  *   optimizations passes for an ideal circuit [Default: 0].
  * - "optimize_noise_threshold" (int): Qubit threshold for running circuit
  *   optimizations passes for a noisy circuit [Default: 12].
- * 
+ *
  * From Statevector::State class
  *
  * - "initial_statevector" (json complex vector): Use a custom initial
@@ -59,7 +59,7 @@ namespace Simulator {
  *      [Default: False]
  *
  * From ExtendedStabilizer::State class
- * - "extended_stabilizer_approximation_error" (double): Set the error in the 
+ * - "extended_stabilizer_approximation_error" (double): Set the error in the
  *     approximation for the ch method. A smaller error needs more
  *     memory and computational time. [Default: 0.05]
  *
@@ -410,7 +410,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector);
       }
     case Method::statevector_gpu:
-#ifndef AER_THRUST_NOT_SUPPORTED
+#ifdef AER_THRUST_SUPPORTED
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
       	return run_circuit_helper<StatevectorThrust::State<QV::QubitVectorThrust<double>>>(
@@ -504,29 +504,29 @@ QasmController::simulation_method(const Circuit &circ,
     case Method::statevector: {
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-          Statevector::State<QV::QubitVector<float>> state; 
+          Statevector::State<QV::QubitVector<float>> state;
           validate_state(state, circ, noise_model, true);
         } else {
-          Statevector::State<QV::QubitVector<>> state; 
+          Statevector::State<QV::QubitVector<>> state;
           validate_state(state, circ, noise_model, true);
         }
       }
       return Method::statevector;
     }
     case Method::statevector_gpu: {
+#ifndef AER_THRUST_SUPPORTED
+      throw std::runtime_error("This version of AER doesn't support GPU statevector!");
+#else
       if (validate) {
-#ifndef AER_THRUST_NOT_SUPPORTED
         if (simulation_precision_ == Precision::single_precision) {
-          StatevectorThrust::State<QV::QubitVectorThrust<float>> state; 
+          StatevectorThrust::State<QV::QubitVectorThrust<float>> state;
           validate_state(state, circ, noise_model, true);
         } else {
-          StatevectorThrust::State<QV::QubitVectorThrust<>> state; 
+          StatevectorThrust::State<QV::QubitVectorThrust<>> state;
           validate_state(state, circ, noise_model, true);
         }
       }
       return Method::statevector_gpu;
-#else
-      return Method::statevector;
 #endif
     }
     case Method::density_matrix: {
@@ -557,11 +557,11 @@ QasmController::simulation_method(const Circuit &circ,
       // For noisy simulations we enable the density matrix method if
       // shots > 2 ** num_qubits. This is based on a rough estimate that
       // a single shot of the density matrix simulator is approx 2 ** nq
-      // times slow than a single shot of statevector due the increased 
+      // times slow than a single shot of statevector due the increased
       // dimension
       if (noise_model.has_quantum_errors() &&
           circ.shots > (1 << circ.num_qubits) &&
-          validate_memory_requirements(DensityMatrix::State<>(), circ, false) && 
+          validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
           validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
         return Method::density_matrix;
@@ -693,7 +693,7 @@ ExperimentData QasmController::run_circuit_helper(const Circuit &circ,
                                               uint_t shots,
                                               uint_t rng_seed,
                                               const Initstate_t &initial_state,
-                                              const Method method) const {  
+                                              const Method method) const {
   // Initialize new state object
   State_t state;
 
@@ -770,7 +770,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
       optimize_circuit(noise_circ, dummy, state, data);
     }
     run_single_shot(noise_circ, state, initial_state, data, rng);
-  }     
+  }
 }
 
 
@@ -810,7 +810,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     measure_sampler(ops, shots, state, data, rng);
     // Add measure sampling metadata
     data.add_metadata("measure_sampling", true);
-  }  
+  }
 }
 
 
@@ -913,7 +913,7 @@ void QasmController::measure_sampler(const std::vector<Operations::Op> &meas_roe
         register_map[op.registers[j]] = pos;
     }
   }
-  
+
   // Process samples
   // Convert opts to circuit so we can get the needed creg sizes
   // NB: this function could probably be moved somewhere else like Utils or Ops

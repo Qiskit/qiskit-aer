@@ -27,9 +27,9 @@ namespace Simulator {
 
 /**************************************************************************
  * Config settings:
- * 
+ *
  * From Statevector::State class
- * 
+ *
  * - "initial_statevector" (json complex vector): Use a custom initial
  *      statevector for the simulation [Default: null].
  * - "zero_threshold" (double): Threshold for truncating small values to
@@ -42,7 +42,7 @@ namespace Simulator {
  *      measure sampling [Default: 10]
  * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
  *      [Default: False]
- * 
+ *
  * From BaseController Class
  *
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
@@ -55,7 +55,7 @@ namespace Simulator {
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * 
+ *
  **************************************************************************/
 
 class StatevectorController : public Base::Controller {
@@ -96,7 +96,7 @@ private:
 
   //-----------------------------------------------------------------------
   // Custom initial state
-  //-----------------------------------------------------------------------        
+  //-----------------------------------------------------------------------
   cvector_t initial_state_;
 };
 
@@ -165,7 +165,7 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
   // Set config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
-  
+
   // Rng engine
   RngEngine rng;
   rng.set_seed(rng_seed);
@@ -173,7 +173,7 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
   // Output data container
   ExperimentData data;
   data.set_config(config);
-  
+
   // Run single shot collecting measure data or snapshots
   if (initial_state_.empty())
     state.initialize_qreg(circ.num_qubits);
@@ -182,7 +182,7 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops, data, rng);
   state.add_creg_to_data(data);
-  
+
   // Add final state to the data
   data.add_additional_data("statevector", state.qreg().vector());
 
