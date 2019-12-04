@@ -13,14 +13,11 @@
 import unittest
 import numpy as np
 from qiskit.providers.aer.openpulse.qutip_lite.qobj import Qobj
-from qiskit.providers.aer.openpulse.cy.test_py_to_cpp_helpers import \
+from qiskit.providers.aer.openpulse.cy.test_python_to_cpp import \
     test_py_list_to_cpp_vec, test_py_list_of_lists_to_cpp_vector_of_vectors,\
-    test_py_list_of_np_arrays,\
     test_py_dict_string_numeric_to_cpp_map_string_numeric,\
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
-    test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles,\
-    test_np_array_of_doubles, test_evaluate_hamiltonians, test_pass_qutip_qobj_to_cpp, \
-    test_py_ordered_map
+    test_np_array_of_doubles, test_evaluate_hamiltonians, test_py_ordered_map
 
 class QutipFake:
     def __init__(self, arr):
@@ -42,10 +39,6 @@ class TestPythonToCpp(unittest.TestCase):
         arg = [[1., 2., 3.]]
         self.assertTrue(test_py_list_of_lists_to_cpp_vector_of_vectors(arg))
 
-    def test_py_list_of_np_arrays(self):
-        arg = [np.array([1., 2., 3.]), np.array([1., 2., 3.])]
-        self.assertTrue(test_py_list_of_np_arrays(arg))
-
     def test_py_dict_string_numeric_to_cpp_map_string_numeric(self):
         arg = {"key": 1}
         self.assertTrue(test_py_dict_string_numeric_to_cpp_map_string_numeric(arg))
@@ -54,19 +47,15 @@ class TestPythonToCpp(unittest.TestCase):
         arg = {"key": [[1., 2., 3.]]}
         self.assertTrue(test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles(arg))
 
-    def test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(self):
-        arg = {"key": [np.array([0., 1.]), np.array([2., 3.])]}
-        self.assertTrue(test_py_dict_string_list_of_np_array_to_cpp_map_string_vec_of_nparrays_of_doubles(arg))
-
     def test_np_array_of_doubles(self):
         arg = np.array([0., 1., 2., 3.])
         self.assertTrue(test_np_array_of_doubles(arg))
 
     def test_evaluate_hamiltonians(self):
-        """ TODO: Evaluate different hamiltoninan expressions"""
+        """ TODO: Evaluate different hamiltoninan expressions?"""
         self.assertEqual(True, True)
 
-    def test_ordered_map(self):
+    def test_py_ordered_map(self):
         # Since Python 3.6 dict insertion order is guaranted
         arg = {"D0": 1, "U0": 2, "D1": 3, "U1": 4}
         self.assertTrue(test_py_ordered_map(arg))

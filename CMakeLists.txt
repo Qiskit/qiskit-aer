@@ -223,6 +223,7 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/openpulse/cy)
 	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
+	add_subdirectory(src/simulators/open_pulse)
 else() # Standalone build
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 	set_target_properties(qasm_simulator PROPERTIES
@@ -240,5 +241,8 @@ endif()
 
 # Tests
 if(BUILD_TESTS)
-	add_subdirectory(test)
+	# These tests were meant to be as an example, or template for C++ specific
+	# code, but they're not being maintained, so we are disabling them until we
+	# have real C++ tests in the codebase.
+	# add_subdirectory(test)
 endif()
