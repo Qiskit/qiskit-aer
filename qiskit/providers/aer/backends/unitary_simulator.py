@@ -23,8 +23,9 @@ from qiskit.providers.models import QasmBackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-# pylint: disable=import-error
+# pylint: disable=import-error,no-name-in-module
 from .unitary_controller_wrapper import unitary_controller_execute
+# pylint: enable=import-error,no-name-in-module
 from ..version import __version__
 
 # Logger
