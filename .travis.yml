@@ -50,7 +50,7 @@ stage_linux: &stage_linux
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
-  osx_image: xcode11.2
+  osx_image: xcode10.2
   language: generic
   cache:
     pip: true
