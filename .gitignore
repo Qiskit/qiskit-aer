@@ -9,6 +9,7 @@
 # Ignore make and cython build files
 
 *.o
+*.a
 out/*
 *.so
 rhs*_op.pyx
