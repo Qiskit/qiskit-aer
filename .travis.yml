@@ -50,7 +50,7 @@ stage_linux: &stage_linux
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
-  osx_image: xcode10.2
+  osx_image: xcode11.2
   language: generic
   cache:
     pip: true
@@ -74,7 +74,7 @@ stage_osx: &stage_osx
         source venv/bin/activate
       fi
   script:
-    - python setup.py bdist_wheel -- -- -j4
+    - python setup.py bdist_wheel -- -CMAKE_VERBOSE_MAKEFILE=ON -j4
     - pip install dist/qiskit_aer*whl
     - python -m unittest discover -s test -v
 
