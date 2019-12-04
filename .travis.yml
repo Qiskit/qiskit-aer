@@ -10,7 +10,6 @@ cache:
   pip: true
   directories:
     - .stestr
-sudo: false
 
 ###############################################################################
 # Anchored and aliased definitions.
@@ -35,11 +34,8 @@ stage_generic: &stage_generic
 
 stage_linux: &stage_linux
   <<: *stage_generic
-  os: linux
-  dist: xenial
   language: python
-  python: 3.7
-  sudo: true
+  python: 3.8
   before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get -y update
@@ -112,6 +108,8 @@ jobs:
       name: Python Style and Linter
       <<: *stage_linux
       script:
+        - pip install flake8
+        - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         - pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
         - pylint -j 2 -rn qiskit/providers/aer
 
@@ -119,6 +117,13 @@ jobs:
     ###########################################################################
     # GNU/Linux, Python 3.7
     - stage: test
+      name: Python 3.8 Tests Linux
+      <<: *stage_linux
+      python: 3.8
+
+    # GNU/Linux, Python 3.7
+    - stage: test
+      if: type = cron
       name: Python 3.7 Tests Linux
       <<: *stage_linux
       python: 3.7
@@ -162,4 +167,3 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-
