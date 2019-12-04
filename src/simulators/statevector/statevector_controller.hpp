@@ -184,7 +184,7 @@ ExperimentData StatevectorController::run_circuit(const Circuit &circ,
   state.add_creg_to_data(data);
   
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg());
+  data.add_additional_data("statevector", state.qreg().vector());
 
   return data;
 }

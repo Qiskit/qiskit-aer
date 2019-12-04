@@ -17,6 +17,7 @@ Test circuits and reference outputs for measure instruction.
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.quantum_info.random import random_unitary
 
 
 def unitary_gate_circuits_deterministic(final_measure=True):
@@ -171,4 +172,44 @@ def unitary_gate_unitary_deterministic():
                              [0, 0, 0, -1j],
                              [0, 1j, 0, 0],
                              [1j, 0, 0, 0]]))
+    return targets
+
+def unitary_random_gate_circuits_nondeterministic(final_measure=True):
+    """Unitary gate test circuits with random unitary gate and nondeterministic count output."""
+
+    circuits = []
+
+    qr = QuantumRegister(2, 'qr')
+    if final_measure:
+        cr = ClassicalRegister(2, 'cr')
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # random 1
+    circuit = QuantumCircuit(*regs)
+    circuit.unitary(random_unitary(4, seed=1), [1, 0])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # random 2
+    circuit = QuantumCircuit(*regs)
+    circuit.unitary(random_unitary(4, seed=2), [1, 0])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+def unitary_random_gate_counts_nondeterministic():
+    """Unitary gate test circuits with nondeterministic counts."""
+    targets = []
+    # random unitary seed = 1
+    targets.append({'0x0': 930, '0x1': 330, '0x2': 680, '0x3': 60})
+    # random unitary seed = 2
+    targets.append({'0x0': 41, '0x1': 343, '0x2': 1056, '0x3': 560})
+    
     return targets
