@@ -68,7 +68,7 @@ Removed
 Fixed
 -----
 - Fix sdist to always attempt to build (\#401)
-- New (efficient) implementation for expectation_value_pauli (\#344)
+- New (efficient) implementation for expectation_value_pauli in MPS simulation method (\#344)
 
 
 [0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15
