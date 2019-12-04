@@ -245,7 +245,7 @@ class FakeJob(BaseJob):
 
 def new_fake_qobj():
     """Create fake `Qobj` and backend instances."""
-    backend = FakeQasmSimulator()
+    backend = FakeQasmSimulator()  # noqa: F821
     return QasmQobj(
         qobj_id='test-id',
         config=QasmQobjConfig(shots=1024, memory_slots=1, max_credits=100),
