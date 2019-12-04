@@ -6,7 +6,10 @@
 notifications:
   email: false
 
-cache: pip
+cache:
+  pip: true
+  directories:
+    - .stestr
 sudo: false
 
 ###############################################################################
@@ -42,10 +45,15 @@ stage_linux: &stage_linux
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
+  before_script:
+    - |
+      if [ ! "$(ls -A .stestr)" ]; then
+        rm -rf .stestr
+      fi
   script:
     - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
     - pip install dist/qiskit_aer*whl
-    - python -m unittest discover -s test -v
+    - stestr run --slowest
 
 stage_osx: &stage_osx
   <<: *stage_generic
@@ -56,11 +64,10 @@ stage_osx: &stage_osx
     pip: true
     directories:
       - ~/python-interpreters/
+      - .stestr
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
-#    - brew install python3
-#    - pip3 install virtualenv
     - |
       if [ ${TRAVIS_OS_NAME} = "osx" ]; then
         if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
@@ -73,11 +80,16 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
+  before_script:
+    - |
+      if [ ! "$(ls -A .stestr)" ]; then
+        rm -rf .stestr
+      fi
+
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
-    - python -m unittest discover -s test -v
-
+    - stestr run --slowest
 
 ###############################################################################
 # Stage-related definitions
