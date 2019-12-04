@@ -51,26 +51,28 @@ stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
   osx_image: xcode10.2
-  language: generic
+#  language: generic
+  language: python
+  python: 3.7
   cache:
     pip: true
     directories:
       - ~/python-interpreters/
-  before_install:
-    # Travis does not provide support for Python 3 under osx - it needs to be
+#  before_install:
+#    # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
-    - |
-      if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-        if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
-          git clone git://github.com/pyenv/pyenv.git
-          cd pyenv/plugins/python-build
-          ./install.sh
-          cd ../../..
-          python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
-        fi
-        virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
-        source venv/bin/activate
-      fi
+#    - |
+#      if [ ${TRAVIS_OS_NAME} = "osx" ]; then
+#        if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
+#          git clone git://github.com/pyenv/pyenv.git
+#          cd pyenv/plugins/python-build
+#          ./install.sh
+#          cd ../../..
+#          python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
+#        fi
+#        virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
+#        source venv/bin/activate
+#      fi
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
