@@ -22,8 +22,10 @@
 #include <complex>
 #include <type_traits>
 #include <Python.h>
+#ifdef DEBUG
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#endif
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
 #include "ordered_map.hpp"
