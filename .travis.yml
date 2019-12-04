@@ -76,6 +76,7 @@ stage_osx: &stage_osx
   script:
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
+    - pip install qiskit-ibmq-provider
     - python -m unittest discover -s test -v
 
 ###############################################################################
