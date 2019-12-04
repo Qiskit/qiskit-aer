@@ -21,6 +21,8 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 Added
 -----
 - Added high level pulse simulator tests (\#379)
+- Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
+
 Changed
 -------
 
