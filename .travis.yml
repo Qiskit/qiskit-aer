@@ -78,6 +78,7 @@ stage_osx: &stage_osx
     - pip install dist/qiskit_aer*whl
     - python -m unittest discover -s test -v
 
+
 ###############################################################################
 # Stage-related definitions
 ###############################################################################
