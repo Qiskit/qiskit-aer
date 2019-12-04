@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 cimport cython
-import numpy as np
 cimport numpy as np
 
 cdef extern from "src/numeric_integrator.hpp":

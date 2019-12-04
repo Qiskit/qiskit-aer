@@ -39,8 +39,7 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
-	"/Users/jgomez/valgrind/include"
-	"/Users/jgomez/valgrind"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
 
 # TODO: We may want to change the prefix path for all the environments
@@ -191,26 +190,33 @@ else()
 endif()
 
 
+# TODO: OpenPulse: Windows support for muparserx
 if(APPLE OR UNIX)
 	message(STATUS "Looking for muparserx library...")
-	#find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+
+	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib")
+	if(APPLE)
+		set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
+	endif()
+
+	find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
 	if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
 		message(FATAL_ERROR "No muparserx library found")
 	endif()
 	message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
 	# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-	file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+	# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
 endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
-		${OPENMP_EXTERNAL_LIB}
-	    ${BLAS_LIBRARIES}
-	    nlohmann_json
-		Threads::Threads
-		${SPDLOG_LIB}
-		${CMAKE_DL_LIBS}
-		${MUPARSERX_LIB})
+	${OPENMP_EXTERNAL_LIB}
+	${BLAS_LIBRARIES}
+	nlohmann_json
+	Threads::Threads
+	${SPDLOG_LIB}
+	${CMAKE_DL_LIBS}
+	${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build

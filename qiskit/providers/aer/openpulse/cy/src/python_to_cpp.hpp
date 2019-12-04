@@ -294,6 +294,24 @@ const ordered_map<std::string, ValueType> get_value(type<ordered_map<std::string
     return map;
 }
 
+
+template<>
+TermExpression get_value(type<TermExpression>_, PyObject * value) {
+    if(!check_is_tuple(value))
+        throw std::invalid_argument("PyObject is not a Tuple!");
+
+    if(PyTuple_Size(value) > 2)
+        throw std::invalid_argument("Tuples with more than 2 elements are not supported yet!!");
+
+    auto term = PyTuple_GetItem(value, 1); // 0 is first
+    if(term == nullptr)
+        throw std::invalid_argument("The tuple must have a second element");
+
+    auto term_expr = get_value<std::string>(term);
+    return TermExpression(term_expr);
+}
+
+
 template<typename VecType>
 class NpArray {
   public:
@@ -306,7 +324,8 @@ class NpArray {
 		_populate_shape(array);
 	}
 
-    std::vector<VecType> data;
+    VecType * data = nullptr;
+    size_t size = 0;
 
     /**
      * The shape of the array: like
@@ -321,17 +340,18 @@ class NpArray {
     }
 
     NpArray& operator=(const NpArray<VecType>& other){
-		data = other.data;
+		data = reinterpret_cast<VecType *>(other.data);
+        size = other.size;
 		shape = other.shape;
 		return *this;
 	}
 
     bool operator==(const NpArray<VecType>& other) const {
-        if(other.data.size() != data.size() ||
+        if(other.size != size ||
            other.shape.size() != shape.size())
            return false;
 
-        for(auto i = 0; i < other.data.size(); ++i){
+        for(auto i = 0; i < other.size; ++i){
             if(data[i] != other[i])
                 return false;
         }
@@ -360,33 +380,9 @@ class NpArray {
 		}
 	}
 
-	void _populate_data(PyArrayObject * array){
-	    /* Handle zero-sized arrays specially */
-	    auto num_elem = PyArray_SIZE(array);
-	    if(num_elem == 0){
-            data = {};
-		    return;
-	    }
-	    auto item_size = PyArray_ITEMSIZE(array);
-	    data.resize(num_elem);
-
-	    auto dims = array->dimensions[0];
-	    npy_intp* stride = array->strides;
-	    auto jump = (*stride) / item_size;
-	    VecType * _data = (VecType *)(array->data);
-	    for(int i = 0; i < dims; i++){
-		    data[i] = *_data;
-		    _data += jump;
-	    }
-
-        // if(item_size == 4 || item_size == 8 || item_size == 1){
-        //     std::cout << "item_size: " << item_size << "\n";
-        //     std::cout << "num_elem: " << num_elem << "\n";
-        //     for(const auto& e: data){
-        //         std::cout << e << " ";
-        //     }
-        //     std::cout << "\n\n";
-        // }
+    void _populate_data(PyArrayObject * array){
+        data = reinterpret_cast<VecType *>(array->data);
+        size = array->dimensions[0];
 	}
 };
 
@@ -409,16 +405,16 @@ PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     if(!check_is_dict(dict))
         throw std::invalid_argument("Python dictionary is null!");
 
-    PyObject * tmp_key;
-    PyObject * value;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(dict, &pos, &tmp_key, &value)) {
-        auto key_str = get_value<std::string>(tmp_key);
-        if(key_str == key){
-            return value;
-        }
-    }
-    return nullptr;
+    // PyObject * tmp_key;
+    // PyObject * value;
+    // Py_ssize_t pos = 0;
+    // while (PyDict_Next(dict, &pos, &tmp_key, &value)) {
+    //     auto key_str = get_value<std::string>(tmp_key);
+    //     if(key_str == key){
+    //         return value;
+    //     }
+    // }
+    return PyDict_GetItemString(dict, key.c_str());
 }
 
 
@@ -510,61 +506,5 @@ ValueType get_value_from_dict_item(PyObject * dict, const std::string& item_key)
 
     return get_value<ValueType>(py_value);
 }
-
-
-
-/**
- * Fast CSR Matrix representation
- **/
-class FastCsrMatrix{
-  public:
-    FastCsrMatrix(){}
-    FastCsrMatrix(PyObject * obj){
-        auto dict = PyObject_GenericGetDict(obj, nullptr);
-        data = get_value_from_dict_item<NpArray<complex_t>>(dict, "data");
-        indices = get_value_from_dict_item<NpArray<long>>(dict, "indices");
-        indptr = get_value_from_dict_item<NpArray<long>>(dict, "indptr");
-
-    }
-    NpArray<complex_t> data;
-    NpArray<long> indices;
-    NpArray<long> indptr;
-};
-
-/**
- * This is the Qutip Quantum Object repesentation
- **/
-class QuantumObj {
-    public:
-	QuantumObj(){}
-	QuantumObj(PyObject * obj){
-        auto dict = PyObject_GenericGetDict(obj, nullptr);
-		data = get_value_from_dict_item<FastCsrMatrix>(dict, "_data");
-		is_hermitian = static_cast<bool>(get_value_from_dict_item<long>(dict, "_isherm"));
-		type = get_value_from_dict_item<std::string>(dict, "_type");
-		super_rep = get_value_from_dict_item<std::string>(dict, "superrep");
-		is_unitary = static_cast<bool>(get_value_from_dict_item<long>(dict, "_isunitary"));
-		dims = get_value_from_dict_item<std::vector<std::vector<long>>>(dict, "dims");
-	}
-
-    FastCsrMatrix data;
-    bool is_hermitian;
-    std::string type;
-    std::string super_rep;
-    bool is_unitary;
-    std::vector<std::vector<long>> dims;
-};
-
-
-template<>
-QuantumObj get_value(type<QuantumObj>_, PyObject * value) {
-    return QuantumObj(value);
-}
-
-template<>
-FastCsrMatrix get_value(type<FastCsrMatrix>_, PyObject * value) {
-    return FastCsrMatrix(value);
-}
-
 
 #endif //_PYTHON_TO_CPP_HPP

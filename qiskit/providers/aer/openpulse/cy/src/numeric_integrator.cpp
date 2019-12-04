@@ -5,9 +5,11 @@
 #include <memory>
 #include <Python.h>
 #include <numpy/arrayobject.h>
+#ifdef DEBUG
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <callgrind/callgrind.h>
+#endif
 #include "numeric_integrator.hpp"
 #include "python_to_cpp.hpp"
 
@@ -97,8 +99,10 @@ PyArrayObject * create_py_array_from_vector(
     npy_intp dims = num_rows;
     PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
     PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
+    #ifdef DEBUG 
     CALLGRIND_STOP_INSTRUMENTATION;
     CALLGRIND_DUMP_STATS;
+    #endif
     return array;
 }
 
@@ -111,7 +115,9 @@ PyArrayObject * td_ode_rhs(
     PyObject * py_channels,
     PyObject * py_register){
 
+    #ifdef DEBUG
     CALLGRIND_START_INSTRUMENTATION;
+    #endif
 
     const static auto numpy_initialized = init_numpy();
 
@@ -164,7 +170,7 @@ PyArrayObject * td_ode_rhs(
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-    auto systems = get_value<std::vector<std::pair<QuantumObj, std::string>>>(py_system);
+    auto systems = get_value<std::vector<TermExpression>>(py_system);
     auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
     auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
     auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
@@ -175,12 +181,14 @@ PyArrayObject * td_ode_rhs(
     for(const auto& idx_sys : enumerate(systems)){
         auto sys_index = idx_sys.first;
         auto sys = idx_sys.second;
+
         // TODO: Refactor
         std::string term;
         if(sys_index == systems.size() && num_h_terms > systems.size()){
             term = "1.0";
         }else if(sys_index < systems.size()){
-            term = sys.second;
+            //term = sys.second;
+            term = sys.term;
         }else{
             continue;
         }
