@@ -13,12 +13,14 @@
 #include "numeric_integrator.hpp"
 #include "python_to_cpp.hpp"
 
+#ifdef DEBUG
 class Unregister {
   public:
     ~Unregister(){
         spdlog::drop_all();
     }
 };
+#endif
 
 /**
  * Python // operator-like division
@@ -99,7 +101,7 @@ PyArrayObject * create_py_array_from_vector(
     npy_intp dims = num_rows;
     PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
     PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
-    #ifdef DEBUG 
+    #ifdef DEBUG
     CALLGRIND_STOP_INSTRUMENTATION;
     CALLGRIND_DUMP_STATS;
     #endif
