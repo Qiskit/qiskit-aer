@@ -27,6 +27,7 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
+from warnings import warn
 
 
 def digest_pulse_obj(qobj_input, backend_options, noise_model):
@@ -64,11 +65,11 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     # Warnings for untested features
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if 'osc' in hamiltonian.keys():
-        raise Warning(warning_str.format('Oscillator-type systems'))
+        warn(warning_str.format('Oscillator-type systems'))
     if noise_model is not None:
-        raise Warning(warning_str.format('Noise models'))
+        warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj['experiments']):
-        raise Warning(warning_str.format('PersistentValue instructions'))
+        warn(warning_str.format('PersistentValue instructions'))
 
     # Get qubit number
     qubit_list = config_dict_sim.get('qubit_list', None)
