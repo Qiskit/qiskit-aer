@@ -27,6 +27,4 @@ endif()
 
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/openpulse/cy/")
 add_cython_module(numeric_integrator_wrapper numeric_integrator.cpp)
-if(BUILD_TESTS)
-    add_cython_module(test_python_to_cpp)
-endif()
+add_cython_module(test_python_to_cpp)
