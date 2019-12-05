@@ -81,7 +81,7 @@ def digest_pulse_obj(qobj):
 
     out.global_data['seed'] = None
     if 'seed' in config_keys:
-        out.global_data['seed'] = int(config_dict['seed'])
+        out.global_data['seed'] = int(config_dict_sim['seed'])
 
     if 'memory_slots' in config_keys:
         out.global_data['memory_slots'] = config_dict['memory_slots']
