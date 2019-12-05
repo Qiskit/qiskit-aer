@@ -263,6 +263,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['qubit_list'] = [self.qubit_0]
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
+        backend_options['seed'] = 90841
         return backend_options
 
     def backend_options_2q(self, omega_0, omega_a, omega_i, qub_dim=2):
@@ -283,6 +284,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['qubit_list'] = [self.qubit_0, self.qubit_1]
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
+        backend_options['seed'] = 12387
         return backend_options
 
     def qobj_params_1q(self, omega_d0):
@@ -684,6 +686,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop_shift = self._analytic_prop_fc(np.pi / 4 - np.pi / 8)
         self.assertDictAlmostEqual(prop_shift, exp_prop_shift, delta=0.01)
 
+    '''
+    Commented out as PersistentValue pulses currently not supported.
     def test_persistent_value(self):
         """Test persistent value command. """
 
@@ -710,7 +714,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_result = {'1': shots}
 
         self.assertDictAlmostEqual(counts, exp_result)
-
+    '''
     # ---------------------------------------------------------------------
     # Test higher energy levels (take 3 level system for simplicity,
     # use square drive)
