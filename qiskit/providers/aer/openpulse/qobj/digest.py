@@ -61,6 +61,24 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
         raise ValueError('Qobj must have hamiltonian in config to simulate.')
     hamiltonian = config_dict_sim['hamiltonian']
 
+    # Warnings for untested features
+    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
+    if 'osc' in hamiltonian.keys():
+        raise Warning(warning_str.format('Oscillator-type systems'))
+    if noise_model is not None:
+        raise Warning(warning_str.format('Noise models'))
+    # check for persistent value pulses; if there is one, raise a Warning
+    contains_pv_inst = False
+    for experiment in qobj['experiments']:
+        for inst in exp['instructions']:
+            if inst['name'] == 'pv':
+                contains_pv_inst = True
+                break
+        if contains_pv_inst:
+             break
+    if contains_pv_inst:
+        raise Warning(warning_str.format('PersistentValue instructions'))
+
     # Get qubit number
     qubit_list = config_dict_sim.get('qubit_list', None)
     if qubit_list is None:
