@@ -78,7 +78,7 @@ public:
     data_.push_back(data1);
   }
 
-  MPS_Tensor(const vector<cmatrix_t> &data){
+  MPS_Tensor(const std::vector<cmatrix_t> &data){
     if (!data_.empty())
       data_.clear();
     for (uint_t i=0; i<data.size(); i++)
@@ -96,13 +96,13 @@ public:
     }
     return *this;
   }
-  virtual ostream& print(ostream& out) const;
+  virtual std::ostream& print(std::ostream& out) const;
   reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
   }
-  const vector<cmatrix_t> get_data() const {
+  const std::vector<cmatrix_t> get_data() const {
     return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
@@ -116,6 +116,7 @@ public:
   uint_t get_dim() const {
     return data_.size();
   }
+  void apply_pauli(char gate);
   void apply_x();
   void apply_y();
   void apply_z();
@@ -136,15 +137,19 @@ public:
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
-  static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma);
+  static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma, bool mul_by_lambda);
   static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
-  static void reshape_for_3_qubits_before_SVD(const vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
+  static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
+static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
+				  const MPS_Tensor &right_gamma,
+				  cmatrix_t &result);
+
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
 			   bool mul    /* or div */);
 
-  vector<cmatrix_t> data_;
+  std::vector<cmatrix_t> data_;
 };
 
 //=========================================================================
@@ -155,10 +160,10 @@ private:
 // function name: print
 // Description: Prints the Tensor. All the submatrices are aligned by rows.
 //-------------------------------------------------------------
-ostream& MPS_Tensor::print(ostream& out) const {
+std::ostream& MPS_Tensor::print(std::ostream& out) const {
     complex_t value;
 
-    out << "[" << endl;
+    out << "[" << std::endl;
     if (data_.size() > 0){
         //Printing the matrices row by row (i.e., not matrix by matrix)
 
@@ -176,10 +181,10 @@ ostream& MPS_Tensor::print(ostream& out) const {
                 }
                 out << "| ,";
             }
-            out << endl;
+            out << std::endl;
         }
     }
-    out << "]" << endl;
+    out << "]" << std::endl;
 
     return out;
 }
@@ -227,6 +232,24 @@ void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
     data_[i](a1,a2) = data[i];
 }
 
+void MPS_Tensor::apply_pauli(char gate) {
+  switch (gate) {
+  case 'X':
+     apply_x();
+     break;
+  case 'Y':
+     apply_y();
+     break;
+  case 'Z':
+     apply_z();
+     break;
+  case 'I':
+     break;
+  default:
+     throw std::invalid_argument("illegal gate for contract_with_self"); 
+  }
+
+}
 //---------------------------------------------------------------
 // function name: apply_x,y,z,...
 // Description: Apply some gate on the tensor. tensor must represent
@@ -236,13 +259,13 @@ void MPS_Tensor::insert_data(uint_t a1, uint_t a2, cvector_t data)
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  swap(data_[0],data_[1]);
+  std::swap(data_[0],data_[1]);
 }
   void MPS_Tensor::apply_y()
   {
     data_[0] = data_[0] * complex_t(0, 1);
     data_[1] = data_[1] * complex_t(0, -1);
-    swap(data_[0],data_[1]);
+    std::swap(data_[0],data_[1]);
   }
 
 void MPS_Tensor::apply_z()
@@ -295,14 +318,14 @@ void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped)
 void MPS_Tensor::apply_cnot(bool swapped)
 {
   if(!swapped)
-    swap(data_[2],data_[3]);
+    std::swap(data_[2],data_[3]);
   else
-    swap(data_[1],data_[3]);
+    std::swap(data_[1],data_[3]);
 }
 
 void MPS_Tensor::apply_swap()
 {
-  swap(data_[1],data_[2]);
+  std::swap(data_[1],data_[2]);
 }
 
 void MPS_Tensor::apply_cz()
@@ -382,17 +405,85 @@ void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 // 	       tensors to contract.
 // Returns: The result tensor of the contract
 //---------------------------------------------------------------
-MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma)
+MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma, 
+				const rvector_t &lambda, 
+				const MPS_Tensor &right_gamma,
+				bool mul_by_lambda=true)
 {
   MPS_Tensor Res;
   MPS_Tensor new_left = left_gamma;
-  new_left.mul_Gamma_by_right_Lambda(lambda);
+  if (mul_by_lambda) {
+    new_left.mul_Gamma_by_right_Lambda(lambda);
+  }
   for(uint_t i = 0; i < new_left.data_.size(); i++)
-    for(uint_t j = 0; j < right_gamma.data_.size(); j++)
+    for(uint_t j = 0; j < right_gamma.data_.size(); j++) {
+
       Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
+    }
   return Res;
 }
 
+//---------------------------------------------------------------
+// Function name: contract_2_dimensions
+// Description: Contract two Gamma tensors across 2 dimensions: left_columns/right_rows and
+//                                                              left_size/right_size
+// Parameters: MPS_Tensor &left_gamma, &right_gamma - the tensors to contract.
+// Returns: The result matrix of the contract
+// Assumptions:
+//   1. We assume lambda was already multiplied into the gammas before this function
+//   2. We assume the tensors (t1 and t2) are of the form:
+//      t1   
+//      o--a1--o
+//     ||
+//      o--a2--o
+//      t2
+//  There is a double bond between tensor 1 and 2, and each of them has an additional bond of 
+//  dimension a1 and a2 respectively. The result matrix will be of size a2 x a1
+//---------------------------------------------------------------
+void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma, 
+			               const MPS_Tensor &right_gamma,
+				       cmatrix_t &result)
+{
+  int_t left_rows = left_gamma.data_[0].GetRows();
+  int_t left_columns = left_gamma.data_[0].GetColumns();
+  int_t left_size = left_gamma.get_dim();
+  int_t right_rows = right_gamma.data_[0].GetRows();
+  int_t right_columns = right_gamma.data_[0].GetColumns();
+  int_t right_size = right_gamma.get_dim();
+
+  // left_columns/right_rows and left_size/right_size
+  if (left_columns != right_rows)   
+    throw std::runtime_error("left_columns != right_rows");
+
+  if (left_size != right_size)
+    throw std::runtime_error("left_size != right_size");
+  result.resize(left_rows, right_columns);
+
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(2)
+  #endif
+  for (int_t l_row=0; l_row<left_rows; l_row++)
+    for (int_t r_col=0; r_col<right_columns; r_col++)
+      result(l_row, r_col) = 0;
+  
+  #ifdef _WIN32
+     #pragma omp parallel for
+  #else
+     #pragma omp parallel for collapse(2)
+  #endif
+  for (int_t l_row=0; l_row<left_rows; l_row++)
+    for (int_t r_col=0; r_col<right_columns; r_col++) {
+
+      for (int_t size=0; size<left_size; size++)
+	  for (int_t index=0; index<left_columns ; index++) {
+ 	      result(l_row, r_col) += left_gamma.data_[size](l_row, index) *
+		                      right_gamma.data_[size](index, r_col);      
+
+	    }
+	  }
+}
 //---------------------------------------------------------------
 // function name: Decompose
 // Description: Decompose a tensor into two Gamma tensors and the Lambda between
@@ -407,23 +498,23 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   matrix<complex_t> C;
   C = reshape_before_SVD(temp.data_);
   matrix<complex_t> U,V;
-  rvector_t S(min(C.GetRows(), C.GetColumns()));
+  rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
 #ifdef DEBUG
-  cout << "Input matrix before SVD =" << endl << C ;
+  std::cout << "Input matrix before SVD =" << std::endl << C ;
 #endif
 
   csvd_wrapper(C, U, S, V);
   reduce_zeros(U, S, V);
 
 #ifdef DEBUG
-  cout << "matrices after SVD:" <<endl;
-  cout << "U = " << endl << U ;
-  cout << "S = " << endl;
+  std::cout << "matrices after SVD:" <<std::endl;
+  std::cout << "U = " << std::endl << U ;
+  std::cout << "S = " << std::endl;
   for (uint_t i = 0; i != S.size(); ++i)
-    cout << S[i] << " , ";
-  cout << endl;
-  cout << "V* = " << endl << V ;
+    std::cout << S[i] << " , ";
+  std::cout << std::endl;
+  std::cout << "V* = " << std::endl << V ;
 #endif
 
   left_gamma.data_  = reshape_U_after_SVD(U);
@@ -431,26 +522,19 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   right_gamma.data_ = reshape_V_after_SVD(V);
 }
 
-void MPS_Tensor::reshape_for_3_qubits_before_SVD(const vector<cmatrix_t> data, 
+  void MPS_Tensor::reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, 
 				     MPS_Tensor &reshaped_tensor)
 {
 // Turns 4 matrices A0,A1,A2,A3,A4,A5,A6,A7 to big matrix:
 //  A0 A1 A2 A3
 //  A4 A5 A6 A7
-/*  cmatrix_t temp0_1 = AER::Utils::concatenate(data[0], data[1], 1),
-            temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
-            temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
-            temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
-  cmatrix_t temp0_1_2_3 = AER::Utils::concatenate(temp0_1, temp2_3, 1);
-  cmatrix_t temp4_5_6_7 = AER::Utils::concatenate(temp4_5, temp6_7, 1);
-  
-  return AER::Utils::concatenate(temp0_1_2_3, temp4_5_6_7, 0);*/
+
   cmatrix_t temp0_1 = AER::Utils::concatenate(data[0], data[1], 1),
             temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
             temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
             temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
   std::cout << temp0_1 ;
-  vector<cmatrix_t> new_data_vector;
+  std::vector<cmatrix_t> new_data_vector;
   new_data_vector.push_back(temp0_1);
   new_data_vector.push_back(temp2_3);
   new_data_vector.push_back(temp4_5);
