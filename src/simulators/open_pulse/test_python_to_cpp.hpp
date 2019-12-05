@@ -21,8 +21,6 @@
 #include <complex>
 #include <Python.h>
 #include <iostream>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
 #include <numpy/arrayobject.h>
 #include "python_to_cpp.hpp"
 
