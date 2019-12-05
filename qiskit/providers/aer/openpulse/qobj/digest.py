@@ -17,6 +17,7 @@
 into something we can actually use.
 """
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -27,7 +28,6 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
-from warnings import warn
 
 
 def digest_pulse_obj(qobj_input, backend_options, noise_model):
@@ -310,6 +310,7 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
         qobj_dict['config']['backend_options']['noise_model'] = noise_model
     return qobj_dict
 
+
 def _contains_pv_instruction(experiments):
     """ Return True if the list of experiments from the output of _format_qobj_dict contains
     a PersistentValue instruction
@@ -318,7 +319,7 @@ def _contains_pv_instruction(experiments):
         experiments (list): list of schedules
 
     Returns:
-        boolean
+        True or False: whether or not the schedules contain a PersistentValue command
 
     Raises:
     """
@@ -327,6 +328,7 @@ def _contains_pv_instruction(experiments):
             if inst['name'] == 'pv':
                 return True
     return False
+
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     """ Get the diagonal elements of the hamiltonian and get the
