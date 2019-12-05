@@ -121,21 +121,48 @@ public:
   cmatrix_t density_matrix(const reg_t &qubits) const;
   rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
-  //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
-  double expectation_value(const reg_t &qubits, const string &matrices) const;
+  //---------------------------------------------------------------
+  // Function: expectation_value
+  // Description: Computes expectation value of the given qubits on the given matrix.
+  // Parameters: The qubits for which we compute expectation value.
+  //             M - the matrix
+  // Returns: The expectation value. 
+  //------------------------------------------------------------------
   double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+
+  //---------------------------------------------------------------
+  // Function: expectation_value_pauli
+  // Description: Computes expectation value of the given qubits on a string of Pauli matrices.
+  // Parameters: The qubits for which we compute expectation value.
+  //             A string of matrices of the set {X, Y, Z, I}. The matrices are given in 
+  //             reverse order relative to the qubits.
+  // Returns: The expectation value in the form of a complex number. The real part is the 
+  //          actual expectation value.
+  //------------------------------------------------------------------
+  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
+
+  //------------------------------------------------------------------
+  // function name: MPS_with_new_indices
+  // Description: Creates a copy of *this where the indices of the
+  //   selected qubits have been moved for more efficient computation
+  //   of the expectation value
+  // Parameters: The qubits for which we compute expectation value.
+  // Returns: new MPS.
+  //----------------------------------------------------------------
+  void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
+			    uint_t &front, uint_t &back) const;
 
   //----------------------------------------------------------------
   // function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------
-   virtual ostream&  print(ostream& out) const;
+  virtual std::ostream&  print(std::ostream& out) const;
 
    //----------------------------------------------------------------
    // function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
-   vector<reg_t> get_matrices_sizes() const;
+  std::vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
   // function name: state_vec_as_MPS
@@ -176,7 +203,7 @@ public:
   }
 
   void enable_gate_opt() {
-    cout << "enable_gate_opt not supported yet" <<endl;
+    std::cout << "enable_gate_opt not supported yet" <<std::endl;
   }
 
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
@@ -239,8 +266,8 @@ protected:
   void change_position(uint_t src, uint_t dst);
 
   uint_t num_qubits_;
-  vector<MPS_Tensor> q_reg_;
-  vector<rvector_t> lambda_reg_;
+  std::vector<MPS_Tensor> q_reg_;
+  std::vector<rvector_t> lambda_reg_;
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
@@ -251,7 +278,7 @@ protected:
                                     // in JSON serialization
 };
 
-inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
+inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   out << "[";
   uint_t size = vec.size();
   for (uint_t i = 0; i < size-1; ++i) {
@@ -262,7 +289,7 @@ inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   return out;
 }
 
-inline ostream&
+inline std::ostream&
 operator <<(std::ostream& out, const MPS& mps)
 {
   return mps.print(out);

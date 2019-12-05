@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
 
 Changed
 -------
@@ -29,6 +30,8 @@ Removed
 
 Fixed
 -----
+- MPS simulation method: fixed computation of snapshot_probabilities 
+ on subsets of the qubits, in any ordering (\#424)
 
 [0.3.3](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...0.3.3) - 2019-11-14
 ====================================================================================
@@ -68,7 +71,7 @@ Removed
 Fixed
 -----
 - Fix sdist to always attempt to build (\#401)
-
+- New (efficient) implementation for expectation_value_pauli in MPS simulation method (\#344)
 
 
 [0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15
