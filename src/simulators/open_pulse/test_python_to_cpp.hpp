@@ -59,7 +59,7 @@ bool cpp_test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_ve
 bool cpp_test_np_array_of_doubles(PyArrayObject * val){
     // val = np.array([0., 1., 2., 3.])
     auto vec = get_value<NpArray<double>>(val);
-    if(vec[0] != 0. || vec[1] != 1. || vec[2] != 2. || vec[3] != 3.)
+    if(vec[0] != 0. || vec[1] != 1. || vec[2] != 2. || vec[3] != 3.)
         return false;
 
     return true;
