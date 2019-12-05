@@ -67,16 +67,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
         raise Warning(warning_str.format('Oscillator-type systems'))
     if noise_model is not None:
         raise Warning(warning_str.format('Noise models'))
-    # check for persistent value pulses; if there is one, raise a Warning
-    contains_pv_inst = False
-    for experiment in qobj['experiments']:
-        for inst in exp['instructions']:
-            if inst['name'] == 'pv':
-                contains_pv_inst = True
-                break
-        if contains_pv_inst:
-             break
-    if contains_pv_inst:
+    if _contains_pv_instruction(qobj['experiments']):
         raise Warning(warning_str.format('PersistentValue instructions'))
 
     # Get qubit number
@@ -318,6 +309,23 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
         qobj_dict['config']['backend_options']['noise_model'] = noise_model
     return qobj_dict
 
+def _contains_pv_instruction(experiments):
+    """ Return True if the list of experiments from the output of _format_qobj_dict contains
+    a PersistentValue instruction
+
+    Parameters:
+        experiments (list): list of schedules
+
+    Returns:
+        boolean
+
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'pv':
+                return True
+    return False
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
     """ Get the diagonal elements of the hamiltonian and get the
