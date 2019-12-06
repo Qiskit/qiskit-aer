@@ -263,7 +263,6 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qiskit.providers.aer.openpulse.qutip_lite.cy.spmatfuncs cimport spmvpy
-from qiskit.providers.aer.openpulse.qutip_lite.cy.math cimport erf
 from libc.math cimport pi
 
 from qiskit.providers.aer.openpulse.cy.channel_value cimport chan_value

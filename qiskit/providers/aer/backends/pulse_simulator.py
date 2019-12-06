@@ -77,9 +77,7 @@ class PulseSimulator(AerBackend):
         if validate:
             self._validate(qobj, backend_options, noise_model)
         # Send to solver
-        qobj_dict = self._format_qobj_dict(qobj, backend_options,
-                                           noise_model)
-        openpulse_system = digest_pulse_obj(qobj_dict)
+        openpulse_system = digest_pulse_obj(qobj, backend_options, noise_model)
         results = opsolve(openpulse_system)
         end = time.time()
         return self._format_results(job_id, results, end - start, qobj.qobj_id)
@@ -97,38 +95,6 @@ class PulseSimulator(AerBackend):
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
-
-    def _format_qobj_dict(self, qobj, backend_options, noise_model):
-        """Add additional fields to qobj dictionary"""
-        # Convert qobj to dict and add additional fields
-        qobj_dict = qobj.to_dict()
-        if 'backend_options' not in qobj_dict['config']:
-            qobj_dict['config']['backend_options'] = {}
-
-        # Temp backwards compatibility
-        if 'sim_config' in qobj_dict['config']:
-            for key, val in qobj_dict['config']['sim_config'].items():
-                qobj_dict['config']['backend_options'][key] = val
-            qobj_dict['config'].pop('sim_config')
-
-        # Add additional backend options
-        if backend_options is not None:
-            for key, val in backend_options.items():
-                qobj_dict['config']['backend_options'][key] = val
-        # Add noise model
-        if noise_model is not None:
-            qobj_dict['config']['backend_options']['noise_model'] = noise_model
-        return qobj_dict
-
-    def get_dressed_energies(self, qobj,
-                             backend_options=None,
-                             noise_model=None):
-        """Digest the pulse qobj and return the eigenenergies
-        of the Hamiltonian"""
-        qobj_dict = self._format_qobj_dict(qobj, backend_options,
-                                           noise_model)
-        openpulse_system = digest_pulse_obj(qobj_dict)
-        return openpulse_system.evals, openpulse_system.estates
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the pulse object. Make sure a

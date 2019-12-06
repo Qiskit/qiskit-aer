@@ -14,3 +14,4 @@
 
 from . import qobj_utils
 from . import helpers
+from . import pulse_sim_utils
