@@ -17,6 +17,7 @@
 into something we can actually use.
 """
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -60,6 +61,15 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     if 'hamiltonian' not in config_dict_sim:
         raise ValueError('Qobj must have hamiltonian in config to simulate.')
     hamiltonian = config_dict_sim['hamiltonian']
+
+    # Warnings for untested features
+    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
+    if 'osc' in hamiltonian.keys():
+        warn(warning_str.format('Oscillator-type systems'))
+    if noise_model is not None:
+        warn(warning_str.format('Noise models'))
+    if _contains_pv_instruction(qobj['experiments']):
+        warn(warning_str.format('PersistentValue instructions'))
 
     # Get qubit number
     qubit_list = config_dict_sim.get('qubit_list', None)
@@ -299,6 +309,22 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
     if noise_model is not None:
         qobj_dict['config']['backend_options']['noise_model'] = noise_model
     return qobj_dict
+
+
+def _contains_pv_instruction(experiments):
+    """ Return True if the list of experiments from the output of _format_qobj_dict contains
+    a PersistentValue instruction
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain a PersistentValue command
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'pv':
+                return True
+    return False
 
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
