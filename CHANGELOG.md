@@ -30,6 +30,7 @@ Removed
 
 Fixed
 -----
+- Fixes bug where cu3 was being applied as cu1 for unitary_simulator (\#483)
 
 [0.3.3](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...0.3.3) - 2019-11-14
 ====================================================================================
