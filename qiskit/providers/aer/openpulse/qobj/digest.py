@@ -502,7 +502,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
             # If last pulse on channel was a PV then need to set
             # its final time to be start time of current pulse
             if pv_needs_tf[ham_chans[chan_name]]:
-                structs['channels'][chan_name][0][-3] = inst['t0']
+                structs['channels'][chan_name][0][-3] = inst['t0'] * dt
                 pv_needs_tf[ham_chans[chan_name]] = 0
 
             # Get condtional info
@@ -517,16 +517,16 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                     if pv[0] == inst['val']:
                         index = pv[1]
                         break
-                structs['channels'][chan_name][0].extend([inst['t0'], None, index, cond])
+                structs['channels'][chan_name][0].extend([inst['t0'] * dt, None, index, cond])
                 pv_needs_tf[ham_chans[chan_name]] = 1
 
             # Frame changes
             elif inst['name'] == 'fc':
-                structs['channels'][chan_name][1].extend([inst['t0'], inst['phase'], cond])
+                structs['channels'][chan_name][1].extend([inst['t0'] * dt, inst['phase'], cond])
 
             # A standard pulse
             else:
-                start = inst['t0']
+                start = inst['t0'] * dt
                 pulse_int = pulse_to_int[inst['name']]
                 pulse_width = (pulse_inds[pulse_int + 1] - pulse_inds[pulse_int]) * dt
                 stop = start + pulse_width
@@ -551,7 +551,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                             qlist2.append(qb)
                             mlist2.append(inst['memory_slot'][qind])
 
-                acq_vals = [inst['t0'],
+                acq_vals = [inst['t0'] * dt,
                             np.asarray(qlist2, dtype=np.uint32),
                             np.asarray(mlist2, dtype=np.uint32)
                             ]
@@ -563,15 +563,15 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 structs['acquire'].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'] + dt * inst['duration'])
+                max_time = max(max_time, (inst['t0'] + inst['duration']) * dt)
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
             # conditionals
             elif inst['name'] == 'bfunc':
-                bfun_vals = [inst['t0'], inst['mask'], inst['relation'],
+                bfun_vals = [inst['t0'] * dt, inst['mask'], inst['relation'],
                              inst['val'], inst['register']]
                 if 'memory' in inst.keys():
                     bfun_vals.append(inst['memory'])
@@ -581,24 +581,24 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 structs['cond'].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'])
+                max_time = max(max_time, inst['t0'] * dt)
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
             # snapshots
             elif inst['name'] == 'snapshot':
                 if inst['type'] != 'state':
                     raise TypeError("Snapshots must be of type 'state'")
-                structs['snapshot'].append([inst['t0'], inst['label']])
+                structs['snapshot'].append([inst['t0'] * dt, inst['label']])
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'])
+                max_time = max(max_time, inst['t0'] * dt)
 
     # If any PVs still need time then they are at the end
     # and should just go til final time

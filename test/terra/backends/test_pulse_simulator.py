@@ -344,6 +344,43 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
 
+    def test_dt_scaling_x_gate(self):
+        """
+        Test that dt is being used correctly by the simulator
+        """
+
+        # do the same thing as test_x_gate, but scale dt and all frequency parameters
+        # define test case for a single scaling
+        def scale_test(scale):
+            # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+            omega_0 = 2 * np.pi * self.freq_qubit_0/scale
+            omega_d0 = omega_0
+
+            # Require omega_a*time = pi to implement pi pulse (x gate)
+            # num of samples gives time
+            omega_a = np.pi / self.drive_samples/scale
+
+            phi = 0
+
+            x_schedule = self.single_pulse_schedule(phi)
+            x_qobj_params = self.qobj_params_1q(omega_d0)
+            x_qobj = self.create_qobj(shots=256,
+                                      meas_level=2,
+                                      schedule=x_schedule,
+                                      qobj_params=x_qobj_params)
+            x_backend_opts = self.backend_options_1q(omega_0, omega_a)
+            x_backend_opts['dt'] = x_backend_opts['dt']*scale
+            result = self.backend_sim.run(x_qobj,
+                                          backend_options=x_backend_opts).result()
+            counts = result.get_counts()
+            exp_counts = {'1': 256}
+
+            self.assertDictAlmostEqual(counts, exp_counts)
+        # set scales and run tests
+        scales = [2.,1.3453, 0.1234, 10.**5,10**-5]
+        for scale in scales:
+            scale_test(scale)
+
     def test_x_gate(self):
         """
         Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
