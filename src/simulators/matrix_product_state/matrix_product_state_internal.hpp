@@ -181,7 +181,7 @@ public:
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
-  void probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -245,13 +245,11 @@ protected:
   // computations involving a subset of the qubits.
   // Parameters: input: new_MPS - the MPS with the shifted qubits
   //                    qubits - the subset of qubits
-  //            output: new_first, new_last - new positions of the 
+  //             Returns: new_first, new_last - new positions of the 
   //                    first and last qubits respectively
-  //                    ordered - are the qubits in ascending order
-  // Returns: none.
   //----------------------------------------------------------------
   void centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
-			 uint_t &new_first, uint_t &new_last, bool &ordered) const;
+			 uint_t &new_first, uint_t &new_last) const;
   //----------------------------------------------------------------
 
   // function name: change_position

@@ -71,7 +71,7 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index);
 //    This function converts the statevector from one representation to the other.
 //    This is a special case of reorder_qubits
 // Input: the input statevector and the number of qubits
-// Output: the statevector in reverse order
+// Returns: the statevector in reverse order
 //----------------------------------------------------------------	
 template <class T>
 std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits);
@@ -428,9 +428,9 @@ void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat)
 }
 
 void MPS::centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
-			    uint_t &new_first, uint_t &new_last, bool & ordered ) const {
+			    uint_t &new_first, uint_t &new_last) const {
   new_MPS.initialize(*this);
-  ordered = true;
+  bool ordered = true;
 
   if (qubits.size() == 1) {
     new_first = qubits[0];
@@ -454,7 +454,7 @@ void MPS::centralize_qubits(MPS & new_MPS, const reg_t &qubits,
   std::vector<uint_t> new_indexes = calc_new_indexes(internalIndexes);
   
   uint_t avg = new_indexes[new_indexes.size()/2];
-  std::vector<uint_t>::iterator it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
+  auto it = lower_bound(internalIndexes.begin(), internalIndexes.end(), avg);
   int mid = std::distance(internalIndexes.begin(), it);
   for(uint_t i = mid; i < internalIndexes.size(); i++)
   {
@@ -484,8 +484,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
 {
   MPS temp_MPS;
   uint_t new_first=0, new_last=0;
-  bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
+  centralize_qubits(temp_MPS, qubits, new_first, new_last);
 
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_first, new_last);
   uint_t size = psi.get_dim();
@@ -508,8 +507,7 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
 {
   MPS temp_MPS;
   uint_t new_first=0, new_last=0;
-  bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
+  centralize_qubits(temp_MPS, qubits, new_first, new_last);
 
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_first, new_last);
   uint_t size = psi.get_dim();
@@ -708,8 +706,7 @@ std::vector<reg_t> MPS::get_matrices_sizes() const
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) const {
   MPS temp_MPS;
   uint_t new_first=0, new_last=0;
-  bool ordered = true;
-  centralize_qubits(temp_MPS, qubits, new_first, new_last, ordered);
+  centralize_qubits(temp_MPS, qubits, new_first, new_last);
   return temp_MPS.state_vec_as_MPS(new_first, new_last);
 }
 
@@ -750,7 +747,7 @@ void MPS::full_state_vector(cvector_t& statevector) const
 #endif
 }
 
-void MPS::probabilities_vector(rvector_t& probvector, 
+void MPS::get_probabilities_vector(rvector_t& probvector, 
 			       const reg_t &qubits) const
 {
   cvector_t state_vec;
@@ -758,65 +755,14 @@ void MPS::probabilities_vector(rvector_t& probvector,
   uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
   probvector.resize(length);
 
-  bool ordered = true;
-  for (uint_t index=0; index < num_qubits-1; index++) {
-    if (qubits[index] > qubits[index+1]){
-      ordered = false;
-      break;
-    }
-  }
-  bool reverse_ordered = true;
-  for (uint_t index=0; index < num_qubits-1; index++) {
-    if (qubits[index] < qubits[index+1]){
-      reverse_ordered = false;
-      break;
-    }
-  }
-
-  // 1. cases where all qubits are considered for the probabilities
-  // 1.1 qubits are ordered
-  if (num_qubits == num_qubits_ && ordered){
-    MPS_Tensor mps_vec = state_vec_as_MPS(0, num_qubits-1);
-    #pragma omp parallel for
-    for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-      // in this case, take psi * psi_dagger
-      // reverse_bits to be consistent with output order in qasm
-      probvector[i] = std::norm(mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0));
-    }
-    return;
-  }
-  // 1.2 qubits are reverse-ordered
-  if (num_qubits == num_qubits_ && reverse_ordered){
-    MPS_Tensor mps_vec = state_vec_as_MPS(0, num_qubits-1);
-    #pragma omp parallel for
-    for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-      // in this case, take psi * psi_dagger
-      // no need to reverse in this case
-      probvector[i] = std::norm(mps_vec.get_data(i)(0,0));
-     }
-
-    return;
-  }
-  // 2. cases where we have a subset of the qubits
+  // compute the probability vector assuming the qubits are in ascending order
   rvector_t ordered_probvector = trace_of_density_matrix(qubits);
 
-  // 2.1 subset of qubits is ordered
-  // reverse_bits to be consistent with output order in qasm
-  if (ordered) {
-    probvector = reverse_all_bits(ordered_probvector, num_qubits);
-    return;
-  }
-  // 2.1 subset of qubits is reverse-ordered
-  else if (reverse_ordered) {
-    probvector = ordered_probvector;
-    return;
-  }
-
-  // 3. no ordering among the qubits, can be all qubits or a subset
+  // reorder the probabilities according to the specification in 'qubits'
   rvector_t temp_probvector(ordered_probvector.size()); 
   reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
-  probvector = ordered_probvector;
 
+  // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 

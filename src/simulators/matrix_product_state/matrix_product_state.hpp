@@ -516,7 +516,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   ExperimentData &data,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
-  qreg_.probabilities_vector(prob_vector, op.qubits);
+  qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
   bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0], 
@@ -650,7 +650,7 @@ void State::apply_measure(const reg_t &qubits,
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
   rvector_t probvector;
-  qreg_.probabilities_vector(probvector, qubits);
+  qreg_.get_probabilities_vector(probvector, qubits);
   return probvector;
 }
 
