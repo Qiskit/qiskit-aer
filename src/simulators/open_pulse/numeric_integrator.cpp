@@ -3,6 +3,8 @@
 #include <complex>
 #include <iostream>
 #include <memory>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #ifdef DEBUG

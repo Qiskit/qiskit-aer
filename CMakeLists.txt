@@ -190,23 +190,23 @@ else()
 endif()
 
 
-# TODO: OpenPulse: Windows support for muparserx
-if(APPLE OR UNIX)
-	message(STATUS "Looking for muparserx library...")
+message(STATUS "Looking for muparserx library...")
 
-	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib")
-	if(APPLE)
-		set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
-	endif()
-
-	find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
-	if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
-		message(FATAL_ERROR "No muparserx library found")
-	endif()
-	message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
-	# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-	# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib")
+if(APPLE)
+	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
+elseif(WIN32)
+	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win32/lib")
 endif()
+
+find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
+if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
+	message(FATAL_ERROR "No muparserx library found")
+endif()
+message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+# I keep this disabled on purpose, just in case I need to debug muparserx related problems
+# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+
 
 # Set dependent libraries
 set(AER_LIBRARIES
