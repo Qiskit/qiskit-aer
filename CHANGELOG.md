@@ -32,6 +32,8 @@ Fixed
 -----
 - MPS simulation method: fixed computation of snapshot_probabilities 
  on subsets of the qubits, in any ordering (\#424)
+- Fixes bug where cu3 was being applied as cu1 for unitary_simulator (\#483)
+
 
 [0.3.3](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...0.3.3) - 2019-11-14
 ====================================================================================
