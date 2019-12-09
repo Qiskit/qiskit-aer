@@ -686,8 +686,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop_shift = self._analytic_prop_fc(np.pi / 4 - np.pi / 8)
         self.assertDictAlmostEqual(prop_shift, exp_prop_shift, delta=0.01)
 
-    '''
-    Commented out as PersistentValue pulses currently not supported.
+    @unittest.skip("PerisitentValue pulses are currently not supported.")
     def test_persistent_value(self):
         """Test persistent value command. """
 
@@ -714,7 +713,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_result = {'1': shots}
 
         self.assertDictAlmostEqual(counts, exp_result)
-    '''
+
     # ---------------------------------------------------------------------
     # Test higher energy levels (take 3 level system for simplicity,
     # use square drive)
