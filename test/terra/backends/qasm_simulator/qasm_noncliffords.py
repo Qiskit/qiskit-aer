@@ -136,6 +136,20 @@ class QasmNonCliffordTests:
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    # ---------------------------------------------------------------------
+    # Test cu3 gate
+    # ---------------------------------------------------------------------
+    def test_cu3_gate_deterministic_default_basis_gates(self):
+        """Test cu3-gate gate circuits compiling to default basis."""
+        shots = 100
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu3_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots)
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_counts(result, circuits, targets, delta=0)
+
 
 class QasmNonCliffordTestsWaltzBasis:
     """QasmSimulator non-Clifford gate tests in minimal u1,u2,u3,cx basis."""
@@ -152,7 +166,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.t_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -163,7 +180,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -177,7 +197,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -188,7 +211,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -202,7 +228,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -213,7 +242,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -227,7 +259,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -238,7 +273,10 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -252,10 +290,30 @@ class QasmNonCliffordTestsWaltzBasis:
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test cu3 gate
+    # ---------------------------------------------------------------------
+    def test_cu3_gate_deterministic_default_basis_gates(self):
+        """Test cu3-gate gate circuits compiling to u1,u2,u3,cx."""
+        shots = 100
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu3_gate_counts_deterministic(shots)
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_counts(result, circuits, targets, delta=0)
 
 
 class QasmNonCliffordTestsMinimalBasis:
@@ -273,7 +331,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.t_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -284,7 +345,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -298,7 +362,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.tdg_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -309,7 +376,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -323,7 +393,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -334,7 +407,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
@@ -348,7 +424,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
@@ -361,7 +440,8 @@ class QasmNonCliffordTestsMinimalBasis:
         shots = 100
         circuits = ref_non_clifford.multiplexer_ccx_gate_circuits_deterministic(
             final_measure=True)
-        targets = ref_non_clifford.multiplexer_ccx_gate_counts_deterministic(shots)
+        targets = ref_non_clifford.multiplexer_ccx_gate_counts_deterministic(
+            shots)
         job = execute(circuits, self.SIMULATOR, shots=shots)
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
@@ -372,7 +452,8 @@ class QasmNonCliffordTestsMinimalBasis:
         shots = 2000
         circuits = ref_non_clifford.multiplexer_ccx_gate_circuits_nondeterministic(
             final_measure=True)
-        targets = ref_non_clifford.multiplexer_ccx_gate_counts_nondeterministic(shots)
+        targets = ref_non_clifford.multiplexer_ccx_gate_counts_nondeterministic(
+            shots)
         job = execute(circuits, self.SIMULATOR, shots=shots)
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
@@ -387,7 +468,10 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.cswap_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
@@ -398,7 +482,27 @@ class QasmNonCliffordTestsMinimalBasis:
         circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'])
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
         result = job.result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
+
+    # ---------------------------------------------------------------------
+    # Test cu3 gate
+    # ---------------------------------------------------------------------
+    def test_cu3_gate_deterministic_default_basis_gates(self):
+        """Test cu3-gate gate circuits compiling to u3, cx."""
+        shots = 100
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu3_gate_counts_deterministic(shots)
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=shots,
+                      basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_counts(result, circuits, targets, delta=0)
