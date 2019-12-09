@@ -15,8 +15,24 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.3...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...HEAD)
 =======================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.4](https://github.com/Qiskit/qiskit-aer/compare/0.3.3...0.3.4) - 2019-12-09
+=====================================================================================
 
 Added
 -----
