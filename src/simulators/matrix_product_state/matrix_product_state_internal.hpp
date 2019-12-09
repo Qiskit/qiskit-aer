@@ -196,32 +196,12 @@ public:
       omp_threads_ = threads;
   }
 
-  void set_omp_threshold(int omp_qubit_threshold) {
-    if (omp_qubit_threshold > 0)
-      omp_threshold_ = omp_qubit_threshold;
-  }
-
-  void set_json_chop_threshold(double json_chop_threshold) {
-    json_chop_threshold_ = json_chop_threshold;
-  }
-
-  void set_sample_measure_index_size(int index_size){
-    sample_measure_index_size_ = index_size;
-  }
-
-  void enable_gate_opt() {
-    std::cout << "enable_gate_opt not supported yet" <<std::endl;
-  }
-
   rvector_t probabilities(const AER::reg_t &qubits) const
   {
     rvector_t probvector;
     probabilities_vector(probvector);
     return probvector;
   }
-
-  //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
-  //           cout << " store_measure not supported yet" <<endl;}
 
   double norm(const uint_t qubit, cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
@@ -259,10 +239,6 @@ protected:
   // Config settings
   //-----------------------------------------------------------------------
   uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
-  int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  double json_chop_threshold_ = 0;  // Threshold for choping small values
-                                    // in JSON serialization
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

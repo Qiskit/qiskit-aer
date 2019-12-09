@@ -95,8 +95,31 @@ public:
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
   }
+
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
+  static void set_chop_threshold(double chop_threshold) {
+    chop_threshold_ = chop_threshold;
+  }
+  static void set_max_sv_num_for_approx(uint_t approx_max_sv_num) {
+    approx_max_sv_num_ = approx_max_sv_num;
+  }
+
+  static void set_approx_threshold(double approx_threshold) {
+    approx_threshold_ = approx_threshold;
+  }
+
+  static double get_chop_threshold() {
+    return chop_threshold_;
+  }
+
+  static uint_t get_max_sv_num_for_approx() {
+    return approx_max_sv_num_;
+  }
+
+  static double get_approx_threshold() {
+    return approx_threshold_;
+  }
   //------------------------------------------------------------------
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
@@ -137,11 +160,18 @@ private:
 			   bool mul    /* or div */);
 
   std::vector<cmatrix_t> data_;
+
+  static double chop_threshold_;
+  static uint_t approx_max_sv_num_;
+  static double approx_threshold_;
 };
 
 //=========================================================================
 // Implementation
 //=========================================================================
+double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
+uint_t MPS_Tensor::approx_max_sv_num_ = UINT64_MAX;
+double MPS_Tensor::approx_threshold_ = 1e-16;
 
 //---------------------------------------------------------------
 // function name: print
@@ -477,7 +507,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 #endif
 
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V);
+  reduce_zeros(U, S, V, approx_max_sv_num_, approx_threshold_);
 
 #ifdef DEBUG
   std::cout << "matrices after SVD:" <<std::endl;

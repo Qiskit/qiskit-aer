@@ -82,6 +82,17 @@ namespace Simulator {
  *      parallel circuit or shot execution is enabled this will only
  *      use unallocated CPU cores up to max_parallel_threads. [Default: 100]
  *
+* From MatrixProductState::State class
+ * - "mps_approximation_threshold" (double): Set the cutoff value for the
+ *      Schmidt coefficients. Numbers smaller than the threshold will be discarded.
+ *      [Default: 1e-16]
+ *
+ * - "mps_approximation_num_sv" (uint): Set the cutoff value for the number
+ *      Schmidt coefficients. If there are more than this number of coefficient, 
+ *      the smallest values will be discarded.
+ *      [Default: none]
+ * Note that both approximation parameters must be set for approximation to take place.
+ *
  * From BaseController Class
  *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]

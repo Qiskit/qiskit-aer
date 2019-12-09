@@ -95,13 +95,18 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	return sum;
 }
 
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-  uint_t SV_num = num_of_SV(S, THRESHOLD);
+void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+		  uint_t max_sv_num_for_approx, double approx_threshold) {
+  uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   // code for approximation
-  if (SV_num > APPROX_LIMIT) {
-    uint_t new_SV_num = num_of_SV(S, APPROX_THRES);
+
+      // debug prints
+  if (SV_num > max_sv_num_for_approx) {
+    uint_t new_SV_num = num_of_SV(S, approx_threshold);
     if (new_SV_num < SV_num) {
       // debug prints
+      std::cout << "max_sv_num_for_approx = " << max_sv_num_for_approx << std::endl;
+      std::cout << "approx_threshold " << approx_threshold << std::endl;
       std::cout << "initial size of lambda = " << SV_num << ", new size = " << new_SV_num << std::endl;
       std::cout << "original lambda: "<<std::endl;
       for (uint i=0; i<S.size(); i++)

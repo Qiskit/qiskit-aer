@@ -191,6 +191,22 @@ class QasmSimulator(AerBackend):
       OpenMP parallelization. If parallel circuit or shot execution
       is enabled this will only use unallocated CPU cores up to
       max_parallel_threads (Default: 100).
+
+    These backend options only apply when using the ``"matrix_product_state"``
+    simulation method:
+
+    * ``"max_sv_num_for_approx"`` (int): Sets a limit on the number of Schmidt
+    coefficients retained at the end of the svd algorithm. In other words, the size
+    of every lambda vector in the MPS structure will be at most this number.
+    (Default: UINT_64MAX).
+
+    * ``"approx_threhold"`` (double): Sets a lower limit on the value of the Schmidt
+    coefficients retained at the end of the svd algorithm. Lower values will be
+    discarded or treated as 0. (Default: 1e-16).
+
+    In the current implementation, values will be discarded only if there are more
+    than ``"max_sv_num_for_approx"`` and their value is smaller than
+    ``"approx_threhold"``.
     """
 
     MAX_QUBIT_MEMORY = int(

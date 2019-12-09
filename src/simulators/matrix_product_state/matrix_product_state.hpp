@@ -269,14 +269,6 @@ protected:
   // Config Settings
   //-----------------------------------------------------------------------
 
-  // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 14;
-
-  // QubitVector sample measure index size
-  int sample_measure_index_size_ = 10;
-
-  // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -371,7 +363,6 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
 }
 
 void State::initialize_omp() {
-  qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
 }
@@ -389,25 +380,19 @@ size_t State::required_memory_mb(uint_t num_qubits,
 }
 
 void State::set_config(const json_t &config) {
-
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
-  qreg_.set_json_chop_threshold(json_chop_threshold_);
+  double threshold = CHOP_THRESHOLD;
+  if (JSON::get_value(threshold, "chop_threshold", config))
+    MPS_Tensor::set_chop_threshold(threshold);
 
-  // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  uint_t max_sv_num_for_approx = UINT64_MAX;
+  if (JSON::get_value(max_sv_num_for_approx, "max_sv_num_for_approx", config)) {
+    MPS_Tensor::set_max_sv_num_for_approx(max_sv_num_for_approx);
+  }
 
-  // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
-    qreg_.set_sample_measure_index_size(index_size);
-  };
-
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  JSON::get_value(gate_opt, "statevector_gate_opt", config);
-  if (gate_opt)
-    qreg_.enable_gate_opt();
+  double approx_threshold = CHOP_THRESHOLD;
+  if (JSON::get_value(approx_threshold, "approx_threshold", config))
+    MPS_Tensor::set_approx_threshold(approx_threshold);
 }
 
 //=========================================================================

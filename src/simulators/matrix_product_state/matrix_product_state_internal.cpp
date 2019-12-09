@@ -703,7 +703,8 @@ void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t state_v
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
     csvd_wrapper(reshaped_matrix, U, S, V);
-    reduce_zeros(U, S, V);
+    reduce_zeros(U, S, V, MPS_Tensor::get_max_sv_num_for_approx(), 
+		 MPS_Tensor::get_approx_threshold() );
 
     // step 3 - update q_reg_ with new gamma and new lambda
     //          increment number of qubits in the MPS structure
