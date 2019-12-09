@@ -882,6 +882,39 @@ class TestStatevectorSimulator(common.QiskitAerTestCase):
         self.assertTrue(getattr(result, 'success', False))
         self.compare_statevector(result, circuits, targets)
 
+    # ---------------------------------------------------------------------
+    # Test cu3-gate (Fredkin)
+    # ---------------------------------------------------------------------
+
+    def test_cu3_gate_deterministic_default_basis_gates(self):
+        """Test cu3-gate circuits compiling to backend default basis_gates."""
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(final_measure=False)
+        targets = ref_non_clifford.cu3_gate_statevector_deterministic()
+        job = execute(circuits, StatevectorSimulator(), shots=1)
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_statevector(result, circuits, targets)
+
+    def test_cu3_gate_deterministic_minimal_basis_gates(self):
+        """Test cu3-gate gate circuits compiling to u3,cx"""
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.cu3_gate_statevector_deterministic()
+        job = execute(circuits, StatevectorSimulator(), shots=1, basis_gates=['u3', 'cx'])
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_statevector(result, circuits, targets)
+
+    def test_cu3_gate_deterministic_waltz_basis_gates(self):
+        """Test cu3-gate gate circuits compiling to u1,u2,u3,cx"""
+        circuits = ref_non_clifford.cu3_gate_circuits_deterministic(final_measure=False)
+        targets = ref_non_clifford.cu3_gate_statevector_deterministic()
+        job = execute(circuits, StatevectorSimulator(), shots=1,
+                      basis_gates=['u1', 'u2', 'u3', 'cx'])
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_statevector(result, circuits, targets)
+
 
 if __name__ == '__main__':
     unittest.main()
