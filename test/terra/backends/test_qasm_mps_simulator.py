@@ -72,8 +72,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
-        #QasmSnapshotStatevectorTests,
-        #QasmSnapshotProbabilitiesTests, # CRASHES: seg-fault
+        QasmSnapshotStatevectorTests,
+        QasmSnapshotProbabilitiesTests,
         QasmSnapshotStabilizerTests
         ):
     """QasmSimulator matrix product state method tests."""
