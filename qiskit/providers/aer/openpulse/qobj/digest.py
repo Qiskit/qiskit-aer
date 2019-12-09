@@ -17,6 +17,7 @@
 into something we can actually use.
 """
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -50,6 +51,9 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
 
     # take inputs and format into a single dictionary
     qobj = _format_qobj_dict(qobj_input, backend_options, noise_model)
+
+    # post warnings for unsupported features
+    _unsupported_warnings(qobj)
 
     # Get the config settings from the qobj
     config_dict = qobj['config']
@@ -299,6 +303,42 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
     if noise_model is not None:
         qobj_dict['config']['backend_options']['noise_model'] = noise_model
     return qobj_dict
+
+
+def _unsupported_warnings(qobj_dict):
+    """ Warns the user about untested/unsupported features.
+
+    Parameters:
+        qobj_dict (dict): Formatted qobj_dict from _format_qobj_dict
+    Returns:
+    Raises:
+    """
+
+    # Warnings that don't stop execution
+    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
+    if 'osc' in qobj_dict['config']['backend_options']['hamiltonian'].keys():
+        warn(warning_str.format('Oscillator-type systems'))
+    if 'noise_model' in qobj_dict['config']['backend_options']:
+        warn(warning_str.format('Noise models'))
+    if _contains_pv_instruction(qobj_dict['experiments']):
+        warn(warning_str.format('PersistentValue instructions'))
+
+
+def _contains_pv_instruction(experiments):
+    """ Return True if the list of experiments from the output of _format_qobj_dict contains
+    a PersistentValue instruction
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain a PersistentValue command
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'pv':
+                return True
+    return False
 
 
 def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
