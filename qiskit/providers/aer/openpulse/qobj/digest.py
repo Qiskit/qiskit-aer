@@ -89,8 +89,8 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
         out.global_data['meas_return'] = config_dict['meas_return']
 
     out.global_data['seed'] = None
-    if 'seed' in config_keys:
-        out.global_data['seed'] = int(config_dict['seed'])
+    if 'seed' in config_keys_sim:
+        out.global_data['seed'] = int(config_dict_sim['seed'])
 
     if 'memory_slots' in config_keys:
         out.global_data['memory_slots'] = config_dict['memory_slots']
