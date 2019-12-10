@@ -192,8 +192,8 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"cy", Gates::mcy},       // Controlled-Z gate
   {"cz", Gates::mcz},       // Controlled-Z gate
   {"cu1", Gates::mcu1},     // Controlled-u1 gate
-  {"cu2", Gates::mcu2},    // Controlled-u2
-  {"cu3", Gates::mcu1},     // Controlled-u3 gate
+  {"cu2", Gates::mcu2},     // Controlled-u2
+  {"cu3", Gates::mcu3},     // Controlled-u3 gate
   {"swap", Gates::mcswap},  // SWAP gate
   // Three-qubit gates
   {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)

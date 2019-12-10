@@ -185,7 +185,7 @@ public:
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
-  void probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -255,9 +255,9 @@ protected:
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
-  // Parameters: input: new_MPS - the MPS with the shifted qubits
+  // Parameters: Input: new_MPS - the MPS with the shifted qubits
   //                    qubits - the subset of qubits
-  //            output: new_first, new_last - new positions of the 
+  //             Returns: new_first, new_last - new positions of the 
   //                    first and last qubits respectively
   //                    ordered - are the qubits in ascending order
   // Returns: none.
@@ -276,15 +276,16 @@ protected:
   // function name: move_qubits_to_original_location
   // Description: This function reverses the effect of centralize_qubits.
   //      It returns the qubits that were previously centralized, to their original positions.
-  // Parameters: input: first - the index of the first qubit that was moved
+  // Parameters: Input: first - the index of the first qubit that was moved
   //                    original_qubits - the subset of qubits that were moved
   //                    sorted_qubits - the original_qubits in sorted order
-  //            output: the MPS (this) where the qubits have been moved back to their original
+  //             Returns: the MPS (this) where the qubits have been moved back to their original
   //                 position.
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
 					const reg_t &sorted_qubits);
+
   //----------------------------------------------------------------
 
   // function name: change_position
