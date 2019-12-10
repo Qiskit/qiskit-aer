@@ -2,7 +2,7 @@ include(Linter)
 
 find_package(PythonExtensions REQUIRED)
 find_package(PythonLibs REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+find_package(Pybind11 REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
