@@ -48,6 +48,8 @@ enum class Snapshots {
   expval_matrix//, //expval_matrix_var
 };
 
+// Enum class for different types of expectation values
+enum class SnapshotDataType {average, average_var, pershot};
 
 //=========================================================================
 // Matrix Product State subclass
@@ -110,7 +112,7 @@ public:
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
 	//TODO: Review this
-    return {"statevector", "memory", "register",
+    return {"statevector", "memory", "register", "probabilities",
             "expectation_value_pauli", //"expectation_value_pauli_with_variance",
             "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
             };
@@ -237,7 +239,7 @@ protected:
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentData &data,
-                              bool variance);
+                              SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
@@ -469,13 +471,13 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
 
   //Compute expval components
   complex_t expval(0., 0.);
-  double one_expval = 0;
 
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
-    string pauli_matrices = param.second;
-    one_expval = qreg_.expectation_value(op.qubits, pauli_matrices);
-    expval += coeff * one_expval;;
+    std::string pauli_matrices = param.second;
+    complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
+
+    expval += coeff * pauli_expval;
   }
   data.add_pershot_snapshot("expectation_value", op.string_params[0], expval);
 }
@@ -507,17 +509,19 @@ void State::snapshot_state(const Operations::Op &op,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
-
   data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
 				   ExperimentData &data,
-				   bool variance) {
-  MatrixProductState::MPS_Tensor full_tensor = qreg_.state_vec(0, qreg_.num_qubits()-1);
+				   SnapshotDataType type) {
   rvector_t prob_vector;
-  qreg_.probabilities_vector(prob_vector);
-  data.add_pershot_snapshot("probabilities", op.string_params[0], prob_vector);
+  qreg_.get_probabilities_vector(prob_vector, op.qubits);
+  auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
+  bool variance = type == SnapshotDataType::average_var;
+  data.add_average_snapshot("probabilities", op.string_params[0], 
+  			    BaseState::creg_.memory_hex(), probs, variance);
+
 }
 
 void State::apply_gate(const Operations::Op &op) {
@@ -645,7 +649,9 @@ void State::apply_measure(const reg_t &qubits,
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
-  return qreg_.probabilities(qubits);
+  rvector_t probvector;
+  qreg_.get_probabilities_vector(probvector, qubits);
+  return probvector;
 }
 
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
@@ -668,7 +674,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 
 void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
   // Look for snapshot type in snapshotset
-
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
     throw std::invalid_argument("MatrixProductState::invalid snapshot instruction \'" +
@@ -678,6 +683,11 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
       snapshot_state(op, data, "statevector");
       break;
       }
+  case Snapshots::probs: {
+      // get probs as hexadecimal
+      snapshot_probabilities(op, data, SnapshotDataType::average);
+      break;
+    }
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
       break;
@@ -720,6 +730,7 @@ State::sample_measure_with_prob(const reg_t &qubits,
   uint_t outcome = rng.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);
 }
+
 
 //-------------------------------------------------------------------------
 } // end namespace MatrixProductState
