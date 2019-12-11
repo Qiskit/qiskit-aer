@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name, consider-using-enumerate
+# pylint: disable=invalid-name
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
@@ -106,13 +106,12 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
                                                 u_channel_lo=u_channel_lo)
     out.h_diag = ham_model._h_diag
     out.evals = ham_model._evals
+    out.estates = ham_model._estates
     dim_qub = ham_model._dim_qub
     dim_osc = ham_model._dim_osc
     out.initial_state = ham_model.initial_state()
     # convert estates into a Qutip qobj
-    estates = []
-    for kk in range(len(ham_model._estates[:, ])):
-        estates.append(op.state(ham_model._estates[:, kk]))
+    estates = [op.state(state) for state in ham_model._estates[:]]
     out.global_data['vars'] = list(out.vars.values())
     out.global_data['freqs'] = list(out.freqs.values())
 

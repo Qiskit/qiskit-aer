@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=eval-used, exec-used, invalid-name
 
 "PulseModel class for PulseSimulator"
 
@@ -25,12 +25,12 @@ from .qobj import op_qobj as op
 
 class HamiltonianModel():
     """Hamiltonian model for pulse simulator."""
-    def __init__(self, hamiltonian, qubits):
+    def __init__(self, hamiltonian, qubits=None):
         """Initialize a Hamiltonian model.
 
         Args:
             hamiltonian (dict): Hamiltonian dictionary.
-            qubits (list): List of qubits to extract from the hamiltonian.
+            qubits (list or None): List of qubits to extract from the hamiltonian.
 
         Raises:
             ValueError: if arguments are invalid.
@@ -56,14 +56,11 @@ class HamiltonianModel():
         self._dim_osc = {}
 
         # Parse Hamiltonian
-        if qubits:
-            n_qubits = len(qubits)
-        else:
-            # TODO: determine n_qubits from hamiltonian
+        # TODO: determine n_qubits from hamiltonian if qubits is None
+        n_qubits = len(qubits) if qubits else None
+        if not n_qubits:
             raise ValueError("TODO: Need to infer n_qubits from "
                              "Hamiltonian if qubits list is not specified")
-            n_qubits = None
-            qubits = list(range(n_qubits))
 
         self._vars = OrderedDict(hamiltonian['vars'])
 
@@ -234,8 +231,8 @@ def _first_excited_state(qubit_idx, dim_qub):
     vector = np.array([1.])
 
     # iterate through qubits, tensoring on the state
-    for idx in range(len(dim_qub)):
-        new_vec = np.zeros(dim_qub[idx])
+    for idx, dim in enumerate(dim_qub):
+        new_vec = np.zeros(dim)
         if idx == qubit_idx:
             new_vec[1] = 1
         else:
