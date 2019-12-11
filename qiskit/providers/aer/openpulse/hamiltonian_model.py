@@ -66,13 +66,19 @@ class HamiltonianModel():
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
-            self._dim_qub = {int(key): val for key, val in hamiltonian['qub'].items()}
+            self._dim_qub = {
+                int(key): val
+                for key, val in hamiltonian['qub'].items()
+            }
         else:
             self._dim_qub = {}.fromkeys(range(n_qubits), 2)
 
         # Get oscillator subspace dimensions
         if 'osc' in hamiltonian:
-            self._dim_osc = {int(key): val for key, val in hamiltonian['osc'].items()}
+            self._dim_osc = {
+                int(key): val
+                for key, val in hamiltonian['osc'].items()
+            }
 
         # Step 1: Parse the Hamiltonian
         system = HamiltonianParser(h_str=hamiltonian['h_str'],
@@ -101,15 +107,14 @@ class HamiltonianModel():
         freqs = OrderedDict()
 
         # Set qubit frequencies from hamiltonian
-        if not qubit_lo_freq or (qubit_lo_freq == 'from_hamiltonian'
-                                 and len(self._dim_osc) == 0):
+        if not qubit_lo_freq or (
+                qubit_lo_freq == 'from_hamiltonian' and len(self._dim_osc) == 0):
             qubit_lo_freq = np.zeros(len(self._dim_qub))
             min_eval = np.min(self._evals)
             for q_idx in range(len(self._dim_qub)):
                 single_excite = _first_excited_state(q_idx, self._dim_qub)
-                dressed_eval = _eval_for_max_espace_overlap(single_excite,
-                                                            self._evals,
-                                                            self._estates)
+                dressed_eval = _eval_for_max_espace_overlap(
+                    single_excite, self._evals, self._estates)
                 qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
 
         # TODO: set u_channel_lo from hamiltonian
@@ -141,8 +146,9 @@ class HamiltonianModel():
         """
         channels = []
         for _, ham_str in self._system:
-            chan_idx = [i for i, letter in enumerate(ham_str) if
-                        letter in ['D', 'U']]
+            chan_idx = [
+                i for i, letter in enumerate(ham_str) if letter in ['D', 'U']
+            ]
             for ch in chan_idx:
                 if (ch + 1) == len(ham_str) or not ham_str[ch + 1].isdigit():
                     raise Exception('Channel name must include' +
@@ -304,4 +310,4 @@ def _proj_norm(A, b):
 
     x = la.lstsq(A, b, rcond=None)[0]
 
-    return la.norm(A@x)
+    return la.norm(A @ x)
