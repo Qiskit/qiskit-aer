@@ -41,8 +41,6 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
 
-set(AER_COMPILER_DEFINITIONS "")
-
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
 	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
@@ -182,6 +180,8 @@ message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 # Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
 set(AER_THRUST_SUPPORTED TRUE)
+set(AER_THRUST_SUPPORTED_DEFINITION "")
+set(AER_THRUST_DEVICE_SYSTEM_DEFINITION "")
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
 	message(STATUS "Thrust library: Looking for CUDA backend...")
 	find_package(CUDA REQUIRED)
@@ -191,15 +191,18 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
 	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
 		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 	set(THRUST_DEPENDANT_LIBS "")
+	set(AER_THRUST_SUPPORTED_DEFINITION "AER_THRUST_SUPPORTED=TRUE")
 elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 	message(STATUS "Thrust library: Looking for TBB backend...")
 	find_package(TBB REQUIRED)
 	message(STATUS "TBB Support found!")
 	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-	set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
+	set(AER_THRUST_SUPPORTED_DEFINITION "AER_THRUST_SUPPORTED=TRUE")
+	set(AER_THRUST_DEVICE_SYSTEM_DEFINITION "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
 elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 	message(STATUS "Thrust library: Setting OMP backend")
-	set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
+	set(AER_THRUST_SUPPORTED_DEFINITION "AER_THRUST_SUPPORTED=TRUE")
+	set(AER_THRUST_DEVICE_SYSTEM_DEFINITION "THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
 	# We don't need to add OMP because it's already an AER dependency
 else()
 	message(STATUS "No Thrust support enabled")
@@ -208,11 +211,13 @@ endif()
 
 if(AER_THRUST_SUPPORTED)
 	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		message(STATUS "WARNING: Clang is not compatbile with Thrust at the moment. Disabling Thrust support")
-		set(AER_THRUST_SUPPORTED FALSE)
-		set(AER_COMPILER_DEFINITIONS "")
-	else()
-		set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} AER_THRUST_SUPPORTED")
+		get_clang_version(${CMAKE_CXX_COMPILER_VERSION})
+		if(${CLANG_MAJOR_VERSION} LESS 11)
+			message(STATUS "WARNING: Clang is not compatbile with Thrust at the moment. Disabling Thrust support")
+			set(AER_THRUST_SUPPORTED FALSE)
+			set(AER_THRUST_SUPPORTED_DEFINITION "")
+			set(AER_THRUST_DEVICE_SYSTEM_DEFINITION "")
+		endif()
 	endif()
 endif()
 
@@ -245,7 +250,8 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_compile_definitions(qasm_simulator PRIVATE ${AER_COMPILER_DEFINITIONS})
+	target_compile_definitions(qasm_simulator PRIVATE ${AER_THRUST_SUPPORTED_DEFINITION})
+	target_compile_definitions(qasm_simulator PRIVATE ${AER_THRUST_DEVICE_SYSTEM_DEFINITION})
 
 	# Linter
 	# This will add the linter as part of the compiling build target
