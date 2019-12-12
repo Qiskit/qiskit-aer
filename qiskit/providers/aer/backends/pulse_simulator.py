@@ -25,7 +25,7 @@ from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..aererror import AerError
 from ..version import __version__
-from ..openpulse.qobj.digest import digest_pulse_obj
+from ..openpulse.qobj.digest import digest_pulse_obj,digest_pulse_obj2
 from ..openpulse.solver.opsolve import opsolve
 
 logger = logging.getLogger(__name__)

@@ -239,9 +239,9 @@ def _first_excited_state(qubit_idx, dim_qub):
     """
     vector = np.array([1.])
     # iterate through qubits, tensoring on the state
-    for qubit, dim in dim_qub.items():
-        new_vec = np.zeros(dim)
-        if int(qubit) == qubit_idx:
+    for idx in range(len(dim_qub)):
+        new_vec = np.zeros(dim_qub[idx])
+        if idx == qubit_idx:
             new_vec[1] = 1
         else:
             new_vec[0] = 1
