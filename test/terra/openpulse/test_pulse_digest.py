@@ -36,9 +36,8 @@ class BaseTestDigest(QiskitAerTestCase):
 class TestDigestHamiltonian(BaseTestDigest):
     r"""Tests for Hamiltonian options and processing."""
 
-    def test_qubit_lo_from_hamiltonian(self):
-        """Test backend_options['qubit_lo_freq'] = 'from_hamiltonian'."""
-
+    def test_qubit_lo_default(self):
+        """Test backend_options['qubit_lo_freq'] defaults."""
         # set up inputs to _get_pulse_digest
         # Note: for this test the only relevant parameter input to assemble() is self.backend,
         # but the others args still need to be valid to assemble correctly
@@ -64,6 +63,34 @@ class TestDigestHamiltonian(BaseTestDigest):
         self.assertAlmostEqual(openpulse_system.freqs['U0'], default_u_lo_freq[0])
         self.assertAlmostEqual(openpulse_system.freqs['U1'], default_u_lo_freq[1])
 
+        # test defaults again, but with non-default hamiltonian
+        backend_options['hamiltonian'] = _create_2q_ham(v0=5.1, v1=4.9, j=0.02)
+        openpulse_system = digest_pulse_obj(qobj, backend_options=backend_options, noise_model=None)
+        self.assertAlmostEqual(openpulse_system.freqs['D0'], default_qubit_lo_freq[0])
+        self.assertAlmostEqual(openpulse_system.freqs['D1'], default_qubit_lo_freq[1])
+        self.assertAlmostEqual(openpulse_system.freqs['U0'], default_u_lo_freq[0])
+        self.assertAlmostEqual(openpulse_system.freqs['U1'], default_u_lo_freq[1])
+
+    def test_qubit_lo_from_hamiltonian(self):
+        """Test backend_options['qubit_lo_freq'] = 'from_hamiltonian'."""
+
+        # set up inputs to _get_pulse_digest
+        # Note: for this test the only relevant parameter input to assemble() is self.backend,
+        # but the others args still need to be valid to assemble correctly
+        sched_list = [self._valid_2q_schedule()]
+        qobj = assemble(sched_list,
+                        self.backend,
+                        meas_level=1,
+                        meas_return='avg',
+                        memory_slots=2,
+                        shots=1)
+
+        # set backend_options
+        backend_options = self.config.to_dict()
+        backend_options['hamiltonian'] = _create_2q_ham()
+        backend_options['qubit_list'] = [0, 1]
+        backend_options['qubit_lo_freq'] = 'from_hamiltonian'
+
         # test auto determination frequencies from_hamiltonian
         # (these values were computed by hand)
         backend_options['qubit_lo_freq'] = 'from_hamiltonian'
@@ -80,14 +107,6 @@ class TestDigestHamiltonian(BaseTestDigest):
         self.assertAlmostEqual(openpulse_system.freqs['D1'], 4.898019609728)
         self.assertAlmostEqual(openpulse_system.freqs['U0'], 5.101980390271)
         self.assertAlmostEqual(openpulse_system.freqs['U1'], -0.203960780543)
-
-        # test defaults again, but with non-default hamiltonian
-        del backend_options['qubit_lo_freq']
-        openpulse_system = digest_pulse_obj(qobj, backend_options=backend_options, noise_model=None)
-        self.assertAlmostEqual(openpulse_system.freqs['D0'], default_qubit_lo_freq[0])
-        self.assertAlmostEqual(openpulse_system.freqs['D1'], default_qubit_lo_freq[1])
-        self.assertAlmostEqual(openpulse_system.freqs['U0'], default_u_lo_freq[0])
-        self.assertAlmostEqual(openpulse_system.freqs['U1'], default_u_lo_freq[1])
 
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """

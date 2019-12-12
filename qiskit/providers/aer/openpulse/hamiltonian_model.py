@@ -228,13 +228,13 @@ class HamiltonianModel():
         ham_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
         for ham_part in self._system:
             ham_full += ham_part[0].full() * eval(ham_part[1])
-
         # Remap eigenvalues and eigenstates
         evals, estates = la.eigh(ham_full)
+
         evals_mapped = np.zeros(evals.shape, dtype=evals.dtype)
         estates_mapped = np.zeros(estates.shape, dtype=estates.dtype)
 
-        for i, estate in enumerate(estates):
+        for i, estate in enumerate(estates.T):
             pos = np.argmax(np.abs(estate))
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
@@ -263,7 +263,6 @@ def _first_excited_state(qubit_idx, dim_qub):
         vector: the state with qubit_idx in state 1, and the rest in state 0
     """
     vector = np.array([1.])
-
     # iterate through qubits, tensoring on the state
     for qubit, dim in dim_qub.items():
         new_vec = np.zeros(dim)
@@ -277,28 +276,24 @@ def _first_excited_state(qubit_idx, dim_qub):
 
 
 def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
-    """ Given an eigenvalue decomposition evals, evecs, as output from
+    """Return the eigenvalue for eigenvector closest to input.
+
+    Given an eigenvalue decomposition evals, evecs, as output from
     get_diag_hamiltonian, returns the eigenvalue from evals corresponding
     to the eigenspace that the vector vec has the maximum overlap with.
 
-    Parameters:
+    Args:
         u (numpy.array): the vector of interest
-
         evals (numpy.array): list of eigenvalues
-
         evecs (numpy.array): eigenvectors corresponding to evals
-
         decimals (int): rounding option, to try to handle numerical
                         error if two evals should be the same but are
                         slightly different
 
     Returns:
-        eval: eigenvalue corresponding to eigenspace for which vec has
-              maximal overlap
-
-    Raises:
+        complex: eigenvalue corresponding to eigenspace for which vec has
+        maximal overlap.
     """
-
     # get unique evals (with rounding for numerical error)
     rounded_evals = evals.copy().round(decimals=decimals)
     unique_evals = np.unique(rounded_evals)
