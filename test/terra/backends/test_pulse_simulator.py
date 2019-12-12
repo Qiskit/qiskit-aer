@@ -24,6 +24,7 @@ import qiskit
 import qiskit.pulse as pulse
 
 from qiskit.compiler import assemble
+from qiskit.quantum_info import state_fidelity
 
 from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
@@ -632,11 +633,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 statevector = result.get_statevector()
                 exp_statevector = self._analytic_gaussian_statevector(
                     gauss_sigma=gauss_sigma, omega_a=omega_a)
-                # compare statevectors element-wise (comparision only accurate to 1 dec place)
-                for i, _ in enumerate(statevector):
-                    self.assertAlmostEqual(statevector[i],
-                                           exp_statevector[i],
-                                           places=1)
+
+                # Check fidelity of statevectors
+                self.assertGreaterEqual(
+                    state_fidelity(statevector, exp_statevector), 0.99)
 
     # ---------------------------------------------------------------------
     # Test FrameChange and PersistentValue commands
@@ -813,11 +813,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         exp_statevector_pi = self._analytic_statevector_three_level(omega_a_pi)
 
-        # compare vectors element-wise
-        for i, _ in enumerate(statevector_pi):
-            self.assertAlmostEqual(statevector_pi[i],
-                                   exp_statevector_pi[i],
-                                   places=4)
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector_pi, exp_statevector_pi), 0.99)
 
         # Test 2*pi pulse
         omega_a_2pi = 2 * np.pi / self.drive_samples
@@ -839,11 +837,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_statevector_2pi = self._analytic_statevector_three_level(
             omega_a_2pi)
 
-        # compare vectors element-wise
-        for i, _ in enumerate(statevector_2pi):
-            self.assertAlmostEqual(statevector_2pi[i],
-                                   exp_statevector_2pi[i],
-                                   places=4)
+        # Check fidelity of vectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector_2pi, exp_statevector_2pi), 0.99)
 
     # ----------------------------------------------------------------------------------------------
     # Test qubit interaction (use 2 qubits for simplicity)
