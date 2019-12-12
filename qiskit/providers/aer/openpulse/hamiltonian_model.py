@@ -19,8 +19,6 @@ from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
 from .qobj.opparse import HamiltonianParser
-# pylint: disable=no-name-in-module,import-error
-from .qobj import op_qobj as op
 
 
 class HamiltonianModel():
