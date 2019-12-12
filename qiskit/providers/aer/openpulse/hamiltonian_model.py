@@ -88,10 +88,10 @@ class HamiltonianModel():
         self._system = system.compiled
 
         # Step #2: Determine Hamiltonian channels
-        self._get_hamiltonian_channels()
+        self._calculate_hamiltonian_channels()
 
         # Step 3: Calculate diagonal hamiltonian
-        self._get_diag_hamiltonian()
+        self._calculate_drift_hamiltonian()
 
     def drift_eigenstate(self, energy_level=0):
         """Return an eigenstate of the time-independent hamiltonian.
@@ -168,7 +168,7 @@ class HamiltonianModel():
                 raise ValueError("Channel is not D or U")
         return freqs
 
-    def _get_hamiltonian_channels(self):
+    def _calculate_hamiltonian_channels(self):
         """ Get all the qubit channels D_i and U_i in the string
         representation of a system Hamiltonian.
 
@@ -206,9 +206,11 @@ class HamiltonianModel():
 
         self._channels = channel_dict
 
-    def _get_diag_hamiltonian(self):
-        """ Get the diagonal elements of the hamiltonian and get the
-        dressed frequencies and eigenstates
+    def _calculate_drift_hamiltonian(self):
+        """Calculate the the drift Hamiltonian.
+
+        This computes the dressed frequencies and eigenstates of the
+        diagonal part of the Hamiltonian.
 
         Raises:
             Exception: Missing index on channel.
@@ -223,28 +225,23 @@ class HamiltonianModel():
         for var in self._vars:
             exec('%s=%f' % (var, self._vars[var]))
 
-        H_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
-
-        for hpart in self._system:
-            H_full += hpart[0].full() * eval(hpart[1])
-
-        evals, estates = la.eigh(H_full)
-
-        eval_mapping = []
-        for ii in range(len(evals)):
-            eval_mapping.append(np.argmax(np.abs(estates[:, ii])))
+        ham_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
+        for ham_part in self._system:
+            ham_full += ham_part[0].full() * eval(ham_part[1])
 
         # Remap eigenvalues and eigenstates
-        evals_mapped = evals.copy()
-        estates_mapped = estates.copy()
+        evals, estates = la.eigh(ham_full)
+        evals_mapped = np.zeros(evals.shape, dtype=evals.dtype)
+        estates_mapped = np.zeros(estates.shape, dtype=estates.dtype)
 
-        for ii, val in enumerate(eval_mapping):
-            evals_mapped[val] = evals[ii]
-            estates_mapped[:, val] = estates[:, ii]
+        for i, estate in enumerate(estates):
+            pos = np.argmax(np.abs(estate))
+            evals_mapped[pos] = evals[i]
+            estates_mapped[:, pos] = estate
 
         self._evals = evals_mapped
         self._estates = estates_mapped
-        self._h_diag = np.ascontiguousarray(np.diag(H_full).real)
+        self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
 
 def _first_excited_state(qubit_idx, dim_qub):
@@ -259,7 +256,7 @@ def _first_excited_state(qubit_idx, dim_qub):
     Parameters:
         qubit_idx (int): the qubit to be in the 1 state
 
-        dim_qub (dict): a dictionary with keys being qubit index as a string, and
+        dim_qub (dict): a dictionary with keys being qubit index, and
                         value being the dimension of the qubit
 
     Returns:
@@ -268,13 +265,12 @@ def _first_excited_state(qubit_idx, dim_qub):
     vector = np.array([1.])
 
     # iterate through qubits, tensoring on the state
-    for idx, dim in enumerate(dim_qub):
+    for qubit, dim in dim_qub.items():
         new_vec = np.zeros(dim)
-        if idx == qubit_idx:
+        if int(qubit) == qubit_idx:
             new_vec[1] = 1
         else:
             new_vec[0] = 1
-
         vector = np.kron(new_vec, vector)
 
     return vector
@@ -316,29 +312,29 @@ def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
     return unique_evals[np.argmax(overlaps)]
 
 
-def _proj_norm(A, b):
+def _proj_norm(mat, vec):
     """
-    Given a matrix A and vector b, computes the norm of the projection of
-    b onto the column space of A using least squares.
+    Compute the projection form of a vector an matrix.
 
-    Note: A can also be specified as a 1d numpy.array, in which case it will
-    convert it into a matrix with one column
+    Given a matrix ``mat`` and vector ``vec``, computes the norm of the
+    projection of ``vec`` onto the column space of ``mat`` using least
+    squares.
+
+    Note: ``mat`` can also be specified as a 1d numpy.array, in which
+    case it will convert it into a matrix with one column
 
     Parameters:
-        A (numpy.array): 2d array, a matrix
-
-        b (numpy.array): 1d array, a vector
+        mat (numpy.array): 2d array, a matrix.
+        vec (numpy.array): 1d array, a vector.
 
     Returns:
-        norm: the norm of the projection
-
-    Raises:
+        complex: the norm of the projection
     """
 
     # if specified as a single vector, turn it into a column vector
-    if A.ndim == 1:
-        A = np.array([A]).T
+    if mat.ndim == 1:
+        mat = np.array([mat]).T
 
-    x = la.lstsq(A, b, rcond=None)[0]
+    lsq_vec = la.lstsq(mat, vec, rcond=None)[0]
 
-    return la.norm(A @ x)
+    return la.norm(mat @ lsq_vec)

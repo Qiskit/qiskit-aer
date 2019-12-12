@@ -67,7 +67,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     out.global_data['shots'] = int(config_dict.get('shots', 1024))
     out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
     out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
-    out.global_data['seed'] = int(config_dict_sim.get('seed', None))
+    out.global_data['seed'] = config_dict_sim.get('seed', None)
     out.global_data['memory_slots'] = config_dict.get('memory_slots', 0)
     out.global_data['memory'] = config_dict.get('memory', False)
     out.global_data['n_registers'] = config_dict.get('n_registers', 0)
