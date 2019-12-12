@@ -53,7 +53,9 @@ class TestDigestHamiltonian(BaseTestDigest):
         backend_options = self.config.to_dict()
         backend_options['hamiltonian'] = _create_2q_ham()
         backend_options['qubit_list'] = [0, 1]
-        default_qubit_lo_freq = getattr(self.backend.defaults(), 'qubit_freq_est')
+        # HACK: fix for unit change in terra. This should really be fixed in test!
+        default_qubit_lo_freq = [val * 1e-9 for val in getattr(
+            self.backend.defaults(), 'qubit_freq_est')]
         default_u_lo_freq = self._compute_u_lo_freqs(default_qubit_lo_freq)
 
         # test output of default qubit_lo_freq
