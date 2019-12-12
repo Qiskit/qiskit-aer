@@ -379,7 +379,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
             self.assertDictAlmostEqual(counts, exp_counts)
         # set scales and run tests
-        scales = [2.,1.3453, 0.1234, 10.**5,10**-5]
+        scales = [2., 1.3453, 0.1234, 10.**5, 10**-5]
         for scale in scales:
             scale_test(scale)
 
@@ -773,10 +773,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         arg1 = np.sqrt(3) * omega_a * time / 2  # cos arg for first component
         arg2 = arg1  # sin arg for first component
         arg3 = arg1 / 2  # sin arg for 3rd component
-        exp_statevector = [(2 + np.cos(arg1)) / 3,
-                           -1j * np.sin(arg2) / np.sqrt(3),
-                           -2 * np.sqrt(2) * np.sin(arg3)**2 / 3]
-
+        exp_statevector = np.array([(2 + np.cos(arg1)) / 3,
+                                    -1j * np.sin(arg2) / np.sqrt(3),
+                                    -2 * np.sqrt(2) * np.sin(arg3)**2 / 3],
+                                   dtype=complex)
         return exp_statevector
 
     def test_three_level(self):
