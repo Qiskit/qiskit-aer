@@ -263,7 +263,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['qubit_list'] = [self.qubit_0]
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
-        backend_options['seed'] = 90841
+        backend_options['seed'] = 9000
         return backend_options
 
     def backend_options_2q(self, omega_0, omega_a, omega_i, qub_dim=2):
