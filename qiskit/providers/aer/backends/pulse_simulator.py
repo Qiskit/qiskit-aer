@@ -48,8 +48,7 @@ class PulseSimulator(AerBackend):
         'max_shots': 50000,
         'description': 'A pulse-based Hamiltonian simulator',
         'gates': [],
-        'basis_gates': [],
-        'use_cpp_ode_func': True  # Use the C++ ODE func or the Cyhton one
+        'basis_gates': []
     }
 
     def __init__(self, configuration=None, provider=None):
