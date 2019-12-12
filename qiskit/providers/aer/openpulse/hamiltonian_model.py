@@ -93,29 +93,6 @@ class HamiltonianModel():
         # Step 3: Calculate diagonal hamiltonian
         self._calculate_drift_hamiltonian()
 
-    def drift_eigenstate(self, energy_level=0):
-        """Return an eigenstate of the time-independent hamiltonian.
-
-        Args:
-            energy_level (int): the level of the eigenstate from lowest to
-                                highest energy (Default: 0).
-
-        Returns:
-            solver_op: The eigenstate as an OP solver operator.
-
-        Raises:
-            ValueError: if the energy level is larger than the number
-            of levels in the system.
-        """
-        if energy_level >= len(self._estates):
-            raise ValueError("Invalid energy level for drift Hamiltonian.")
-        # Set initial state
-        num_states = len(self._evals)
-        estate = 0 * op.basis(num_states, 1)
-        for idx, estate_coef in enumerate(self._estates[:, energy_level]):
-            estate += estate_coef * op.basis(num_states, idx)
-        return estate
-
     def calculate_frequencies(self, qubit_lo_freq=None, u_channel_lo=None):
         """Calulate frequencies for the Hamiltonian.
 
