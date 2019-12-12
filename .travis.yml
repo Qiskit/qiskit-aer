@@ -45,6 +45,9 @@ stage_linux: &stage_linux
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
+    - pushd qiskit-aer/src/third-party/headers
+    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
+    - popd
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
