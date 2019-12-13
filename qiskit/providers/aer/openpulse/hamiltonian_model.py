@@ -92,7 +92,18 @@ class HamiltonianModel():
         self._calculate_drift_hamiltonian()
 
     def get_qubit_lo_from_drift(self):
+        """ Computes a list of qubit frequencies corresponding to the exact energy
+        gap between the ground and first excited states of each qubit.
+
+        Args:
+        Returns:
+            qubit_lo_freq (list): the list of frequencies
+        Raises:
+        """
         qubit_lo_freq = [0]*len(self._dim_qub)
+
+        # compute difference between first excited state of each qubit and
+        # the ground energy
         min_eval = np.min(self._evals)
         for q_idx in range(len(self._dim_qub)):
             single_excite = _first_excited_state(q_idx, self._dim_qub)
