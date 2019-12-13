@@ -98,10 +98,9 @@ def digest_pulse_obj2(qobj, system_model, backend_options, noise_model=None):
     out.estates = ham_model._estates
     dim_qub = ham_model._dim_qub
     dim_osc = ham_model._dim_osc
-    out.initial_state = ham_model.drift_eigenstate(0)
-    print(out.initial_state)
     # convert estates into a Qutip qobj
-    estates = [op.state(state) for state in ham_model._estates[:]]
+    estates = [op.state(state) for state in ham_model._estates.T[:]]
+    out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
     out.global_data['freqs'] = list(out.freqs.values())
 

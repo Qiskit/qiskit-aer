@@ -91,6 +91,18 @@ class HamiltonianModel():
         # Step 3: Calculate diagonal hamiltonian
         self._calculate_drift_hamiltonian()
 
+    def get_qubit_lo_from_drift(self):
+        qubit_lo_freq = [0]*len(self._dim_qub)
+        min_eval = np.min(self._evals)
+        for q_idx in range(len(self._dim_qub)):
+            single_excite = _first_excited_state(q_idx, self._dim_qub)
+            dressed_eval = _eval_for_max_espace_overlap(
+                single_excite, self._evals, self._estates)
+            qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
+
+        return qubit_lo_freq
+
+
     def calculate_frequencies(self, qubit_lo_freq=None, u_channel_lo=None):
         """Calulate frequencies for the Hamiltonian.
 
