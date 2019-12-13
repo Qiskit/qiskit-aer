@@ -55,7 +55,7 @@ class HamiltonianModel():
         self._dim_osc = {}
 
         # Parse Hamiltonian
-        _string_parse_warnings(hamiltonian)
+        _hamiltonian_parse_warnings(hamiltonian)
 
         # TODO: determine n_qubits from hamiltonian if qubits is None
         n_qubits = len(qubits) if qubits else None
@@ -244,16 +244,16 @@ class HamiltonianModel():
         self._estates = estates_mapped
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
-    def _string_parse_warnings(hamiltonian):
-        """Raises warnings for hamiltonian specification.
+def _hamiltonian_parse_warnings(hamiltonian):
+    """Raises warnings for hamiltonian specification.
 
-        Parameters:
-            hamiltonian (dict): dictionary specification of hamiltonian
-        Returns:
-        Raises:
-        """
-        if 'osc' in hamiltonian:
-            warn(warning_str.format('Oscillator-type systems are not supported.'))
+    Parameters:
+        hamiltonian (dict): dictionary specification of hamiltonian
+    Returns:
+    Raises:
+    """
+    if 'osc' in hamiltonian:
+        warn(warning_str.format('Oscillator-type systems are not supported.'))
 
 def _first_excited_state(qubit_idx, dim_qub):
     """

@@ -25,7 +25,7 @@ from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..aererror import AerError
 from ..version import __version__
-from ..openpulse.qobj.digest import digest_pulse_obj,digest_pulse_obj2
+from ..openpulse.qobj.digest import digest_pulse_obj
 from ..openpulse.solver.opsolve import opsolve
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class PulseSimulator(AerBackend):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job2, qobj, system_model,
+        aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
                          backend_options, noise_model, validate)
         aer_job.submit()
         return aer_job
@@ -79,7 +79,7 @@ class PulseSimulator(AerBackend):
         if validate:
             self._validate(qobj, backend_options, noise_model)
         # Send to solver
-        openpulse_system = digest_pulse_obj2(qobj, system_model, backend_options, noise_model)
+        openpulse_system = digest_pulse_obj(qobj, system_model, backend_options, noise_model)
         results = opsolve(openpulse_system)
         end = time.time()
         return self._format_results(job_id, results, end - start, qobj.qobj_id)

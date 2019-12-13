@@ -61,7 +61,7 @@ def digest_pulse_obj(qobj, system_model, backend_options, noise_model=None):
     qubit_lo_freq = qobj_config['qubit_lo_freq']
 
     # Build pulse arrays ***************************************************************
-    pulses, pulses_idx, pulse_dict = build_pulse_arrays2(qobj_dict['experiments'],
+    pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
                                                          qobj_config['pulse_library'])
 
     out.global_data['pulse_array'] = pulses
@@ -218,7 +218,7 @@ def _contains_pv_instruction(experiments):
     return False
 
 
-def build_pulse_arrays2(experiments, pulse_library):
+def build_pulse_arrays(experiments, pulse_library):
     """ Build pulses and pulse_idx arrays, and a pulse_dict
     used in simulations and mapping of experimental pulse
     sequencies to pulse_idx sequencies and timings.
@@ -259,61 +259,6 @@ def build_pulse_arrays2(experiments, pulse_library):
     stop = 0
     ind = 1
     for _, pulse in enumerate(pulse_library):
-        stop = pulses_idx[ind - 1] + len(pulse['samples'])
-        pulses_idx[ind] = stop
-        oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
-        ind += 1
-
-    for pv in pv_pulses:
-        stop = pulses_idx[ind - 1] + 1
-        pulses_idx[ind] = stop
-        oplist_to_array([pv[0]], pulses, pulses_idx[ind - 1])
-        ind += 1
-
-    return pulses, pulses_idx, pulse_dict
-
-def build_pulse_arrays(qobj):
-    """ Build pulses and pulse_idx arrays, and a pulse_dict
-    used in simulations and mapping of experimental pulse
-    sequencies to pulse_idx sequencies and timings.
-
-    Parameters:
-        qobj (Qobj): A pulse-qobj instance.
-
-    Returns:
-        tuple: Returns all pulses in one array,
-        an array of start indices for pulses, and dict that
-        maps pulses to the index at which the pulses start.
-    """
-    qobj_pulses = qobj['config']['pulse_library']
-    pulse_dict = {}
-    total_pulse_length = 0
-
-    num_pulse = 0
-    for pulse in qobj_pulses:
-        pulse_dict[pulse['name']] = num_pulse
-        total_pulse_length += len(pulse['samples'])
-        num_pulse += 1
-
-    idx = num_pulse + 1
-    # now go through experiments looking for PV gates
-    pv_pulses = []
-    for exp in qobj['experiments']:
-        for pulse in exp['instructions']:
-            if pulse['name'] == 'pv':
-                if pulse['val'] not in [pval[1] for pval in pv_pulses] and pulse['val'] != 0:
-                    pv_pulses.append((pulse['val'], idx))
-                    idx += 1
-                    total_pulse_length += 1
-
-    pulse_dict['pv'] = pv_pulses
-
-    pulses = np.empty(total_pulse_length, dtype=complex)
-    pulses_idx = np.zeros(idx + 1, dtype=np.uint32)
-
-    stop = 0
-    ind = 1
-    for _, pulse in enumerate(qobj_pulses):
         stop = pulses_idx[ind - 1] + len(pulse['samples'])
         pulses_idx[ind] = stop
         oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
