@@ -15,6 +15,7 @@
 
 "System Model class for system specification for the PulseSimulator"
 
+from collections import OrderedDict
 from .hamiltonian_model import HamiltonianModel
 
 class SimSystemModel():
@@ -28,6 +29,7 @@ class SimSystemModel():
                  dt=None):
 
         self.hamiltonian = hamiltonian
+        self.channels = self.hamiltonian._channels
         self.qubit_freq_est = qubit_freq_est
         self.meas_freq_est = meas_freq_est
         self.u_channel_lo = u_channel_lo
@@ -57,42 +59,42 @@ class SimSystemModel():
                    qubit_list=qubit_list,
                    dt=dt)
 
-   def calculate_channel_frequencies(self, qubit_lo_freq=None):
-       """Calulate frequencies for each channel.
+    def calculate_channel_frequencies(self, qubit_lo_freq=None):
+        """Calulate frequencies for each channel.
 
-       Args:
+        Args:
            qubit_lo_freq (list or None): list of qubit linear
                oscillator drive frequencies. If None these will be calculated
                using self.qubit_freq_est.
 
-       Returns:
+        Returns:
            OrderedDict: a dictionary of channel frequencies.
 
-       Raises:
+        Raises:
            ValueError: If channel or u_channel_lo are invalid.
-       """
-       # TODO: Update docstring with description of what qubit_lo_freq and
-       # u_channel_lo are
+        """
+        # TODO: Update docstring with description of what qubit_lo_freq and
+        # u_channel_lo are
 
-       # Setup freqs for the channels
-       freqs = OrderedDict()
+        # Setup freqs for the channels
+        freqs = OrderedDict()
 
-       # TODO: set u_channel_lo from hamiltonian
-       if not self.u_channel_lo:
+        # TODO: set u_channel_lo from hamiltonian
+        if not self.u_channel_lo:
            raise ValueError("SimSystemModel has no u_channel_lo.")
 
-       # Set frequencies
-       for key in self._channels.keys():
+        # Set frequencies
+        for key in self.channels.keys():
            chidx = int(key[1:])
            if key[0] == 'D':
                freqs[key] = qubit_lo_freq[chidx]
            elif key[0] == 'U':
                freqs[key] = 0
-               for u_lo_idx in u_channel_lo[chidx]:
+               for u_lo_idx in self.u_channel_lo[chidx]:
                    if u_lo_idx['q'] < len(qubit_lo_freq):
                        qfreq = qubit_lo_freq[u_lo_idx['q']]
                        qscale = u_lo_idx['scale'][0]
                        freqs[key] += qfreq * qscale
            else:
                raise ValueError("Channel is not D or U")
-       return freqs
+        return freqs
