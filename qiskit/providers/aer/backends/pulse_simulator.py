@@ -56,7 +56,7 @@ class PulseSimulator(AerBackend):
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
-    def run2(self, qobj,
+    def run(self, qobj,
              system_model,
              backend_options=None,
              noise_model=None,
@@ -69,7 +69,7 @@ class PulseSimulator(AerBackend):
         aer_job.submit()
         return aer_job
 
-    def _run_job2(self, job_id, qobj,
+    def _run_job(self, job_id, qobj,
                  system_model,
                  backend_options,
                  noise_model,
@@ -80,32 +80,6 @@ class PulseSimulator(AerBackend):
             self._validate(qobj, backend_options, noise_model)
         # Send to solver
         openpulse_system = digest_pulse_obj2(qobj, system_model, backend_options, noise_model)
-        results = opsolve(openpulse_system)
-        end = time.time()
-        return self._format_results(job_id, results, end - start, qobj.qobj_id)
-
-    def run(self, qobj,
-            backend_options=None,
-            noise_model=None,
-            validate=False):
-        """Run a qobj on the backend."""
-        # Submit job
-        job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj,
-                         backend_options, noise_model, validate)
-        aer_job.submit()
-        return aer_job
-
-    def _run_job(self, job_id, qobj,
-                 backend_options,
-                 noise_model,
-                 validate):
-        """Run a qobj job"""
-        start = time.time()
-        if validate:
-            self._validate(qobj, backend_options, noise_model)
-        # Send to solver
-        openpulse_system = digest_pulse_obj(qobj, backend_options, noise_model)
         results = opsolve(openpulse_system)
         end = time.time()
         return self._format_results(job_id, results, end - start, qobj.qobj_id)
