@@ -24,7 +24,6 @@ from .op_system import OPSystem
 from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
-from ..hamiltonian_model import HamiltonianModel
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
