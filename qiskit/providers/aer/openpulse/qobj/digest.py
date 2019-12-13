@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name, consider-using-enumerate
+# pylint: disable=invalid-name
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
@@ -20,11 +20,11 @@ into something we can actually use.
 from warnings import warn
 from collections import OrderedDict
 import numpy as np
-import numpy.linalg as la
 from .op_system import OPSystem
-from .opparse import HamiltonianParser, NoiseParser
+from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
+from ..hamiltonian_model import HamiltonianModel
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
@@ -58,105 +58,65 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     # Get the config settings from the qobj
     config_dict = qobj['config']
     if 'backend_options' not in config_dict:
-        raise ValueError('Pulse Qobj must have "sim_config".')
+        raise ValueError('Pulse Qobj must have "backend_options".')
     config_dict_sim = config_dict['backend_options']
-    noise_dict = config_dict_sim.get('noise_model', {})
+
+    # Parse config settings
+    if 'memory_slots' not in config_dict:
+        raise ValueError('Number of memory_slots must be specific in Qobj config')
+    out.global_data['shots'] = int(config_dict.get('shots', 1024))
+    out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
+    out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
+    out.global_data['seed'] = config_dict_sim.get('seed', None)
+    out.global_data['memory_slots'] = config_dict.get('memory_slots', 0)
+    out.global_data['memory'] = config_dict.get('memory', False)
+    out.global_data['n_registers'] = config_dict.get('n_registers', 0)
+    out.global_data['q_level_meas'] = int(config_dict_sim.get('q_level_meas', 1))
+
+    # Attach the ODE options
+    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
+                           'num_cpus', 'norm_tol', 'norm_steps',
+                           'rhs_reuse', 'rhs_filename']
+    ode_options = config_dict_sim.get('ode_options', {})
+    for key in ode_options:
+        if key not in allowed_ode_options:
+            raise Exception('Invalid ode_option: {}'.format(key))
+    out.ode_options = OPoptions(**ode_options)
+
+    # Parse the hamiltonian
     if 'hamiltonian' not in config_dict_sim:
         raise ValueError('Qobj must have hamiltonian in config to simulate.')
     hamiltonian = config_dict_sim['hamiltonian']
-
     # Get qubit number
     qubit_list = config_dict_sim.get('qubit_list', None)
     if qubit_list is None:
         qubit_list = list(range(config_dict_sim['n_qubits']))
     else:
         config_dict_sim['n_qubits'] = len(qubit_list)
+    qubit_lo_freq = config_dict_sim.get('qubit_lo_freq',
+                                        config_dict['qubit_lo_freq'])
+    u_channel_lo = config_dict_sim.get('u_channel_lo')
 
-    config_keys_sim = config_dict_sim.keys()
-    config_keys = config_dict.keys()
-
-    # Look for config keys
-    out.global_data['shots'] = 1024
-    if 'shots' in config_keys:
-        out.global_data['shots'] = int(config_dict['shots'])
-
-    out.global_data['meas_level'] = 1
-    if 'meas_level' in config_keys:
-        out.global_data['meas_level'] = int(config_dict['meas_level'])
-
-    out.global_data['meas_return'] = 'avg'
-    if 'meas_return' in config_keys:
-        out.global_data['meas_return'] = config_dict['meas_return']
-
-    out.global_data['seed'] = None
-    if 'seed' in config_keys_sim:
-        out.global_data['seed'] = int(config_dict_sim['seed'])
-
-    if 'memory_slots' in config_keys:
-        out.global_data['memory_slots'] = config_dict['memory_slots']
-    else:
-        err_str = 'Number of memory_slots must be specific in Qobj config'
-        raise ValueError(err_str)
-
-    if 'memory' in config_keys:
-        out.global_data['memory'] = config_dict['memory']
-    else:
-        out.global_data['memory'] = False
-
-    out.global_data['n_registers'] = 0
-    if 'n_registers' in config_keys:
-        out.global_data['n_registers'] = config_dict['n_registers']
-
-    # which level to measure
-    out.global_data['q_level_meas'] = 1
-    if 'q_level_meas' in config_keys_sim:
-        out.global_data['q_level_meas'] = int(config_dict_sim['q_level_meas'])
-
-    # Attach the ODE options
-    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                           'num_cpus', 'norm_tol', 'norm_steps',
-                           'rhs_reuse', 'rhs_filename']
-    user_set_ode_options = {}
-    if 'ode_options' in config_keys_sim:
-        for key, val in config_dict_sim['ode_options'].items():
-            if key not in allowed_ode_options:
-                raise Exception('Invalid ode_option: {}'.format(key))
-            user_set_ode_options[key] = val
-    out.ode_options = OPoptions(**user_set_ode_options)
-
-    # Step #1: Parse hamiltonian representation
-    out.vars = OrderedDict(hamiltonian['vars'])
+    ham_model = HamiltonianModel(hamiltonian, qubit_list)
+    # For now we dump this into OpSystem, though that should be refactored
+    out.system = ham_model._system
+    out.vars = ham_model._vars
+    out.channels = ham_model._channels
+    out.freqs = ham_model.calculate_frequencies(qubit_lo_freq=qubit_lo_freq,
+                                                u_channel_lo=u_channel_lo)
+    out.h_diag = ham_model._h_diag
+    out.evals = ham_model._evals
+    out.estates = ham_model._estates
+    dim_qub = ham_model._dim_qub
+    dim_osc = ham_model._dim_osc
+    # convert estates into a Qutip qobj
+    estates = [op.state(state) for state in ham_model._estates.T[:]]
+    out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
+    out.global_data['freqs'] = list(out.freqs.values())
 
-    # Get qubit subspace dimensions
-    if 'qub' in hamiltonian.keys():
-        dim_qub = hamiltonian['qub']
-        _dim_qub = {}
-        # Convert str keys to int keys
-        for key, val in hamiltonian['qub'].items():
-            _dim_qub[int(key)] = val
-        dim_qub = _dim_qub
-    else:
-        dim_qub = {}.fromkeys(range(config_dict_sim['n_qubits']), 2)
-
-    # Get oscillator subspace dimensions
-    if 'osc' in hamiltonian.keys():
-        dim_osc = hamiltonian['osc']
-        _dim_osc = {}
-        # Convert str keys to int keys
-        for key, val in dim_osc.items():
-            _dim_osc[int(key)] = val
-        dim_osc = _dim_osc
-    else:
-        dim_osc = {}
-
-    # Parse the Hamiltonian
-    system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                               dim_osc=dim_osc,
-                               dim_qub=dim_qub)
-    system.parse(qubit_list)
-    out.system = system.compiled
-
+    # Parse noise
+    noise_dict = config_dict_sim.get('noise_model', {})
     if noise_dict:
         noise = NoiseParser(noise_dict=noise_dict,
                             dim_osc=dim_osc, dim_qub=dim_qub)
@@ -169,72 +129,14 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     else:
         out.noise = None
 
-    # Step #2: Get Hamiltonian channels
-    out.channels = get_hamiltonian_channels(out.system)
-
-    h_diag, evals, estates = get_diag_hamiltonian(out.system,
-                                                  out.vars, out.channels)
-
-    # convert estates into a qobj
-    estates_qobj = []
-    for kk in range(len(estates[:, ])):
-        estates_qobj.append(op.state(estates[:, kk]))
-
-    out.h_diag = np.ascontiguousarray(h_diag.real)
-    out.evals = evals
-    out.estates = estates
-
-    # Set initial state
-    out.initial_state = 0 * op.basis(len(evals), 1)
-    for idx, estate_coef in enumerate(estates[:, 0]):
-        out.initial_state += estate_coef * op.basis(len(evals), idx)
-    # init_fock_state(dim_osc, dim_qub)
-
-    # Setup freqs for the channels
-    out.freqs = OrderedDict()
-
-    # determine whether to compute qubit_lo_freq from hamiltonian
-    qubit_lo_from_ham = (('qubit_lo_freq' in config_dict_sim) and
-                         (config_dict_sim['qubit_lo_freq'] == 'from_hamiltonian') and
-                         (len(dim_osc) == 0)) or not config_dict['qubit_lo_freq']
-
-    # set frequencies based on qubit_lo_from_ham value
-    q_lo_freq = None
-    if qubit_lo_from_ham:
-        q_lo_freq = np.zeros(len(dim_qub))
-        min_eval = np.min(evals)
-        for q_idx in range(len(dim_qub)):
-            single_excite = _first_excited_state(q_idx, dim_qub)
-            dressed_eval = _eval_for_max_espace_overlap(single_excite, evals, estates)
-            q_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
-    else:
-        q_lo_freq = config_dict['qubit_lo_freq']
-
-    # set freqs
-    for key in out.channels.keys():
-        chidx = int(key[1:])
-        if key[0] == 'D':
-            out.freqs[key] = q_lo_freq[chidx]
-        elif key[0] == 'U':
-            out.freqs[key] = 0
-            for u_lo_idx in config_dict_sim['u_channel_lo'][chidx]:
-                if u_lo_idx['q'] < len(q_lo_freq):
-                    qfreq = q_lo_freq[u_lo_idx['q']]
-                    qscale = u_lo_idx['scale'][0]
-                    out.freqs[key] += qfreq * qscale
-        else:
-            raise ValueError("Channel is not D or U")
-
-    out.global_data['freqs'] = list(out.freqs.values())
-
-    # Step #3: Build pulse arrays
+    # Build pulse arrays
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj)
 
     out.global_data['pulse_array'] = pulses
     out.global_data['pulse_indices'] = pulses_idx
     out.pulse_to_int = pulse_dict
 
-    # Step #4: Get dt
+    # Get dt
     if 'dt' not in config_dict_sim.keys():
         raise ValueError('Qobj must have a dt value to simulate.')
     out.dt = config_dict_sim['dt']
@@ -249,7 +151,8 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
             min_width = min(min_width, stop - start)
     out.ode_options.max_step = min_width / 2 * out.dt
 
-    # Step #6: Convert experiments to data structures.
+    # Convert experiments to data structures.
+    # convert estates into a qobj
 
     out.global_data['measurement_ops'] = [None] * config_dict_sim['n_qubits']
 
@@ -270,7 +173,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
                     if not out.global_data['measurement_ops'][jj]:
                         out.global_data['measurement_ops'][jj] = \
                             qubit_occ_oper_dressed(jj,
-                                                   estates_qobj,
+                                                   estates,
                                                    h_osc=dim_osc,
                                                    h_qub=dim_qub,
                                                    level=out.global_data['q_level_meas']
@@ -339,104 +242,6 @@ def _contains_pv_instruction(experiments):
             if inst['name'] == 'pv':
                 return True
     return False
-
-
-def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
-    """ Get the diagonal elements of the hamiltonian and get the
-    dressed frequencies and eigenstates
-
-    Parameters:
-        parsed_ham (list): A list holding ops and strings from the Hamiltonian
-        of a specific quantum system.
-
-        ham_vars (dict): dictionary of variables
-
-        channels (dict): drive channels (set to 0)
-
-    Returns:
-        h_diag: diagonal elements of the hamiltonian
-        h_evals: eigenvalues of the hamiltonian with no time-dep terms
-        h_estates: eigenstates of the hamiltonian with no time-dep terms
-
-    Raises:
-        Exception: Missing index on channel.
-    """
-    # Get the diagonal elements of the hamiltonian with all the
-    # drive terms set to zero
-    for chan in channels:
-        exec('%s=0' % chan)
-
-    # might be a better solution to replace the 'var' in the hamiltonian
-    # string with 'op_system.vars[var]'
-    for var in ham_vars:
-        exec('%s=%f' % (var, ham_vars[var]))
-
-    H_full = np.zeros(np.shape(parsed_ham[0][0].full()), dtype=complex)
-
-    for hpart in parsed_ham:
-        H_full += hpart[0].full() * eval(hpart[1])
-
-    h_diag = np.diag(H_full)
-
-    evals, estates = la.eigh(H_full)
-
-    eval_mapping = []
-    for ii in range(len(evals)):
-        eval_mapping.append(np.argmax(np.abs(estates[:, ii])))
-
-    evals2 = evals.copy()
-    estates2 = estates.copy()
-
-    for ii, val in enumerate(eval_mapping):
-        evals2[val] = evals[ii]
-        estates2[:, val] = estates[:, ii]
-
-    return h_diag, evals2, estates2
-
-
-def get_hamiltonian_channels(parsed_ham):
-    """ Get all the qubit channels D_i and U_i in the string
-    representation of a system Hamiltonian.
-
-    Parameters:
-        parsed_ham (list): A list holding ops and strings from the Hamiltonian
-        of a specific quantum system.
-
-    Returns:
-        list: A list of all channels in Hamiltonian string.
-
-    Raises:
-        Exception: Missing index on channel.
-    """
-    out_channels = []
-    for _, ham_str in parsed_ham:
-        chan_idx = [i for i, letter in enumerate(ham_str) if
-                    letter in ['D', 'U']]
-        for ch in chan_idx:
-            if (ch + 1) == len(ham_str) or not ham_str[ch + 1].isdigit():
-                raise Exception('Channel name must include' +
-                                'an integer labeling the qubit.')
-        for kk in chan_idx:
-            done = False
-            offset = 0
-            while not done:
-                offset += 1
-                if not ham_str[kk + offset].isdigit():
-                    done = True
-                # In case we hit the end of the string
-                elif (kk + offset + 1) == len(ham_str):
-                    done = True
-                    offset += 1
-            temp_chan = ham_str[kk:kk + offset]
-            if temp_chan not in out_channels:
-                out_channels.append(temp_chan)
-    out_channels.sort(key=lambda x: (int(x[1:]), x[0]))
-
-    out_dict = OrderedDict()
-    for idx, val in enumerate(out_channels):
-        out_dict[val] = idx
-
-    return out_dict
 
 
 def build_pulse_arrays(qobj):
@@ -661,100 +466,3 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
         structs['can_sample'] = False
 
     return structs
-
-
-def _first_excited_state(qubit_idx, dim_qub):
-    """
-    Returns the vector corresponding to all qubits in the 0 state, except for
-    qubit_idx in the 1 state.
-
-    Assumption: the keys in dim_qub consist exactly of the str version of the int
-                in range(len(dim_qub)). They don't need to be in order, but they
-                need to be of this format
-
-    Parameters:
-        qubit_idx (int): the qubit to be in the 1 state
-
-        dim_qub (dict): a dictionary with keys being qubit index as a string, and
-                        value being the dimension of the qubit
-
-    Returns:
-        vector: the state with qubit_idx in state 1, and the rest in state 0
-    """
-    vector = np.array([1.])
-
-    # iterate through qubits, tensoring on the state
-    for idx in range(len(dim_qub)):
-        new_vec = np.zeros(dim_qub[idx])
-        if idx == qubit_idx:
-            new_vec[1] = 1
-        else:
-            new_vec[0] = 1
-
-        vector = np.kron(new_vec, vector)
-
-    return vector
-
-
-def _eval_for_max_espace_overlap(u, evals, evecs, decimals=14):
-    """ Given an eigenvalue decomposition evals, evecs, as output from
-    get_diag_hamiltonian, returns the eigenvalue from evals corresponding
-    to the eigenspace that the vector vec has the maximum overlap with.
-
-    Parameters:
-        u (numpy.array): the vector of interest
-
-        evals (numpy.array): list of eigenvalues
-
-        evecs (numpy.array): eigenvectors corresponding to evals
-
-        decimals (int): rounding option, to try to handle numerical
-                        error if two evals should be the same but are
-                        slightly different
-
-    Returns:
-        eval: eigenvalue corresponding to eigenspace for which vec has
-              maximal overlap
-
-    Raises:
-    """
-
-    # get unique evals (with rounding for numerical error)
-    rounded_evals = evals.copy().round(decimals=decimals)
-    unique_evals = np.unique(rounded_evals)
-
-    # compute overlaps to unique evals
-    overlaps = np.zeros(len(unique_evals))
-    for idx, val in enumerate(unique_evals):
-        overlaps[idx] = _proj_norm(evecs[:, val == rounded_evals], u)
-
-    # return eval with largest overlap
-    return unique_evals[np.argmax(overlaps)]
-
-
-def _proj_norm(A, b):
-    """
-    Given a matrix A and vector b, computes the norm of the projection of
-    b onto the column space of A using least squares.
-
-    Note: A can also be specified as a 1d numpy.array, in which case it will
-    convert it into a matrix with one column
-
-    Parameters:
-        A (numpy.array): 2d array, a matrix
-
-        b (numpy.array): 1d array, a vector
-
-    Returns:
-        norm: the norm of the projection
-
-    Raises:
-    """
-
-    # if specified as a single vector, turn it into a column vector
-    if A.ndim == 1:
-        A = np.array([A]).T
-
-    x = la.lstsq(A, b, rcond=None)[0]
-
-    return la.norm(A@x)
