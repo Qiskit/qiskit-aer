@@ -57,10 +57,10 @@ class PulseSimulator(AerBackend):
                          provider=provider)
 
     def run(self, qobj,
-             system_model,
-             backend_options=None,
-             noise_model=None,
-             validate=False):
+            system_model,
+            backend_options=None,
+            noise_model=None,
+            validate=False):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())

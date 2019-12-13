@@ -46,8 +46,9 @@ class SimSystemModel():
         qubit_freq_est = defaults.get('qubit_freq_est', None)
         meas_freq_est = defaults.get('meas_freq_est', None)
 
-        #draw from configuration
-        qubit_list = qubit_list or range(len(config['n_qubits']))
+        # draw from configuration
+        # if no qubit_list, use all for device
+        qubit_list = qubit_list or list(range(config['n_qubits']))
         hamiltonian = HamiltonianModel(config['hamiltonian'], qubit_list)
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)

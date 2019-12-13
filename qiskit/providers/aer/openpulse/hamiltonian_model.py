@@ -57,12 +57,6 @@ class HamiltonianModel():
         # Parse Hamiltonian
         _hamiltonian_parse_warnings(hamiltonian)
 
-        # TODO: determine n_qubits from hamiltonian if qubits is None
-        n_qubits = len(qubits) if qubits else None
-        if not n_qubits:
-            raise ValueError("TODO: Need to infer n_qubits from "
-                             "Hamiltonian if qubits list is not specified")
-
         self._vars = OrderedDict(hamiltonian['vars'])
 
         # Get qubit subspace dimensions
