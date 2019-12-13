@@ -110,59 +110,6 @@ class HamiltonianModel():
 
         return qubit_lo_freq
 
-
-    def calculate_frequencies(self, qubit_lo_freq=None, u_channel_lo=None):
-        """Calulate frequencies for the Hamiltonian.
-
-        Args:
-            qubit_lo_freq (list or None): list of qubit linear
-                oscillator drive frequencies. If None these will be calcualted
-                automatically from hamiltonian (Default: None).
-            u_channel_lo (list or None): list of u channel parameters (Default: None).
-
-        Returns:
-            OrderedDict: a dictionary of channel frequencies.
-
-        Raises:
-            ValueError: If channel or u_channel_lo are invalid.
-        """
-        # TODO: Update docstring with description of what qubit_lo_freq and
-        # u_channel_lo are
-
-        # Setup freqs for the channels
-        freqs = OrderedDict()
-
-        # Set qubit frequencies from hamiltonian
-        if not qubit_lo_freq or (
-                qubit_lo_freq == 'from_hamiltonian' and len(self._dim_osc) == 0):
-            qubit_lo_freq = np.zeros(len(self._dim_qub))
-            min_eval = np.min(self._evals)
-            for q_idx in range(len(self._dim_qub)):
-                single_excite = _first_excited_state(q_idx, self._dim_qub)
-                dressed_eval = _eval_for_max_espace_overlap(
-                    single_excite, self._evals, self._estates)
-                qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
-
-        # TODO: set u_channel_lo from hamiltonian
-        if not u_channel_lo:
-            raise ValueError("u_channel_lo cannot be None.")
-
-        # Set frequencies
-        for key in self._channels.keys():
-            chidx = int(key[1:])
-            if key[0] == 'D':
-                freqs[key] = qubit_lo_freq[chidx]
-            elif key[0] == 'U':
-                freqs[key] = 0
-                for u_lo_idx in u_channel_lo[chidx]:
-                    if u_lo_idx['q'] < len(qubit_lo_freq):
-                        qfreq = qubit_lo_freq[u_lo_idx['q']]
-                        qscale = u_lo_idx['scale'][0]
-                        freqs[key] += qfreq * qscale
-            else:
-                raise ValueError("Channel is not D or U")
-        return freqs
-
     def _calculate_hamiltonian_channels(self):
         """ Get all the qubit channels D_i and U_i in the string
         representation of a system Hamiltonian.
