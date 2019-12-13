@@ -55,6 +55,8 @@ class HamiltonianModel():
         self._dim_osc = {}
 
         # Parse Hamiltonian
+        _string_parse_warnings(hamiltonian)
+
         # TODO: determine n_qubits from hamiltonian if qubits is None
         n_qubits = len(qubits) if qubits else None
         if not n_qubits:
