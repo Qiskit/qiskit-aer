@@ -57,7 +57,7 @@ class SimSystemModel():
                    qubit_list=qubit_list,
                    dt=dt)
 
-   def compute_channel_frequencies(self, qubit_lo_freq=None):
+   def calculate_channel_frequencies(self, qubit_lo_freq=None):
        """Calulate frequencies for each channel.
 
        Args:
