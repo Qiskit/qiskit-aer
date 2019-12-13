@@ -42,11 +42,8 @@ def digest_pulse_obj2(qobj, system_model, backend_options, noise_model=None):
             backend_options[key] = val
         qobj_config.pop('sim_config')
 
-    # TO DO ERRORS: this function won't work if no system_model is specified,
-    # should this be warned though?
-
-    # TO DO Warnings - modify _unsupported_warnings
-    #**********************************************************************************
+    # post warnings for unsupported features
+    _unsupported_warnings(qobj_dict, system_model, backend_options, noise_model)
 
     ################################
     #### Parse qobj_config settings
@@ -364,20 +361,20 @@ def _format_qobj_dict(qobj, backend_options, noise_model):
     return qobj_dict
 
 
-def _unsupported_warnings(qobj_dict):
+def _unsupported_warnings(qobj_dict, system_model, backend_options, noise_model):
     """ Warns the user about untested/unsupported features.
 
     Parameters:
-        qobj_dict (dict): Formatted qobj_dict from _format_qobj_dict
+        qobj_dict (dict): qobj in dictionary form
+        system_model (SimSystemModel): system model for simulation
+        backend_options (dict): backend_options for simulation
     Returns:
     Raises:
     """
 
     # Warnings that don't stop execution
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
-    if 'osc' in qobj_dict['config']['backend_options']['hamiltonian'].keys():
-        warn(warning_str.format('Oscillator-type systems'))
-    if 'noise_model' in qobj_dict['config']['backend_options']:
+    if noise_model is not None:
         warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
         warn(warning_str.format('PersistentValue instructions'))

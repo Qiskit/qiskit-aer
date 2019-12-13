@@ -15,6 +15,7 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -241,6 +242,16 @@ class HamiltonianModel():
         self._estates = estates_mapped
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
+    def _string_parse_warnings(hamiltonian):
+        """Raises warnings for hamiltonian specification.
+
+        Parameters:
+            hamiltonian (dict): dictionary specification of hamiltonian
+        Returns:
+        Raises:
+        """
+        if 'osc' in hamiltonian:
+            warn(warning_str.format('Oscillator-type systems are not supported.'))
 
 def _first_excited_state(qubit_idx, dim_qub):
     """

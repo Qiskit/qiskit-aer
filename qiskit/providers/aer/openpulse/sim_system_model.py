@@ -60,7 +60,7 @@ class SimSystemModel():
                    dt=dt)
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
-        """Calulate frequencies for each channel.
+        """Calculate frequencies for each channel.
 
         Args:
            qubit_lo_freq (list or None): list of qubit linear
@@ -73,17 +73,16 @@ class SimSystemModel():
         Raises:
            ValueError: If channel or u_channel_lo are invalid.
         """
-        # TODO: Update docstring with description of what qubit_lo_freq and
-        # u_channel_lo are
+        if (not qubit_lo_freq) and (not self.qubit_freq_est):
+            raise ValueError("No qubit_lo_freq to use.")
+        else:
+            qubit_lo_freq = self.qubit_freq_est
+        
+        if not self.u_channel_lo:
+            raise ValueError("{} has no u_channel_lo.".format(self.__class__.__name__))
 
         # Setup freqs for the channels
         freqs = OrderedDict()
-
-        # TODO: set u_channel_lo from hamiltonian
-        if not self.u_channel_lo:
-           raise ValueError("SimSystemModel has no u_channel_lo.")
-
-        # Set frequencies
         for key in self.channels.keys():
            chidx = int(key[1:])
            if key[0] == 'D':
