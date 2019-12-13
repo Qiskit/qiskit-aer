@@ -55,3 +55,5 @@ class OPSystem():
         self.h_diag = None
         # eigenvalues of the time-independent hamiltonian
         self.evals = None
+        # eigenstates of the time-independent hamiltonian
+        self.estates = None
