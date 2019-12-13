@@ -40,7 +40,7 @@ stage_linux: &stage_linux
   language: python
   python: 3.7
   sudo: true
-  before_install:
+  before_install: &linux_before_install
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
@@ -128,11 +128,8 @@ jobs:
       name: Thrust -> OMP Python 3.7 Tests Linux
       <<: *stage_linux
       python: 3.7
-      before_script:
-        - |
-          if [ ! "$(ls -A .stestr)" ]; then
-            rm -rf .stestr
-          fi
+      before_install:
+        <<: *linux_before_install
         - pushd src/third-party/headers
         - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
         - popd
