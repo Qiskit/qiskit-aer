@@ -73,11 +73,12 @@ class SimSystemModel():
         Raises:
            ValueError: If channel or u_channel_lo are invalid.
         """
-        if (not qubit_lo_freq) and (not self.qubit_freq_est):
-            raise ValueError("No qubit_lo_freq to use.")
-        else:
-            qubit_lo_freq = self.qubit_freq_est
-        
+        if not qubit_lo_freq:
+            if not self.qubit_freq_est:
+                raise ValueError("No qubit_lo_freq to use.")
+            else:
+                qubit_lo_freq = self.qubit_freq_est
+
         if not self.u_channel_lo:
             raise ValueError("{} has no u_channel_lo.".format(self.__class__.__name__))
 
