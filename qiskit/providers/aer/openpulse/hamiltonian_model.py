@@ -24,7 +24,8 @@ from .qobj.opparse import HamiltonianParser
 
 class HamiltonianModel():
     """Hamiltonian model for pulse simulator."""
-    def __init__(self, hamiltonian, qubits=None):
+    '''
+    def __init__OLD(self, hamiltonian, qubits=None):
         """Initialize a Hamiltonian model.
 
         Args:
@@ -86,7 +87,90 @@ class HamiltonianModel():
         self._calculate_hamiltonian_channels()
 
         # Step 3: Calculate diagonal hamiltonian
+        self._calculate_drift_hamiltonian()'''
+
+    def __init__(self,
+                 system=None,
+                 vars=None,
+                 dim_qub={},
+                 dim_osc={}):
+
+        # Initialize internal variables
+        # The system Hamiltonian in numerical format
+        self._system = system
+        # System variables
+        self._vars = vars
+        # Channels in the Hamiltonian string
+        # Qubit subspace dimensinos
+        self._dim_qub = dim_qub
+        # Oscillator subspace dimensions
+        self._dim_osc = dim_osc
+
+        # The rest are computed from the previous
+
+        # These tell the order in which the channels are evaluated in
+        # the RHS solver.
+        self._channels = None
+        # Diagonal elements of the hamiltonian
+        self._h_diag = None
+        # Eigenvalues of the time-independent hamiltonian
+        self._evals = None
+        # Eigenstates of the time-indepedent hamiltonian
+        self._estates = None
+
+        # Step #2: Determine Hamiltonian channels
+        self._calculate_hamiltonian_channels()
+
+        # Step 3: Calculate diagonal hamiltonian, evals, and estates
         self._calculate_drift_hamiltonian()
+
+    @classmethod
+    def from_string_spec(cls, hamiltonian, qubit_list=None):
+        """Initialize from a Hamiltonian string specification.
+
+        Args:
+            hamiltonian (dict): Hamiltonian dictionary.
+            qubit_list (list or None): List of qubits to extract from the hamiltonian.
+
+        Raises:
+            ValueError: if arguments are invalid.
+        """
+
+        _hamiltonian_parse_warnings(hamiltonian)
+
+        # get vars
+        vars = OrderedDict(hamiltonian['vars'])
+
+        # Get qubit subspace dimensions
+        if 'qub' in hamiltonian:
+            if not qubit_list:
+                qubit_list = list(range(len(hamiltonian['qub'])))
+
+            dim_qub = {
+                int(key): val
+                for key, val in hamiltonian['qub'].items()
+            }
+        else:
+            dim_qub = {}
+
+        # Get oscillator subspace dimensions
+        if 'osc' in hamiltonian:
+            dim_osc = {
+                int(key): val
+                for key, val in hamiltonian['osc'].items()
+            }
+        else:
+            dim_osc = {}
+
+        # Parse the Hamiltonian
+        system = HamiltonianParser(h_str=hamiltonian['h_str'],
+                                   dim_osc=dim_osc,
+                                   dim_qub=dim_qub)
+        system.parse(qubit_list)
+        system = system.compiled
+
+        return cls(system, vars, dim_qub, dim_osc)
+
 
     def get_qubit_lo_from_drift(self):
         """ Computes a list of qubit frequencies corresponding to the exact energy

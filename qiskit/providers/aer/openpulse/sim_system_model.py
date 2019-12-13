@@ -49,7 +49,7 @@ class SimSystemModel():
         # draw from configuration
         # if no qubit_list, use all for device
         qubit_list = qubit_list or list(range(config['n_qubits']))
-        hamiltonian = HamiltonianModel(config['hamiltonian'], qubit_list)
+        hamiltonian = HamiltonianModel.from_string_spec(config['hamiltonian'], qubit_list)
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)
 
