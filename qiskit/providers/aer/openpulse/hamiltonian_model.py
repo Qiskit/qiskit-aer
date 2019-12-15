@@ -69,7 +69,7 @@ class HamiltonianModel():
         self._calculate_hamiltonian_channels()
 
         # populate self._h_diag, self._evals, self._estates
-        self._calculate_drift_hamiltonian()
+        self._compute_drift_data()
 
     @classmethod
     def from_string_spec(cls, hamiltonian, qubit_list=None):
@@ -118,6 +118,19 @@ class HamiltonianModel():
 
         return cls(system, vars, dim_qub, dim_osc)
 
+    def set_vars(self, vars):
+        """Given a dict vars, set the corresponding values in self._vars
+        Args:
+            vars (dict or OrderedDict): dictionary of new values
+        Returns:
+        Raises:
+        """
+        for key in vars:
+            if key in self._vars:
+                self._vars[key] = vars[key]
+
+        # reset internal data
+        self._compute_drift_data()
 
     def get_qubit_lo_from_drift(self):
         """ Computes a list of qubit frequencies corresponding to the exact energy
@@ -179,7 +192,7 @@ class HamiltonianModel():
 
         self._channels = channel_dict
 
-    def _calculate_drift_hamiltonian(self):
+    def _compute_drift_data(self):
         """Calculate the the drift Hamiltonian.
 
         This computes the dressed frequencies and eigenstates of the

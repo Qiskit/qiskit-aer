@@ -58,7 +58,7 @@ class PulseSimulator(AerBackend):
 
     def run(self, qobj,
             system_model,
-            backend_options=None,
+            backend_options={},
             noise_model=None,
             validate=False):
         """Run a qobj on the backend."""
