@@ -24,76 +24,23 @@ from .qobj.opparse import HamiltonianParser
 
 class HamiltonianModel():
     """Hamiltonian model for pulse simulator."""
-    '''
-    def __init__OLD(self, hamiltonian, qubits=None):
-        """Initialize a Hamiltonian model.
-
-        Args:
-            hamiltonian (dict): Hamiltonian dictionary.
-            qubits (list or None): List of qubits to extract from the hamiltonian.
-
-        Raises:
-            ValueError: if arguments are invalid.
-        """
-        # Initialize internal variables
-        # The system Hamiltonian in numerical format
-        self._system = None
-        # System variables
-        self._vars = None
-        # Channels in the Hamiltonian string
-        # These tell the order in which the channels are evaluated in
-        # the RHS solver.
-        self._channels = None
-        # Diagonal elements of the hamiltonian
-        self._h_diag = None
-        # Eigenvalues of the time-independent hamiltonian
-        self._evals = None
-        # Eigenstates of the time-indepedent hamiltonian
-        self._estates = None
-        # Qubit subspace dimensinos
-        self._dim_qub = {}
-        # Oscillator subspace dimensions
-        self._dim_osc = {}
-
-        # Parse Hamiltonian
-        _hamiltonian_parse_warnings(hamiltonian)
-
-        self._vars = OrderedDict(hamiltonian['vars'])
-
-        # Get qubit subspace dimensions
-        if 'qub' in hamiltonian:
-            self._dim_qub = {
-                int(key): val
-                for key, val in hamiltonian['qub'].items()
-            }
-        else:
-            self._dim_qub = {}.fromkeys(range(n_qubits), 2)
-
-        # Get oscillator subspace dimensions
-        if 'osc' in hamiltonian:
-            self._dim_osc = {
-                int(key): val
-                for key, val in hamiltonian['osc'].items()
-            }
-
-        # Step 1: Parse the Hamiltonian
-        system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                                   dim_osc=self._dim_osc,
-                                   dim_qub=self._dim_qub)
-        system.parse(qubits)
-        self._system = system.compiled
-
-        # Step #2: Determine Hamiltonian channels
-        self._calculate_hamiltonian_channels()
-
-        # Step 3: Calculate diagonal hamiltonian
-        self._calculate_drift_hamiltonian()'''
 
     def __init__(self,
                  system=None,
                  vars=None,
                  dim_qub={},
                  dim_osc={}):
+        """Initialize a Hamiltonian model.
+
+        Args:
+            system (list): List of Qobj objects representing operator form of the Hamiltonian.
+            vars (OrderedDict): Ordered dict for parameter values in Hamiltonian.
+            dim_qub (dict): dict of qubit dimensions.
+            dim_osc (dict): dict of oscillator dimensions.
+
+        Raises:
+            ValueError: if arguments are invalid.
+        """
 
         # Initialize internal variables
         # The system Hamiltonian in numerical format
@@ -118,10 +65,10 @@ class HamiltonianModel():
         # Eigenstates of the time-indepedent hamiltonian
         self._estates = None
 
-        # Step #2: Determine Hamiltonian channels
+        # populate self._channels
         self._calculate_hamiltonian_channels()
 
-        # Step 3: Calculate diagonal hamiltonian, evals, and estates
+        # populate self._h_diag, self._evals, self._estates
         self._calculate_drift_hamiltonian()
 
     @classmethod
@@ -129,7 +76,7 @@ class HamiltonianModel():
         """Initialize from a Hamiltonian string specification.
 
         Args:
-            hamiltonian (dict): Hamiltonian dictionary.
+            hamiltonian (dict): dictionary representing Hamiltonian in string specification.
             qubit_list (list or None): List of qubits to extract from the hamiltonian.
 
         Raises:

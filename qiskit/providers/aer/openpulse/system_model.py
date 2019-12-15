@@ -18,7 +18,7 @@
 from collections import OrderedDict
 from .hamiltonian_model import HamiltonianModel
 
-class SimSystemModel():
+class SystemModel():
 
     def __init__(self,
                  hamiltonian=None,
@@ -38,6 +38,16 @@ class SimSystemModel():
 
     @classmethod
     def from_backend(cls, backend, qubit_list=None):
+        """Construct a SimSystemModel from a backend object.
+
+        Args:
+           backend (Backend): backend object to draw information from.
+           qubit_list (list): a list of ints for which qubits to include in the model.
+
+        Raises:
+           ValueError: If channel or u_channel_lo are invalid.
+        """
+
         # get relevant information from backend
         defaults = backend.defaults().to_dict()
         config = backend.configuration().to_dict()
