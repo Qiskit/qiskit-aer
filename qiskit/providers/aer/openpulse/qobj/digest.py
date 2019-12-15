@@ -28,7 +28,7 @@ from ..solver.options import OPoptions
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
-def digest_pulse_obj(qobj, system_model, backend_options, noise_model=None):
+def digest_pulse_obj(qobj, system_model, backend_options={}, noise_model=None):
 
     out = OPSystem()
 

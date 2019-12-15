@@ -52,7 +52,7 @@ class SystemModel():
         defaults = backend.defaults().to_dict()
         config = backend.configuration().to_dict()
 
-        # draw from defaults
+        # draw defaults
         qubit_freq_est = defaults.get('qubit_freq_est', None)
         meas_freq_est = defaults.get('meas_freq_est', None)
 
