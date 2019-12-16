@@ -17,7 +17,8 @@
 
 from collections import OrderedDict
 from .hamiltonian_model import HamiltonianModel
-from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
+from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
+                                    MemorySlot)
 
 class SystemModel():
 
@@ -27,6 +28,7 @@ class SystemModel():
                  meas_freq_est=None,
                  u_channel_lo=None,
                  qubit_list=None,
+                 channels=None,
                  dt=None):
 
         # default type values
@@ -35,8 +37,8 @@ class SystemModel():
 
         # necessary values
         self.hamiltonian = hamiltonian
-        if hamiltonian is not None:
-            self.channels = self.hamiltonian._channels
+        if channels is None and hamiltonian is not None:
+            self.channels = hamiltonian._channels
         self.u_channel_lo = u_channel_lo
         self.qubit_list = qubit_list
         self.dt = dt
@@ -65,6 +67,7 @@ class SystemModel():
         # if no qubit_list, use all for device
         qubit_list = qubit_list or list(range(config['n_qubits']))
         hamiltonian = HamiltonianModel.from_string_spec(config['hamiltonian'], qubit_list)
+        #To do: should u_channel_lo list be truncated based on qubits involved?
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)
 
@@ -127,6 +130,9 @@ class SystemModel():
         self._check_qubit_index(qubit)
         return DriveChannel(qubit)
 
+    def drives(self):
+        return [self.drive(qubit) for qubit in self.qubit_list]
+
     def measure(self, qubit):
         """Get the measure channel for the specified qubit.
         Args:
@@ -139,6 +145,10 @@ class SystemModel():
         self._check_qubit_index(qubit)
         return MeasureChannel(qubit)
 
+    @property
+    def measures(self):
+        return [self.measure(qubit) for qubit in self.qubit_list]
+
     def acquire(self, qubit):
         """Get the acquire channel for the specified qubit.
         Args:
@@ -150,6 +160,18 @@ class SystemModel():
         """
         self._check_qubit_index(qubit)
         return AcquireChannel(qubit)
+
+    @property
+    def acquires(self):
+        return [self.acquire(qubit) for qubit in self.qubit_list]
+
+    def memoryslot(self, qubit):
+        self._check_qubit_index(qubit)
+        return MemorySlot(qubit)
+
+    @property
+    def memoryslots(self):
+        return [self.memoryslot(qubit) for qubit in self.qubit_list]
 
     def control(self, channel):
         """Get the specified control channel.
