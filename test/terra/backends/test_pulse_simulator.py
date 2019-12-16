@@ -15,6 +15,7 @@ PulseSimulator Integration Tests
 
 import unittest
 from test.terra import common
+from copy import copy
 
 import numpy as np
 from scipy.linalg import expm
@@ -28,6 +29,7 @@ from qiskit.quantum_info import state_fidelity
 
 from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
+from qiskit.providers.aer.openpulse.system_model import SystemModel, HamiltonianModel
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -247,6 +249,19 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return hamiltonian
 
+    def system_model_1q(self, omega_0, omega_a, qub_dim=2):
+        """Creates system_model for 1 qubit pulse simulation
+        """
+        backend_mock = FakeOpenPulse2Q()
+        backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim)
+        system_model = SystemModel.from_backend(self.backend_mock, qubit_list=[0])
+        return system_model
+
+    def backend_options_1q(self):
+        backend_options = {}
+        backend_options['seed'] = 9000
+        return backend_options
+
     def backend_options_1q(self, omega_0, omega_a, qub_dim=2):
         """Creates backend_options dictionary for 1 qubit pulse simulation.
 
@@ -371,9 +386,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                       meas_level=2,
                                       schedule=x_schedule,
                                       qobj_params=x_qobj_params)
-            x_backend_opts = self.backend_options_1q(omega_0, omega_a)
-            x_backend_opts['dt'] = x_backend_opts['dt']*scale
-            result = self.backend_sim.run(x_qobj,
+            x_system_model = self.system_model_1q(omega_0, omega_a)
+            x_backend_opts = self.backend_options_1q_new()
+            result = self.backend_sim.run(x_qobj, system_model=x_system_model,
                                           backend_options=x_backend_opts).result()
             counts = result.get_counts()
             exp_counts = {'1': 256}
@@ -389,27 +404,32 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
         """
 
-        # set variables
-
-        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        # setup system model
         omega_0 = 2 * np.pi * self.freq_qubit_0
         omega_d0 = omega_0
-
-        # Require omega_a*time = pi to implement pi pulse (x gate)
-        # num of samples gives time
         omega_a = np.pi / self.drive_samples
 
-        phi = 0
+        backend_mock = FakeOpenPulse2Q()
+        backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim=2)
+        system_model = SystemModel.from_backend(self.backend_mock, qubit_list=[0])
+        system_model.dt = 10**-9
 
+        print(backend_mock.configuration())
+        # set up schedule and qobj
+        phi=0
         x_schedule = self.single_pulse_schedule(phi)
         x_qobj_params = self.qobj_params_1q(omega_d0)
         x_qobj = self.create_qobj(shots=256,
                                   meas_level=2,
                                   schedule=x_schedule,
                                   qobj_params=x_qobj_params)
-        x_backend_opts = self.backend_options_1q(omega_0, omega_a)
-        result = self.backend_sim.run(x_qobj,
-                                      backend_options=x_backend_opts).result()
+
+        # set backend backend_options
+        backend_options = {'seed' : 9000}
+
+        # run simulation
+        result = self.backend_sim.run(x_qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
         counts = result.get_counts()
         exp_counts = {'1': 256}
 
