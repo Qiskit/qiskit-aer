@@ -24,6 +24,7 @@ import qiskit
 import qiskit.pulse as pulse
 
 from qiskit.compiler import assemble
+from qiskit.quantum_info import state_fidelity
 
 from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
@@ -263,6 +264,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['qubit_list'] = [self.qubit_0]
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
+        backend_options['seed'] = 9000
         backend_options['use_cpp_ode_func'] = True
         return backend_options
 
@@ -284,6 +286,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['qubit_list'] = [self.qubit_0, self.qubit_1]
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
+        backend_options['seed'] = 12387
         backend_options['use_cpp_ode_func'] = True
         return backend_options
 
@@ -346,6 +349,43 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
+
+    def test_dt_scaling_x_gate(self):
+        """
+        Test that dt is being used correctly by the simulator
+        """
+
+        # do the same thing as test_x_gate, but scale dt and all frequency parameters
+        # define test case for a single scaling
+        def scale_test(scale):
+            # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+            omega_0 = 2 * np.pi * self.freq_qubit_0/scale
+            omega_d0 = omega_0
+
+            # Require omega_a*time = pi to implement pi pulse (x gate)
+            # num of samples gives time
+            omega_a = np.pi / self.drive_samples/scale
+
+            phi = 0
+
+            x_schedule = self.single_pulse_schedule(phi)
+            x_qobj_params = self.qobj_params_1q(omega_d0)
+            x_qobj = self.create_qobj(shots=256,
+                                      meas_level=2,
+                                      schedule=x_schedule,
+                                      qobj_params=x_qobj_params)
+            x_backend_opts = self.backend_options_1q(omega_0, omega_a)
+            x_backend_opts['dt'] = x_backend_opts['dt']*scale
+            result = self.backend_sim.run(x_qobj,
+                                          backend_options=x_backend_opts).result()
+            counts = result.get_counts()
+            exp_counts = {'1': 256}
+
+            self.assertDictAlmostEqual(counts, exp_counts)
+        # set scales and run tests
+        scales = [2., 1.3453, 0.1234, 10.**5, 10**-5]
+        for scale in scales:
+            scale_test(scale)
 
     def test_x_gate(self):
         """
@@ -597,11 +637,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 statevector = result.get_statevector()
                 exp_statevector = self._analytic_gaussian_statevector(
                     gauss_sigma=gauss_sigma, omega_a=omega_a)
-                # compare statevectors element-wise (comparision only accurate to 1 dec place)
-                for i, _ in enumerate(statevector):
-                    self.assertAlmostEqual(statevector[i],
-                                           exp_statevector[i],
-                                           places=1)
+
+                # Check fidelity of statevectors
+                self.assertGreaterEqual(
+                    state_fidelity(statevector, exp_statevector), 0.99)
 
     # ---------------------------------------------------------------------
     # Test FrameChange and PersistentValue commands
@@ -688,6 +727,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop_shift = self._analytic_prop_fc(np.pi / 4 - np.pi / 8)
         self.assertDictAlmostEqual(prop_shift, exp_prop_shift, delta=0.01)
 
+    @unittest.skip("PerisitentValue pulses are currently not supported.")
     def test_persistent_value(self):
         """Test persistent value command. """
 
@@ -740,10 +780,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         arg1 = np.sqrt(3) * omega_a * time / 2  # cos arg for first component
         arg2 = arg1  # sin arg for first component
         arg3 = arg1 / 2  # sin arg for 3rd component
-        exp_statevector = [(2 + np.cos(arg1)) / 3,
-                           -1j * np.sin(arg2) / np.sqrt(3),
-                           -2 * np.sqrt(2) * np.sin(arg3)**2 / 3]
-
+        exp_statevector = np.array([(2 + np.cos(arg1)) / 3,
+                                    -1j * np.sin(arg2) / np.sqrt(3),
+                                    -2 * np.sqrt(2) * np.sin(arg3)**2 / 3],
+                                   dtype=complex)
         return exp_statevector
 
     def test_three_level(self):
@@ -780,11 +820,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         exp_statevector_pi = self._analytic_statevector_three_level(omega_a_pi)
 
-        # compare vectors element-wise
-        for i, _ in enumerate(statevector_pi):
-            self.assertAlmostEqual(statevector_pi[i],
-                                   exp_statevector_pi[i],
-                                   places=4)
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector_pi, exp_statevector_pi), 0.99)
 
         # Test 2*pi pulse
         omega_a_2pi = 2 * np.pi / self.drive_samples
@@ -806,11 +844,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_statevector_2pi = self._analytic_statevector_three_level(
             omega_a_2pi)
 
-        # compare vectors element-wise
-        for i, _ in enumerate(statevector_2pi):
-            self.assertAlmostEqual(statevector_2pi[i],
-                                   exp_statevector_2pi[i],
-                                   places=4)
+        # Check fidelity of vectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector_2pi, exp_statevector_2pi), 0.99)
 
     # ----------------------------------------------------------------------------------------------
     # Test qubit interaction (use 2 qubits for simplicity)

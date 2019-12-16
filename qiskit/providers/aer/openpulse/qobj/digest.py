@@ -11,30 +11,33 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name
+# pylint: disable=invalid-name
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
 """
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
-import numpy.linalg as la
 from .op_system import OPSystem
-from .opparse import HamiltonianParser, NoiseParser
+from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
+from ..hamiltonian_model import HamiltonianModel
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 
-def digest_pulse_obj(qobj):
+def digest_pulse_obj(qobj_input, backend_options, noise_model):
     """Takes an input PULSE obj an disgests it into
     things we can actually make use of.
 
     Args:
-        qobj (Qobj): Qobj of PULSE type.
+        qobj_input (Qobj): Qobj of PULSE type.
+        backend_options (dict): backend simulation options
+        noise_model (dict): currently not supported
 
     Returns:
         OPSystem: The parsed qobj.
@@ -46,85 +49,74 @@ def digest_pulse_obj(qobj):
     # Output data object
     out = OPSystem()
 
+    # take inputs and format into a single dictionary
+    qobj = _format_qobj_dict(qobj_input, backend_options, noise_model)
+
+    # post warnings for unsupported features
+    _unsupported_warnings(qobj)
+
     # Get the config settings from the qobj
     config_dict = qobj['config']
     if 'backend_options' not in config_dict:
-        raise ValueError('Pulse Qobj must have "sim_config".')
+        raise ValueError('Pulse Qobj must have "backend_options".')
     config_dict_sim = config_dict['backend_options']
-    noise_dict = config_dict_sim.get('noise_model', {})
-    if 'hamiltonian' not in config_dict_sim:
-        raise ValueError('Qobj must have hamiltonian in config to simulate.')
-    hamiltonian = config_dict_sim['hamiltonian']
 
-    # Get qubit number
-    qubit_list = config_dict_sim.get('qubit_list', None)
-    if qubit_list is None:
-        qubit_list = list(range(config_dict_sim['n_qubits']))
-    else:
-        config_dict_sim['n_qubits'] = len(qubit_list)
-
-    config_keys_sim = config_dict_sim.keys()
-    config_keys = config_dict.keys()
-
-    # Look for config keys
+    # Parse config settings
+    if 'memory_slots' not in config_dict:
+        raise ValueError('Number of memory_slots must be specific in Qobj config')
     out.global_data['shots'] = int(config_dict.get('shots', 1024))
     out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
     out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
-    out.global_data['seed'] = config_dict.get('seed', None)
-    if 'memory_slots' not in config_keys:
-        raise ValueError('Number of memory_slots must be specific in Qobj config')
-    out.global_data['memory_slots'] = config_dict['memory_slots']
+    out.global_data['seed'] = config_dict_sim.get('seed', None)
+    out.global_data['memory_slots'] = config_dict.get('memory_slots', 0)
     out.global_data['memory'] = config_dict.get('memory', False)
-    out.global_data['n_registers'] = config_dict_sim.get('n_registers', 0)
+    out.global_data['n_registers'] = config_dict.get('n_registers', 0)
     out.global_data['q_level_meas'] = int(config_dict_sim.get('q_level_meas', 1))
 
     # Attach the ODE options
     allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
                            'num_cpus', 'norm_tol', 'norm_steps',
                            'rhs_reuse', 'rhs_filename']
-    user_set_ode_options = {}
-    if 'ode_options' in config_keys_sim:
-        for key, val in config_dict_sim['ode_options'].items():
-            if key not in allowed_ode_options:
-                raise Exception('Invalid ode_option: {}'.format(key))
-            user_set_ode_options[key] = val
-    out.ode_options = OPoptions(**user_set_ode_options)
+    ode_options = config_dict_sim.get('ode_options', {})
+    for key in ode_options:
+        if key not in allowed_ode_options:
+            raise Exception('Invalid ode_option: {}'.format(key))
+    out.ode_options = OPoptions(**ode_options)
 
-    # Step #1: Parse hamiltonian representation
-    out.vars = OrderedDict(hamiltonian['vars'])
+    # Parse the hamiltonian
+    if 'hamiltonian' not in config_dict_sim:
+        raise ValueError('Qobj must have hamiltonian in config to simulate.')
+    hamiltonian = config_dict_sim['hamiltonian']
+    # Get qubit number
+    qubit_list = config_dict_sim.get('qubit_list', None)
+    if qubit_list is None:
+        qubit_list = list(range(config_dict_sim['n_qubits']))
+    else:
+        config_dict_sim['n_qubits'] = len(qubit_list)
+    qubit_lo_freq = config_dict_sim.get('qubit_lo_freq',
+                                        config_dict['qubit_lo_freq'])
+    u_channel_lo = config_dict_sim.get('u_channel_lo')
+
+    ham_model = HamiltonianModel(hamiltonian, qubit_list)
+    # For now we dump this into OpSystem, though that should be refactored
+    out.system = ham_model._system
+    out.vars = ham_model._vars
+    out.channels = ham_model._channels
+    out.freqs = ham_model.calculate_frequencies(qubit_lo_freq=qubit_lo_freq,
+                                                u_channel_lo=u_channel_lo)
+    out.h_diag = ham_model._h_diag
+    out.evals = ham_model._evals
+    out.estates = ham_model._estates
+    dim_qub = ham_model._dim_qub
+    dim_osc = ham_model._dim_osc
+    # convert estates into a Qutip qobj
+    estates = [op.state(state) for state in ham_model._estates.T[:]]
+    out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
-    # Need this info for evaluating the hamiltonian vars in the c++ solver
-    out.global_data['vars_names'] = list(out.vars.keys())
+    out.global_data['freqs'] = list(out.freqs.values())
 
-    # Get qubit subspace dimensions
-    if 'qub' in hamiltonian.keys():
-        dim_qub = hamiltonian['qub']
-        _dim_qub = {}
-        # Convert str keys to int keys
-        for key, val in hamiltonian['qub'].items():
-            _dim_qub[int(key)] = val
-        dim_qub = _dim_qub
-    else:
-        dim_qub = {}.fromkeys(range(config_dict_sim['n_qubits']), 2)
-
-    # Get oscillator subspace dimensions
-    if 'osc' in hamiltonian.keys():
-        dim_osc = hamiltonian['osc']
-        _dim_osc = {}
-        # Convert str keys to int keys
-        for key, val in dim_osc.items():
-            _dim_osc[int(key)] = val
-        dim_osc = _dim_osc
-    else:
-        dim_osc = {}
-
-    # Parse the Hamiltonian
-    system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                               dim_osc=dim_osc,
-                               dim_qub=dim_qub)
-    system.parse(qubit_list)
-    out.system = system.compiled
-
+    # Parse noise
+    noise_dict = config_dict_sim.get('noise_model', {})
     if noise_dict:
         noise = NoiseParser(noise_dict=noise_dict,
                             dim_osc=dim_osc, dim_qub=dim_qub)
@@ -137,55 +129,14 @@ def digest_pulse_obj(qobj):
     else:
         out.noise = None
 
-    # Step #2: Get Hamiltonian channels
-    out.channels = get_hamiltonian_channels(out.system)
-
-    h_diag, evals, estates = get_diag_hamiltonian(out.system,
-                                                  out.vars, out.channels)
-
-    # convert estates into a qobj
-    estates_qobj = []
-    for kk in range(len(estates[:, ])):
-        estates_qobj.append(op.state(estates[:, kk]))
-
-    out.h_diag = np.ascontiguousarray(h_diag.real)
-    out.evals = evals
-    out.estates = estates
-
-    # Set initial state
-    out.initial_state = 0 * op.basis(len(evals), 1)
-    for idx, estate_coef in enumerate(estates[:, 0]):
-        out.initial_state += estate_coef * op.basis(len(evals), idx)
-    # init_fock_state(dim_osc, dim_qub)
-
-    # Setup freqs for the channels
-    out.freqs = OrderedDict()
-    for key in out.channels.keys():
-        chidx = int(key[1:])
-        if key[0] == 'D':
-            out.freqs[key] = config_dict['qubit_lo_freq'][chidx]
-        elif key[0] == 'U':
-            out.freqs[key] = 0
-            for u_lo_idx in config_dict_sim['u_channel_lo'][chidx]:
-                if u_lo_idx['q'] < len(config_dict['qubit_lo_freq']):
-                    qfreq = config_dict['qubit_lo_freq'][u_lo_idx['q']]
-                    qscale = u_lo_idx['scale'][0]
-                    out.freqs[key] += qfreq * qscale
-        else:
-            raise ValueError("Channel is not D or U")
-
-    out.global_data['freqs'] = list(out.freqs.values())
-
-    # TODO: Here is the crash! pulses_idx is a list of indexes for
-    # pulses, but this is empty.
-    # Step #3: Build pulse arrays
+    # Build pulse arrays
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj)
 
     out.global_data['pulse_array'] = pulses
     out.global_data['pulse_indices'] = pulses_idx
     out.pulse_to_int = pulse_dict
 
-    # Step #4: Get dt
+    # Get dt
     if 'dt' not in config_dict_sim.keys():
         raise ValueError('Qobj must have a dt value to simulate.')
     out.dt = config_dict_sim['dt']
@@ -200,7 +151,8 @@ def digest_pulse_obj(qobj):
             min_width = min(min_width, stop - start)
     out.ode_options.max_step = min_width / 2 * out.dt
 
-    # Step #6: Convert experiments to data structures.
+    # Convert experiments to data structures.
+    # convert estates into a qobj
 
     out.global_data['measurement_ops'] = [None] * config_dict_sim['n_qubits']
 
@@ -221,7 +173,7 @@ def digest_pulse_obj(qobj):
                     if not out.global_data['measurement_ops'][jj]:
                         out.global_data['measurement_ops'][jj] = \
                             qubit_occ_oper_dressed(jj,
-                                                   estates_qobj,
+                                                   estates,
                                                    h_osc=dim_osc,
                                                    h_qub=dim_qub,
                                                    level=out.global_data['q_level_meas']
@@ -236,103 +188,63 @@ def digest_pulse_obj(qobj):
     return out
 
 
-def get_diag_hamiltonian(parsed_ham, ham_vars, channels):
+def _format_qobj_dict(qobj, backend_options, noise_model):
+    """Add additional fields to qobj dictionary"""
+    # Convert qobj to dict and add additional fields
+    qobj_dict = qobj.to_dict()
+    if 'backend_options' not in qobj_dict['config']:
+        qobj_dict['config']['backend_options'] = {}
 
-    """ Get the diagonal elements of the hamiltonian and get the
-    dressed frequencies and eigenstates
+    # Temp backwards compatibility
+    if 'sim_config' in qobj_dict['config']:
+        for key, val in qobj_dict['config']['sim_config'].items():
+            qobj_dict['config']['backend_options'][key] = val
+        qobj_dict['config'].pop('sim_config')
 
-    Parameters:
-        parsed_ham (list): A list holding ops and strings from the Hamiltonian
-        of a specific quantum system.
-
-        ham_vars (dict): dictionary of variables
-
-        channels (dict): drive channels (set to 0)
-
-    Returns:
-        h_diag: diagonal elements of the hamiltonian
-        h_evals: eigenvalues of the hamiltonian with no time-dep terms
-        h_estates: eigenstates of the hamiltonian with no time-dep terms
-
-    Raises:
-        Exception: Missing index on channel.
-    """
-    # Get the diagonal elements of the hamiltonian with all the
-    # drive terms set to zero
-    for chan in channels:
-        exec('%s=0' % chan)
-
-    # might be a better solution to replace the 'var' in the hamiltonian
-    # string with 'op_system.vars[var]'
-    for var in ham_vars:
-        exec('%s=%f' % (var, ham_vars[var]))
-
-    H_full = np.zeros(np.shape(parsed_ham[0][0].full()), dtype=complex)
-
-    for hpart in parsed_ham:
-        H_full += hpart[0].full() * eval(hpart[1])
-
-    h_diag = np.diag(H_full)
-
-    evals, estates = la.eigh(H_full)
-
-    eval_mapping = []
-    for ii in range(len(evals)):
-        eval_mapping.append(np.argmax(np.abs(estates[:, ii])))
-
-    evals2 = evals.copy()
-    estates2 = estates.copy()
-
-    for ii, val in enumerate(eval_mapping):
-        evals2[val] = evals[ii]
-        estates2[:, val] = estates[:, ii]
-
-    return h_diag, evals2, estates2
+    # Add additional backend options
+    if backend_options is not None:
+        for key, val in backend_options.items():
+            qobj_dict['config']['backend_options'][key] = val
+    # Add noise model
+    if noise_model is not None:
+        qobj_dict['config']['backend_options']['noise_model'] = noise_model
+    return qobj_dict
 
 
-def get_hamiltonian_channels(parsed_ham):
-    """ Get all the qubit channels D_i and U_i in the string
-    representation of a system Hamiltonian.
+def _unsupported_warnings(qobj_dict):
+    """ Warns the user about untested/unsupported features.
 
     Parameters:
-        parsed_ham (list): A list holding ops and strings from the Hamiltonian
-        of a specific quantum system.
-
+        qobj_dict (dict): Formatted qobj_dict from _format_qobj_dict
     Returns:
-        list: A list of all channels in Hamiltonian string.
-
     Raises:
-        Exception: Missing index on channel.
     """
-    out_channels = []
-    for _, ham_str in parsed_ham:
-        chan_idx = [i for i, letter in enumerate(ham_str) if
-                    letter in ['D', 'U']]
-        for ch in chan_idx:
-            if (ch + 1) == len(ham_str) or not ham_str[ch + 1].isdigit():
-                raise Exception('Channel name must include' +
-                                'an integer labeling the qubit.')
-        for kk in chan_idx:
-            done = False
-            offset = 0
-            while not done:
-                offset += 1
-                if not ham_str[kk + offset].isdigit():
-                    done = True
-                # In case we hit the end of the string
-                elif (kk + offset + 1) == len(ham_str):
-                    done = True
-                    offset += 1
-            temp_chan = ham_str[kk:kk + offset]
-            if temp_chan not in out_channels:
-                out_channels.append(temp_chan)
-    out_channels.sort(key=lambda x: (int(x[1:]), x[0]))
 
-    out_dict = OrderedDict()
-    for idx, val in enumerate(out_channels):
-        out_dict[val] = idx
+    # Warnings that don't stop execution
+    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
+    if 'osc' in qobj_dict['config']['backend_options']['hamiltonian'].keys():
+        warn(warning_str.format('Oscillator-type systems'))
+    if 'noise_model' in qobj_dict['config']['backend_options']:
+        warn(warning_str.format('Noise models'))
+    if _contains_pv_instruction(qobj_dict['experiments']):
+        warn(warning_str.format('PersistentValue instructions'))
 
-    return out_dict
+
+def _contains_pv_instruction(experiments):
+    """ Return True if the list of experiments from the output of _format_qobj_dict contains
+    a PersistentValue instruction
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain a PersistentValue command
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'pv':
+                return True
+    return False
 
 
 def build_pulse_arrays(qobj):
@@ -438,7 +350,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
             # If last pulse on channel was a PV then need to set
             # its final time to be start time of current pulse
             if pv_needs_tf[ham_chans[chan_name]]:
-                structs['channels'][chan_name][0][-3] = inst['t0']
+                structs['channels'][chan_name][0][-3] = inst['t0'] * dt
                 pv_needs_tf[ham_chans[chan_name]] = 0
 
             # Get condtional info
@@ -453,16 +365,16 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                     if pv[0] == inst['val']:
                         index = pv[1]
                         break
-                structs['channels'][chan_name][0].extend([inst['t0'], None, index, cond])
+                structs['channels'][chan_name][0].extend([inst['t0'] * dt, None, index, cond])
                 pv_needs_tf[ham_chans[chan_name]] = 1
 
             # Frame changes
             elif inst['name'] == 'fc':
-                structs['channels'][chan_name][1].extend([inst['t0'], inst['phase'], cond])
+                structs['channels'][chan_name][1].extend([inst['t0'] * dt, inst['phase'], cond])
 
             # A standard pulse
             else:
-                start = inst['t0']
+                start = inst['t0'] * dt
                 pulse_int = pulse_to_int[inst['name']]
                 pulse_width = (pulse_inds[pulse_int + 1] - pulse_inds[pulse_int]) * dt
                 stop = start + pulse_width
@@ -487,7 +399,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                             qlist2.append(qb)
                             mlist2.append(inst['memory_slot'][qind])
 
-                acq_vals = [inst['t0'],
+                acq_vals = [inst['t0'] * dt,
                             np.asarray(qlist2, dtype=np.uint32),
                             np.asarray(mlist2, dtype=np.uint32)
                             ]
@@ -499,15 +411,15 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 structs['acquire'].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'] + dt * inst['duration'])
+                max_time = max(max_time, (inst['t0'] + inst['duration']) * dt)
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
             # conditionals
             elif inst['name'] == 'bfunc':
-                bfun_vals = [inst['t0'], inst['mask'], inst['relation'],
+                bfun_vals = [inst['t0'] * dt, inst['mask'], inst['relation'],
                              inst['val'], inst['register']]
                 if 'memory' in inst.keys():
                     bfun_vals.append(inst['memory'])
@@ -517,24 +429,24 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 structs['cond'].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'])
+                max_time = max(max_time, inst['t0'] * dt)
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
             # snapshots
             elif inst['name'] == 'snapshot':
                 if inst['type'] != 'state':
                     raise TypeError("Snapshots must be of type 'state'")
-                structs['snapshot'].append([inst['t0'], inst['label']])
+                structs['snapshot'].append([inst['t0'] * dt, inst['label']])
 
                 # Add time to tlist
-                if inst['t0'] not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'])
+                if inst['t0'] * dt not in structs['tlist']:
+                    structs['tlist'].append(inst['t0'] * dt)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'])
+                max_time = max(max_time, inst['t0'] * dt)
 
     # If any PVs still need time then they are at the end
     # and should just go til final time
