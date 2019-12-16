@@ -180,42 +180,48 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
+# GPU support through Thrust library (CPU fallbacks)
 # Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
 set(AER_THRUST_SUPPORTED TRUE)
-if(AER_THRUST_BACKEND STREQUAL "CUDA")
-	message(STATUS "Thrust library: Looking for CUDA backend...")
-	find_package(CUDA REQUIRED)
-	message(STATUS "Thrust library: CUDA found!")
-	cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-	set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-		CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-	set(THRUST_DEPENDANT_LIBS "")
-elseif(AER_THRUST_BACKEND STREQUAL "TBB")
-	message(STATUS "Thrust library: Looking for TBB backend...")
-	find_package(TBB REQUIRED)
-	message(STATUS "TBB Support found!")
-	set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-	set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB")
-elseif(AER_THRUST_BACKEND STREQUAL "OMP")
-	message(STATUS "Thrust library: Setting OMP backend")
-	set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP")
-	# We don't need to add OMP because it's already an AER dependency
-else()
-	message(STATUS "No Thrust support enabled")
-	set(AER_THRUST_SUPPORTED FALSE)
-endif()
-
-if(AER_THRUST_SUPPORTED)
-	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		message(STATUS "WARNING: Clang is not compatbile with Thrust at the moment. Disabling Thrust support")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	get_clang_version(${CMAKE_CXX_COMPILER_VERSION})
+	if(${CLANG_MAJOR_VERSION} LESS 11)
 		set(AER_THRUST_SUPPORTED FALSE)
-		set(AER_COMPILER_DEFINITIONS "")
+		message(STATUS "WARNING: Clang is not compatbile with Thrust at the moment. Disabling Thrust support")
+	endif()
+endif()
+if(AER_THRUST_SUPPORTED)
+	if(AER_THRUST_BACKEND STREQUAL "CUDA")
+		message(STATUS "Thrust library: Looking for CUDA backend...")
+		find_package(CUDA REQUIRED)
+		message(STATUS "Thrust library: CUDA found!")
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		set(THRUST_DEPENDANT_LIBS "")
+	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
+		message(STATUS "Thrust library: Looking for TBB backend...")
+		find_package(TBB REQUIRED)
+		message(STATUS "TBB Support found!")
+		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB)
+	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
+		message(STATUS "Thrust library: Setting OMP backend")
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
+		# We don't need to add OMP because it's already an AER dependency
+		set(THRUST_DEPENDANT_LIBS "")
 	else()
-		set(AER_COMPILER_DEFINITIONS "${AER_COMPILER_DEFINITIONS} AER_THRUST_SUPPORTED")
+		message(STATUS "No Thrust supported backend")
+		set(AER_THRUST_SUPPORTED FALSE)
 	endif()
 endif()
 
+if(AER_THRUST_SUPPORTED)
+	list(APPEND AER_COMPILER_DEFINITIONS AER_THRUST_SUPPORTED=TRUE)
+else()
+	message(STATUS "No Thrust support enabled")
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -244,8 +250,11 @@ else() # Standalone build
 	set_target_properties(qasm_simulator PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_compile_definitions(qasm_simulator PRIVATE ${AER_COMPILER_DEFINITIONS})
+	target_include_directories(qasm_simulator
+		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+	target_compile_definitions(qasm_simulator
+		PRIVATE ${AER_COMPILER_DEFINITIONS})
 
 	# Linter
 	# This will add the linter as part of the compiling build target

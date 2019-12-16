@@ -1206,7 +1206,7 @@ public:
 };
 
 template <typename data_t>
-class MatrxMult8x8 : public GateFuncBase
+class MatrixMult8x8 : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -1218,7 +1218,7 @@ protected:
 	uint_t mask2;
 
 public:
-	MatrxMult8x8(thrust::complex<double>* pM,int q0,int q1,int q2)
+	MatrixMult8x8(thrust::complex<double>* pM,int q0,int q1,int q2)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
@@ -1730,10 +1730,10 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 	TimeStart(QS_GATE_MULT);
 #endif
 	if(N == 1){
-		apply_function(matMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubits_sorted[0]), qubits);
+		apply_function(MatrixMult2x2<data_t>((thrust::complex<double>*)&mat[0],qubits_sorted[0]), qubits);
 	}
 	else if(N == 2){
-		apply_function(matMult4x4_func<data_t>((thrust::complex<double>*)&mat[0],qubits_sorted[0],qubits_sorted[1]), qubits);
+		apply_function(MatrixMult4x4<data_t>((thrust::complex<double>*)&mat[0],qubits_sorted[0],qubits_sorted[1]), qubits);
 	}
 	else{
 		thrust::complex<double>* pMat;
@@ -1751,13 +1751,13 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 		}
 
 		if(N == 3){
-			apply_function(matMult8x8_func<data_t>(pMat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2]), qubits);
+			apply_function(MatrixMult8x8<data_t>(pMat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2]), qubits);
 		}
 		else if(N == 4){
-			apply_function(matMult16x16_func<data_t>(pMat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2],qubits_sorted[3]), qubits);
+			apply_function(MatrixMult16x16<data_t>(pMat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2],qubits_sorted[3]), qubits);
 		}
 		else{
-			apply_function(matMultNxN_LU_func<data_t>(pMat,m_pUintBuf,qubits_sorted), qubits);
+			apply_function(MatrixMultNxN_LU<data_t>(pMat,m_pUintBuf,qubits_sorted), qubits);
 		}
 	}
 
@@ -1808,7 +1808,7 @@ void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
 }
 
 template <typename data_t>
-class DiagonalMult2x2 : public GetFuncBase
+class DiagonalMult2x2 : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
@@ -1945,7 +1945,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 
 
 template <typename data_t>
-class Permutation : public GetFuncBase
+class Permutation : public GateFuncBase
 {
 protected:
 	uint_t* pairs;
@@ -2114,7 +2114,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
 
 
 template <typename data_t>
-class CY_func : public GetFuncBase
+class CY_func : public GateFuncBase
 {
 protected:
 	uint_t mask;
@@ -2182,7 +2182,7 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
 }
 
 template <typename data_t>
-class CSwap_func : public GetFuncBase
+class CSwap_func : public GateFuncBase
 {
 protected:
 	uint_t mask0;
@@ -2257,7 +2257,7 @@ void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 }
 
 template <typename data_t>
-class phase_func : public GetFuncBase
+class phase_func : public GateFuncBase
 {
 protected:
 	thrust::complex<double> phase;
@@ -2314,7 +2314,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
 }
 
 template <typename data_t>
-class DiagonalMult2x2Controlled : public GetFuncBase
+class DiagonalMult2x2Controlled : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
@@ -2569,7 +2569,7 @@ double QubitVectorThrust<data_t>::norm() const
 {
 	reg_t qubits = {0};
 	double ret;
-	ret = apply_sum_function(norm_func<data_t>(),qubits);
+	ret = apply_sum_function(Norm<data_t>(),qubits);
 
 #ifdef DEBUG
 	DebugMsg("norm",ret);
@@ -2578,7 +2578,7 @@ double QubitVectorThrust<data_t>::norm() const
 }
 
 template <typename data_t>
-class NormMatrixMultNxN : public GetFuncBase
+class NormMatrixMultNxN : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -2674,7 +2674,7 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 }
 
 template <typename data_t>
-class NormDiagonalMultNxN : public GetFuncBase
+class NormDiagonalMultNxN : public GateFuncBase
 {
 protected:
 	thrust::complex<double>* pMat;
@@ -2809,7 +2809,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 	reg_t qubits = {qubit};
 	double ret;
 
-	ret = apply_sum_function(norm_matMult2x2_func<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
+	ret = apply_sum_function(NormMatrixMult2x2<data_t>((thrust::complex<double>*)&mat[0],qubit), qubits);
 
 #ifdef DEBUG
 		DebugMsg("norm2x2",qubits);
@@ -2820,7 +2820,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 
 
 template <typename data_t>
-class NormDiagonalMult2x2 : public GetFuncBase
+class NormDiagonalMult2x2 : public GateFuncBase
 {
 protected:
 	thrust::complex<double> m0,m1;
@@ -2906,7 +2906,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
 
 
 template <typename data_t>
-class dot_func : public GetFuncBase
+class dot_func : public GateFuncBase
 {
 protected:
 	uint64_t mask;
