@@ -17,6 +17,7 @@
 
 from collections import OrderedDict
 from .hamiltonian_model import HamiltonianModel
+from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 
 class SystemModel():
 
@@ -28,10 +29,14 @@ class SystemModel():
                  qubit_list=None,
                  dt=None):
 
-        self.hamiltonian = hamiltonian
-        self.channels = self.hamiltonian._channels
+        # default type values
         self.qubit_freq_est = qubit_freq_est
         self.meas_freq_est = meas_freq_est
+
+        # necessary values
+        self.hamiltonian = hamiltonian
+        if hamiltonian is not None:
+            self.channels = self.hamiltonian._channels
         self.u_channel_lo = u_channel_lo
         self.qubit_list = qubit_list
         self.dt = dt
@@ -109,3 +114,60 @@ class SystemModel():
            else:
                raise ValueError("Channel is not D or U")
         return freqs
+
+    def drive(self, qubit):
+        """Get the drive channel for the specified qubit.
+        Args:
+            qubit (int): relevant qubit
+        Raises:
+            ValueError: If the qubit is not in the list for this model
+        Returns:
+            DriveChannel
+        """
+        self._check_qubit_index(qubit)
+        return DriveChannel(qubit)
+
+    def measure(self, qubit):
+        """Get the measure channel for the specified qubit.
+        Args:
+            qubit (int): relevant qubit
+        Raises:
+            ValueError: If the qubit is not in the list for this model
+        Returns:
+            MeasureChannel
+        """
+        self._check_qubit_index(qubit)
+        return MeasureChannel(qubit)
+
+    def acquire(self, qubit):
+        """Get the acquire channel for the specified qubit.
+        Args:
+            qubit (int): relevant qubit
+        Raises:
+            ValueError: If the qubit is not in the list for this model
+        Returns:
+            AcquireChannel
+        """
+        self._check_qubit_index(qubit)
+        return AcquireChannel(qubit)
+
+    def control(self, channel):
+        """Get the specified control channel.
+        Args:
+            control (int): relevant qubit
+        Raises:
+        Returns:
+            ControlChannel
+        """
+        return ControlChannel(channel)
+
+    def _check_qubit_index(self, qubit):
+        """Raises an error if qubit is not in self.qubit_list.
+        Args:
+            qubit (int): relevant qubit
+        Raises:
+            ValueError: If the qubit is not in the list for this model
+        Returns:
+        """
+        if qubit not in self.qubit_list:
+            raise ValueError("Qubit {} is not part of the system.".format(str(qubit)))

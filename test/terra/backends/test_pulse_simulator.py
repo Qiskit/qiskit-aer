@@ -12,10 +12,9 @@
 """
 PulseSimulator Integration Tests
 """
-
+import pdb
 import unittest
 from test.terra import common
-from copy import copy
 
 import numpy as np
 from scipy.linalg import expm
@@ -411,10 +410,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         backend_mock = FakeOpenPulse2Q()
         backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim=2)
-        system_model = SystemModel.from_backend(self.backend_mock, qubit_list=[0])
-        system_model.dt = 10**-9
+        system_model = SystemModel.from_backend(backend_mock, qubit_list=[0])
+        system_model.dt = 1.
 
-        print(backend_mock.configuration())
         # set up schedule and qobj
         phi=0
         x_schedule = self.single_pulse_schedule(phi)
