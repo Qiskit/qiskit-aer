@@ -212,6 +212,37 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return hamiltonian
 
+    def _system_model_1Q(self, omega_0, omega_a):
+
+        # make Hamiltonian
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
+        hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a}
+        hamiltonian['qub'] = {'0': 2}
+        ham_model = HamiltonianModel.from_string_spec(hamiltonian)
+
+        u_channel_lo = []
+        qubit_list = [0]
+        dt = 1.
+
+        return SystemModel(hamiltonian=ham_model,
+                           u_channel_lo=u_channel_lo,
+                           qubit_list=qubit_list,
+                           dt=dt)
+
+    def system_model_1q(self, omega_0, omega_a, qub_dim=2):
+        """Creates system_model for 1 qubit pulse simulation
+        """
+        backend_mock = FakeOpenPulse2Q()
+        backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim)
+        system_model = SystemModel.from_backend(self.backend_mock, qubit_list=[0])
+        return system_model
+
+    def backend_options_1q(self):
+        backend_options = {}
+        backend_options['seed'] = 9000
+        return backend_options
+
     def create_ham_2q(self, omega_0, omega_a, omega_i, qub_dim=2):
         """Create two qubit Hamiltonian as given in comment of interaction test
         Args:
@@ -247,19 +278,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         hamiltonian['qub'] = {'0': qub_dim, '1': qub_dim}
 
         return hamiltonian
-
-    def system_model_1q(self, omega_0, omega_a, qub_dim=2):
-        """Creates system_model for 1 qubit pulse simulation
-        """
-        backend_mock = FakeOpenPulse2Q()
-        backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim)
-        system_model = SystemModel.from_backend(self.backend_mock, qubit_list=[0])
-        return system_model
-
-    def backend_options_1q(self):
-        backend_options = {}
-        backend_options['seed'] = 9000
-        return backend_options
 
     def backend_options_1q(self, omega_0, omega_a, qub_dim=2):
         """Creates backend_options dictionary for 1 qubit pulse simulation.
@@ -361,6 +379,38 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
 
+    def test_x_gate(self):
+        """
+        Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
+        """
+
+        # setup system model
+        omega_0 = 2 * np.pi * self.freq_qubit_0
+        omega_d0 = omega_0
+        omega_a = np.pi / self.drive_samples
+
+        system_model = self._system_model_1Q(omega_0, omega_a)
+
+        # set up schedule and qobj
+        phi=0
+        x_schedule = self.single_pulse_schedule(phi)
+        x_qobj_params = self.qobj_params_1q(omega_d0)
+        x_qobj = self.create_qobj(shots=256,
+                                  meas_level=2,
+                                  schedule=x_schedule,
+                                  qobj_params=x_qobj_params)
+
+        # set backend backend_options
+        backend_options = {'seed' : 9000}
+
+        # run simulation
+        result = self.backend_sim.run(x_qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+        counts = result.get_counts()
+        exp_counts = {'1': 256}
+
+        self.assertDictAlmostEqual(counts, exp_counts)
+
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the simulator
@@ -397,41 +447,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         scales = [2., 1.3453, 0.1234, 10.**5, 10**-5]
         for scale in scales:
             scale_test(scale)
-
-    def test_x_gate(self):
-        """
-        Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
-        """
-
-        # setup system model
-        omega_0 = 2 * np.pi * self.freq_qubit_0
-        omega_d0 = omega_0
-        omega_a = np.pi / self.drive_samples
-
-        backend_mock = FakeOpenPulse2Q()
-        backend_mock.configuration().hamiltonian = self.create_ham_1q(omega_0, omega_a, qub_dim=2)
-        system_model = SystemModel.from_backend(backend_mock, qubit_list=[0])
-        system_model.dt = 1.
-
-        # set up schedule and qobj
-        phi=0
-        x_schedule = self.single_pulse_schedule(phi)
-        x_qobj_params = self.qobj_params_1q(omega_d0)
-        x_qobj = self.create_qobj(shots=256,
-                                  meas_level=2,
-                                  schedule=x_schedule,
-                                  qobj_params=x_qobj_params)
-
-        # set backend backend_options
-        backend_options = {'seed' : 9000}
-
-        # run simulation
-        result = self.backend_sim.run(x_qobj, system_model=system_model,
-                                      backend_options=backend_options).result()
-        counts = result.get_counts()
-        exp_counts = {'1': 256}
-
-        self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_hadamard_gate(self):
         """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega_d0=omega_0

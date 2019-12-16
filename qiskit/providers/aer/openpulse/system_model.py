@@ -98,7 +98,7 @@ class SystemModel():
             else:
                 qubit_lo_freq = self.qubit_freq_est
 
-        if not self.u_channel_lo:
+        if self.u_channel_lo is None:
             raise ValueError("{} has no u_channel_lo.".format(self.__class__.__name__))
 
         # Setup freqs for the channels
