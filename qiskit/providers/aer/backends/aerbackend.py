@@ -155,6 +155,11 @@ class AerBackend(BaseBackend):
             max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
             config['max_memory_mb'] = max_memory_mb
 
+        self._validate_config(config)
+        # Return output
+        return output
+
+    def _validate_config(self, config):
         # sanity checks on config- should be removed upon fixing of assemble w.r.t. backend_options
         if 'backend_options' in config:
             if isinstance(config['backend_options'], dict):
@@ -169,9 +174,6 @@ class AerBackend(BaseBackend):
                 config["noise_model"] = config["noise_model"].to_dict()
             else:
                 raise ValueError("noise_model must be a dict : " + str(type(config["noise_model"])))
-
-        # Return output
-        return output
 
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""

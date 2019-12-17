@@ -323,9 +323,7 @@ json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
     T *ptr = (T *) buf.ptr;
     size_t D0 = buf.shape[0];
 
-    //std::cout << "1-d conversion: " << X << std::endl;
-
-    std::vector<T> tbr;
+    std::vector<T> tbr; // to be returned 
     for (size_t n0 = 0; n0 < D0; n0++)
         tbr.push_back(ptr[n0]);
 
@@ -343,9 +341,7 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
     size_t D0 = buf.shape[0];
     size_t D1 = buf.shape[1];
 
-    //std::cout << "2-d conversion: " << D0 << "x" << D1 << std::endl;
-
-    std::vector<std::vector<T > > tbr;
+    std::vector<std::vector<T > > tbr; // to be returned
     for (size_t n0 = 0; n0 < D0; n0++) {
         std::vector<T> tbr1;
         for (size_t n1 = 0; n1 < D1; n1++) {
@@ -369,8 +365,7 @@ json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
     size_t D1 = buf.shape[1];
     size_t D2 = buf.shape[2];
 
-    //std::cout << "3-d conversion: " << D0 << "x" << D1 << "x" << D2 << std::endl;
-
+    // to be returned
     std::vector<std::vector<std::vector<T > > > tbr;
     for (size_t n0 = 0; n0 < D0; n0++) {
         std::vector<std::vector<T> > tbr1;
