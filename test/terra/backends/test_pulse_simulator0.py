@@ -154,7 +154,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         phi = -np.pi / 2
-        schedule = self._simple_1Q_schedule(system_model, 0, total_samples)
+        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
 
         qobj = assemble([schedule],
                         meas_level=2,
@@ -229,15 +229,282 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
+    def test_meas_level_1(self):
+        """Test measurement level 1. """
+
+        shots = 10000  # run large number of shots for good proportions
+        total_samples = 100
+        # perform hadamard setup (so get some 0's and some 1's), but use meas_level = 1
+
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+
+        # Require omega_a*time = pi/2 to implement pi/2 rotation pulse
+        # num of samples gives time
+        omega_a = np.pi / 2 / total_samples
+
+        phi = -np.pi / 2
+
+        system_model = self._system_model_1Q(omega_0, omega_a)
+
+        phi = -np.pi / 2
+        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+
+        qobj = assemble([schedule],
+                        meas_level=1,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        meas_lo_freq=[0.],
+                        memory_slots=2,
+                        shots=shots)
+
+        # set backend backend_options
+        backend_options = {'seed' : 9000}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+
+        # Verify that (about) half the IQ vals have abs val 1 and half have abs val 0
+        # (use prop for easier comparison)
+        mem = np.abs(result.get_memory()[:, 0])
+
+        iq_prop = {'0': 0, '1': 0}
+        for i in mem:
+            if i == 0:
+                iq_prop['0'] += 1 / shots
+            else:
+                iq_prop['1'] += 1 / shots
+
+        exp_prop = {'0': 0.5, '1': 0.5}
+
+        self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
+
+    def test_gaussian_drive(self):
+        """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
+        phi=0, omega_a = pi/time
+        """
+
+        # set variables
+
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        total_samples = 100
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+
+        # Require omega_a*time = pi to implement pi pulse (x gate)
+        # num of samples gives time
+        omega_a = np.pi / total_samples
+
+        phi = 0
+
+        # Test gaussian drive results for a few different sigma
+        gauss_sigmas = {
+            total_samples / 6, total_samples / 3, total_samples
+        }
+
+        system_model = self._system_model_1Q(omega_0, omega_a)
+
+        for gauss_sigma in gauss_sigmas:
+            with self.subTest(gauss_sigma=gauss_sigma):
+                schedule = self._simple_1Q_schedule(system_model,
+                                                    phi,
+                                                    total_samples,
+                                                    shape="gaussian",
+                                                    gauss_sigma=gauss_sigma)
+
+                qobj = assemble([schedule],
+                                meas_level=2,
+                                meas_return='single',
+                                meas_map=[[0]],
+                                qubit_lo_freq=[omega_d0/(2*np.pi)],
+                                meas_lo_freq=[0.],
+                                memory_slots=2,
+                                shots=1000)
+                backend_options = {'seed' : 9000}
+
+                result = self.backend_sim.run(qobj, system_model, backend_options).result()
+                statevector = result.get_statevector()
+                exp_statevector = self._analytic_gaussian_statevector(
+                    total_samples, gauss_sigma=gauss_sigma, omega_a=omega_a)
+
+                # Check fidelity of statevectors
+                self.assertGreaterEqual(
+                    state_fidelity(statevector, exp_statevector), 0.99)
+
+    def test_frame_change(self):
+        """Test frame change command. """
+        shots = 10000
+        total_samples = 100
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+
+        # set phi = 0
+        phi = 0
+
+        dur_drive1 = total_samples  # first pulse duration
+        fc_phi = np.pi
+
+        # Test frame change where no shift in state results
+        # specfically: do pi/2 pulse, then pi frame change, then another pi/2 pulse.
+        # Verify left in |0> state
+        dur_drive2 = dur_drive1  # same duration for both pulses
+        omega_a = np.pi / 2 / dur_drive1  # pi/2 pulse amplitude
+
+        system_model = self._system_model_1Q(omega_0, omega_a)
+        schedule = self._1Q_frame_change_schedule(system_model,
+                                                  phi,
+                                                  fc_phi,
+                                                  total_samples,
+                                                  dur_drive1,
+                                                  dur_drive2)
+        qobj = assemble([schedule],
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        meas_lo_freq=[0.],
+                        memory_slots=2,
+                        shots=shots)
+
+        backend_options = {'seed' : 9000}
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        counts = result.get_counts()
+        exp_counts = {'0': shots}
+
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+        # Test frame change where a shift does result
+        # specifically: do pi/4 pulse, then pi phase change, then do pi/8 pulse.
+        # check that a net rotation of pi/4-pi/8 has occured on the Bloch sphere
+        dur_drive2 = int(dur_drive1 / 2)  # half time for second pulse (halves angle)
+        omega_a = np.pi / 4 / dur_drive1  # pi/4 pulse amplitude
+
+        system_model = self._system_model_1Q(omega_0, omega_a)
+        schedule = self._1Q_frame_change_schedule(system_model,
+                                                  phi,
+                                                  fc_phi,
+                                                  total_samples,
+                                                  dur_drive1,
+                                                  dur_drive2)
+        qobj = assemble([schedule],
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        meas_lo_freq=[0.],
+                        memory_slots=2,
+                        shots=shots)
+
+        backend_options = {'seed' : 9000}
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        counts = result.get_counts()
+
+        # verify props
+        prop_shift = {}
+        for key in counts.keys():
+            prop_shift[key] = counts[key] / shots
+
+        # net angle is given by pi/4-pi/8
+        prop0 = np.cos( (np.pi / 4 - np.pi / 8) / 2)**2
+        exp_prop = {'0' : prop0, '1': 1 - prop0}
+        self.assertDictAlmostEqual(prop_shift, exp_prop, delta=0.01)
+
+    def test_three_level(self):
+        r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form
+        given in _analytic_statevector_3level function docstring.
+        """
+
+        def analytic_state_vector(omega_a, total_samples):
+            r"""Returns analytically computed statevector for 3 level system with our Hamiltonian. Is
+            given by `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
+            -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
+            -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
+            Args:
+                omega_a (float): Q0 drive amplitude
+            Returns:
+                exp_statevector (list): analytically computed statevector with Hamiltonian from above
+                    (Returned in the rotating frame)
+            """
+            time = total_samples
+            arg1 = np.sqrt(3) * omega_a * time / 2  # cos arg for first component
+            arg2 = arg1  # sin arg for first component
+            arg3 = arg1 / 2  # sin arg for 3rd component
+            exp_statevector = np.array([(2 + np.cos(arg1)) / 3,
+                                        -1j * np.sin(arg2) / np.sqrt(3),
+                                        -2 * np.sqrt(2) * np.sin(arg3)**2 / 3],
+                                        dtype=complex)
+            return exp_statevector
 
 
-    def _system_model_1Q(self, omega_0, omega_a):
+        shots = 1000
+        total_samples = 100
+        # Set omega_0,omega_d0 (use qubit frequency) -> drive on resonance
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+
+        # Set phi = 0 for simplicity
+        phi = 0
+
+        # Test pi pulse
+        omega_a = np.pi / total_samples
+
+        system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
+        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+
+        qobj = assemble([schedule],
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        meas_lo_freq=[0.],
+                        memory_slots=2,
+                        shots=shots)
+        backend_options = {'seed' : 9000}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        exp_statevector = analytic_state_vector(omega_a, total_samples)
+
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector, exp_statevector), 0.99)
+
+        # Test 2*pi pulse
+        omega_a = 2 * np.pi / total_samples
+
+        system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
+        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+
+        qobj = assemble([schedule],
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        meas_lo_freq=[0.],
+                        memory_slots=2,
+                        shots=shots)
+        backend_options = {'seed' : 9000}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        exp_statevector = analytic_state_vector(omega_a, total_samples)
+
+        # Check fidelity of vectors
+        self.assertGreaterEqual(
+            state_fidelity(statevector, exp_statevector), 0.99)
+
+
+    def _system_model_1Q(self, omega_0, omega_a, dim_qub=2):
 
         # make Hamiltonian
         hamiltonian = {}
         hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
         hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a}
-        hamiltonian['qub'] = {'0': 2}
+        hamiltonian['qub'] = {'0': dim_qub}
         ham_model = HamiltonianModel.from_string_spec(hamiltonian)
 
         u_channel_lo = []
@@ -281,6 +548,47 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
+    def _1Q_frame_change_schedule(self,
+                                  system_model,
+                                  phi,
+                                  fc_phi,
+                                  total_samples,
+                                  dur_drive1,
+                                  dur_drive2):
+        """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur_drive1,
+        then frame change of phase fc_phi, then another pulse of phase phi of duration dur_drive2.
+        The different durations for the pulses allow manipulation of rotation angles on Bloch sphere
+        Args:
+            phi (float): drive phase (phi in Hamiltonian)
+            fc_phi (float): phase for frame change
+            dur_drive1 (int): duration of first pulse
+            dur_drive2 (int): duration of second pulse
+
+        Returns:
+            schedule (pulse schedule): schedule for frame change test
+        """
+        phase = np.exp(1j * phi)
+        drive_pulse_1 = SamplePulse(phase * np.ones(dur_drive1),
+                                    name='drive_pulse_1')
+        drive_pulse_2 = SamplePulse(phase * np.ones(dur_drive2),
+                                    name='drive_pulse_2')
+
+        # frame change
+        fc_pulse = FrameChange(phase=fc_phi, name='fc')
+
+        # set up acquire command
+        acq_cmd = pulse.Acquire(duration=total_samples)
+
+        # add commands to schedule
+        schedule = pulse.Schedule(name='fc_schedule')
+        schedule |= drive_pulse_1(system_model.drive(0))
+        schedule += fc_pulse(system_model.drive(0))
+        schedule += drive_pulse_2(system_model.drive(0))
+        schedule |= acq_cmd(system_model.acquire(0),
+                            system_model.memoryslot(0)) << schedule.duration
+
+        return schedule
+
     def _analytic_prop_1q_gates(self, total_samples, omega_0, omega_a, omega_d0, phi):
         """Compute proportion for 0 and 1 states analytically for single qubit gates.
         Args:
@@ -308,6 +616,23 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # return expected proportion
         exp_prop = {'0': prop0, '1': 1 - prop0}
         return exp_prop
+
+    def _analytic_gaussian_statevector(self, total_samples, gauss_sigma, omega_a):
+        r"""Computes analytic statevector for gaussian drive. Solving the Schrodinger equation in
+        the rotating frame leads to the analytic solution `(\cos(x), -i\sin(x)) with
+        `x = \frac{1}{2}\sqrt{\frac{\pi}{2}}\sigma\omega_a erf(\frac{t}{\sqrt{2}\sigma}).
+        Args:
+            gauss_sigma (float): std dev for the gaussian drive
+            omega_a (float): Q0 drive amplitude
+        Returns:
+            exp_statevector (list): analytic form of the statevector computed for gaussian drive
+                (Returned in the rotating frame)
+        """
+        time = total_samples
+        arg = 1 / 2 * np.sqrt(np.pi / 2) * gauss_sigma * omega_a * erf(
+            time / np.sqrt(2) / gauss_sigma)
+        exp_statevector = [np.cos(arg), -1j * np.sin(arg)]
+        return exp_statevector
 
 if __name__ == '__main__':
     unittest.main()
