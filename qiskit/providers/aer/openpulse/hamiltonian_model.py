@@ -91,7 +91,7 @@ class HamiltonianModel():
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
             if not qubit_list:
-                qubit_list = list(range(len(hamiltonian['qub'])))
+                qubit_list = list(hamiltonian['qub'].keys())
 
             dim_qub = {
                 int(key): val
