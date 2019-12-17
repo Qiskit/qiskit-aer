@@ -27,7 +27,8 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
-from qiskit.providers.aer.openpulse.system_model import PulseSystemModel, HamiltonianModel
+from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
