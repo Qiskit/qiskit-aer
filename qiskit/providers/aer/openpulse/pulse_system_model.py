@@ -20,7 +20,7 @@ from .hamiltonian_model import HamiltonianModel
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                     MemorySlot)
 
-class SystemModel():
+class PulseSystemModel():
 
     def __init__(self,
                  hamiltonian=None,

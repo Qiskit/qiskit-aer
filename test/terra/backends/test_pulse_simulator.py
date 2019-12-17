@@ -27,7 +27,7 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
-from qiskit.providers.aer.openpulse.system_model import SystemModel, HamiltonianModel
+from qiskit.providers.aer.openpulse.system_model import PulseSystemModel, HamiltonianModel
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -600,7 +600,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         qubit_list = [0]
         dt = 1.
 
-        return SystemModel(hamiltonian=ham_model,
+        return PulseSystemModel(hamiltonian=ham_model,
                            u_channel_lo=u_channel_lo,
                            qubit_list=qubit_list,
                            dt=dt)
@@ -744,7 +744,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         qubit_list = [0, 1]
         dt = 1.
 
-        return SystemModel(hamiltonian=ham_model,
+        return PulseSystemModel(hamiltonian=ham_model,
                            u_channel_lo=u_channel_lo,
                            qubit_list=qubit_list,
                            dt=dt)

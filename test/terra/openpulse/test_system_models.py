@@ -19,25 +19,24 @@ import qiskit
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
-from qiskit.providers.aer.openpulse.system_model import SystemModel
+from qiskit.providers.aer.openpulse.system_model import PulseSystemModel
 from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 
 
-class BaseTestSystemModel(QiskitAerTestCase):
+class BaseTestPulseSystemModel(QiskitAerTestCase):
     """Testing of functions in providers.aer.openpulse.qobj.digest."""
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.system = pulse.PulseChannelSpec.from_backend(self.backend)
 
 
-class TestSystemModel(BaseTestSystemModel):
+class TestPulseSystemModel(BaseTestPulseSystemModel):
     r"""Tests for Hamiltonian options and processing."""
 
     def test_qubit_lo_default(self):
         """Test backend_options['qubit_lo_freq'] defaults."""
-        test_model = SystemModel.from_backend(self.backend)
+        test_model = PulseSystemModel.from_backend(self.backend)
 
         default_qubit_lo_freq = getattr(self.backend.defaults(), 'qubit_freq_est')
         default_u_lo_freq = self._compute_u_lo_freqs(default_qubit_lo_freq)
@@ -59,7 +58,7 @@ class TestSystemModel(BaseTestSystemModel):
 
     def test_qubit_lo_from_hamiltonian(self):
         """Test backend_options['qubit_lo_freq'] = 'from_hamiltonian'."""
-        test_model = SystemModel.from_backend(self.backend)
+        test_model = PulseSystemModel.from_backend(self.backend)
 
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
