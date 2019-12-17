@@ -113,6 +113,8 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     estates = [op.state(state) for state in ham_model._estates.T[:]]
     out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
+    # Need this info for evaluating the hamiltonian vars in the c++ solver
+    out.global_data['vars_names'] = list(out.vars.keys())
     out.global_data['freqs'] = list(out.freqs.values())
 
     # Parse noise
