@@ -50,7 +50,6 @@
 """
 
 import numpy as np
-from scipy import arange, conj
 import scipy.sparse as sp
 
 from .qobj import Qobj
@@ -132,7 +131,7 @@ def coherent(N, alpha, offset=0, method='operator'):
 
         x = basis(N, 0)
         a = destroy(N)
-        D = (alpha * a.dag() - conj(alpha) * a).expm()
+        D = (alpha * a.dag() - np.conj(alpha) * a).expm()
         return D * x
 
     elif method == "analytic" or offset > 0:
@@ -250,7 +249,7 @@ def thermal_dm(N, n, method='operator'):
     if n == 0:
         return fock_dm(N, 0)
     else:
-        i = arange(N)
+        i = np.arange(N)
         if method == 'operator':
             beta = np.log(1.0 / n + 1.0)
             diags = np.exp(-1 * beta * i)

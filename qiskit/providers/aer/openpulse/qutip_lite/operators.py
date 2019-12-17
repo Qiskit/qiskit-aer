@@ -53,7 +53,6 @@ of commonly occuring quantum operators.
 """
 
 import numpy as np
-import scipy
 import scipy.sparse as sp
 from .fastsparse import fast_csr_matrix, fast_identity
 
@@ -74,7 +73,7 @@ def jmat(j, *args):
     Raises:
         TypeError: Invalid input.
     """
-    if (scipy.fix(2 * j) != 2 * j) or (j < 0):
+    if (np.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
