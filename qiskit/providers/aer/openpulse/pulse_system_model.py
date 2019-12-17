@@ -16,9 +16,10 @@
 "System Model class for system specification for the PulseSimulator"
 
 from collections import OrderedDict
-from .hamiltonian_model import HamiltonianModel
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
-                                    MemorySlot)
+                                   MemorySlot)
+
+from .hamiltonian_model import HamiltonianModel
 
 class PulseSystemModel():
 
@@ -95,8 +96,8 @@ class PulseSystemModel():
         if not qubit_lo_freq:
             if not self.qubit_freq_est:
                 raise ValueError("No qubit_lo_freq to use.")
-            else:
-                qubit_lo_freq = self.qubit_freq_est
+
+            qubit_lo_freq = self.qubit_freq_est
 
         if self.u_channel_lo is None:
             raise ValueError("{} has no u_channel_lo.".format(self.__class__.__name__))
@@ -104,18 +105,18 @@ class PulseSystemModel():
         # Setup freqs for the channels
         freqs = OrderedDict()
         for key in self.channels.keys():
-           chidx = int(key[1:])
-           if key[0] == 'D':
-               freqs[key] = qubit_lo_freq[chidx]
-           elif key[0] == 'U':
-               freqs[key] = 0
-               for u_lo_idx in self.u_channel_lo[chidx]:
-                   if u_lo_idx['q'] < len(qubit_lo_freq):
-                       qfreq = qubit_lo_freq[u_lo_idx['q']]
-                       qscale = u_lo_idx['scale'][0]
-                       freqs[key] += qfreq * qscale
-           else:
-               raise ValueError("Channel is not D or U")
+            chidx = int(key[1:])
+            if key[0] == 'D':
+                freqs[key] = qubit_lo_freq[chidx]
+            elif key[0] == 'U':
+                freqs[key] = 0
+                for u_lo_idx in self.u_channel_lo[chidx]:
+                    if u_lo_idx['q'] < len(qubit_lo_freq):
+                        qfreq = qubit_lo_freq[u_lo_idx['q']]
+                        qscale = u_lo_idx['scale'][0]
+                        freqs[key] += qfreq * qscale
+            else:
+                raise ValueError("Channel is not D or U")
         return freqs
 
     def drive(self, qubit):

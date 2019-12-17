@@ -27,7 +27,7 @@ class HamiltonianModel():
 
     def __init__(self,
                  system=None,
-                 vars=None,
+                 variables=None,
                  dim_qub={},
                  dim_osc={}):
         """Initialize a Hamiltonian model.
@@ -46,7 +46,7 @@ class HamiltonianModel():
         # The system Hamiltonian in numerical format
         self._system = system
         # System variables
-        self._vars = vars
+        self._variables = variables
         # Channels in the Hamiltonian string
         # Qubit subspace dimensinos
         self._dim_qub = dim_qub
@@ -90,8 +90,8 @@ class HamiltonianModel():
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
-            if not qubit_list:
-                qubit_list = list(hamiltonian['qub'].keys())
+            if qubit_list is None:
+                qubit_list = [int(qubit) for qubit in hamiltonian['qub'].keys()]
 
             dim_qub = {
                 int(key): val
@@ -118,16 +118,16 @@ class HamiltonianModel():
 
         return cls(system, vars, dim_qub, dim_osc)
 
-    def set_vars(self, vars):
-        """Given a dict vars, set the corresponding values in self._vars
+    def set_variables(self, vars):
+        """Given a dict vars, set the corresponding values in self._variables
         Args:
             vars (dict or OrderedDict): dictionary of new values
         Returns:
         Raises:
         """
         for key in vars:
-            if key in self._vars:
-                self._vars[key] = vars[key]
+            if key in self._variables:
+                self._variables[key] = variables[key]
 
         # reset internal data
         self._compute_drift_data()
@@ -208,8 +208,8 @@ class HamiltonianModel():
 
         # might be a better solution to replace the 'var' in the hamiltonian
         # string with 'op_system.vars[var]'
-        for var in self._vars:
-            exec('%s=%f' % (var, self._vars[var]))
+        for var in self._variables:
+            exec('%s=%f' % (var, self._variables[var]))
 
         ham_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
         for ham_part in self._system:

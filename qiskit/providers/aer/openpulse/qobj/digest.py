@@ -28,12 +28,16 @@ from ..solver.options import OPoptions
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
-def digest_pulse_obj(qobj, system_model, backend_options, noise_model=None):
+def digest_pulse_obj(qobj, system_model, backend_options = None, noise_model=None):
 
     out = OPSystem()
 
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
+
+
+    if backend_options is None:
+        backend_options = {}
 
     # Temp backwards compatibility
     if 'sim_config' in qobj_config:
@@ -85,7 +89,7 @@ def digest_pulse_obj(qobj, system_model, backend_options, noise_model=None):
 
     # For now we dump this into OpSystem, though that should be refactored
     out.system = ham_model._system
-    out.vars = ham_model._vars
+    out.vars = ham_model._variables
     out.channels = ham_model._channels
     out.h_diag = ham_model._h_diag
     out.evals = ham_model._evals
