@@ -28,7 +28,7 @@ from ..solver.options import OPoptions
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
-def digest_pulse_obj(qobj, system_model, backend_options = None, noise_model=None):
+def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
 
     out = OPSystem()
 
@@ -46,7 +46,7 @@ def digest_pulse_obj(qobj, system_model, backend_options = None, noise_model=Non
         qobj_config.pop('sim_config')
 
     # post warnings for unsupported features
-    _unsupported_warnings(qobj_dict, system_model, backend_options, noise_model)
+    _unsupported_warnings(qobj_dict, noise_model)
 
     ################################
     #### Parse qobj_config settings
@@ -66,7 +66,7 @@ def digest_pulse_obj(qobj, system_model, backend_options = None, noise_model=Non
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
-                                                         qobj_config['pulse_library'])
+                                                        qobj_config['pulse_library'])
 
     out.global_data['pulse_array'] = pulses
     out.global_data['pulse_indices'] = pulses_idx
@@ -186,12 +186,11 @@ def digest_pulse_obj(qobj, system_model, backend_options = None, noise_model=Non
     return out
 
 
-def _unsupported_warnings(qobj_dict, system_model, backend_options, noise_model):
+def _unsupported_warnings(qobj_dict, noise_model):
     """ Warns the user about untested/unsupported features.
 
     Parameters:
         qobj_dict (dict): qobj in dictionary form
-        system_model (SimSystemModel): system model for simulation
         backend_options (dict): backend_options for simulation
     Returns:
     Raises:

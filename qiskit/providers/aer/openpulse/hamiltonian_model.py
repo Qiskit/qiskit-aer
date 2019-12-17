@@ -28,8 +28,8 @@ class HamiltonianModel():
     def __init__(self,
                  system=None,
                  variables=None,
-                 dim_qub={},
-                 dim_osc={}):
+                 dim_qub=None,
+                 dim_osc=None):
         """Initialize a Hamiltonian model.
 
         Args:
@@ -49,9 +49,9 @@ class HamiltonianModel():
         self._variables = variables
         # Channels in the Hamiltonian string
         # Qubit subspace dimensinos
-        self._dim_qub = dim_qub
+        self._dim_qub = dim_qub or {}
         # Oscillator subspace dimensions
-        self._dim_osc = dim_osc
+        self._dim_osc = dim_osc or {}
 
         # The rest are computed from the previous
 
@@ -85,8 +85,8 @@ class HamiltonianModel():
 
         _hamiltonian_parse_warnings(hamiltonian)
 
-        # get vars
-        vars = OrderedDict(hamiltonian['vars'])
+        # get variables
+        variables = OrderedDict(hamiltonian['vars'])
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
@@ -116,16 +116,16 @@ class HamiltonianModel():
         system.parse(qubit_list)
         system = system.compiled
 
-        return cls(system, vars, dim_qub, dim_osc)
+        return cls(system, variables, dim_qub, dim_osc)
 
-    def set_variables(self, vars):
+    def set_variables(self, variables):
         """Given a dict vars, set the corresponding values in self._variables
         Args:
             vars (dict or OrderedDict): dictionary of new values
         Returns:
         Raises:
         """
-        for key in vars:
+        for key in variables:
             if key in self._variables:
                 self._variables[key] = variables[key]
 
@@ -238,7 +238,7 @@ def _hamiltonian_parse_warnings(hamiltonian):
     Raises:
     """
     if 'osc' in hamiltonian:
-        warn(warning_str.format('Oscillator-type systems are not supported.'))
+        warn('Oscillator-type systems are not supported.')
 
 def _first_excited_state(qubit_idx, dim_qub):
     """
@@ -260,7 +260,9 @@ def _first_excited_state(qubit_idx, dim_qub):
     """
     vector = np.array([1.])
     # iterate through qubits, tensoring on the state
-    for idx in range(len(dim_qub)):
+    qubit_indices = [int(qubit) for qubit in dim_qub.keys()]
+    qubit_indices.sort()
+    for idx in qubit_indices:
         new_vec = np.zeros(dim_qub[idx])
         if idx == qubit_idx:
             new_vec[1] = 1
