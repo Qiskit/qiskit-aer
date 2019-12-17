@@ -186,7 +186,7 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
             out.can_sample = False
 
         # This is a temporary flag while stabilizing cpp func ODE solver
-        out.use_cpp_ode_func = config_dict.get('use_cpp_ode_func', True)
+        out.use_cpp_ode_func = config_dict_sim.get('use_cpp_ode_func', True)
     return out
 
 
