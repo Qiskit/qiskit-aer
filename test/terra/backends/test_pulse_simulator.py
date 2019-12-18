@@ -408,7 +408,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             prop_shift[key] = counts[key] / shots
 
         # net angle is given by pi/4-pi/8
-        prop0 = np.cos( (np.pi / 4 - np.pi / 8) / 2)**2
+        prop0 = np.cos((np.pi / 4 - np.pi / 8) / 2)**2
         exp_prop = {'0' : prop0, '1': 1 - prop0}
         self.assertDictAlmostEqual(prop_shift, exp_prop, delta=0.01)
 
@@ -418,15 +418,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """
 
         def analytic_state_vector(omega_a, total_samples):
-            r"""Returns analytically computed statevector for 3 level system with our Hamiltonian. Is
-            given by `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
+            r"""Returns analytically computed statevector for 3 level system with our Hamiltonian.
+            Is given by `(\frac{1}{3} (2+\cos(\frac{\sqrt{3}}{2} \omega_a t)),
             -\frac{i}{\sqrt{3}} \sin(\frac{\sqrt{3}}{2} \omega_a t),
             -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
             Args:
                 omega_a (float): Q0 drive amplitude
             Returns:
-                exp_statevector (list): analytically computed statevector with Hamiltonian from above
-                    (Returned in the rotating frame)
+                exp_statevector (list): analytically computed statevector with Hamiltonian from
+                    above (Returned in the rotating frame)
             """
             time = total_samples
             arg1 = np.sqrt(3) * omega_a * time / 2  # cos arg for first component
@@ -435,7 +435,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             exp_statevector = np.array([(2 + np.cos(arg1)) / 3,
                                         -1j * np.sin(arg2) / np.sqrt(3),
                                         -2 * np.sqrt(2) * np.sin(arg3)**2 / 3],
-                                        dtype=complex)
+                                       dtype=complex)
             return exp_statevector
 
 
@@ -532,7 +532,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         meas_lo_freq=[0., 0.],
                         memory_slots=2,
                         shots=shots)
-        backend_options ={'seed': 12387}
+        backend_options = {'seed': 12387}
 
         result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi_swap = result_pi_swap.get_counts()
@@ -589,7 +589,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
 
     def _system_model_1Q(self, omega_0, omega_a, dim_qub=2):
+        """Constructs a simple 1 qubit system model.
 
+        Args:
+            omega_0 (float): frequency of qubit
+            omega_a (float): strength of drive term
+            dim_qub (int): dimension of qubit
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
         # make Hamiltonian
         hamiltonian = {}
         hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
@@ -602,14 +610,53 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
-                           u_channel_lo=u_channel_lo,
-                           qubit_list=qubit_list,
-                           dt=dt)
+                                u_channel_lo=u_channel_lo,
+                                qubit_list=qubit_list,
+                                dt=dt)
+
+    def _system_model_2Q(self, omega_0, omega_a, omega_i, dim_qub=2):
+        """Constructs a simple 1 qubit system model.
+
+        Args:
+            omega_0 (float): frequency of qubit
+            omega_a (float): strength of drive term
+            omega_i (float): strength of interaction
+            dim_qub (int): dimension of qubit
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
+
+        # make Hamiltonian
+        hamiltonian = {}
+        # qubit 0 terms
+        hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
+        # interaction term
+        hamiltonian['h_str'].append('omegai*(Sp0*Sm1+Sm0*Sp1)||U1')
+        hamiltonian['vars'] = {
+            'omega0': omega_0,
+            'omegaa': omega_a,
+            'omegai': omega_i
+        }
+        hamiltonian['qub'] = {'0' : dim_qub, '1' : dim_qub}
+        ham_model = HamiltonianModel.from_string_spec(hamiltonian)
+
+
+        u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
+                        [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
+        qubit_list = [0, 1]
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian=ham_model,
+                                u_channel_lo=u_channel_lo,
+                                qubit_list=qubit_list,
+                                dt=dt)
 
     def _simple_1Q_schedule(self, system_model, phi, total_samples, shape="square", gauss_sigma=0):
         """Creates schedule for single pulse test
         Args:
+            system_model (PulseSystemModel): model to get channels from
             phi (float): drive phase (phi in Hamiltonian)
+            total_samples (int): length of pulses
             shape (str): shape of the pulse; defaults to square pulse
             gauss_sigma (float): std dev for gaussian pulse if shape=="gaussian"
         Returns:
@@ -648,9 +695,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur_drive1,
         then frame change of phase fc_phi, then another pulse of phase phi of duration dur_drive2.
         The different durations for the pulses allow manipulation of rotation angles on Bloch sphere
+
         Args:
+            system_model (PulseSystemModel): model to get channels from
             phi (float): drive phase (phi in Hamiltonian)
             fc_phi (float): phase for frame change
+            total_samples (int): length of pulses
             dur_drive1 (int): duration of first pulse
             dur_drive2 (int): duration of second pulse
 
@@ -682,6 +732,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     def _analytic_prop_1q_gates(self, total_samples, omega_0, omega_a, omega_d0, phi):
         """Compute proportion for 0 and 1 states analytically for single qubit gates.
         Args:
+            total_samples (int): length of pulses
             omega_0 (float): Q0 freq
             omega_a (float): Q0 drive amplitude
             omega_d0 (flaot): Q0 drive frequency
@@ -711,7 +762,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         r"""Computes analytic statevector for gaussian drive. Solving the Schrodinger equation in
         the rotating frame leads to the analytic solution `(\cos(x), -i\sin(x)) with
         `x = \frac{1}{2}\sqrt{\frac{\pi}{2}}\sigma\omega_a erf(\frac{t}{\sqrt{2}\sigma}).
+
         Args:
+            total_samples (int): length of pulses
             gauss_sigma (float): std dev for the gaussian drive
             omega_a (float): Q0 drive amplitude
         Returns:
@@ -723,32 +776,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             time / np.sqrt(2) / gauss_sigma)
         exp_statevector = [np.cos(arg), -1j * np.sin(arg)]
         return exp_statevector
-
-    def _system_model_2Q(self, omega_0, omega_a, omega_i, dim_qub=2):
-        # make Hamiltonian
-        hamiltonian = {}
-        # qubit 0 terms
-        hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
-        # interaction term
-        hamiltonian['h_str'].append('omegai*(Sp0*Sm1+Sm0*Sp1)||U1')
-        hamiltonian['vars'] = {
-            'omega0': omega_0,
-            'omegaa': omega_a,
-            'omegai': omega_i
-        }
-        hamiltonian['qub'] = {'0' : dim_qub, '1' : dim_qub}
-        ham_model = HamiltonianModel.from_string_spec(hamiltonian)
-
-
-        u_channel_lo = [ [{'q': 0, 'scale': [1.0, 0.0]}],
-                         [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}] ]
-        qubit_list = [0, 1]
-        dt = 1.
-
-        return PulseSystemModel(hamiltonian=ham_model,
-                           u_channel_lo=u_channel_lo,
-                           qubit_list=qubit_list,
-                           dt=dt)
 
     def _schedule_2Q_interaction(self, system_model, total_samples):
         """Creates schedule for testing two qubit interaction. Specifically, do a pi pulse on qub 0

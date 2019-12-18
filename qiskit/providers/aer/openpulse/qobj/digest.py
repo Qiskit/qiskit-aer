@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-return-type-doc
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
@@ -29,6 +29,20 @@ from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
+    """Convert specification of a simulation in the pulse language into the format accepted
+    by the simulator.
+
+    Args:
+        qobj (PulseQobj): experiment specification
+        system_model (PulseSystemModel): object representing system model
+        backend_options (dict): dictionary of simulation options
+        noise_model (dict): noise model specification
+    Returns:
+        out (OPSystem): object understandable by the pulse simulator
+    Raises:
+        ValueError: When necessary parameters are missing
+        Exception: For invalid ode options
+    """
 
     out = OPSystem()
 
@@ -191,7 +205,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
 
     Parameters:
         qobj_dict (dict): qobj in dictionary form
-        backend_options (dict): backend_options for simulation
+        noise_model (dict): backend_options for simulation
     Returns:
     Raises:
     """
@@ -227,7 +241,8 @@ def build_pulse_arrays(experiments, pulse_library):
     sequencies to pulse_idx sequencies and timings.
 
     Parameters:
-        qobj (Qobj): A pulse-qobj instance.
+        experiments (list): list of experiments
+        pulse_library (list): list of pulses
 
     Returns:
         tuple: Returns all pulses in one array,

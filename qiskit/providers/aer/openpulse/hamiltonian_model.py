@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name
+# pylint: disable=eval-used, exec-used, invalid-name, missing-return-type-doc
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
@@ -34,7 +34,7 @@ class HamiltonianModel():
 
         Args:
             system (list): List of Qobj objects representing operator form of the Hamiltonian.
-            vars (OrderedDict): Ordered dict for parameter values in Hamiltonian.
+            variables (OrderedDict): Ordered dict for parameter values in Hamiltonian.
             dim_qub (dict): dict of qubit dimensions.
             dim_osc (dict): dict of oscillator dimensions.
 
@@ -79,6 +79,9 @@ class HamiltonianModel():
             hamiltonian (dict): dictionary representing Hamiltonian in string specification.
             qubit_list (list or None): List of qubits to extract from the hamiltonian.
 
+        Returns:
+            HamiltonianModel: instantiated from hamiltonian dictionary
+
         Raises:
             ValueError: if arguments are invalid.
         """
@@ -121,9 +124,7 @@ class HamiltonianModel():
     def set_variables(self, variables):
         """Given a dict vars, set the corresponding values in self._variables
         Args:
-            vars (dict or OrderedDict): dictionary of new values
-        Returns:
-        Raises:
+            variables (dict or OrderedDict): dictionary of new values
         """
         for key in variables:
             if key in self._variables:
@@ -136,10 +137,8 @@ class HamiltonianModel():
         """ Computes a list of qubit frequencies corresponding to the exact energy
         gap between the ground and first excited states of each qubit.
 
-        Args:
         Returns:
             qubit_lo_freq (list): the list of frequencies
-        Raises:
         """
         qubit_lo_freq = [0]*len(self._dim_qub)
 
