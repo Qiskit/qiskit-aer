@@ -140,7 +140,7 @@ class HamiltonianModel():
         Returns:
             qubit_lo_freq (list): the list of frequencies
         """
-        qubit_lo_freq = [0]*len(self._dim_qub)
+        qubit_lo_freq = [0] * len(self._dim_qub)
 
         # compute difference between first excited state of each qubit and
         # the ground energy
@@ -228,6 +228,7 @@ class HamiltonianModel():
         self._estates = estates_mapped
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
+
 def _hamiltonian_parse_warnings(hamiltonian):
     """Raises warnings for hamiltonian specification.
 
@@ -238,6 +239,7 @@ def _hamiltonian_parse_warnings(hamiltonian):
     """
     if 'osc' in hamiltonian:
         warn('Oscillator-type systems are not supported.')
+
 
 def _first_excited_state(qubit_idx, dim_qub):
     """

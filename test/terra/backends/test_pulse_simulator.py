@@ -18,6 +18,7 @@ from test.terra import common
 
 import numpy as np
 from scipy.linalg import expm
+# pylint: disable=no-name-in-module
 from scipy.special import erf
 
 import qiskit
@@ -27,12 +28,12 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 
 
-from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
-                                   MemorySlot)
-from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
+from qiskit.pulse.channels import (DriveChannel, ControlChannel, AcquireChannel, MemorySlot)
+from qiskit.pulse.commands import SamplePulse, FrameChange
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
 
+# pylint: disable=missing-return-doc, missing-return-type-doc, invalid-name
 
 class TestPulseSimulator(common.QiskitAerTestCase):
     r"""PulseSimulator tests.
@@ -70,7 +71,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         # set up schedule and qobj
-        schedule = self._simple_1Q_schedule(system_model, 0, total_samples)
+        schedule = self._simple_1Q_schedule(0, total_samples)
         qobj = assemble([schedule],
                         meas_level=2,
                         meas_return='single',
@@ -112,7 +113,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             system_model.dt = system_model.dt * scale
 
             # set up schedule and qobj
-            schedule = self._simple_1Q_schedule(system_model, 0, total_samples)
+            schedule = self._simple_1Q_schedule(0, total_samples)
             qobj = assemble([schedule],
                             meas_level=2,
                             meas_return='single',
@@ -158,7 +159,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         phi = -np.pi / 2
-        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+        schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
                         meas_level=2,
@@ -204,7 +205,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             with self.subTest(i=i):
 
                 system_model = self._system_model_1Q(omega_0, omega_a_vals[i])
-                schedule = self._simple_1Q_schedule(system_model, phi_vals[i], total_samples)
+                schedule = self._simple_1Q_schedule(phi_vals[i], total_samples)
 
                 qobj = assemble([schedule],
                                 meas_level=2,
@@ -253,7 +254,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         phi = -np.pi / 2
-        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+        schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
                         meas_level=1,
@@ -311,11 +312,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         for gauss_sigma in gauss_sigmas:
             with self.subTest(gauss_sigma=gauss_sigma):
-                schedule = self._simple_1Q_schedule(system_model,
-                                                    phi,
+                schedule = self._simple_1Q_schedule(phi,
                                                     total_samples,
-                                                    shape="gaussian",
-                                                    gauss_sigma=gauss_sigma)
+                                                    "gaussian",
+                                                    gauss_sigma)
 
                 qobj = assemble([schedule],
                                 meas_level=2,
@@ -357,8 +357,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a = np.pi / 2 / dur_drive1  # pi/2 pulse amplitude
 
         system_model = self._system_model_1Q(omega_0, omega_a)
-        schedule = self._1Q_frame_change_schedule(system_model,
-                                                  phi,
+        schedule = self._1Q_frame_change_schedule(phi,
                                                   fc_phi,
                                                   total_samples,
                                                   dur_drive1,
@@ -386,8 +385,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a = np.pi / 4 / dur_drive1  # pi/4 pulse amplitude
 
         system_model = self._system_model_1Q(omega_0, omega_a)
-        schedule = self._1Q_frame_change_schedule(system_model,
-                                                  phi,
+        schedule = self._1Q_frame_change_schedule(phi,
                                                   fc_phi,
                                                   total_samples,
                                                   dur_drive1,
@@ -427,6 +425,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             -\frac{2\sqrt{2}}{3} \sin(\frac{\sqrt{3}}{4} \omega_a t)^2)`.
             Args:
                 omega_a (float): Q0 drive amplitude
+                total_samples (int): number of samples to use in pulses_idx
             Returns:
                 exp_statevector (list): analytically computed statevector with Hamiltonian from
                     above (Returned in the rotating frame)
@@ -455,7 +454,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a = np.pi / total_samples
 
         system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
-        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+        schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
                         meas_level=2,
@@ -480,7 +479,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a = 2 * np.pi / total_samples
 
         system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
-        schedule = self._simple_1Q_schedule(system_model, phi, total_samples)
+        schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
                         meas_level=2,
@@ -526,7 +525,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         system_model = self._system_model_2Q(omega_0, omega_a_pi_swap, omega_i_swap)
 
-        schedule = self._schedule_2Q_interaction(system_model, total_samples)
+        schedule = self._schedule_2Q_interaction(total_samples)
         qobj = assemble([schedule],
                         meas_level=2,
                         meas_return='single',
@@ -569,9 +568,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # Test that no SWAP occurs when omega_i=0 (no interaction)
         omega_i_no_swap = 0
-
-        # Set arbitrary params for omega_d0, omega_d1
-        omega_d1_no_swap = omega_d0
 
         # Q0 drive amp -> pi pulse
         omega_a_no_swap = np.pi / total_samples
@@ -654,10 +650,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 qubit_list=qubit_list,
                                 dt=dt)
 
-    def _simple_1Q_schedule(self, system_model, phi, total_samples, shape="square", gauss_sigma=0):
+    def _simple_1Q_schedule(self, phi, total_samples, shape="square", gauss_sigma=0):
         """Creates schedule for single pulse test
         Args:
-            system_model (PulseSystemModel): model to get channels from
             phi (float): drive phase (phi in Hamiltonian)
             total_samples (int): length of pulses
             shape (str): shape of the pulse; defaults to square pulse
@@ -687,19 +682,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-    def _1Q_frame_change_schedule(self,
-                                  system_model,
-                                  phi,
-                                  fc_phi,
-                                  total_samples,
-                                  dur_drive1,
-                                  dur_drive2):
+    def _1Q_frame_change_schedule(self, phi, fc_phi, total_samples, dur_drive1, dur_drive2):
         """Creates schedule for frame change test. Does a pulse w/ phase phi of duration dur_drive1,
         then frame change of phase fc_phi, then another pulse of phase phi of duration dur_drive2.
         The different durations for the pulses allow manipulation of rotation angles on Bloch sphere
 
         Args:
-            system_model (PulseSystemModel): model to get channels from
             phi (float): drive phase (phi in Hamiltonian)
             fc_phi (float): phase for frame change
             total_samples (int): length of pulses
@@ -778,10 +766,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_statevector = [np.cos(arg), -1j * np.sin(arg)]
         return exp_statevector
 
-    def _schedule_2Q_interaction(self, system_model, total_samples):
+    def _schedule_2Q_interaction(self, total_samples):
         """Creates schedule for testing two qubit interaction. Specifically, do a pi pulse on qub 0
         so it starts in the `1` state (drive channel) and then apply constant pulses to each
         qubit (on control channel 1). This will allow us to test a swap gate.
+
+        Args:
+            total_samples (int): length of pulses
         Returns:
             schedule (pulse schedule): schedule for 2q experiment
         """

@@ -16,8 +16,8 @@
 "System Model class for system specification for the PulseSimulator"
 
 from collections import OrderedDict
-
 from .hamiltonian_model import HamiltonianModel
+
 
 class PulseSystemModel():
     """PulseSystemModel containing all model parameters necessary for simulation.
@@ -72,7 +72,6 @@ class PulseSystemModel():
         # if no qubit_list, use all for device
         qubit_list = qubit_list or list(range(config['n_qubits']))
         hamiltonian = HamiltonianModel.from_string_spec(config['hamiltonian'], qubit_list)
-        #To do: should u_channel_lo list be truncated based on qubits involved?
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)
 

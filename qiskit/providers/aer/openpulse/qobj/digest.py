@@ -28,6 +28,7 @@ from ..solver.options import OPoptions
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
+
 def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
     """Convert specification of a simulation in the pulse language into the format accepted
     by the simulator.
@@ -49,7 +50,6 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
 
-
     if backend_options is None:
         backend_options = {}
 
@@ -62,9 +62,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     # post warnings for unsupported features
     _unsupported_warnings(qobj_dict, noise_model)
 
-    ################################
-    #### Parse qobj_config settings
-    ################################
+    # ###############################
+    # ### Parse qobj_config settings
+    # ###############################
     if 'memory_slots' not in qobj_config:
         raise ValueError('Number of memory_slots must be specific in Qobj config')
     out.global_data['shots'] = int(qobj_config.get('shots', 1024))
@@ -86,9 +86,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     out.global_data['pulse_indices'] = pulses_idx
     out.pulse_to_int = pulse_dict
 
-    ################################
-    #### Extract model parameters
-    ################################
+    # ###############################
+    # ### Extract model parameters
+    # ###############################
 
     # Get qubit list and number
     qubit_list = system_model.qubit_list
@@ -136,9 +136,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     else:
         out.noise = None
 
-    ################################
-    #### Parse backend_options
-    ################################
+    # ###############################
+    # ### Parse backend_options
+    # ###############################
     if 'seed' in backend_options:
         out.global_data['seed'] = int(backend_options.get('seed'))
     else:
@@ -165,10 +165,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
             min_width = min(min_width, stop - start)
     out.ode_options.max_step = min_width / 2 * out.dt
 
-
-    ################################
-    #### Convert experiments to data structures.
-    ################################
+    # ###############################
+    # ### Convert experiments to data structures.
+    # ###############################
     out.global_data['measurement_ops'] = [None] * n_qubits
 
     for exp in qobj_dict['experiments']:
