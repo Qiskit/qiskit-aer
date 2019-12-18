@@ -49,7 +49,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U1'], default_u_lo_freq[1])
 
         # test defaults again, but with non-default hamiltonian
-        test_model.hamiltonian.set_vars({'v0' : 5.1, 'v1' : 4.9, 'j' : 0.02})
+        test_model.hamiltonian.set_variables({'v0' : 5.1, 'v1' : 4.9, 'j' : 0.02})
         freqs = test_model.calculate_channel_frequencies()
         self.assertAlmostEqual(freqs['D0'], default_qubit_lo_freq[0])
         self.assertAlmostEqual(freqs['D1'], default_qubit_lo_freq[1])
@@ -68,7 +68,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U1'], 0.101980390271)
 
         # test again with different parameters
-        test_model.hamiltonian.set_vars({'v0' : 5.1, 'v1' : 4.9, 'j' : 0.02})
+        test_model.hamiltonian.set_variables({'v0' : 5.1, 'v1' : 4.9, 'j' : 0.02})
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
         self.assertAlmostEqual(freqs['D0'], 5.101980390271)
