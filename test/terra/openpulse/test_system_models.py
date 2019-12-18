@@ -34,8 +34,8 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
 class TestPulseSystemModel(BaseTestPulseSystemModel):
     r"""Tests for Hamiltonian options and processing."""
 
-    def test_qubit_lo_default(self):
-        """Test backend_options['qubit_lo_freq'] defaults."""
+    def test_qubit_lo_default_from_backend(self):
+        """Test drawing of defaults form a backend."""
         test_model = PulseSystemModel.from_backend(self.backend)
 
         default_qubit_lo_freq = getattr(self.backend.defaults(), 'qubit_freq_est')
@@ -57,7 +57,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U1'], default_u_lo_freq[1])
 
     def test_qubit_lo_from_hamiltonian(self):
-        """Test backend_options['qubit_lo_freq'] = 'from_hamiltonian'."""
+        """Test computation of qubit_lo_freq from the hamiltonian itself."""
         test_model = PulseSystemModel.from_backend(self.backend)
 
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
