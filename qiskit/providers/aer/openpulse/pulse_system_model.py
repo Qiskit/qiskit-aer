@@ -16,8 +16,6 @@
 "System Model class for system specification for the PulseSimulator"
 
 from collections import OrderedDict
-from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
-                                   MemorySlot)
 
 from .hamiltonian_model import HamiltonianModel
 

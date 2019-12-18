@@ -26,6 +26,9 @@ import qiskit.pulse as pulse
 from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 
+
+from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
+                                   MemorySlot)
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
@@ -679,9 +682,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # add commands into a schedule for first qubit
         schedule = pulse.Schedule(name='drive_pulse')
-        schedule |= drive_pulse(system_model.drive(0))
-        schedule |= acq_cmd(system_model.acquire(0),
-                            system_model.memoryslot(0)) << schedule.duration
+        schedule |= drive_pulse(DriveChannel(0))
+        schedule |= acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
 
@@ -721,11 +723,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # add commands to schedule
         schedule = pulse.Schedule(name='fc_schedule')
-        schedule |= drive_pulse_1(system_model.drive(0))
-        schedule += fc_pulse(system_model.drive(0))
-        schedule += drive_pulse_2(system_model.drive(0))
-        schedule |= acq_cmd(system_model.acquire(0),
-                            system_model.memoryslot(0)) << schedule.duration
+        schedule |= drive_pulse_1(DriveChannel(0))
+        schedule += fc_pulse(DriveChannel(0))
+        schedule += drive_pulse_2(DriveChannel(0))
+        schedule |= acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
 
@@ -792,11 +793,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # add commands to schedule
         schedule = pulse.Schedule(name='2q_schedule')
-        schedule |= const_pulse(system_model.drive(0))  # pi pulse drive
-        schedule += const_pulse(system_model.control(uchannel)) << schedule.duration  # u chan pulse
+        schedule |= const_pulse(DriveChannel(0))  # pi pulse drive
+        schedule += const_pulse(ControlChannel(uchannel)) << schedule.duration  # u chan pulse
 
         acq_cmd = pulse.Acquire(duration=total_samples)
-        schedule |= acq_cmd(system_model.acquires, system_model.memoryslots) << schedule.duration
+        schedule |= acq_cmd([AcquireChannel(0), AcquireChannel(1)],
+                            [MemorySlot(0), MemorySlot(1)]) << schedule.duration
 
         return schedule
 
