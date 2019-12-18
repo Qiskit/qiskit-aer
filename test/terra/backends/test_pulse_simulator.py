@@ -551,7 +551,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a_pi2_swap = np.pi / 2 / total_samples
 
         # update system model with this new variable
-        system_model.hamiltonian.set_vars({'omegaa' : omega_a_pi2_swap})
+        system_model.hamiltonian.set_variables({'omegaa' : omega_a_pi2_swap})
 
         result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi2_swap = result_pi2_swap.get_counts()
@@ -577,9 +577,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a_no_swap = np.pi / total_samples
 
         # update system model with this new variable
-        system_model.hamiltonian.set_vars({'omega0' : omega_0,
-                                           'omegaa' : omega_a_no_swap,
-                                           'omegai' : omega_i_no_swap})
+        system_model.hamiltonian.set_variables({'omega0' : omega_0,
+                                                'omegaa' : omega_a_no_swap,
+                                                'omegai' : omega_i_no_swap})
 
         result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_no_swap = result_no_swap.get_counts()
