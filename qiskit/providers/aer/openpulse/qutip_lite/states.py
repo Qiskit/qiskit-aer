@@ -57,6 +57,8 @@ from .qobj import Qobj
 from .operators import destroy
 from .fastsparse import fast_csr_matrix
 
+# pylint: disable=no-name-in-module
+
 
 def basis(N, n=0, offset=0):
     """Generates the vector representation of a Fock state.
