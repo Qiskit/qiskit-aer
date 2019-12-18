@@ -14,11 +14,12 @@ PulseSimulator Integration Tests
 """
 
 import unittest
+import functools
 from test.terra import common
 
 import numpy as np
 from scipy.linalg import expm
-from scipy.special import erf
+from scipy import special
 
 import qiskit
 import qiskit.pulse as pulse
@@ -29,6 +30,21 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue
 
+USE_CPP_ODE_FUNC = True
+def run_cython_and_cpp_solvers(func):
+    """ Thhis is a temporary decorator to test both the C++ solver and Cython one.
+    It should be removed when the cyhton one will be removed """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # pylint: disable=global-statement
+        global USE_CPP_ODE_FUNC
+        USE_CPP_ODE_FUNC = True
+        # Run C++ Solver first
+        func(*args, **kwargs)
+        # Run Cython Solver afterwards
+        USE_CPP_ODE_FUNC = False
+        func(*args, **kwargs)
+    return wrapper
 
 class TestPulseSimulator(common.QiskitAerTestCase):
     r"""PulseSimulator tests.
@@ -265,7 +281,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
         backend_options['seed'] = 9000
-        backend_options['use_cpp_ode_func'] = True
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
         return backend_options
 
     def backend_options_2q(self, omega_0, omega_a, omega_i, qub_dim=2):
@@ -287,7 +303,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options['dt'] = 1.0  # makes time = self.drive_samples
         backend_options['ode_options'] = {}  # optionally set ode settings
         backend_options['seed'] = 12387
-        backend_options['use_cpp_ode_func'] = True
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
         return backend_options
 
     def qobj_params_1q(self, omega_d0):
@@ -349,12 +365,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # ---------------------------------------------------------------------
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
-
+    @run_cython_and_cpp_solvers
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the simulator
         """
-
+        print("Calling test!")
         # do the same thing as test_x_gate, but scale dt and all frequency parameters
         # define test case for a single scaling
         def scale_test(scale):
@@ -387,6 +403,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for scale in scales:
             scale_test(scale)
 
+    @run_cython_and_cpp_solvers
     def test_x_gate(self):
         """
         Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
@@ -418,6 +435,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertDictAlmostEqual(counts, exp_counts)
 
+    @run_cython_and_cpp_solvers
     def test_hadamard_gate(self):
         """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega_d0=omega_0
         (drive on resonance), phi=-pi/2, omega_a = pi/2/time
@@ -485,6 +503,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop = {'0': prop0, '1': 1 - prop0}
         return exp_prop
 
+    @run_cython_and_cpp_solvers
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
         shots = 10000  # large number of shots so get good proportions
@@ -535,6 +554,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # device.
     # ---------------------------------------------------------------------
 
+    @run_cython_and_cpp_solvers
     def test_meas_level_1(self):
         """Test measurement level 1. """
 
@@ -593,11 +613,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 (Returned in the rotating frame)
         """
         time = self.drive_samples
-        arg = 1 / 2 * np.sqrt(np.pi / 2) * gauss_sigma * omega_a * erf(
+        arg = 1 / 2 * np.sqrt(np.pi / 2) * gauss_sigma * omega_a * special.erf(
             time / np.sqrt(2) / gauss_sigma)
         exp_statevector = [np.cos(arg), -1j * np.sin(arg)]
         return exp_statevector
 
+    @run_cython_and_cpp_solvers
     def test_gaussian_drive(self):
         """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
         phi=0, omega_a = pi/time
@@ -658,6 +679,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop = {'0': prop0, '1': 1 - prop0}
         return exp_prop
 
+    @run_cython_and_cpp_solvers
     def test_frame_change(self):
         """Test frame change command. """
         shots = 10000
@@ -786,6 +808,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                    dtype=complex)
         return exp_statevector
 
+    @run_cython_and_cpp_solvers
     def test_three_level(self):
         r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form
         given in _analytic_statevector_3level function docstring.
@@ -858,6 +881,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # us to excite the 0 qubit. Latter 2 terms define the interaction.
     # ----------------------------------------------------------------------------------------------
 
+    @run_cython_and_cpp_solvers
     def test_interaction(self):
         r"""Test 2 qubit interaction via swap gates."""
 
