@@ -50,14 +50,13 @@
 """
 
 import numpy as np
+# pylint: disable=no-name-in-module
 from scipy import arange, conj
 import scipy.sparse as sp
 
 from .qobj import Qobj
 from .operators import destroy
 from .fastsparse import fast_csr_matrix
-
-# pylint: disable=no-name-in-module
 
 
 def basis(N, n=0, offset=0):
