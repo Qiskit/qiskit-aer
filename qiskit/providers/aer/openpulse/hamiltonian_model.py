@@ -121,18 +121,6 @@ class HamiltonianModel():
 
         return cls(system, variables, dim_qub, dim_osc)
 
-    def set_variables(self, variables):
-        """Given a dict vars, set the corresponding values in self._variables
-        Args:
-            variables (dict or OrderedDict): dictionary of new values
-        """
-        for key in variables:
-            if key in self._variables:
-                self._variables[key] = variables[key]
-
-        # reset internal data
-        self._compute_drift_data()
-
     def get_qubit_lo_from_drift(self):
         """ Computes a list of qubit frequencies corresponding to the exact energy
         gap between the ground and first excited states of each qubit.
