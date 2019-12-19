@@ -28,7 +28,6 @@ class PulseSystemModel():
                  meas_freq_est=None,
                  u_channel_lo=None,
                  qubit_list=None,
-                 channels=None,
                  dt=None):
         """Basic constructor.
         """
@@ -39,8 +38,6 @@ class PulseSystemModel():
 
         # necessary values
         self.hamiltonian = hamiltonian
-        if channels is None and hamiltonian is not None:
-            self.channels = hamiltonian._channels
         self.u_channel_lo = u_channel_lo
         self.qubit_list = qubit_list
         self.dt = dt
@@ -107,7 +104,7 @@ class PulseSystemModel():
 
         # Setup freqs for the channels
         freqs = OrderedDict()
-        for key in self.channels.keys():
+        for key in self.hamiltonian._channels.keys():
             chidx = int(key[1:])
             if key[0] == 'D':
                 freqs[key] = qubit_lo_freq[chidx]
