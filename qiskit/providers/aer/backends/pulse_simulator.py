@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=arguments-differ
+# pylint: disable=arguments-differ, missing-return-type-doc
 
 """
 Qiskit Aer OpenPulse simulator backend.
@@ -121,6 +121,6 @@ class PulseSimulator(AerBackend):
         """Return defaults.
 
         Returns:
-            PulseDefaults object for passing assemble.
+            PulseDefaults: object for passing assemble.
         """
         return self._defaults

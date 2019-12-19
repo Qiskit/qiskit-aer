@@ -73,11 +73,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up schedule and qobj
         schedule = self._simple_1Q_schedule(0, total_samples)
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=256)
 
@@ -115,11 +115,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             # set up schedule and qobj
             schedule = self._simple_1Q_schedule(0, total_samples)
             qobj = assemble([schedule],
+                            backend=self.backend_sim,
                             meas_level=2,
                             meas_return='single',
                             meas_map=[[0]],
                             qubit_lo_freq=[omega_d0/(2*np.pi)],
-                            meas_lo_freq=[0.],
                             memory_slots=2,
                             shots=256)
 
@@ -162,11 +162,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
 
@@ -208,11 +208,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 schedule = self._simple_1Q_schedule(phi_vals[i], total_samples)
 
                 qobj = assemble([schedule],
+                                backend=self.backend_sim,
                                 meas_level=2,
                                 meas_return='single',
                                 meas_map=[[0]],
                                 qubit_lo_freq=[omega_d0_vals[i]/(2*np.pi)],
-                                meas_lo_freq=[0.],
                                 memory_slots=2,
                                 shots=shots)
 
@@ -257,11 +257,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=1,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
 
@@ -318,11 +318,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                     gauss_sigma)
 
                 qobj = assemble([schedule],
+                                backend=self.backend_sim,
                                 meas_level=2,
                                 meas_return='single',
                                 meas_map=[[0]],
                                 qubit_lo_freq=[omega_d0/(2*np.pi)],
-                                meas_lo_freq=[0.],
                                 memory_slots=2,
                                 shots=1000)
                 backend_options = {'seed' : 9000}
@@ -363,11 +363,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                   dur_drive1,
                                                   dur_drive2)
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
 
@@ -391,11 +391,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                   dur_drive1,
                                                   dur_drive2)
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
 
@@ -457,11 +457,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed' : 9000}
@@ -482,11 +482,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        meas_lo_freq=[0.],
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed' : 9000}
@@ -527,11 +527,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         schedule = self._schedule_2Q_interaction(total_samples)
         qobj = assemble([schedule],
+                        backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0, 1]],
                         qubit_lo_freq=[omega_d0 / (2 * np.pi), omega_d1 / (2 * np.pi)],
-                        meas_lo_freq=[0., 0.],
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed': 12387}

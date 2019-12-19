@@ -18,6 +18,7 @@
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 from .hamiltonian_model import HamiltonianModel
+from ..aererror import AerError
 
 
 class PulseSystemModel():
@@ -31,6 +32,9 @@ class PulseSystemModel():
                  qubit_list=None,
                  dt=None):
         """Basic constructor.
+
+        Raises:
+            AerError: if hamiltonian is not None or a HamiltonianModel
         """
 
         # default type values
@@ -57,7 +61,7 @@ class PulseSystemModel():
             PulseSystemModel: the PulseSystemModel constructed from the backend.
 
         Raises:
-            ValueError: If channel or u_channel_lo are invalid.
+            AerError: If channel or u_channel_lo are invalid.
         """
 
         if not isinstance(backend, BaseBackend):

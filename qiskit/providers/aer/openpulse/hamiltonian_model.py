@@ -35,8 +35,8 @@ class HamiltonianModel():
         Args:
             system (list): List of Qobj objects representing operator form of the Hamiltonian.
             variables (OrderedDict): Ordered dict for parameter values in Hamiltonian.
-            dim_qub (dict): dict of qubit dimensions.
-            dim_osc (dict): dict of oscillator dimensions.
+            qubit_dims (dict): dict of qubit dimensions.
+            oscillator_dims (dict): dict of oscillator dimensions.
 
         Raises:
             ValueError: if arguments are invalid.
@@ -242,7 +242,7 @@ def _first_excited_state(qubit_idx, qubit_dims):
     Parameters:
         qubit_idx (int): the qubit to be in the 1 state
 
-        dim_qub (dict): a dictionary with keys being qubit index, and
+        qubit_dims (dict): a dictionary with keys being qubit index, and
                         value being the dimension of the qubit
 
     Returns:
