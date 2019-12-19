@@ -68,9 +68,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     if 'memory_slots' not in qobj_config:
         raise ValueError('Number of memory_slots must be specific in Qobj config')
     out.global_data['shots'] = int(qobj_config.get('shots', 1024))
-    out.global_data['meas_level'] = int(qobj_config.get('meas_level', 1))
+    out.global_data['meas_level'] = int(qobj_config.get('meas_level', 2))
     out.global_data['meas_return'] = qobj_config.get('meas_return', 'avg')
-    out.global_data['memory_slots'] = qobj_config.get('memory_slots', len(system_model.qubit_list))
+    out.global_data['memory_slots'] = qobj_config.get('memory_slots', 0)
     out.global_data['memory'] = qobj_config.get('memory', False)
     out.global_data['n_registers'] = qobj_config.get('n_registers', 0)
 
