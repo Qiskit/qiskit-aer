@@ -19,8 +19,9 @@ import uuid
 import time
 import datetime
 import logging
+from numpy import inf
 from qiskit.result import Result
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..aererror import AerError
@@ -52,6 +53,13 @@ class PulseSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
+
+        # purpose of defaults is to pass assemble checks
+        self._defaults = PulseDefaults(qubit_freq_est=[inf],
+                                       meas_freq_est=[inf],
+                                       buffer=0,
+                                       cmd_def=[],
+                                       pulse_library=[])
         super().__init__(self,
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
@@ -108,3 +116,11 @@ class PulseSimulator(AerBackend):
                            'entry to configure the simulator')
 
         super()._validate(qobj, backend_options, noise_model)
+
+    def defaults(self):
+        """Return defaults.
+
+        Returns:
+            PulseDefaults object for passing assemble.
+        """
+        return self._defaults
