@@ -29,6 +29,8 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
 
     def setUp(self):
         self._default_qubit_lo_freq = [4.9, 5.0]
+        self._u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
+                             [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
 
     def _simple_system_model(self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33):
         hamiltonian = {}
@@ -42,22 +44,20 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
                               '2*np.pi*r*X1||D1',
                               '2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)']
         hamiltonian['qub'] = {'0' : 3, '1' : 3}
-        hamiltonian['vars'] = {'v0': 5.0,
-                               'v1': 5.1,
-                               'j': 0.01,
-                               'r': 0.02,
-                               'alpha0': -0.33,
-                               'alpha1': -0.33}
+        hamiltonian['vars'] = {'v0': v0,
+                               'v1': v1,
+                               'j': j,
+                               'r': r,
+                               'alpha0': alpha0,
+                               'alpha1': alpha1}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
-        qubit_list =[0, 1]
 
-        u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
-                        [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
+        qubit_list =[0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 qubit_freq_est=self._default_qubit_lo_freq,
-                                u_channel_lo=u_channel_lo,
+                                u_channel_lo=self._u_channel_lo,
                                 qubit_list=qubit_list,
                                 dt=dt)
 
@@ -111,7 +111,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         Given qubit_lo_freq, return the computed u_channel_lo.
         """
         u_lo_freqs = []
-        for scales in self.config.to_dict()['u_channel_lo']:
+        for scales in self._u_channel_lo:
             u_lo_freq = 0
             for u_lo_idx in scales:
                 qfreq = qubit_lo_freq[u_lo_idx['q']]
