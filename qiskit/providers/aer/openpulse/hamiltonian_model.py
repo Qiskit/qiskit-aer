@@ -94,7 +94,7 @@ class HamiltonianModel():
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
             if qubit_list is None:
-                qubit_list = [int(qubit) for qubit in hamiltonian['qub'].keys()]
+                qubit_list = [int(qubit) for qubit in hamiltonian['qub']]
 
             qubit_dims = {
                 int(key): val
@@ -229,7 +229,7 @@ def _hamiltonian_parse_warnings(hamiltonian):
         warn('Oscillator-type systems are not supported.')
 
 
-def _first_excited_state(qubit_idx, dim_qub):
+def _first_excited_state(qubit_idx, qubit_dims):
     """
     Returns the vector corresponding to all qubits in the 0 state, except for
     qubit_idx in the 1 state.
@@ -249,10 +249,10 @@ def _first_excited_state(qubit_idx, dim_qub):
     """
     vector = np.array([1.])
     # iterate through qubits, tensoring on the state
-    qubit_indices = [int(qubit) for qubit in dim_qub.keys()]
+    qubit_indices = [int(qubit) for qubit in qubit_dims]
     qubit_indices.sort()
     for idx in qubit_indices:
-        new_vec = np.zeros(dim_qub[idx])
+        new_vec = np.zeros(qubit_dims[idx])
         if idx == qubit_idx:
             new_vec[1] = 1
         else:
