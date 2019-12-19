@@ -38,6 +38,8 @@ class PulseSystemModel():
         self._meas_freq_est = meas_freq_est
 
         # necessary values
+        if hamiltonian is not None and not isinstance(hamiltonian, HamiltonianModel):
+            raise AerError("hamiltonian must be a HamiltonianModel object")
         self.hamiltonian = hamiltonian
         self.u_channel_lo = u_channel_lo
         self.qubit_list = qubit_list
