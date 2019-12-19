@@ -224,7 +224,7 @@ def _hamiltonian_parse_exceptions(hamiltonian):
         hamiltonian (dict): dictionary specification of hamiltonian
     Returns:
     Raises:
-        AerError: if some part of the hamiltonian is unsupported
+        AerError: if some part of the hamiltonian dictionary is unsupported
     """
     if 'osc' in hamiltonian:
         raise AerError('Oscillator-type systems are not supported.')

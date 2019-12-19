@@ -16,6 +16,7 @@
 "System Model class for system specification for the PulseSimulator"
 
 from collections import OrderedDict
+from qiskit.providers import BaseBackend
 from .hamiltonian_model import HamiltonianModel
 
 
@@ -44,7 +45,7 @@ class PulseSystemModel():
 
     @classmethod
     def from_backend(cls, backend, qubit_list=None):
-        """Returns a SimSystemModel constructed from a backend object.
+        """Returns a PulseSystemModel constructed from a backend object.
 
         Args:
             backend (Backend): backend object to draw information from.
@@ -57,9 +58,15 @@ class PulseSystemModel():
             ValueError: If channel or u_channel_lo are invalid.
         """
 
+        if not isinstance(backend, BaseBackend):
+            raise AerError("{} is not a Qiskit backend".format(backend))
+
         # get relevant information from backend
         defaults = backend.defaults().to_dict()
         config = backend.configuration().to_dict()
+
+        if not config['open_pulse']:
+            raise AerError('{} is not an open pulse backend'.format(backend))
 
         # draw defaults
         qubit_freq_est = defaults.get('qubit_freq_est', None)
