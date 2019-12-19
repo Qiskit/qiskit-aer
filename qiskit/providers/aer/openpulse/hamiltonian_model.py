@@ -15,11 +15,11 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
-from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
 from .qobj.opparse import HamiltonianParser
+from ..aererror import AerError
 
 
 class HamiltonianModel():
@@ -86,7 +86,7 @@ class HamiltonianModel():
             ValueError: if arguments are invalid.
         """
 
-        _hamiltonian_parse_warnings(hamiltonian)
+        _hamiltonian_parse_exceptions(hamiltonian)
 
         # get variables
         variables = OrderedDict(hamiltonian['vars'])
@@ -217,16 +217,17 @@ class HamiltonianModel():
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
 
-def _hamiltonian_parse_warnings(hamiltonian):
-    """Raises warnings for hamiltonian specification.
+def _hamiltonian_parse_exceptions(hamiltonian):
+    """Raises exceptions for hamiltonian specification.
 
     Parameters:
         hamiltonian (dict): dictionary specification of hamiltonian
     Returns:
     Raises:
+        AerError: if some part of the hamiltonian is unsupported
     """
     if 'osc' in hamiltonian:
-        warn('Oscillator-type systems are not supported.')
+        raise AerError('Oscillator-type systems are not supported.')
 
 
 def _first_excited_state(qubit_idx, qubit_dims):
