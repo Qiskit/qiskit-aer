@@ -21,7 +21,6 @@ from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
-from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):

@@ -34,8 +34,8 @@ class PulseSystemModel():
         """
 
         # default type values
-        self.qubit_freq_est = qubit_freq_est
-        self.meas_freq_est = meas_freq_est
+        self._qubit_freq_est = qubit_freq_est
+        self._meas_freq_est = meas_freq_est
 
         # necessary values
         self.hamiltonian = hamiltonian
@@ -88,7 +88,7 @@ class PulseSystemModel():
         Args:
             qubit_lo_freq (list or None): list of qubit linear
                oscillator drive frequencies. If None these will be calculated
-               using self.qubit_freq_est.
+               using self._qubit_freq_est.
 
         Returns:
             OrderedDict: a dictionary of channel frequencies.
@@ -97,10 +97,10 @@ class PulseSystemModel():
             ValueError: If channel or u_channel_lo are invalid.
         """
         if not qubit_lo_freq:
-            if not self.qubit_freq_est:
+            if not self._qubit_freq_est:
                 raise ValueError("No qubit_lo_freq to use.")
 
-            qubit_lo_freq = self.qubit_freq_est
+            qubit_lo_freq = self._qubit_freq_est
 
         if self.u_channel_lo is None:
             raise ValueError("{} has no u_channel_lo.".format(self.__class__.__name__))
