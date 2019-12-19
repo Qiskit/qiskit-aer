@@ -453,7 +453,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Test pi pulse
         omega_a = np.pi / total_samples
 
-        system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
+        system_model = self._system_model_1Q(omega_0, omega_a, qubit_dim=3)
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
@@ -478,7 +478,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Test 2*pi pulse
         omega_a = 2 * np.pi / total_samples
 
-        system_model = self._system_model_1Q(omega_0, omega_a, dim_qub=3)
+        system_model = self._system_model_1Q(omega_0, omega_a, qubit_dim=3)
         schedule = self._simple_1Q_schedule(phi, total_samples)
 
         qobj = assemble([schedule],
@@ -582,13 +582,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
 
 
-    def _system_model_1Q(self, omega_0, omega_a, dim_qub=2):
+    def _system_model_1Q(self, omega_0, omega_a, qubit_dim=2):
         """Constructs a simple 1 qubit system model.
 
         Args:
             omega_0 (float): frequency of qubit
             omega_a (float): strength of drive term
-            dim_qub (int): dimension of qubit
+            qubit_dim (int): dimension of qubit
         Returns:
             PulseSystemModel: model for qubit system
         """
@@ -596,7 +596,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         hamiltonian = {}
         hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
         hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a}
-        hamiltonian['qub'] = {'0': dim_qub}
+        hamiltonian['qub'] = {'0': qubit_dim}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
         u_channel_lo = []
@@ -608,14 +608,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 qubit_list=qubit_list,
                                 dt=dt)
 
-    def _system_model_2Q(self, omega_0, omega_a, omega_i, dim_qub=2):
+    def _system_model_2Q(self, omega_0, omega_a, omega_i, qubit_dim=2):
         """Constructs a simple 1 qubit system model.
 
         Args:
             omega_0 (float): frequency of qubit
             omega_a (float): strength of drive term
             omega_i (float): strength of interaction
-            dim_qub (int): dimension of qubit
+            qubit_dim (int): dimension of qubit
         Returns:
             PulseSystemModel: model for qubit system
         """
@@ -631,7 +631,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             'omegaa': omega_a,
             'omegai': omega_i
         }
-        hamiltonian['qub'] = {'0' : dim_qub, '1' : dim_qub}
+        hamiltonian['qub'] = {'0' : qubit_dim, '1' : qubit_dim}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
 

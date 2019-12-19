@@ -28,8 +28,8 @@ class HamiltonianModel():
     def __init__(self,
                  system=None,
                  variables=None,
-                 dim_qub=None,
-                 dim_osc=None):
+                 qubit_dims=None,
+                 oscillator_dims=None):
         """Initialize a Hamiltonian model.
 
         Args:
@@ -49,9 +49,9 @@ class HamiltonianModel():
         self._variables = variables
         # Channels in the Hamiltonian string
         # Qubit subspace dimensinos
-        self._dim_qub = dim_qub or {}
+        self._qubit_dims = qubit_dims or {}
         # Oscillator subspace dimensions
-        self._dim_osc = dim_osc or {}
+        self._oscillator_dims = oscillator_dims or {}
 
         # The rest are computed from the previous
 
@@ -96,30 +96,30 @@ class HamiltonianModel():
             if qubit_list is None:
                 qubit_list = [int(qubit) for qubit in hamiltonian['qub'].keys()]
 
-            dim_qub = {
+            qubit_dims = {
                 int(key): val
                 for key, val in hamiltonian['qub'].items()
             }
         else:
-            dim_qub = {}
+            qubit_dims = {}
 
         # Get oscillator subspace dimensions
         if 'osc' in hamiltonian:
-            dim_osc = {
+            oscillator_dims = {
                 int(key): val
                 for key, val in hamiltonian['osc'].items()
             }
         else:
-            dim_osc = {}
+            oscillator_dims = {}
 
         # Parse the Hamiltonian
         system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                                   dim_osc=dim_osc,
-                                   dim_qub=dim_qub)
+                                   dim_osc=oscillator_dims,
+                                   dim_qub=qubit_dims)
         system.parse(qubit_list)
         system = system.compiled
 
-        return cls(system, variables, dim_qub, dim_osc)
+        return cls(system, variables, qubit_dims, oscillator_dims)
 
     def get_qubit_lo_from_drift(self):
         """ Computes a list of qubit frequencies corresponding to the exact energy
@@ -128,13 +128,13 @@ class HamiltonianModel():
         Returns:
             qubit_lo_freq (list): the list of frequencies
         """
-        qubit_lo_freq = [0] * len(self._dim_qub)
+        qubit_lo_freq = [0] * len(self._qubit_dims)
 
         # compute difference between first excited state of each qubit and
         # the ground energy
         min_eval = np.min(self._evals)
-        for q_idx in range(len(self._dim_qub)):
-            single_excite = _first_excited_state(q_idx, self._dim_qub)
+        for q_idx in range(len(self._qubit_dims)):
+            single_excite = _first_excited_state(q_idx, self._qubit_dims)
             dressed_eval = _eval_for_max_espace_overlap(
                 single_excite, self._evals, self._estates)
             qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)

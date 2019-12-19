@@ -108,8 +108,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     out.h_diag = ham_model._h_diag
     out.evals = ham_model._evals
     out.estates = ham_model._estates
-    dim_qub = ham_model._dim_qub
-    dim_osc = ham_model._dim_osc
+    dim_qub = ham_model._qubit_dims
+    dim_osc = ham_model._oscillator_dims
     out.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     # convert estates into a Qutip qobj
     estates = [op.state(state) for state in ham_model._estates.T[:]]
