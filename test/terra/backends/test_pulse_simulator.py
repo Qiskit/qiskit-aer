@@ -602,7 +602,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
         hamiltonian['vars'] = {'omega0': omega_0, 'omegaa': omega_a}
         hamiltonian['qub'] = {'0': dim_qub}
-        ham_model = HamiltonianModel.from_string_spec(hamiltonian)
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
 
         u_channel_lo = []
         qubit_list = [0]
@@ -637,7 +637,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             'omegai': omega_i
         }
         hamiltonian['qub'] = {'0' : dim_qub, '1' : dim_qub}
-        ham_model = HamiltonianModel.from_string_spec(hamiltonian)
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
 
 
         u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],

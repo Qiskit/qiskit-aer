@@ -72,7 +72,7 @@ class HamiltonianModel():
         self._compute_drift_data()
 
     @classmethod
-    def from_string_spec(cls, hamiltonian, qubit_list=None):
+    def from_dict(cls, hamiltonian, qubit_list=None):
         """Initialize from a Hamiltonian string specification.
 
         Args:
