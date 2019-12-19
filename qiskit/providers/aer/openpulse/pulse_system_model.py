@@ -113,7 +113,7 @@ class PulseSystemModel():
 
         # Setup freqs for the channels
         freqs = OrderedDict()
-        for key in self.hamiltonian._channels.keys():
+        for key in self.hamiltonian._channels:
             chidx = int(key[1:])
             if key[0] == 'D':
                 freqs[key] = qubit_lo_freq[chidx]
