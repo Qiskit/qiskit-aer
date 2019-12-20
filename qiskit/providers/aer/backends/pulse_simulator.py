@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=arguments-differ
+# pylint: disable=arguments-differ, missing-return-type-doc
 
 """
 Qiskit Aer OpenPulse simulator backend.
@@ -19,8 +19,9 @@ import uuid
 import time
 import datetime
 import logging
+from numpy import inf
 from qiskit.result import Result
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..aererror import AerError
@@ -52,23 +53,32 @@ class PulseSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
+
+        # purpose of defaults is to pass assemble checks
+        self._defaults = PulseDefaults(qubit_freq_est=[inf],
+                                       meas_freq_est=[inf],
+                                       buffer=0,
+                                       cmd_def=[],
+                                       pulse_library=[])
         super().__init__(self,
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def run(self, qobj,
+            system_model,
             backend_options=None,
             noise_model=None,
             validate=False):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj,
+        aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
                          backend_options, noise_model, validate)
         aer_job.submit()
         return aer_job
 
     def _run_job(self, job_id, qobj,
+                 system_model,
                  backend_options,
                  noise_model,
                  validate):
@@ -77,7 +87,7 @@ class PulseSimulator(AerBackend):
         if validate:
             self._validate(qobj, backend_options, noise_model)
         # Send to solver
-        openpulse_system = digest_pulse_obj(qobj, backend_options, noise_model)
+        openpulse_system = digest_pulse_obj(qobj, system_model, backend_options, noise_model)
         results = opsolve(openpulse_system)
         end = time.time()
         return self._format_results(job_id, results, end - start, qobj.qobj_id)
@@ -106,3 +116,11 @@ class PulseSimulator(AerBackend):
                            'entry to configure the simulator')
 
         super()._validate(qobj, backend_options, noise_model)
+
+    def defaults(self):
+        """Return defaults.
+
+        Returns:
+            PulseDefaults: object for passing assemble.
+        """
+        return self._defaults
