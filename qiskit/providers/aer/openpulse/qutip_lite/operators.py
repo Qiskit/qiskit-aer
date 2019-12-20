@@ -57,6 +57,8 @@ import scipy
 import scipy.sparse as sp
 from .fastsparse import fast_csr_matrix, fast_identity
 
+# pylint: disable=no-member
+
 
 # Spin operators
 def jmat(j, *args):

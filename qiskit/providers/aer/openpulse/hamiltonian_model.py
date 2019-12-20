@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name
+# pylint: disable=eval-used, exec-used, invalid-name, missing-return-type-doc
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
@@ -19,26 +19,42 @@ from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
 from .qobj.opparse import HamiltonianParser
+from ..aererror import AerError
 
 
 class HamiltonianModel():
     """Hamiltonian model for pulse simulator."""
-    def __init__(self, hamiltonian, qubits=None):
+
+    def __init__(self,
+                 system=None,
+                 variables=None,
+                 qubit_dims=None,
+                 oscillator_dims=None):
         """Initialize a Hamiltonian model.
 
         Args:
-            hamiltonian (dict): Hamiltonian dictionary.
-            qubits (list or None): List of qubits to extract from the hamiltonian.
+            system (list): List of Qobj objects representing operator form of the Hamiltonian.
+            variables (OrderedDict): Ordered dict for parameter values in Hamiltonian.
+            qubit_dims (dict): dict of qubit dimensions.
+            oscillator_dims (dict): dict of oscillator dimensions.
 
         Raises:
             ValueError: if arguments are invalid.
         """
+
         # Initialize internal variables
         # The system Hamiltonian in numerical format
-        self._system = None
+        self._system = system
         # System variables
-        self._vars = None
+        self._variables = variables
         # Channels in the Hamiltonian string
+        # Qubit subspace dimensinos
+        self._qubit_dims = qubit_dims or {}
+        # Oscillator subspace dimensions
+        self._oscillator_dims = oscillator_dims or {}
+
+        # The rest are computed from the previous
+
         # These tell the order in which the channels are evaluated in
         # the RHS solver.
         self._channels = None
@@ -48,100 +64,82 @@ class HamiltonianModel():
         self._evals = None
         # Eigenstates of the time-indepedent hamiltonian
         self._estates = None
-        # Qubit subspace dimensinos
-        self._dim_qub = {}
-        # Oscillator subspace dimensions
-        self._dim_osc = {}
 
-        # Parse Hamiltonian
-        # TODO: determine n_qubits from hamiltonian if qubits is None
-        n_qubits = len(qubits) if qubits else None
-        if not n_qubits:
-            raise ValueError("TODO: Need to infer n_qubits from "
-                             "Hamiltonian if qubits list is not specified")
+        # populate self._channels
+        self._calculate_hamiltonian_channels()
 
-        self._vars = OrderedDict(hamiltonian['vars'])
+        # populate self._h_diag, self._evals, self._estates
+        self._compute_drift_data()
+
+    @classmethod
+    def from_dict(cls, hamiltonian, qubit_list=None):
+        """Initialize from a Hamiltonian string specification.
+
+        Args:
+            hamiltonian (dict): dictionary representing Hamiltonian in string specification.
+            qubit_list (list or None): List of qubits to extract from the hamiltonian.
+
+        Returns:
+            HamiltonianModel: instantiated from hamiltonian dictionary
+
+        Raises:
+            ValueError: if arguments are invalid.
+        """
+
+        _hamiltonian_parse_exceptions(hamiltonian)
+
+        # get variables
+        variables = OrderedDict(hamiltonian['vars'])
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
-            self._dim_qub = {
+            if qubit_list is None:
+                qubit_list = [int(qubit) for qubit in hamiltonian['qub']]
+
+            qubit_dims = {
                 int(key): val
                 for key, val in hamiltonian['qub'].items()
             }
         else:
-            self._dim_qub = {}.fromkeys(range(n_qubits), 2)
+            qubit_dims = {}
 
         # Get oscillator subspace dimensions
         if 'osc' in hamiltonian:
-            self._dim_osc = {
+            oscillator_dims = {
                 int(key): val
                 for key, val in hamiltonian['osc'].items()
             }
+        else:
+            oscillator_dims = {}
 
-        # Step 1: Parse the Hamiltonian
+        # Parse the Hamiltonian
         system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                                   dim_osc=self._dim_osc,
-                                   dim_qub=self._dim_qub)
-        system.parse(qubits)
-        self._system = system.compiled
+                                   dim_osc=oscillator_dims,
+                                   dim_qub=qubit_dims)
+        system.parse(qubit_list)
+        system = system.compiled
 
-        # Step #2: Determine Hamiltonian channels
-        self._calculate_hamiltonian_channels()
+        return cls(system, variables, qubit_dims, oscillator_dims)
 
-        # Step 3: Calculate diagonal hamiltonian
-        self._calculate_drift_hamiltonian()
-
-    def calculate_frequencies(self, qubit_lo_freq=None, u_channel_lo=None):
-        """Calulate frequencies for the Hamiltonian.
-
-        Args:
-            qubit_lo_freq (list or None): list of qubit linear
-                oscillator drive frequencies. If None these will be calcualted
-                automatically from hamiltonian (Default: None).
-            u_channel_lo (list or None): list of u channel parameters (Default: None).
+    def get_qubit_lo_from_drift(self):
+        """ Computes a list of qubit frequencies corresponding to the exact energy
+        gap between the ground and first excited states of each qubit.
 
         Returns:
-            OrderedDict: a dictionary of channel frequencies.
-
-        Raises:
-            ValueError: If channel or u_channel_lo are invalid.
+            qubit_lo_freq (list): the list of frequencies
         """
-        # TODO: Update docstring with description of what qubit_lo_freq and
-        # u_channel_lo are
+        qubit_lo_freq = [0] * len(self._qubit_dims)
 
-        # Setup freqs for the channels
-        freqs = OrderedDict()
+        # compute difference between first excited state of each qubit and
+        # the ground energy
+        min_eval = np.min(self._evals)
+        for q_idx in range(len(self._qubit_dims)):
+            single_excite = _first_excited_state(q_idx, self._qubit_dims)
+            dressed_eval = _eval_for_max_espace_overlap(
+                single_excite, self._evals, self._estates)
+            qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
 
-        # Set qubit frequencies from hamiltonian
-        if not qubit_lo_freq or (
-                qubit_lo_freq == 'from_hamiltonian' and len(self._dim_osc) == 0):
-            qubit_lo_freq = np.zeros(len(self._dim_qub))
-            min_eval = np.min(self._evals)
-            for q_idx in range(len(self._dim_qub)):
-                single_excite = _first_excited_state(q_idx, self._dim_qub)
-                dressed_eval = _eval_for_max_espace_overlap(
-                    single_excite, self._evals, self._estates)
-                qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
-
-        # TODO: set u_channel_lo from hamiltonian
-        if not u_channel_lo:
-            raise ValueError("u_channel_lo cannot be None.")
-
-        # Set frequencies
-        for key in self._channels.keys():
-            chidx = int(key[1:])
-            if key[0] == 'D':
-                freqs[key] = qubit_lo_freq[chidx]
-            elif key[0] == 'U':
-                freqs[key] = 0
-                for u_lo_idx in u_channel_lo[chidx]:
-                    if u_lo_idx['q'] < len(qubit_lo_freq):
-                        qfreq = qubit_lo_freq[u_lo_idx['q']]
-                        qscale = u_lo_idx['scale'][0]
-                        freqs[key] += qfreq * qscale
-            else:
-                raise ValueError("Channel is not D or U")
-        return freqs
+        return qubit_lo_freq
 
     def _calculate_hamiltonian_channels(self):
         """ Get all the qubit channels D_i and U_i in the string
@@ -181,7 +179,7 @@ class HamiltonianModel():
 
         self._channels = channel_dict
 
-    def _calculate_drift_hamiltonian(self):
+    def _compute_drift_data(self):
         """Calculate the the drift Hamiltonian.
 
         This computes the dressed frequencies and eigenstates of the
@@ -197,8 +195,8 @@ class HamiltonianModel():
 
         # might be a better solution to replace the 'var' in the hamiltonian
         # string with 'op_system.vars[var]'
-        for var in self._vars:
-            exec('%s=%f' % (var, self._vars[var]))
+        for var in self._variables:
+            exec('%s=%f' % (var, self._variables[var]))
 
         ham_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
         for ham_part in self._system:
@@ -219,7 +217,20 @@ class HamiltonianModel():
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
 
-def _first_excited_state(qubit_idx, dim_qub):
+def _hamiltonian_parse_exceptions(hamiltonian):
+    """Raises exceptions for hamiltonian specification.
+
+    Parameters:
+        hamiltonian (dict): dictionary specification of hamiltonian
+    Returns:
+    Raises:
+        AerError: if some part of the hamiltonian dictionary is unsupported
+    """
+    if 'osc' in hamiltonian:
+        raise AerError('Oscillator-type systems are not supported.')
+
+
+def _first_excited_state(qubit_idx, qubit_dims):
     """
     Returns the vector corresponding to all qubits in the 0 state, except for
     qubit_idx in the 1 state.
@@ -231,7 +242,7 @@ def _first_excited_state(qubit_idx, dim_qub):
     Parameters:
         qubit_idx (int): the qubit to be in the 1 state
 
-        dim_qub (dict): a dictionary with keys being qubit index, and
+        qubit_dims (dict): a dictionary with keys being qubit index, and
                         value being the dimension of the qubit
 
     Returns:
@@ -239,9 +250,11 @@ def _first_excited_state(qubit_idx, dim_qub):
     """
     vector = np.array([1.])
     # iterate through qubits, tensoring on the state
-    for qubit, dim in dim_qub.items():
-        new_vec = np.zeros(dim)
-        if int(qubit) == qubit_idx:
+    qubit_indices = [int(qubit) for qubit in qubit_dims]
+    qubit_indices.sort()
+    for idx in qubit_indices:
+        new_vec = np.zeros(qubit_dims[idx])
+        if idx == qubit_idx:
             new_vec[1] = 1
         else:
             new_vec[0] = 1

@@ -50,6 +50,7 @@
 """
 
 import numpy as np
+# pylint: disable=no-name-in-module
 from scipy import arange, conj
 import scipy.sparse as sp
 
