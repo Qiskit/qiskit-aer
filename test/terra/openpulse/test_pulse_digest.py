@@ -196,4 +196,3 @@ def _create_2q_ham(v0=5.0,
 
 if __name__ == '__main__':
     unittest.main()
-'''
