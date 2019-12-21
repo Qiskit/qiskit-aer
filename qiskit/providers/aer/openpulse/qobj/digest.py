@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-return-type-doc
 
 """A module of routines for digesting a PULSE qobj
 into something we can actually use.
@@ -24,91 +24,93 @@ from .op_system import OPSystem
 from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
-from ..hamiltonian_model import HamiltonianModel
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 
-def digest_pulse_obj(qobj_input, backend_options, noise_model):
-    """Takes an input PULSE obj an disgests it into
-    things we can actually make use of.
+def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
+    """Convert specification of a simulation in the pulse language into the format accepted
+    by the simulator.
 
     Args:
-        qobj_input (Qobj): Qobj of PULSE type.
-        backend_options (dict): backend simulation options
-        noise_model (dict): currently not supported
-
+        qobj (PulseQobj): experiment specification
+        system_model (PulseSystemModel): object representing system model
+        backend_options (dict): dictionary of simulation options
+        noise_model (dict): noise model specification
     Returns:
-        OPSystem: The parsed qobj.
-
+        out (OPSystem): object understandable by the pulse simulator
     Raises:
-        Exception: Invalid options
-        ValueError: Invalid channel selection.
+        ValueError: When necessary parameters are missing
+        Exception: For invalid ode options
     """
-    # Output data object
+
     out = OPSystem()
 
-    # take inputs and format into a single dictionary
-    qobj = _format_qobj_dict(qobj_input, backend_options, noise_model)
+    qobj_dict = qobj.to_dict()
+    qobj_config = qobj_dict['config']
+
+    if backend_options is None:
+        backend_options = {}
+
+    # Temp backwards compatibility
+    if 'sim_config' in qobj_config:
+        for key, val in qobj_config['sim_config'].items():
+            backend_options[key] = val
+        qobj_config.pop('sim_config')
 
     # post warnings for unsupported features
-    _unsupported_warnings(qobj)
+    _unsupported_warnings(qobj_dict, noise_model)
 
-    # Get the config settings from the qobj
-    config_dict = qobj['config']
-    if 'backend_options' not in config_dict:
-        raise ValueError('Pulse Qobj must have "backend_options".')
-    config_dict_sim = config_dict['backend_options']
-
-    # Parse config settings
-    if 'memory_slots' not in config_dict:
+    # ###############################
+    # ### Parse qobj_config settings
+    # ###############################
+    if 'memory_slots' not in qobj_config:
         raise ValueError('Number of memory_slots must be specific in Qobj config')
-    out.global_data['shots'] = int(config_dict.get('shots', 1024))
-    out.global_data['meas_level'] = int(config_dict.get('meas_level', 1))
-    out.global_data['meas_return'] = config_dict.get('meas_return', 'avg')
-    out.global_data['seed'] = config_dict_sim.get('seed', None)
-    out.global_data['memory_slots'] = config_dict.get('memory_slots', 0)
-    out.global_data['memory'] = config_dict.get('memory', False)
-    out.global_data['n_registers'] = config_dict.get('n_registers', 0)
-    out.global_data['q_level_meas'] = int(config_dict_sim.get('q_level_meas', 1))
+    out.global_data['shots'] = int(qobj_config.get('shots', 1024))
+    out.global_data['meas_level'] = int(qobj_config.get('meas_level', 2))
+    out.global_data['meas_return'] = qobj_config.get('meas_return', 'avg')
+    out.global_data['memory_slots'] = qobj_config.get('memory_slots', 0)
+    out.global_data['memory'] = qobj_config.get('memory', False)
+    out.global_data['n_registers'] = qobj_config.get('n_registers', 0)
 
-    # Attach the ODE options
-    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                           'num_cpus', 'norm_tol', 'norm_steps',
-                           'rhs_reuse', 'rhs_filename']
-    ode_options = config_dict_sim.get('ode_options', {})
-    for key in ode_options:
-        if key not in allowed_ode_options:
-            raise Exception('Invalid ode_option: {}'.format(key))
-    out.ode_options = OPoptions(**ode_options)
+    if 'qubit_lo_freq' not in qobj_config:
+        raise ValueError('qubit_lo_freq must be specified in qobj.')
+    qubit_lo_freq = qobj_config['qubit_lo_freq']
 
-    # Parse the hamiltonian
-    if 'hamiltonian' not in config_dict_sim:
-        raise ValueError('Qobj must have hamiltonian in config to simulate.')
-    hamiltonian = config_dict_sim['hamiltonian']
-    # Get qubit number
-    qubit_list = config_dict_sim.get('qubit_list', None)
+    # Build pulse arrays ***************************************************************
+    pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
+                                                        qobj_config['pulse_library'])
+
+    out.global_data['pulse_array'] = pulses
+    out.global_data['pulse_indices'] = pulses_idx
+    out.pulse_to_int = pulse_dict
+
+    # ###############################
+    # ### Extract model parameters
+    # ###############################
+
+    # Get qubit list and number
+    qubit_list = system_model.qubit_list
     if qubit_list is None:
-        qubit_list = list(range(config_dict_sim['n_qubits']))
-    else:
-        config_dict_sim['n_qubits'] = len(qubit_list)
-    qubit_lo_freq = config_dict_sim.get('qubit_lo_freq',
-                                        config_dict['qubit_lo_freq'])
-    u_channel_lo = config_dict_sim.get('u_channel_lo')
+        raise ValueError('Model must have a qubit list to simulate.')
+    n_qubits = len(qubit_list)
 
-    ham_model = HamiltonianModel(hamiltonian, qubit_list)
+    # get Hamiltonian
+    if system_model.hamiltonian is None:
+        raise ValueError('Model must have a Hamiltonian to simulate.')
+    ham_model = system_model.hamiltonian
+
     # For now we dump this into OpSystem, though that should be refactored
     out.system = ham_model._system
-    out.vars = ham_model._vars
+    out.vars = ham_model._variables
     out.channels = ham_model._channels
-    out.freqs = ham_model.calculate_frequencies(qubit_lo_freq=qubit_lo_freq,
-                                                u_channel_lo=u_channel_lo)
     out.h_diag = ham_model._h_diag
     out.evals = ham_model._evals
     out.estates = ham_model._estates
-    dim_qub = ham_model._dim_qub
-    dim_osc = ham_model._dim_osc
+    dim_qub = ham_model._qubit_dims
+    dim_osc = ham_model._oscillator_dims
+    out.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     # convert estates into a Qutip qobj
     estates = [op.state(state) for state in ham_model._estates.T[:]]
     out.initial_state = estates[0]
@@ -117,8 +119,13 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     out.global_data['vars_names'] = list(out.vars.keys())
     out.global_data['freqs'] = list(out.freqs.values())
 
+    # Get dt
+    if system_model.dt is None:
+        raise ValueError('Qobj must have a dt value to simulate.')
+    out.dt = system_model.dt
+
     # Parse noise
-    noise_dict = config_dict_sim.get('noise_model', {})
+    noise_dict = noise_model or {}
     if noise_dict:
         noise = NoiseParser(noise_dict=noise_dict,
                             dim_osc=dim_osc, dim_qub=dim_qub)
@@ -131,17 +138,24 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     else:
         out.noise = None
 
-    # Build pulse arrays
-    pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj)
+    # ###############################
+    # ### Parse backend_options
+    # ###############################
+    if 'seed' in backend_options:
+        out.global_data['seed'] = int(backend_options.get('seed'))
+    else:
+        out.global_data['seed'] = None
+    out.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
 
-    out.global_data['pulse_array'] = pulses
-    out.global_data['pulse_indices'] = pulses_idx
-    out.pulse_to_int = pulse_dict
-
-    # Get dt
-    if 'dt' not in config_dict_sim.keys():
-        raise ValueError('Qobj must have a dt value to simulate.')
-    out.dt = config_dict_sim['dt']
+    # solver options
+    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
+                           'num_cpus', 'norm_tol', 'norm_steps',
+                           'rhs_reuse', 'rhs_filename']
+    ode_options = backend_options.get('ode_options', {})
+    for key in ode_options:
+        if key not in allowed_ode_options:
+            raise Exception('Invalid ode_option: {}'.format(key))
+    out.ode_options = OPoptions(**ode_options)
 
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
@@ -153,12 +167,12 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
             min_width = min(min_width, stop - start)
     out.ode_options.max_step = min_width / 2 * out.dt
 
-    # Convert experiments to data structures.
-    # convert estates into a qobj
+    # ###############################
+    # ### Convert experiments to data structures.
+    # ###############################
+    out.global_data['measurement_ops'] = [None] * n_qubits
 
-    out.global_data['measurement_ops'] = [None] * config_dict_sim['n_qubits']
-
-    for exp in qobj['experiments']:
+    for exp in qobj_dict['experiments']:
         exp_struct = experiment_to_structs(exp,
                                            out.channels,
                                            out.global_data['pulse_indices'],
@@ -190,43 +204,19 @@ def digest_pulse_obj(qobj_input, backend_options, noise_model):
     return out
 
 
-def _format_qobj_dict(qobj, backend_options, noise_model):
-    """Add additional fields to qobj dictionary"""
-    # Convert qobj to dict and add additional fields
-    qobj_dict = qobj.to_dict()
-    if 'backend_options' not in qobj_dict['config']:
-        qobj_dict['config']['backend_options'] = {}
-
-    # Temp backwards compatibility
-    if 'sim_config' in qobj_dict['config']:
-        for key, val in qobj_dict['config']['sim_config'].items():
-            qobj_dict['config']['backend_options'][key] = val
-        qobj_dict['config'].pop('sim_config')
-
-    # Add additional backend options
-    if backend_options is not None:
-        for key, val in backend_options.items():
-            qobj_dict['config']['backend_options'][key] = val
-    # Add noise model
-    if noise_model is not None:
-        qobj_dict['config']['backend_options']['noise_model'] = noise_model
-    return qobj_dict
-
-
-def _unsupported_warnings(qobj_dict):
+def _unsupported_warnings(qobj_dict, noise_model):
     """ Warns the user about untested/unsupported features.
 
     Parameters:
-        qobj_dict (dict): Formatted qobj_dict from _format_qobj_dict
+        qobj_dict (dict): qobj in dictionary form
+        noise_model (dict): backend_options for simulation
     Returns:
     Raises:
     """
 
     # Warnings that don't stop execution
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
-    if 'osc' in qobj_dict['config']['backend_options']['hamiltonian'].keys():
-        warn(warning_str.format('Oscillator-type systems'))
-    if 'noise_model' in qobj_dict['config']['backend_options']:
+    if noise_model is not None:
         warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
         warn(warning_str.format('PersistentValue instructions'))
@@ -249,25 +239,25 @@ def _contains_pv_instruction(experiments):
     return False
 
 
-def build_pulse_arrays(qobj):
+def build_pulse_arrays(experiments, pulse_library):
     """ Build pulses and pulse_idx arrays, and a pulse_dict
     used in simulations and mapping of experimental pulse
     sequencies to pulse_idx sequencies and timings.
 
     Parameters:
-        qobj (Qobj): A pulse-qobj instance.
+        experiments (list): list of experiments
+        pulse_library (list): list of pulses
 
     Returns:
         tuple: Returns all pulses in one array,
         an array of start indices for pulses, and dict that
         maps pulses to the index at which the pulses start.
     """
-    qobj_pulses = qobj['config']['pulse_library']
     pulse_dict = {}
     total_pulse_length = 0
 
     num_pulse = 0
-    for pulse in qobj_pulses:
+    for pulse in pulse_library:
         pulse_dict[pulse['name']] = num_pulse
         total_pulse_length += len(pulse['samples'])
         num_pulse += 1
@@ -275,7 +265,7 @@ def build_pulse_arrays(qobj):
     idx = num_pulse + 1
     # now go through experiments looking for PV gates
     pv_pulses = []
-    for exp in qobj['experiments']:
+    for exp in experiments:
         for pulse in exp['instructions']:
             if pulse['name'] == 'pv':
                 if pulse['val'] not in [pval[1] for pval in pv_pulses] and pulse['val'] != 0:
@@ -290,7 +280,7 @@ def build_pulse_arrays(qobj):
 
     stop = 0
     ind = 1
-    for _, pulse in enumerate(qobj_pulses):
+    for _, pulse in enumerate(pulse_library):
         stop = pulses_idx[ind - 1] + len(pulse['samples'])
         pulses_idx[ind] = stop
         oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
