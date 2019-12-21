@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import sys
 import unittest
 import numpy as np
 from qiskit.providers.aer.openpulse.qutip_lite.qobj import Qobj
@@ -19,16 +20,16 @@ from qiskit.providers.aer.openpulse.cy.test_python_to_cpp import \
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
     test_np_array_of_doubles, test_evaluate_hamiltonians, test_py_ordered_map
 
-class QutipFake:
-    def __init__(self, arr):
-        self.arr = arr
-        self.is_flag = True
-        self.value = 10
 
 class TestPythonToCpp(unittest.TestCase):
     """ Test Pyhton C API wrappers we have for dealing with Python data structures
         in C++ code. """
     def setUp(self):
+        """ Here is the problem: The digest algorithm trusts in dictionary insertion order for it to work,
+        and dictionary insertion order was introduced in Python 3.6. OrderedDict has no support in the Python C API
+        so we cannot use it either. """
+        if sys.version_info.major == 3 and sys.version_info.minor == 5:
+           self.skipTest("We don't support Python 3.5 for OpenPulse")
         pass
 
     def test_py_list_to_cpp_vec(self):
