@@ -19,7 +19,7 @@ from test.terra import common
 
 import numpy as np
 from scipy.linalg import expm
-from scipy import special
+from scipy.special import erf
 
 import qiskit
 import qiskit.pulse as pulse
