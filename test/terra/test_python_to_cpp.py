@@ -25,11 +25,11 @@ class TestPythonToCpp(unittest.TestCase):
     """ Test Pyhton C API wrappers we have for dealing with Python data structures
         in C++ code. """
     def setUp(self):
-        """ Here is the problem: The digest algorithm trusts in dictionary insertion order for it to work,
-        and dictionary insertion order was introduced in Python 3.6. OrderedDict has no support in the Python C API
-        so we cannot use it either. """
+        """ WARNING: We do not support Python 3.5 because the digest algorithm relies on dictionary insertion order.
+        This "feature" was introduced later on Python 3.6 and there's no official support for OrderedDict in the C API so
+        Python 3.5 support has been disabled while looking for a propper fix. """
         if sys.version_info.major == 3 and sys.version_info.minor == 5:
-           self.skipTest("We don't support Python 3.5 for OpenPulse")
+           self.skipTest("We don't support Python 3.5 for Pulse simulator")
         pass
 
     def test_py_list_to_cpp_vec(self):
