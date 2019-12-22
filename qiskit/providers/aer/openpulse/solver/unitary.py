@@ -17,6 +17,7 @@
 """Module for unitary pulse evolution.
 """
 
+import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
@@ -25,7 +26,7 @@ from ..cy.measure import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def unitary_evolution(exp, global_data, ode_options):
+def unitary_evolution(exp, op_system):
     """
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
@@ -33,9 +34,7 @@ def unitary_evolution(exp, global_data, ode_options):
 
     Args:
         exp (dict): Dictionary of experimental pulse and fc
-            data.
-        global_data (dict): Data that applies to all experiments.
-        ode_options (OPoptions): Options for the underlying ODE solver.
+        op_system (OPSystem): Global OpenPulse system settings
 
     Returns:
         array: Memory of shots.
@@ -43,6 +42,10 @@ def unitary_evolution(exp, global_data, ode_options):
     Raises:
         Exception: Error in ODE solver.
     """
+
+    global_data = op_system.global_data
+    ode_options = op_system.ode_options
+
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])
     tlist = exp['tlist']
@@ -57,6 +60,16 @@ def unitary_evolution(exp, global_data, ode_options):
     num_channels = len(exp['channels'])
 
     ODE = ode(cy_rhs_func)
+    if op_system.use_cpp_ode_func:
+        # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+        channels = dict(op_system.channels)
+        ODE.set_f_params(global_data, exp, op_system.system, channels, register)
+    else:
+        _inst = 'ODE.set_f_params(%s)' % global_data['string']
+        logging.debug("Unitary Evolution: %s\n\n", _inst)
+        code = compile(_inst, '<string>', 'exec')
+        exec(code)  # pylint disable=exec-used
+
     ODE.set_integrator('zvode',
                        method=ode_options.method,
                        order=ode_options.order,
@@ -66,10 +79,6 @@ def unitary_evolution(exp, global_data, ode_options):
                        first_step=ode_options.first_step,
                        min_step=ode_options.min_step,
                        max_step=ode_options.max_step)
-
-    _inst = 'ODE.set_f_params(%s)' % global_data['string']
-    code = compile(_inst, '<string>', 'exec')
-    exec(code)  # pylint disable=exec-used
 
     if not ODE._y:
         ODE.t = 0.0

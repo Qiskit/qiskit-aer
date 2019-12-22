@@ -21,6 +21,7 @@
 """Monte carlo wave function solver."""
 
 from math import log
+import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
@@ -33,11 +34,14 @@ from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def monte_carlo(seed, exp, global_data, ode_options):
+def monte_carlo(seed, exp, op_system):
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
     """
+
+    global_data = op_system.global_data
+    ode_options = op_system.ode_options
 
     cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(seed)
@@ -64,10 +68,16 @@ def monte_carlo(seed, exp, global_data, ode_options):
 
     ODE = ode(cy_rhs_func)
 
-    _inst = 'ODE.set_f_params(%s)' % global_data['string']
-    code = compile(_inst, '<string>', 'exec')
-    # pylint: disable=exec-used
-    exec(code)
+    if op_system.use_cpp_ode_func:
+        # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+        channels = dict(op_system.channels)
+        ODE.set_f_params(global_data, exp, op_system.system, channels, register)
+    else:
+        _inst = 'ODE.set_f_params(%s)' % global_data['string']
+        logging.debug("Monte Carlo: %s\n\n", _inst)
+        code = compile(_inst, '<string>', 'exec')
+        # pylint: disable=exec-used
+        exec(code)
 
     # initialize ODE solver for RHS
     ODE._integrator = qiskit_zvode(method=ode_options.method,

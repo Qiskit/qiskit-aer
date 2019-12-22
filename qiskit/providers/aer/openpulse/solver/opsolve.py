@@ -51,8 +51,9 @@ def opsolve(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-    # compile Cython RHS
-    _op_generate_rhs(op_system)
+    if not op_system.use_cpp_ode_func:
+        # compile Cython RHS
+        _op_generate_rhs(op_system)
     # Load cython function
     _op_func_load(op_system)
     # load monte carlo class
@@ -117,9 +118,7 @@ class OP_mcwf():
             start = time.time()
             exp_results = parallel_map(unitary_evolution,
                                        self.op_system.experiments,
-                                       task_args=(self.op_system.global_data,
-                                                  self.op_system.ode_options
-                                                  ),
+                                       task_args=(self.op_system,),
                                        **map_kwargs
                                        )
             end = time.time()
@@ -138,12 +137,8 @@ class OP_mcwf():
                                     size=self.op_system.global_data['shots'])
                 exp_res = parallel_map(monte_carlo,
                                        seeds,
-                                       task_args=(exp,
-                                                  self.op_system.global_data,
-                                                  self.op_system.ode_options
-                                                  ),
-                                       **map_kwargs
-                                       )
+                                       task_args=(exp, self.op_system,),
+                                       **map_kwargs)
 
                 # exp_results is a list for each shot
                 # so transform back to an array of shots
@@ -228,7 +223,9 @@ class OP_mcwf():
 
             all_results.append(results)
 
-        _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
+        if not self.op_system.use_cpp_ode_func:
+            _cython_build_cleanup(self.op_system.global_data['rhs_file_name'])
+
         return all_results
 
 
