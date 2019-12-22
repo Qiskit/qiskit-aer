@@ -39,6 +39,7 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
 
 # TODO: We may want to change the prefix path for all the environments
@@ -189,32 +190,40 @@ else()
 endif()
 
 
-if(APPLE OR UNIX)
-	message(STATUS "Looking for muparserx library...")
-	find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-	if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
-		message(FATAL_ERROR "No muparserx library found")
-	endif()
-	message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
-	# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-	# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+message(STATUS "Looking for muparserx library...")
+
+set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib")
+if(APPLE)
+	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
+elseif(WIN32)
+	set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win32/lib")
 endif()
+
+find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
+if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
+	message(FATAL_ERROR "No muparserx library found")
+endif()
+message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+# I keep this disabled on purpose, just in case I need to debug muparserx related problems
+# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+
 
 # Set dependent libraries
 set(AER_LIBRARIES
-		${OPENMP_EXTERNAL_LIB}
-	    ${BLAS_LIBRARIES}
-	    nlohmann_json
-		Threads::Threads
-		${SPDLOG_LIB}
-		${CMAKE_DL_LIBS}
-		${MUPARSERX_LIB})
+	${OPENMP_EXTERNAL_LIB}
+	${BLAS_LIBRARIES}
+	nlohmann_json
+	Threads::Threads
+	${SPDLOG_LIB}
+	${CMAKE_DL_LIBS}
+	${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/openpulse/cy)
 	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
+	add_subdirectory(src/simulators/open_pulse)
 else() # Standalone build
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 	set_target_properties(qasm_simulator PROPERTIES
@@ -232,5 +241,8 @@ endif()
 
 # Tests
 if(BUILD_TESTS)
-	add_subdirectory(test)
+	# These tests were meant to be as an example, or template for C++ specific
+	# code, but they're not being maintained, so we are disabling them until we
+	# have real C++ tests in the codebase.
+	# add_subdirectory(test)
 endif()
