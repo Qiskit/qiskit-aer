@@ -55,5 +55,7 @@ class OPSystem():
         self.h_diag = None
         # eigenvalues of the time-independent hamiltonian
         self.evals = None
+        # Use C++ version of the function to pass to the ODE solver or the Cython one
+        self.use_cpp_ode_func = False
         # eigenstates of the time-independent hamiltonian
         self.estates = None

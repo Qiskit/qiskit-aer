@@ -90,7 +90,7 @@ class HamiltonianParser:
                 else:
                     td = p_td.group('ch')
                 token = self._shunting_yard(token)
-                _td = [self._token2qobj(token), td]
+                _td = self._token2qobj(token), td
 
                 self.__td_hams.append(_td)
             else:

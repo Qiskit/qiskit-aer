@@ -115,6 +115,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     estates = [op.state(state) for state in ham_model._estates.T[:]]
     out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
+    # Need this info for evaluating the hamiltonian vars in the c++ solver
+    out.global_data['vars_names'] = list(out.vars.keys())
     out.global_data['freqs'] = list(out.freqs.values())
 
     # Get dt
@@ -196,6 +198,9 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
         out.experiments.append(exp_struct)
         if not exp_struct['can_sample']:
             out.can_sample = False
+
+        # This is a temporary flag while stabilizing cpp func ODE solver
+        out.use_cpp_ode_func = qobj_config.get('use_cpp_ode_func', True)
     return out
 
 
