@@ -29,7 +29,7 @@ from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 
-def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
+def digest_pulse_obj(qobj, system_model, backend_options=None):
     """Convert specification of a simulation in the pulse language into the format accepted
     by the simulator.
 
@@ -53,11 +53,7 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     if backend_options is None:
         backend_options = {}
 
-    # Temp backwards compatibility
-    if 'sim_config' in qobj_config:
-        for key, val in qobj_config['sim_config'].items():
-            backend_options[key] = val
-        qobj_config.pop('sim_config')
+    noise_model = backend_options.get('noise_model', None)
 
     # post warnings for unsupported features
     _unsupported_warnings(qobj_dict, noise_model)
