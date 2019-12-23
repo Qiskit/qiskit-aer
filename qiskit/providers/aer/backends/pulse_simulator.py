@@ -24,7 +24,6 @@ from qiskit.result import Result
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
-from ..aererror import AerError
 from ..version import __version__
 from ..openpulse.qobj.digest import digest_pulse_obj
 from ..openpulse.solver.opsolve import opsolve
@@ -103,12 +102,6 @@ class PulseSimulator(AerBackend):
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
-
-    def _validate(self, qobj, backend_options, noise_model):
-        """Validate the pulse object. Make sure a
-        config has been attached in the proper location"""
-
-        super()._validate(qobj, backend_options, noise_model)
 
     def defaults(self):
         """Return defaults.

@@ -37,7 +37,6 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
         qobj (PulseQobj): experiment specification
         system_model (PulseSystemModel): object representing system model
         backend_options (dict): dictionary of simulation options
-        noise_model (dict): noise model specification
     Returns:
         out (OPSystem): object understandable by the pulse simulator
     Raises:
@@ -208,6 +207,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
         noise_model (dict): backend_options for simulation
     Returns:
     Raises:
+        AerError: for unsupported features
     """
 
     # Warnings that don't stop execution
