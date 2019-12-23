@@ -31,7 +31,7 @@
 #include <type_traits>
 
 #include <nlohmann_json.hpp>
-#include "framework/matrix.hpp"
+#include "framework/json.hpp"
 
 namespace py = pybind11;
 namespace nl = nlohmann;
