@@ -70,6 +70,7 @@ class PulseSimulator(AerBackend):
             validate=False):
         """Run a qobj on the backend."""
         # Submit job
+        print('you are here')
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
                          backend_options, validate)
@@ -83,7 +84,7 @@ class PulseSimulator(AerBackend):
         """Run a qobj job"""
         start = time.time()
         if validate:
-            self._validate(qobj, backend_options, noise_model)
+            self._validate(qobj, backend_options, noise_model=None)
         # Send to solver
         openpulse_system = digest_pulse_obj(qobj, system_model, backend_options)
         results = opsolve(openpulse_system)
@@ -107,11 +108,6 @@ class PulseSimulator(AerBackend):
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the pulse object. Make sure a
         config has been attached in the proper location"""
-
-        # Check to make sure a sim_config has been added
-        if not hasattr(qobj.config, 'sim_config'):
-            raise AerError('The pulse simulator qobj must have a sim_config '
-                           'entry to configure the simulator')
 
         super()._validate(qobj, backend_options, noise_model)
 
