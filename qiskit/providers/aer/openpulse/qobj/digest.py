@@ -17,7 +17,6 @@
 into something we can actually use.
 """
 
-from warnings import warn
 from collections import OrderedDict
 import numpy as np
 from .op_system import OPSystem
@@ -27,6 +26,7 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
+from ..aererror import AerError
 
 
 def digest_pulse_obj(qobj, system_model, backend_options=None):
@@ -213,9 +213,9 @@ def _unsupported_warnings(qobj_dict, noise_model):
     # Warnings that don't stop execution
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if noise_model is not None:
-        warn(warning_str.format('Noise models'))
+        raise AerError(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
-        warn(warning_str.format('PersistentValue instructions'))
+        raise AerError(warning_str.format('PersistentValue instructions'))
 
 
 def _contains_pv_instruction(experiments):

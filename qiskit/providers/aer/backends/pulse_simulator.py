@@ -70,7 +70,6 @@ class PulseSimulator(AerBackend):
             validate=False):
         """Run a qobj on the backend."""
         # Submit job
-        print('you are here')
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
                          backend_options, validate)
