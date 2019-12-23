@@ -26,7 +26,7 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
-from ..aererror import AerError
+from qiskit.providers.aer.aererror import AerError
 
 
 def digest_pulse_obj(qobj, system_model, backend_options=None):
