@@ -202,7 +202,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_
 set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib")
 
 find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
-if(${MUPARSERX_LIB} MATCHES "MUPARSERX-NOTFOUND")
+if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
 	message(FATAL_ERROR "No muparserx library found")
 endif()
 message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
