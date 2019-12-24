@@ -19,7 +19,8 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
-from .controller_wrappers import qasm_controller_execute
+#from .controller_wrappers import qasm_controller_execute
+from .controller_wrappers import qasm_controller_execute_result
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
@@ -422,7 +423,7 @@ class QasmSimulator(AerBackend):
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(
-            qasm_controller_execute,
+            qasm_controller_execute_result,
             QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
             provider=provider)
 

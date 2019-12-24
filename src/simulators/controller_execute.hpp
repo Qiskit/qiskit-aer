@@ -18,6 +18,7 @@
 #include <string>
 #include "framework/json.hpp"
 #include "misc/hacks.hpp"
+#include "framework/results/result.hpp"
 
 //=========================================================================
 // Controller Execute interface
@@ -57,5 +58,19 @@ json_t controller_execute(const json_t &qobj_js) {
   return controller.execute(qobj_js).json();
 }
 
+template <class controller_t>
+Result controller_execute_result(const json_t &qobj_js) {
+  controller_t controller;
+
+  // Fix for MacOS and OpenMP library double initialization crash.
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+  if (JSON::check_key("config", qobj_js)) {
+    std::string path;
+    JSON::get_value(path, "library_dir", qobj_js["config"]);
+    Hacks::maybe_load_openmp(path);
+  }
+
+  return controller.execute(qobj_js);
+}
 } // end namespace AER
 #endif

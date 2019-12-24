@@ -31,6 +31,8 @@ from qiskit.util import local_hardware_info
 from ..aerjob import AerJob
 from ..aererror import AerError
 
+from .controller_wrappers import AerResult
+
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -187,11 +189,15 @@ class AerBackend(BaseBackend):
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
-        if not isinstance(output, dict):
+        if not isinstance(output, (dict, AerResult)):
             logger.error("%s: simulation failed.", self.name())
             if output:
                 logger.error('Output: %s', output)
             raise AerError("simulation terminated without returning valid output.")
+        if isinstance(output, AerResult):
+            print("your in the right spot")
+            print("backend_name: ", output.backend_name)
+            raise AerError("simulation  terminated without returning valid output.")
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the qobj, backend_options, noise_model for the backend"""
