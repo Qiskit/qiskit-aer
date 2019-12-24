@@ -29,34 +29,16 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
-# QASM Controller
+# Controllers
 
-basic_pybind11_add_module(qasm_controller_wrapper qasm_bindings.cc)
-target_include_directories(qasm_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-                                                   PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(qasm_controller_wrapper ${AER_LIBRARIES})
-install(TARGETS qasm_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
-
-# StateVector Controller
-
-basic_pybind11_add_module(statevector_controller_wrapper statevector_bindings.cc)
-target_include_directories(statevector_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-                                                          PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(statevector_controller_wrapper ${AER_LIBRARIES})
-install(TARGETS statevector_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
-
-# Unitary Controller
-
-basic_pybind11_add_module(unitary_controller_wrapper unitary_bindings.cc)
-target_include_directories(unitary_controller_wrapper PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-                                                      PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(unitary_controller_wrapper ${AER_LIBRARIES})
-install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
+basic_pybind11_add_module(controller_wrappers bindings.cc)
+target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+                                               PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+target_link_libraries(controller_wrappers ${AER_LIBRARIES})
+install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Install redistributable dependencies
 if(APPLE)
-    set_target_properties(qasm_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-    set_target_properties(statevector_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-    set_target_properties(unitary_controller_wrapper PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
+    set_target_properties(controller_wrappers PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
     install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()
