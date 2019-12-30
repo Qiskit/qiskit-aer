@@ -19,6 +19,7 @@ into something we can actually use.
 
 from collections import OrderedDict
 import numpy as np
+from qiskit.providers.aer.aererror import AerError
 from .op_system import OPSystem
 from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
@@ -26,7 +27,6 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from . import op_qobj as op
-from qiskit.providers.aer.aererror import AerError
 
 
 def digest_pulse_obj(qobj, system_model, backend_options=None):
