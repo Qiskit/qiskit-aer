@@ -193,7 +193,7 @@ jobs:
 #      if: tag IS present
       script:
         - pip install -U pip virtualenv
-        - pip install cibuildwheel==1.0.0
+        - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
     - os: osx
@@ -206,6 +206,6 @@ jobs:
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       script:
         - sudo pip2 install -U pip
-        - sudo pip2 install cibuildwheel==1.0.0 'twine<2.0'
+        - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*

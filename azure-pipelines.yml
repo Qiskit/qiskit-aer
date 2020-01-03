@@ -45,7 +45,7 @@ stages:
             set -e
             source activate qiskit-aer-$(Build.BuildNumber)
             python -m pip install -U pip virtualenv
-            pip install cibuildwheel==1.0.0
+            pip install cibuildwheel==1.1.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
