@@ -72,7 +72,7 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     if 'qubit_lo_freq' not in qobj_config:
         raise ValueError('qubit_lo_freq must be specified in qobj.')
     # qobj frequencies are divided by 1e9, so multiply back
-    qubit_lo_freq = [freq*1e9 for freq in qobj_config['qubit_lo_freq']]
+    qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
