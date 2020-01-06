@@ -20,6 +20,7 @@ into something we can actually use.
 from warnings import warn
 from collections import OrderedDict
 import numpy as np
+from qiskit.providers.aer.aererror import AerError
 from .op_system import OPSystem
 from .opparse import NoiseParser
 from .operators import qubit_occ_oper_dressed
@@ -29,7 +30,7 @@ from ..cy.utils import oplist_to_array
 from . import op_qobj as op
 
 
-def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None):
+def digest_pulse_obj(qobj, system_model, backend_options=None):
     """Convert specification of a simulation in the pulse language into the format accepted
     by the simulator.
 
@@ -37,7 +38,6 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
         qobj (PulseQobj): experiment specification
         system_model (PulseSystemModel): object representing system model
         backend_options (dict): dictionary of simulation options
-        noise_model (dict): noise model specification
     Returns:
         out (OPSystem): object understandable by the pulse simulator
     Raises:
@@ -53,11 +53,7 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
     if backend_options is None:
         backend_options = {}
 
-    # Temp backwards compatibility
-    if 'sim_config' in qobj_config:
-        for key, val in qobj_config['sim_config'].items():
-            backend_options[key] = val
-        qobj_config.pop('sim_config')
+    noise_model = backend_options.get('noise_model', None)
 
     # post warnings for unsupported features
     _unsupported_warnings(qobj_dict, noise_model)
@@ -76,7 +72,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None, noise_model=None)
 
     if 'qubit_lo_freq' not in qobj_config:
         raise ValueError('qubit_lo_freq must be specified in qobj.')
-    qubit_lo_freq = qobj_config['qubit_lo_freq']
+    # qobj frequencies are divided by 1e9, so multiply back
+    qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
@@ -212,6 +209,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
         noise_model (dict): backend_options for simulation
     Returns:
     Raises:
+        AerError: for unsupported features
     """
 
     # Warnings that don't stop execution
@@ -219,7 +217,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
     if noise_model is not None:
         warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
-        warn(warning_str.format('PersistentValue instructions'))
+        raise AerError(warning_str.format('PersistentValue instructions'))
 
 
 def _contains_pv_instruction(experiments):
