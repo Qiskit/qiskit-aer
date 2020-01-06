@@ -185,7 +185,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv && tools/install_wheel_deps.sh"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && tools/install_wheel_deps.sh"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
@@ -199,13 +199,13 @@ jobs:
     - os: osx
 #      if: tag IS present
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip && tools/install_wheel_deps.sh"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && tools/install_wheel_deps.sh"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       script:
-        - sudo pip2 install -U pip
+        - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
