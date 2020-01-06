@@ -17,6 +17,7 @@
 into something we can actually use.
 """
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
@@ -214,7 +215,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
     # Warnings that don't stop execution
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if noise_model is not None:
-        raise AerError(warning_str.format('Noise models'))
+        warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
         raise AerError(warning_str.format('PersistentValue instructions'))
 
