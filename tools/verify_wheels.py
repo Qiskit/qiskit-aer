@@ -215,19 +215,6 @@ def compare_counts(result, circuits, targets, hex_counts=True, delta=0):
         assertDictAlmostEqual(output, target, delta=delta)
 
 
-# Run qasm simulator
-shots = 2000
-circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
-            '0x2': shots / 8, '0x3': shots / 8}]
-simulator = QasmSimulator()
-qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
-result = simulator.run(qobj).result()
-assert result.status == 'COMPLETED'
-compare_counts(result, circuits, targets, delta=0.05 * shots)
-assert result.success is True
-
-
 def cx_gate_circuits_deterministic(final_measure=True):
     """CX-gate test circuits with deterministic counts."""
     circuits = []
@@ -397,16 +384,6 @@ def compare_statevector(result, circuits, targets,
                           msg=msg)
 
 
-# Run statevector simulator
-circuits = cx_gate_circuits_deterministic(final_measure=False)
-targets = cx_gate_statevector_deterministic()
-job = execute(circuits, StatevectorSimulator(), shots=1)
-result = job.result()
-assert result.status == 'COMPLETED'
-assert result.success is True
-compare_statevector(result, circuits, targets)
-
-
 def compare_unitary(result, circuits, targets,
                     global_phase=True, places=None):
     """Compare final unitary matrices to targets."""
@@ -426,12 +403,34 @@ def compare_unitary(result, circuits, targets,
             assertAlmostEqual(delta, 0, places=places)
 
 
-# Run unitary simulator
-circuits = cx_gate_circuits_deterministic(final_measure=False)
-targets = cx_gate_unitary_deterministic()
-job = execute(circuits, UnitarySimulator(), shots=1,
-              basis_gates=['u1', 'u2', 'u3', 'cx'])
-result = job.result()
-assert result.status == 'COMPLETED'
-assert result.success is True
-compare_unitary(result, circuits, targets)
+if __name__ == '__main__':
+    # Run qasm simulator
+    shots = 2000
+    circuits = grovers_circuit(final_measure=True, allow_sampling=True)
+    targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
+                '0x2': shots / 8, '0x3': shots / 8}]
+    simulator = QasmSimulator()
+    qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
+    result = simulator.run(qobj).result()
+    assert result.status == 'COMPLETED'
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
+    assert result.success is True
+
+    # Run statevector simulator
+    circuits = cx_gate_circuits_deterministic(final_measure=False)
+    targets = cx_gate_statevector_deterministic()
+    job = execute(circuits, StatevectorSimulator(), shots=1)
+    result = job.result()
+    assert result.status == 'COMPLETED'
+    assert result.success is True
+    compare_statevector(result, circuits, targets)
+
+    # Run unitary simulator
+    circuits = cx_gate_circuits_deterministic(final_measure=False)
+    targets = cx_gate_unitary_deterministic()
+    job = execute(circuits, UnitarySimulator(), shots=1,
+                  basis_gates=['u1', 'u2', 'u3', 'cx'])
+    result = job.result()
+    assert result.status == 'COMPLETED'
+    assert result.success is True
+    compare_unitary(result, circuits, targets)
