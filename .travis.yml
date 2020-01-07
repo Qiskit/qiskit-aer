@@ -184,7 +184,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm && yum install -y openblas-devel"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
