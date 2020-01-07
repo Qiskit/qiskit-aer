@@ -139,7 +139,7 @@ bool ClassicalRegister::check_conditional(const Operations::Op &op) const {
   if (op.conditional)
     return (creg_register_[creg_register_.size() - op.conditional_reg - 1] == '1');
   
-  // DEPRECIATED: old style conditional
+  // DEPRECATED: old style conditional
   if (op.old_conditional) {
     std::string current;
     auto mask = Utils::padleft(Utils::hex2bin(op.old_conditional_mask, false),

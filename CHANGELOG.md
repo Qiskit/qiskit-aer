@@ -15,7 +15,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...HEAD)
 =======================================================================
 
 Added
@@ -30,6 +30,66 @@ Removed
 Fixed
 -----
 
+
+[0.3.4](https://github.com/Qiskit/qiskit-aer/compare/0.3.3...0.3.4) - 2019-12-09
+=====================================================================================
+
+Added
+-----
+- Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+- MPS simulation method: fixed computation of snapshot_probabilities 
+ on subsets of the qubits, in any ordering (\#424)
+- Fixes bug where cu3 was being applied as cu1 for unitary_simulator (\#483)
+
+
+[0.3.3](https://github.com/Qiskit/qiskit-aer/compare/0.3.2...0.3.3) - 2019-11-14
+====================================================================================
+
+Added
+-----
+- Added controlled gates (``cu1``, ``cu2``, ``cu3``) to simulator basis_gates (\#417)
+- Added multi-controlled gates (``mcx``, ``mcy``, ``mcz``, ``mcu1``, ``mcu2``, ``mcu3``)
+  to simulator basis gates (\#417)
+- Added gate definitions to simulator backend configurations (\#417)
+
+Changed
+-------
+- Improved pershot snapshot data container performance (\#405)
+- Add basic linear algebra functions for numeric STL classes (\#406)
+- Improved average snapshot data container performance (\#407)
+
+Removed
+-------
+
+Fixed
+-----
+
+
+[0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
+===============================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Removed
+-------
+
+Fixed
+-----
+- Fix sdist to always attempt to build (\#401)
+- New (efficient) implementation for expectation_value_pauli in MPS simulation method (\#344)
 
 
 [0.3.1](https://github.com/Qiskit/qiskit-aer/compare/0.3.0...0.3.1) - 2019-10-15

@@ -22,7 +22,7 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
-from .statevector_controller_wrapper import statevector_controller_execute
+from .controller_wrappers import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
 
@@ -31,43 +31,43 @@ logger = logging.getLogger(__name__)
 
 
 class StatevectorSimulator(AerBackend):
-    """Aer statevector simulator
+    """Ideal quantum circuit statevector simulator
 
-    Backend options:
+    **Backend options**
 
-        The following backend options may be used with in the
-        `backend_options` kwarg diction for `StatevectorSimulator.run` or
-        `qiskit.execute`
+    The following backend options may be used with in the
+    ``backend_options`` kwarg for :meth:`StatevectorSimulator.run` or
+    ``qiskit.execute``.
 
-        * "zero_threshold" (double): Sets the threshold for truncating
-            small values to zero in the result data (Default: 1e-10).
+    * ``"zero_threshold"`` (double): Sets the threshold for truncating
+      small values to zero in the result data (Default: 1e-10).
 
-        * "validation_threshold" (double): Sets the threshold for checking
-            if the initial statevector is valid (Default: 1e-8).
+    * ``"validation_threshold"`` (double): Sets the threshold for checking
+      if the initial statevector is valid (Default: 1e-8).
 
-        * "max_parallel_threads" (int): Sets the maximum number of CPU
-            cores used by OpenMP for parallelization. If set to 0 the
-            maximum will be set to the number of CPU cores (Default: 0).
+    * ``"max_parallel_threads"`` (int): Sets the maximum number of CPU
+      cores used by OpenMP for parallelization. If set to 0 the
+      maximum will be set to the number of CPU cores (Default: 0).
 
-        * "max_parallel_experiments" (int): Sets the maximum number of
-            qobj experiments that may be executed in parallel up to the
-            max_parallel_threads value. If set to 1 parallel circuit
-            execution will be disabled. If set to 0 the maximum will be
-            automatically set to max_parallel_threads (Default: 1).
+    * ``"max_parallel_experiments"`` (int): Sets the maximum number of
+      qobj experiments that may be executed in parallel up to the
+      max_parallel_threads value. If set to 1 parallel circuit
+      execution will be disabled. If set to 0 the maximum will be
+      automatically set to max_parallel_threads (Default: 1).
 
-        * "max_memory_mb" (int): Sets the maximum size of memory
-            to store a state vector. If a state vector needs more, an error
-            is thrown. In general, a state vector of n-qubits uses 2^n complex
-            values (16 Bytes). If set to 0, the maximum will be automatically
-            set to half the system memory size (Default: 0).
+    * ``"max_memory_mb"`` (int): Sets the maximum size of memory
+      to store a state vector. If a state vector needs more, an error
+      is thrown. In general, a state vector of n-qubits uses 2^n complex
+      values (16 Bytes). If set to 0, the maximum will be automatically
+      set to half the system memory size (Default: 0).
 
-        * "statevector_parallel_threshold" (int): Sets the threshold that
-            "n_qubits" must be greater than to enable OpenMP
-            parallelization for matrix multiplication during execution of
-            an experiment. If parallel circuit or shot execution is enabled
-            this will only use unallocated CPU cores up to
-            max_parallel_threads. Note that setting this too low can reduce
-            performance (Default: 14).
+    * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
+      "n_qubits" must be greater than to enable OpenMP
+      parallelization for matrix multiplication during execution of
+      an experiment. If parallel circuit or shot execution is enabled
+      this will only use unallocated CPU cores up to
+      max_parallel_threads. Note that setting this too low can reduce
+      performance (Default: 14).
     """
 
     MAX_QUBIT_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
@@ -85,16 +85,201 @@ class StatevectorSimulator(AerBackend):
         'max_shots': 1,
         'description': 'A C++ statevector simulator for qobj files',
         'coupling_map': None,
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'cz', 'cu1', 'id', 'x', 'y', 'z',
-                        'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                        'multiplexer', 'snapshot', 'unitary', 'reset', 'initialize'],
-        'gates': [
-            {
-                'name': 'TODO',
-                'parameters': [],
-                'qasm_def': 'TODO'
-            }
-        ]
+        'basis_gates': [
+            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            't', 'tdg', 'swap', 'ccx', 'unitary', 'initialize', 'cu1', 'cu2',
+            'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcu1', 'mcu2', 'mcu3',
+            'mcswap', 'multiplexer',
+        ],
+        'gates': [{
+            'name': 'u1',
+            'parameters': ['lam'],
+            'conditional': True,
+            'description': 'Single-qubit gate [[1, 0], [0, exp(1j*lam)]]',
+            'qasm_def': 'gate u1(lam) q { U(0,0,lam) q; }'
+        }, {
+            'name': 'u2',
+            'parameters': ['phi', 'lam'],
+            'conditional': True,
+            'description':
+            'Single-qubit gate [[1, -exp(1j*lam)], [exp(1j*phi), exp(1j*(phi+lam))]]/sqrt(2)',
+            'qasm_def': 'gate u2(phi,lam) q { U(pi/2,phi,lam) q; }'
+        }, {
+            'name':
+            'u3',
+            'parameters': ['theta', 'phi', 'lam'],
+            'conditional':
+            True,
+            'description':
+            'Single-qubit gate with three rotation angles',
+            'qasm_def':
+            'gate u3(theta,phi,lam) q { U(theta,phi,lam) q; }'
+        }, {
+            'name': 'cx',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Two-qubit Controlled-NOT gate',
+            'qasm_def': 'gate cx c,t { CX c,t; }'
+        }, {
+            'name': 'cz',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Two-qubit Controlled-Z gate',
+            'qasm_def': 'gate cz a,b { h b; cx a,b; h b; }'
+        }, {
+            'name': 'id',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit identity gate',
+            'qasm_def': 'gate id a { U(0,0,0) a; }'
+        }, {
+            'name': 'x',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit Pauli-X gate',
+            'qasm_def': 'gate x a { U(pi,0,pi) a; }'
+        }, {
+            'name': 'y',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit Pauli-Y gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'z',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit Pauli-Z gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'h',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit Hadamard gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 's',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit phase gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'sdg',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit adjoint phase gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 't',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit T gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'tdg',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Single-qubit adjoint T gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'swap',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Two-qubit SWAP gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'ccx',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Three-qubit Toffoli gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'cswap',
+            'parameters': [],
+            'conditional': True,
+            'description': 'Three-qubit Fredkin (controlled-SWAP) gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'unitary',
+            'parameters': ['matrix'],
+            'conditional': True,
+            'description': 'N-qubit arbitrary unitary gate. '
+                           'The parameter is the N-qubit matrix to apply.',
+            'qasm_def': 'unitary(matrix) q1, q2,...'
+        }, {
+            'name': 'initialize',
+            'parameters': ['vector'],
+            'conditional': False,
+            'description': 'N-qubit state initialize. '
+                           'Resets qubits then sets statevector to the parameter vector.',
+            'qasm_def': 'initialize(vector) q1, q2,...'
+        }, {
+            'name': 'cu1',
+            'parameters': ['lam'],
+            'conditional': True,
+            'description': 'Two-qubit Controlled-u1 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'cu2',
+            'parameters': ['phi', 'lam'],
+            'conditional': True,
+            'description': 'Two-qubit Controlled-u2 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'cu3',
+            'parameters': ['theta', 'phi', 'lam'],
+            'conditional': True,
+            'description': 'Two-qubit Controlled-u3 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcx',
+            'parameters': [],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-X gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcy',
+            'parameters': [],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-Y gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcz',
+            'parameters': [],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-Z gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcu1',
+            'parameters': ['lam'],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-u1 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcu2',
+            'parameters': ['phi', 'lam'],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-u2 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcu3',
+            'parameters': ['theta', 'phi', 'lam'],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-u3 gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'mcswap',
+            'parameters': [],
+            'conditional': True,
+            'description': 'N-qubit multi-controlled-SWAP gate',
+            'qasm_def': 'TODO'
+        }, {
+            'name': 'multiplexer',
+            'parameters': ['mat1', 'mat2', '...'],
+            'conditional': True,
+            'description': 'N-qubit multi-plexer gate. '
+                           'The input parameters are the gates for each value.',
+            'qasm_def': 'TODO'
+        }]
     }
 
     def __init__(self, configuration=None, provider=None):
