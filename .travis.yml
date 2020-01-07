@@ -178,15 +178,16 @@ jobs:
         - PYTHON_VERSION=3.5.6
 
     - sudo: required
-      dist: xenial
       language: python
       python: 3.7
       os: linux
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && tools/install_wheel_deps.sh"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
+        - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
@@ -199,11 +200,15 @@ jobs:
     - os: osx
 #      if: tag IS present
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && tools/install_wheel_deps.sh"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      addons:
+        homebrew:
+          packages:
+          - openblas
       script:
         - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
