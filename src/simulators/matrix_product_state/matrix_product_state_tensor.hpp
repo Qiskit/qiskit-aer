@@ -78,6 +78,13 @@ public:
     data_.push_back(data1);
   }
 
+  MPS_Tensor(const std::vector<cmatrix_t> &data){
+    if (!data_.empty())
+      data_.clear();
+    for (uint_t i=0; i<data.size(); i++)
+      data_.push_back(data[i]);
+  }
+
   // Destructor
   virtual ~MPS_Tensor(){}
 
@@ -94,6 +101,9 @@ public:
   cvector_t get_data(uint_t a1, uint_t a2) const;
   cmatrix_t get_data(uint_t i) const {
     return data_[i];
+  }
+  const std::vector<cmatrix_t> get_data() const {
+    return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
@@ -122,15 +132,18 @@ public:
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
+  void apply_ccx(uint_t target_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
   static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma, bool mul_by_lambda);
   static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
+  static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
 static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
 				  const MPS_Tensor &right_gamma,
 				  cmatrix_t &result);
+
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
@@ -320,7 +333,22 @@ void MPS_Tensor::apply_cz()
   data_[3] = data_[3] * (-1.0);
 }
 
-
+void MPS_Tensor::apply_ccx(uint_t target_qubit)
+{
+  switch (target_qubit) {
+  case 0:
+    swap(data_[3], data_[7]);
+    break;
+  case 1:
+    swap(data_[5], data_[7]);
+    break;
+  case 2:
+    swap(data_[6], data_[7]);
+    break;
+  default:
+   throw std::invalid_argument("Target qubit for cxx must be 0, 1, or 2"); 
+  }
+}
 //-------------------------------------------------------------------------
 // The following functions mul/div Gamma by Lambda are used to keep the MPS in the
 // canonical form.
@@ -492,6 +520,26 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
   right_gamma.data_ = reshape_V_after_SVD(V);
+}
+
+  void MPS_Tensor::reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, 
+				     MPS_Tensor &reshaped_tensor)
+{
+// Turns 4 matrices A0,A1,A2,A3,A4,A5,A6,A7 to big matrix:
+//  A0 A1 A2 A3
+//  A4 A5 A6 A7
+
+  cmatrix_t temp0_1 = AER::Utils::concatenate(data[0], data[1], 1),
+            temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
+            temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
+            temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
+  std::cout << temp0_1 ;
+  std::vector<cmatrix_t> new_data_vector;
+  new_data_vector.push_back(temp0_1);
+  new_data_vector.push_back(temp2_3);
+  new_data_vector.push_back(temp4_5);
+  new_data_vector.push_back(temp6_7);
+  reshaped_tensor = MPS_Tensor(new_data_vector);
 }
 
 //-------------------------------------------------------------------------
