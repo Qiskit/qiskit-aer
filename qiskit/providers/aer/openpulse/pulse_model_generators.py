@@ -14,24 +14,209 @@
 
 "Helper functions for creating HamiltonianModel and PulseSystemModel objects"
 
+from collections.abc import Iterable
 from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
+
+# line for complete graph edges
+# edges = [(i,j) for j in range(num_transmons) for i in range(num_transmons) if j > i]
+
+'''
+System model generators
+'''
+# should output also a list for the u channel orderings
+def complete_graph_uniform_transmon_system(num_transmons,
+                                           dim_transmons,
+                                           base_freq,
+                                           freq_offset,
+                                           anharm,
+                                           drive_strength,
+                                           coupling_strength,
+                                           dt):
+
+    # specify edges of the complete graph
+    edges = [(i,j) for j in range(num_transmons) for i in range(num_transmons) if j > i]
+
+    hamiltonian_dict = _uniform_transmon_hamiltonian(num_transmons,
+                                                     dim_transmons,
+                                                     edges,
+                                                     base_freq,
+                                                     freq_offset,
+                                                     anharm,
+                                                     drive_strength,
+                                                     coupling_strength)
+    ham_model = HamiltonianModel.from_dict(hamiltonian_dict)
+
+    ############
+    # do this
+    ###########
+    u_channel_lo = []
+
+    return PulseSystemModel(hamiltonian=ham_model,
+                            u_channel_lo=u_channel_lo,
+                            qubit_list=list(range(num_transmons)),
+                            dt=dt)
+
+'''
+u_channel_lo specification generators
+'''
+
+'''
+Transmon Hamiltonian string format generators
+'''
+def _uniform_transmon_hamiltonian_dict(num_transmons,
+                                       dim_transmons,
+                                       edges,
+                                       base_freq,
+                                       freq_offset,
+                                       anharm,
+                                       drive_strength,
+                                       coupling_strength,
+                                       freq_symbol = 'v',
+                                       anharm_symbol = 'alpha',
+                                       drive_symbol = 'r',
+                                       coupling_symbol = 'j'):
+
+
+    # construct individual qubit terms
+    hamiltonian_str = _full_single_transmon_drift_terms(freq_symbol, anharm_symbol, num_transmons)
+    hamiltonian_str += _full_drive_terms(drive_symbol, num_transmons, all_same_drive=True)
+
+    # construct two transmon terms
+    hamiltonian_str += _full_exchange_coupling_terms(coupling_symbol, edges, all_same_coupling=True)
+    hamiltonian_str += _full_u_channel_terms(drive_symbol, edges, all_same_drive=True)
+
+    # construct variable dictionary
+    var_dict = {}
+    for transmon_idx in range(num_transmons):
+        var_dict[freq_symbol + str(transmon_idx)] = base_freq + transmon_idx * freq_offset
+
+    for transmon_idx in range(num_transmons):
+        var_dict[anharm_symbol + str(transmon_idx)] = anharm
+
+    var_dict[drive_symbol] = drive_strength
+    var_dict[coupling_symbol] = coupling_strength
+
+    # construct transmon dimension dictionary
+    dim_dict = {str(idx) : dim_transmons for idx in range(num_transmons)}
+
+    return {'h_str': hamiltonian_str, 'vars': var_dict, 'qub': dim_dict}
+
 
 
 '''
 functions for hamiltonian strings
 '''
 
-def _full_single_q_terms(freq_symbol, anharm_symbol, num_qubits):
+def _full_single_transmon_drift_terms(freq_symbol, anharm_symbol, num_transmons):
+    """Returns a complete list of single transmon Hamiltonian strings, using freq_symbol and
+    anharm_symbol as the base string for frequency and anharmonicity symbols.
 
-    qubit_list = list(range(num_qubits))
-    freq_str_list = [freq_symbol + str(idx) for idx in qubit_list]
-    anharm_str_list = [anharm_symbol + str(idx) for idx in qubit_list]
+    E.g. _full_single_transmon_terms('v', 'alpha', 2) returns
+    ['np.pi*(2*v0-alpha0)*O0', 'np.pi*(2*v1-alpha1)*O1', 'np.pi*alpha0*O0*O0', 'np.pi*alpha1*O1*O1']
 
-    harm_terms = _harmonic_oscillator_str_list(freq_str_list, anharm_str_list, qubit_list)
-    anharm_terms = _anharmonic_oscillator_str_list(anharm_str_list, qubit_list)
+    Args:
+        freq_symbol (str): string to use for frequency symbols
+        anharm_symbol (str): string to use for anharmonicity symbols
+        num_transmons (int): number of transmons
+
+    Returns:
+        list of strings of single transmon terms
+
+    Raises:
+    """
+
+    transmon_list = list(range(num_transmons))
+    freq_str_list = [freq_symbol + str(idx) for idx in transmon_list]
+    anharm_str_list = [anharm_symbol + str(idx) for idx in transmon_list]
+
+    harm_terms = _harmonic_oscillator_str_list(freq_str_list, anharm_str_list, transmon_list)
+    anharm_terms = _anharmonic_oscillator_str_list(anharm_str_list, transmon_list)
 
     return harm_terms + anharm_terms
+
+def _full_drive_terms(drive_symbol, num_systems, all_same_drive=False):
+    """Returns a list of single system drive terms, using drive_symbol as the base string for
+    drive strengths
+
+    Args:
+        drive_symbol (str): base string to use for drive strengths
+        num_systems (int): number of systems
+        all_same_drive (bool): if False, each drive strength is given a unique symbol,
+                               e.g. 'r0', 'r1', ... . If True drive_symbol is used as the strength
+                               for all drive terms
+
+    Returns:
+        list of strings of system drive terms
+
+    Raises:
+    """
+
+    system_list = list(range(num_systems))
+
+    if all_same_drive:
+        drive_str_list = [drive_symbol] * num_systems
+    else:
+        drive_str_list = [drive_symbol + str(idx) for idx in system_list]
+
+    return _qubit_drive_str_list(drive_str_list, system_list)
+
+def _full_exchange_coupling_terms(coupling_symbol, edges, all_same_coupling=False):
+    """Returns a list of exchange coupling terms, according to the edges specified in edges
+    (a list of tuples).
+
+    Args:
+        coupling_symbol (str): base string to use for coupling strengths
+        edges (iterable): An iterable of tuples of ints
+        all_same_coupling (bool): if False, each coupling term is given a unique symbol, if True,
+                               all are given the symbol coupling_symbol
+
+
+    Returns:
+        list of strings of coupling terms
+
+    Raises:
+    """
+
+    # unzip edges
+    q1_idx_list, q2_idx_list = zip(*edges)
+
+    if all_same_coupling:
+        coupling_str_list = [coupling_symbol] * len(edges)
+    else:
+        coupling_str_list = [coupling_symbol + str(idx1) + str(idx2) for idx1, idx2 in edges]
+
+    return _exchange_coupling_str_list(coupling_str_list, q1_idx_list, q2_idx_list)
+
+def _full_u_channel_terms(drive_symbol, edges, all_same_drive=False):
+    """Returns a list of u channel terms given edges representing couplings. The u channels are
+    labelled as U0, U1, U2, ... in the order that the edges are specified. Note that this function
+    only needs the first entry of every edge, but this function takes the full edges specification
+    for consistency with other functions.
+
+    Args:
+        drive_symbol (str): base string to use for drive strengths
+        edges (iterable): An iterable of tuples of ints
+        all_same_drive (bool): if False, each coupling term is given a unique symbol, if True,
+                               all are given the symbol drive_symbol
+
+
+    Returns:
+        list of strings of u channel drive terms
+
+    Raises:
+    """
+
+    # unzip edges
+    q1_idx_list, q2_idx_list = zip(*edges)
+
+    if all_same_drive:
+        drive_str_list = [drive_symbol] * len(edges)
+    else:
+        drive_str_list = [drive_symbol + str(idx1) + str(idx2) for idx1, idx2 in edges]
+
+    return _u_drive_str_list(drive_str_list, q1_idx_list, range(len(edges)))
+
 
 '''
 functions for types of terms
@@ -88,14 +273,14 @@ def _str_list_generator(str_template, *args):
     Raises:
     """
 
-    args = [_arg_to_list(arg) for arg in args]
+    args = [_arg_to_iterable(arg) for arg in args]
     return [str_template.format(*zipped_arg) for zipped_arg in zip(*args)]
 
-def _arg_to_list(arg):
+def _arg_to_iterable(arg):
     '''
     check if arg is a list, if not put it into a list
     '''
-    if isinstance(arg, list):
+    if isinstance(arg, Iterable):
         return arg
 
     return [arg]
