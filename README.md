@@ -31,7 +31,6 @@ from qiskit import Aer, IBMQ  # import the Aer and IBMQ providers
 from qiskit.providers.aer import noise  # import Aer noise models
 
 # Choose a real device to simulate
-IBMQ.save_account(token)
 provider = IBMQ.load_account()
 device = provider.get_backend('ibmq_16_melbourne')
 properties = device.properties()
