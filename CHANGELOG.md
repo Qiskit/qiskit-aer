@@ -37,7 +37,7 @@ Fixed
 Added
 -----
 - Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
-- MPS simulation method: added support for ``mcx`` (\#454)
+- MPS simulation method: added support for ``ccx`` (\#454)
 
 Changed
 -------
