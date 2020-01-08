@@ -275,6 +275,10 @@ public:
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix_mac(const reg_t &qubits, const cvector_t<double> &mat);
+
+  // Apply a N-qubit diagonal matrix to the state vector.
+  // The matrix is input as vector of the matrix diagonal.
+  void apply_diagonal_matrix_mac(const reg_t &qubits, const cvector_t<double> &mat);
 #endif
 
   //-----------------------------------------------------------------------
@@ -1238,7 +1242,9 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-
+#ifdef SIMD_MAC
+  apply_diagonal_matrix_mac(qubits, diag);
+#else
   const int_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
@@ -1262,6 +1268,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
     }
   };
   apply_lambda(lambda, areg_t<1>({{qubits[0]}}), convert(diag));
+#endif //#ifdef SIMD_MAC
 }
 
 template <typename data_t>
@@ -2178,6 +2185,7 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
 #endif
 
 const __m256d neg = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);
+const __m128d neg_128d = _mm_setr_pd(1.0, -1.0);
 
 inline __m256d mul(__m256d const& c1, __m256d const& c2, __m256d const& c2_perm){
     auto acbd = _mm256_mul_pd(c1, c2);
@@ -2543,6 +2551,57 @@ void QubitVector<data_t>::apply_matrix_mac(const uint_t qubit,
       data_[inds[1]] = _mat[1] * cache + _mat[3] * data_[inds[1]];
     };
     apply_lambda(lambda, qubits, convert(mat));
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_diagonal_matrix_mac(const reg_t &qubits,
+                                                const cvector_t<double> &diag) {
+  const int_t N = qubits.size();
+  // Error checking
+  #ifdef DEBUG
+  check_vector(diag, N);
+  #endif
+
+  if (N == 1) {
+    apply_diagonal_matrix(qubits[0], diag);
+    return;
+  }
+
+  if(type_double) {
+    auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_diag)->void {
+      for (int_t i = 0; i < 2; ++i) {
+        const int_t k = inds[i];
+        int_t iv = 0;
+        for (int_t j = 0; j < N; j++)
+          if ((k & (1ULL << qubits[j])) != 0)
+            iv += (1 << j);
+        if (_diag[iv] != (data_t) 1.0){
+            std::complex<double> test;
+            __m128d mat_vec = _mm_loadu_pd((double *)&_diag[iv]);
+            __m128d ba = _mm_permute_pd(mat_vec, 1);
+            __m128d mat_perm = _mm_mul_pd(ba, neg_128d);
+            __m128d vec = _mm_loadu_pd((double *)&data_[k]);
+            __m128d tmp = _mm_mul_pd(vec, mat_vec);
+            __m128d tmp_perm = _mm_mul_pd(vec, mat_perm);
+            _mm_store_pd((double *)&data_[k], _mm_hsub_pd(tmp, tmp_perm));
+        }
+      }
+    };
+    apply_lambda(lambda, areg_t<1>({{qubits[0]}}), convert(diag));
+  } else {
+    auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_diag)->void {
+      for (int_t i = 0; i < 2; ++i) {
+        const int_t k = inds[i];
+        int_t iv = 0;
+        for (int_t j = 0; j < N; j++)
+          if ((k & (1ULL << qubits[j])) != 0)
+            iv += (1 << j);
+        if (_diag[iv] != (data_t) 1.0)
+          data_[k] *= _diag[iv];
+      }
+    };
+    apply_lambda(lambda, areg_t<1>({{qubits[0]}}), convert(diag));
   }
 }
 
