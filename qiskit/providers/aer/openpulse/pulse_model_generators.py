@@ -21,9 +21,9 @@ from .pulse_system_model import PulseSystemModel
 # line for complete graph edges
 # edges = [(i,j) for j in range(num_transmons) for i in range(num_transmons) if j > i]
 
-'''
+"""
 System model generators
-'''
+"""
 # should output also a list for the u channel orderings
 def complete_graph_uniform_transmon_system(num_transmons,
                                            dim_transmons,
@@ -57,13 +57,13 @@ def complete_graph_uniform_transmon_system(num_transmons,
                             qubit_list=list(range(num_transmons)),
                             dt=dt)
 
-'''
+"""
 u_channel_lo specification generators
-'''
+"""
 
-'''
+"""
 Transmon Hamiltonian string format generators
-'''
+"""
 def _uniform_transmon_hamiltonian_dict(num_transmons,
                                        dim_transmons,
                                        edges,
@@ -72,10 +72,10 @@ def _uniform_transmon_hamiltonian_dict(num_transmons,
                                        anharm,
                                        drive_strength,
                                        coupling_strength,
-                                       freq_symbol = 'v',
-                                       anharm_symbol = 'alpha',
-                                       drive_symbol = 'r',
-                                       coupling_symbol = 'j'):
+                                       freq_symbol='v',
+                                       anharm_symbol='alpha',
+                                       drive_symbol='r',
+                                       coupling_symbol='j'):
 
 
     # construct individual qubit terms
@@ -104,9 +104,9 @@ def _uniform_transmon_hamiltonian_dict(num_transmons,
 
 
 
-'''
+"""
 functions for hamiltonian strings
-'''
+"""
 
 def _full_single_transmon_drift_terms(freq_symbol, anharm_symbol, num_transmons):
     """Returns a complete list of single transmon Hamiltonian strings, using freq_symbol and
@@ -218,36 +218,96 @@ def _full_u_channel_terms(drive_symbol, edges, all_same_drive=False):
     return _u_drive_str_list(drive_str_list, q1_idx_list, range(len(edges)))
 
 
-'''
-functions for types of terms
-'''
+"""
+Functions constructing basic hamiltonian strings from templates
+"""
 
 def _harmonic_oscillator_str_list(freq_str_list, anharm_str_list, qubit_idx_list):
+    """Construct list of Hamiltonian strings for harmonic oscillator term
+
+    Args:
+        freq_str_list (list): list of frequency symbols
+        anharm_str_list (list): list of anharmonicity symbols
+        qubit_idx_list (list): list of system indices
+
+    Returns:
+        list of strings
+
+    Raises:
+    """
+
     return _str_list_generator('np.pi*(2*{0}-{1})*O{2}',
                                freq_str_list,
                                anharm_str_list,
                                qubit_idx_list)
 
 def _anharmonic_oscillator_str_list(anharm_str_list, qubit_idx_list):
+    """Construct list of Hamiltonian strings for anharmonic oscillator term
+
+    Args:
+        anharm_str_list (list): list of anharmonicity symbols
+        qubit_idx_list (list): list of system indices
+
+    Returns:
+        list of strings
+
+    Raises:
+    """
+
     return _str_list_generator('np.pi*{0}*O{1}*O{1}',
                                anharm_str_list,
                                qubit_idx_list)
 
 def _qubit_drive_str_list(drive_str_list, qubit_idx_list):
+    """Construct list of Hamiltonian strings for qubit drive term
+
+    Args:
+        drive_str_list (list): list of drive strength symbols
+        qubit_idx_list (list): list of system indices
+
+    Returns:
+        list of strings
+
+    Raises:
+    """
+
     return _str_list_generator('2*np.pi*{0}*X{1}||D{1}',
                                drive_str_list,
                                qubit_idx_list)
 
-def _u_drive_str_list(drive_str_list, qubit_idx_list ,u_idx_list):
+def _u_drive_str_list(drive_str_list, qubit_idx_list, u_idx_list):
+    """Construct list of Hamiltonian strings for u channel drive term
+
+    Args:
+        drive_str_list (list): list of drive strength symbols
+        qubit_idx_list (list): list of system indices
+        u_idx_list (list): list of u channel indices
+
+    Returns:
+        list of strings
+
+    Raises:
     """
-    Should qubit_idx be changed to target_idx??? (Ask Dave)
-    """
+
     return _str_list_generator('2*np.pi*{0}*X{1}||U{2}',
                                drive_str_list,
                                qubit_idx_list,
                                u_idx_list)
 
 def _exchange_coupling_str_list(coupling_str_list, q1_idx_list, q2_idx_list):
+    """Construct list of Hamiltonian strings for exchange coupling
+
+    Args:
+        coupling_str_list (list): list of coupling strength symbols
+        q1_idx_list (list): list of indicies for the first qubit in the coupling
+        q2_idx_list (list): list of indicies for the second qubit in the coupling
+
+    Returns:
+        list of strings
+
+    Raises:
+    """
+
     return _str_list_generator('2*np.pi*{0}*(Sp{1}*Sm{2}+Sm{1}*Sp{2})',
                                coupling_str_list,
                                q1_idx_list,
@@ -264,7 +324,7 @@ def _str_list_generator(str_template, *args):
 
     Args:
         str_template (str): string template
-        args (tuple): assumed to be either tuple of lists of the same length, or a tuple with
+        args (tuple): assumed to be either tuple of iterables of the same length, or a tuple with
                       entries that are either type str or int
 
     Returns:
@@ -277,9 +337,16 @@ def _str_list_generator(str_template, *args):
     return [str_template.format(*zipped_arg) for zipped_arg in zip(*args)]
 
 def _arg_to_iterable(arg):
-    '''
-    check if arg is a list, if not put it into a list
-    '''
+    """Check if arg is an iterable, if not put it into a list.
+
+    Args:
+        arg (Iterable): argument to be checked and turned into an interable if necessary
+
+    Returns:
+        Iterable
+
+    Raises:
+    """
     if isinstance(arg, Iterable):
         return arg
 
