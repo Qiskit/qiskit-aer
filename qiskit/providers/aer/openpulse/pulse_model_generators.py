@@ -53,7 +53,7 @@ def transmon_system_model(num_transmons,
     drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
     sorted_coupling_edges = coupling_graph.sorted_graph
     coupling_strengths = [coupling_dict[edge] for edge in sorted_coupling_edges]
-    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', coupling_graph.)
+    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', coupling_graph)
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
     hamiltonian_dict = _transmon_hamiltonian_dict(transmons=transmons,
@@ -228,16 +228,39 @@ Helper classes
 
 class _coupling_graph:
     """
-    Helper class containing some functionality for representing coupling graphs. The main points
-    are: having a representation that is set-like (self.graph), having a fixed ordering of edges
-    (self.sorted_graph), and having a fixed ordering for bi-directional edges
-    (self.sorted_two_way_graph) for setting up CR channels.
+    Helper class containing functionality for representing coupling graphs, with the main goal to
+    construct different representations for different purposes:
+        - self.graph: graph as a set of edges stored as frozen sets, e.g.
+                    {frozenset({0,1}), frozenset({1,2}), frozenset({2,3})}
+        - self.sorted_graph: graph as a list of tuples in lexicographic order, e.g.
+                    [(0,1), (1,2), (2,3)]
+          Note: these are actively ordered by the object, as the point is to have a canonical
+          ordering of edges. The integers in the tuples are also ordered.
+        - self.sorted_two_way_graph: list of tuples where each edge is repeated with the vertices
+          reversed. The ordering is the same as in sorted_graph, with the duplicate appearing
+          immediately after the original, e.g.
+                    [(0,1), (1,0), (1,2), (2,1), (2,3), (3,2)]
+        - self.two_way_graph_dict: same as above, but in dict form, e.g.
+                    {(0,1) : 0, (1,0) : 1, (1,2) : 2, (2,1) : 3, (2,3) : 4, (3,2) : 5}
     """
 
     def __init__(self, edges):
+        """returns _coupling_graph object
 
+        Args:
+            edges (Iterable): An iterable of iterables, where the inner interables are assumed to
+                              contain two elements, e.g. [(0,1), (2,3)], or ((0,1), (2,3))
+
+        Returns:
+            _coupling_graph
+
+        Raises:
+        """
+
+        # create the set representation of the graph
         self.graph = {frozenset({idx1, idx2}) for idx1, idx2 in edges}
 
+        # created the sorted list representation
         graph_list = []
         for edge in self.graph:
             edge_list = list(edge)
@@ -245,9 +268,9 @@ class _coupling_graph:
             graph_list.append(tuple(edge_list))
 
         graph_list.sort()
-
         self.sorted_graph = graph_list
 
+        # create the sorted_two_way_graph
         two_way_graph_list = []
         for edge in self.sorted_graph:
             two_way_graph_list.append(edge)
@@ -255,12 +278,33 @@ class _coupling_graph:
 
         self.sorted_two_way_graph = two_way_graph_list
 
+        # create the dictionary version
         self.two_way_graph_dict = {self.sorted_two_way_graph[k] : k for k in range(len(self.sorted_two_way_graph))}
 
     def sorted_edge_index(self, edge):
+        """Given an edge, returns the index in self.sorted_graph. Order in edge does not matter.
+
+        Args:
+            edge (Iterable): an iterable containing two integers
+
+        Returns:
+            int
+
+        Raises:
+        """
         edge_list = list(edge)
         edge_list.sort()
-        return self.sorted_graph.index(tuple(edge))
+        return self.sorted_graph.index(tuple(edge_list))
 
-    def two_way_edge_index(self, edge):
+    def two_way_edge_index(self, directed_edge):
+        """Given a directed edge, returns the index in self.sorted_two_way_graph
+
+        Args:
+            directed_edge (Iterable): an iterable containing two integers
+
+        Returns:
+            int
+
+        Raises:
+        """
         return self.two_way_graph_dict[tuple(edge)]
