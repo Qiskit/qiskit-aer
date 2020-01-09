@@ -25,6 +25,91 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
     def setUp(self):
         pass
 
+    def test_transmon_hamiltonian_dict(self):
+        """Test _transmon_hamiltonian_dict"""
+
+        transmons = [0, 1]
+        transmon_dims = [2, 2]
+        transmon_freqs = [5.0, 5.1]
+        freq_symbols = ['v0', 'v1']
+        anharm_freqs = [-0.33, -0.33]
+        anharm_symbols = ['a0', 'a1']
+        drive_strengths = [1.1, 1.2]
+        drive_symbols = ['r0', 'r1']
+        ordered_coupling_edges = [(0,1)]
+        coupling_strengths = [0.02]
+        coupling_symbols = ['j']
+        cr_idx_dict = {(0,1): 0}
+
+        expected = {'h_str': ['np.pi*(2*v0-a0)*O0','np.pi*(2*v1-a1)*O1',
+                              'np.pi*a0*O0*O0', 'np.pi*a1*O1*O1',
+                              '2*np.pi*r0*X0||D0', '2*np.pi*r1*X1||D1',
+                              '2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)',
+                              '2*np.pi*r0*X0||U0'],
+                    'vars': {'v0': 5.0, 'v1': 5.1,
+                             'a0': -0.33, 'a1' : -0.33,
+                             'r0': 1.1, 'r1' : 1.2,
+                             'j' : 0.02},
+                    'qub': {'0': 2, '1': 2}}
+        output = model_gen._transmon_hamiltonian_dict(transmons,
+                                                      transmon_dims,
+                                                      transmon_freqs,
+                                                      freq_symbols,
+                                                      anharm_freqs,
+                                                      anharm_symbols,
+                                                      drive_strengths,
+                                                      drive_symbols,
+                                                      ordered_coupling_edges,
+                                                      coupling_strengths,
+                                                      coupling_symbols,
+                                                      cr_idx_dict)
+        self._compare_str_lists(output['h_str'], expected['h_str'])
+        self.assertEqual(output['vars'], expected['vars'])
+        self.assertEqual(output['qub'], expected['qub'])
+
+        # test 3 transmons with mixed up inputs
+        transmons = [0, 1, 2]
+        transmon_dims = [2, 2, 3]
+        transmon_freqs = [5.0, 5.1, 4.9]
+        freq_symbols = ['v0', 'v1', 'x3']
+        anharm_freqs = [-0.33, -0.33, 1.]
+        anharm_symbols = ['a0', 'a1', 'z4']
+        drive_strengths = [1.1, 1.2, 0.98]
+        drive_symbols = ['r0', 'r1', 'sa']
+        ordered_coupling_edges = [(0,1), (1,2), (2,0)]
+        coupling_strengths = [0.02, 0.1, 0.33]
+        coupling_symbols = ['j', 's', 'r']
+        cr_idx_dict = {(0,1): 0, (2,0): 1, (1,2): 2}
+
+        expected = {'h_str': ['np.pi*(2*v0-a0)*O0','np.pi*(2*v1-a1)*O1', 'np.pi*(2*x3-z4)*O2',
+                              'np.pi*a0*O0*O0', 'np.pi*a1*O1*O1', 'np.pi*z4*O2*O2',
+                              '2*np.pi*r0*X0||D0', '2*np.pi*r1*X1||D1', '2*np.pi*sa*X2||D2',
+                              '2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)','2*np.pi*s*(Sp1*Sm2+Sm1*Sp2)',
+                              '2*np.pi*r*(Sp0*Sm2+Sm0*Sp2)',
+                              '2*np.pi*r0*X0||U0', '2*np.pi*sa*X2||U1', '2*np.pi*r1*X1||U2'],
+                    'vars': {'v0': 5.0, 'v1': 5.1, 'x3': 4.9,
+                             'a0': -0.33, 'a1' : -0.33, 'z4': 1.,
+                             'r0': 1.1, 'r1' : 1.2, 'sa': 0.98,
+                             'j' : 0.02, 's': 0.1, 'r': 0.33},
+                    'qub': {'0': 2, '1': 2, '2': 3}}
+        output = model_gen._transmon_hamiltonian_dict(transmons,
+                                                      transmon_dims,
+                                                      transmon_freqs,
+                                                      freq_symbols,
+                                                      anharm_freqs,
+                                                      anharm_symbols,
+                                                      drive_strengths,
+                                                      drive_symbols,
+                                                      ordered_coupling_edges,
+                                                      coupling_strengths,
+                                                      coupling_symbols,
+                                                      cr_idx_dict)
+        self._compare_str_lists(output['h_str'], expected['h_str'])
+        self.assertEqual(output['vars'], expected['vars'])
+        self.assertEqual(output['qub'], expected['qub'])
+
+
+
     def test_cr_lo_list(self):
         """Test _cr_lo_list"""
 
@@ -131,3 +216,20 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
         # test two_way_edge_index, and that it treats (1,2) and (2,1) as different
         self.assertEqual(coupling_graph.two_way_edge_index((1,2)), 2)
         self.assertEqual(coupling_graph.two_way_edge_index((2,1)), 3)
+
+    def _compare_str_lists(self, list1, list2):
+        """Helper function for checking that the contents of string lists are the same when order
+        doesn't matter.
+
+        Args:
+            list1 (list): A list of strings
+            list2 (list): A list of strings
+        """
+
+        list1_copy = list1.copy()
+        list2_copy = list1.copy()
+        self.assertEqual(len(list1_copy), len(list2_copy))
+        list1_copy.sort()
+        list2_copy.sort()
+        for str1, str2 in zip(list1_copy, list2_copy):
+            self.assertEqual(str1, str2)

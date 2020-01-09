@@ -97,15 +97,37 @@ def _transmon_hamiltonian_dict(transmons,
                                coupling_strengths,
                                coupling_symbols,
                                cr_idx_dict):
-    """
-    assumptions:
-    transmons, transmon_freqs, anharm_freqs, drive_strengths, freq_symbols, anharm_symbols,
-    drive_symbols all are same length and are in corresponding order
+    """Creates a hamiltonian string dict based on the arguments.
 
-    ordered_coupling_graph, coupling_strength, and coupling_symbols are all same length and in
-    corresponding order
+    Note, this function makes the following assumptions:
+        - transmons, transmon_dims, transmon_freqs, freq_symbols, anharm_freqs, anharm_symbols,
+          drive_strengths, and drive_symbols are all lists of the same length (i.e. the total
+          transmon number)
+        - ordered_coupling_edges, coupling_strengths, and coupling_symbols are lists of the same
+          length
 
-    cr_idx_dict can be of any length
+    Args:
+        transmons (list): ints for transmon labels
+        transmon_dims (list): ints for transmon dimensions
+        transmon_freqs (list): transmon frequencies
+        freq_symbols (list): symbols to be used for transmon frequencies
+        anharm_freqs (list): anharmonicity values
+        anharm_symbols (list): symbols to be used for anharmonicity terms
+        drive_strengths (list): drive strength coefficients
+        drive_symbols (list): symbols for drive coefficients
+        ordered_coupling_edges (list): tuples of two ints specifying transmon couplings. Order
+                                       corresponds to order of coupling_strengths and
+                                       coupling_symbols
+        coupling_strengths (list): strength of each coupling term (corresponds to ordering of
+                                   ordered_coupling_edges)
+        coupling_symbols (list): symbols for coupling coefficients
+        cr_idx_dict (dict): A dict with keys given by tuples containing two ints, and value an int,
+                            representing cross resonance drive channels. E.g. an entry {(0,1) : 1}
+                            specifies a CR drive on qubit 0 with qubit 1 as target, with u_channel
+                            index 1.
+
+    Returns:
+        dict for hamiltonian string format
     """
 
     # single transmon terms
@@ -122,6 +144,7 @@ def _transmon_hamiltonian_dict(transmons,
     var_dict = {}
     for idx in transmons:
         var_dict[freq_symbols[idx]] = transmon_freqs[idx]
+        var_dict[anharm_symbols[idx]] = anharm_freqs[idx]
         var_dict[drive_symbols[idx]] = drive_strengths[idx]
 
     for symbol, strength in zip(coupling_symbols, coupling_strengths):
