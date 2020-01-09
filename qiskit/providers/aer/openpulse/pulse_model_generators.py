@@ -146,7 +146,15 @@ Functions for creating Hamiltonian strings for various types of terms
 """
 
 def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
+    """Harmonic and anharmonic drift terms
 
+    Args:
+        freq_symbols (list): coefficients for harmonic part
+        anharm_symbols (list): coefficients for anharmonic part
+        transmon_list (list): list of transmon indices
+    Returns:
+        list of strings
+    """
 
     harm_terms = _str_list_generator('np.pi*(2*{0}-{1})*O{2}',
                                      freq_symbols,
@@ -159,12 +167,28 @@ def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
     return harm_terms + anharm_terms
 
 def _drive_terms(drive_symbols, transmon_list):
+    """Drive terms for single transmon
+
+    Args:
+        drive_symbols (list): coefficients of drive terms
+        transmon_list (list): list of transmon indices
+    Returns:
+        list of strings
+    """
 
     return _str_list_generator('2*np.pi*{0}*X{1}||D{1}',
                                drive_symbols,
                                transmon_list)
 
 def _exchange_coupling_terms(coupling_symbols, ordered_edges):
+    """Exchange coupling between transmons
+
+    Args:
+        coupling_symbols (list): coefficients of exchange couplings
+        ordered_edges (list): list tuples of transmon indices for the couplings
+    Returns:
+        list of strings
+    """
 
     idx1_list, idx2_list = zip(*list(ordered_edges))
 
@@ -175,6 +199,15 @@ def _exchange_coupling_terms(coupling_symbols, ordered_edges):
 
 
 def _cr_terms(drive_symbols, driven_transmon_indices, u_channel_indices):
+    """Cross resonance drive terms
+
+    Args:
+        drive_symbols (list): coefficients for drive terms
+        driven_transmon_indices (list): list of indices for transmons that drive is applied to
+        u_channel_indices (list): indicies for the u_channels corresponding to each term
+    Returns:
+        list of strings
+    """
 
     return _str_list_generator('2*np.pi*{0}*X{1}||U{2}',
                                drive_symbols,
