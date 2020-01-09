@@ -17,9 +17,9 @@ import unittest
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.openpulse import pulse_model_generators as model_gen
+from qiskit.providers.aer.openpulse import transmon_model_generators as model_gen
 
-class TestPulseModelGenerators(QiskitAerTestCase):
+class TestTransmonModelGenerators(QiskitAerTestCase):
     """Tests for functions in pulse_model_generators.py"""
 
     def setUp(self):
