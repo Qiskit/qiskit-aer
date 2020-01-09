@@ -25,6 +25,14 @@ class TestPulseModelGenerators(QiskitAerTestCase):
     def setUp(self):
         pass
 
+    def test_arg_to_iterable(self):
+        """Test _arg_to_iterable """
+
+        self.assertEqual(model_gen._arg_to_iterable('a'), ['a'])
+        self.assertEqual(model_gen._arg_to_iterable(['a']), ['a'])
+        self.assertEqual(model_gen._arg_to_iterable(('a','b')), ('a','b'))
+        self.assertEqual(model_gen._arg_to_iterable({'a','b'}), {'a','b'})
+
     def test_coupling_graph(self):
         """Test _coupling_graph class"""
 

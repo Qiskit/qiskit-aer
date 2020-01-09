@@ -206,7 +206,9 @@ def _str_list_generator(str_template, *args):
     return [str_template.format(*zipped_arg) for zipped_arg in zip(*args)]
 
 def _arg_to_iterable(arg):
-    """Check if arg is an iterable, if not put it into a list.
+    """Check if arg is an iterable, if not put it into a list. The purpose is to allow arguments
+    of functions to be either lists or singletons, e.g. instead of having to pass ['a'], 'a' can be
+    passed directly.
 
     Args:
         arg (Iterable): argument to be checked and turned into an interable if necessary
@@ -216,6 +218,9 @@ def _arg_to_iterable(arg):
 
     Raises:
     """
+    if isinstance(arg, int) or isinstance(arg, str):
+        return [arg]
+
     if isinstance(arg, Iterable):
         return arg
 
@@ -307,4 +312,4 @@ class _coupling_graph:
 
         Raises:
         """
-        return self.two_way_graph_dict[tuple(edge)]
+        return self.two_way_graph_dict[tuple(directed_edge)]
