@@ -14,10 +14,71 @@
 
 "Helper functions for creating HamiltonianModel and PulseSystemModel objects"
 
+from warnings import warn
 from collections.abc import Iterable
 from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
 
+"""
+functions for constructing transmon system models
+"""
+
+def transmon_system_model(num_transmons,
+                          dim_transmons,
+                          transmon_freqs,
+                          anharm_freqs,
+                          drive_strengths,
+                          coupling_dict,
+                          dt,
+                          freq_symbol='v',
+                          anharm_symbol='alpha',
+                          drive_symbol='r',
+                          coupling_symbol='j'):
+    """
+    coupling dict is of the form {edge : strength}
+    """
+    coupling_edges = coupling_dict.keys()
+
+    # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
+    coupling_graph = _coupling_graph(coupling_edges)
+    if len(coupling_graph.graph) < len(coupling_edges):
+        warn('Warning: The coupling_dict contains diplicate edges, and the second appearance of \
+              the same edge will be ignored.')
+
+    # construct the HamiltonianModel
+    transmons = list(range(num_transmons))
+    transmon_dims = [dim_transmons]*num_transmons
+    freq_symbols = _str_list_generator(freq_symbol + '{0}', transmons)
+    anharm_symbols = _str_list_generator(anharm_symbol + '{0}', transmons)
+    drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
+    sorted_coupling_edges = coupling_graph.sorted_graph
+    coupling_strengths = [coupling_dict[edge] for edge in sorted_coupling_edges]
+    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', coupling_graph.)
+    cr_idx_dict = coupling_graph.two_way_graph_dict
+
+    hamiltonian_dict = _transmon_hamiltonian_dict(transmons=transmons,
+                                                  transmon_dims=transmon_dims,
+                                                  transmon_freqs=transmon_freqs,
+                                                  freq_symbols=freq_symbols,
+                                                  anharm_freqs=anharm_freqs,
+                                                  anharm_symbols=anharm_symbols,
+                                                  drive_strengths=drive_strengths,
+                                                  drive_symbols=drive_symbols,
+                                                  ordered_coupling_edges=sorted_coupling_edges,
+                                                  coupling_strengths=coupling_strengths,
+                                                  coupling_symbols=coupling_symbols,
+                                                  cr_idx_dict=cr_idx_dict)
+
+    hamiltonian_model = HamiltonianModel.from_dict(hamiltonian_dict)
+
+    # construct the u_channel_lo list
+    u_channel_lo = _cr_lo_list(cr_idx_dict)
+
+    return PulseSystemModel(hamiltonian=ham_model,
+                            u_channel_lo=u_channel_lo,
+                            qubit_list=transmons,
+                            dt=dt),
+           cr_idx_dict
 
 """
 Helper functions for creating pieces necessary to construct transmon system models
@@ -31,7 +92,7 @@ def _transmon_hamiltonian_dict(transmons,
                                anharm_symbols,
                                drive_strengths,
                                drive_symbols,
-                               sorted_coupling_graph,
+                               ordered_coupling_edges,
                                coupling_strengths,
                                coupling_symbols,
                                cr_idx_dict):
@@ -40,7 +101,7 @@ def _transmon_hamiltonian_dict(transmons,
     transmons, transmon_freqs, anharm_freqs, drive_strengths, freq_symbols, anharm_symbols,
     drive_symbols all are same length and are in corresponding order
 
-    sorted_coupling_graph, coupling_strength, and coupling_symbols are all same length and in
+    ordered_coupling_graph, coupling_strength, and coupling_symbols are all same length and in
     corresponding order
 
     cr_idx_dict can be of any length
@@ -51,7 +112,7 @@ def _transmon_hamiltonian_dict(transmons,
     hamiltonian_str += _drive_terms(drive_symbols, transmons)
 
     # two transmon terms
-    hamiltonian_str += _exchange_coupling_terms(coupling_symbols, sorted_coupling_graph)
+    hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
     driven_transmon_indices = [key[0] for key in cr_idx_dict.keys()]
     cr_channel_idx = cr_idx_dict.values()
     hamiltonian_str += _cr_terms(drive_symbols, driven_transmon_indices, cr_channel_idx)
@@ -80,7 +141,7 @@ def _cr_lo_list(cr_idx_dict):
 
 
 """
-Functions for creating Hamiltonian strings for certain types of terms
+Functions for creating Hamiltonian strings for various types of terms
 """
 
 def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
