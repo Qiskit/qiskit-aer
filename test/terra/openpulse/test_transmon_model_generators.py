@@ -25,6 +25,21 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
     def setUp(self):
         pass
 
+    def test_cr_lo_list(self):
+        """Test _cr_lo_list"""
+
+        cr_dict = {(0,1): 0, (1,0) : 1, (3,4) : 2}
+        expected = [[{'scale' : [1.0, 0], 'q' : 1}],
+                    [{'scale' : [1.0, 0], 'q' : 0}],
+                    [{'scale' : [1.0, 0], 'q' : 4}]]
+        self.assertEqual(model_gen._cr_lo_list(cr_dict), expected)
+
+        cr_dict = {(0,1): 0, (3,4) : 2, (1,0) : 1}
+        expected = [[{'scale' : [1.0, 0], 'q' : 1}],
+                    [{'scale' : [1.0, 0], 'q' : 0}],
+                    [{'scale' : [1.0, 0], 'q' : 4}]]
+        self.assertEqual(model_gen._cr_lo_list(cr_dict), expected)
+
     def test_single_term_generators(self):
         """Test various functions for individual terms:
         _single_transmon_drift_terms, _drive_terms, _exchange_coupling_terms, _cr_terms

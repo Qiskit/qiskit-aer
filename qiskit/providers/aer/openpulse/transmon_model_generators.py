@@ -132,11 +132,27 @@ def _transmon_hamiltonian_dict(transmons,
     return {'h_str': hamiltonian_str, 'vars': var_dict, 'qub': dim_dict}
 
 def _cr_lo_list(cr_idx_dict):
+    """Generates u_channel_lo list for a PulseSystemModel from a cr_idx_dict.
+
+    Args:
+        cr_idx_dict (dict): A dictionary with keys given by tuples of ints with int values. A key,
+                            e.g. (0,1), signifies CR drive on qubit 0 with target 1, and the value
+                            is the u channel index corresponding to that drive.
+                            Note: this function assumes that
+                            cr_idx_dict.values() == range(len(cr_idx_dict)).
+
+    Returns:
+        list in the u_channel_lo format required by the simulator
+    """
+
+    """
+    Note: this function assumes that cr_idx_dict.values()==range(len(cr_idx_dict))
+    """
 
     # populate list of u channel lo for cr gates
     lo_list = [0]*len(cr_idx_dict)
     for qubit_pair, u_idx in cr_idx_dict.items():
-        lo_list[u_idx] = [{'scale' : [1.0, 0.0], 'q' : qubit_pair[0]}]
+        lo_list[u_idx] = [{'scale' : [1.0, 0.0], 'q' : qubit_pair[1]}]
 
     return lo_list
 
