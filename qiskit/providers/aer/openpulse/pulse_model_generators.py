@@ -74,11 +74,12 @@ def transmon_system_model(num_transmons,
     # construct the u_channel_lo list
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
-    return PulseSystemModel(hamiltonian=ham_model,
-                            u_channel_lo=u_channel_lo,
-                            qubit_list=transmons,
-                            dt=dt),
-           cr_idx_dict
+    system_model = PulseSystemModel(hamiltonian=ham_model,
+                                    u_channel_lo=u_channel_lo,
+                                    qubit_list=transmons,
+                                    dt=dt)
+
+    return system_model, cr_idx_dict
 
 """
 Helper functions for creating pieces necessary to construct transmon system models

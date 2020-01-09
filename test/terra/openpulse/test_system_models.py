@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Tests for option handling in digest.py
+Tests for PulseSystemModel and HamiltonianModel functionality
 """
 
 import unittest
@@ -24,7 +24,7 @@ from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
-    """Testing of functions in providers.aer.openpulse.qobj.digest."""
+    """Tests for PulseSystemModel"""
 
     def setUp(self):
         self._default_qubit_lo_freq = [4.9, 5.0]
