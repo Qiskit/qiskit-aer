@@ -25,6 +25,24 @@ class TestPulseModelGenerators(QiskitAerTestCase):
     def setUp(self):
         pass
 
+    def test_str_list_generator(self):
+        """Test _str_list_generator"""
+
+
+        # test one argument
+        template = 'First: {0}'
+        self.assertEqual(model_gen._str_list_generator(template, 'a'), ['First: a'])
+        self.assertEqual(model_gen._str_list_generator(template, ['a1', 'a2']),
+                         ['First: a1', 'First: a2'])
+
+        # test multiple arguments
+        template = 'First: {0}, Second: {1}'
+        self.assertEqual(model_gen._str_list_generator(template, 'a', 'b'),
+                         ['First: a, Second: b'])
+        self.assertEqual(model_gen._str_list_generator(template, ['a1', 'a2'], ['b1', 'b2']),
+                         ['First: a1, Second: b1', 'First: a2, Second: b2'])
+
+
     def test_arg_to_iterable(self):
         """Test _arg_to_iterable """
 
