@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 "Helper functions for creating HamiltonianModel and PulseSystemModel objects"
 
@@ -19,9 +20,6 @@ from collections.abc import Iterable
 from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
 
-"""
-functions for constructing transmon system models
-"""
 
 def transmon_system_model(num_transmons,
                           dim_transmons,
@@ -44,22 +42,26 @@ def transmon_system_model(num_transmons,
         dim_transmons (int): dimension of truncation for each transmon
         transmon_freqs (list): transmon frequencies
         anharm_freqs (list): anharmonicity values
+        drive_strengths (list): drive strength values
         coupling_dict (dict): specification of the coupling graph with keys being edges, and values
                               being the strength of the coupling. E.g.
                                {(0, 1): 0.02, (1,3): 0.01}
                                specifies a system with couplings between qubits 0-1 and 1-3,
                                with respective coupling strengths of 0.02, and 0.01
         dt (float): pixel size for pulse instructions
+        freq_symbol (str): frequency symbol for internal HamiltonianModel
+        anharm_symbol (str): anharmonicity symbol for internal HamiltonianModel
+        drive_symbol (str): drive symbol for internal HamiltonianModel
+        coupling_symbol (str): coupling symbol for internal HamiltonianModel
 
     Returns:
-        system_model (PulseSystemModel): the generated transmon system model
-        cr_idx_dict (dict): Dictionary specifying u channel index to use for a specified CR drive;
-                            I.e. to specify a CR drive with qubits (drive, target), use the
-                            u channel with index cr_idx_dict[(drive, target)].
-                            E.g. for the coupling_dict {(0, 1): 0.02, (1,3): 0.01}, the
-                            corresponding cr_idx_dict will be
-                            {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
-
+        tuple[PulseSystemModel, dict]: the generated transmon system model, and a dict specifying
+                                       u channel index to use for a specified CR drive;
+                                       I.e. to specify a CR drive with qubits (drive, target), use
+                                       the u channel with index cr_idx_dict[(drive, target)].
+                                       E.g. for the coupling_dict {(0, 1): 0.02, (1,3): 0.01}, the
+                                       corresponding cr_idx_dict will be
+                                       {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
     """
 
     coupling_edges = coupling_dict.keys()
@@ -72,7 +74,7 @@ def transmon_system_model(num_transmons,
 
     # construct the HamiltonianModel
     transmons = list(range(num_transmons))
-    transmon_dims = [dim_transmons]*num_transmons
+    transmon_dims = [dim_transmons] * num_transmons
     freq_symbols = _str_list_generator(freq_symbol + '{0}', transmons)
     anharm_symbols = _str_list_generator(anharm_symbol + '{0}', transmons)
     drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
@@ -112,9 +114,9 @@ def transmon_system_model(num_transmons,
 
     return system_model, cr_idx_dict
 
-"""
-Helper functions for creating pieces necessary to construct transmon system models
-"""
+
+# Helper functions for creating pieces necessary to construct transmon system models
+
 
 def _transmon_hamiltonian_dict(transmons,
                                transmon_dims,
@@ -158,7 +160,7 @@ def _transmon_hamiltonian_dict(transmons,
                             index 1.
 
     Returns:
-        dict for hamiltonian string format
+        dict: hamiltonian string format
     """
 
     # single transmon terms
@@ -184,9 +186,10 @@ def _transmon_hamiltonian_dict(transmons,
     for symbol, strength in zip(coupling_symbols, coupling_strengths):
         var_dict[symbol] = strength
 
-    dim_dict = {str(transmon) : dim for transmon, dim in zip(transmons, transmon_dims)}
+    dim_dict = {str(transmon): dim for transmon, dim in zip(transmons, transmon_dims)}
 
     return {'h_str': hamiltonian_str, 'vars': var_dict, 'qub': dim_dict}
+
 
 def _cr_lo_list(cr_idx_dict):
     """Generates u_channel_lo list for a PulseSystemModel from a cr_idx_dict.
@@ -199,24 +202,19 @@ def _cr_lo_list(cr_idx_dict):
                             cr_idx_dict.values() == range(len(cr_idx_dict)).
 
     Returns:
-        list in the u_channel_lo format required by the simulator
-    """
-
-    """
-    Note: this function assumes that cr_idx_dict.values()==range(len(cr_idx_dict))
+        list: u_channel_lo format required by the simulator
     """
 
     # populate list of u channel lo for cr gates
-    lo_list = [0]*len(cr_idx_dict)
+    lo_list = [0] * len(cr_idx_dict)
     for qubit_pair, u_idx in cr_idx_dict.items():
-        lo_list[u_idx] = [{'scale' : [1.0, 0.0], 'q' : qubit_pair[1]}]
+        lo_list[u_idx] = [{'scale': [1.0, 0.0], 'q': qubit_pair[1]}]
 
     return lo_list
 
 
-"""
-Functions for creating Hamiltonian strings for various types of terms
-"""
+# Functions for creating Hamiltonian strings for various types of terms
+
 
 def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
     """Harmonic and anharmonic drift terms
@@ -226,7 +224,7 @@ def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
         anharm_symbols (list): coefficients for anharmonic part
         transmon_list (list): list of transmon indices
     Returns:
-        list of strings
+        list: drift term strings
     """
 
     harm_terms = _str_list_generator('np.pi*(2*{0}-{1})*O{2}',
@@ -239,6 +237,7 @@ def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
 
     return harm_terms + anharm_terms
 
+
 def _drive_terms(drive_symbols, transmon_list):
     """Drive terms for single transmon
 
@@ -246,12 +245,13 @@ def _drive_terms(drive_symbols, transmon_list):
         drive_symbols (list): coefficients of drive terms
         transmon_list (list): list of transmon indices
     Returns:
-        list of strings
+        list: drive term strings
     """
 
     return _str_list_generator('2*np.pi*{0}*X{1}||D{1}',
                                drive_symbols,
                                transmon_list)
+
 
 def _exchange_coupling_terms(coupling_symbols, ordered_edges):
     """Exchange coupling between transmons
@@ -260,7 +260,7 @@ def _exchange_coupling_terms(coupling_symbols, ordered_edges):
         coupling_symbols (list): coefficients of exchange couplings
         ordered_edges (list): list tuples of transmon indices for the couplings
     Returns:
-        list of strings
+        list: exchange coupling strings
     """
 
     idx1_list, idx2_list = zip(*list(ordered_edges))
@@ -279,7 +279,7 @@ def _cr_terms(drive_symbols, driven_transmon_indices, u_channel_indices):
         driven_transmon_indices (list): list of indices for transmons that drive is applied to
         u_channel_indices (list): indicies for the u_channels corresponding to each term
     Returns:
-        list of strings
+        list: cr term strings
     """
 
     return _str_list_generator('2*np.pi*{0}*X{1}||U{2}',
@@ -303,13 +303,12 @@ def _str_list_generator(str_template, *args):
                       entries that are either type str or int
 
     Returns:
-        list of strings
-
-    Raises:
+        list: list of str_template formated by args lists
     """
 
     args = [_arg_to_iterable(arg) for arg in args]
     return [str_template.format(*zipped_arg) for zipped_arg in zip(*args)]
+
 
 def _arg_to_iterable(arg):
     """Check if arg is an iterable, if not put it into a list. The purpose is to allow arguments
@@ -320,11 +319,10 @@ def _arg_to_iterable(arg):
         arg (Iterable): argument to be checked and turned into an interable if necessary
 
     Returns:
-        Iterable
-
-    Raises:
+        Iterable: either arg, or arg transformed into a list
     """
-    if isinstance(arg, int) or isinstance(arg, str):
+    # catch expected types (issue is str is iterable)
+    if isinstance(arg, (int, str)):
         return [arg]
 
     if isinstance(arg, Iterable):
@@ -333,9 +331,8 @@ def _arg_to_iterable(arg):
     return [arg]
 
 
-"""
-Helper classes
-"""
+# Helper classes
+
 
 class _coupling_graph:
     """
@@ -363,9 +360,7 @@ class _coupling_graph:
                               contain two elements, e.g. [(0,1), (2,3)], or ((0,1), (2,3))
 
         Returns:
-            _coupling_graph
-
-        Raises:
+            _coupling_graph: coupling graph specified by edges
         """
 
         # create the set representation of the graph
@@ -390,7 +385,8 @@ class _coupling_graph:
         self.sorted_two_way_graph = two_way_graph_list
 
         # create the dictionary version
-        self.two_way_graph_dict = {self.sorted_two_way_graph[k] : k for k in range(len(self.sorted_two_way_graph))}
+        self.two_way_graph_dict = {self.sorted_two_way_graph[k]: k
+                                   for k in range(len(self.sorted_two_way_graph))}
 
     def sorted_edge_index(self, edge):
         """Given an edge, returns the index in self.sorted_graph. Order in edge does not matter.
@@ -399,9 +395,7 @@ class _coupling_graph:
             edge (Iterable): an iterable containing two integers
 
         Returns:
-            int
-
-        Raises:
+            int: index of edge
         """
         edge_list = list(edge)
         edge_list.sort()
@@ -414,8 +408,6 @@ class _coupling_graph:
             directed_edge (Iterable): an iterable containing two integers
 
         Returns:
-            int
-
-        Raises:
+            int: index of directed_edge
         """
         return self.two_way_graph_dict[tuple(directed_edge)]
