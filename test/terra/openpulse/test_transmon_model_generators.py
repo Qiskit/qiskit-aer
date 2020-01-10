@@ -205,10 +205,10 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
         # do similar tests for different model
         num_transmons = 4
         dim_transmons = 2
-        transmon_freqs = [5.0, 5.1, 5.2, 5.4]
+        transmon_freqs = [5.0, 5.1, 5.2, 5.3]
         anharm_freqs = [-0.33, -0.33, -0.32, -0.31]
         drive_strengths = [1.1, 1.2, 1.3, 1.4]
-        coupling_dict = {(0,2): 0.03, (0,1): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
+        coupling_dict = {(0,2): 0.03, (1,0): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
         dt = 1.3
 
         system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
@@ -247,7 +247,7 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
         ham_model = system_model.hamiltonian
         expected_vars = {'v0': 5.0, 'v1': 5.1, 'v2': 5.2, 'v3': 5.3,
                          'alpha0': -0.33, 'alpha1': -0.33, 'alpha2': -0.32, 'alpha3': -0.31,
-                         'r0': 1.1, 'r1': 1.2, 'r2': 1.3, 'r4': 1.4,
+                         'r0': 1.1, 'r1': 1.2, 'r2': 1.3, 'r3': 1.4,
                          'j01': 0.02, 'j02': 0.03, 'j03': 0.14, 'j12': 0.33, 'j13': 0.18}
         self.assertEqual(ham_model._variables, expected_vars)
         self.assertEqual(ham_model._qubit_dims, {0: 2, 1: 2, 2: 2, 3: 2})
@@ -282,11 +282,11 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                           ('np.pi*alpha0', OO0),
                           ('np.pi*alpha1', OO1),
                           ('np.pi*alpha2', OO2),
-                          ('np.pi*alpha3', OO2),
+                          ('np.pi*alpha3', OO3),
                           ('2*np.pi*r0*D0', X0),
                           ('2*np.pi*r1*D1', X1),
                           ('2*np.pi*r2*D2', X2),
-                          ('2*np.pi*r2*D2', X3),
+                          ('2*np.pi*r3*D3', X3),
                           ('2*np.pi*j01', exchange01),
                           ('2*np.pi*j02', exchange02),
                           ('2*np.pi*j03', exchange03),

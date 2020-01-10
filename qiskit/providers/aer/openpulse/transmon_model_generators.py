@@ -34,9 +34,34 @@ def transmon_system_model(num_transmons,
                           anharm_symbol='alpha',
                           drive_symbol='r',
                           coupling_symbol='j'):
+    """Creates a PulseSystemModel for a transmon system as specified by the arguments.
+
+    Note, this function makes the following assumptions:
+        - len(transmon_freqs) == len(anharm_freqs) == len(drive_strengths) == num_transmons
+
+    Args:
+        num_transmons (int): number of transmons in the model
+        dim_transmons (int): dimension of truncation for each transmon
+        transmon_freqs (list): transmon frequencies
+        anharm_freqs (list): anharmonicity values
+        coupling_dict (dict): specification of the coupling graph with keys being edges, and values
+                              being the strength of the coupling. E.g.
+                               {(0, 1): 0.02, (1,3): 0.01}
+                               specifies a system with couplings between qubits 0-1 and 1-3,
+                               with respective coupling strengths of 0.02, and 0.01
+        dt (float): pixel size for pulse instructions
+
+    Returns:
+        system_model (PulseSystemModel): the generated transmon system model
+        cr_idx_dict (dict): Dictionary specifying u channel index to use for a specified CR drive;
+                            I.e. to specify a CR drive with qubits (drive, target), use the
+                            u channel with index cr_idx_dict[(drive, target)].
+                            E.g. for the coupling_dict {(0, 1): 0.02, (1,3): 0.01}, the
+                            corresponding cr_idx_dict will be
+                            {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
+
     """
-    coupling dict is of the form {edge : strength}
-    """
+
     coupling_edges = coupling_dict.keys()
 
     # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
@@ -52,7 +77,13 @@ def transmon_system_model(num_transmons,
     anharm_symbols = _str_list_generator(anharm_symbol + '{0}', transmons)
     drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
     sorted_coupling_edges = coupling_graph.sorted_graph
-    coupling_strengths = [coupling_dict[edge] for edge in sorted_coupling_edges]
+    # populate coupling strengths in order (careful wtih vertices in edges now being sorted)
+    coupling_strengths = []
+    for edge in sorted_coupling_edges:
+        weight = coupling_dict.get(edge, None)
+        if weight is None:
+            weight = coupling_dict[(edge[1], edge[0])]
+        coupling_strengths.append(weight)
     coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
