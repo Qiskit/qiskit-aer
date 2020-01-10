@@ -53,7 +53,7 @@ def transmon_system_model(num_transmons,
     drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
     sorted_coupling_edges = coupling_graph.sorted_graph
     coupling_strengths = [coupling_dict[edge] for edge in sorted_coupling_edges]
-    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', coupling_graph)
+    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
     hamiltonian_dict = _transmon_hamiltonian_dict(transmons=transmons,
@@ -74,7 +74,7 @@ def transmon_system_model(num_transmons,
     # construct the u_channel_lo list
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
-    system_model = PulseSystemModel(hamiltonian=ham_model,
+    system_model = PulseSystemModel(hamiltonian=hamiltonian_model,
                                     u_channel_lo=u_channel_lo,
                                     qubit_list=transmons,
                                     dt=dt)
@@ -134,11 +134,14 @@ def _transmon_hamiltonian_dict(transmons,
     hamiltonian_str = _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmons)
     hamiltonian_str += _drive_terms(drive_symbols, transmons)
 
-    # two transmon terms
+    # exchange terms
     hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
+
+    # cr terms
     driven_transmon_indices = [key[0] for key in cr_idx_dict.keys()]
+    cr_drive_symbols = [drive_symbols[idx] for idx in driven_transmon_indices]
     cr_channel_idx = cr_idx_dict.values()
-    hamiltonian_str += _cr_terms(drive_symbols, driven_transmon_indices, cr_channel_idx)
+    hamiltonian_str += _cr_terms(cr_drive_symbols, driven_transmon_indices, cr_channel_idx)
 
     # construct vars dictionary
     var_dict = {}

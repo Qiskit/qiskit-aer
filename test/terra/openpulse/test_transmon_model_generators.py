@@ -14,16 +14,308 @@ Tests for pulse system generator functions
 """
 
 import unittest
+from numpy import array, array_equal, kron
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
 from qiskit.providers.aer.openpulse import transmon_model_generators as model_gen
+from qiskit.providers.aer.openpulse.qobj.op_qobj import get_oper
 
 class TestTransmonModelGenerators(QiskitAerTestCase):
     """Tests for functions in pulse_model_generators.py"""
 
     def setUp(self):
         pass
+
+    def test_transmon_system_model1(self):
+        """First test of transmon_system_model, 2 qubits, 2 dimensional"""
+
+        num_transmons = 2
+        dim_transmons = 2
+        transmon_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.02}
+        dt = 1.3
+
+        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
+                                                                    dim_transmons,
+                                                                    transmon_freqs,
+                                                                    anharm_freqs,
+                                                                    drive_strengths,
+                                                                    coupling_dict,
+                                                                    dt)
+        # check basic parameters
+        self.assertEqual(system_model.qubit_list, [0, 1])
+        self.assertEqual(system_model.dt, 1.3)
+
+        # check that cr_idx_dict is correct
+        self.assertEqual(cr_idx_dict, {(0,1): 0, (1,0): 1})
+
+        # check u_channel_lo is correct
+        self.assertEqual(system_model.u_channel_lo,
+                         [[{'scale': [1.0, 0.0], 'q' : 1}], [{'scale': [1.0, 0.0], 'q' : 0}]])
+
+        # check consistency of system_model.u_channel_lo with cr_idx_dict
+        # this should in principle be redundant with the above two checks
+        for q_pair, idx in cr_idx_dict.items():
+            self.assertEqual(system_model.u_channel_lo[idx],
+                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+
+        # check correct hamiltonian
+        ham_model = system_model.hamiltonian
+        expected_vars = {'v0': 5.0, 'v1': 5.1,
+                         'alpha0': -0.33, 'alpha1': -0.33,
+                         'r0': 1.1, 'r1': 1.2,
+                         'j01': 0.02}
+        self.assertEqual(ham_model._variables, expected_vars)
+        self.assertEqual(ham_model._qubit_dims, {0: 2, 1: 2})
+        self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'U0', 'U1'])
+
+        # check that Hamiltonian terms have been imported correctly
+        # constructing the expected_terms requires some knowledge of how the strings get generated
+        # and then parsed
+        O0 = self._operator_array_from_str(2, ['I', 'O'])
+        O1 = self._operator_array_from_str(2, ['O', 'I'])
+        OO0 = O0@O0
+        OO1 = O1@O1
+        X0 = self._operator_array_from_str(2, ['I', 'X'])
+        X1 = self._operator_array_from_str(2, ['X', 'I'])
+        exchange = self._operator_array_from_str(2, ['Sm', 'Sp']) + self._operator_array_from_str(2, ['Sp', 'Sm'])
+        expected_terms = [('np.pi*(2*v0-alpha0)', O0),
+                          ('np.pi*(2*v1-alpha1)', O1),
+                          ('np.pi*alpha0', OO0),
+                          ('np.pi*alpha1', OO1),
+                          ('2*np.pi*r0*D0', X0),
+                          ('2*np.pi*r1*D1', X1),
+                          ('2*np.pi*j01', exchange),
+                          ('2*np.pi*r0*U0', X0),
+                          ('2*np.pi*r1*U1', X1)]
+
+        # first check the number of terms is correct, then loop through
+        # each expected term and verify that it is present and consistent
+        self.assertEqual(len(ham_model._system), len(expected_terms))
+        for expected_string, expected_op in expected_terms:
+            idx = 0
+            found = False
+            while idx < len(ham_model._system) and found is False:
+                op, string = ham_model._system[idx]
+                if expected_string == string:
+                    found = True
+                    self.assertTrue(array_equal(expected_op, op))
+                idx += 1
+            self.assertTrue(found)
+
+    def test_transmon_system_model2(self):
+        """Second test of transmon_system_model, 3 qubits, 3 dimensional"""
+
+        # do similar tests for different model
+        num_transmons = 3
+        dim_transmons = 3
+        transmon_freqs = [5.0, 5.1, 5.2]
+        anharm_freqs = [-0.33, -0.33, -0.32]
+        drive_strengths = [1.1, 1.2, 1.3]
+        coupling_dict = {(1,2): 0.03, (0,1): 0.02}
+        dt = 1.3
+
+        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
+                                                                    dim_transmons,
+                                                                    transmon_freqs,
+                                                                    anharm_freqs,
+                                                                    drive_strengths,
+                                                                    coupling_dict,
+                                                                    dt)
+        # check basic parameters
+        self.assertEqual(system_model.qubit_list, [0, 1, 2])
+        self.assertEqual(system_model.dt, 1.3)
+
+        # check that cr_idx_dict is correct
+        self.assertEqual(cr_idx_dict, {(0,1): 0, (1,0): 1, (1,2): 2, (2,1): 3})
+
+        # check u_channel_lo is correct
+        self.assertEqual(system_model.u_channel_lo,
+                         [[{'scale': [1.0, 0.0], 'q' : 1}],
+                          [{'scale': [1.0, 0.0], 'q' : 0}],
+                          [{'scale': [1.0, 0.0], 'q' : 2}],
+                          [{'scale': [1.0, 0.0], 'q' : 1}]])
+
+        # check consistency of system_model.u_channel_lo with cr_idx_dict
+        # this should in principle be redundant with the above two checks
+        for q_pair, idx in cr_idx_dict.items():
+            self.assertEqual(system_model.u_channel_lo[idx],
+                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+
+        # check correct hamiltonian
+        ham_model = system_model.hamiltonian
+        expected_vars = {'v0': 5.0, 'v1': 5.1, 'v2': 5.2,
+                         'alpha0': -0.33, 'alpha1': -0.33, 'alpha2': -0.32,
+                         'r0': 1.1, 'r1': 1.2, 'r2': 1.3,
+                         'j01': 0.02, 'j12': 0.03}
+        self.assertEqual(ham_model._variables, expected_vars)
+        self.assertEqual(ham_model._qubit_dims, {0: 3, 1: 3, 2: 3})
+        self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'D3', 'U0', 'U1', 'U2', 'U3'])
+
+        # check that Hamiltonian terms have been imported correctly
+        # constructing the expected_terms requires some knowledge of how the strings get generated
+        # and then parsed
+        O0 = self._operator_array_from_str(3, ['I', 'I', 'O'])
+        O1 = self._operator_array_from_str(3, ['I', 'O', 'I'])
+        O2 = self._operator_array_from_str(3, ['O', 'I', 'I'])
+        OO0 = O0@O0
+        OO1 = O1@O1
+        OO2 = O2@O2
+        X0 = self._operator_array_from_str(3, ['I', 'I', 'A']) + self._operator_array_from_str(3, ['I', 'I', 'C'])
+        X1 = self._operator_array_from_str(3, ['I', 'A', 'I']) + self._operator_array_from_str(3, ['I', 'C', 'I'])
+        X2 = self._operator_array_from_str(3, ['A', 'I', 'I']) + self._operator_array_from_str(3, ['C', 'I', 'I'])
+        exchange01 = self._operator_array_from_str(3, ['I', 'Sm', 'Sp']) + self._operator_array_from_str(3, ['I', 'Sp', 'Sm'])
+        exchange12 = self._operator_array_from_str(3, ['Sm', 'Sp', 'I']) + self._operator_array_from_str(3, ['Sp', 'Sm', 'I'])
+        expected_terms = [('np.pi*(2*v0-alpha0)', O0),
+                          ('np.pi*(2*v1-alpha1)', O1),
+                          ('np.pi*(2*v2-alpha2)', O2),
+                          ('np.pi*alpha0', OO0),
+                          ('np.pi*alpha1', OO1),
+                          ('np.pi*alpha2', OO2),
+                          ('2*np.pi*r0*D0', X0),
+                          ('2*np.pi*r1*D1', X1),
+                          ('2*np.pi*r2*D2', X2),
+                          ('2*np.pi*j01', exchange01),
+                          ('2*np.pi*j12', exchange12),
+                          ('2*np.pi*r0*U0', X0),
+                          ('2*np.pi*r1*U1', X1),
+                          ('2*np.pi*r1*U2', X1),
+                          ('2*np.pi*r2*U3', X2)]
+
+        # first check the number of terms is correct, then loop through
+        # each expected term and verify that it is present and consistent
+        self.assertEqual(len(ham_model._system), len(expected_terms))
+        for expected_string, expected_op in expected_terms:
+            idx = 0
+            found = False
+            while idx < len(ham_model._system) and found is False:
+                op, string = ham_model._system[idx]
+                if expected_string == string:
+                    found = True
+                    self.assertTrue(array_equal(expected_op, op))
+                idx += 1
+            self.assertTrue(found)
+
+    def test_transmon_system_model3(self):
+        """Third test of transmon_system_model, 4 qubits, 2 dimensional"""
+
+        # do similar tests for different model
+        num_transmons = 4
+        dim_transmons = 2
+        transmon_freqs = [5.0, 5.1, 5.2, 5.4]
+        anharm_freqs = [-0.33, -0.33, -0.32, -0.31]
+        drive_strengths = [1.1, 1.2, 1.3, 1.4]
+        coupling_dict = {(0,2): 0.03, (0,1): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
+        dt = 1.3
+
+        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
+                                                                    dim_transmons,
+                                                                    transmon_freqs,
+                                                                    anharm_freqs,
+                                                                    drive_strengths,
+                                                                    coupling_dict,
+                                                                    dt)
+        # check basic parameters
+        self.assertEqual(system_model.qubit_list, [0, 1, 2, 3])
+        self.assertEqual(system_model.dt, 1.3)
+
+        # check that cr_idx_dict is correct
+        self.assertEqual(cr_idx_dict, {(0,1): 0, (1,0): 1,
+                                       (0,2): 2, (2,0): 3,
+                                       (0,3): 4, (3,0): 5,
+                                       (1,2): 6, (2,1): 7,
+                                       (1,3): 8, (3,1): 9})
+
+        # check u_channel_lo is correct
+        self.assertEqual(system_model.u_channel_lo,
+                         [[{'scale': [1.0, 0.0], 'q' : 1}], [{'scale': [1.0, 0.0], 'q' : 0}],
+                          [{'scale': [1.0, 0.0], 'q' : 2}], [{'scale': [1.0, 0.0], 'q' : 0}],
+                          [{'scale': [1.0, 0.0], 'q' : 3}], [{'scale': [1.0, 0.0], 'q' : 0}],
+                          [{'scale': [1.0, 0.0], 'q' : 2}], [{'scale': [1.0, 0.0], 'q' : 1}],
+                          [{'scale': [1.0, 0.0], 'q' : 3}], [{'scale': [1.0, 0.0], 'q' : 1}]])
+
+        # check consistency of system_model.u_channel_lo with cr_idx_dict
+        # this should in principle be redundant with the above two checks
+        for q_pair, idx in cr_idx_dict.items():
+            self.assertEqual(system_model.u_channel_lo[idx],
+                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+
+        # check correct hamiltonian
+        ham_model = system_model.hamiltonian
+        expected_vars = {'v0': 5.0, 'v1': 5.1, 'v2': 5.2, 'v3': 5.3,
+                         'alpha0': -0.33, 'alpha1': -0.33, 'alpha2': -0.32, 'alpha3': -0.31,
+                         'r0': 1.1, 'r1': 1.2, 'r2': 1.3, 'r4': 1.4,
+                         'j01': 0.02, 'j02': 0.03, 'j03': 0.14, 'j12': 0.33, 'j13': 0.18}
+        self.assertEqual(ham_model._variables, expected_vars)
+        self.assertEqual(ham_model._qubit_dims, {0: 2, 1: 2, 2: 2, 3: 2})
+        self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'D3', 'D4',
+                                                            'U0', 'U1', 'U2', 'U3', 'U4',
+                                                            'U5', 'U6', 'U7', 'U8', 'U9'])
+
+        # check that Hamiltonian terms have been imported correctly
+        # constructing the expected_terms requires some knowledge of how the strings get generated
+        # and then parsed
+        O0 = self._operator_array_from_str(2, ['I', 'I', 'I', 'O'])
+        O1 = self._operator_array_from_str(2, ['I', 'I', 'O', 'I'])
+        O2 = self._operator_array_from_str(2, ['I', 'O', 'I', 'I'])
+        O3 = self._operator_array_from_str(2, ['O', 'I', 'I', 'I'])
+        OO0 = O0@O0
+        OO1 = O1@O1
+        OO2 = O2@O2
+        OO3 = O3@O3
+        X0 = self._operator_array_from_str(2, ['I','I', 'I', 'A']) + self._operator_array_from_str(2, ['I', 'I', 'I', 'C'])
+        X1 = self._operator_array_from_str(2, ['I', 'I', 'A', 'I']) + self._operator_array_from_str(2, ['I', 'I', 'C', 'I'])
+        X2 = self._operator_array_from_str(2, ['I', 'A', 'I', 'I']) + self._operator_array_from_str(2, ['I', 'C', 'I', 'I'])
+        X3 = self._operator_array_from_str(2, ['A', 'I', 'I', 'I']) + self._operator_array_from_str(2, ['C', 'I', 'I', 'I'])
+        exchange01 = self._operator_array_from_str(2, ['I', 'I', 'Sm', 'Sp']) + self._operator_array_from_str(2, ['I', 'I', 'Sp', 'Sm'])
+        exchange02 = self._operator_array_from_str(2, ['I', 'Sm', 'I', 'Sp']) + self._operator_array_from_str(2, ['I', 'Sp', 'I', 'Sm'])
+        exchange03 = self._operator_array_from_str(2, ['Sm', 'I', 'I', 'Sp']) + self._operator_array_from_str(2, ['Sp', 'I', 'I', 'Sm'])
+        exchange12 = self._operator_array_from_str(2, ['I', 'Sm', 'Sp', 'I']) + self._operator_array_from_str(2, ['I', 'Sp', 'Sm', 'I'])
+        exchange13 = self._operator_array_from_str(2, ['Sm', 'I', 'Sp', 'I']) + self._operator_array_from_str(2, ['Sp', 'I', 'Sm', 'I'])
+        expected_terms = [('np.pi*(2*v0-alpha0)', O0),
+                          ('np.pi*(2*v1-alpha1)', O1),
+                          ('np.pi*(2*v2-alpha2)', O2),
+                          ('np.pi*(2*v3-alpha3)', O3),
+                          ('np.pi*alpha0', OO0),
+                          ('np.pi*alpha1', OO1),
+                          ('np.pi*alpha2', OO2),
+                          ('np.pi*alpha3', OO2),
+                          ('2*np.pi*r0*D0', X0),
+                          ('2*np.pi*r1*D1', X1),
+                          ('2*np.pi*r2*D2', X2),
+                          ('2*np.pi*r2*D2', X3),
+                          ('2*np.pi*j01', exchange01),
+                          ('2*np.pi*j02', exchange02),
+                          ('2*np.pi*j03', exchange03),
+                          ('2*np.pi*j12', exchange12),
+                          ('2*np.pi*j13', exchange13),
+                          ('2*np.pi*r0*U0', X0),
+                          ('2*np.pi*r1*U1', X1),
+                          ('2*np.pi*r0*U2', X0),
+                          ('2*np.pi*r2*U3', X2),
+                          ('2*np.pi*r0*U4', X0),
+                          ('2*np.pi*r3*U5', X3),
+                          ('2*np.pi*r1*U6', X1),
+                          ('2*np.pi*r2*U7', X2),
+                          ('2*np.pi*r1*U8', X1),
+                          ('2*np.pi*r3*U9', X3)]
+
+        # first check the number of terms is correct, then loop through
+        # each expected term and verify that it is present and consistent
+        self.assertEqual(len(ham_model._system), len(expected_terms))
+        for expected_string, expected_op in expected_terms:
+            idx = 0
+            found = False
+            while idx < len(ham_model._system) and found is False:
+                op, string = ham_model._system[idx]
+                if expected_string == string:
+                    found = True
+                    self.assertTrue(array_equal(expected_op, op))
+                idx += 1
+            self.assertTrue(found)
 
     def test_transmon_hamiltonian_dict(self):
         """Test _transmon_hamiltonian_dict"""
@@ -233,3 +525,11 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
         list2_copy.sort()
         for str1, str2 in zip(list1_copy, list2_copy):
             self.assertEqual(str1, str2)
+
+    def _operator_array_from_str(self, dim, op_str_list):
+
+        op = array([[1.]])
+        for c in op_str_list:
+            op = kron(op, get_oper(c, dim))
+
+        return op
