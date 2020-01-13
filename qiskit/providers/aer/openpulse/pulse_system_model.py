@@ -22,8 +22,8 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """PulseSystemModel containing all model parameters necessary for simulation.
-    """
+    """PulseSystemModel containing all model information necessary for PulseSimulator."""
+
     def __init__(self,
                  hamiltonian=None,
                  qubit_freq_est=None,
