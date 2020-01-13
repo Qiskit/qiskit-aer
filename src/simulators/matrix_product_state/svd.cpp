@@ -27,12 +27,11 @@
 #include "svd.hpp"
 #include "framework/utils.hpp"
 
+// default values
 #define mul_factor 1e2
 #define tiny_factor 1e30
-#define THRESHOLD 1e-9
+#define THRESHOLD 1e-9 // threshold for re-normalization after approximation
 #define NUM_SVD_TRIES 15
-#define APPROX_THRES 1e-4 // note that this is actually sqrt of actually cut-off value
-#define APPROX_LIMIT 10
 
 namespace AER {
 
@@ -79,7 +78,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 //				in S
 // Parameters: rvector_t S - vector of singular values from the
 //			   SVD decomposition
-// Returns: number of elements in S that are greater than 0
+// Returns: number of elements in S whose norm is greater than 0
 //			(actually greater than threshold)
 //-------------------------------------------------------------
 uint_t num_of_SV(rvector_t S, double threshold)
@@ -97,41 +96,31 @@ uint_t num_of_SV(rvector_t S, double threshold)
 
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  uint_t max_sv_num_for_approx, double approx_threshold) {
+  uint_t new_SV_num = 0;
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
-  // code for approximation
-
-      // debug prints
-  if (SV_num > max_sv_num_for_approx) {
-    uint_t new_SV_num = num_of_SV(S, approx_threshold);
-    if (new_SV_num < SV_num) {
-      // debug prints
-      std::cout << "max_sv_num_for_approx = " << max_sv_num_for_approx << std::endl;
-      std::cout << "approx_threshold " << approx_threshold << std::endl;
-      std::cout << "initial size of lambda = " << SV_num << ", new size = " << new_SV_num << std::endl;
-      std::cout << "original lambda: "<<std::endl;
-      for (uint i=0; i<S.size(); i++)
-	std::cout << S[i] << " ";
-      std::cout << std::endl;
-    }
+  if (approx_threshold == CHOP_THRESHOLD) {
+    new_SV_num = SV_num;
+  } else {
+    // code for approximation - approx_threshold is the fraction relative
+    // to the norm of the largest value in S, which is S[0].
+    // Any value smaller than approx_threshold * norm(S[i] will be 
+    // discarded
+    new_SV_num = num_of_SV(S, approx_threshold * std::norm(S[0]));
   }
-  // end of code for approximation
 
-  U.resize(U.GetRows(), SV_num);
-  S.resize(SV_num);
-  V.resize(V.GetRows(), SV_num);
+  U.resize(U.GetRows(), new_SV_num);
+  S.resize(new_SV_num);
+  V.resize(V.GetRows(), new_SV_num);
 
-  // normalize S - for approximation
-  double sum=0;
-  for (uint i=0; i<S.size(); i++) {
-    sum += pow(S[i], 2);
-  }
-  if (1- sum > THRESHOLD) {
+  // After approximation, we may need to re-normalize the values of S
+  if (new_SV_num < SV_num && 1-sum > THRESHOLD) {
+    double sum=0;
     for (uint i=0; i<S.size(); i++) {
-      std::cout <<"prev S[i]= " << S[i];
-      double square_i = pow(S[i], 2)/sum;
+      sum += std::norm(S[0]);
+    }
+    for (uint i=0; i<S.size(); i++) {
+      double square_i = std::norm(S[0])/sum;
       S[i] = sqrt(square_i);
-      std::cout << ", new S[i]= " << S[i] << std::endl;
-      
     }
   }
 }
@@ -549,7 +538,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	  std::stringstream ss;
 	  ss << "error: wrong SVD calc: A != USV*";
 	  throw std::runtime_error(ss.str());
-	}
+	  }
 
 	// Transpose again if m < n
 	if(transposed)
