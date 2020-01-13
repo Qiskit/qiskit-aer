@@ -36,6 +36,7 @@ Fixed
 
 Added
 -----
+- MPS simulation method: added approximation subject to user control (\#475)
 - Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
 - MPS simulation method: added support for ``ccx`` (\#454)
 
