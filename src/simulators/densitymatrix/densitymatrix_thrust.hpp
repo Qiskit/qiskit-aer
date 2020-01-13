@@ -260,19 +260,24 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  // Lambda function for CZ gate
-  auto lambda = [&](const areg_t<1ULL << 4> &inds)->void {
-    BaseVector::data_[inds[3]] *= -1.;
-    BaseVector::data_[inds[7]] *= -1.;
-    BaseVector::data_[inds[11]] *= -1.;
-    BaseVector::data_[inds[12]] *= -1.;
-    BaseVector::data_[inds[13]] *= -1.;
-    BaseVector::data_[inds[14]] *= -1.;
-  };
+
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[4 * 0 + 0] = 1.;
+  vec[4 * 1 + 1] = 1.;
+  vec[4 * 2 + 2] = 1.;
+  vec[4 * 3 + 3] = 1.;
+
+  vec[3] = -1.;
+  vec[7] = -1.;
+  vec[11] = -1.;
+  vec[12] = -1.;
+  vec[13] = -1.;
+  vec[14] = -1.;
+
   const auto nq =  num_qubits();
-  const areg_t<4> qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  //TODO support
-  //BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
+  BaseVector::apply_matrix(qubits, vec);
 }
 
 template <typename data_t>
@@ -281,50 +286,50 @@ void DensityMatrixThrust<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
    {{1, 2}, {4, 8}, {5, 10}, {6, 9}, {7, 11}, {13, 14}}
   };
   const size_t nq = num_qubits();
-  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  //TODO support
-  //BaseVector::apply_permutation_matrix(qubits, pairs);
+  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};  //TODO support
+  BaseVector::apply_permutation_matrix(qubits, pairs);
 }
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
-  // Lambda function for X gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
-    std::swap(BaseVector::data_[inds[1]], BaseVector::data_[inds[2]]);
-  };
+
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[0 * 4 + 3] = 1.;
+  vec[1 * 4 + 2] = 1.;
+  vec[2 * 4 + 1] = 1.;
+  vec[3 * 4 + 0] = 1.;
+
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  //TODO support
-  //BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
+  BaseVector::apply_matrix(qubits, vec);
 }
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
-  // Lambda function for Y gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
-    const std::complex<data_t> cache = std::complex<data_t>(-1) * BaseVector::data_[inds[1]];
-    BaseVector::data_[inds[1]] = std::complex<data_t>(-1) * BaseVector::data_[inds[2]];
-    BaseVector::data_[inds[2]] = cache;
-  };
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[0 * 4 + 3] = 1.;
+  vec[1 * 4 + 2] = -1.;
+  vec[2 * 4 + 1] = -1.;
+  vec[3 * 4 + 0] = 1.;
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  //TODO support
-  //BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
+  BaseVector::apply_matrix(qubits, vec);
 }
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
-  // Lambda function for Z gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    BaseVector::data_[inds[1]] *= -1;
-    BaseVector::data_[inds[2]] *= -1;
-  };
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[0 * 4 + 0] = 1.;
+  vec[1 * 4 + 1] = -1.;
+  vec[2 * 4 + 2] = -1.;
+  vec[3 * 4 + 3] = 1.;
+
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  //TODO support
-  //BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
+  BaseVector::apply_matrix(qubits, vec);
 }
 
 template <typename data_t>
@@ -338,8 +343,7 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
   const size_t nq = num_qubits();
   const reg_t qubits = {{qctrl0, qctrl1, qtrgt,
                          qctrl0 + nq, qctrl1 + nq, qtrgt + nq}};
-  //TODO
-  //BaseVector::apply_permutation_matrix(qubits, pairs);
+  BaseVector::apply_permutation_matrix(qubits, pairs);
 }
 
 //-----------------------------------------------------------------------
