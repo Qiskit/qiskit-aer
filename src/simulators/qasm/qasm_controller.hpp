@@ -138,6 +138,7 @@ protected:
     statevector,
     statevector_gpu,
     density_matrix,
+    density_matrix_gpu,
     stabilizer,
     extended_stabilizer,
     matrix_product_state
@@ -311,6 +312,9 @@ void QasmController::set_config(const json_t &config) {
     else if (method == "density_matrix") {
       simulation_method_ = Method::density_matrix;
     }
+    else if (method == "density_matrix_gpu") {
+      simulation_method_ = Method::density_matrix_gpu;
+    }
     else if (method == "stabilizer") {
       simulation_method_ = Method::stabilizer;
     }
@@ -457,6 +461,32 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       cvector_t(),
                                                       Method::density_matrix);
       }
+    case Method::density_matrix_gpu:
+#ifdef AER_THRUST_SUPPORTED
+      if (simulation_precision_ == Precision::double_precision) {
+        // Double-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix_gpu);
+      } else {
+        // Single-precision density matrix simulation
+        return run_circuit_helper<DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
+                                                      circ,
+                                                      noise,
+                                                      config,
+                                                      shots,
+                                                      rng_seed,
+                                                      cvector_t(),
+                                                      Method::density_matrix_gpu);
+      }
+#else
+      throw std::runtime_error("QasmController: method density_matrix_gpu is not supported");
+#endif
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
@@ -530,9 +560,28 @@ QasmController::simulation_method(const Circuit &circ,
 #endif
     }
     case Method::density_matrix: {
-      if (validate)
-        validate_state(DensityMatrix::State<>(), circ, noise_model, true);
+      if (validate) {
+        if (simulation_precision_ == Precision::single_precision) {
+          validate_state(DensityMatrix::State<QV::DensityMatrix<float>>(), circ, noise_model, true);
+        } else {
+          validate_state(DensityMatrix::State<QV::DensityMatrix<double>>(), circ, noise_model, true);
+        }
+      }
       return Method::density_matrix;
+    }
+    case Method::density_matrix_gpu: {
+#ifndef AER_THRUST_SUPPORTED
+      throw std::runtime_error("This version of AER doesn't support GPU density matrix simulator!");
+#else
+      if (validate) {
+        if (simulation_precision_ == Precision::single_precision) {
+          validate_state(DensityMatrix::State<QV::DensityMatrixThrust<float>>(), circ, noise_model, true);
+        } else {
+          validate_state(DensityMatrix::State<QV::DensityMatrixThrust<double>>(), circ, noise_model, true);
+        }
+      }
+      return Method::density_matrix_gpu;
+#endif
     }
     case Method::stabilizer: {
       if (validate)
@@ -720,7 +769,7 @@ ExperimentData QasmController::run_circuit_helper(const Circuit &circ,
   if (noise.is_ideal()) {
     run_circuit_without_noise(circ, shots, state, initial_state, method, data, rng);
   }
-  else if (method == Method::density_matrix && noise.has_quantum_errors()) {
+  else if ((method == Method::density_matrix || method == Method::density_matrix_gpu) && noise.has_quantum_errors()) {
     // We can sample the noise model using superoperator method
     // and then execute the resulting circuit containing superoperators
     Noise::NoiseModel noise_cpy = noise;

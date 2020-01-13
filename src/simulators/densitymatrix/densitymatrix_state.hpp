@@ -23,6 +23,9 @@
 #include "framework/json.hpp"
 #include "base/state.hpp"
 #include "densitymatrix.hpp"
+#ifdef AER_THRUST_SUPPORTED
+#include "densitymatrix_thrust.hpp"
+#endif
 
 
 namespace AER {
