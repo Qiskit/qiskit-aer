@@ -32,9 +32,11 @@ def transmon_system_model(num_transmons,
                           anharm_symbol='alpha',
                           drive_symbol='r',
                           coupling_symbol='j'):
-    """Creates a PulseSystemModel for a transmon system with a specified number of transmons
-    num_transmons, each truncated to the dimension dim_transmons. To perform cross resonance drives
-    on coupled qubits, use the ControlChannel indices contained in the returned cr_idx_dict.
+    """Constructs and returns:
+        - a PulseSystemModel for a transmon system with a specified number of transmons
+          num_transmons, each truncated to the dimension dim_transmons.
+        - A dict cr_idx_dict containing ControlChannel index information for applying cross
+          resonance drives.
 
     Single transmons are specified by the parameters:
         - transmon frequency v,
@@ -50,7 +52,7 @@ def transmon_system_model(num_transmons,
     Couplings between transmons are specified in terms of a coupling map, implemented as a dict
     passed in coupling_dict. E.g. the coupling_dict
         {(0, 1): 0.02, (1,3): 0.01}
-    specifies that qubits (0, 1) are coupled with strength 0.02, and the qubits (1, 3) are
+    specifies that transmons (0, 1) are coupled with strength 0.02, and the transmons (1, 3) are
     coupled with strength 0.01. Couplings enter the Hamiltonian model via the exchange coupling
     term:
         2*pi*j*(A0*C1+C0*A1),
@@ -60,8 +62,8 @@ def transmon_system_model(num_transmons,
         - A1 and C1 are the annihilation and creation operators of the second transmon.
 
     For each pair of coupled transmons, pulse ControlChannels are prepared for doing cross
-    resonance (CR) drives between qubits. A CR drive on transmon 0 with target transmon 1 is modeled
-    with the Hamiltonian term:
+    resonance (CR) drives between transmons. A CR drive on transmon 0 with target transmon 1 is
+    modeled with the Hamiltonian term:
         2*pi*r0*X0*U(t),
     where
         - r0 is the drive strength for transmon 0,
@@ -94,7 +96,7 @@ def transmon_system_model(num_transmons,
     Returns:
         tuple[PulseSystemModel, dict]: The generated transmon system model, and a dict specifying
                                        u channel index to use for a specified CR drive;
-                                       I.e. to specify a CR drive with qubits (drive, target),
+                                       I.e. to specify a CR drive with transmons (drive, target),
                                        retrieve the u channel index via:
                                             cr_idx_dict[(drive, target)].
                                        For example, for the coupling_dict:
@@ -118,13 +120,10 @@ def transmon_system_model(num_transmons,
     anharm_symbols = _str_list_generator(anharm_symbol + '{0}', transmons)
     drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
     sorted_coupling_edges = coupling_graph.sorted_graph
-    # populate coupling strengths in order (careful wtih vertices in edges now being sorted)
-    coupling_strengths = []
-    for edge in sorted_coupling_edges:
-        weight = coupling_dict.get(edge, None)
-        if weight is None:
-            weight = coupling_dict[(edge[1], edge[0])]
-        coupling_strengths.append(weight)
+    # populate coupling strengths in sorted order (vertex indices are now also sorted within edges,
+    # so this needs to be accounted for when retrieving weights from coupling_dict)
+    coupling_strengths = [coupling_dict.get(edge) or coupling_dict.get((edge[1], edge[0])) for
+                          edge in sorted_coupling_edges]
     coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
@@ -195,8 +194,8 @@ def _transmon_hamiltonian_dict(transmons,
         coupling_symbols (list): symbols for coupling coefficients
         cr_idx_dict (dict): A dict with keys given by tuples containing two ints, and value an int,
                             representing cross resonance drive channels. E.g. an entry {(0,1) : 1}
-                            specifies a CR drive on qubit 0 with qubit 1 as target, with u_channel
-                            index 1.
+                            specifies a CR drive on transmon 0 with transmon 1 as target, with
+                            u_channel index 1.
 
     Returns:
         dict: hamiltonian string format
@@ -235,8 +234,8 @@ def _cr_lo_list(cr_idx_dict):
 
     Args:
         cr_idx_dict (dict): A dictionary with keys given by tuples of ints with int values. A key,
-                            e.g. (0,1), signifies CR drive on qubit 0 with target 1, and the value
-                            is the u channel index corresponding to that drive.
+                            e.g. (0,1), signifies CR drive on transmon 0 with target 1, and the
+                            value is the u channel index corresponding to that drive.
                             Note: this function assumes that
                             cr_idx_dict.values() == range(len(cr_idx_dict)).
 
@@ -246,8 +245,8 @@ def _cr_lo_list(cr_idx_dict):
 
     # populate list of u channel lo for cr gates
     lo_list = [0] * len(cr_idx_dict)
-    for qubit_pair, u_idx in cr_idx_dict.items():
-        lo_list[u_idx] = [{'scale': [1.0, 0.0], 'q': qubit_pair[1]}]
+    for transmon_pair, u_idx in cr_idx_dict.items():
+        lo_list[u_idx] = [{'scale': [1.0, 0.0], 'q': transmon_pair[1]}]
 
     return lo_list
 
