@@ -32,52 +32,31 @@ def transmon_system_model(num_transmons,
                           anharm_symbol='alpha',
                           drive_symbol='r',
                           coupling_symbol='j'):
-    """Constructs and returns:
-        - a PulseSystemModel for a transmon system with a specified number of transmons
-          num_transmons, each truncated to the dimension dim_transmons.
-        - A dict cr_idx_dict containing ControlChannel index information for applying cross
-          resonance drives.
+    """Returns a PulseSystemModel for a specified transmon system, and a dict specifying
+    ControlChannel indices for cross-resonance driving.
 
-    Single transmons are specified by the parameters:
-        - transmon frequency v,
-        - anharmonicity frequency alpha, and
-        - drive strength r,
-    which enter into the Hamiltonian model via the terms:
+    Single transmons are specified by three parameters: frequency v, anharmonicity alpha, and
+    drive strength r, which enter into the Hamiltonian model via the terms:
         pi*(2*v-alpha)*O + pi*alpha*O*O + 2*pi*r*X*D(t),
-    where
-        - O is the number operator for the transmon,
-        - X = A + C, where A and C are, respectively, the annihilation and creation operators, and
-        - D(t) is the drive signal for the transmon.
+    where O is the number operator, X is the drive operator, and D(t) is the signal of the
+    corresponding DriveChannel.
 
-    Couplings between transmons are specified in terms of a coupling map, implemented as a dict
-    passed in coupling_dict. E.g. the coupling_dict
-        {(0, 1): 0.02, (1,3): 0.01}
-    specifies that transmons (0, 1) are coupled with strength 0.02, and the transmons (1, 3) are
-    coupled with strength 0.01. Couplings enter the Hamiltonian model via the exchange coupling
-    term:
+    Couplings between transmons are specified in the argument coupling_dict, with keys being edges,
+    and values being the coupling strenghts. Couplings enter the Hamiltonian model via an
+    exchange coupling term:
         2*pi*j*(A0*C1+C0*A1),
-    where
-        - j is the coupling strength,
-        - A0 and C0 are the annihilation and creation operators of the first transmon, and
-        - A1 and C1 are the annihilation and creation operators of the second transmon.
+    where j is the coupling strength, and A0*C1+C0*A1 is the exchange coupling operator between the
+    two transmons, where A is the annihiliation operator, and C is the creation operator.
 
     For each pair of coupled transmons, pulse ControlChannels are prepared for doing cross
     resonance (CR) drives between transmons. A CR drive on transmon 0 with target transmon 1 is
     modeled with the Hamiltonian term:
         2*pi*r0*X0*U(t),
-    where
-        - r0 is the drive strength for transmon 0,
-        - X0 is the drive operator for transmon 0, and
-        - U(t) is the signal for the CR drive, which will be set to have carrier frequency equal to
-          the user-specified carrier frequency of the target transmon.
+    where r0 is the drive strength for transmon 0, X0 is the drive operator for transmon 0, and
+    U(t) is the signal for the CR drive. U(t) is set to have carrier frequency equal to that of the
+    target transmon.
 
     Indices for ControlChannels corresponding to CR drives are provided in the returned cr_idx_dict.
-    To access the control channel index for a CR drive on transmons (drive, target) use:
-        cr_idx_dict[(drive, target)]
-    E.g. For the coupling_dict above, cr_idx_dict will be automatically generated as:
-        {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}.
-    Hence, the ControlChannel to use for a CR drive on transmon 1 with target transmon 3 is:
-        cr_idx_dict[(1,3)] == 2.
 
     Args:
         num_transmons (int): Number of transmons in the model
@@ -86,7 +65,13 @@ def transmon_system_model(num_transmons,
         anharm_freqs (list): Anharmonicity values, assumed to be of length num_transmons
         drive_strengths (list): Drive strength values, assumed to be of length num_transmons
         coupling_dict (dict): Specification of the coupling graph with keys being edges, and values
-                              the strength of the coupling.
+                              the coupling strengths.
+
+                              For example:
+
+                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which transmons
+                                (0,1) are coupled with strength 0.02, and (1,3) are coupled with
+                                strength 0.01
         dt (float): Pixel size for pulse instructions
         freq_symbol (str): Frequency symbol for internal HamiltonianModel
         anharm_symbol (str): Anharmonicity symbol for internal HamiltonianModel
@@ -95,14 +80,16 @@ def transmon_system_model(num_transmons,
 
     Returns:
         tuple[PulseSystemModel, dict]: The generated transmon system model, and a dict specifying
-                                       u channel index to use for a specified CR drive;
-                                       I.e. to specify a CR drive with transmons (drive, target),
-                                       retrieve the u channel index via:
-                                            cr_idx_dict[(drive, target)].
-                                       For example, for the coupling_dict:
-                                            {(0, 1): 0.02, (1,3): 0.01},
-                                       the corresponding cr_idx_dict will be:
+                                       ControlChannel indices for CR driving.
+
+                                       For example:
+
+                                       * Given the coupling_dict ``{(0,1): 0.02, (1,3): 0.01}``,
+                                       the returned cr_idx_dict will be:
                                             {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
+                                       * Hence, to specify a pulse on the ControlChannel
+                                       corresponding to a CR drive on transmon 1 with target 0,
+                                       use index ``cr_idx_dict[(1, 0)]``, which in this case is 1
     """
 
     coupling_edges = coupling_dict.keys()
