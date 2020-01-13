@@ -25,5 +25,5 @@ cdef extern from "simulators/controller_execute.hpp" namespace "AER":
 
 
 def unitary_controller_execute(qobj):
-    """Execute qobj on Aer C++ QasmController"""
+    """Execute qobj on Aer C++ UnitaryController"""
     return controller_execute[UnitaryController](qobj)

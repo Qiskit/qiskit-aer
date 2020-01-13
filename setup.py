@@ -54,7 +54,7 @@ setup(
     install_requires=requirements,
     setup_requires=['scikit-build', 'cmake', 'Cython'],
     include_package_data=True,
-    cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
+    cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9", "-DAER_THRUST_BACKEND=CUDA"],
     keywords="qiskit aer simulator quantum addon backend",
     zip_safe=False
 )
