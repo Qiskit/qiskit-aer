@@ -116,11 +116,11 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   // After approximation, we may need to re-normalize the values of S
   if (new_SV_num < SV_num) {
     double sum=0;
-    for (uint i=0; i<S.size(); i++) {
+    for (uint_t i=0; i<S.size(); i++) {
       sum += std::norm(S[0]);
     }
     if (1-sum > THRESHOLD) {
-      for (uint i=0; i<S.size(); i++) {
+      for (uint_t i=0; i<S.size(); i++) {
 	double square_i = std::norm(S[0])/sum;
 	S[i] = sqrt(square_i);
       }
