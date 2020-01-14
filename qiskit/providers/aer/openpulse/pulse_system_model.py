@@ -22,7 +22,7 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """PulseSystemModel containing all model information necessary for PulseSimulator."""
+    """PulseSystemModel containing model information necessary for PulseSimulator."""
 
     def __init__(self,
                  hamiltonian=None,
@@ -31,8 +31,17 @@ class PulseSystemModel():
                  u_channel_lo=None,
                  qubit_list=None,
                  dt=None):
-        """Basic constructor.
+        """Initialize a PulseSystemModel.
 
+        Args:
+            hamiltonian (HamiltonianModel): The Hamiltonian of the system.
+            qubit_freq_est (list): list of qubit lo frequencies defaults if constructed from a
+                                   backend.
+            meas_freq_est (list): list of measurement lo frequencies defaults if constructed from a
+                                  backend.
+            u_channel_lo (list): list of ControlChannel frequency specifications.
+            qubit_list (list): list of valid qubit indicies for the model.
+            dt (float): pixel size for pulse Instructions
         Raises:
             AerError: if hamiltonian is not None or a HamiltonianModel
         """
