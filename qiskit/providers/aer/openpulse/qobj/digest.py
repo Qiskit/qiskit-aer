@@ -70,10 +70,23 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     out.global_data['memory'] = qobj_config.get('memory', False)
     out.global_data['n_registers'] = qobj_config.get('n_registers', 0)
 
-    if 'qubit_lo_freq' not in qobj_config:
-        raise ValueError('qubit_lo_freq must be specified in qobj.')
-    # qobj frequencies are divided by 1e9, so multiply back
-    qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
+    # Handle qubit_lo_freq
+    # First, try to draw from the PulseQobj. If the PulseQobj was assembled using the
+    # PulseSimulator as the backend, and no qubit_lo_freq was specified, it will default to
+    # [np.inf]
+    qubit_lo_freq = None
+    if 'qubit_lo_freq' in qobj_config and qobj_config['qubit_lo_freq'] != [np.inf]:
+        # qobj frequencies are divided by 1e9, so multiply back
+        qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
+
+    # if it wasn't specified in the PulseQobj, draw from system_model
+    if qubit_lo_freq is None:
+        qubit_lo_freq = system_model._qubit_freq_est
+
+    # if still None, raise error
+    if qubit_lo_freq is None:
+        raise ValueError('qubit_lo_freq is required for simulation, and must be specified in \
+                          either the PulseQobj, or in PulseSystemModel._qubit_freq_est.')
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
