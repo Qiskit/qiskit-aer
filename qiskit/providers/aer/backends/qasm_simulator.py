@@ -204,7 +204,7 @@ class QasmSimulator(AerBackend):
     * ``"approx_threhold"`` (double): Sets a lower limit on the value of the Schmidt
     coefficients retained at the end of the svd algorithm.
     The actual cut-off threshold is relative to the largest coefficient,
-    S[0], and is computed as approx_threshold * S[0].
+    S[0], and is computed as approx_threshold * norm(S[0]).
     (Default: 1e-16, where this default is absolute and not relative to S[0]).
 
     """
