@@ -196,16 +196,16 @@ class QasmSimulator(AerBackend):
     simulation method:
 
     * ``"max_sv_num_for_approx"`` (int): Sets a limit on the number of Schmidt
-    coefficients retained at the end of the svd algorithm.
-    If the number of coefficients is greater than max_sv_num_for_approx,
-    small values may be discarded, depending on approx_threshold.
-    (Default: UINT_64MAX).
+      coefficients retained at the end of the svd algorithm.
+      If the number of coefficients is greater than max_sv_num_for_approx,
+      small values may be discarded, depending on approx_threshold.
+      (Default: UINT_64MAX).
 
     * ``"approx_threhold"`` (double): Sets a lower limit on the value of the Schmidt
-    coefficients retained at the end of the svd algorithm.
-    The actual cut-off threshold is relative to the largest coefficient,
-    S[0], and is computed as approx_threshold * norm(S[0]).
-    (Default: 1e-16, where this default is absolute and not relative to S[0]).
+      coefficients retained at the end of the svd algorithm.
+      The actual cut-off threshold is relative to the largest coefficient,
+      S[0], and is computed as approx_threshold * norm(S[0]).
+      (Default: 1e-16, where this default is absolute and not relative to S[0]).
 
     """
 
