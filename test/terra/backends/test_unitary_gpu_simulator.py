@@ -16,10 +16,11 @@ UnitarySimulator Integration Tests
 
 import unittest
 from test.terra import common
+from test.terra.decorators import requires_gpu
 # Basic circuit instruction tests
 from test.terra.backends.unitary_simulator.unitary_basics import UnitaryBasicsTests
 
-
+@requires_gpu
 class TestUnitaryGPUSimulator(common.QiskitAerTestCase,
                            UnitaryBasicsTests):
     """QasmSimulator automatic method tests."""

@@ -676,7 +676,8 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
         return state.required_memory_mb(circ.num_qubits, circ.ops);
       }
     }
-    case Method::density_matrix: {
+    case Method::density_matrix:
+    case Method::density_matrix_gpu: {
       DensityMatrix::State<> state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }

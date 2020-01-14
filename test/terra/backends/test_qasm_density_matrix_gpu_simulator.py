@@ -16,6 +16,7 @@ QasmSimulator Integration Tests
 
 import unittest
 from test.terra import common
+from test.terra.decorators import requires_gpu
 
 # Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
@@ -52,7 +53,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
-
+@requires_gpu
 class TestQasmDensityMatrixGPUSimulator(common.QiskitAerTestCase,
                                      QasmMethodTests,
                                      QasmMeasureTests,
@@ -88,7 +89,6 @@ class TestQasmDensityMatrixGPUSimulator(common.QiskitAerTestCase,
         "seed_simulator": 314159,
         "method": "density_matrix_gpu"
     }
-
-
+    
 if __name__ == '__main__':
     unittest.main()
