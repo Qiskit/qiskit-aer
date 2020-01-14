@@ -2198,9 +2198,15 @@ public:
 		int i;
 		nqubits = qubits.size();
 
-		qubit_t0 = qubits[nqubits-2];
-		qubit_t1 = qubits[nqubits-1];
-		mask0 = (1ull << qubit_t0) - 1;
+    if(qubits[nqubits-2] < qubits[nqubits-1]){
+      qubit_t0 = qubits[nqubits-2];
+      qubit_t1 = qubits[nqubits-1];
+    }
+    else{
+      qubit_t1 = qubits[nqubits-2];
+      qubit_t0 = qubits[nqubits-1];
+    }
+    mask0 = (1ull << qubit_t0) - 1;
 		mask1 = (1ull << qubit_t1) - 1;
 
 		cmask = 0;
