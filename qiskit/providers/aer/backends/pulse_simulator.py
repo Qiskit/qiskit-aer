@@ -36,7 +36,11 @@ class PulseSimulator(AerBackend):
 
     The `PulseSimulator` simulates pulse Schedules on a model of a quantum system, where a model
     is specified by a PulseSystemModel object, which stores Hamiltonian and control channel
-    information. 
+    information. Simulation is performed in the rotating frame of the drift Hamiltonian in the
+    PulseSystemModel.
+
+    Currently, PulseSystemModel objects can be constructed from backends with a hamiltonian
+    description, or can be constructed from 
     """
 
     DEFAULT_CONFIGURATION = {
