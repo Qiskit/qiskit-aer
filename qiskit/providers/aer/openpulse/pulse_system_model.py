@@ -36,12 +36,12 @@ class PulseSystemModel():
         Args:
             hamiltonian (HamiltonianModel): The Hamiltonian of the system.
             qubit_freq_est (list): list of qubit lo frequencies defaults to be used in simulation
-                                   if none are specified in the PulseQobj
+                                   if none are specified in the PulseQobj.
             meas_freq_est (list): list of qubit meas frequencies defaults to be used in simulation
-                                  if none are specified in the PulseQobj
+                                  if none are specified in the PulseQobj.
             u_channel_lo (list): list of ControlChannel frequency specifications.
             qubit_list (list): list of valid qubit indicies for the model.
-            dt (float): pixel size for pulse Instructions
+            dt (float): pixel size for pulse Instructions.
         Raises:
             AerError: if hamiltonian is not None or a HamiltonianModel
         """
