@@ -62,6 +62,14 @@ class PulseSimulator(AerBackend):
         # Run simulation
         results = backend_sim.run(pulse_qobj, system_model)
 
+    **Important parameters**
+
+    * `qubit_lo_freq`: The local oscillator frequency for each `DriveChannel`. This can be drawn
+                       from several places, listed in order of importance:
+           * passed as an argument to `assemble`
+           * determined from PulseSystemModel attribute `_qubit_freq_est`, if not passed to assemble
+           * computed from the dressed energy gaps of the drift Hamiltonian
+
     **Measurement and output**
 
     The measurement results are from projections of the state vector in dressed energy basis of
@@ -91,14 +99,6 @@ class PulseSimulator(AerBackend):
     * `meas_level`: `2`
     * `meas_return`: `'avg'`
     * `shots`: `1024`
-
-    An important parameter for simulation is `qubit_lo_freq` for each DriveChannel. The
-    `qubit_lo_freq` is determined in the following way:
-    * If `qubit_lo_freq` passed to `assemble`, this will take priority.
-    * If `qubit_lo_freq` not passed to assemble, it will look next in the PulseSystemModel attribute
-      `_qubit_freq_est`.
-    * Finally, if neither of the above two are populated, `qubit_lo_freq` will be computed directly
-      from the dressed energy gaps of the drift Hamiltonian. 
     """
 
     DEFAULT_CONFIGURATION = {
