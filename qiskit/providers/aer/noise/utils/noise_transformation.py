@@ -29,6 +29,7 @@ used in a Clifford simulator.
 """
 
 import itertools
+import logging
 import numpy
 
 from qiskit.providers.aer.noise.errors import QuantumError
@@ -37,6 +38,8 @@ from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import single_qubit_clifford_instructions
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
+
+logger = logging.getLogger(__name__)
 
 
 def approximate_quantum_error(error, *,
@@ -728,7 +731,10 @@ class NoiseTransformer:
             This method is the only place in the code where we rely on the cvxpy library
             should we consider another library, only this method needs to change.
         """
-        import cvxpy
+        try:
+            import cvxpy
+        except ImportError:
+            logger.error("cvxpy module needs to be installed to use this feature.")
 
         P = numpy.array(P).astype(float)
         q = numpy.array(q).astype(float).T
