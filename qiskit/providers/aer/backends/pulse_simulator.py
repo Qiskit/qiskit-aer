@@ -34,13 +34,71 @@ logger = logging.getLogger(__name__)
 class PulseSimulator(AerBackend):
     """Aer OpenPulse simulator
 
-    The `PulseSimulator` simulates pulse Schedules on a model of a quantum system, where a model
-    is specified by a PulseSystemModel object, which stores Hamiltonian and control channel
+    The `PulseSimulator` simulates pulse `Schedules` on a model of a quantum system, where a model
+    is specified by a `PulseSystemModel` object, which stores Hamiltonian and control channel
     information. Simulation is performed in the rotating frame of the drift Hamiltonian in the
-    PulseSystemModel.
+    `PulseSystemModel`.
 
-    Currently, PulseSystemModel objects can be constructed from backends with a hamiltonian
-    description, or can be constructed from 
+    `PulseSystemModel` objects can be constructed from backends with a hamiltonian description, or
+    from the `transmon_system_model` function.
+
+    Results are returned in the same format as when jobs are submitted to actual devices.
+
+    **Example of usage**
+
+    To use the simulator, `assemble` a `PulseQobj` object from a list of pulse `Schedules`, using
+    `backend=PulseSimulator()`.
+
+    In the following, `schedules` is a list of pulse `Schedule` objects, and `system_model` is a
+    `PulseSystemModel` object.
+
+    .. code-block:: python
+
+        backend_sim = qiskit.Aer.get_backend('pulse_simulator')
+
+        # assemble pulse_qobj with backend=backend_sim
+        pulse_qobj = assemble(schedules, backend=backend_sim)
+
+        # Run simulation
+        results = backend_sim.run(pulse_qobj, system_model)
+
+    **Measurement and output**
+
+    The measurement results are from projections of the state vector in dressed energy basis of
+    the drift Hamiltonian.
+
+    There are three measurement levels that return the data, specified when using assemble.
+    Measurement level `0` gives the raw data.
+    Measurement level `1` gives complex numbers (IQ values).
+    Measurement level `2` gives the discriminated states, `|0>` and `|1>`.
+
+    **Simulation method**
+
+    The simulator uses the `zvode` differential equation solver method through `scipy`.
+
+    **Other options**
+
+    The `run` function additionally takes an argument `backend_options` for additional
+    customization. It accepts keys:
+
+    * `'ode_options'`: a dictionary containing options to pass to the `zvode` solver. Accepted keys
+      for this option are `'atol'`, `'rtol'`, `'nsteps'`, `'max_step'`, `'num_cpus'`, `'norm_tol'`,
+      and `'norm_steps'`
+
+    **Default behaviors**
+
+    Defaults filled in for `assemble` parameters if not specified:
+    * `meas_level`: `2`
+    * `meas_return`: `'avg'`
+    * `shots`: `1024`
+
+    An important parameter for simulation is `qubit_lo_freq` for each DriveChannel. The
+    `qubit_lo_freq` is determined in the following way:
+    * If `qubit_lo_freq` passed to `assemble`, this will take priority.
+    * If `qubit_lo_freq` not passed to assemble, it will look next in the PulseSystemModel attribute
+      `_qubit_freq_est`.
+    * Finally, if neither of the above two are populated, `qubit_lo_freq` will be computed directly
+      from the dressed energy gaps of the drift Hamiltonian. 
     """
 
     DEFAULT_CONFIGURATION = {
