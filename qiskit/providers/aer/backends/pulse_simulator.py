@@ -33,7 +33,12 @@ logger = logging.getLogger(__name__)
 
 class PulseSimulator(AerBackend):
     """Aer OpenPulse simulator
+
+    The `PulseSimulator` simulates pulse Schedules on a model of a quantum system, where a model
+    is specified by a PulseSystemModel object, which stores Hamiltonian and control channel
+    information. 
     """
+
     DEFAULT_CONFIGURATION = {
         'backend_name': 'pulse_simulator',
         'backend_version': __version__,
@@ -64,10 +69,7 @@ class PulseSimulator(AerBackend):
                          BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
-    def run(self, qobj,
-            system_model,
-            backend_options=None,
-            validate=False):
+    def run(self, qobj, system_model, backend_options=None, validate=False):
         """Run a qobj on the backend."""
         # Submit job
         job_id = str(uuid.uuid4())
@@ -76,10 +78,7 @@ class PulseSimulator(AerBackend):
         aer_job.submit()
         return aer_job
 
-    def _run_job(self, job_id, qobj,
-                 system_model,
-                 backend_options,
-                 validate):
+    def _run_job(self, job_id, qobj, system_model, backend_options, validate):
         """Run a qobj job"""
         start = time.time()
         if validate:
