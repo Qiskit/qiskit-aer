@@ -54,9 +54,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
         backend_options = {}
 
     # override anything in qobj_config that is present in backend_options
-    for key in qobj_config.keys():
-        if key in backend_options:
-            qobj_config[key] = backend_options[key]
+    for key in backend_options.keys():
+        qobj_config[key] = backend_options[key]
 
     noise_model = backend_options.get('noise_model', None)
 
