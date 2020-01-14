@@ -41,6 +41,7 @@ class PulseSimulator(AerBackend):
         'coupling_map': None,
         'url': 'https://github.com/Qiskit/qiskit-aer',
         'simulator': True,
+        'meas_levels': [0, 1, 2],
         'local': True,
         'conditional': True,
         'open_pulse': True,
