@@ -83,10 +83,11 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     if qubit_lo_freq is None:
         qubit_lo_freq = system_model._qubit_freq_est
 
-    # if still None, raise error
+    # if still None draw from the Hamiltonian
     if qubit_lo_freq is None:
-        raise ValueError('qubit_lo_freq is required for simulation, and must be specified in \
-                          either the PulseQobj, or in PulseSystemModel._qubit_freq_est.')
+        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
+        warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, \
+             so it is beign automatically determined from the drift Hamiltonian.')
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
