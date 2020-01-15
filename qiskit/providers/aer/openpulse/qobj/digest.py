@@ -230,17 +230,35 @@ def _unsupported_warnings(qobj_dict, noise_model):
         AerError: for unsupported features
     """
 
-    # Warnings that don't stop execution
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if noise_model is not None:
         warn(warning_str.format('Noise models'))
     if _contains_pv_instruction(qobj_dict['experiments']):
         raise AerError(warning_str.format('PersistentValue instructions'))
 
+    required_str = '{} are required for simulation, and none were specified.'
+    if not _contains_acquire_instruction(qobj_dict['experiments']):
+        raise AerError(required_str.format('Acquire instructions'))
+
+def _contains_acquire_instruction(experiments):
+    """ Return True if the list of experiments contains an Acquire instruction
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain an Acquire command
+    Raises:
+    """
+
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'acquire':
+                return True
+    return False
+
 
 def _contains_pv_instruction(experiments):
-    """ Return True if the list of experiments from the output of _format_qobj_dict contains
-    a PersistentValue instruction
+    """ Return True if the list of experiments contains a PersistentValue instruction
 
     Parameters:
         experiments (list): list of schedules
