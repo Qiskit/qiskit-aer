@@ -97,6 +97,10 @@ public:
   // Measurement
   //-----------------------------------------------------------------------
 
+  // If we perform a single qubit Z measurement, 
+  // will the outcome be random or deterministic.
+  bool is_deterministic_outcome(const uint64_t& qubit) const;
+
   // Return the outcome (0 or 1) of a single qubit Z measurement, and
   // update the stabilizer to the conditional (post measurement) state if
   // the outcome was random.
@@ -284,6 +288,13 @@ std::pair<bool, uint64_t> Clifford::x_anticommuting(const uint64_t qubit) const 
 //------------------------------------------------------------------------------
 // Measurement
 //------------------------------------------------------------------------------
+
+bool Clifford::is_deterministic_outcome(const uint64_t& qubit) const {
+  // Clifford state measurements only have three probabilities:
+  // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
+  // The random case happens if there is a row anti-commuting with Z[qubit]
+  return !z_anticommuting(qubit).first;
+}
 
 bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) {
   // Clifford state measurements only have three probabilities:

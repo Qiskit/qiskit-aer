@@ -1,14 +1,17 @@
 include(Linter)
 
 find_package(PythonExtensions REQUIRED)
-find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
+find_package(Pybind11 REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
 # dependencies we can, so some of these dependencies are linked statically into our
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+if(APPLE OR LINUX) 
+    string(CONCAT CMAKE_CXX_FLAGS "-fvisibility=hidden")
+endif()
 
 # Set some general flags
 if(APPLE)
@@ -26,7 +29,9 @@ if(APPLE)
     unset(PYTHON_LIBRARIES)
 endif()
 
+# Controllers
 
+<<<<<<< HEAD
 # QASM Controller
 
 add_cython_target(qasm_controller_wrapper qasm_controller_wrapper.pyx CXX)
@@ -133,8 +138,16 @@ python_modules_header(modules
     FORWARD_DECL_MODULES_LIST ${fdecl_module_list})
 include_directories(${modules_INCLUDE_DIRS})
 install(TARGETS unitary_controller_wrapper LIBRARY DESTINATION qiskit/providers/aer/backends)
+=======
+basic_pybind11_add_module(controller_wrappers bindings.cc)
+target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+                                               PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+target_link_libraries(controller_wrappers ${AER_LIBRARIES})
+install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/backends)
+>>>>>>> upstream/master
 
 # Install redistributable dependencies
 if(APPLE)
+    set_target_properties(controller_wrappers PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
     install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()

@@ -27,7 +27,8 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, cu1, swap, su4 // two qubit
+  cx, cz, cu1, swap, su4, // two qubit
+  mcx // three qubit
 };
 
 enum class Direction {RIGHT, LEFT};
@@ -107,7 +108,10 @@ public:
   void apply_swap(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
+			  const cmatrix_t &mat);
+  void apply_ccx(const reg_t &qubits);  
+  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat);
 
@@ -118,50 +122,70 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  //----------------------------------------------------------------
-  // function name: change_position
-  // Description: Move qubit from src to dst in the MPS. Used only
-  //   for expectation value calculations. Similar to swap, but doesn't
-  //   move qubit in dst back to src, therefore being used only on the temp MPS
-  //   in Expectation_value function.
-  // Parameters: uint_t src, source of the qubit.
-  //			 uint_t dst, destination of the qubit.
-  // Returns: none.
-  //----------------------------------------------------------------
-  void change_position(uint_t src, uint_t dst);
-
   cmatrix_t density_matrix(const reg_t &qubits) const;
+  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
-  //  double Expectation_value(const vector<uint_t> &indexes, const string &matrices);
-  double expectation_value(const reg_t &qubits, const string &matrices) const;
+  //---------------------------------------------------------------
+  // Function: expectation_value
+  // Description: Computes expectation value of the given qubits on the given matrix.
+  // Parameters: The qubits for which we compute expectation value.
+  //             M - the matrix
+  // Returns: The expectation value. 
+  //------------------------------------------------------------------
   double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+
+  //---------------------------------------------------------------
+  // Function: expectation_value_pauli
+  // Description: Computes expectation value of the given qubits on a string of Pauli matrices.
+  // Parameters: The qubits for which we compute expectation value.
+  //             A string of matrices of the set {X, Y, Z, I}. The matrices are given in 
+  //             reverse order relative to the qubits.
+  // Returns: The expectation value in the form of a complex number. The real part is the 
+  //          actual expectation value.
+  //------------------------------------------------------------------
+  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
+
+  //------------------------------------------------------------------
+  // function name: MPS_with_new_indices
+  // Description: Creates a copy of *this where the indices of the
+  //   selected qubits have been moved for more efficient computation
+  //   of the expectation value
+  // Parameters: The qubits for which we compute expectation value.
+  // Returns: new MPS.
+  //----------------------------------------------------------------
+  void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
+			    uint_t &front, uint_t &back) const;
 
   //----------------------------------------------------------------
   // function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------
-   virtual ostream&  print(ostream& out) const;
+  virtual std::ostream&  print(std::ostream& out) const;
 
    //----------------------------------------------------------------
    // function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
-   vector<reg_t> get_matrices_sizes() const;
+  std::vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
-  // function name: state_vec
+  // function name: state_vec_as_MPS
   // Description: Computes the state vector of a subset of qubits.
   // 	The regular use is with for all qubits. in this case the output is
   //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
   //  	If not used for all qubits,	the result tensor will contain a
   //   	2^(distance between edges) vector of matrices of some size. This
-  //	method is being used for computing expectation value of subset of qubits.
+  //	method is used for computing expectation value of a subset of qubits.
   // Parameters: none.
   // Returns: none.
   //----------------------------------------------------------------
-  MPS_Tensor state_vec(uint_t first_index, uint_t last_index) const;
+  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
+
+  // This function computes the state vector for all the consecutive qubits 
+  // between first_index and last_index
+  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
-  void probabilities_vector(rvector_t& probvector) const;
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //methods from qasm_controller that are not supported yet
   void set_omp_threads(int threads) {
@@ -183,14 +207,7 @@ public:
   }
 
   void enable_gate_opt() {
-    cout << "enable_gate_opt not supported yet" <<endl;
-  }
-
-  rvector_t probabilities(const AER::reg_t &qubits) const
-  {
-    rvector_t probvector;
-    probabilities_vector(probvector);
-    return probvector;
+    std::cout << "enable_gate_opt not supported yet" <<std::endl;
   }
 
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
@@ -222,23 +239,80 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
+    cmatrix_t statevector_as_matrix(1, state_vector.size());
+#pragma omp parallel for
+    for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
+      statevector_as_matrix(0, i) = state_vector[i];
+    }
+    initialize_from_matrix(num_qubits, statevector_as_matrix);
+  }
+  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
 protected:
+  //----------------------------------------------------------------
+  // function name: centralize_qubits
+  // Description: Creates a new MPS where a subset of the qubits is
+  // moved to be in consecutive positions. Used for
+  // computations involving a subset of the qubits.
+  // Parameters: Input: new_MPS - the MPS with the shifted qubits
+  //                    qubits - the subset of qubits
+  //             Returns: new_first, new_last - new positions of the 
+  //                    first and last qubits respectively
+  //                    ordered - are the qubits in ascending order
+  // Returns: none.
+  //----------------------------------------------------------------
+  void centralize_qubits(const reg_t &qubits,
+			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: centralize_and_sort_qubits
+  // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
+  //----------------------------------------------------------------
+  void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
+			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: move_qubits_to_original_location
+  // Description: This function reverses the effect of centralize_qubits.
+  //      It returns the qubits that were previously centralized, to their original positions.
+  // Parameters: Input: first - the index of the first qubit that was moved
+  //                    original_qubits - the subset of qubits that were moved
+  //                    sorted_qubits - the original_qubits in sorted order
+  //             Returns: the MPS (this) where the qubits have been moved back to their original
+  //                 position.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
+					const reg_t &sorted_qubits);
+
+  //----------------------------------------------------------------
+
+  // function name: change_position
+  // Description: Move qubit from src to dst in the MPS. Used only
+  //   for expectation value calculations. Similar to swap, but doesn't
+  //   move qubit in dst back to src, therefore being used only on the temp MPS
+  //   in Expectation_value function.
+  // Parameters: uint_t src, source of the qubit.
+  //			 uint_t dst, destination of the qubit.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void change_position(uint_t src, uint_t dst);
+
   uint_t num_qubits_;
-  vector<MPS_Tensor> q_reg_;
-  vector<rvector_t> lambda_reg_;
+  std::vector<MPS_Tensor> q_reg_;
+  std::vector<rvector_t> lambda_reg_;
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  double json_chop_threshold_ = 0;  // Threshold for choping small values
+  double json_chop_threshold_ = 1E-8;  // Threshold for choping small values
                                     // in JSON serialization
 };
 
-inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
+inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   out << "[";
   uint_t size = vec.size();
   for (uint_t i = 0; i < size-1; ++i) {
@@ -249,7 +323,7 @@ inline ostream &operator<<(std::ostream &out, const rvector_t &vec) {
   return out;
 }
 
-inline ostream&
+inline std::ostream&
 operator <<(std::ostream& out, const MPS& mps)
 {
   return mps.print(out);
