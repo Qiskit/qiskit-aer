@@ -193,13 +193,15 @@ def _transmon_hamiltonian_dict(transmons,
     hamiltonian_str += _drive_terms(drive_symbols, transmons)
 
     # exchange terms
-    hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
+    if len(ordered_coupling_edges) > 0:
+        hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
 
     # cr terms
-    driven_transmon_indices = [key[0] for key in cr_idx_dict.keys()]
-    cr_drive_symbols = [drive_symbols[idx] for idx in driven_transmon_indices]
-    cr_channel_idx = cr_idx_dict.values()
-    hamiltonian_str += _cr_terms(cr_drive_symbols, driven_transmon_indices, cr_channel_idx)
+    if len(cr_idx_dict) > 0:
+        driven_transmon_indices = [key[0] for key in cr_idx_dict.keys()]
+        cr_drive_symbols = [drive_symbols[idx] for idx in driven_transmon_indices]
+        cr_channel_idx = cr_idx_dict.values()
+        hamiltonian_str += _cr_terms(cr_drive_symbols, driven_transmon_indices, cr_channel_idx)
 
     # construct vars dictionary
     var_dict = {}
@@ -208,8 +210,9 @@ def _transmon_hamiltonian_dict(transmons,
         var_dict[anharm_symbols[idx]] = anharm_freqs[idx]
         var_dict[drive_symbols[idx]] = drive_strengths[idx]
 
-    for symbol, strength in zip(coupling_symbols, coupling_strengths):
-        var_dict[symbol] = strength
+    if len(coupling_symbols) > 0:
+        for symbol, strength in zip(coupling_symbols, coupling_strengths):
+            var_dict[symbol] = strength
 
     dim_dict = {str(transmon): dim for transmon, dim in zip(transmons, transmon_dims)}
 
