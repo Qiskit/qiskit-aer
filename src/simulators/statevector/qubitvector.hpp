@@ -2022,7 +2022,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 
   const size_t N = qubits.size();
   const int_t DIM = BITS[N];
-  const int_t END = BITS[num_qubits_ - N];
+  const int_t END = BITS[num_qubits() - N];
 
   // Error checking
   #ifdef DEBUG
