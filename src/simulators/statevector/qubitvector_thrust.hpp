@@ -3003,10 +3003,12 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
                                                    const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
 	const size_t N = qubits.size();
+	auto qubits_sorted = qubits;
+	std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
 	reg_t params(N + pairs.size()*2);
 
-	apply_function(permutation_func<data_t>(qubits,pairs,&params[0]), qubits);
+	apply_function(permutation_func<data_t>(qubits_sorted,pairs,&params[0]), qubits);
 
 #ifdef AER_DEBUG
 	DebugMsg("apply_permutation_matrix",qubits);
