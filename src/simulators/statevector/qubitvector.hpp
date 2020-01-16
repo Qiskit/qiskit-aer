@@ -2008,7 +2008,7 @@ double QubitVector<data_t>::probability(const uint_t outcome) const {
 
 template <typename data_t>
 std::vector<double> QubitVector<data_t>::probabilities() const {
-  const int_t END = 1LL << num_qubits_;
+  const int_t END = 1LL << num_qubits();
   std::vector<double> probs(END, 0.);
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t j=0; j < END; j++) {
@@ -2061,7 +2061,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 template <typename data_t>
 reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const {
 
-  const int_t END = 1LL << num_qubits_;
+  const int_t END = 1LL << num_qubits();
   const int_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);
