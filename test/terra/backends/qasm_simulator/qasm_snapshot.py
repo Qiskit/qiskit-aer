@@ -511,7 +511,7 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'density_matrix_gpu', 
+        'automatic', 'statevector', 'density_matrix', 'density_matrix_gpu', 
         'matrix_product_state', 'statevector_gpu', 'statevector_fake_gpu'
     ]
     BACKEND_OPTS = {}
