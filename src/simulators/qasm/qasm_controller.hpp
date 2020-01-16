@@ -719,7 +719,8 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
       Base::Controller::set_parallelization_circuit(circ, noise_model);
       break;
     }
-    case Method::density_matrix: {
+    case Method::density_matrix:
+    case Method::density_matrix_gpu: {
       if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
         parallel_shots_ = 1;
         parallel_state_update_ = max_parallel_threads_;
@@ -880,7 +881,7 @@ QasmController::check_measure_sampling_opt(const Circuit &circ,
   auto start = circ.ops.begin();
   while (start != circ.ops.end()) {
     const auto type = start->type;
-    if (method != Method::density_matrix) {
+    if (method != Method::density_matrix && method != Method::density_matrix_gpu) {
       if(type == Operations::OpType::reset ||
         type == Operations::OpType::initialize ||
         type == Operations::OpType::kraus ||

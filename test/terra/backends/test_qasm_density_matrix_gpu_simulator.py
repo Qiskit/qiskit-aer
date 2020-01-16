@@ -87,7 +87,8 @@ class TestQasmDensityMatrixGPUSimulator(common.QiskitAerTestCase,
 
     BACKEND_OPTS = {
         "seed_simulator": 314159,
-        "method": "density_matrix_gpu"
+        "method": "density_matrix_gpu",
+        "max_parallel_threads": 1
     }
     
 if __name__ == '__main__':

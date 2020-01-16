@@ -1203,10 +1203,9 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
     // update state vector
     for (uint_t b = 0; b < blocks; b++)
       for (uint_t i = 0; i < columns; i++)
-        for (uint_t j = 0; j < columns; j++)
-	{
-	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
-	}
+        for (uint_t j = 0; j < columns; j++) {
+          data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
+        }
   };
   
   // Use the lambda function
@@ -2008,7 +2007,7 @@ double QubitVector<data_t>::probability(const uint_t outcome) const {
 
 template <typename data_t>
 std::vector<double> QubitVector<data_t>::probabilities() const {
-  const int_t END = 1LL << num_qubits();
+  const int_t END = 1LL << num_qubits_;
   std::vector<double> probs(END, 0.);
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t j=0; j < END; j++) {
@@ -2022,7 +2021,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 
   const size_t N = qubits.size();
   const int_t DIM = BITS[N];
-  const int_t END = BITS[num_qubits() - N];
+  const int_t END = BITS[num_qubits_ - N];
 
   // Error checking
   #ifdef DEBUG
@@ -2061,7 +2060,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 template <typename data_t>
 reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const {
 
-  const int_t END = 1LL << num_qubits();
+  const int_t END = 1LL << num_qubits_;
   const int_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);

@@ -2011,14 +2011,14 @@ public:
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
-                                                   const std::vector<std::pair<uint_t, uint_t>> &pairs)
+																									 const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
 	const size_t N = qubits.size();
 	uint_t size = data_size_ >> N;
-
+	auto qubits_sorted = qubits;
+	std::sort(qubits_sorted.begin(), qubits_sorted.end());
 	allocate_buffers(N);
-
-	apply_function(Permutation<data_t>(m_pUintBuf,qubits,pairs), qubits);
+	apply_function(Permutation<data_t>(m_pUintBuf,qubits_sorted,pairs), qubits);
 
 #ifdef DEBUG
 	DebugMsg("apply_permutation_matrix",qubits);
@@ -2207,7 +2207,7 @@ public:
       qubit_t0 = qubits[nqubits-1];
     }
     mask0 = (1ull << qubit_t0) - 1;
-		mask1 = (1ull << qubit_t1) - 1;
+    mask1 = (1ull << qubit_t1) - 1;
 
 		cmask = 0;
 		for(i=0;i<nqubits-2;i++){
@@ -2518,7 +2518,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
-                                                const cvector_t<double>& diag)
+																								const cvector_t<double>& diag)
 {
 #ifdef DEBUG
 	TimeStart(QS_GATE_DIAG);
@@ -2755,7 +2755,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 		ret = apply_sum_function(NormDiagonalMultNxN<data_t>(pMat,m_pUintBuf,qubits), qubits );
 #ifdef DEBUG
 		DebugMsg("norm_diagonal",qubits);
-		DebugMsg("             ",ret);
+		DebugMsg("						 ",ret);
 #endif
 		return ret;
 	}
@@ -2819,7 +2819,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 
 #ifdef DEBUG
 		DebugMsg("norm2x2",qubits);
-		DebugMsg("       ",ret);
+		DebugMsg("			 ",ret);
 #endif
 	return ret;
 }
@@ -2877,7 +2877,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvecto
 
 #ifdef DEBUG
 		DebugMsg("norm_diagonal",qubits);
-		DebugMsg("             ",ret);
+		DebugMsg("						 ",ret);
 #endif
 	return ret;
 }
@@ -2891,18 +2891,18 @@ double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvecto
  ******************************************************************************/
 template <typename data_t>
 double QubitVectorThrust<data_t>::probability(const uint_t outcome) const {
-  return std::real(data_[outcome] * std::conj(data_[outcome]));
+	return std::real(data_[outcome] * std::conj(data_[outcome]));
 }
 
 template <typename data_t>
 std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
-  const int_t END = 1LL << num_qubits();
+	const int_t END = 1LL << num_qubits_;
 
-  std::vector<double> probs(END, 0.);
+	std::vector<double> probs(END, 0.);
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (int_t j=0; j < END; j++) {
-    probs[j] = probability(j);
-  }
+	for (int_t j=0; j < END; j++) {
+		probs[j] = probability(j);
+	}
 
 #ifdef DEBUG
 	DebugMsg("probabilities",probs);
@@ -2981,7 +2981,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 
 #ifdef DEBUG
 	DebugMsg("probabilities",qubits);
-	DebugMsg("             ",probs);
+	DebugMsg("						 ",probs);
 #endif
 	return probs;
 }
@@ -2993,136 +2993,78 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 template <typename data_t>
 reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds) const
 {
+	const int_t END = 1LL << num_qubits_;
 	const int_t SHOTS = rnds.size();
 	reg_t samples;
-	data_t* pVec = (data_t*)&data_[0];
-	uint_t n = data_size_*2;
-	int i,j;
-	double* pRnd;
-	uint_t* pSamp;
-
-#ifdef DEBUG
-	TimeStart(QS_GATE_MEASURE);
-#endif
-
 	samples.assign(SHOTS, 0);
 
-	if(m_nDevParallel == 1){
-#ifdef AER_THRUST_CUDA
-		cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
-		cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
-#else
-		pRnd = (double*)malloc(sizeof(double)*SHOTS);
-		pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
-#endif
-
-		thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
-
-		#pragma omp parallel for
-		for(i=0;i<SHOTS;i++){
-			pRnd[i] = rnds[i];
-		}
-
-		thrust::lower_bound(thrust::device, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
-
-		#pragma omp parallel for
-		for(i=0;i<SHOTS;i++){
-			samples[i] = pSamp[i]/2;
-		}
-
-		//restore statevector
-		thrust::adjacent_difference(thrust::device,pVec,pVec+n,pVec);
-		thrust::for_each(thrust::device,pVec,pVec+n,[=] __host__ __device__ (data_t a){return sqrt(a);});
-
-#ifdef AER_THRUST_CUDA
-		cudaFree(pRnd);
-		cudaFree(pSamp);
-#else
-		free(pRnd);
-		free(pSamp);
-#endif
+	const int INDEX_SIZE = sample_measure_index_size_;
+	const int_t INDEX_END = BITS[INDEX_SIZE];
+	// Qubit number is below index size, loop over shots
+	if (END < INDEX_END) {
+		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+		{
+			#pragma omp for
+			for (int_t i = 0; i < SHOTS; ++i) {
+				double rnd = rnds[i];
+				double p = .0;
+				int_t sample;
+				for (sample = 0; sample < END - 1; ++sample) {
+					p += probability(sample);
+					if (rnd < p)
+						break;
+				}
+				samples[i] = sample;
+			}
+		} // end omp parallel
 	}
-	else{
-		int iDev;
-		double* pDevSum = new double[m_nDevParallel];
-
-		#pragma omp parallel for private(i)
-		for(iDev=0;iDev<m_nDevParallel;iDev++){
-			uint_t is,ie;
-			is = n * iDev / m_nDevParallel;
-			ie = n * (iDev+1) / m_nDevParallel;
-
-#ifdef AER_THRUST_CUDA
-			cudaSetDevice(iDev);
-#endif
-			thrust::transform_inclusive_scan(thrust::device,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
-
-			pDevSum[iDev] = pVec[ie-1];
-		}
-
-		#pragma omp parallel for private(i,pRnd,pSamp)
-		for(iDev=0;iDev<m_nDevParallel;iDev++){
-			uint_t is,ie;
-			double low,high;
-			is = n * iDev / m_nDevParallel;
-			ie = n * (iDev+1) / m_nDevParallel;
-
-#ifdef AER_THRUST_CUDA
-			cudaSetDevice(iDev);
-			cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
-			cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
-#else
-			pRnd = (double*)malloc(sizeof(double)*SHOTS);
-			pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
-#endif
-
-			low = 0.0;
-			for(i=0;i<iDev;i++){
-				low += pDevSum[i];
-			}
-			high = low + pDevSum[iDev];
-
-			for(i=0;i<SHOTS;i++){
-				if(rnds[i] < low || rnds[i] >= high){
-					pRnd[i] = 10.0;
+	// Qubit number is above index size, loop over index blocks
+	else {
+		// Initialize indexes
+		std::vector<double> idxs;
+		idxs.assign(INDEX_END, 0.0);
+		uint_t loop = (END >> INDEX_SIZE);
+		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+		{
+			#pragma omp for
+			for (int_t i = 0; i < INDEX_END; ++i) {
+				uint_t base = loop * i;
+				double total = .0;
+				double p = .0;
+				for (uint_t j = 0; j < loop; ++j) {
+					uint_t k = base | j;
+					p = probability(k);
+					total += p;
 				}
-				else{
-					pRnd[i] = rnds[i] - low;
-				}
+				idxs[i] = total;
 			}
+		} // end omp parallel
 
-			thrust::lower_bound(thrust::device, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
-
-			for(i=0;i<SHOTS;i++){
-				if(pSamp[i] < ie-is){
-					samples[i] = (is + pSamp[i])/2;
+		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+		{
+			#pragma omp for
+			for (int_t i = 0; i < SHOTS; ++i) {
+				double rnd = rnds[i];
+				double p = .0;
+				int_t sample = 0;
+				for (uint_t j = 0; j < idxs.size(); ++j) {
+					if (rnd < (p + idxs[j])) {
+						break;
+					}
+					p += idxs[j];
+					sample += loop;
 				}
+
+				for (; sample < END - 1; ++sample) {
+					p += probability(sample);
+					if (rnd < p){
+						break;
+					}
+				}
+				samples[i] = sample;
 			}
-
-			//restore statevector
-			thrust::adjacent_difference(thrust::device,pVec + is,pVec + ie,pVec + is);
-			thrust::for_each(thrust::device,pVec + is,pVec + ie,[=] __host__ __device__ (data_t a){return sqrt(a);});
-
-#ifdef AER_THRUST_CUDA
-			cudaFree(pRnd);
-			cudaFree(pSamp);
-#else
-			free(pRnd);
-			free(pSamp);
-#endif
-		}
-
-		delete[] pDevSum;
+		} // end omp parallel
 	}
-
-#ifdef DEBUG
-	TimeEnd(QS_GATE_MEASURE);
-#endif
-
-#ifdef DEBUG
-	DebugMsg("sample_measure",samples);
-#endif
-
 	return samples;
 }
 
@@ -3162,19 +3104,19 @@ void QubitVectorThrust<data_t>::TimePrint(void)
 		total += m_gateTime[i];
 	}
 
-	printf("   ==================== Timing Summary =================== \n");
+	printf("	 ==================== Timing Summary =================== \n");
 	if(m_gateCounts[QS_GATE_INIT] > 0)
-		printf("  Initialization : %f \n",m_gateTime[QS_GATE_INIT]);
+		printf("	Initialization : %f \n",m_gateTime[QS_GATE_INIT]);
 	if(m_gateCounts[QS_GATE_MULT] > 0)
-		printf("    Matrix mult. : %f  (%d)\n",m_gateTime[QS_GATE_MULT],m_gateCounts[QS_GATE_MULT]);
+		printf("		Matrix mult. : %f	(%d)\n",m_gateTime[QS_GATE_MULT],m_gateCounts[QS_GATE_MULT]);
 	if(m_gateCounts[QS_GATE_CX] > 0)
-		printf("    CX           : %f  (%d)\n",m_gateTime[QS_GATE_CX],m_gateCounts[QS_GATE_CX]);
+		printf("		CX					 : %f	(%d)\n",m_gateTime[QS_GATE_CX],m_gateCounts[QS_GATE_CX]);
 	if(m_gateCounts[QS_GATE_DIAG] > 0)
-		printf("    Diagonal     : %f  (%d)\n",m_gateTime[QS_GATE_DIAG],m_gateCounts[QS_GATE_DIAG]);
+		printf("		Diagonal		 : %f	(%d)\n",m_gateTime[QS_GATE_DIAG],m_gateCounts[QS_GATE_DIAG]);
 	if(m_gateCounts[QS_GATE_MEASURE] > 0)
-		printf("    Measure      : %f  (%d)\n",m_gateTime[QS_GATE_MEASURE],m_gateCounts[QS_GATE_MEASURE]);
-	printf("    Total Kernel time : %f sec\n",total);
-	printf("   ======================================================= \n");
+		printf("		Measure			: %f	(%d)\n",m_gateTime[QS_GATE_MEASURE],m_gateCounts[QS_GATE_MEASURE]);
+	printf("		Total Kernel time : %f sec\n",total);
+	printf("	 ======================================================= \n");
 
 }
 
@@ -3256,7 +3198,7 @@ void QubitVectorThrust<data_t>::DebugDump(void)
 				bin[num_qubits_-j-1] = '0' + (char)((i >> j) & 1);
 			}
 			bin[num_qubits_] = 0;
-			fprintf(debug_fp,"   %s | %e, %e\n",bin,std::real(data_[i]),imag(data_[i]));
+			fprintf(debug_fp,"	 %s | %e, %e\n",bin,std::real(data_[i]),imag(data_[i]));
 		}
 	}
 }

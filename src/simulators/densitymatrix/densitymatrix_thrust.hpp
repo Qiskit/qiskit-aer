@@ -52,6 +52,9 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Return the string name of the DensityMatrix class
+  static std::string name() {return "density_matrix_gpu";}
+
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
@@ -260,13 +263,8 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-
   cvector_t<double> vec;
   vec.resize(16, 0.);
-  vec[4 * 0 + 0] = 1.;
-  vec[4 * 1 + 1] = 1.;
-  vec[4 * 2 + 2] = 1.;
-  vec[4 * 3 + 3] = 1.;
 
   vec[3] = -1.;
   vec[7] = -1.;
@@ -291,18 +289,57 @@ void DensityMatrixThrust<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
 }
 
 template <typename data_t>
+class DensityX : public GateFuncBase
+{
+protected:
+  int qubit0;
+  int qubit1;
+  uint_t mask0;
+  uint_t mask1;
+
+public:
+  DensityX(int q0,int q1)
+  {
+    qubit0 = q0;
+    qubit1 = q1;
+
+    mask0 = (1ull << qubit0) - 1;
+    mask1 = (1ull << qubit1) - 1;
+  }
+
+  __host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**> &iter) const
+  {
+    uint_t i,i0,i1,i2;
+    thrust::complex<data_t>** ppV;
+    thrust::complex<data_t> q0,q1,q2,q3;
+
+    i = thrust::get<0>(iter);
+    ppV = thrust::get<1>(iter);
+
+    i0 = i & mask0;
+    i2 = (i - i0) << 1;
+    i1 = i2 & mask1;
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = ppV[0][i0];
+    q1 = ppV[1][i0];
+    q2 = ppV[2][i0];
+    q3 = ppV[3][i0];
+
+    ppV[0][i0] = q3;
+    ppV[1][i0] = q2;
+    ppV[2][i0] = q1;
+    ppV[3][i0] = q0;
+  }
+};
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
-
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-  vec[0 * 4 + 3] = 1.;
-  vec[1 * 4 + 2] = 1.;
-  vec[2 * 4 + 1] = 1.;
-  vec[3 * 4 + 0] = 1.;
-
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
 }
 
 template <typename data_t>
