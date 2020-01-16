@@ -1203,9 +1203,10 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
     // update state vector
     for (uint_t b = 0; b < blocks; b++)
       for (uint_t i = 0; i < columns; i++)
-        for (uint_t j = 0; j < columns; j++) {
-          data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
-        }
+        for (uint_t j = 0; j < columns; j++)
+	{
+	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
+	}
   };
   
   // Use the lambda function
