@@ -60,7 +60,7 @@ jobs:
       - script: |
           call activate qiskit-aer-$(Build.BuildNumber)
           conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% mkl
-          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas osqp
         displayName: Install Anaconda packages
         condition: or(eq(variables['python.version'], '3.5'), eq(variables['python.version'], '3.8'))
       - bash: |
