@@ -27,7 +27,8 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, cu1, swap, su4 // two qubit
+  cx, cz, cu1, swap, su4, // two qubit
+  mcx // three qubit
 };
 
 enum class Direction {RIGHT, LEFT};
@@ -107,7 +108,10 @@ public:
   void apply_swap(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, cmatrix_t mat);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
+			  const cmatrix_t &mat);
+  void apply_ccx(const reg_t &qubits);  
+  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat);
 
@@ -235,7 +239,15 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
+    cmatrix_t statevector_as_matrix(1, state_vector.size());
+#pragma omp parallel for
+    for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
+      statevector_as_matrix(0, i) = state_vector[i];
+    }
+    initialize_from_matrix(num_qubits, statevector_as_matrix);
+  }
+  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
 protected:
   //----------------------------------------------------------------
@@ -243,13 +255,37 @@ protected:
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
-  // Parameters: input: new_MPS - the MPS with the shifted qubits
+  // Parameters: Input: new_MPS - the MPS with the shifted qubits
   //                    qubits - the subset of qubits
   //             Returns: new_first, new_last - new positions of the 
   //                    first and last qubits respectively
+  //                    ordered - are the qubits in ascending order
+  // Returns: none.
   //----------------------------------------------------------------
-  void centralize_qubits(MPS & new_MPS, const reg_t &qubits, 
-			 uint_t &new_first, uint_t &new_last) const;
+  void centralize_qubits(const reg_t &qubits,
+			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: centralize_and_sort_qubits
+  // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
+  //----------------------------------------------------------------
+  void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
+			 reg_t &new_qubits, bool &ordered);
+
+  //----------------------------------------------------------------
+  // function name: move_qubits_to_original_location
+  // Description: This function reverses the effect of centralize_qubits.
+  //      It returns the qubits that were previously centralized, to their original positions.
+  // Parameters: Input: first - the index of the first qubit that was moved
+  //                    original_qubits - the subset of qubits that were moved
+  //                    sorted_qubits - the original_qubits in sorted order
+  //             Returns: the MPS (this) where the qubits have been moved back to their original
+  //                 position.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
+					const reg_t &sorted_qubits);
+
   //----------------------------------------------------------------
 
   // function name: change_position

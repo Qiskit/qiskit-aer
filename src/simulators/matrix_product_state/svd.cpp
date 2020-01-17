@@ -71,6 +71,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
   return Res;
 }
 
+
 //-------------------------------------------------------------
 // function name: num_of_SV
 // Description: Computes the number of none-zero singular values
