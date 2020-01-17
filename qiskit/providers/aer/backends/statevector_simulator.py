@@ -22,8 +22,7 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
-#from .controller_wrappers import statevector_controller_execute
-from .controller_wrappers import statevector_controller_execute_result
+from .controller_wrappers import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
 
@@ -284,7 +283,7 @@ class StatevectorSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(statevector_controller_execute_result,
+        super().__init__(statevector_controller_execute,
                          QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
