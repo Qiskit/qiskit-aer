@@ -69,7 +69,7 @@ jobs:
           set -x
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) cvxpy
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) osqp
         displayName: Install 3.8 packages from Anaconda
         condition: eq(variables['python.version'], '3.8')
       - bash: |
