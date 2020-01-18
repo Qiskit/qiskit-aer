@@ -77,7 +77,7 @@ Fixed
 Deprecated
 ----------
 
-- Python 3.5 support in qiskit-terra is deprecated. Support will be
+- Python 3.5 support in qiskit-aer is deprecated. Support will be
   removed on the upstream python community's end of life date for the version,
   which is 09/13/2020.
 
