@@ -833,16 +833,17 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 			m_nDevParallel = m_nDev;
 		}
 
-#ifndef AER_THRUST_CUDA
-#pragma omp parallel private(nid)
-		{
-			nid = omp_get_num_threads();
-#pragma omp master
-			{
-				m_nDevParallel = nid;
-			}
-		}
-#endif
+//#ifndef AER_THRUST_CUDA
+//#pragma omp parallel private(nid)
+//		{
+//			nid = omp_get_num_threads();
+//#pragma omp master
+//			{
+//				m_nDevParallel = nid;
+//		    std::cout << "m_nDevParallel init3: " << m_nDevParallel << ", nid=" << nid << std::endl;
+//			}
+//		}
+//#endif
 	}
 
 	// Allocate memory for new vector
@@ -2993,79 +2994,137 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 template <typename data_t>
 reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds) const
 {
-	const int_t END = 1LL << num_qubits_;
-	const int_t SHOTS = rnds.size();
-	reg_t samples;
-	samples.assign(SHOTS, 0);
+  const int_t SHOTS = rnds.size();
+  reg_t samples;
+  data_t* pVec = (data_t*)&data_[0];
+  uint_t n = data_size_*2;
+  int i,j;
+  double* pRnd;
+  uint_t* pSamp;
 
-	const int INDEX_SIZE = sample_measure_index_size_;
-	const int_t INDEX_END = BITS[INDEX_SIZE];
-	// Qubit number is below index size, loop over shots
-	if (END < INDEX_END) {
-		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-		{
-			#pragma omp for
-			for (int_t i = 0; i < SHOTS; ++i) {
-				double rnd = rnds[i];
-				double p = .0;
-				int_t sample;
-				for (sample = 0; sample < END - 1; ++sample) {
-					p += probability(sample);
-					if (rnd < p)
-						break;
-				}
-				samples[i] = sample;
-			}
-		} // end omp parallel
-	}
-	// Qubit number is above index size, loop over index blocks
-	else {
-		// Initialize indexes
-		std::vector<double> idxs;
-		idxs.assign(INDEX_END, 0.0);
-		uint_t loop = (END >> INDEX_SIZE);
-		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-		{
-			#pragma omp for
-			for (int_t i = 0; i < INDEX_END; ++i) {
-				uint_t base = loop * i;
-				double total = .0;
-				double p = .0;
-				for (uint_t j = 0; j < loop; ++j) {
-					uint_t k = base | j;
-					p = probability(k);
-					total += p;
-				}
-				idxs[i] = total;
-			}
-		} // end omp parallel
+#ifdef DEBUG
+  TimeStart(QS_GATE_MEASURE);
+#endif
 
-		#pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-		{
-			#pragma omp for
-			for (int_t i = 0; i < SHOTS; ++i) {
-				double rnd = rnds[i];
-				double p = .0;
-				int_t sample = 0;
-				for (uint_t j = 0; j < idxs.size(); ++j) {
-					if (rnd < (p + idxs[j])) {
-						break;
-					}
-					p += idxs[j];
-					sample += loop;
-				}
+  samples.assign(SHOTS, 0);
 
-				for (; sample < END - 1; ++sample) {
-					p += probability(sample);
-					if (rnd < p){
-						break;
-					}
-				}
-				samples[i] = sample;
-			}
-		} // end omp parallel
-	}
-	return samples;
+  if(m_nDevParallel == 1){
+#ifdef AER_THRUST_CUDA
+    cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
+    cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
+#else
+    pRnd = (double*)malloc(sizeof(double)*SHOTS);
+    pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
+#endif
+
+    thrust::transform_inclusive_scan(thrust::device,pVec,pVec+n,pVec,thrust::square<double>(),thrust::plus<double>());
+
+    #pragma omp parallel for
+    for(i=0;i<SHOTS;i++){
+      pRnd[i] = rnds[i];
+    }
+
+    thrust::lower_bound(thrust::device, pVec, pVec + n, pRnd, pRnd + SHOTS, pSamp);
+
+    #pragma omp parallel for
+    for(i=0;i<SHOTS;i++){
+      samples[i] = pSamp[i]/2;
+    }
+
+    //restore statevector
+    thrust::adjacent_difference(thrust::device,pVec,pVec+n,pVec);
+    thrust::for_each(thrust::device,pVec,pVec+n,[=] __host__ __device__ (data_t a){return sqrt(a);});
+
+#ifdef AER_THRUST_CUDA
+    cudaFree(pRnd);
+    cudaFree(pSamp);
+#else
+    free(pRnd);
+    free(pSamp);
+#endif
+  }
+  else{
+    int iDev;
+    double* pDevSum = new double[m_nDevParallel];
+
+    #pragma omp parallel for private(i)
+    for(iDev=0;iDev<m_nDevParallel;iDev++){
+      uint_t is,ie;
+      is = n * iDev / m_nDevParallel;
+      ie = n * (iDev+1) / m_nDevParallel;
+
+#ifdef AER_THRUST_CUDA
+      cudaSetDevice(iDev);
+#endif
+      thrust::transform_inclusive_scan(thrust::device,pVec + is,pVec+ie,pVec+is,thrust::square<double>(),thrust::plus<double>());
+
+      pDevSum[iDev] = pVec[ie-1];
+    }
+
+    #pragma omp parallel for private(i,pRnd,pSamp)
+    for(iDev=0;iDev<m_nDevParallel;iDev++){
+      uint_t is,ie;
+      double low,high;
+      is = n * iDev / m_nDevParallel;
+      ie = n * (iDev+1) / m_nDevParallel;
+
+#ifdef AER_THRUST_CUDA
+      cudaSetDevice(iDev);
+      cudaMallocManaged(&pRnd,sizeof(double)*SHOTS);
+      cudaMallocManaged(&pSamp,sizeof(uint_t)*SHOTS);
+#else
+      pRnd = (double*)malloc(sizeof(double)*SHOTS);
+      pSamp = (uint_t*)malloc(sizeof(uint_t)*SHOTS);
+#endif
+
+      low = 0.0;
+      for(i=0;i<iDev;i++){
+        low += pDevSum[i];
+      }
+      high = low + pDevSum[iDev];
+
+      for(i=0;i<SHOTS;i++){
+        if(rnds[i] < low || rnds[i] >= high){
+          pRnd[i] = 10.0;
+        }
+        else{
+          pRnd[i] = rnds[i] - low;
+        }
+      }
+
+      thrust::lower_bound(thrust::device, pVec + is, pVec + ie, pRnd, pRnd + SHOTS, pSamp);
+
+      for(i=0;i<SHOTS;i++){
+        if(pSamp[i] < ie-is){
+          samples[i] = (is + pSamp[i])/2;
+        }
+      }
+
+      //restore statevector
+      thrust::adjacent_difference(thrust::device,pVec + is,pVec + ie,pVec + is);
+      thrust::for_each(thrust::device,pVec + is,pVec + ie,[=] __host__ __device__ (data_t a){return sqrt(a);});
+
+#ifdef AER_THRUST_CUDA
+      cudaFree(pRnd);
+      cudaFree(pSamp);
+#else
+      free(pRnd);
+      free(pSamp);
+#endif
+    }
+
+    delete[] pDevSum;
+  }
+
+#ifdef DEBUG
+  TimeEnd(QS_GATE_MEASURE);
+#endif
+
+#ifdef DEBUG
+  DebugMsg("sample_measure",samples);
+#endif
+
+  return samples;
 }
 
 #ifdef DEBUG

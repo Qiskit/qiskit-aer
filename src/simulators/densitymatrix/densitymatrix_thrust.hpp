@@ -120,6 +120,11 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+  // Return M sampled outcomes for Z-basis measurement of all qubits
+  // The input is a length M list of random reals between [0, 1) used for
+  // generating samples.
+  virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
+
 protected:
 
   // Convert qubit indicies to vectorized-density matrix qubitvector indices
@@ -391,6 +396,84 @@ template <typename data_t>
 double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
   return std::real(BaseVector::data_[outcome * shift]);
+}
+
+template <typename data_t>
+reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const {
+
+  const int_t END = 1LL << num_qubits();
+  const int_t SHOTS = rnds.size();
+  reg_t samples;
+  samples.assign(SHOTS, 0);
+
+  const int INDEX_SIZE = BaseVector::sample_measure_index_size_;
+  const int_t INDEX_END = BITS[INDEX_SIZE];
+  // Qubit number is below index size, loop over shots
+  if (END < INDEX_END) {
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < SHOTS; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample;
+        for (sample = 0; sample < END - 1; ++sample) {
+          p += probability(sample);
+          if (rnd < p)
+            break;
+        }
+        samples[i] = sample;
+      }
+    } // end omp parallel
+  }
+  // Qubit number is above index size, loop over index blocks
+  else {
+    // Initialize indexes
+    std::vector<double> idxs;
+    idxs.assign(INDEX_END, 0.0);
+    uint_t loop = (END >> INDEX_SIZE);
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < INDEX_END; ++i) {
+        uint_t base = loop * i;
+        double total = .0;
+        double p = .0;
+        for (uint_t j = 0; j < loop; ++j) {
+          uint_t k = base | j;
+          p = probability(k);
+          total += p;
+        }
+        idxs[i] = total;
+      }
+    } // end omp parallel
+
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < SHOTS; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample = 0;
+        for (uint_t j = 0; j < idxs.size(); ++j) {
+          if (rnd < (p + idxs[j])) {
+            break;
+          }
+          p += idxs[j];
+          sample += loop;
+        }
+
+        for (; sample < END - 1; ++sample) {
+          p += probability(sample);
+          if (rnd < p){
+            break;
+          }
+        }
+        samples[i] = sample;
+      }
+    } // end omp parallel
+  }
+  return samples;
 }
 
 //------------------------------------------------------------------------------
