@@ -1,10 +1,17 @@
 import os
+import subprocess
+import sys
+
 try:
     from skbuild import setup
 except ImportError:
-    import subprocess, sys
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
     from skbuild import setup
+try:
+    import pybind11
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+
 from setuptools import find_packages
 
 requirements = [
