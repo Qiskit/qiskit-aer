@@ -121,7 +121,6 @@ find_package(OpenMP QUIET)
 # first find_package(OpenMP) call
 if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 	if(APPLE)
-		message(STATUS "On Mac, manually setting libomp linking")
 		set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
 		set(OpenMP_CXX_LIB_NAMES "omp")
 		set(OpenMP_omp_LIBRARY "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib")
