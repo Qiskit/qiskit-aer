@@ -593,9 +593,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
       }      
     }
 
-    //double res = std::real(BaseState::qreg_.expectation_value(measured_qubits));
-    int64_t res = BaseState::qreg_.expectation_value(measured_qubits);
-    expval += coeff * (double)res;
+    expval += coeff * (double)BaseState::qreg_.expectation_value(measured_qubits);
     BaseState::qreg_ = copy_of_qreg;
   }
 
