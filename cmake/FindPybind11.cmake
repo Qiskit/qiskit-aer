@@ -1,3 +1,12 @@
+find_package(PythonExtensions REQUIRED)
+find_package(PythonLibs REQUIRED)
+
+message(STATUS ${PYTHON_INCLUDE_DIRS})
+message(STATUS "PYTHON EXECUTABLE: ${PYTHON_EXECUTABLE}")
+
+# Pybind includes are searched for through python
+# If they aren't found, we set them to the python include directories
+#   set by CMake
 set(_find_pybind_includes_command "
 import sys
 import pybind11
@@ -9,13 +18,11 @@ execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c "${_find_pybind_includes_comma
 if(_py_result EQUAL "0")
     message(STATUS "PYCOMM RAW: ${_py_output}")
     set(PYBIND_INCLUDE_DIRS "${_py_output}")
-    message(STATUS "PYBIND INCLUDES FOUND: ${PYBIND_INCLUDE_DIRS}")
 else()
-    message(FATAL_ERROR "COULD NOT FIND PYBIND!")
+    message(WARNING "(NAIVE) CHECK COULD NOT FIND PYBIND!")
+    set(PYBIND_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
 endif()
-
-find_package(PythonExtensions REQUIRED)
-find_package(PythonLibs REQUIRED)
+message(STATUS "PYBIND INCLUDES: ${PYBIND_INCLUDE_DIRS}")
 
 function(basic_pybind11_add_module target_name)
     set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
@@ -35,9 +42,6 @@ function(basic_pybind11_add_module target_name)
 
     add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
-    # This sets various properties (python include dirs) and links to python libs
-    #python_extension_module(${target_name}) # FORWARD_DECL_MODULES_VAR fdecl_module_list))
-    #target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
     target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS}) 
     set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
     set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}")
