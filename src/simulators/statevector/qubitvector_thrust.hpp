@@ -32,7 +32,9 @@
 #include <thrust/tuple.h>
 #include <thrust/iterator/constant_iterator.h>
 
+#ifdef AER_THRUST_CUDA
 #include <thrust/device_vector.h>
+#endif
 #include <thrust/host_vector.h>
 
 #include <algorithm>
@@ -167,6 +169,8 @@ public:
 	virtual void Copy(const std::vector<data_t>& v) = 0;
 };
 
+#ifdef AER_THRUST_CUDA
+//currently only supports CUDA backend (enable this for other GPUs in the future)
 template <typename data_t>
 class QubitVectorDeviceBuffer : public QubitVectorBuffer<data_t>
 {
@@ -204,6 +208,9 @@ public:
 	}
 
 };
+
+#endif	//AER_THRUST_CUDA
+
 
 template <typename data_t>
 class QubitVectorHostBuffer : public QubitVectorBuffer<data_t>
@@ -273,31 +280,7 @@ public:
 		m_iDevice = -1;
 		m_globalChunkID = 0;
 	}
-	/*
-	QubitVectorChunkContainer(int chunkBits,uint_t numChunks,uint_t numBuffers,int iDev = -1,uint_t gid = 0)
-	{
-		m_pChunks = NULL;
-		m_pMatrix = NULL;
-		m_pBuffers = NULL;
-		m_pParams = NULL;
-		m_globalChunkID = gid;
-		m_numChunks = numChunks;
-		m_numBuffers = numBuffers;
-		m_iDevice = iDev;
-		m_chunkBits = chunkBits;
-		m_matrixBits = 0;
-	}
 
-	QubitVectorChunkContainer(QubitVectorChunkContainer& c)
-	{
-		m_chunkBits = c.m_chunkBits;
-		m_numChunks = c.m_numChunks;
-		m_globalChunkID = c.m_globalChunkID;
-		m_numBuffers = c.m_numBuffers;
-		m_matrixBits = c.m_matrixBits;
-		m_iDevice = c.m_iDevice;
-	}
-	*/
 	~QubitVectorChunkContainer(void);
 
 	void SetDevice(int iDev)
@@ -385,15 +368,17 @@ int QubitVectorChunkContainer<data_t>::Allocate(void)
 {
 	uint_t size = (m_numChunks + m_numBuffers) << m_chunkBits;
 	if(m_pChunks == NULL){
-		if(m_iDevice >= 0){
 #ifdef AER_THRUST_CUDA
+		if(m_iDevice >= 0){
 			cudaSetDevice(m_iDevice);
-#endif
 			m_pChunks = new QubitVectorDeviceBuffer<thrust::complex<data_t>>(size);
 		}
 		else{
+#endif
 			m_pChunks = new QubitVectorHostBuffer<thrust::complex<data_t>>(size);
+#ifdef AER_THRUST_CUDA
 		}
+#endif
 	}
 	else if(m_pChunks->Size() != size){
 		if(m_iDevice >= 0){
@@ -421,36 +406,48 @@ int QubitVectorChunkContainer<data_t>::AllocateParameters(int bits)
 		}
 
 		if(m_pMatrix == NULL){
+#ifdef AER_THRUST_CUDA
 			if(m_iDevice >= 0){
 				m_pMatrix = new QubitVectorDeviceBuffer<thrust::complex<double>>(size*size);
 			}
 			else{
+#endif
 				m_pMatrix = new QubitVectorHostBuffer<thrust::complex<double>>(size*size);
+#ifdef AER_THRUST_CUDA
 			}
+#endif
 		}
 		else{
 			m_pMatrix->Resize(size*size);
 		}
 
 		if(m_pBuffers == NULL){
+#ifdef AER_THRUST_CUDA
 			if(m_iDevice >= 0){
 				m_pBuffers = new QubitVectorDeviceBuffer<thrust::complex<data_t>*>(size);
 			}
 			else{
+#endif
 				m_pBuffers = new QubitVectorHostBuffer<thrust::complex<data_t>*>(size);
+#ifdef AER_THRUST_CUDA
 			}
+#endif
 		}
 		else{
 			m_pBuffers->Resize(size);
 		}
 
 		if(m_pParams == NULL){
+#ifdef AER_THRUST_CUDA
 			if(m_iDevice >= 0){
 				m_pParams = new QubitVectorDeviceBuffer<uint_t>(size*4);
 			}
 			else{
+#endif
 				m_pParams = new QubitVectorHostBuffer<uint_t>(size*4);
+#ifdef AER_THRUST_CUDA
 			}
+#endif
 		}
 		else{
 			m_pParams->Resize(size*4);
@@ -1045,27 +1042,45 @@ inline void to_json(json_t &js, const QubitVectorThrust<data_t> &qv) {
 }
 
 template <typename data_t>
-json_t QubitVectorThrust<data_t>::json() const {
-  const int_t END = data_size_;
-  const json_t ZERO = std::complex<data_t>(0.0, 0.0);
-  json_t js = json_t(data_size_, ZERO);
-  
-  if (json_chop_threshold_ > 0) {
-    #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    for (int_t j=0; j < END; j++) {
-      if (std::abs(data_[j].real()) > json_chop_threshold_)
-        js[j][0] = data_[j].real();
-      if (std::abs(data_[j].imag()) > json_chop_threshold_)
-        js[j][1] = data_[j].imag();
-    }
-  } else {
-    #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    for (int_t j=0; j < END; j++) {
-      js[j][0] = data_[j].real();
-      js[j][1] = data_[j].imag();
-    }
-  }
-  return js;
+json_t QubitVectorThrust<data_t>::json() const 
+{
+	double d = 0.0;
+	int iPlace;
+	uint_t i,ic,nc;
+	uint_t pos = 0;
+	uint_t csize = 1ull << m_chunkBits;
+	cvector_t<data_t> tmp(csize);
+
+	const json_t ZERO = std::complex<data_t>(0.0, 0.0);
+	json_t js = json_t(data_size_, ZERO);
+
+	UpdateReferencedValue();
+
+	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
+		nc = m_Chunks[iPlace].NumChunks();
+
+		for(ic=0;ic<nc;ic++){
+			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+
+			if (json_chop_threshold_ > 0) {
+				for(i=0;i<csize;i++){
+					if (std::abs(tmp[i].real()) > json_chop_threshold_)
+						js[pos+i][0] = tmp[i].real();
+					if (std::abs(tmp[i].imag()) > json_chop_threshold_)
+				        js[pos+i][1] = tmp[i].imag();
+				}
+			}
+			else{
+				for(i=0;i<csize;i++){
+					js[pos+i][0] = tmp[i].real();
+			        js[pos+i][1] = tmp[i].imag();
+				}
+			}
+			pos += csize;
+		}
+	}
+
+	return js;
 }
 
 //------------------------------------------------------------------------------
@@ -1421,13 +1436,13 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	int tid,nid;
 	nid = omp_get_num_threads();
 	tid = omp_get_thread_num();
-	m_nDev = 1;
+	m_nDev = 0;
 #ifdef AER_THRUST_CUDA
 	cudaGetDeviceCount(&m_nDev);
 #endif
 
 	m_iDev = 0;
-	if(nid > 1){
+	if(nid > 1 && m_nDev > 0){
 		m_iDev = tid % m_nDev;
 #ifdef AER_THRUST_CUDA
 		cudaSetDevice(m_iDev);
@@ -1443,7 +1458,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	}
 
 	str = getenv("AER_HOST_ONLY");
-	if(str){
+	if(str || m_nDev == 0){
 		m_nDevParallel = 0;
 	}
 
@@ -1455,19 +1470,33 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	if(str){
 		m_chunkBits = atol(str);
 	}
-	if(m_chunkBits > num_qubits_){
-		if(m_nDevParallel <= 1){
-			m_chunkBits = num_qubits_;
-			numBuffers = 0;
-			numDummy = 0;
-		}
-		else{
-			m_chunkBits = num_qubits_;
-			i = m_nDevParallel;
-			while(i > 0){
-				m_chunkBits--;
-				i >>= 1;
+	else if(m_nDevParallel <= 1){
+		//On host only, divide into chunks for parallelization
+		m_chunkBits = num_qubits_;
+		if(nid == 1){
+			int npar;
+#pragma omp parallel
+			{
+#pragma omp master
+				npar = omp_get_num_threads();
 			}
+			m_numGlobalChunks = 1;
+			while(m_numGlobalChunks < npar){
+				if(m_chunkBits <= 1){
+					break;
+				}
+				m_chunkBits--;
+				m_numGlobalChunks = 1ull << (num_qubits_ - m_chunkBits);
+			}
+		}
+	}
+
+	if(m_chunkBits > num_qubits_){
+		m_chunkBits = num_qubits_;
+		i = m_nDevParallel;
+		while(i > 1){
+			m_chunkBits--;
+			i >>= 1;
 		}
 	}
 
@@ -1499,9 +1528,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 			}
 		}
 	}
-#endif
 
-#ifdef AER_THRUST_CUDA
 	if(m_nDevParallel > 1){
 		//enable peer to peer memcpy
 		for(i=0;i<m_nDev;i++){
@@ -1513,6 +1540,12 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 		}
 	}
 #endif
+
+	if(m_chunkBits == num_qubits_){
+		//no buffer needed for chunk exchange
+		numBuffers = 0;
+		numDummy = 0;
+	}
 
 	m_Chunks.resize(m_nDevParallel+1);
 	m_nPlaces = m_nDevParallel;
@@ -1706,8 +1739,6 @@ void QubitVectorThrust<data_t>::initialize()
 	if(m_globalChunkIndex == 0){
 		m_Chunks[0].SetState(0,0,t);
 	}
-
-	thrust::complex<data_t> r = m_Chunks[0].GetState(0,0);
 }
 
 template <typename data_t>
@@ -4149,8 +4180,10 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 		if(iPlace >= 0){
 			uint_t nIn;
 
+#ifdef AER_THRUST_CUDA
 			thrust::device_vector<double> vRnd_dev(SHOTS);
 			thrust::device_vector<uint_t> vSmp_dev(SHOTS);
+#endif
 
 			for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks();iChunk+=iAdd){
 				localChunkID = m_Chunks[iPlace].ChunkID(iChunk) - m_globalChunkIndex;
@@ -4169,14 +4202,18 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 				pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk);
 
+#ifdef AER_THRUST_CUDA
 				if(tid < m_nDevParallel){
 					vRnd_dev = vRnd;
 					thrust::lower_bound(thrust::device, pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
 					vSmp = vSmp_dev;
 				}
 				else{
+#endif
 					thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+#ifdef AER_THRUST_CUDA
 				}
+#endif
 
 				for(i=0;i<nIn;i++){
 					localSamples[vIdx[i]] = ((m_Chunks[iPlace].ChunkID(iChunk)) << m_chunkBits) + vSmp[i]/2;
