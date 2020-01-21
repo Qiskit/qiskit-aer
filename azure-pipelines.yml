@@ -56,8 +56,8 @@ jobs:
           set -x
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy pip virtualenv
-          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% setuptools
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) numpy pip virtualenv
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) setuptools
         displayName: Install Anaconda packages
         condition: ne(variables['python.version'], '3.5')
       - bash: |
