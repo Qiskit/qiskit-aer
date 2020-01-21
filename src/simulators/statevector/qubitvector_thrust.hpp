@@ -1774,7 +1774,8 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
 		nc = m_Chunks[iPlace].NumChunks();
 		for(ic=0;ic<nc;ic++){
 			for(i=0;i<csize;i++){
-				tmp[i] = (std::complex<data_t>)statevec[pos + i];
+				std::complex<data_t> t((data_t)std::real(statevec[pos + i]), (data_t)std::imag(statevec[pos + i]));
+				tmp[i] = t;
 			}
 
 			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic);

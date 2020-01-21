@@ -186,7 +186,9 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 
 template <class data_t>
 UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
-  set_num_qubits(num_qubits);
+	if(num_qubits > 0){
+		set_num_qubits(num_qubits);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -218,14 +220,14 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
 				irow = ((pos+i) >> num_qubits_);
 				icol = (pos+i) - (irow << num_qubits_);
 
-				ret(irow,icol) = tmp[i];
+				ret(icol,irow) = tmp[i];
 			}
 			pos += csize;
 		}
 	}
 	return ret;
 }
-
+	
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
