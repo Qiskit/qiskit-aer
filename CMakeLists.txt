@@ -132,15 +132,10 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-<<<<<<< HEAD
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-=======
 	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
->>>>>>> upstream/pr/517
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
