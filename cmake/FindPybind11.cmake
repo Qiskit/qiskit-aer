@@ -1,12 +1,3 @@
-find_package(PythonExtensions REQUIRED)
-find_package(PythonLibs REQUIRED)
-
-message(STATUS ${PYTHON_INCLUDE_DIRS})
-message(STATUS "PYTHON EXECUTABLE: ${PYTHON_EXECUTABLE}")
-
-# Pybind includes are searched for through python
-# If they aren't found, we set them to the python include directories
-#   set by CMake
 set(_find_pybind_includes_command "
 import sys
 import pybind11
@@ -18,11 +9,13 @@ execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c "${_find_pybind_includes_comma
 if(_py_result EQUAL "0")
     message(STATUS "PYCOMM RAW: ${_py_output}")
     set(PYBIND_INCLUDE_DIRS "${_py_output}")
+    message(STATUS "PYBIND INCLUDES FOUND: ${PYBIND_INCLUDE_DIRS}")
 else()
-    message(WARNING "(NAIVE) CHECK COULD NOT FIND PYBIND!")
-    set(PYBIND_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
+    message(FATAL_ERROR "COULD NOT FIND PYBIND!")
 endif()
-message(STATUS "PYBIND INCLUDES: ${PYBIND_INCLUDE_DIRS}")
+
+find_package(PythonExtensions REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 function(basic_pybind11_add_module target_name)
     set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
@@ -40,7 +33,11 @@ function(basic_pybind11_add_module target_name)
         set(exclude_from_all EXCLUDE_FROM_ALL)
     endif()
 
-    add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    if(CUDA_FOUND)
+        cuda_add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    else()
+        add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    endif()
 
     # This sets various properties (python include dirs) and links to python libs
     target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS})
