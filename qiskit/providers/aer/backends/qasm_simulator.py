@@ -195,13 +195,21 @@ class QasmSimulator(AerBackend):
     These backend options only apply when using the ``"matrix_product_state"``
     simulation method:
 
-    * ``"max_sv_num_for_approx"`` (int): Sets a limit on the number of Schmidt
+    * ``"approximation_type"`` (int): Can be one of the following options: NONE, RELATIVE, ABSOLUTE.
+    NONE - means no approximation.
+    ABSOLUTE - only the largest max_num_coefficients_for_approx Schmidt coefficients are retained.
+    RELATIVE - if the number of Schmidt coefficients is larger than
+               max_num_coefficients_for_approx, then the smallest values are
+               discarded (see approx_thresold).
+    (Default: NONE).
+      
+    * ``"max_num_coefficients_for_approx"`` (int): Sets a limit on the number of Schmidt
       coefficients retained at the end of the svd algorithm.
-      If the number of coefficients is greater than max_sv_num_for_approx,
-      small values may be discarded, depending on approx_threshold.
+      If the number of coefficients is greater than max_num_coefficients_for_approx,
+      small values may be discarded, depending on approximation_type and on approx_threshold.
       (Default: UINT_64MAX).
 
-    * ``"approx_threhold"`` (double): Sets a lower limit on the value of the Schmidt
+    * ``"approx_threshold"`` (double): Sets a lower limit on the value of the Schmidt
       coefficients retained at the end of the svd algorithm.
       The actual cut-off threshold is relative to the largest coefficient,
       S[0], and is computed as approx_threshold * norm(S[0]).

@@ -28,6 +28,7 @@ namespace AER {
 using long_complex_t = std::complex<long double>;
 
 enum status {SUCCESS, FAILURE};
+enum approx_type {NONE=0, ABSOLUTE, RELATIVE};
 
 cmatrix_t reshape_before_SVD(std::vector<cmatrix_t> data);
 std::vector<cmatrix_t> reshape_U_after_SVD(cmatrix_t U);
@@ -35,10 +36,14 @@ rvector_t reshape_S_after_SVD(rvector_t S);
 std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V);
 uint_t num_of_SV(rvector_t S, double threshold);
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                  uint_t max_sv_num_for_approx, double approx_threshold);
+		  approx_type approximation_type,
+                  uint_t max_num_coefficients_for_approx, double approx_threshold);
 status csvd(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 void csvd_wrapper(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 
-} //namespace AER
 
-#endif /* SVD_HPP_ */
+//-------------------------------------------------------------------------
+} // end namespace AER
+//-------------------------------------------------------------------------
+#endif
+

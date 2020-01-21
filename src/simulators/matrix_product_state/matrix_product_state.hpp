@@ -51,6 +51,7 @@ enum class Snapshots {
 // Enum class for different types of expectation values
 enum class SnapshotDataType {average, average_var, pershot};
 
+
 //=========================================================================
 // Matrix Product State subclass
 //=========================================================================
@@ -381,14 +382,26 @@ size_t State::required_memory_mb(uint_t num_qubits,
 }
 
 void State::set_config(const json_t &config) {
-  // Set threshold for truncating snapshots
+  // Set threshold for truncating Schmidt coefficients
   double threshold = CHOP_THRESHOLD;
   if (JSON::get_value(threshold, "chop_threshold", config))
     MPS_Tensor::set_chop_threshold(threshold);
 
-  uint_t max_sv_num_for_approx = UINT64_MAX;
-  if (JSON::get_value(max_sv_num_for_approx, "max_sv_num_for_approx", config)) {
-    MPS_Tensor::set_max_sv_num_for_approx(max_sv_num_for_approx);
+  // default approximation type is NONE
+  std::string approximation_type;
+  if (JSON::get_value(approximation_type, "approximation_type", config)) {
+    if (approximation_type == "ABSOLUTE") {
+      MPS_Tensor::set_approx_type(approx_type::ABSOLUTE);
+    } else if (approximation_type == "RELATIVE") {
+      MPS_Tensor::set_approx_type(approx_type::RELATIVE);
+    } else {
+      MPS_Tensor::set_approx_type(approx_type::NONE);
+    }
+  }
+  
+  uint_t max_num_coefficients_for_approx = UINT64_MAX;
+  if (JSON::get_value(max_num_coefficients_for_approx, "max_num_coefficients_for_approx", config)) {
+    MPS_Tensor::set_max_num_coefficients_for_approx(max_num_coefficients_for_approx);
   }
 
   double approx_threshold = CHOP_THRESHOLD;

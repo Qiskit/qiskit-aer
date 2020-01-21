@@ -57,6 +57,7 @@ using cmatrix_t = matrix<complex_t>;
 class MPS_Tensor
 {
 public:
+
   // Constructors of MPS_Tensor class
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
@@ -110,8 +111,13 @@ public:
   static void set_chop_threshold(double chop_threshold) {
     chop_threshold_ = chop_threshold;
   }
-  static void set_max_sv_num_for_approx(uint_t approx_max_sv_num) {
-    approx_max_sv_num_ = approx_max_sv_num;
+
+  static void set_approx_type(AER::approx_type type) {
+    approximation_type_ = type;
+  }
+
+  static void set_max_num_coefficients_for_approx(uint_t max_num_coefficients_for_approx) {
+    max_num_coefficients_for_approx_ = max_num_coefficients_for_approx;
   }
 
   static void set_approx_threshold(double approx_threshold) {
@@ -122,8 +128,12 @@ public:
     return chop_threshold_;
   }
 
-  static uint_t get_max_sv_num_for_approx() {
-    return approx_max_sv_num_;
+  static AER::approx_type get_approx_type() {
+    return approximation_type_;
+  }
+
+  static uint_t get_max_num_coefficients_for_approx() {
+    return max_num_coefficients_for_approx_;
   }
 
   static double get_approx_threshold() {
@@ -174,7 +184,8 @@ private:
   std::vector<cmatrix_t> data_;
 
   static double chop_threshold_;
-  static uint_t approx_max_sv_num_;
+  static approx_type approximation_type_;
+  static uint_t max_num_coefficients_for_approx_;
   static double approx_threshold_;
 };
 
@@ -182,8 +193,9 @@ private:
 // Implementation
 //=========================================================================
 double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
-uint_t MPS_Tensor::approx_max_sv_num_ = UINT64_MAX;
+uint_t MPS_Tensor::max_num_coefficients_for_approx_ = UINT64_MAX;
 double MPS_Tensor::approx_threshold_ = 1e-16;
+approx_type MPS_Tensor::approximation_type_ = approx_type::NONE; 
 
 //---------------------------------------------------------------
 // function name: print
@@ -534,7 +546,8 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 #endif
 
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V, approx_max_sv_num_, approx_threshold_);
+  reduce_zeros(U, S, V, approximation_type_, 
+	       max_num_coefficients_for_approx_, approx_threshold_);
 
 #ifdef DEBUG
   std::cout << "matrices after SVD:" <<std::endl;
@@ -562,7 +575,6 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
             temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
             temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
             temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
-  std::cout << temp0_1 ;
   std::vector<cmatrix_t> new_data_vector;
   new_data_vector.push_back(temp0_1);
   new_data_vector.push_back(temp2_3);

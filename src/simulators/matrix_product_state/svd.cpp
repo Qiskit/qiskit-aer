@@ -96,17 +96,31 @@ uint_t num_of_SV(rvector_t S, double threshold)
 }
 
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-		  uint_t max_sv_num_for_approx, double approx_threshold) {
-  uint_t new_SV_num = 0;
+		  approx_type approximation_type,
+		  uint_t max_num_coefficients_for_approx, double approx_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
-  if (approx_threshold == CHOP_THRESHOLD) {
+  uint_t new_SV_num = SV_num;
+
+  if (approx_threshold == CHOP_THRESHOLD || 
+      approximation_type == approx_type::NONE ) {
     new_SV_num = SV_num;
   } else {
-    // code for approximation - approx_threshold is the fraction relative
+    if (approximation_type == approx_type::RELATIVE && 
+	max_num_coefficients_for_approx < SV_num) {
+    // approx_threshold is the fraction relative
     // to the norm of the largest value in S, which is S[0].
     // Any value smaller than approx_threshold * norm(S[i] will be 
     // discarded
-    new_SV_num = num_of_SV(S, approx_threshold * std::norm(S[0]));
+      new_SV_num = num_of_SV(S, approx_threshold * std::norm(S[0]));
+      if (new_SV_num < max_num_coefficients_for_approx)
+	new_SV_num = max_num_coefficients_for_approx;
+
+    } else if (approximation_type == approx_type::ABSOLUTE && 
+	       max_num_coefficients_for_approx < SV_num) {
+      // in this case, leave only the first max_num_coefficients_for_approx
+      // values in S, and discard all the rest
+      new_SV_num = max_num_coefficients_for_approx;
+    } 
   }
 
   U.resize(U.GetRows(), new_SV_num);
@@ -588,4 +602,6 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 }
 
 } // namespace AER
+
+
 
