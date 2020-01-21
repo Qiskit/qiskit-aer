@@ -129,54 +129,53 @@ inline void to_json(json_t &js, const UnitaryMatrixThrust<data_t> &qmat) {
 template <class data_t>
 json_t UnitaryMatrixThrust<data_t>::json() const 
 {
-	const int_t nrows = rows_;
-	int iPlace;
-	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_chunkBits;
-	cvector_t<data_t> tmp(csize);
+  const int_t nrows = rows_;
+  int iPlace;
+  uint_t i, irow, icol, ic, nc;
+  uint_t pos = 0;
+  uint_t csize = 1ull << BaseVector::m_chunkBits;
+  cvector_t<data_t> tmp(csize);
 
-	const json_t ZERO = std::complex<data_t>(0.0, 0.0);
-	json_t js = json_t(nrows, json_t(nrows, ZERO));
+  const json_t ZERO = std::complex < data_t > (0.0, 0.0);
+  json_t js = json_t(nrows, json_t(nrows, ZERO));
 
-	BaseVector::UpdateReferencedValue();
+  BaseVector::UpdateReferencedValue();
 
-	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks();
+  for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
+    nc = BaseVector::m_Chunks[iPlace].NumChunks();
 
-		for(ic=0;ic<nc;ic++){
-			BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+    for (ic = 0; ic < nc; ic++) {
+      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic);
 
 #pragma omp parallel private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-			{
-				if (BaseVector::json_chop_threshold_ > 0) {
+      {
+        if (BaseVector::json_chop_threshold_ > 0) {
 #pragma omp for
-					for(i=0;i<csize;i++){
-						irow = ((pos+i) >> num_qubits_);
-						icol = (pos+i) - (irow << num_qubits_);
+          for (i = 0; i < csize; i++) {
+            irow = ((pos + i) >> num_qubits_);
+            icol = (pos + i) - (irow << num_qubits_);
 
-						if (std::abs(tmp[i].real()) > BaseVector::json_chop_threshold_)
-							js[irow][icol][0] = tmp[i].real();
-						if (std::abs(tmp[i].imag()) > BaseVector::json_chop_threshold_)
-					        js[irow][icol][1] = tmp[i].imag();
-					}
-				}
-				else{
+            if (std::abs(tmp[i].real()) > BaseVector::json_chop_threshold_)
+              js[icol][irow][0] = tmp[i].real();
+            if (std::abs(tmp[i].imag()) > BaseVector::json_chop_threshold_)
+              js[icol][irow][1] = tmp[i].imag();
+          }
+        } else {
 #pragma omp for
-					for(i=0;i<csize;i++){
-						irow = ((pos+i) >> num_qubits_);
-						icol = (pos+i) - (irow << num_qubits_);
+          for (i = 0; i < csize; i++) {
+            irow = ((pos + i) >> num_qubits_);
+            icol = (pos + i) - (irow << num_qubits_);
 
-						js[irow][icol][0] = tmp[i].real();
-				        js[irow][icol][1] = tmp[i].imag();
-					}
-				}
-			}
-			pos += csize;
-		}
-	}
+            js[icol][irow][0] = tmp[i].real();
+            js[icol][irow][1] = tmp[i].imag();
+          }
+        }
+      }
+      pos += csize;
+    }
+  }
 
-	return js;
+  return js;
 }
 
 
