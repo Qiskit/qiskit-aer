@@ -31,8 +31,8 @@ from qiskit import Aer, IBMQ  # import the Aer and IBMQ providers
 from qiskit.providers.aer import noise  # import Aer noise models
 
 # Choose a real device to simulate
-IBMQ.load_accounts()
-device = IBMQ.get_backend('ibmq_16_melbourne')
+provider = IBMQ.load_account()
+device = provider.get_backend('ibmq_16_melbourne')
 properties = device.properties()
 coupling_map = device.configuration().coupling_map
 
@@ -75,7 +75,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 ## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/qiskit/aer) repository.
+[Qiskit IQX Tutorials](https://github.com/Qiskit/qiskit-iqx-tutorials/tree/master/qiskit/advanced/aer) or [Qiskit Community Tutorials](https://github.com/Qiskit/qiskit-community-tutorials/tree/master/aer) repositories.
 
 ## Authors and Citation
 

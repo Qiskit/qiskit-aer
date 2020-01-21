@@ -511,13 +511,13 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'density_matrix_gpu', 
+        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'density_matrix_gpu', 
         'matrix_product_state', 'statevector_gpu', 'statevector_fake_gpu'
     ]
     BACKEND_OPTS = {}
 
     @staticmethod
-    def probabilitiy_snapshots(data, labels):
+    def probability_snapshots(data, labels):
         """Format snapshots as nested dicts"""
         # Check snapshot entry exists in data
         output = {}
@@ -549,7 +549,7 @@ class QasmSnapshotProbabilitiesTests:
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
-                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                all_snapshots = self.probability_snapshots(data, labels)
                 for label in labels:
                     snaps = all_snapshots.get(label, {})
                     self.assertTrue(len(snaps), 1)
@@ -579,7 +579,7 @@ class QasmSnapshotProbabilitiesTests:
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
-                all_snapshots = self.probabilitiy_snapshots(data, labels)
+                all_snapshots = self.probability_snapshots(data, labels)
                 for label in labels:
                     snaps = all_snapshots.get(label, {})
                     for memory, value in snaps.items():
@@ -592,8 +592,12 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
+<<<<<<< HEAD
         'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
         'matrix_product_state'
+=======
+        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
+>>>>>>> upstream/master
     ]
     BACKEND_OPTS = {}
 
@@ -643,7 +647,7 @@ class QasmSnapshotExpValPauliTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_pauli_post_measure(self):
-        """Test snapshot expectation value (pauli) before final measurement"""
+        """Test snapshot expectation value (pauli) after final measurement"""
         shots = 1000
         labels = snapshot_expval_labels()
         counts_targets = snapshot_expval_counts(shots)
@@ -727,7 +731,7 @@ class QasmSnapshotExpValMatrixTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_matrix_post_measure(self):
-        """Test snapshot expectation value (matrix) before final measurement"""
+        """Test snapshot expectation value (matrix) after final measurement"""
         shots = 1000
         labels = snapshot_expval_labels()
         counts_targets = snapshot_expval_counts(shots)

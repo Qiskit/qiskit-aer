@@ -65,7 +65,7 @@ jobs:
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
           git clean -fdX
-          python -m pip install --disable-pip-version-check pip==18
+          python -m pip install -U pip virtualenv setuptools
           pip install cython
           pip install git+https://github.com/Qiskit/qiskit-terra.git
           pip install --ignore-installed -r requirements-dev.txt
