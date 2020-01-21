@@ -300,6 +300,18 @@ qiskit-aer$ python ./setup.py install
 qiskit-aer$ python -m unittest discover -s test -v
 ```
 
+Alternatively you can run the integration tests in parallel using `stestr`.
+```
+qiskit-aer$ stestr run --slowest
+```
+
+The `slowest` option will print the slowest tests at the end. 
+Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/MANUAL.html#).
+You may need to install it:
+```
+qiskit-aer$ pip install stestr
+```
+
 The integration tests for Terra addon are included in: `test/terra`.
 
 
