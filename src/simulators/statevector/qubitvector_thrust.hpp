@@ -1502,22 +1502,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	else if(m_nDevParallel <= 1){
 		//On host only, divide into chunks for parallelization
 		m_chunkBits = num_qubits_;
-		if(nid == 1){
-			int npar;
-#pragma omp parallel
-			{
-#pragma omp master
-				npar = omp_get_num_threads();
-			}
-			m_numGlobalChunks = 1;
-			while(m_numGlobalChunks < npar){
-				if(m_chunkBits <= 1){
-					break;
-				}
-				m_chunkBits--;
-				m_numGlobalChunks = 1ull << (num_qubits_ - m_chunkBits);
-			}
-		}
 	}
 
 	if(m_chunkBits > num_qubits_){
