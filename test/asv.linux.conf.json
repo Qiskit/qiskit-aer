@@ -33,11 +33,13 @@
     "install_command": [
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit', True)\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info', True)\"",
-        "python -mpip install {wheel_file}"
+        "python -mpip install {wheel_file}",
+        "python -mpip install qiskit-ignis==0.2.0"
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
-        "return-code=any python -mpip uninstall -y {project}"
+        "return-code=any python -mpip uninstall -y {project}",
+        "return-code=any python -mpip uninstall -y qiskit-ignis"
     ],
     "build_command": [
         "python -mpip install -U scikit-build cython",
