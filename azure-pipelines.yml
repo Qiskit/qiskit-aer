@@ -44,6 +44,22 @@ stages:
             conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy cmake openblas flang clangdev perl libflang
             conda install -y -c isuruf kitware-ninja
           displayName: Install Anaconda packages
+        - task: BatchScript@1
+          inputs:
+            filename: /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Community/VC/Auxiliary/Build/vcvars64.bat
+        - script: |
+            call activate qiskit-aer-$(Build.BuildNumber)
+            git clone https://github.com/xianyi/OpenBLAS
+            cd OpenBlas
+            git checkout v0.3.7
+            set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
+            set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
+            mkdir build
+            cd build
+            cmake .. -G "Ninja" -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl -DCMAKE_Fortran_COMPILER=flang -DBUILD_WITHOUT_LAPACK=no -DNOFORTRAN=0 -DDYNAMIC_ARCH=ON -DCMAKE_BUILD_TYPE=Release
+            cmake --build . --config Release
+            cd ../..
+          displayName: Build OpenBlas
         - bash: |
             set -e
             source activate qiskit-aer-$(Build.BuildNumber)
