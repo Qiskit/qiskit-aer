@@ -714,6 +714,9 @@ public:
   std::complex<data_t> &operator[](uint_t element);
   std::complex<data_t> operator[](uint_t element) const;
 
+	void set_state(uint_t pos,std::complex<data_t>& c);
+	std::complex<data_t> get_state(uint_t pos) const;
+
   // Returns a reference to the underlying data_t data class
   std::complex<data_t>* &data() {return data_;}
 
@@ -1044,7 +1047,6 @@ inline void to_json(json_t &js, const QubitVectorThrust<data_t> &qv) {
 template <typename data_t>
 json_t QubitVectorThrust<data_t>::json() const 
 {
-	double d = 0.0;
 	int iPlace;
 	uint_t i,ic,nc;
 	uint_t pos = 0;
@@ -1256,6 +1258,33 @@ std::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) const
 		return data_[0];
 	}
 }
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::set_state(uint_t pos, std::complex<data_t>& c)
+{
+	uint_t lcid,lid;
+	int iPlace = GlobalToLocal(lcid,lid,pos);
+
+	if(iPlace >= 0){
+		m_Chunks[iPlace].SetState(lcid,lid,(thrust::complex<data_t>)c);
+	}
+}
+
+template <typename data_t>
+std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
+{
+	uint_t lcid,lid;
+	std::complex<data_t> ret = 0.0;;
+	int iPlace = GlobalToLocal(lcid,lid,pos);
+
+	UpdateReferencedValue();
+
+	if(iPlace >= 0){
+		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid);
+	}
+	return ret;
+}
+
 
 template <typename data_t>
 cvector_t<data_t> QubitVectorThrust<data_t>::vector() const 
