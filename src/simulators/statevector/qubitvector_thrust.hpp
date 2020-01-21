@@ -3003,7 +3003,7 @@ public:
 
 		i = ExtractIndexFromTuple(iter);
 		ppV = ExtractBuffersFromTuple(iter);
-		qubits = ExtractMatrixFromTuple(iter);
+		qubits = ExtractParamsFromTuple(iter);
 		pairs = qubits + nqubits;
 
 		idx = 0;
@@ -3031,7 +3031,7 @@ public:
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
-                                                   const std::vector<std::pair<uint_t, uint_t>> &pairs)
+																									 const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
 	const size_t N = qubits.size();
 	auto qubits_sorted = qubits;
@@ -3793,7 +3793,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 
 #ifdef AER_DEBUG
 		DebugMsg("norm_diagonal",qubits);
-		DebugMsg("             ",ret);
+		DebugMsg("						 ",ret);
 #endif
 		return ret;
 	}
@@ -3856,7 +3856,7 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 
 #ifdef AER_DEBUG
 		DebugMsg("norm2x2",qubits);
-		DebugMsg("       ",ret);
+		DebugMsg("			 ",ret);
 #endif
 	return ret;
 }
@@ -3951,9 +3951,9 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
   const int_t END = 1LL << num_qubits();
   std::vector<double> probs(END, 0.);
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (int_t j=0; j < END; j++) {
-    probs[j] = probability(j);
-  }
+	for (int_t j=0; j < END; j++) {
+		probs[j] = probability(j);
+	}
 
 #ifdef AER_DEBUG
 	DebugMsg("probabilities",probs);
@@ -4029,7 +4029,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 	}
 #ifdef AER_DEBUG
 	DebugMsg("probabilities",qubits);
-	DebugMsg("             ",probs);
+	DebugMsg("						 ",probs);
 #endif
 
 	return probs;
@@ -4278,19 +4278,19 @@ void QubitVectorThrust<data_t>::TimePrint(void)
 		total += m_gateTime[i];
 	}
 
-	printf("   ==================== Timing Summary =================== \n");
+	printf("	 ==================== Timing Summary =================== \n");
 	if(m_gateCounts[QS_GATE_INIT] > 0)
-		printf("  Initialization : %f \n",m_gateTime[QS_GATE_INIT]);
+		printf("	Initialization : %f \n",m_gateTime[QS_GATE_INIT]);
 	if(m_gateCounts[QS_GATE_MULT] > 0)
-		printf("    Matrix mult. : %f  (%d)\n",m_gateTime[QS_GATE_MULT],m_gateCounts[QS_GATE_MULT]);
+		printf("		Matrix mult. : %f	(%d)\n",m_gateTime[QS_GATE_MULT],m_gateCounts[QS_GATE_MULT]);
 	if(m_gateCounts[QS_GATE_CX] > 0)
-		printf("    CX           : %f  (%d)\n",m_gateTime[QS_GATE_CX],m_gateCounts[QS_GATE_CX]);
+		printf("		CX					 : %f	(%d)\n",m_gateTime[QS_GATE_CX],m_gateCounts[QS_GATE_CX]);
 	if(m_gateCounts[QS_GATE_DIAG] > 0)
-		printf("    Diagonal     : %f  (%d)\n",m_gateTime[QS_GATE_DIAG],m_gateCounts[QS_GATE_DIAG]);
+		printf("		Diagonal		 : %f	(%d)\n",m_gateTime[QS_GATE_DIAG],m_gateCounts[QS_GATE_DIAG]);
 	if(m_gateCounts[QS_GATE_MEASURE] > 0)
-		printf("    Measure      : %f  (%d)\n",m_gateTime[QS_GATE_MEASURE],m_gateCounts[QS_GATE_MEASURE]);
-	printf("    Total Kernel time : %f sec\n",total);
-	printf("   ======================================================= \n");
+		printf("		Measure			: %f	(%d)\n",m_gateTime[QS_GATE_MEASURE],m_gateCounts[QS_GATE_MEASURE]);
+	printf("		Total Kernel time : %f sec\n",total);
+	printf("	 ======================================================= \n");
 
 }
 #endif

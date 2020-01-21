@@ -134,7 +134,7 @@ class QasmKrausNoiseTests:
     """QasmSimulator Kraus error noise model tests."""
 
     SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
+    BACKEND_OPTS = { 'max_parallel_threads': 1}
 
     def test_kraus_gate_noise(self):
         """Test simulation with Kraus gate error noise model."""

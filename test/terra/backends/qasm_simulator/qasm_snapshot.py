@@ -48,7 +48,8 @@ class QasmSnapshotStatevectorTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu',
+        'statevector_fake_gpu', 'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -358,7 +359,7 @@ class QasmSnapshotDensityMatrixTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'density_matrix'
+        'automatic', 'density_matrix', 'density_matrix_gpu'
     ]
     BACKEND_OPTS = {}
 
@@ -510,7 +511,8 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'matrix_product_state'
+        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'density_matrix_gpu', 
+        'matrix_product_state', 'statevector_gpu', 'statevector_fake_gpu'
     ]
     BACKEND_OPTS = {}
 
@@ -590,7 +592,8 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
+        'automatic', 'statevector', 'stabilizer', 'statevector_gpu', 'statevector_fake_gpu',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -674,7 +677,8 @@ class QasmSnapshotExpValMatrixTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 

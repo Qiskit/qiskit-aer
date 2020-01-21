@@ -252,8 +252,7 @@ else() # Standalone build
 
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
-		CXX_STANDARD 14)
-	set_target_properties(qasm_simulator PROPERTIES
+		CXX_STANDARD 14
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator
