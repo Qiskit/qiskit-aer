@@ -186,7 +186,9 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 
 template <class data_t>
 UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
-  set_num_qubits(num_qubits);
+	if(num_qubits > 0){
+		set_num_qubits(num_qubits);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -200,21 +202,34 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
   AER::cmatrix_t ret(nrows, nrows);
   cvector_t<data_t> qreg = BaseVector::vector();
 
-  #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  {
-  #ifdef _WIN32
-    #pragma omp for
-  #else
-    #pragma omp for collapse(2)
-  #endif
-    for (int_t i=0; i < nrows; i++)
-      for (int_t j=0; j < nrows; j++) {
-        ret(i, j) = qreg[i + nrows * j];
-      }
-  } // end omp parallel
-  return ret;
-}
+  int iPlace;
+  uint_t ic, nc;
+  uint_t pos = 0;
+  uint_t csize = 1ull << BaseVector::m_chunkBits;
+  cvector_t<data_t> tmp(csize);
 
+	BaseVector::UpdateReferencedValue();
+
+  for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
+    nc = BaseVector::m_Chunks[iPlace].NumChunks();
+
+    for (ic = 0; ic < nc; ic++) {
+      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic);
+
+      int_t i, irow, icol;
+#pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+      for (i = 0; i < csize; i++) {
+        irow = ((pos + i) >> num_qubits_);
+        icol = (pos + i) - (irow << num_qubits_);
+
+        ret(icol, irow) = tmp[i];
+      }
+      pos += csize;
+    }
+  }
+	return ret;
+}
+	
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
