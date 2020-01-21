@@ -49,11 +49,14 @@ stages:
             source activate qiskit-aer-$(Build.BuildNumber)
             pip install cibuildwheel==1.1.0
             pip install -U twine
-            cibuildwheel --output-dir wheelhouse
+            cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
 #        - bash: |
 #            twine upload wheelhouse\*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
 
   - stage: 'Tests'
     jobs:
