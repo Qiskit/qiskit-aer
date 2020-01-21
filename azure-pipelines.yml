@@ -70,17 +70,23 @@ jobs:
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
           conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) osqp
-          pip install -U cvxpy
-        displayName: Install 3.8 packages from Anaconda
+          pip install --ignore-installed -r requirements-dev.txt
+          pip install git+https://github.com/Qiskit/qiskit-terra.git
+        displayName: "Install dependencies py3.8"
         condition: eq(variables['python.version'], '3.8')
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          git clean -fdX
           pip install --ignore-installed -r requirements-dev.txt
           pip install git+https://github.com/Qiskit/qiskit-terra.git
+        displayName: "Install dependencies"
+        condition: ne(variables['python.version'], '3.8')
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          git clean -fdX
           python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-        displayName: 'Install Dependencies and Build Aer'
+        displayName: 'Build Aer'
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
