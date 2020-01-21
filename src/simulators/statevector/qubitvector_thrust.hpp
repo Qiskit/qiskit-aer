@@ -833,17 +833,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 			m_nDevParallel = m_nDev;
 		}
 
-//#ifndef AER_THRUST_CUDA
-//#pragma omp parallel private(nid)
-//		{
-//			nid = omp_get_num_threads();
-//#pragma omp master
-//			{
-//				m_nDevParallel = nid;
-//		    std::cout << "m_nDevParallel init3: " << m_nDevParallel << ", nid=" << nid << std::endl;
-//			}
-//		}
-//#endif
 	}
 
 	// Allocate memory for new vector

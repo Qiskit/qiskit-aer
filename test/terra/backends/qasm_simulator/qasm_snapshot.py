@@ -592,12 +592,8 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-<<<<<<< HEAD
-        'automatic', 'statevector', 'statevector_gpu', 'statevector_fake_gpu',
+        'automatic', 'statevector', 'stabilizer', 'statevector_gpu', 'statevector_fake_gpu',
         'matrix_product_state'
-=======
-        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
->>>>>>> upstream/master
     ]
     BACKEND_OPTS = {}
 
