@@ -164,7 +164,8 @@ void DensityMatrixThrust<data_t>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be all |0> sate
-  BaseVector::data_[0] = 1.0;
+	std::complex<data_t> one = 1.0;
+	BaseVector::set_state(0,one);
 }
 
 template <typename data_t>
@@ -176,12 +177,17 @@ void DensityMatrixThrust<data_t>::initialize_from_vector(const cvector_t<double>
     // Convert statevector into density matrix
     cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
                                                       statevec);
-    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
+//    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
+    BaseVector::initialize_from_vector(densitymat);
+
   } else {
     throw std::runtime_error("DensityMatrixThrust::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
                              std::to_string(statevec.size()));
   }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::initialize_from_vector");
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -216,12 +222,18 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_superop_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
   BaseVector::apply_matrix(superop_qubits(qubits), mat);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_superop_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_diagonal_superop_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) {
   BaseVector::apply_diagonal_matrix(superop_qubits(qubits), diag);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_diagonal_superop_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -243,6 +255,9 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as single 2N-qubit matrix mult.
     apply_superop_matrix(qubits, vmat2vsuperop(mat));
   }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -264,6 +279,9 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
   const size_t nq = num_qubits();
   const reg_t qubits = {{qctrl, qtrgt, qctrl + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_cnot",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -281,6 +299,9 @@ void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
   const auto nq =  num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
   BaseVector::apply_matrix(qubits, vec);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_cz",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -291,6 +312,9 @@ void DensityMatrixThrust<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
   const size_t nq = num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};  //TODO support
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_swap",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -349,7 +373,11 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
 	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
-//  BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_x",qubits);
+	BaseVector::DebugDump();
+#endif
 }
 
 template <typename data_t>
@@ -363,6 +391,10 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
   BaseVector::apply_matrix(qubits, vec);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_y",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -377,6 +409,10 @@ void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
   BaseVector::apply_matrix(qubits, vec);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_z",qubits);
+#endif
 }
 
 template <typename data_t>
@@ -391,6 +427,10 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
   const reg_t qubits = {{qctrl0, qctrl1, qtrgt,
                          qctrl0 + nq, qctrl1 + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_toffoli",qubits);
+#endif
+
 }
 
 //-----------------------------------------------------------------------
@@ -400,7 +440,8 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
 template <typename data_t>
 double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
-  return std::real(BaseVector::data_[outcome * shift]);
+
+	return std::real(BaseVector::get_state(outcome * shift));
 }
 
 template <typename data_t>
@@ -478,6 +519,10 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
       }
     } // end omp parallel
   }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::sample_measure",samples);
+#endif
+	
   return samples;
 }
 
