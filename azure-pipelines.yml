@@ -17,7 +17,7 @@ stages:
       variables:
         TWINE_USERNAME: qiskit
         CIBW_BEFORE_BUILD: pip install -U Cython pip virtualenv pybind11
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* *win32
         CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
         CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
       steps:
@@ -41,26 +41,12 @@ stages:
             source activate qiskit-aer-$(Build.BuildNumber)
             conda update --yes -n base conda
             conda config --add channels conda-forge
-            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy cmake openblas flang clangdev perl libflang
+            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy cmake openblas flang clangdev perl libflang virtualenv pip
             conda install -y -c isuruf kitware-ninja
           displayName: Install Anaconda packages
-        - script: |
-            call activate qiskit-aer-$(Build.BuildNumber)
-            git clone https://github.com/xianyi/OpenBLAS
-            cd OpenBlas
-            git checkout v0.3.7
-            set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
-            set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
-            mkdir build
-            cd build
-            cmake .. -G "Ninja" -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl -DCMAKE_Fortran_COMPILER=flang -DBUILD_WITHOUT_LAPACK=no -DNOFORTRAN=0 -DDYNAMIC_ARCH=ON -DCMAKE_BUILD_TYPE=Release
-            cmake --build . --config Release
-            cd ../..
-          displayName: Build OpenBlas
         - bash: |
             set -e
             source activate qiskit-aer-$(Build.BuildNumber)
-            python -m pip install -U pip virtualenv pybind11
             pip install cibuildwheel==1.1.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
