@@ -18,33 +18,33 @@ from numpy import array, array_equal, kron
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.openpulse import transmon_model_generators as model_gen
+from qiskit.providers.aer.openpulse import duffing_model_generators as model_gen
 from qiskit.providers.aer.openpulse.qobj.op_qobj import get_oper
 
-class TestTransmonModelGenerators(QiskitAerTestCase):
+class TestDuffingModelGenerators(QiskitAerTestCase):
     """Tests for functions in pulse_model_generators.py"""
 
     def setUp(self):
         pass
 
-    def test_transmon_system_model1(self):
-        """First test of transmon_system_model, 2 qubits, 2 dimensional"""
+    def test_duffing_system_model1(self):
+        """First test of duffing_system_model, 2 qubits, 2 dimensional"""
 
-        num_transmons = 2
-        dim_transmons = 2
-        transmon_freqs = [5.0, 5.1]
+        num_oscillators = 2
+        dim_oscillators = 2
+        oscillator_freqs = [5.0, 5.1]
         anharm_freqs = [-0.33, -0.33]
         drive_strengths = [1.1, 1.2]
         coupling_dict = {(0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
-                                                                    dim_transmons,
-                                                                    transmon_freqs,
-                                                                    anharm_freqs,
-                                                                    drive_strengths,
-                                                                    coupling_dict,
-                                                                    dt)
+        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
+                                                                   dim_oscillators,
+                                                                   oscillator_freqs,
+                                                                   anharm_freqs,
+                                                                   drive_strengths,
+                                                                   coupling_dict,
+                                                                   dt)
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1])
         self.assertEqual(system_model.dt, 1.3)
@@ -106,25 +106,25 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                 idx += 1
             self.assertTrue(found)
 
-    def test_transmon_system_model2(self):
-        """Second test of transmon_system_model, 3 qubits, 3 dimensional"""
+    def test_duffing_system_model2(self):
+        """Second test of duffing_system_model, 3 qubits, 3 dimensional"""
 
         # do similar tests for different model
-        num_transmons = 3
-        dim_transmons = 3
-        transmon_freqs = [5.0, 5.1, 5.2]
+        num_oscillators = 3
+        dim_oscillators = 3
+        oscillator_freqs = [5.0, 5.1, 5.2]
         anharm_freqs = [-0.33, -0.33, -0.32]
         drive_strengths = [1.1, 1.2, 1.3]
         coupling_dict = {(1,2): 0.03, (0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
-                                                                    dim_transmons,
-                                                                    transmon_freqs,
-                                                                    anharm_freqs,
-                                                                    drive_strengths,
-                                                                    coupling_dict,
-                                                                    dt)
+        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
+                                                                   dim_oscillators,
+                                                                   oscillator_freqs,
+                                                                   anharm_freqs,
+                                                                   drive_strengths,
+                                                                   coupling_dict,
+                                                                   dt)
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2])
         self.assertEqual(system_model.dt, 1.3)
@@ -199,25 +199,25 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                 idx += 1
             self.assertTrue(found)
 
-    def test_transmon_system_model3(self):
-        """Third test of transmon_system_model, 4 qubits, 2 dimensional"""
+    def test_duffing_system_model3(self):
+        """Third test of duffing_system_model, 4 qubits, 2 dimensional"""
 
         # do similar tests for different model
-        num_transmons = 4
-        dim_transmons = 2
-        transmon_freqs = [5.0, 5.1, 5.2, 5.3]
+        num_oscillators = 4
+        dim_oscillators = 2
+        oscillator_freqs = [5.0, 5.1, 5.2, 5.3]
         anharm_freqs = [-0.33, -0.33, -0.32, -0.31]
         drive_strengths = [1.1, 1.2, 1.3, 1.4]
         coupling_dict = {(0,2): 0.03, (1,0): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.transmon_system_model(num_transmons,
-                                                                    dim_transmons,
-                                                                    transmon_freqs,
-                                                                    anharm_freqs,
-                                                                    drive_strengths,
-                                                                    coupling_dict,
-                                                                    dt)
+        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
+                                                                   dim_oscillators,
+                                                                   oscillator_freqs,
+                                                                   anharm_freqs,
+                                                                   drive_strengths,
+                                                                   coupling_dict,
+                                                                   dt)
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2, 3])
         self.assertEqual(system_model.dt, 1.3)
@@ -317,12 +317,12 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                 idx += 1
             self.assertTrue(found)
 
-    def test_transmon_hamiltonian_dict(self):
-        """Test _transmon_hamiltonian_dict"""
+    def test_duffing_hamiltonian_dict(self):
+        """Test _duffing_hamiltonian_dict"""
 
-        transmons = [0, 1]
-        transmon_dims = [2, 2]
-        transmon_freqs = [5.0, 5.1]
+        oscillators = [0, 1]
+        oscillator_dims = [2, 2]
+        oscillator_freqs = [5.0, 5.1]
         freq_symbols = ['v0', 'v1']
         anharm_freqs = [-0.33, -0.33]
         anharm_symbols = ['a0', 'a1']
@@ -343,9 +343,9 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                              'r0': 1.1, 'r1' : 1.2,
                              'j' : 0.02},
                     'qub': {'0': 2, '1': 2}}
-        output = model_gen._transmon_hamiltonian_dict(transmons,
-                                                      transmon_dims,
-                                                      transmon_freqs,
+        output = model_gen._duffing_hamiltonian_dict(oscillators,
+                                                      oscillator_dims,
+                                                      oscillator_freqs,
                                                       freq_symbols,
                                                       anharm_freqs,
                                                       anharm_symbols,
@@ -359,10 +359,10 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
         self.assertEqual(output['vars'], expected['vars'])
         self.assertEqual(output['qub'], expected['qub'])
 
-        # test 3 transmons with mixed up inputs
-        transmons = [0, 1, 2]
-        transmon_dims = [2, 2, 3]
-        transmon_freqs = [5.0, 5.1, 4.9]
+        # test 3 oscillators with mixed up inputs
+        oscillators = [0, 1, 2]
+        oscillator_dims = [2, 2, 3]
+        oscillator_freqs = [5.0, 5.1, 4.9]
         freq_symbols = ['v0', 'v1', 'x3']
         anharm_freqs = [-0.33, -0.33, 1.]
         anharm_symbols = ['a0', 'a1', 'z4']
@@ -384,9 +384,9 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
                              'r0': 1.1, 'r1' : 1.2, 'sa': 0.98,
                              'j' : 0.02, 's': 0.1, 'r': 0.33},
                     'qub': {'0': 2, '1': 2, '2': 3}}
-        output = model_gen._transmon_hamiltonian_dict(transmons,
-                                                      transmon_dims,
-                                                      transmon_freqs,
+        output = model_gen._duffing_hamiltonian_dict(oscillators,
+                                                      oscillator_dims,
+                                                      oscillator_freqs,
                                                       freq_symbols,
                                                       anharm_freqs,
                                                       anharm_symbols,
@@ -419,26 +419,26 @@ class TestTransmonModelGenerators(QiskitAerTestCase):
 
     def test_single_term_generators(self):
         """Test various functions for individual terms:
-        _single_transmon_drift_terms, _drive_terms, _exchange_coupling_terms, _cr_terms
+        _single_duffing_drift_terms, _drive_terms, _exchange_coupling_terms, _cr_terms
         """
 
-        # single transmon terms
-        self.assertEqual(model_gen._single_transmon_drift_terms(freq_symbols='v',
+        # single duffing terms
+        self.assertEqual(model_gen._single_duffing_drift_terms(freq_symbols='v',
                                                                 anharm_symbols='a',
-                                                                transmon_list=0),
+                                                                system_list=0),
                          ['np.pi*(2*v-a)*O0', 'np.pi*a*O0*O0'])
-        self.assertEqual(model_gen._single_transmon_drift_terms(freq_symbols=['v0','v1'],
+        self.assertEqual(model_gen._single_duffing_drift_terms(freq_symbols=['v0','v1'],
                                                                 anharm_symbols=['a0','a1'],
-                                                                transmon_list=[2, 3]),
+                                                                system_list=[2, 3]),
                          ['np.pi*(2*v0-a0)*O2',
                           'np.pi*(2*v1-a1)*O3',
                           'np.pi*a0*O2*O2',
                           'np.pi*a1*O3*O3'])
 
         # drive terms
-        self.assertEqual(model_gen._drive_terms(drive_symbols='r', transmon_list=0),
+        self.assertEqual(model_gen._drive_terms(drive_symbols='r', system_list=0),
                          ['2*np.pi*r*X0||D0'])
-        self.assertEqual(model_gen._drive_terms(drive_symbols=['r0', 'r1'], transmon_list=[1, 2]),
+        self.assertEqual(model_gen._drive_terms(drive_symbols=['r0', 'r1'], system_list=[1, 2]),
                          ['2*np.pi*r0*X1||D1', '2*np.pi*r1*X2||D2'])
 
         # exchange coupling

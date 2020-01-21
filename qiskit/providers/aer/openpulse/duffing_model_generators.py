@@ -21,55 +21,55 @@ from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
 
 
-def transmon_system_model(num_transmons,
-                          dim_transmons,
-                          transmon_freqs,
-                          anharm_freqs,
-                          drive_strengths,
-                          coupling_dict,
-                          dt,
-                          freq_symbol='v',
-                          anharm_symbol='alpha',
-                          drive_symbol='r',
-                          coupling_symbol='j'):
-    """Returns a PulseSystemModel for a specified transmon system, and a dict specifying
+def duffing_system_model(num_oscillators,
+                         dim_oscillators,
+                         oscillator_freqs,
+                         anharm_freqs,
+                         drive_strengths,
+                         coupling_dict,
+                         dt,
+                         freq_symbol='v',
+                         anharm_symbol='alpha',
+                         drive_symbol='r',
+                         coupling_symbol='j'):
+    """Returns a PulseSystemModel for a specified duffing oscillator system, and a dict specifying
     ControlChannel indices for cross-resonance driving.
 
-    Single transmons are specified by three parameters: frequency v, anharmonicity alpha, and
+    Single oscillators are specified by three parameters: frequency v, anharmonicity alpha, and
     drive strength r, which enter into the Hamiltonian model via the terms:
         pi*(2*v-alpha)*O + pi*alpha*O*O + 2*pi*r*X*D(t),
     where O is the number operator, X is the drive operator, and D(t) is the signal of the
     corresponding DriveChannel.
 
-    Couplings between transmons are specified in the argument coupling_dict, with keys being edges,
+    Couplings between oscillators are specified in the argument coupling_dict, with keys being edges,
     and values being the coupling strenghts. Couplings enter the Hamiltonian model via an
     exchange coupling term:
         2*pi*j*(A0*C1+C0*A1),
     where j is the coupling strength, and A0*C1+C0*A1 is the exchange coupling operator between the
-    two transmons, where A is the annihiliation operator, and C is the creation operator.
+    two oscillators, where A is the annihiliation operator, and C is the creation operator.
 
-    For each pair of coupled transmons, pulse ControlChannels are prepared for doing cross
-    resonance (CR) drives between transmons. A CR drive on transmon 0 with target transmon 1 is
+    For each pair of coupled oscillators, pulse ControlChannels are prepared for doing cross
+    resonance (CR) drives between oscillators. A CR drive on oscillators 0 with target oscillators 1 is
     modeled with the Hamiltonian term:
         2*pi*r0*X0*U(t),
-    where r0 is the drive strength for transmon 0, X0 is the drive operator for transmon 0, and
+    where r0 is the drive strength for oscillators 0, X0 is the drive operator for oscillators 0, and
     U(t) is the signal for the CR drive. U(t) is set to have carrier frequency equal to that of the
-    target transmon.
+    target oscillators.
 
     Indices for ControlChannels corresponding to CR drives are provided in the returned cr_idx_dict.
 
     Args:
-        num_transmons (int): Number of transmons in the model
-        dim_transmons (int): Dimension of truncation for each transmon
-        transmon_freqs (list): Transmon frequencies, assumed to be of length num_transmons
-        anharm_freqs (list): Anharmonicity values, assumed to be of length num_transmons
-        drive_strengths (list): Drive strength values, assumed to be of length num_transmons
+        num_oscillators (int): Number of oscillators in the model
+        dim_oscillators (int): Dimension of truncation for each oscillator
+        oscillator_freqs (list): Oscillator frequencies, assumed to be of length num_oscillators
+        anharm_freqs (list): Anharmonicity values, assumed to be of length num_oscillators
+        drive_strengths (list): Drive strength values, assumed to be of length num_oscillators
         coupling_dict (dict): Specification of the coupling graph with keys being edges, and values
                               the coupling strengths.
 
                               For example:
 
-                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which transmons
+                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which oscillators
                                 (0,1) are coupled with strength 0.02, and (1,3) are coupled with
                                 strength 0.01
         dt (float): Pixel size for pulse instructions
@@ -79,7 +79,7 @@ def transmon_system_model(num_transmons,
         coupling_symbol (str): Coupling symbol for internal HamiltonianModel
 
     Returns:
-        tuple[PulseSystemModel, dict]: The generated transmon system model, and a dict specifying
+        tuple[PulseSystemModel, dict]: The generated oscillator system model, and a dict specifying
                                        ControlChannel indices for CR driving.
 
                                        For example:
@@ -88,7 +88,7 @@ def transmon_system_model(num_transmons,
                                        the returned cr_idx_dict will be:
                                             {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
                                        * Hence, to specify a pulse on the ControlChannel
-                                       corresponding to a CR drive on transmon 1 with target 0,
+                                       corresponding to a CR drive on oscillator 1 with target 0,
                                        use index ``cr_idx_dict[(1, 0)]``, which in this case is 1
     """
 
@@ -101,11 +101,11 @@ def transmon_system_model(num_transmons,
               the same edge will be ignored.')
 
     # construct the HamiltonianModel
-    transmons = list(range(num_transmons))
-    transmon_dims = [dim_transmons] * num_transmons
-    freq_symbols = _str_list_generator(freq_symbol + '{0}', transmons)
-    anharm_symbols = _str_list_generator(anharm_symbol + '{0}', transmons)
-    drive_symbols = _str_list_generator(drive_symbol + '{0}', transmons)
+    oscillators = list(range(num_oscillators))
+    oscillator_dims = [dim_oscillators] * num_oscillators
+    freq_symbols = _str_list_generator(freq_symbol + '{0}', oscillators)
+    anharm_symbols = _str_list_generator(anharm_symbol + '{0}', oscillators)
+    drive_symbols = _str_list_generator(drive_symbol + '{0}', oscillators)
     sorted_coupling_edges = coupling_graph.sorted_graph
     # populate coupling strengths in sorted order (vertex indices are now also sorted within edges,
     # so this needs to be accounted for when retrieving weights from coupling_dict)
@@ -114,18 +114,18 @@ def transmon_system_model(num_transmons,
     coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
-    hamiltonian_dict = _transmon_hamiltonian_dict(transmons=transmons,
-                                                  transmon_dims=transmon_dims,
-                                                  transmon_freqs=transmon_freqs,
-                                                  freq_symbols=freq_symbols,
-                                                  anharm_freqs=anharm_freqs,
-                                                  anharm_symbols=anharm_symbols,
-                                                  drive_strengths=drive_strengths,
-                                                  drive_symbols=drive_symbols,
-                                                  ordered_coupling_edges=sorted_coupling_edges,
-                                                  coupling_strengths=coupling_strengths,
-                                                  coupling_symbols=coupling_symbols,
-                                                  cr_idx_dict=cr_idx_dict)
+    hamiltonian_dict = _duffing_hamiltonian_dict(oscillators=oscillators,
+                                                 oscillator_dims=oscillator_dims,
+                                                 oscillator_freqs=oscillator_freqs,
+                                                 freq_symbols=freq_symbols,
+                                                 anharm_freqs=anharm_freqs,
+                                                 anharm_symbols=anharm_symbols,
+                                                 drive_strengths=drive_strengths,
+                                                 drive_symbols=drive_symbols,
+                                                 ordered_coupling_edges=sorted_coupling_edges,
+                                                 coupling_strengths=coupling_strengths,
+                                                 coupling_symbols=coupling_symbols,
+                                                 cr_idx_dict=cr_idx_dict)
 
     hamiltonian_model = HamiltonianModel.from_dict(hamiltonian_dict)
 
@@ -134,46 +134,46 @@ def transmon_system_model(num_transmons,
 
     system_model = PulseSystemModel(hamiltonian=hamiltonian_model,
                                     u_channel_lo=u_channel_lo,
-                                    qubit_list=transmons,
+                                    qubit_list=oscillators,
                                     dt=dt)
 
     return system_model, cr_idx_dict
 
 
-# Helper functions for creating pieces necessary to construct transmon system models
+# Helper functions for creating pieces necessary to construct oscillator system models
 
 
-def _transmon_hamiltonian_dict(transmons,
-                               transmon_dims,
-                               transmon_freqs,
-                               freq_symbols,
-                               anharm_freqs,
-                               anharm_symbols,
-                               drive_strengths,
-                               drive_symbols,
-                               ordered_coupling_edges,
-                               coupling_strengths,
-                               coupling_symbols,
-                               cr_idx_dict):
-    """Creates a hamiltonian string dict based on the arguments.
+def _duffing_hamiltonian_dict(oscillators,
+                              oscillator_dims,
+                              oscillator_freqs,
+                              freq_symbols,
+                              anharm_freqs,
+                              anharm_symbols,
+                              drive_strengths,
+                              drive_symbols,
+                              ordered_coupling_edges,
+                              coupling_strengths,
+                              coupling_symbols,
+                              cr_idx_dict):
+    """Creates a hamiltonian string dict for a duffing oscillator model
 
     Note, this function makes the following assumptions:
-        - transmons, transmon_dims, transmon_freqs, freq_symbols, anharm_freqs, anharm_symbols,
+        - oscillators, oscillator_dims, oscillator_freqs, freq_symbols, anharm_freqs, anharm_symbols,
           drive_strengths, and drive_symbols are all lists of the same length (i.e. the total
-          transmon number)
+          oscillator number)
         - ordered_coupling_edges, coupling_strengths, and coupling_symbols are lists of the same
           length
 
     Args:
-        transmons (list): ints for transmon labels
-        transmon_dims (list): ints for transmon dimensions
-        transmon_freqs (list): transmon frequencies
-        freq_symbols (list): symbols to be used for transmon frequencies
+        oscillators (list): ints for oscillator labels
+        oscillator_dims (list): ints for oscillator dimensions
+        oscillator_freqs (list): oscillator frequencies
+        freq_symbols (list): symbols to be used for oscillator frequencies
         anharm_freqs (list): anharmonicity values
         anharm_symbols (list): symbols to be used for anharmonicity terms
         drive_strengths (list): drive strength coefficients
         drive_symbols (list): symbols for drive coefficients
-        ordered_coupling_edges (list): tuples of two ints specifying transmon couplings. Order
+        ordered_coupling_edges (list): tuples of two ints specifying oscillator couplings. Order
                                        corresponds to order of coupling_strengths and
                                        coupling_symbols
         coupling_strengths (list): strength of each coupling term (corresponds to ordering of
@@ -181,37 +181,37 @@ def _transmon_hamiltonian_dict(transmons,
         coupling_symbols (list): symbols for coupling coefficients
         cr_idx_dict (dict): A dict with keys given by tuples containing two ints, and value an int,
                             representing cross resonance drive channels. E.g. an entry {(0,1) : 1}
-                            specifies a CR drive on transmon 0 with transmon 1 as target, with
+                            specifies a CR drive on oscillator 0 with oscillator 1 as target, with
                             u_channel index 1.
 
     Returns:
         dict: hamiltonian string format
     """
 
-    # single transmon terms
-    hamiltonian_str = _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmons)
-    hamiltonian_str += _drive_terms(drive_symbols, transmons)
+    # single oscillator terms
+    hamiltonian_str = _single_duffing_drift_terms(freq_symbols, anharm_symbols, oscillators)
+    hamiltonian_str += _drive_terms(drive_symbols, oscillators)
 
     # exchange terms
     hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
 
     # cr terms
-    driven_transmon_indices = [key[0] for key in cr_idx_dict.keys()]
-    cr_drive_symbols = [drive_symbols[idx] for idx in driven_transmon_indices]
+    driven_system_indices = [key[0] for key in cr_idx_dict.keys()]
+    cr_drive_symbols = [drive_symbols[idx] for idx in driven_system_indices]
     cr_channel_idx = cr_idx_dict.values()
-    hamiltonian_str += _cr_terms(cr_drive_symbols, driven_transmon_indices, cr_channel_idx)
+    hamiltonian_str += _cr_terms(cr_drive_symbols, driven_system_indices, cr_channel_idx)
 
     # construct vars dictionary
     var_dict = {}
-    for idx in transmons:
-        var_dict[freq_symbols[idx]] = transmon_freqs[idx]
+    for idx in oscillators:
+        var_dict[freq_symbols[idx]] = oscillator_freqs[idx]
         var_dict[anharm_symbols[idx]] = anharm_freqs[idx]
         var_dict[drive_symbols[idx]] = drive_strengths[idx]
 
     for symbol, strength in zip(coupling_symbols, coupling_strengths):
         var_dict[symbol] = strength
 
-    dim_dict = {str(transmon): dim for transmon, dim in zip(transmons, transmon_dims)}
+    dim_dict = {str(oscillator): dim for oscillator, dim in zip(oscillators, oscillator_dims)}
 
     return {'h_str': hamiltonian_str, 'vars': var_dict, 'qub': dim_dict}
 
@@ -221,7 +221,7 @@ def _cr_lo_list(cr_idx_dict):
 
     Args:
         cr_idx_dict (dict): A dictionary with keys given by tuples of ints with int values. A key,
-                            e.g. (0,1), signifies CR drive on transmon 0 with target 1, and the
+                            e.g. (0,1), signifies CR drive on system 0 with target 1, and the
                             value is the u channel index corresponding to that drive.
                             Note: this function assumes that
                             cr_idx_dict.values() == range(len(cr_idx_dict)).
@@ -232,8 +232,8 @@ def _cr_lo_list(cr_idx_dict):
 
     # populate list of u channel lo for cr gates
     lo_list = [0] * len(cr_idx_dict)
-    for transmon_pair, u_idx in cr_idx_dict.items():
-        lo_list[u_idx] = [{'scale': [1.0, 0.0], 'q': transmon_pair[1]}]
+    for system_pair, u_idx in cr_idx_dict.items():
+        lo_list[u_idx] = [{'scale': [1.0, 0.0], 'q': system_pair[1]}]
 
     return lo_list
 
@@ -241,13 +241,13 @@ def _cr_lo_list(cr_idx_dict):
 # Functions for creating Hamiltonian strings for various types of terms
 
 
-def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
+def _single_duffing_drift_terms(freq_symbols, anharm_symbols, system_list):
     """Harmonic and anharmonic drift terms
 
     Args:
         freq_symbols (list): coefficients for harmonic part
         anharm_symbols (list): coefficients for anharmonic part
-        transmon_list (list): list of transmon indices
+        system_list (list): list of system indices
     Returns:
         list: drift term strings
     """
@@ -255,35 +255,35 @@ def _single_transmon_drift_terms(freq_symbols, anharm_symbols, transmon_list):
     harm_terms = _str_list_generator('np.pi*(2*{0}-{1})*O{2}',
                                      freq_symbols,
                                      anharm_symbols,
-                                     transmon_list)
+                                     system_list)
     anharm_terms = _str_list_generator('np.pi*{0}*O{1}*O{1}',
                                        anharm_symbols,
-                                       transmon_list)
+                                       system_list)
 
     return harm_terms + anharm_terms
 
 
-def _drive_terms(drive_symbols, transmon_list):
-    """Drive terms for single transmon
+def _drive_terms(drive_symbols, system_list):
+    """Drive terms for single oscillator
 
     Args:
         drive_symbols (list): coefficients of drive terms
-        transmon_list (list): list of transmon indices
+        system_list (list): list of system indices
     Returns:
         list: drive term strings
     """
 
     return _str_list_generator('2*np.pi*{0}*X{1}||D{1}',
                                drive_symbols,
-                               transmon_list)
+                               system_list)
 
 
 def _exchange_coupling_terms(coupling_symbols, ordered_edges):
-    """Exchange coupling between transmons
+    """Exchange coupling terms between systems
 
     Args:
         coupling_symbols (list): coefficients of exchange couplings
-        ordered_edges (list): list tuples of transmon indices for the couplings
+        ordered_edges (list): list tuples of system indices for the couplings
     Returns:
         list: exchange coupling strings
     """
@@ -296,12 +296,12 @@ def _exchange_coupling_terms(coupling_symbols, ordered_edges):
                                idx2_list)
 
 
-def _cr_terms(drive_symbols, driven_transmon_indices, u_channel_indices):
+def _cr_terms(drive_symbols, driven_system_indices, u_channel_indices):
     """Cross resonance drive terms
 
     Args:
         drive_symbols (list): coefficients for drive terms
-        driven_transmon_indices (list): list of indices for transmons that drive is applied to
+        driven_system_indices (list): list of indices for systems that drive is applied to
         u_channel_indices (list): indicies for the u_channels corresponding to each term
     Returns:
         list: cr term strings
@@ -309,7 +309,7 @@ def _cr_terms(drive_symbols, driven_transmon_indices, u_channel_indices):
 
     return _str_list_generator('2*np.pi*{0}*X{1}||U{2}',
                                drive_symbols,
-                               driven_transmon_indices,
+                               driven_system_indices,
                                u_channel_indices)
 
 
