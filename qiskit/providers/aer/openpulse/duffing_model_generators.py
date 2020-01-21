@@ -41,20 +41,20 @@ def duffing_system_model(num_oscillators,
     where O is the number operator, X is the drive operator, and D(t) is the signal of the
     corresponding DriveChannel.
 
-    Couplings between oscillators are specified in the argument coupling_dict, with keys being edges,
-    and values being the coupling strenghts. Couplings enter the Hamiltonian model via an
+    Couplings between oscillators are specified in the argument coupling_dict, with keys being
+    edges, and values being the coupling strenghts. Couplings enter the Hamiltonian model via an
     exchange coupling term:
         2*pi*j*(A0*C1+C0*A1),
     where j is the coupling strength, and A0*C1+C0*A1 is the exchange coupling operator between the
     two oscillators, where A is the annihiliation operator, and C is the creation operator.
 
     For each pair of coupled oscillators, pulse ControlChannels are prepared for doing cross
-    resonance (CR) drives between oscillators. A CR drive on oscillators 0 with target oscillators 1 is
-    modeled with the Hamiltonian term:
+    resonance (CR) drives between oscillators. A CR drive on oscillators 0 with target oscillators
+    1 is modeled with the Hamiltonian term:
         2*pi*r0*X0*U(t),
-    where r0 is the drive strength for oscillators 0, X0 is the drive operator for oscillators 0, and
-    U(t) is the signal for the CR drive. U(t) is set to have carrier frequency equal to that of the
-    target oscillators.
+    where r0 is the drive strength for oscillators 0, X0 is the drive operator for oscillators 0,
+    and U(t) is the signal for the CR drive. U(t) is set to have carrier frequency equal to that of
+    the target oscillators.
 
     Indices for ControlChannels corresponding to CR drives are provided in the returned cr_idx_dict.
 
@@ -69,9 +69,9 @@ def duffing_system_model(num_oscillators,
 
                               For example:
 
-                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which oscillators
-                                (0,1) are coupled with strength 0.02, and (1,3) are coupled with
-                                strength 0.01
+                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which
+                                oscillators (0,1) are coupled with strength 0.02, and (1,3) are
+                                coupled with strength 0.01
         dt (float): Pixel size for pulse instructions
         freq_symbol (str): Frequency symbol for internal HamiltonianModel
         anharm_symbol (str): Anharmonicity symbol for internal HamiltonianModel
@@ -158,9 +158,9 @@ def _duffing_hamiltonian_dict(oscillators,
     """Creates a hamiltonian string dict for a duffing oscillator model
 
     Note, this function makes the following assumptions:
-        - oscillators, oscillator_dims, oscillator_freqs, freq_symbols, anharm_freqs, anharm_symbols,
-          drive_strengths, and drive_symbols are all lists of the same length (i.e. the total
-          oscillator number)
+        - oscillators, oscillator_dims, oscillator_freqs, freq_symbols, anharm_freqs,
+          anharm_symbols, drive_strengths, and drive_symbols are all lists of the same length
+          (i.e. the total oscillator number)
         - ordered_coupling_edges, coupling_strengths, and coupling_symbols are lists of the same
           length
 
