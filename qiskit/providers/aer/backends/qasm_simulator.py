@@ -202,7 +202,7 @@ class QasmSimulator(AerBackend):
                max_num_coefficients_for_approx, then the smallest values are
                discarded (see approx_thresold).
     (Default: NONE).
-      
+
     * ``"max_num_coefficients_for_approx"`` (int): Sets a limit on the number of Schmidt
       coefficients retained at the end of the svd algorithm.
       If the number of coefficients is greater than max_num_coefficients_for_approx,
