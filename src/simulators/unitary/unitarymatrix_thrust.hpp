@@ -196,34 +196,23 @@ UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
 template <class data_t>
 AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const 
 {
-	const int_t nrows = rows_;
-	int iPlace;
-	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_chunkBits;
-	cvector_t<data_t> tmp(csize);
+  const int_t nrows = rows_;
+  AER::cmatrix_t ret(nrows, nrows);
+  cvector_t<data_t> qreg = BaseVector::vector();
 
-	AER::cmatrix_t ret(nrows, nrows);
-
-	BaseVector::UpdateReferencedValue();
-
-	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks();
-
-		for(ic=0;ic<nc;ic++){
-			BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
-
-#pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-			for(i=0;i<csize;i++){
-				irow = ((pos+i) >> num_qubits_);
-				icol = (pos+i) - (irow << num_qubits_);
-
-				ret(irow,icol) = tmp[i];
-			}
-			pos += csize;
-		}
-	}
-	return ret;
+  #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  {
+  #ifdef _WIN32
+    #pragma omp for
+  #else
+    #pragma omp for collapse(2)
+  #endif
+    for (int_t i=0; i < nrows; i++)
+      for (int_t j=0; j < nrows; j++) {
+        ret(i, j) = qreg[i + nrows * j];
+      }
+  } // end omp parallel
+  return ret;
 }
 
 //------------------------------------------------------------------------------
