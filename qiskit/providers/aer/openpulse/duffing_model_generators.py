@@ -65,7 +65,6 @@ def duffing_system_model(dim_oscillators,
         use index ``cr_idx_dict[(1, 0)]``, which in this case is 1
 
     Args:
-        num_oscillators (int): Number of oscillators in the model
         dim_oscillators (int): Dimension of truncation for each oscillator
         oscillator_freqs (list): Oscillator frequencies, assumed to be of length num_oscillators
         anharm_freqs (list): Anharmonicity values, assumed to be of length num_oscillators

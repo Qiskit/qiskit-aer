@@ -30,7 +30,6 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
     def test_duffing_system_model1(self):
         """First test of duffing_system_model, 2 qubits, 2 dimensional"""
 
-        num_oscillators = 2
         dim_oscillators = 2
         oscillator_freqs = [5.0, 5.1]
         anharm_freqs = [-0.33, -0.33]
@@ -38,8 +37,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
-                                                                   dim_oscillators,
+        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
                                                                    oscillator_freqs,
                                                                    anharm_freqs,
                                                                    drive_strengths,
@@ -110,7 +108,6 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         """Second test of duffing_system_model, 3 qubits, 3 dimensional"""
 
         # do similar tests for different model
-        num_oscillators = 3
         dim_oscillators = 3
         oscillator_freqs = [5.0, 5.1, 5.2]
         anharm_freqs = [-0.33, -0.33, -0.32]
@@ -118,8 +115,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(1,2): 0.03, (0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
-                                                                   dim_oscillators,
+        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
                                                                    oscillator_freqs,
                                                                    anharm_freqs,
                                                                    drive_strengths,
@@ -203,7 +199,6 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         """Third test of duffing_system_model, 4 qubits, 2 dimensional"""
 
         # do similar tests for different model
-        num_oscillators = 4
         dim_oscillators = 2
         oscillator_freqs = [5.0, 5.1, 5.2, 5.3]
         anharm_freqs = [-0.33, -0.33, -0.32, -0.31]
@@ -211,8 +206,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(0,2): 0.03, (1,0): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(num_oscillators,
-                                                                   dim_oscillators,
+        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
                                                                    oscillator_freqs,
                                                                    anharm_freqs,
                                                                    drive_strengths,
