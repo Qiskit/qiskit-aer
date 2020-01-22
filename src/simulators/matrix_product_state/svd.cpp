@@ -102,10 +102,10 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   uint_t new_SV_num = SV_num;
 
   if (approx_threshold == CHOP_THRESHOLD || 
-      approximation_type == approx_type::NONE ) {
+      approximation_type == NONE ) {
     new_SV_num = SV_num;
   } else {
-    if (approximation_type == approx_type::RELATIVE && 
+    if (approximation_type == RELATIVE && 
 	max_num_coefficients_for_approx < SV_num) {
     // approx_threshold is the fraction relative
     // to the norm of the largest value in S, which is S[0].
@@ -115,7 +115,7 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
       if (new_SV_num < max_num_coefficients_for_approx)
 	new_SV_num = max_num_coefficients_for_approx;
 
-    } else if (approximation_type == approx_type::ABSOLUTE && 
+    } else if (approximation_type == ABSOLUTE && 
 	       max_num_coefficients_for_approx < SV_num) {
       // in this case, leave only the first max_num_coefficients_for_approx
       // values in S, and discard all the rest

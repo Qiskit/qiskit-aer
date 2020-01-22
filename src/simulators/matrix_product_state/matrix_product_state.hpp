@@ -391,11 +391,11 @@ void State::set_config(const json_t &config) {
   std::string approximation_type;
   if (JSON::get_value(approximation_type, "approximation_type", config)) {
     if (approximation_type == "ABSOLUTE") {
-      MPS_Tensor::set_approx_type(approx_type::ABSOLUTE);
+      MPS_Tensor::set_approx_type(ABSOLUTE);
     } else if (approximation_type == "RELATIVE") {
-      MPS_Tensor::set_approx_type(approx_type::RELATIVE);
+      MPS_Tensor::set_approx_type(RELATIVE);
     } else {
-      MPS_Tensor::set_approx_type(approx_type::NONE);
+      MPS_Tensor::set_approx_type(NONE);
     }
   }
   
