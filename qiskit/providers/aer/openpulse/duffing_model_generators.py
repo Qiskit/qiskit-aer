@@ -21,8 +21,7 @@ from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
 
 
-def duffing_system_model(num_oscillators,
-                         dim_oscillators,
+def duffing_system_model(dim_oscillators,
                          oscillator_freqs,
                          anharm_freqs,
                          drive_strengths,
@@ -101,6 +100,7 @@ def duffing_system_model(num_oscillators,
               the same edge will be ignored.')
 
     # construct the HamiltonianModel
+    num_oscillators = len(oscillator_freqs)
     oscillators = list(range(num_oscillators))
     oscillator_dims = [dim_oscillators] * num_oscillators
     freq_symbols = _str_list_generator(freq_symbol + '{0}', oscillators)
