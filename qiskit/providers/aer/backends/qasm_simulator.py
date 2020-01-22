@@ -200,8 +200,8 @@ class QasmSimulator(AerBackend):
       ABSOLUTE_APPROX - only the largest max_num_coefficients_for_approx
       Schmidt coefficients are retained.
       RELATIVE_APPROX - if the number of Schmidt coefficients is larger than
-               max_num_coefficients_for_approx, then the smallest values are
-               discarded (see approx_thresold).
+      max_num_coefficients_for_approx, then the smallest values are
+      discarded (see approx_thresold).
       (Default: NONE).
 
     * ``"max_num_coefficients_for_approx"`` (int): Sets a limit on the number of Schmidt
