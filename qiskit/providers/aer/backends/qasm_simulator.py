@@ -195,13 +195,14 @@ class QasmSimulator(AerBackend):
     These backend options only apply when using the ``"matrix_product_state"``
     simulation method:
 
-    * ``"approximation_type"`` (int): Can be one of the following options: NONE, RELATIVE, ABSOLUTE.
-    NONE - means no approximation.
-    ABSOLUTE - only the largest max_num_coefficients_for_approx Schmidt coefficients are retained.
-    RELATIVE - if the number of Schmidt coefficients is larger than
+    * ``"approximation_type"`` (int): Can be one of the following options:
+      NO_APPROX - means no approximation.
+      ABSOLUTE_APPROX - only the largest max_num_coefficients_for_approx
+      Schmidt coefficients are retained.
+      RELATIVE_APPROX - if the number of Schmidt coefficients is larger than
                max_num_coefficients_for_approx, then the smallest values are
                discarded (see approx_thresold).
-    (Default: NONE).
+      (Default: NONE).
 
     * ``"max_num_coefficients_for_approx"`` (int): Sets a limit on the number of Schmidt
       coefficients retained at the end of the svd algorithm.

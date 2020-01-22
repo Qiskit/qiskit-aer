@@ -387,7 +387,7 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(threshold, "chop_threshold", config))
     MPS_Tensor::set_chop_threshold(threshold);
 
-  // default approximation type is NONE
+  // default approximation type is NO_APPROX
   std::string approximation_type;
   if (JSON::get_value(approximation_type, "approximation_type", config)) {
     if (approximation_type == "ABSOLUTE") {
