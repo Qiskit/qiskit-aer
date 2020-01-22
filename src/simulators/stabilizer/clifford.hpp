@@ -157,8 +157,8 @@ private:
   //-----------------------------------------------------------------------
 
   // Check if there exists stabilizer or destabilizer row anticommuting
-  // with Z[qubits]. If so return pair (true, row), else return (false, 0)
-  std::pair<bool, uint64_t> z_anticommuting(const std::vector<uint64_t>& qubits) const;
+  // with Z[qubit]. If so return pair (true, row), else return (false, 0)
+  std::pair<bool, uint64_t> z_anticommuting(const uint64_t qubit) const;
 
   // Check if there exists stabilizer or destabilizer row anticommuting
   // with X[qubit]. If so return pair (true, row), else return (false, 0)
@@ -272,14 +272,10 @@ void Clifford::append_z(const uint64_t qubit) {
 // Utility
 //------------------------------------------------------------------------------
 
-  std::pair<bool, uint64_t> Clifford::z_anticommuting(const std::vector<uint64_t>& qubits) const {
+std::pair<bool, uint64_t> Clifford::z_anticommuting(const uint64_t qubit) const {
   for (uint64_t p = num_qubits_; p < 2 * num_qubits_; p++) {
-    uint64_t num_of_x = 0;
-    for (auto qubit : qubits)
-      if (table_[p].X[qubit])
-	num_of_x ++;
-    if(num_of_x % 2 == 1)
-	return std::make_pair(true, p);
+    if (table_[p].X[qubit])
+      return std::make_pair(true, p);
   }
   return std::make_pair(false, 0);
 }
@@ -301,14 +297,14 @@ bool Clifford::is_deterministic_outcome(const uint64_t& qubit) const {
   // Clifford state measurements only have three probabilities:
   // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
   // The random case happens if there is a row anti-commuting with Z[qubit]
-  return !z_anticommuting(std::vector<uint64_t>({qubit})).first;
+  return !z_anticommuting(qubit).first;
 }
 
 bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) {
   // Clifford state measurements only have three probabilities:
   // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
   // The random case happens if there is a row anti-commuting with Z[qubit]
-  auto anticom = z_anticommuting(std::vector<uint64_t>({qubit}));
+  auto anticom = z_anticommuting(qubit);
   if (anticom.first) {
     bool outcome = (randint == 1);
     auto row = anticom.second;
@@ -342,30 +338,33 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
 }
 
 int64_t Clifford::expectation_value(const std::vector<uint64_t>& qubits) {
-  auto anticom = z_anticommuting(std::vector<uint64_t>(qubits));
-  if (anticom.first) {
-    return 0;
-  } else {
-    uint64_t sum_of_outcomes = 0;
+  // Check if there is a row that anti-commutes with an odd number of qubits
+  // If so expectation value is 0
+  for (uint64_t p = num_qubits_; p < 2 * num_qubits_; p++) {
+    uint64_t num_of_x = 0;
     for (auto qubit : qubits) {
-      Pauli::Pauli accum(num_qubits_);
-      phase_t outcome = 0;
-      for (uint64_t i = 0; i < num_qubits_; i++) {
-	if (table_[i].X[qubit]) {
-	  rowsum_helper(table_[i + num_qubits_], phases_[i + num_qubits_],
-			accum, outcome);
-	}
-      }
-      sum_of_outcomes += outcome;
+      if (table_[p].X[qubit])
+	num_of_x ++;
     }
-
-    if (sum_of_outcomes % 2 == 0) {
-      return 1;
-    }
-    else {
-      return -1;
-    }
+    if(num_of_x % 2 == 1)
+      return 0;
   }
+
+  // Otherwise the expectation value is +1 or -1
+  uint64_t sum_of_outcomes = 0;
+  for (auto qubit : qubits) {
+    Pauli::Pauli accum(num_qubits_);
+    phase_t outcome = 0;
+    for (uint64_t i = 0; i < num_qubits_; i++) {
+      if (table_[i].X[qubit]) {
+        rowsum_helper(table_[i + num_qubits_], phases_[i + num_qubits_],
+                      accum, outcome);
+      }
+    }
+    sum_of_outcomes += outcome;
+  }
+
+  return (sum_of_outcomes % 2 == 0) ? 1 : -1;
 }
 
 void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
