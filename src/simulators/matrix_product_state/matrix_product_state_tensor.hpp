@@ -195,7 +195,7 @@ private:
 double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
 uint_t MPS_Tensor::max_num_coefficients_for_approx_ = UINT64_MAX;
 double MPS_Tensor::approx_threshold_ = 1e-16;
-approx_type MPS_Tensor::approximation_type_ = approx_type::NONE; 
+approx_type MPS_Tensor::approximation_type_ = approx_type::NO_APPROX; 
 
 //---------------------------------------------------------------
 // function name: print

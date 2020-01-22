@@ -28,7 +28,7 @@ namespace AER {
 using long_complex_t = std::complex<long double>;
 
 enum status {SUCCESS, FAILURE};
-enum approx_type {NONE, ABSOLUTE, RELATIVE};
+enum approx_type {NO_APPROX, ABSOLUTE_APPROX, RELATIVE_APPROX};
 
 cmatrix_t reshape_before_SVD(std::vector<cmatrix_t> data);
 std::vector<cmatrix_t> reshape_U_after_SVD(cmatrix_t U);
