@@ -93,7 +93,7 @@ class UnitarySimulator(AerBackend):
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx', 'unitary', 'initialize', 'cu1', 'cu2',
+            't', 'tdg', 'swap', 'ccx', 'unitary', 'cu1', 'cu2',
             'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcu1', 'mcu2', 'mcu3',
             'mcswap', 'multiplexer',
         ],
@@ -211,13 +211,6 @@ class UnitarySimulator(AerBackend):
             'description': 'N-qubit arbitrary unitary gate. '
                            'The parameter is the N-qubit matrix to apply.',
             'qasm_def': 'unitary(matrix) q1, q2,...'
-        }, {
-            'name': 'initialize',
-            'parameters': ['vector'],
-            'conditional': False,
-            'description': 'N-qubit state initialize. '
-                           'Resets qubits then sets statevector to the parameter vector.',
-            'qasm_def': 'initialize(vector) q1, q2,...'
         }, {
             'name': 'cu1',
             'parameters': ['lam'],
