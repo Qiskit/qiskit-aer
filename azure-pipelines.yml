@@ -20,6 +20,7 @@ stages:
         CIBW_SKIP: cp27-* cp34-* *win32
         CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
         CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
+        CIBW_ENVIRONMENT: PIP_CONSTRAINT=constraints.txt
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
