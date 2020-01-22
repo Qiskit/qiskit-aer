@@ -27,13 +27,12 @@ def duffing_system_model(num_oscillators,
                          anharm_freqs,
                          drive_strengths,
                          coupling_dict,
-                         dt,
-                         freq_symbol='v',
-                         anharm_symbol='alpha',
-                         drive_symbol='r',
-                         coupling_symbol='j'):
-    """Returns a PulseSystemModel for a specified duffing oscillator system, and a dict specifying
+                         dt):
+    """Returns a PulseSystemModel for a specified Duffing oscillator system, and a dict specifying
     ControlChannel indices for cross-resonance driving.
+
+    Note: all frequencies are assumed to be radial; i.e. they appear in the Hamiltonian with
+    factors of 2pi.
 
     Single oscillators are specified by three parameters: frequency v, anharmonicity alpha, and
     drive strength r, which enter into the Hamiltonian model via the terms:
@@ -57,6 +56,14 @@ def duffing_system_model(num_oscillators,
     the target oscillators.
 
     Indices for ControlChannels corresponding to CR drives are provided in the returned cr_idx_dict.
+    For example:
+
+        * Given the coupling_dict ``{(0,1): 0.02, (1,3): 0.01}``,
+        the returned cr_idx_dict will be:
+             ``{(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}``
+        * Hence, to specify a pulse on the ControlChannel
+        corresponding to a CR drive on oscillator 1 with target 0,
+        use index ``cr_idx_dict[(1, 0)]``, which in this case is 1
 
     Args:
         num_oscillators (int): Number of oscillators in the model
@@ -73,24 +80,17 @@ def duffing_system_model(num_oscillators,
                                 oscillators (0,1) are coupled with strength 0.02, and (1,3) are
                                 coupled with strength 0.01
         dt (float): Pixel size for pulse instructions
-        freq_symbol (str): Frequency symbol for internal HamiltonianModel
-        anharm_symbol (str): Anharmonicity symbol for internal HamiltonianModel
-        drive_symbol (str): Drive symbol for internal HamiltonianModel
-        coupling_symbol (str): Coupling symbol for internal HamiltonianModel
 
     Returns:
         tuple[PulseSystemModel, dict]: The generated oscillator system model, and a dict specifying
                                        ControlChannel indices for CR driving.
-
-                                       For example:
-
-                                       * Given the coupling_dict ``{(0,1): 0.02, (1,3): 0.01}``,
-                                       the returned cr_idx_dict will be:
-                                            {(0,1): 0, (1,0): 1, (1,3): 2, (3,1): 3}
-                                       * Hence, to specify a pulse on the ControlChannel
-                                       corresponding to a CR drive on oscillator 1 with target 0,
-                                       use index ``cr_idx_dict[(1, 0)]``, which in this case is 1
     """
+
+    # set symbols for string generation
+    freq_symbol='v'
+    anharm_symbol='alpha'
+    drive_symbol='r'
+    coupling_symbol='j'
 
     coupling_edges = coupling_dict.keys()
 
