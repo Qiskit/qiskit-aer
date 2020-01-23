@@ -87,7 +87,7 @@ def duffing_system_model(dim_oscillators,
     coupling_edges = coupling_dict.keys()
 
     # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
-    coupling_graph = _coupling_graph(coupling_edges)
+    coupling_graph = CouplingGraph(coupling_edges)
     if len(coupling_graph.graph) < len(coupling_edges):
         warn('Warning: The coupling_dict contains diplicate edges, and the second appearance of \
               the same edge will be ignored.')
@@ -352,7 +352,7 @@ def _arg_to_iterable(arg):
 # Helper classes
 
 
-class _coupling_graph:
+class CouplingGraph:
     """
     Helper class containing functionality for representing coupling graphs, with the main goal to
     construct different representations for different purposes:
@@ -371,14 +371,14 @@ class _coupling_graph:
     """
 
     def __init__(self, edges):
-        """returns _coupling_graph object
+        """returns CouplingGraph object
 
         Args:
             edges (Iterable): An iterable of iterables, where the inner interables are assumed to
                               contain two elements, e.g. [(0,1), (2,3)], or ((0,1), (2,3))
 
         Returns:
-            _coupling_graph: coupling graph specified by edges
+            CouplingGraph: coupling graph specified by edges
         """
 
         # create the set representation of the graph

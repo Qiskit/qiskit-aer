@@ -491,10 +491,10 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         self.assertEqual(model_gen._arg_to_iterable(('a','b')), ('a','b'))
         self.assertEqual(model_gen._arg_to_iterable({'a','b'}), {'a','b'})
 
-    def test_coupling_graph(self):
-        """Test _coupling_graph class."""
+    def test_CouplingGraph(self):
+        """Test CouplingGraph class."""
 
-        coupling_graph = model_gen._coupling_graph([(0,1), (1,0), (3,2), (1,2)])
+        coupling_graph = model_gen.CouplingGraph([(0,1), (1,0), (3,2), (1,2)])
 
         # test constructor, including catching of duplicate entries
         self.assertEqual(len(coupling_graph.graph), 3)
