@@ -27,11 +27,9 @@ def duffing_system_model(dim_oscillators,
                          drive_strengths,
                          coupling_dict,
                          dt):
-    """Returns a PulseSystemModel for a specified Duffing oscillator system, and a dict specifying
-    ControlChannel indices for cross-resonance driving.
+    """Returns a PulseSystemModel for a specified Duffing oscillator system.
 
-    Note: all frequencies are assumed to be radial; i.e. they appear in the Hamiltonian with
-    factors of 2pi.
+    Note: Frequencies are assumed to be in frequency units (as opposed to radial).
 
     Single oscillators are specified by three parameters: frequency v, anharmonicity alpha, and
     drive strength r, which enter into the Hamiltonian model via the terms:
@@ -61,18 +59,18 @@ def duffing_system_model(dim_oscillators,
 
     Args:
         dim_oscillators (int): Dimension of truncation for each oscillator
-        oscillator_freqs (list): Oscillator frequencies, assumed to be of length num_oscillators
-        anharm_freqs (list): Anharmonicity values, assumed to be of length num_oscillators
-        drive_strengths (list): Drive strength values, assumed to be of length num_oscillators
+        oscillator_freqs (list): Oscillator frequencies in frequency units
+        anharm_freqs (list): Anharmonicity values in frequency units
+        drive_strengths (list): Drive strength values in frequency units
         coupling_dict (dict): Specification of the coupling graph with keys being edges, and values
-                              the coupling strengths.
+                              the coupling strengths in frequency units.
 
                               For example:
 
                               * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which
                                 oscillators (0,1) are coupled with strength 0.02, and (1,3) are
                                 coupled with strength 0.01
-        dt (float): Pixel size for pulse instructions
+        dt (float): Sample width for pulse instructions
 
     Returns:
         PulseSystemModel: The generated Duffing system model
