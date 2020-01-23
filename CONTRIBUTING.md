@@ -257,6 +257,14 @@ USER_LIB_PATH
     Default: No value.
     Example: ``cmake -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so ..``
 
+BLAS_LIB_PATH
+    Tells CMake the directory to look for the BLAS library instead of the usual paths.
+    If no BLAS library is found under that directory, CMake will raise an error and stop.
+
+    Values: An absolute path with file included.
+    Default: No value.
+    Example: ``cmake -DBLAS_LIB_PATH=/path/to/look/for/blas/ ..``
+
 STATIC_LINKING
     Tells the build system whether to create static versions of the programs being built or not.
     NOTE: On MacOS static linking is not fully working for all versions of GNU G++/Clang
