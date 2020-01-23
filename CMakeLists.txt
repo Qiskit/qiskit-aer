@@ -206,8 +206,9 @@ if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
 	message(FATAL_ERROR "No muparserx library found")
 endif()
 message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+get_muparserx_source_code()
 # I keep this disabled on purpose, just in case I need to debug muparserx related problems
-# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/*.cpp")
+# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
 
 
 # Set dependent libraries
