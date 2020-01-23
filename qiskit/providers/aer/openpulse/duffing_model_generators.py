@@ -126,11 +126,11 @@ def duffing_system_model(dim_oscillators,
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
     # construct and return the PulseSystemModel
-    return = PulseSystemModel(hamiltonian=hamiltonian_model,
-                              u_channel_lo=u_channel_lo,
-                              control_channel_dict=cr_idx_dict,
-                              qubit_list=oscillators,
-                              dt=dt)
+    return PulseSystemModel(hamiltonian=hamiltonian_model,
+                            u_channel_lo=u_channel_lo,
+                            control_channel_dict=cr_idx_dict,
+                            qubit_list=oscillators,
+                            dt=dt)
 
 
 # Helper functions for creating pieces necessary to construct oscillator system models

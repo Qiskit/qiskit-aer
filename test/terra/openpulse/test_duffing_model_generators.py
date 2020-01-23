@@ -37,18 +37,21 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
-                                                                   oscillator_freqs,
-                                                                   anharm_freqs,
-                                                                   drive_strengths,
-                                                                   coupling_dict,
-                                                                   dt)
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+        cr_idx_dict = system_model.control_channel_dict
+
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1])
         self.assertEqual(system_model.dt, 1.3)
 
         # check that cr_idx_dict is correct
         self.assertEqual(cr_idx_dict, {(0,1): 0, (1,0): 1})
+        self.assertEqual(system_model.control_channel_index((0,1)), 0)
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
@@ -115,18 +118,21 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(1,2): 0.03, (0,1): 0.02}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
-                                                                   oscillator_freqs,
-                                                                   anharm_freqs,
-                                                                   drive_strengths,
-                                                                   coupling_dict,
-                                                                   dt)
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+        cr_idx_dict = system_model.control_channel_dict
+
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2])
         self.assertEqual(system_model.dt, 1.3)
 
         # check that cr_idx_dict is correct
         self.assertEqual(cr_idx_dict, {(0,1): 0, (1,0): 1, (1,2): 2, (2,1): 3})
+        self.assertEqual(system_model.control_channel_index((1,2)), 2)
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
@@ -206,12 +212,14 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         coupling_dict = {(0,2): 0.03, (1,0): 0.02, (0,3): 0.14, (3,1): 0.18, (1,2) : 0.33}
         dt = 1.3
 
-        system_model, cr_idx_dict = model_gen.duffing_system_model(dim_oscillators,
-                                                                   oscillator_freqs,
-                                                                   anharm_freqs,
-                                                                   drive_strengths,
-                                                                   coupling_dict,
-                                                                   dt)
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+        cr_idx_dict = system_model.control_channel_dict
+
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2, 3])
         self.assertEqual(system_model.dt, 1.3)
@@ -222,6 +230,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                                        (0,3): 4, (3,0): 5,
                                        (1,2): 6, (2,1): 7,
                                        (1,3): 8, (3,1): 9})
+        self.assertEqual(system_model.control_channel_index((1,2)), 6)
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
