@@ -20,7 +20,6 @@ stages:
         CIBW_SKIP: cp27-* cp34-* *win32
         CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
         CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
-        CIBW_ENVIRONMENT: PIP_CONSTRAINT=$(Build.Repository.LocalPath)\\constraints.txt FORCE_GENERATOR='Visual Studio 15 2017 Win64'
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
@@ -48,7 +47,7 @@ stages:
             source activate qiskit-aer-$(Build.BuildNumber)
             pip install cibuildwheel==1.1.0
             pip install -U twine
-            cibuildwheel --output-dir wheelhouse .
+            CIBW_ENVIRONMENT="PIP_CONSTRAINT='$(Build.Repository.LocalPath)\constraints.txt' FORCE_GENERATOR='Visual Studio 15 2017 Win64'" cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
