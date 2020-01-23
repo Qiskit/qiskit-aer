@@ -22,7 +22,7 @@ from qiskit.providers.aer.openpulse import duffing_model_generators as model_gen
 from qiskit.providers.aer.openpulse.qobj.op_qobj import get_oper
 
 class TestDuffingModelGenerators(QiskitAerTestCase):
-    """Tests for functions in pulse_model_generators.py"""
+    """Tests for functions in duffing_model_generators.py"""
 
     def setUp(self):
         pass
