@@ -27,7 +27,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #endif
 #include <numpy/arrayobject.h>
-#include <muparserx/mpParser.h>
 #include "ordered_map.hpp"
 #include "types.hpp"
 #include "iterators.hpp"
