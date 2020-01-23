@@ -11,10 +11,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name, missing-return-type-doc
+# pylint: disable=eval-used, exec-used, invalid-name
 
 "System Model class for system specification for the PulseSimulator"
 
+from warnings import warn
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 from .hamiltonian_model import HamiltonianModel
@@ -29,6 +30,7 @@ class PulseSystemModel():
                  qubit_freq_est=None,
                  meas_freq_est=None,
                  u_channel_lo=None,
+                 control_channel_dict=None,
                  qubit_list=None,
                  dt=None):
         """Basic constructor.
@@ -46,6 +48,7 @@ class PulseSystemModel():
             raise AerError("hamiltonian must be a HamiltonianModel object")
         self.hamiltonian = hamiltonian
         self.u_channel_lo = u_channel_lo
+        self.control_channel_dict = control_channel_dict or {}
         self.qubit_list = qubit_list
         self.dt = dt
 
@@ -91,6 +94,21 @@ class PulseSystemModel():
                    u_channel_lo=u_channel_lo,
                    qubit_list=qubit_list,
                    dt=dt)
+
+    def control_channel_index(self, key):
+        """Return the index of the control channel with identifying key.
+
+        Args:
+            key (Any): key that identifies a control channel
+
+        Returns:
+            int or None: index of the control channel
+        """
+        if key not in self.control_channel_dict:
+            warn('There is no listed ControlChannel matching the provided key.')
+            return None
+        else:
+            return self.control_channel_dict.get(key)
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
         """Calculate frequencies for each channel.
