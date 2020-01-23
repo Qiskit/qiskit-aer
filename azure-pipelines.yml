@@ -20,7 +20,7 @@ stages:
         CIBW_SKIP: cp27-* cp34-* *win32
         CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
         CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
-        CIBW_ENVIRONMENT: PIP_CONSTRAINT=${Agent.TempDirectory}\constraints.txt FORCE_GENERATOR=Visual Studio 15 2017 Win64
+        CIBW_ENVIRONMENT: PIP_CONSTRAINT=$(Build.Repository.LocalPath)\constraints.txt FORCE_GENERATOR=Visual Studio 15 2017 Win64
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
@@ -38,7 +38,6 @@ stages:
             set -x
             set -e
             source activate qiskit-aer-$(Build.BuildNumber)
-            cp constraints.txt $(Agent.TempDirectory)\\constraints.txt
             conda update --yes -n base conda
             conda config --add channels conda-forge
             conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy cmake openblas flang clangdev perl libflang virtualenv pip
