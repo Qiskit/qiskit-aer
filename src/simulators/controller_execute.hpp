@@ -44,7 +44,7 @@ std::string controller_execute_json(const std::string &qobj_str) {
 }
 
 template <class controller_t>
-json_t controller_execute(const json_t &qobj_js) {
+Result controller_execute(const json_t &qobj_js) {
   controller_t controller;
 
   // Fix for MacOS and OpenMP library double initialization crash.

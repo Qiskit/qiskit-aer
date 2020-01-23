@@ -26,6 +26,8 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
+#from qiskit.validation.base import Obj
+#from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
@@ -177,13 +179,25 @@ class AerBackend(BaseBackend):
 
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
-        # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
+        #return Result(
+        #    job_id=job_id,
+        #    date=datetime.datetime.now(),
+        #    backend_name=self.name(),
+        #    backend_version=self.configuration().backend_version,
+        #    qobj_id=output['qobj_id'],
+        #    success=output['success'],
+        #    status=output['status'],
+        #    results = [ ExperimentResult(
+        #        shots= res["shots"],
+        #        success= res["success"],
+        #        header= Obj(validate=False, **res["header"]),
+        #        data = ExperimentResultData(validate=False, **res["data"])) for res in output["results"] ])
 
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""

@@ -44,9 +44,7 @@ namespace nl = nlohmann;
 using namespace pybind11::literals;
 using json_t = nlohmann::json;
 
-//============================================================================
-// JSON Conversion for pybind types
-//============================================================================
+#include "framework/results/result.hpp"
 
 namespace std {
 
@@ -59,7 +57,7 @@ void to_json(json_t &js, const py::handle &o);
 
 /**
  * Create a python object from a json
- * @param js a json_t object 
+ * @param js a json_t object
  * @param o is a reference to an existing (empty) python object
  */
 void from_json(const json_t &js, py::object &o);
@@ -68,7 +66,7 @@ void from_json(const json_t &js, py::object &o);
 
 /**
  * Convert a numpy array to a json object
- * @param arr is a numpy array 
+ * @param arr is a numpy array
  * @returns a json list (potentially of lists)
  */
 template <typename T>
@@ -76,7 +74,7 @@ json_t numpy_to_json(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 1-d numpy array to a json object
- * @param arr is a numpy array 
+ * @param arr is a numpy array
  * @returns a json list (potentially of lists)
  */
 template <typename T>
@@ -84,7 +82,7 @@ json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 2-d numpy array to a json object
- * @param arr is a numpy array 
+ * @param arr is a numpy array
  * @returns a json list (potentially of lists)
  */
 template <typename T>
@@ -92,7 +90,7 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 3-d numpy array to a json object
- * @param arr is a numpy array 
+ * @param arr is a numpy array
  * @returns a json list (potentially of lists)
  */
 template <typename T>
@@ -118,7 +116,7 @@ json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
     T *ptr = (T *) buf.ptr;
     size_t D0 = buf.shape[0];
 
-    std::vector<T> tbr; // to be returned 
+    std::vector<T> tbr; // to be returned
     for (size_t n0 = 0; n0 < D0; n0++)
         tbr.push_back(ptr[n0]);
 
@@ -271,4 +269,195 @@ void std::from_json(const json_t &js, py::object &o) {
 }
 
 //------------------------------------------------------------------------------
+
+//============================================================================
+// Pybind Conversion for Simulator types
+//============================================================================
+
+
+py::object from_exp_data(const AER::ExperimentData &result) {
+  py::dict pyresult;
+
+  // Measure data
+  if (result.return_counts_ && ! result.counts_.empty())
+    pyresult["counts"] = result.counts_;
+  if (result.return_memory_ && ! result.memory_.empty())
+    pyresult["memory"] = result.memory_;
+  if (result.return_register_ && ! result.register_.empty())
+    pyresult["register"] = result.register_;
+
+  // Add additional data
+  for (const auto &pair : result.additional_json_data_) {
+    py::object tmp;
+    from_json(pair.second, tmp);
+    pyresult[pair.first.data()] = tmp;
+  }
+  for (const auto &pair : result.additional_cvector_data_) {
+    py::object tmp;
+    from_json(pair.second, tmp);
+    pyresult[pair.first.data()] = tmp;
+    //pyresult[pair.first.data()] = pair.second;
+    //py::print("    {}:, {}"_s.format(pair.first.data(), pyresult[pair.first.data()]));
+  }
+  for (const auto &pair : result.additional_cmatrix_data_) {
+    py::object tmp;
+    from_json(pair.second, tmp);
+    pyresult[pair.first.data()] = tmp;
+  }
+
+  // Snapshot data
+  if (result.return_snapshots_) {
+    py::dict snapshots;
+    // Average snapshots
+    for (const auto &pair : result.average_json_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.average_complex_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.average_cvector_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.average_cmatrix_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.average_cmap_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.average_rmap_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    // Singleshot snapshot data
+    // Note these will override the average snapshots
+    // if they share the same type string
+    for (const auto &pair : result.pershot_json_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.pershot_complex_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.pershot_cvector_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.pershot_cmatrix_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.pershot_cmap_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    for (auto &pair : result.pershot_rmap_snapshots_) {
+      py::object tmp;
+      from_json(pair.second, tmp);
+      snapshots[pair.first.data()] = tmp;
+    }
+    if ( py::len(snapshots) != 0 )
+        pyresult["snapshots"] = snapshots;
+  }
+  //for (auto item : pyresult)
+  //  py::print("    {}:, {}"_s.format(item.first, item.second));
+  return pyresult;
+}
+
+py::object from_exp_result(const AER::ExperimentResult &result) {
+  py::dict pyresult;
+
+  pyresult["shots"] = result.shots;
+  pyresult["seed_simulator"] = result.seed;
+
+  //std::cout << "  ExpResult:" << std::endl;
+  pyresult["data"] = from_exp_data(result.data);
+
+  pyresult["success"] = (result.status == AER::ExperimentResult::Status::completed);
+  switch (result.status) {
+    case AER::ExperimentResult::Status::completed:
+      pyresult["status"] = std::string("DONE");
+      break;
+    case AER::ExperimentResult::Status::error:
+      pyresult["status"] = std::string("ERROR: ") + result.message;
+      break;
+    case AER::ExperimentResult::Status::empty:
+      pyresult["status"] = std::string("EMPTY");
+  }
+  pyresult["time_taken"] = result.time_taken;
+  if (result.header.empty() == false) {
+    py::object tmp;
+    from_json(result.header, tmp);
+    pyresult["header"] = tmp;
+  }
+  if (result.metadata.empty() == false) {
+    py::object tmp;
+    from_json(result.metadata, tmp);
+    pyresult["metadata"] = tmp;
+  }
+  return pyresult;
+
+}
+
+py::object from_result(const AER::Result &result) {
+  py::dict pyresult;
+  pyresult["qobj_id"] = result.qobj_id;
+
+  pyresult["backend_name"] = result.backend_name;
+  pyresult["backend_version"] = result.backend_version;
+  pyresult["date"] = result.date;
+  pyresult["job_id"] = result.job_id;
+
+  //std::cout << "Result:" << std::endl;
+  py::list exp_results;
+  for( const AER::ExperimentResult& exp : result.results)
+    exp_results.append(from_exp_result(exp));
+  pyresult["results"] = exp_results;
+
+  // For header and metadata we continue using the json->pyobject casting
+  //   bc these are assumed to be small relative to the ExperimentResults
+  if (result.header.empty() == false) {
+    py::object tmp;
+    from_json(result.header, tmp);
+    pyresult["header"] = tmp;
+  }
+  if (result.metadata.empty() == false) {
+    py::object tmp;
+    from_json(result.metadata, tmp);
+    pyresult["metadata"] = tmp;
+  }
+  pyresult["success"] = (result.status == AER::Result::Status::completed);
+  switch (result.status) {
+    case AER::Result::Status::completed:
+      pyresult["status"] = std::string("COMPLETED");
+      break;
+    case AER::Result::Status::partial_completed:
+      pyresult["status"] = std::string("PARTIAL COMPLETED");
+      break;
+    case AER::Result::Status::error:
+      pyresult["status"] = std::string("ERROR: ") + result.message;
+      break;
+    case AER::Result::Status::empty:
+      pyresult["status"] = std::string("EMPTY");
+  }
+  return pyresult;
+
+}
+
 #endif
