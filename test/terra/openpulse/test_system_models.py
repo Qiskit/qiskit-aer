@@ -14,6 +14,7 @@ Tests for PulseSystemModel and HamiltonianModel functionality
 """
 
 import unittest
+import warnings
 from test.terra.common import QiskitAerTestCase
 import qiskit
 import qiskit.pulse as pulse
@@ -63,6 +64,38 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
 
 class TestPulseSystemModel(BaseTestPulseSystemModel):
     r"""Tests for Hamiltonian options and processing."""
+
+    def test_control_channel_index(self):
+        """Test PulseSystemModel.control_channel_index()."""
+
+        # get the model with no control channel dict yet
+        test_model = self._simple_system_model()
+
+        # test that it gives a warning when a key has no corresponding control channel
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+
+            ctrl_idx = test_model.control_channel_index('no_key')
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('ControlChannel' in str(w[-1].message))
+
+        # add a control channel dict
+        test_model.control_channel_dict = {(0,1): 0}
+
+        self.assertEqual(test_model.control_channel_index((0,1)), 0)
+
+        # test that it still correctly gives a warning for nonexistant indices
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+
+            ctrl_idx = test_model.control_channel_index((1,0))
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('ControlChannel' in str(w[-1].message))
+
 
     def test_qubit_lo_default_from_backend(self):
         """Test drawing of defaults form a backend."""
