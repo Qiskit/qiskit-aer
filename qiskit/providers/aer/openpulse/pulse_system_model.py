@@ -16,7 +16,6 @@
 "System Model class for system specification for the PulseSimulator"
 
 from warnings import warn
-from typing import Any
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 from .hamiltonian_model import HamiltonianModel
@@ -49,7 +48,7 @@ class PulseSystemModel():
             raise AerError("hamiltonian must be a HamiltonianModel object")
         self.hamiltonian = hamiltonian
         self.u_channel_lo = u_channel_lo
-        self.control_channel_dict=control_channel_dict or {}
+        self.control_channel_dict = control_channel_dict or {}
         self.qubit_list = qubit_list
         self.dt = dt
 
@@ -103,13 +102,13 @@ class PulseSystemModel():
             key (Any): key that identifies a control channel
 
         Returns:
-            int: index of the control channel
+            int or None: index of the control channel
         """
         if key not in self.control_channel_dict:
             warn('There is no listed ControlChannel matching the provided key.')
+            return None
         else:
             return self.control_channel_dict.get(key)
-
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
         """Calculate frequencies for each channel.

@@ -77,10 +77,10 @@ def duffing_system_model(dim_oscillators,
     """
 
     # set symbols for string generation
-    freq_symbol='v'
-    anharm_symbol='alpha'
-    drive_symbol='r'
-    coupling_symbol='j'
+    freq_symbol = 'v'
+    anharm_symbol = 'alpha'
+    drive_symbol = 'r'
+    coupling_symbol = 'j'
 
     coupling_edges = coupling_dict.keys()
 
