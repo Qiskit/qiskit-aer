@@ -74,6 +74,14 @@ Removed
 Fixed
 -----
 
+Deprecated
+----------
+
+- Python 3.5 support in qiskit-aer is deprecated. Support will be
+  removed on the upstream python community's end of life date for the version,
+  which is 09/13/2020.
+
+
 
 [0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
 ===============================================================================
