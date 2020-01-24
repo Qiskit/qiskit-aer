@@ -87,33 +87,27 @@ using indexes_t = std::unique_ptr<uint_t[]>;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
 
+//==================================
+// parameters for gate kernels
+//==================================
+template <typename data_t>
+struct GateParams {
+	thrust::complex<data_t>* buf_;
+	uint_t* offsets_;
+	thrust::complex<double>* matrix_;
+	uint_t* params_;
+	uint_t gid_;
+	uint_t lmask_;
+};
+
 //========================================
 //	base class of gate functions
 //========================================
-class GateFuncBase 
+class GateFuncBase
 {
-protected:
-	std::complex<double>* m_matrix;
-	uint_t* m_params;
-	uint_t m_matrixSize;
-	uint_t m_paramSize;
 public:
 	GateFuncBase(void)
 	{
-		m_matrix = NULL;
-		m_params = NULL;
-		m_matrixSize = 0;
-		m_paramSize = 0;
-		
-	}
-
-	uint_t MatrixSize(void)
-	{
-		return m_matrixSize;
-	}
-	uint_t ParamSize(void)
-	{
-		return m_paramSize;
 	}
 
 	virtual bool IsDiagonal(void)
@@ -128,16 +122,17 @@ public:
 	{
 		return 1;
 	}
-
-	std::complex<double>* GetMatrix(void)
+	virtual bool Reduction(void)
 	{
-		return m_matrix;
+		return false;
 	}
-	uint_t* GetParams(void)
+
+	virtual const char* Name(void)
 	{
-		return m_params;
+		return "base function";
 	}
 };
+
 
 //=============================================================
 //		virtual buffer class
@@ -171,6 +166,7 @@ public:
 
 #ifdef AER_THRUST_CUDA
 //currently only supports CUDA backend (enable this for other GPUs in the future)
+
 template <typename data_t>
 class QubitVectorDeviceBuffer : public QubitVectorBuffer<data_t>
 {
@@ -259,13 +255,13 @@ class QubitVectorChunkContainer
 protected:
 	QubitVectorBuffer<thrust::complex<data_t>>* m_pChunks;
 	QubitVectorBuffer<thrust::complex<double>>* m_pMatrix;
-	QubitVectorBuffer<thrust::complex<data_t>*>* m_pBuffers;
+	QubitVectorBuffer<uint_t>* m_pOffsets;
 	QubitVectorBuffer<uint_t>* m_pParams;
 
-	int m_chunkBits;
-	uint_t m_numChunks;
-	uint_t m_globalChunkID;
-	uint_t m_numBuffers;
+	uint_t m_size;
+	uint_t m_bufferSize;
+
+	uint_t m_globalID;
 	int m_iDevice;			//device ID : if device ID < 0, allocate chunks on host memory
 
 	int m_matrixBits;
@@ -274,11 +270,15 @@ public:
 	{
 		m_pChunks = NULL;
 		m_pMatrix = NULL;
-		m_pBuffers = NULL;
+		m_pOffsets = NULL;
 		m_pParams = NULL;
+
+		m_size = 0;
+		m_bufferSize = 0;
+
 		m_matrixBits = 0;
 		m_iDevice = -1;
-		m_globalChunkID = 0;
+		m_globalID = 0;
 	}
 
 	~QubitVectorChunkContainer(void);
@@ -287,62 +287,57 @@ public:
 	{
 		m_iDevice = iDev;
 	}
-	void SetSize(int chunkBits,uint_t numChunks,uint_t numBuffers)
+	void SetGlobalIndex(uint_t idx)
 	{
-		m_numChunks = numChunks;
-		m_numBuffers = numBuffers;
-		m_chunkBits = chunkBits;
+		m_globalID = idx;
 	}
-	void SetGlobalChunkIndex(uint_t idx)
+	uint_t NumChunks(int chunkBits) const
 	{
-		m_globalChunkID = idx;
+		return (m_size >> chunkBits);
 	}
-	uint_t NumChunks(void) const
+	uint_t ChunkID(uint_t id,int chunkBits) const
 	{
-		return m_numChunks;
+		return (m_globalID >> chunkBits) + id;
 	}
-	uint_t ChunkID(uint_t id) const
+	uint_t LocalChunkID(uint_t id,int chunkBits) const
 	{
-		return m_globalChunkID + id;
-	}
-	uint_t LocalChunkID(uint_t id) const
-	{
-		return id - m_globalChunkID;
-	}
-	uint_t NumBuffers(void) const
-	{
-		return m_numBuffers;
+		return id - (m_globalID >> chunkBits);
 	}
 	int DeviceID(void) const
 	{
 		return m_iDevice;
 	}
+	uint_t Size(void)
+	{
+		return m_size;
+	}
 
-	int Allocate();
+	int Allocate(uint_t size,uint_t bufferSize = 0);
 	int AllocateParameters(int bits);
 
-	int Get(const QubitVectorChunkContainer& chunks,uint_t src,uint_t bufDest);
-	int Put(QubitVectorChunkContainer& chunks,uint_t dest,uint_t bufSrc);
+	int Get(const QubitVectorChunkContainer& chunks,uint_t src,uint_t bufDest,int chunkBits);
+	int Put(QubitVectorChunkContainer& chunks,uint_t dest,uint_t bufSrc,int chunkBits);
 
-	int CopyIn(const thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID);
-	int CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID);
+	int CopyIn(const thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits);
+	int CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits);
 
-	int SetState(uint_t chunkID,uint_t pos,thrust::complex<data_t> t);
-	thrust::complex<data_t> GetState(uint_t chunkID,uint_t pos) const;
+	int SetState(uint_t chunkID,uint_t pos,thrust::complex<data_t> t,int chunkBits);
+	thrust::complex<data_t> GetState(uint_t chunkID,uint_t pos,int chunkBits) const;
 
-	thrust::complex<data_t>* ChunkPtr(uint_t chunkID) const;
-	thrust::complex<data_t>* BufferPtr(uint_t ibuf);
+	thrust::complex<data_t>* ChunkPtr(uint_t chunkID,int chunkBits) const;
+	thrust::complex<data_t>* BufferPtr(uint_t ibuf,int chunkBits);
 
-	void StoreMatrix(const std::complex<double>* pMat,uint_t size);
-	void StoreUintParams(const uint_t* pParam,uint_t size);
-	void StoreBufferPointers(const std::vector<thrust::complex<data_t>*>& ptr);
+	void StoreMatrix(const std::vector<thrust::complex<double>>& mat);
+	void StoreUintParams(const std::vector<uint_t>& prm);
+	void StoreOffsets(const std::vector<uint_t>& ptr);
 
-	template <typename UnaryFunction>
-	int Execute(std::vector<thrust::complex<data_t>*>& buffers,UnaryFunction func,uint_t size,uint_t gid,uint_t localMask);
+	template <typename Function>
+	int Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask);
 
-	template <typename UnaryFunction>
-	double ExecuteSum(std::vector<thrust::complex<data_t>*>& buffers,UnaryFunction func,uint_t size,uint_t gid,uint_t localMask);
+	template <typename Function>
+	double ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask);
 
+	void SetParams(struct GateParams<data_t>& params);
 };
 
 template <typename data_t>
@@ -354,8 +349,8 @@ QubitVectorChunkContainer<data_t>::~QubitVectorChunkContainer(void)
 	if(m_pMatrix){
 		delete m_pMatrix;
 	}
-	if(m_pBuffers){
-		delete m_pBuffers;
+	if(m_pOffsets){
+		delete m_pOffsets;
 	}
 	if(m_pParams){
 		delete m_pParams;
@@ -364,9 +359,12 @@ QubitVectorChunkContainer<data_t>::~QubitVectorChunkContainer(void)
 
 //allocate buffer for chunks
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::Allocate(void)
+int QubitVectorChunkContainer<data_t>::Allocate(uint_t size_in,uint_t bufferSize)
 {
-	uint_t size = (m_numChunks + m_numBuffers) << m_chunkBits;
+	uint_t size = size_in + bufferSize;
+	m_size = size_in;
+	m_bufferSize = bufferSize;
+
 	if(m_pChunks == NULL){
 #ifdef AER_THRUST_CUDA
 		if(m_iDevice >= 0){
@@ -421,20 +419,20 @@ int QubitVectorChunkContainer<data_t>::AllocateParameters(int bits)
 			m_pMatrix->Resize(size*size);
 		}
 
-		if(m_pBuffers == NULL){
+		if(m_pOffsets == NULL){
 #ifdef AER_THRUST_CUDA
 			if(m_iDevice >= 0){
-				m_pBuffers = new QubitVectorDeviceBuffer<thrust::complex<data_t>*>(size);
+				m_pOffsets = new QubitVectorDeviceBuffer<uint_t>(size);
 			}
 			else{
 #endif
-				m_pBuffers = new QubitVectorHostBuffer<thrust::complex<data_t>*>(size);
+				m_pOffsets = new QubitVectorHostBuffer<uint_t>(size);
 #ifdef AER_THRUST_CUDA
 			}
 #endif
 		}
 		else{
-			m_pBuffers->Resize(size);
+			m_pOffsets->Resize(size);
 		}
 
 		if(m_pParams == NULL){
@@ -460,223 +458,240 @@ int QubitVectorChunkContainer<data_t>::AllocateParameters(int bits)
 
 //copy chunk from other container to buffer
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::Get(const QubitVectorChunkContainer& chunks,uint_t src,uint_t bufDest)
+int QubitVectorChunkContainer<data_t>::Get(const QubitVectorChunkContainer& chunks,uint_t src,uint_t bufDest,int chunkBits)
 {
 #ifdef AER_THRUST_CUDA
 	if(m_iDevice >= 0){
 		if(chunks.DeviceID() >= 0){
-			cudaMemcpyPeer(BufferPtr(bufDest),m_iDevice,chunks.ChunkPtr(src),chunks.DeviceID(),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits);
+			cudaMemcpyPeer(BufferPtr(bufDest,chunkBits),m_iDevice,chunks.ChunkPtr(src,chunkBits),chunks.DeviceID(),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
 		}
 		else{
-			cudaMemcpy(BufferPtr(bufDest),chunks.ChunkPtr(src),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits,cudaMemcpyHostToDevice);
+			cudaMemcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyHostToDevice);
 		}
+		cudaDeviceSynchronize();
 	}
 	else{
 		if(chunks.DeviceID() >= 0){
-			cudaMemcpy(BufferPtr(bufDest),chunks.ChunkPtr(src),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits,cudaMemcpyDeviceToHost);
+			cudaMemcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyDeviceToHost);
 		}
 		else{
-			memcpy(BufferPtr(bufDest),chunks.ChunkPtr(src),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits);
+			memcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
 		}
+		cudaDeviceSynchronize();	//this is needed for P100
 	}
 #else
-	thrust::copy(chunks.ChunkPtr(src),chunks.ChunkPtr(src) + (1ull << m_chunkBits),BufferPtr(bufDest));
+	thrust::copy(chunks.ChunkPtr(src,chunkBits),chunks.ChunkPtr(src,chunkBits) + (1ull << chunkBits),BufferPtr(bufDest,chunkBits));
 #endif
 	return 0;
 }
 
 //copy chunk to other container from buffer
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::Put(QubitVectorChunkContainer& chunks,uint_t dest,uint_t bufSrc)
+int QubitVectorChunkContainer<data_t>::Put(QubitVectorChunkContainer& chunks,uint_t dest,uint_t bufSrc,int chunkBits)
 {
 #ifdef AER_THRUST_CUDA
 	if(m_iDevice >= 0){
 		if(chunks.DeviceID() >= 0){
-			cudaMemcpyPeer(chunks.ChunkPtr(dest),chunks.DeviceID(),BufferPtr(bufSrc),m_iDevice,(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits);
+			cudaMemcpyPeer(chunks.ChunkPtr(dest,chunkBits),chunks.DeviceID(),BufferPtr(bufSrc,chunkBits),m_iDevice,
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
 		}
 		else{
-			cudaMemcpy(chunks.ChunkPtr(dest),BufferPtr(bufSrc),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits,cudaMemcpyDeviceToHost);
+			cudaMemcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyDeviceToHost);
 		}
+		cudaDeviceSynchronize();
 	}
 	else{
 		if(chunks.DeviceID() >= 0){
-			cudaMemcpy(chunks.ChunkPtr(dest),BufferPtr(bufSrc),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits,cudaMemcpyHostToDevice);
+			cudaMemcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyHostToDevice);
 		}
 		else{
-			memcpy(chunks.ChunkPtr(dest),BufferPtr(bufSrc),(uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits);
+			memcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
+							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
 		}
+		cudaDeviceSynchronize();
 	}
 #else
-	thrust::copy(BufferPtr(bufSrc),BufferPtr(bufSrc) + (1ull << m_chunkBits),chunks.ChunkPtr(dest));
+	thrust::copy(BufferPtr(bufSrc,chunkBits),BufferPtr(bufSrc,chunkBits) + (1ull << chunkBits),chunks.ChunkPtr(dest,chunkBits));
 #endif
 	return 0;
 }
 
 //copy chunk from std::vector
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::CopyIn(const thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID)
+int QubitVectorChunkContainer<data_t>::CopyIn(const thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits)
 {
 	if(m_iDevice >= 0)
-		thrust::copy(thrust::device,pVec + offset,pVec + offset + (1ull << m_chunkBits),ChunkPtr(chunkID));
+		thrust::copy(thrust::device,pVec + offset,pVec + offset + (1ull << chunkBits),ChunkPtr(chunkID,chunkBits));
 	else
-		thrust::copy(thrust::host,pVec + offset,pVec + offset + (1ull << m_chunkBits),ChunkPtr(chunkID));
+		thrust::copy(thrust::host,pVec + offset,pVec + offset + (1ull << chunkBits),ChunkPtr(chunkID,chunkBits));
 	return 0;
 }
 
 //copy chunk to std::vector
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID)
+int QubitVectorChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits)
 {
 	if(m_iDevice >= 0)
-		thrust::copy(thrust::device,ChunkPtr(chunkID),ChunkPtr(chunkID) + (1ull << m_chunkBits),pVec + offset);
+		thrust::copy(thrust::device,ChunkPtr(chunkID,chunkBits),ChunkPtr(chunkID,chunkBits) + (1ull << chunkBits),pVec + offset);
 	else
-		thrust::copy(thrust::host,ChunkPtr(chunkID),ChunkPtr(chunkID) + (1ull << m_chunkBits),pVec + offset);
+		thrust::copy(thrust::host,ChunkPtr(chunkID,chunkBits),ChunkPtr(chunkID,chunkBits) + (1ull << chunkBits),pVec + offset);
 	return 0;
 }
 
 
 template <typename data_t>
-thrust::complex<data_t>* QubitVectorChunkContainer<data_t>::ChunkPtr(uint_t chunkID) const
+thrust::complex<data_t>* QubitVectorChunkContainer<data_t>::ChunkPtr(uint_t chunkID,int chunkBits) const
 {
-	return m_pChunks->BufferPtr() + (chunkID << m_chunkBits);
+	return m_pChunks->BufferPtr() + (chunkID << chunkBits);
 }
 
 template <typename data_t>
-thrust::complex<data_t>* QubitVectorChunkContainer<data_t>::BufferPtr(uint_t ibuf)
+thrust::complex<data_t>* QubitVectorChunkContainer<data_t>::BufferPtr(uint_t ibuf,int chunkBits)
 {
-	return m_pChunks->BufferPtr() + ((m_numChunks + ibuf) << m_chunkBits);
+	return m_pChunks->BufferPtr() + m_size + (ibuf << chunkBits);
 }
 
 
 template <typename data_t>
-int QubitVectorChunkContainer<data_t>::SetState(uint_t chunkID,uint_t pos,thrust::complex<data_t> t)
+int QubitVectorChunkContainer<data_t>::SetState(uint_t chunkID,uint_t pos,thrust::complex<data_t> t,int chunkBits)
 {
-	m_pChunks->Set((chunkID << m_chunkBits) + pos,t);
+	m_pChunks->Set((chunkID << chunkBits) + pos,t);
 	return 0;
 }
 
 template <typename data_t>
-thrust::complex<data_t> QubitVectorChunkContainer<data_t>::GetState(uint_t chunkID,uint_t pos) const
+thrust::complex<data_t> QubitVectorChunkContainer<data_t>::GetState(uint_t chunkID,uint_t pos,int chunkBits) const
 {
-	return m_pChunks->Get((chunkID << m_chunkBits) + pos);
+	return m_pChunks->Get((chunkID << chunkBits) + pos);
 }
 
 template <typename data_t>
-void QubitVectorChunkContainer<data_t>::StoreMatrix(const std::complex<double>* pMat,uint_t size)
+void QubitVectorChunkContainer<data_t>::StoreMatrix(const std::vector<thrust::complex<double>>& mat)
 {
-	if(size > 0){
-		if(m_iDevice >= 0)
-			thrust::copy(thrust::device,pMat,pMat + size,m_pMatrix->BufferPtr());
-		else
-			thrust::copy(thrust::host,pMat,pMat + size,m_pMatrix->BufferPtr());
-	}
+	m_pMatrix->Copy(mat);
 }
 
 template <typename data_t>
-void QubitVectorChunkContainer<data_t>::StoreUintParams(const uint_t* pPrm,uint_t size)
+void QubitVectorChunkContainer<data_t>::StoreUintParams(const std::vector<uint_t>& prm)
 {
-	if(size > 0){
-		if(m_iDevice >= 0)
-			thrust::copy(thrust::device,pPrm,pPrm + size,m_pParams->BufferPtr());
-		else
-			thrust::copy(thrust::host,pPrm,pPrm + size,m_pParams->BufferPtr());
-	}
+	m_pParams->Copy(prm);
 }
 
 template <typename data_t>
-void QubitVectorChunkContainer<data_t>::StoreBufferPointers(const std::vector<thrust::complex<data_t>*>& ptr)
+void QubitVectorChunkContainer<data_t>::StoreOffsets(const std::vector<uint_t>& offsets)
 {
-	if(m_iDevice >= 0)
-		thrust::copy(thrust::device,&ptr[0],&ptr[0] + ptr.size(),m_pBuffers->BufferPtr());
-	else
-		thrust::copy(thrust::host,&ptr[0],&ptr[0] + ptr.size(),m_pBuffers->BufferPtr());
-//	m_pBuffers->Copy(ptr);
+	m_pOffsets->Copy(offsets);
 }
 
 #define ExtractIndexFromTuple(itp)				thrust::get<0>(itp)
-#define ExtractBuffersFromTuple(itp)			thrust::get<1>(itp)
-#define ExtractMatrixFromTuple(itp)				thrust::get<2>(itp)
-#define ExtractParamsFromTuple(itp)				thrust::get<3>(itp)
-#define ExtractGlobalIndexFromTuple(itp)		thrust::get<4>(itp)
-#define ExtractLocalMaskFromTuple(itp)			thrust::get<5>(itp)
+#define ExtractParamsFromTuple(itp)				thrust::get<1>(itp)
 
 template <typename data_t>
-template <typename UnaryFunction>
-int QubitVectorChunkContainer<data_t>::Execute(std::vector<thrust::complex<data_t>*>& buffers,UnaryFunction func,uint_t size,uint_t gid,uint_t localMask)
+template <typename Function>
+int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask)
 {
+	struct GateParams<data_t> params;
+
+	params.buf_ = m_pChunks->BufferPtr();
 	if(m_iDevice >= 0){
-		auto ci = thrust::counting_iterator<uint_t>(0);
-		thrust::constant_iterator<thrust::complex<data_t>**> cb(m_pBuffers->BufferPtr());
-		thrust::constant_iterator<thrust::complex<double>*> cm(m_pMatrix->BufferPtr());
-		thrust::constant_iterator<uint_t*> cu(m_pParams->BufferPtr());
-		thrust::constant_iterator<uint_t> cgid(gid);
-		thrust::constant_iterator<uint_t> cmask(localMask);
+		StoreOffsets(offsets);
+		params.offsets_ = m_pOffsets->BufferPtr();
+	}
+	else{
+		params.offsets_ = &offsets[0];
+	}
+	params.matrix_ = m_pMatrix->BufferPtr();
+	params.params_ = m_pParams->BufferPtr();
+	params.gid_ = gid;
+	params.lmask_ = localMask;
 
-		//making tuple to pass parameters to kernel
-		//(index, matrix, buffers, extra params, globalID, localMask )
-		auto chunkTuple = thrust::make_tuple(ci,cb,cm,cu,cgid,cmask);
-		auto chunkIter = thrust::make_zip_iterator(chunkTuple);
+	auto ci = thrust::counting_iterator<uint_t>(0);
+	thrust::constant_iterator<struct GateParams<data_t>> cp(params);
 
+	auto chunkTuple = thrust::make_tuple(ci,cp);
+	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
+
+	if(m_iDevice >= 0){
 #ifdef AER_THRUST_CUDA
 		cudaSetDevice(m_iDevice);
 #endif
-
-		StoreBufferPointers(buffers);
-		thrust::for_each(thrust::device, chunkIter, chunkIter + size, func);
+		thrust::for_each_n(thrust::device, chunkIter, size, func);
 	}
 	else{
-		auto ci = thrust::counting_iterator<uint_t>(0);
-		thrust::constant_iterator<thrust::complex<data_t>**> cb(&buffers[0]);
-		thrust::constant_iterator<thrust::complex<double>*> cm(m_pMatrix->BufferPtr());
-		thrust::constant_iterator<uint_t*> cu(m_pParams->BufferPtr());
-		thrust::constant_iterator<uint_t> cgid(gid);
-		thrust::constant_iterator<uint_t> cmask(localMask);
-
-		//making tuple to pass parameters to kernel
-		//(index, matrix, buffers, extra params, globalID, localMask )
-		auto chunkTuple = thrust::make_tuple(ci,cb,cm,cu,cgid,cmask);
-		auto chunkIter = thrust::make_zip_iterator(chunkTuple);
-
-		thrust::for_each(thrust::host, chunkIter, chunkIter + size, func);
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			int nid = omp_get_num_threads();
+			uint_t is,ie;
+			is = size * (uint_t)tid / (uint_t)nid;
+			ie = size * (uint_t)(tid+1) / (uint_t)nid;
+			thrust::for_each(thrust::host, chunkIter + is, chunkIter + ie, func);
+		}
 	}
 
 	return 0;
 }
 
 template <typename data_t>
-template <typename UnaryFunction>
-double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<thrust::complex<data_t>*>& buffers,UnaryFunction func,uint_t size,uint_t gid,uint_t localMask)
+template <typename Function>
+double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask)
 {
-	auto ci = thrust::counting_iterator<uint_t>(0);
-	thrust::constant_iterator<thrust::complex<double>*> cm(m_pMatrix->BufferPtr());
-	thrust::constant_iterator<thrust::complex<data_t>**> cb(m_pBuffers->BufferPtr());
-	thrust::constant_iterator<uint_t*> cu(m_pParams->BufferPtr());
-	thrust::constant_iterator<uint_t> cgid(gid);
-	thrust::constant_iterator<uint_t> cmask(localMask);
+	struct GateParams<data_t> params;
+	double ret;
 
-	//making tuple to pass parameters to kernel
-	//(index, matrix, buffers, extra params, globalID, localMask )
-	auto chunkTuple = thrust::make_tuple(ci,cb,cm,cu,cgid,cmask);
+	params.buf_ = m_pChunks->BufferPtr();
+	if(m_iDevice >= 0){
+		StoreOffsets(offsets);
+		params.offsets_ = m_pOffsets->BufferPtr();
+	}
+	else{
+		params.offsets_ = &offsets[0];
+	}
+	params.matrix_ = m_pMatrix->BufferPtr();
+	params.params_ = m_pParams->BufferPtr();
+	params.gid_ = gid;
+	params.lmask_ = localMask;
+
+	auto ci = thrust::counting_iterator<uint_t>(0);
+	thrust::constant_iterator<struct GateParams<data_t>> cp(params);
+
+	auto chunkTuple = thrust::make_tuple(ci,cp);
 	auto chunkIter = thrust::make_zip_iterator(chunkTuple);
 
-	double ret;
 	if(m_iDevice >= 0){
 #ifdef AER_THRUST_CUDA
 		cudaSetDevice(m_iDevice);
 #endif
-
-		StoreBufferPointers(buffers);
 		ret = thrust::transform_reduce(thrust::device, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	else{
-		StoreBufferPointers(buffers);
-		ret = thrust::transform_reduce(thrust::host, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
-	}
+#pragma omp parallel reduction(+:ret)
+		{
+			int tid = omp_get_thread_num();
+			int nid = omp_get_num_threads();
+			uint_t is,ie;
+			is = size * (uint_t)tid / (uint_t)nid;
+			ie = size * (uint_t)(tid+1) / (uint_t)nid;
 
+			ret += thrust::transform_reduce(thrust::device, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
+		}
+	}
 	return ret;
 }
 
-
+template <typename data_t>
+void QubitVectorChunkContainer<data_t>::SetParams(struct GateParams<data_t>& params)
+{
+	params.buf_ = m_pChunks->BufferPtr();
+	params.offsets_ = m_pOffsets->BufferPtr();
+	params.matrix_ = m_pMatrix->BufferPtr();
+	params.params_ = m_pParams->BufferPtr();
+}
 
 //============================================================================
 // QubitVectorThrust class
@@ -971,11 +986,11 @@ protected:
   //-----------------------------------------------------------------------
   // Statevector update with Lambda function
   //-----------------------------------------------------------------------
-  	template <typename UnaryFunction>
-	void apply_function(UnaryFunction func,const reg_t &qubits);
+	template <typename Function>
+	double apply_function(Function func,const reg_t &qubits) const;
 
-  	template <typename UnaryFunction>
-	double apply_sum_function(UnaryFunction func,const reg_t &qubits) const;
+	void set_matrix(const cvector_t<double>& mat) const;
+	void set_params(const reg_t& prm) const;
 
 	void allocate_buffers(int qubit);
 
@@ -987,7 +1002,7 @@ protected:
 
 	mutable std::vector<QubitVectorChunkContainer<data_t>> m_Chunks;
 
-	int m_chunkBits;						//bits per chunk
+	int m_maxChunkBits;						//bits per chunk
 	uint_t m_numGlobalChunks;				//number of total chunks
 	uint_t m_numChunks;						//number of chunks in this process
 	uint_t m_globalChunkIndex;				//starting chunk ID for this process
@@ -995,9 +1010,9 @@ protected:
 
 	mutable uint_t m_refPosition;					//position for reference (if >= data_size_ data_ is empty)
 
-	int FindPlace(uint_t chunkID) const;
-	int GlobalToLocal(uint_t& lcid,uint_t& lid,uint_t gid) const;
-	uint_t GetBaseChunkID(const uint_t gid,const reg_t& qubits) const;
+	int FindPlace(uint_t chunkID,int chunkBits) const;
+	int GlobalToLocal(uint_t& lcid,uint_t& lid,uint_t gid,int chunkBits) const;
+	uint_t GetBaseChunkID(const uint_t gid,const reg_t& qubits,const int chunkBits) const;
 
 	void UpdateReferencedValue(void) const;
 
@@ -1023,7 +1038,7 @@ protected:
 	void DebugMsg(const char* str,const std::complex<double> c) const;
 	void DebugMsg(const char* str,const double d) const;
 	void DebugMsg(const char* str,const std::vector<double>& v) const;
-	void DebugDump(void);
+	void DebugDump(void) const;
 #endif
 };
 
@@ -1050,19 +1065,23 @@ json_t QubitVectorThrust<data_t>::json() const
 	int iPlace;
 	uint_t i,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
 
 	const json_t ZERO = std::complex<data_t>(0.0, 0.0);
 	json_t js = json_t(data_size_, ZERO);
 
+#ifdef AER_DEBUG
+	DebugMsg("json()");
+#endif
+
 	UpdateReferencedValue();
 
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic,m_maxChunkBits);
 
 			if (json_chop_threshold_ > 0) {
 				for(i=0;i<csize;i++){
@@ -1200,12 +1219,16 @@ std::complex<data_t> &QubitVectorThrust<data_t>::operator[](uint_t element) {
   #endif
 
 	uint_t lcid,lid;
-	int iPlace = GlobalToLocal(lcid,lid,element);
+	int iPlace = GlobalToLocal(lcid,lid,element,m_maxChunkBits);
+
+#ifdef AER_DEBUG
+	DebugMsg(" calling ref []");
+#endif
 
 	UpdateReferencedValue();
 
 	if(iPlace >= 0){
-		data_[0] = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid);
+		data_[0] = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
 		m_refPosition = element;
 	}
 	else{
@@ -1226,10 +1249,10 @@ void QubitVectorThrust<data_t>::UpdateReferencedValue(void) const
 {
 	if(m_refPosition < data_size_){
 		uint_t lcid,lid;
-		int iPlace = GlobalToLocal(lcid,lid,m_refPosition);
+		int iPlace = GlobalToLocal(lcid,lid,m_refPosition,m_maxChunkBits);
 
 		if(iPlace >= 0){
-			m_Chunks[iPlace].SetState(lcid,lid,(thrust::complex<data_t>)data_[0]);
+			m_Chunks[iPlace].SetState(lcid,lid,(thrust::complex<data_t>)data_[0],m_maxChunkBits);
 		}
 		m_refPosition = data_size_;
 	}
@@ -1239,13 +1262,17 @@ template <typename data_t>
 std::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) const
 {
 	uint_t lcid,lid;
-	int iPlace = GlobalToLocal(lcid,lid,element);
+	int iPlace = GlobalToLocal(lcid,lid,element,m_maxChunkBits);
+
+#ifdef AER_DEBUG
+		DebugMsg(" calling []");
+#endif
 
 	UpdateReferencedValue();
 
 	if(iPlace >= 0){
 		std::complex<data_t> ret;
-		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid);
+		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
 
 #ifdef AER_DEBUG
 		DebugMsg("operator[]",(int)element);
@@ -1263,10 +1290,10 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::set_state(uint_t pos, std::complex<data_t>& c)
 {
 	uint_t lcid,lid;
-	int iPlace = GlobalToLocal(lcid,lid,pos);
+	int iPlace = GlobalToLocal(lcid,lid,pos,m_maxChunkBits);
 
 	if(iPlace >= 0){
-		m_Chunks[iPlace].SetState(lcid,lid,(thrust::complex<data_t>)c);
+		m_Chunks[iPlace].SetState(lcid,lid,(thrust::complex<data_t>)c,m_maxChunkBits);
 	}
 }
 
@@ -1275,12 +1302,12 @@ std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
 {
 	uint_t lcid,lid;
 	std::complex<data_t> ret = 0.0;;
-	int iPlace = GlobalToLocal(lcid,lid,pos);
+	int iPlace = GlobalToLocal(lcid,lid,pos,m_maxChunkBits);
 
 	UpdateReferencedValue();
 
 	if(iPlace >= 0){
-		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid);
+		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
 	}
 	return ret;
 }
@@ -1294,7 +1321,7 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 	int iPlace;
 	uint_t ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 
 #ifdef AER_DEBUG
 	DebugMsg("vector");
@@ -1303,9 +1330,9 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 	UpdateReferencedValue();
 
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&ret[0],pos,ic);
+			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&ret[0],pos,ic,m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -1323,22 +1350,16 @@ protected:
 	int nqubits;
 	uint_t matSize;
 public:
-
-
-	initialize_component_func(const cvector_t<double>& s,const reg_t &qb)
+	initialize_component_func(const cvector_t<double>& mat,const reg_t &qb)
 	{
 		nqubits = qb.size();
 		matSize = 1ull << nqubits;
-
-		GateFuncBase::m_matrixSize = s.size();
-		GateFuncBase::m_matrix = const_cast<std::complex<double>*>(&s[0]);
-		GateFuncBase::m_paramSize = nqubits;
-		GateFuncBase::m_params = const_cast<uint_t*>(&qb[0]);
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
-		thrust::complex<data_t>** ppChunk;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<double> q0;
 		thrust::complex<double> q;
 		thrust::complex<double>* state;
@@ -1346,12 +1367,15 @@ public:
 		uint_t i,j,k;
 		uint_t ii,idx,t;
 		uint_t mask;
+		struct GateParams<data_t> params;
 
 		//get parameters from iterator
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		state = ExtractMatrixFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		state = params.matrix_;
+		qubits = params.params_;
 
 		idx = 0;
 		ii = i;
@@ -1364,11 +1388,17 @@ public:
 		}
 		idx += ii;
 
-		q0 = ppChunk[0][idx];
+		q0 = pV[offsets[0]+idx];
 		for(k=0;k<matSize;k++){
 			q = q0 * state[k];
-			ppChunk[k][idx] = q;
+			pV[offsets[k] + idx] = q;
 		}
+		return 0.0;
+	}
+
+	const char* Name(void)
+	{
+		return "initialize_component";
 	}
 };
 
@@ -1378,19 +1408,14 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 	auto qubits_sorted = qubits;
 	std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
+	set_matrix(state0);
+	set_params(qubits_sorted);
 	apply_function(initialize_component_func<data_t>(state0,qubits_sorted), qubits);
-
-
-#ifdef AER_DEBUG
-	DebugMsg("initialize_component",qubits);
-	DebugDump();
-#endif
 }
 
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
-
 template <typename data_t>
 class fill_func : public GateFuncBase
 {
@@ -1408,19 +1433,25 @@ public:
 		return true;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i;
-		thrust::complex<data_t>** ppChunk;
 		thrust::complex<data_t>* pV;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		pV = ppChunk[0];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
 
 		pV[i] = val;
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "fill";
 	}
 };
+
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::zero()
@@ -1493,28 +1524,28 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
 	//chunk setting
 	int numBuffers = AER_MAX_BUFFERS;
+	//uint_t numBuffers = 1;
 	int numDummy = 2;
-	m_chunkBits = AER_CHUNK_BITS;
+	m_maxChunkBits = AER_CHUNK_BITS;
 	str = getenv("AER_CHUNK_BITS");
 	if(str){
-		m_chunkBits = atol(str);
+		m_maxChunkBits = atol(str);
 	}
 	else if(m_nDevParallel <= 1){
-		//On host only, divide into chunks for parallelization
-		m_chunkBits = num_qubits_;
+		m_maxChunkBits = num_qubits_;
 	}
 
-	if(m_chunkBits > num_qubits_){
-		m_chunkBits = num_qubits_;
+	if(m_maxChunkBits > num_qubits_){
+		m_maxChunkBits = num_qubits_;
 		i = m_nDevParallel;
 		while(i > 1){
-			m_chunkBits--;
+			m_maxChunkBits--;
 			i >>= 1;
 		}
 	}
 
 	//currently using only one process 
-	m_numGlobalChunks = 1ull << (num_qubits_ - m_chunkBits);
+	m_numGlobalChunks = 1ull << (num_qubits_ - m_maxChunkBits);
 	m_numChunks = m_numGlobalChunks;
 	m_globalChunkIndex = 0;
 	//--
@@ -1524,10 +1555,10 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 		size_t freeMem,totalMem;
 		cudaMemGetInfo(&freeMem,&totalMem);
 
-		if(m_numChunks < (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits)) ){
+		if(m_numChunks < (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_maxChunkBits)) ){
 			if(str == NULL){	//if chunk bit is set, do not change chunk bit
 				//we do not need to divide state vector into chunks if all states can be stored in single GPU memory
-				m_chunkBits = num_qubits_;
+				m_maxChunkBits = num_qubits_;
 				m_numChunks = m_numGlobalChunks = 1;
 				numBuffers = 0;	//we do not need buffers for chunk exchange
 				numDummy = 0;
@@ -1554,7 +1585,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	}
 #endif
 
-	if(m_chunkBits == num_qubits_){
+	if(m_maxChunkBits == num_qubits_){
 		//no buffer needed for chunk exchange
 		numBuffers = 0;
 		numDummy = 0;
@@ -1580,15 +1611,14 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 		//check we can store chunks or not
 		size_t freeMem,totalMem;
 		cudaMemGetInfo(&freeMem,&totalMem);
-		if(ie - is + numBuffers + numDummy >= (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits)) ){
-			ie = is + (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_chunkBits)) - numBuffers - numDummy;
+		if(ie - is + numBuffers + numDummy >= (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_maxChunkBits)) ){
+			ie = is + (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_maxChunkBits)) - numBuffers - numDummy;
 		}
 #endif
 
-		m_Chunks[i].SetSize(m_chunkBits,ie - is,numBuffers);
-		m_Chunks[i].SetGlobalChunkIndex(m_globalChunkIndex + is);
+		m_Chunks[i].SetGlobalIndex((m_globalChunkIndex + is) << m_maxChunkBits);
 		m_Chunks[i].SetDevice((m_iDev + i) % m_nDev);
-		m_Chunks[i].Allocate();
+		m_Chunks[i].Allocate((ie - is) << m_maxChunkBits,numBuffers << m_maxChunkBits);
 		m_Chunks[i].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
 		is = ie;
 	}
@@ -1597,11 +1627,13 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 		m_iPlaceHost = m_nDevParallel;
 		m_nPlaces = m_nDevParallel + 1;
 
-		m_Chunks[m_iPlaceHost].SetSize(m_chunkBits,m_numChunks - is,numBuffers);
-		m_Chunks[m_iPlaceHost].SetGlobalChunkIndex(m_globalChunkIndex + is);
+		m_Chunks[m_iPlaceHost].SetGlobalIndex((m_globalChunkIndex + is) << m_maxChunkBits);
 		m_Chunks[m_iPlaceHost].SetDevice(-1);
-		m_Chunks[m_iPlaceHost].Allocate();
+		m_Chunks[m_iPlaceHost].Allocate((m_numChunks - is) << m_maxChunkBits,numBuffers << m_maxChunkBits);
 		m_Chunks[m_iPlaceHost].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
+
+		//Host execution uses nested parallelizm
+		omp_set_nested(1);
 	}
 
 #ifdef AER_TIMING
@@ -1619,14 +1651,14 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
 		fprintf(debug_fp," ==== Thrust qubit vector initialization %d qubits ====\n",num_qubits_);
 		fprintf(debug_fp,"    TEST : threads %d/%d , dev %d/%d, using %d devices\n",tid,nid,m_iDev,m_nDev,m_nDevParallel);
-		fprintf(debug_fp,"    TEST : chunk bit = %d, %d/%d chunks, gid = %d , numBuffer = %d\n",m_chunkBits,m_numChunks,m_numGlobalChunks,m_globalChunkIndex,numBuffers);
+		fprintf(debug_fp,"    TEST : max chunk bit = %d, %d/%d chunks, gid = %d , numBuffer = %d\n",m_maxChunkBits,m_numChunks,m_numGlobalChunks,m_globalChunkIndex,numBuffers);
 		fprintf(debug_fp,"    TEST : ");
 		for(i=0;i<m_nPlaces;i++){
 			if(m_Chunks[i].DeviceID() >= 0){
-				fprintf(debug_fp," [%d] %d ",m_Chunks[i].DeviceID(),m_Chunks[i].NumChunks());
+				fprintf(debug_fp," [%d] %d ",m_Chunks[i].DeviceID(),m_Chunks[i].NumChunks(m_maxChunkBits));
 			}
 			else{
-				fprintf(debug_fp," [Host] %d ",m_Chunks[i].NumChunks());
+				fprintf(debug_fp," [Host] %d ",m_Chunks[i].NumChunks(m_maxChunkBits));
 			}
 		}
 		fprintf(debug_fp,"\n");
@@ -1664,14 +1696,14 @@ void QubitVectorThrust<data_t>::checkpoint()
 	int iPlace;
 	uint_t ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 
 	UpdateReferencedValue();
 
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)checkpoint_,pos,ic);
+			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)checkpoint_,pos,ic,m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -1685,14 +1717,18 @@ void QubitVectorThrust<data_t>::revert(bool keep) {
   check_checkpoint();
   #endif
 
+#ifdef AER_DEBUG
+	DebugMsg("calling revert");
+#endif
+
 	int iPlace;
 	uint_t ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)checkpoint_,pos,ic);
+			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)checkpoint_,pos,ic,m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -1710,15 +1746,19 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 	int iPlace;
 	uint_t i,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
+
+#ifdef AER_DEBUG
+	DebugMsg("calling inner_product");
+#endif
 
 	UpdateReferencedValue();
 
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+			m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic,m_maxChunkBits);
 
 			for(i=0;i<csize;i++){
 				d += std::real(tmp[i]) * std::real(checkpoint_[pos + i]) + std::imag(tmp[i]) * std::imag(checkpoint_[pos + i]);
@@ -1741,16 +1781,13 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 template <typename data_t>
 void QubitVectorThrust<data_t>::initialize()
 {
-#ifdef AER_DEBUG
-	DebugMsg("initialize");
-#endif
 	zero();
 
 	thrust::complex<data_t> t;
 	t = 1.0;
 
 	if(m_globalChunkIndex == 0){
-		m_Chunks[0].SetState(0,0,t);
+		m_Chunks[0].SetState(0,0,t,m_maxChunkBits);
 	}
 }
 
@@ -1762,23 +1799,26 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
                         std::to_string(statevec.size()) + ")";
     throw std::runtime_error(error);
   }
+#ifdef AER_DEBUG
+	DebugMsg("calling initialize_from_vector");
+#endif
 
 	int iPlace;
 	uint_t i,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 
 	cvector_t<data_t> tmp(csize);
 
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
 			for(i=0;i<csize;i++){
 				std::complex<data_t> t((data_t)std::real(statevec[pos + i]), (data_t)std::imag(statevec[pos + i]));
 				tmp[i] = t;
 			}
 
-			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic);
+			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic,m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -1797,14 +1837,17 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
     throw std::runtime_error(error);
   }
 
+#ifdef AER_DEBUG
+	DebugMsg("calling initialize_from_data");
+#endif
 	int iPlace;
 	uint_t ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << m_chunkBits;
+	uint_t csize = 1ull << m_maxChunkBits;
 	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-		nc = m_Chunks[iPlace].NumChunks();
+		nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 		for(ic=0;ic<nc;ic++){
-			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)statevec,pos,ic);
+			m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)statevec,pos,ic,m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -1816,6 +1859,231 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 
 }
 
+//--------------------------------------------------------------------------------------
+//	gate kernel execution
+//--------------------------------------------------------------------------------------
+
+template <typename data_t>
+int QubitVectorThrust<data_t>::FindPlace(uint_t chunkID,int chunkBits) const
+{
+	int i;
+	uint_t ids,baseGID,endGID;
+
+	baseGID = m_globalChunkIndex << (m_maxChunkBits - chunkBits);
+	endGID = (m_globalChunkIndex + m_numChunks) << (m_maxChunkBits - chunkBits);
+	if(chunkID < baseGID || chunkID >= endGID){
+		return -1;		//not in this process
+	}
+
+	for(i=0;i<m_nPlaces;i++){
+		ids = m_Chunks[i].ChunkID(0,chunkBits);
+		if(chunkID >= ids && chunkID < ids + m_Chunks[i].NumChunks(chunkBits)){
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+template <typename data_t>
+int QubitVectorThrust<data_t>::GlobalToLocal(uint_t& lcid,uint_t& lid,uint_t gid,int chunkBits) const
+{
+	uint_t gcid = (gid >> chunkBits);
+	int iPlace = FindPlace(gcid,chunkBits);
+	if(iPlace >= 0){
+		lcid = gcid - m_Chunks[iPlace].ChunkID(0,chunkBits);
+		lid = gid - (gcid << chunkBits);
+	}
+	return iPlace;
+}
+
+template <typename data_t>
+uint_t QubitVectorThrust<data_t>::GetBaseChunkID(const uint_t gid,const reg_t& qubits,const int chunkBits) const
+{
+	int i,n;
+	uint_t base = gid;
+	n = qubits.size();
+	for(i=0;i<n;i++){
+		base &= ~(1ull << (qubits[i] - chunkBits));
+	}
+	return base;
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::set_matrix(const cvector_t<double>& mat) const
+{
+	uint_t i,size = mat.size();
+	std::vector<thrust::complex<double>> matTh(size);
+
+	for(i=0;i<size;i++){
+		matTh[i] = (thrust::complex<double>)mat[i];
+	}
+
+	//store matrix to devices
+	for(i=0;i<m_nPlaces;i++){
+		m_Chunks[i].StoreMatrix(matTh);
+	}
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::set_params(const reg_t& prm) const
+{
+	int i;
+	//store params to devices
+	for(i=0;i<m_nPlaces;i++){
+		m_Chunks[i].StoreUintParams(prm);
+	}
+}
+
+template <typename data_t>
+template <typename Function>
+double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubits) const
+{
+	const size_t N = qubits.size();
+	const int numCBits = func.NumControlBits();
+	uint_t size,iChunk,nChunk,controlMask,controlFlag;
+	int i,ib,nBuf;
+	int nSmall,nLarge = 0;
+	reg_t large_qubits;
+	int chunkBits = m_maxChunkBits;
+	double ret = 0.0;
+
+#ifdef AER_DEBUG
+	DebugMsg(func.Name(),qubits);
+#endif
+
+	UpdateReferencedValue();
+
+	//decreasing chunk-bits for fusion
+//	if(m_nPlaces > 1 && !func.IsDiagonal()){
+//		chunkBits -= (N - 1);
+//	}
+	//enable this after debugging
+
+
+	//count number of qubits which is larger than chunk size
+	for(ib=numCBits;ib<N;ib++){
+		if(qubits[ib] >= chunkBits){
+			large_qubits.push_back(qubits[ib]);
+			nLarge++;
+		}
+	}
+	nSmall = N - nLarge - numCBits;
+
+	if(func.IsDiagonal()){
+		size = 1ull << chunkBits;
+		nBuf = 1;
+		nChunk = 1;
+	}
+	else{
+		size = 1ull << (chunkBits - nSmall);
+		nBuf = 1ull << (N - numCBits);
+		nChunk = 1ull << nLarge;
+	}
+
+	//setup buffer configuration
+	reg_t offsetBase(nBuf,0);
+	reg_t buf2chunk(nBuf,0);
+
+	iChunk = 1;
+	for(ib=numCBits;ib<N;ib++){
+		if(qubits[ib] >= chunkBits){
+			for(i=0;i<nBuf;i++){
+				if((i >> (ib-numCBits)) & 1){
+					buf2chunk[i] += iChunk;
+				}
+			}
+			iChunk <<= 1;
+		}
+		else{
+			for(i=0;i<nBuf;i++){
+				if((i >> (ib-numCBits)) & 1){
+					offsetBase[i] += (1ull << qubits[ib]);
+				}
+			}
+		}
+	}
+
+	controlMask = 0;
+	controlFlag = 0;
+	for(ib=0;ib<numCBits;ib++){
+		if(qubits[ib] >= chunkBits)
+			controlMask |= (1ull << (qubits[ib] - chunkBits));
+	}
+	if(func.ControlMask() != 0){
+		controlFlag = controlMask;
+	}
+
+#pragma omp parallel private(iChunk,i,ib) num_threads(m_nPlaces)
+	{
+		int iPlace = omp_get_thread_num();
+		int iPlaceSrc;
+		uint_t localMask,baseChunk;
+		reg_t offsets(nBuf);
+		reg_t chunkOffsets(nChunk);
+		reg_t chunkIDs(nChunk);
+		std::vector<int> places(nChunk);
+
+		for(iChunk=0;iChunk<m_Chunks[iPlace].NumChunks(chunkBits);iChunk++){
+			baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk,chunkBits),large_qubits,chunkBits);
+			if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk,chunkBits)){	//already calculated
+				continue;
+			}
+
+			//control mask
+			if((baseChunk & controlMask) != controlFlag){
+				continue;
+			}
+
+			for(i=0;i<nChunk;i++){
+				chunkIDs[i] = baseChunk;
+				for(ib=0;ib<nLarge;ib++){
+					if((i >> ib) & 1){
+						chunkIDs[i] += (1ull << (large_qubits[ib] - chunkBits));
+					}
+				}
+				iPlaceSrc = FindPlace(chunkIDs[i],chunkBits);
+				places[i] = iPlaceSrc;
+				if(iPlaceSrc == iPlace){
+					chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
+				}
+				else{
+					m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);	//copy chunk from other place
+					chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits);	//offset to buffer
+				}
+			}
+
+			//setting buffers
+			localMask = 0;
+			for(i=0;i<nBuf;i++){
+				offsets[i] = chunkOffsets[buf2chunk[i]] + offsetBase[i];
+				localMask |= (1ull << i);	//currently all buffers are local
+			}
+
+			//execute kernel
+			if(func.Reduction())
+				ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask);
+			else
+				m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask);
+
+			//copy back
+			for(i=0;i<nChunk;i++){
+				if(places[i] != iPlace){
+					m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+				}
+			}
+		}
+	}
+
+#ifdef AER_DEBUG
+	if(func.Reduction())
+		DebugMsg("   ret = ",ret);
+	else
+		DebugDump();
+#endif
+
+	return ret;
+}
 
 /*******************************************************************************
  *
@@ -1866,19 +2134,24 @@ public:
 		mask = (1ull << qubit) - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1,localMask;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1;
 		thrust::complex<data_t>* pV0;
 		thrust::complex<data_t>* pV1;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
-		pV0 = ppV[0];
-		pV1 = ppV[1];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		localMask = params.lmask_;
+
+		pV0 = pV + offsets[0];
+		pV1 = pV + offsets[1];
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
@@ -1891,6 +2164,11 @@ public:
 			pV0[i0] = m0 * q0 + m2 * q1;
 		if((localMask & 2) == 2)
 			pV1[i0] = m1 * q0 + m3 * q1;
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "mult2x2";
 	}
 };
 
@@ -1938,15 +2216,19 @@ public:
 		mask1 = (1ull << qubit1) - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1,i2,localMask;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1,q2,q3;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		localMask = params.lmask_;
 
 		i0 = i & mask0;
 		i2 = (i - i0) << 1;
@@ -1955,22 +2237,27 @@ public:
 
 		i0 = i0 + i1 + i2;
 
-		q0 = ppV[0][i0];
-		q1 = ppV[1][i0];
-		q2 = ppV[2][i0];
-		q3 = ppV[3][i0];
+		q0 = pV[offsets[0] + i0];
+		q1 = pV[offsets[1] + i0];
+		q2 = pV[offsets[2] + i0];
+		q3 = pV[offsets[3] + i0];
 
 		if(localMask & 1)
-			ppV[0][i0] = m00 * q0 + m10 * q1 + m20 * q2 + m30 * q3;
+			pV[offsets[0]+i0] = m00 * q0 + m10 * q1 + m20 * q2 + m30 * q3;
 
 		if(localMask & 2)
-			ppV[1][i0] = m01 * q0 + m11 * q1 + m21 * q2 + m31 * q3;
+			pV[offsets[1]+i0] = m01 * q0 + m11 * q1 + m21 * q2 + m31 * q3;
 
 		if(localMask & 4)
-			ppV[2][i0] = m02 * q0 + m12 * q1 + m22 * q2 + m32 * q3;
+			pV[offsets[2]+i0] = m02 * q0 + m12 * q1 + m22 * q2 + m32 * q3;
 
 		if(localMask & 8)
-			ppV[3][i0] = m03 * q0 + m13 * q1 + m23 * q2 + m33 * q3;
+			pV[offsets[3]+i0] = m03 * q0 + m13 * q1 + m23 * q2 + m33 * q3;
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "mult4x4";
 	}
 };
 
@@ -1986,14 +2273,11 @@ protected:
 	uint_t mask2;
 
 public:
-	MatrixMult8x8(const cvector_t<double>& mat,int q0,int q1,int q2)
+	MatrixMult8x8(int q0,int q1,int q2)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
 		qubit2 = q2;
-
-		GateFuncBase::m_matrixSize = mat.size();
-		GateFuncBase::m_matrix = const_cast<std::complex<double>*>(&mat[0]);
 
 		mask0 = (1ull << qubit0) - 1;
 		mask1 = (1ull << qubit1) - 1;
@@ -2001,18 +2285,22 @@ public:
 	}
 
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1,i2,i3,localMask;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1,q2,q3,q4,q5,q6,q7;
 		thrust::complex<double> m0,m1,m2,m3,m4,m5,m6,m7;
 		thrust::complex<double>* pMat;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		pMat = params.matrix_;
+		localMask = params.lmask_;
 
 		i0 = i & mask0;
 		i3 = (i - i0) << 1;
@@ -2023,14 +2311,14 @@ public:
 
 		i0 = i0 + i1 + i2 + i3;
 
-		q0 = ppV[0][i0];
-		q1 = ppV[1][i0];
-		q2 = ppV[2][i0];
-		q3 = ppV[3][i0];
-		q4 = ppV[4][i0];
-		q5 = ppV[5][i0];
-		q6 = ppV[6][i0];
-		q7 = ppV[7][i0];
+		q0 = pV[offsets[0]+i0];
+		q1 = pV[offsets[1]+i0];
+		q2 = pV[offsets[2]+i0];
+		q3 = pV[offsets[3]+i0];
+		q4 = pV[offsets[4]+i0];
+		q5 = pV[offsets[5]+i0];
+		q6 = pV[offsets[6]+i0];
+		q7 = pV[offsets[7]+i0];
 
 		if(localMask & 1){
 			m0 = pMat[0];
@@ -2042,7 +2330,7 @@ public:
 			m6 = pMat[48];
 			m7 = pMat[56];
 
-			ppV[0][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[0]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 2){
@@ -2055,7 +2343,7 @@ public:
 			m6 = pMat[49];
 			m7 = pMat[57];
 
-			ppV[1][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[1]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 4){
@@ -2068,7 +2356,7 @@ public:
 			m6 = pMat[50];
 			m7 = pMat[58];
 
-			ppV[2][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[2]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 8){
@@ -2081,7 +2369,7 @@ public:
 			m6 = pMat[51];
 			m7 = pMat[59];
 
-			ppV[3][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[3]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 16){
@@ -2094,7 +2382,7 @@ public:
 			m6 = pMat[52];
 			m7 = pMat[60];
 
-			ppV[4][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[4]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 32){
@@ -2107,7 +2395,7 @@ public:
 			m6 = pMat[53];
 			m7 = pMat[61];
 
-			ppV[5][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[5]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 64){
@@ -2120,7 +2408,7 @@ public:
 			m6 = pMat[54];
 			m7 = pMat[62];
 
-			ppV[6][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[6]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
 
 		if(localMask & 128){
@@ -2133,8 +2421,13 @@ public:
 			m6 = pMat[55];
 			m7 = pMat[63];
 
-			ppV[7][i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
+			pV[offsets[7]+i0] = m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "mult8x8";
 	}
 };
 
@@ -2151,15 +2444,12 @@ protected:
 	uint_t mask2;
 	uint_t mask3;
 public:
-	MatrixMult16x16(const cvector_t<double>& mat,int q0,int q1,int q2,int q3)
+	MatrixMult16x16(int q0,int q1,int q2,int q3)
 	{
 		qubit0 = q0;
 		qubit1 = q1;
 		qubit2 = q2;
 		qubit3 = q3;
-
-		GateFuncBase::m_matrixSize = mat.size();
-		GateFuncBase::m_matrix = const_cast<std::complex<double>*>(&mat[0]);
 
 		mask0 = (1ull << qubit0) - 1;
 		mask1 = (1ull << qubit1) - 1;
@@ -2167,21 +2457,25 @@ public:
 		mask3 = (1ull << qubit3) - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1,i2,i3,i4,localMask;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1,q2,q3,q4,q5,q6,q7;
 		thrust::complex<data_t> q8,q9,q10,q11,q12,q13,q14,q15;
 		thrust::complex<double> m0,m1,m2,m3,m4,m5,m6,m7;
 		thrust::complex<double> m8,m9,m10,m11,m12,m13,m14,m15;
 		thrust::complex<double>* pMat;
 		int j;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		pMat = params.matrix_;
+		localMask = params.lmask_;
 
 		i0 = i & mask0;
 		i4 = (i - i0) << 1;
@@ -2194,22 +2488,22 @@ public:
 
 		i0 = i0 + i1 + i2 + i3 + i4;
 
-		q0 = ppV[0][i0];
-		q1 = ppV[1][i0];
-		q2 = ppV[2][i0];
-		q3 = ppV[3][i0];
-		q4 = ppV[4][i0];
-		q5 = ppV[5][i0];
-		q6 = ppV[6][i0];
-		q7 = ppV[7][i0];
-		q8 = ppV[8][i0];
-		q9 = ppV[9][i0];
-		q10 = ppV[10][i0];
-		q11 = ppV[11][i0];
-		q12 = ppV[12][i0];
-		q13 = ppV[13][i0];
-		q14 = ppV[14][i0];
-		q15 = ppV[15][i0];
+		q0 = pV[offsets[0]+i0];
+		q1 = pV[offsets[1]+i0];
+		q2 = pV[offsets[2]+i0];
+		q3 = pV[offsets[3]+i0];
+		q4 = pV[offsets[4]+i0];
+		q5 = pV[offsets[5]+i0];
+		q6 = pV[offsets[6]+i0];
+		q7 = pV[offsets[7]+i0];
+		q8 = pV[offsets[8]+i0];
+		q9 = pV[offsets[9]+i0];
+		q10 = pV[offsets[10]+i0];
+		q11 = pV[offsets[11]+i0];
+		q12 = pV[offsets[12]+i0];
+		q13 = pV[offsets[13]+i0];
+		q14 = pV[offsets[14]+i0];
+		q15 = pV[offsets[15]+i0];
 
 		for(j=0;j<16;j++){
 			if(((localMask >> j) & 1) == 0){
@@ -2232,9 +2526,14 @@ public:
 			m14= pMat[224+j];
 			m15= pMat[240+j];
 
-			ppV[j][i0] = 	m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7 +
+			pV[offsets[j]+i0] = 	m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7 +
 							m8 * q8 + m9 * q9 + m10* q10+ m11* q11+ m12* q12+ m13* q13+ m14* q14+ m15* q15;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "mult16x16";
 	}
 };
 
@@ -2248,7 +2547,7 @@ protected:
 	uint_t matSize;
 	int nswap;
 public:
-	MatrixMultNxN_LU(const cvector_t<double>& mat,const reg_t &qb,std::complex<double>* pMatNew,uint_t* pParams)
+	MatrixMultNxN_LU(const cvector_t<double>& mat,const reg_t &qb,cvector_t<double>& matLU,reg_t& params)
 	{
 		uint_t i,j,k,imax;
 		std::complex<double> c0,c1;
@@ -2258,49 +2557,43 @@ public:
 		nqubits = qb.size();
 		matSize = 1ull << nqubits;
 
-		GateFuncBase::m_matrixSize = mat.size();
-		GateFuncBase::m_matrix = pMatNew;
-		GateFuncBase::m_paramSize = nqubits + matSize*2;
-		GateFuncBase::m_params = pParams;
-
-		for(i=0;i<matSize*matSize;i++){
-			GateFuncBase::m_matrix[i] = mat[i];
-		}
+		matLU = mat;
+		params.resize(nqubits + matSize*2);
 
 		for(k=0;k<nqubits;k++){
-			GateFuncBase::m_params[k] = qb[k];
+			params[k] = qb[k];
 		}
 
 		//LU factorization of input matrix
 		for(i=0;i<matSize;i++){
-			GateFuncBase::m_params[nqubits + i] = i;	//init pivot
+			params[nqubits + i] = i;	//init pivot
 		}
 		for(i=0;i<matSize;i++){
 			imax = i;
-			dmax = std::abs(m_matrix[(i << nqubits) + GateFuncBase::m_params[nqubits + i]]);
+			dmax = std::abs(matLU[(i << nqubits) + params[nqubits + i]]);
 			for(j=i+1;j<matSize;j++){
-				d = std::abs(m_matrix[(i << nqubits) + GateFuncBase::m_params[nqubits + j]]);
+				d = std::abs(matLU[(i << nqubits) + params[nqubits + j]]);
 				if(d > dmax){
 					dmax = d;
 					imax = j;
 				}
 			}
 			if(imax != i){
-				j = GateFuncBase::m_params[nqubits + imax];
-				GateFuncBase::m_params[nqubits + imax] = GateFuncBase::m_params[nqubits + i];
-				GateFuncBase::m_params[nqubits + i] = j;
+				j = params[nqubits + imax];
+				params[nqubits + imax] = params[nqubits + i];
+				params[nqubits + i] = j;
 			}
 
 			if(dmax != 0){
-				c0 = GateFuncBase::m_matrix[(i << nqubits) + GateFuncBase::m_params[nqubits + i]];
+				c0 = matLU[(i << nqubits) + params[nqubits + i]];
 
 				for(j=i+1;j<matSize;j++){
-					c1 = GateFuncBase::m_matrix[(i << nqubits) + GateFuncBase::m_params[nqubits + j]]/c0;
+					c1 = matLU[(i << nqubits) + params[nqubits + j]]/c0;
 
 					for(k=i+1;k<matSize;k++){
-						GateFuncBase::m_matrix[(k << nqubits) + GateFuncBase::m_params[nqubits + j]] -= c1*GateFuncBase::m_matrix[(k << nqubits) + GateFuncBase::m_params[nqubits + i]];
+						matLU[(k << nqubits) + params[nqubits + j]] -= c1*matLU[(k << nqubits) + params[nqubits + i]];
 					}
-					GateFuncBase::m_matrix[(i << nqubits) + GateFuncBase::m_params[nqubits + j]] = c1;
+					matLU[(i << nqubits) + params[nqubits + j]] = c1;
 				}
 			}
 		}
@@ -2309,19 +2602,19 @@ public:
 		pSwap = new uint_t[matSize];
 		nswap = 0;
 		for(i=0;i<matSize;i++){
-			pSwap[i] = GateFuncBase::m_params[nqubits + i];
+			pSwap[i] = params[nqubits + i];
 		}
 		i = 0;
 		while(i<matSize){
 			if(pSwap[i] != i){
-				GateFuncBase::m_params[nqubits + matSize + nswap++] = i;
+				params[nqubits + matSize + nswap++] = i;
 				j = pSwap[i];
-				GateFuncBase::m_params[nqubits + matSize + nswap++] = j;
+				params[nqubits + matSize + nswap++] = j;
 				k = pSwap[j];
 				pSwap[j] = j;
 				while(i != k){
 					j = k;
-					GateFuncBase::m_params[nqubits + matSize + nswap++] = k;
+					params[nqubits + matSize + nswap++] = k;
 					k = pSwap[j];
 					pSwap[j] = j;
 				}
@@ -2332,7 +2625,7 @@ public:
 		delete[] pSwap;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		thrust::complex<data_t> q,qt;
 		thrust::complex<double> m;
@@ -2340,16 +2633,21 @@ public:
 		uint_t i,j,k,l;
 		uint_t ii,idx,t;
 		uint_t mask;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<double>* pMat;
 		uint_t* qubits;
 		uint_t* pivot;
 		uint_t* table;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		pMat = params.matrix_;
+		qubits = params.params_;
+
 		pivot = qubits + nqubits;
 		table = pivot + matSize;
 
@@ -2370,404 +2668,48 @@ public:
 			for(k=j;k<matSize;k++){
 				l = (pivot[j] + (k << nqubits));
 				m = pMat[l];
-				q = ppV[k][idx];
+				q = pV[offsets[k]+idx];
 
 				r += m*q;
 			}
-			ppV[j][idx] = r;
+			pV[offsets[j]+idx] = r;
 		}
 
 		//mult L
 		for(j=matSize-1;j>0;j--){
-			r = ppV[j][idx];
+			r = pV[offsets[j]+idx];
 
 			for(k=0;k<j;k++){
 				l = (pivot[j] + (k << nqubits));
 				m = pMat[l];
-				q = ppV[k][idx];
+				q = pV[offsets[k]+idx];
 
 				r += m*q;
 			}
-			ppV[j][idx] = r;
+			pV[offsets[j]+idx] = r;
 		}
 
 		//swap results
 		if(nswap > 0){
-			q = ppV[table[0]][idx];
+			q = pV[offsets[table[0]]+idx];
 			k = pivot[table[0]];
 			for(j=1;j<nswap;j++){
-				qt = ppV[table[j]][idx];
-				ppV[k][idx] = q;
+				qt = pV[offsets[table[j]]+idx];
+				pV[offsets[k]+idx] = q;
 				q = qt;
 				k = pivot[table[j]];
 			}
-			ppV[k][idx] = q;
+			pV[offsets[k]+idx] = q;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "multNxN";
 	}
 };
 
-template <typename data_t>
-int QubitVectorThrust<data_t>::FindPlace(uint_t chunkID) const
-{
-	int i;
-	uint_t ids;
 
-	if(chunkID < m_globalChunkIndex || chunkID >= m_globalChunkIndex + m_numChunks){
-		return -1;		//not in this process
-	}
-
-	for(i=0;i<m_nPlaces;i++){
-		ids = m_Chunks[i].ChunkID(0);
-		if(chunkID >= ids && chunkID < ids + m_Chunks[i].NumChunks()){
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-template <typename data_t>
-int QubitVectorThrust<data_t>::GlobalToLocal(uint_t& lcid,uint_t& lid,uint_t gid) const
-{
-	uint_t gcid = (gid >> m_chunkBits);
-	int iPlace = FindPlace(gcid);
-	if(iPlace >= 0){
-		lcid = gcid - m_Chunks[iPlace].ChunkID(0);
-		lid = gid - (gcid << m_chunkBits);
-	}
-	return iPlace;
-}
-
-template <typename data_t>
-uint_t QubitVectorThrust<data_t>::GetBaseChunkID(const uint_t gid,const reg_t& qubits) const
-{
-	int i,n;
-	uint_t base = gid;
-	n = qubits.size();
-	for(i=0;i<n;i++){
-		base &= ~(1ull << (qubits[i] - m_chunkBits));
-	}
-	return base;
-}
-
-template <typename data_t>
-template <typename UnaryFunction>
-void QubitVectorThrust<data_t>::apply_function(UnaryFunction func,const reg_t &qubits)
-{
-	const size_t N = qubits.size();
-	const int numCBits = func.NumControlBits();
-	uint_t size,iChunk,nChunk,controlMask,controlFlag;
-	int i,ib,nBuf;
-	int nSmall,nLarge = 0;
-	reg_t large_qubits;
-	int nThreads;
-
-	UpdateReferencedValue();
-
-	//copy constant parameters to device memory
-	for(i=0;i<m_nPlaces;i++){
-		m_Chunks[i].StoreMatrix(func.GetMatrix(),func.MatrixSize());
-		m_Chunks[i].StoreUintParams(func.GetParams(),func.ParamSize());
-	}
-
-	//count number of qubits which is larger than chunk size
-	for(ib=numCBits;ib<N;ib++){
-		if(qubits[ib] >= m_chunkBits){
-			large_qubits.push_back(qubits[ib]);
-			nLarge++;
-		}
-	}
-	nSmall = N - nLarge - numCBits;
-
-	if(func.IsDiagonal()){
-		size = 1ull << m_chunkBits;
-		nBuf = 1;
-		nChunk = 1;
-	}
-	else{
-		size = 1ull << (m_chunkBits - nSmall);
-		nBuf = 1ull << (N - numCBits);
-		nChunk = 1ull << nLarge;
-	}
-
-	//setup buffer configuration
-	reg_t bufferOffset(nBuf,0);
-	reg_t buf2chunk(nBuf,0);
-
-	iChunk = 1;
-	for(ib=numCBits;ib<N;ib++){
-		if(qubits[ib] >= m_chunkBits){
-			for(i=0;i<nBuf;i++){
-				if((i >> (ib-numCBits)) & 1){
-					buf2chunk[i] += iChunk;
-				}
-			}
-			iChunk <<= 1;
-		}
-		else{
-			for(i=0;i<nBuf;i++){
-				if((i >> (ib-numCBits)) & 1){
-					bufferOffset[i] += (1ull << qubits[ib]);
-				}
-			}
-		}
-	}
-
-	controlMask = 0;
-	controlFlag = 0;
-	for(ib=0;ib<numCBits;ib++){
-		if(qubits[ib] >= m_chunkBits)
-			controlMask |= (1ull << (qubits[ib] - m_chunkBits));
-	}
-	if(func.ControlMask() != 0){
-		controlFlag = controlMask;
-	}
-
-	nThreads = m_nPlaces;
-	if(m_nPlaces > m_nDevParallel){
-#pragma omp parallel
-		{
-#pragma omp master
-			{
-				nThreads = omp_get_num_threads();
-			}
-		}
-	}
-
-#pragma omp parallel private(iChunk,i,ib) num_threads(nThreads)
-	{
-		int tid = omp_get_thread_num();
-		int nid = omp_get_num_threads();
-		int iPlace,iPlaceSrc;
-		uint_t localMask,baseChunk,is,iAdd;
-		std::vector<thrust::complex<data_t>*> buffers(nBuf);
-		std::vector<thrust::complex<data_t>*> chunks(nChunk);
-		reg_t chunkIDs(nChunk);
-		std::vector<int> places(nChunk);
-
-		if(tid < m_nDevParallel){
-			iPlace = tid;
-			is = 0;
-			iAdd = 1;
-		}
-		else if(m_nPlaces > m_nDevParallel){	//calculate on host
-			iPlace = m_nDevParallel;
-			is = tid - m_nDevParallel;
-			iAdd = nid - m_nDevParallel;
-		}
-		else{
-			iPlace = -1;
-		}
-
-		if(iPlace >= 0){
-			for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks();iChunk+=iAdd){
-				baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk),large_qubits);
-				if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk)){	//already calculated
-					continue;
-				}
-
-				//control mask
-				if((baseChunk & controlMask) != controlFlag){
-					continue;
-				}
-
-				for(i=0;i<nChunk;i++){
-					chunkIDs[i] = baseChunk;
-					for(ib=0;ib<nLarge;ib++){
-						if((i >> ib) & 1){
-							chunkIDs[i] += (1ull << (large_qubits[ib] - m_chunkBits));
-						}
-					}
-					iPlaceSrc = FindPlace(chunkIDs[i]);
-					places[i] = iPlaceSrc;
-					if(iPlaceSrc == iPlace){
-						chunks[i] = m_Chunks[iPlace].ChunkPtr(m_Chunks[iPlace].LocalChunkID(chunkIDs[i]));
-					}
-					else{
-						m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i]),i);	//copy chunk from other place
-						chunks[i] = m_Chunks[iPlace].BufferPtr(i);
-					}
-				}
-
-				//setting buffers
-				localMask = 0;
-				for(i=0;i<nBuf;i++){
-					buffers[i] = chunks[buf2chunk[i]] + bufferOffset[i];
-					localMask |= (1ull << i);	//currently all buffers are local
-				}
-
-				//execute kernel
-				m_Chunks[iPlace].Execute(buffers,func,size,(baseChunk << m_chunkBits),localMask);
-
-				//copy back
-				for(i=0;i<nChunk;i++){
-					if(places[i] != iPlace){
-						m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i]),i);
-					}
-				}
-			}
-		}
-	}
-}
-
-template <typename data_t>
-template <typename UnaryFunction>
-double QubitVectorThrust<data_t>::apply_sum_function(UnaryFunction func,const reg_t &qubits) const
-{
-	double ret = 0.0;
-
-	const size_t N = qubits.size();
-	const int numCBits = func.NumControlBits();
-	uint_t size,iChunk,nChunk,controlMask,controlFlag;
-	int i,ib,nBuf;
-	int nSmall,nLarge = 0;
-	reg_t large_qubits;
-	int nThreads;
-
-	UpdateReferencedValue();
-
-	//copy constant parameters to device memory
-	for(i=0;i<m_nPlaces;i++){
-		m_Chunks[i].StoreMatrix(func.GetMatrix(),func.MatrixSize());
-		m_Chunks[i].StoreUintParams(func.GetParams(),func.ParamSize());
-	}
-
-	//count number of qubits which is larger than chunk size
-	for(ib=numCBits;ib<N;ib++){
-		if(qubits[ib] >= m_chunkBits){
-			large_qubits.push_back(qubits[ib]);
-			nLarge++;
-		}
-	}
-	nSmall = N - nLarge - numCBits;
-
-	if(func.IsDiagonal()){
-		size = 1ull << m_chunkBits;
-		nBuf = 1;
-		nChunk = 1;
-	}
-	else{
-		size = 1ull << (m_chunkBits - nSmall);
-		nBuf = 1ull << (N - numCBits);
-		nChunk = 1ull << nLarge;
-	}
-
-	//setup buffer configuration
-	reg_t bufferOffset(nBuf,0);
-	reg_t buf2chunk(nBuf,0);
-
-	iChunk = 1;
-	for(ib=numCBits;ib<N;ib++){
-		if(qubits[ib] >= m_chunkBits){
-			for(i=0;i<nBuf;i++){
-				if((i >> (ib-numCBits)) & 1){
-					buf2chunk[i] += iChunk;
-				}
-			}
-			iChunk <<= 1;
-		}
-		else{
-			for(i=0;i<nBuf;i++){
-				if((i >> (ib-numCBits)) & 1){
-					bufferOffset[i] += (1ull << qubits[ib]);
-				}
-			}
-		}
-	}
-
-	controlMask = 0;
-	controlFlag = 0;
-	for(ib=0;ib<numCBits;ib++){
-		if(qubits[ib] >= m_chunkBits)
-			controlMask |= (1ull << (qubits[ib] - m_chunkBits));
-	}
-	if(func.ControlMask() != 0){
-		controlFlag = controlMask;
-	}
-
-	nThreads = m_nPlaces;
-	if(m_nPlaces > m_nDevParallel){
-#pragma omp parallel
-		{
-#pragma omp master
-			{
-				nThreads = omp_get_num_threads();
-			}
-		}
-	}
-
-#pragma omp parallel private(iChunk,i,ib) num_threads(nThreads) reduction(+:ret)
-	{
-		int tid = omp_get_thread_num();
-		int nid = omp_get_num_threads();
-		int iPlace,iPlaceSrc;
-		uint_t localMask,baseChunk,is,iAdd;
-		std::vector<thrust::complex<data_t>*> buffers(nBuf);
-		std::vector<thrust::complex<data_t>*> chunks(nChunk);
-		reg_t chunkIDs(nChunk);
-		std::vector<int> places(nChunk);
-
-		if(tid < m_nDevParallel){
-			iPlace = tid;
-			is = 0;
-			iAdd = 1;
-		}
-		else if(m_nPlaces > m_nDevParallel){	//calculate on host
-			iPlace = m_nDevParallel;
-			is = tid - m_nDevParallel;
-			iAdd = nid - m_nDevParallel;
-		}
-		else{
-			iPlace = -1;
-		}
-
-		if(iPlace >= 0){
-			for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks();iChunk+=iAdd){
-				baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk),large_qubits);
-				if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk)){	//already calculated
-					continue;
-				}
-
-				//control mask
-				if((baseChunk & controlMask) != controlFlag){
-					continue;
-				}
-
-				for(i=0;i<nChunk;i++){
-					chunkIDs[i] = baseChunk;
-					for(ib=0;ib<nLarge;ib++){
-						if((i >> ib) & 1){
-							chunkIDs[i] += (1ull << (large_qubits[ib] - m_chunkBits));
-						}
-					}
-					iPlaceSrc = FindPlace(chunkIDs[i]);
-					places[i] = iPlaceSrc;
-					if(iPlaceSrc == iPlace){
-						chunks[i] = m_Chunks[iPlace].ChunkPtr(m_Chunks[iPlace].LocalChunkID(chunkIDs[i]));
-					}
-					else{
-						m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i]),i);	//copy chunk from other place
-						chunks[i] = m_Chunks[iPlace].BufferPtr(i);
-					}
-				}
-
-				//setting buffers
-				localMask = 0;
-				for(i=0;i<nBuf;i++){
-					buffers[i] = chunks[buf2chunk[i]] + bufferOffset[i];
-					localMask |= (1ull << i);	//currently all buffers are local
-				}
-
-				//execute kernel
-				ret += m_Chunks[iPlace].ExecuteSum(buffers,func,size,(baseChunk << m_chunkBits),localMask);
-
-				//we do not have to copy back chunks
-			}
-		}
-	}
-
-	return ret;
-}
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
@@ -2776,8 +2718,6 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 	const size_t N = qubits.size();
 	auto qubits_sorted = qubits;
 	std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-//	DebugMsg("apply_matrix",qubits);
 
 #ifdef AER_TIMING
 	TimeStart(QS_GATE_MULT);
@@ -2789,26 +2729,24 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 		apply_function(MatrixMult4x4<data_t>(mat,qubits_sorted[0],qubits_sorted[1]), qubits);
 	}
 	else if(N == 3){
-		apply_function(MatrixMult8x8<data_t>(mat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2]), qubits);
+		set_matrix(mat);
+		apply_function(MatrixMult8x8<data_t>(qubits_sorted[0],qubits_sorted[1],qubits_sorted[2]), qubits);
 	}
 	else if(N == 4){
-		apply_function(MatrixMult16x16<data_t>(mat,qubits_sorted[0],qubits_sorted[1],qubits_sorted[2],qubits_sorted[3]), qubits);
+		set_matrix(mat);
+		apply_function(MatrixMult16x16<data_t>(qubits_sorted[0],qubits_sorted[1],qubits_sorted[2],qubits_sorted[3]), qubits);
 	}
 	else{
-		uint_t matSize = 1ull << N;
-		cvector_t<double> matLU(matSize*matSize);
-		reg_t params(N + matSize*2);
-
-		apply_function(MatrixMultNxN_LU<data_t>(mat,qubits_sorted,&matLU[0],&params[0]), qubits);
+		cvector_t<double> matLU;
+		reg_t params;
+		MatrixMultNxN_LU<data_t> f(mat,qubits_sorted,matLU,params);
+		set_matrix(matLU);
+		set_params(params);
+		apply_function(f, qubits);
 	}
 
 #ifdef AER_TIMING
 	TimeEnd(QS_GATE_MULT);
-#endif
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_matrix",qubits);
-	DebugDump();
 #endif
 
 }
@@ -2868,18 +2806,18 @@ public:
 		return true;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,gid;
-		thrust::complex<data_t>** ppChunk;
 		thrust::complex<data_t> q;
 		thrust::complex<data_t>* pV;
 		thrust::complex<double> m;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
-		pV = ppChunk[0];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		gid = params.gid_;
 
 		q = pV[i];
 		if((((i + gid) >> qubit) & 1) == 0){
@@ -2890,6 +2828,11 @@ public:
 		}
 
 		pV[i] = m * q;
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "diagonal_mult2x2";
 	}
 };
 
@@ -2900,14 +2843,9 @@ protected:
 	int nqubits;
 
 public:
-	DiagonalMultNxN(const cvector_t<double>& mat,const reg_t &qb)
+	DiagonalMultNxN(const reg_t &qb)
 	{
 		nqubits = qb.size();
-
-		GateFuncBase::m_matrixSize = mat.size();
-		GateFuncBase::m_matrix = const_cast<std::complex<double>*>(&mat[0]);
-		GateFuncBase::m_paramSize = nqubits;
-		GateFuncBase::m_params = const_cast<uint_t*>(&qb[0]);
 	}
 
 	bool IsDiagonal(void)
@@ -2915,23 +2853,22 @@ public:
 		return true;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,j,im,gid;
-		thrust::complex<data_t>** ppChunk;
-		thrust::complex<data_t> q;
 		thrust::complex<data_t>* pV;
+		thrust::complex<data_t> q;
 		thrust::complex<double> m;
 		thrust::complex<double>* pMat;
 		uint_t* qubits;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
-
-		pV = ppChunk[0];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		pMat = params.matrix_;
+		qubits = params.params_;
+		gid = params.gid_;
 
 		im = 0;
 		for(j=0;j<nqubits;j++){
@@ -2944,6 +2881,11 @@ public:
 		m = pMat[im];
 
 		pV[i] = m * q;
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "diagonal_multNxN";
 	}
 };
 
@@ -2960,18 +2902,14 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 		apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]), qubits);
 	}
 	else{
-		apply_function(DiagonalMultNxN<data_t>(diag,qubits), qubits);
+		set_matrix(diag);
+		set_params(qubits);
+		apply_function(DiagonalMultNxN<data_t>(qubits), qubits);
 	}
 
 #ifdef AER_TIMING
 	TimeEnd(QS_GATE_DIAG);
 #endif
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_diagonal_matrix",qubits);
-	DebugDump();
-#endif
-
 }
 
 
@@ -2984,7 +2922,7 @@ protected:
 	int npairs;
 
 public:
-	Permutation(const reg_t& qb,const std::vector<std::pair<uint_t, uint_t>> &pairs_in,uint_t* pParams)
+	Permutation(const reg_t& qb,const std::vector<std::pair<uint_t, uint_t>> &pairs_in,reg_t& params)
 	{
 		uint_t j;
 
@@ -2992,32 +2930,35 @@ public:
 		matSize = 1ull << nqubits;
 		npairs = pairs_in.size();
 
-		GateFuncBase::m_paramSize = nqubits + npairs*2;
-		GateFuncBase::m_params = pParams;
+		params.resize(nqubits + npairs*2);
 
 		for(j=0;j<nqubits;j++){
-			GateFuncBase::m_params[j] = qb[j];
+			params[j] = qb[j];
 		}
 		for(j=0;j<npairs;j++){
-			GateFuncBase::m_params[nqubits + j*2  ] = pairs_in[j].first;
-			GateFuncBase::m_params[nqubits + j*2+1] = pairs_in[j].second;
+			params[nqubits + j*2  ] = pairs_in[j].first;
+			params[nqubits + j*2+1] = pairs_in[j].second;
 		}
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q;
 		uint_t j,ip0,ip1;
 		uint_t ii,idx,t;
 		uint_t mask;
 		uint_t* pairs;
 		uint_t* qubits;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		qubits = params.params_;
 		pairs = qubits + nqubits;
 
 		idx = 0;
@@ -3034,31 +2975,33 @@ public:
 		for(j=0;j<npairs;j++){
 			ip0 = pairs[j*2];
 			ip1 = pairs[j*2+1];
-			q = ppV[ip0][idx];
+			q = pV[offsets[ip0]+idx];
 
-			ppV[ip0][idx] = ppV[ip1][idx];
-			ppV[ip1][idx] = q;
+			pV[offsets[ip0]+idx] = pV[offsets[ip1]+idx];
+			pV[offsets[ip1]+idx] = q;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "Permutation";
 	}
 };
 
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
-																									 const std::vector<std::pair<uint_t, uint_t>> &pairs)
+						 const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
 	const size_t N = qubits.size();
 	auto qubits_sorted = qubits;
 	std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-	reg_t params(N + pairs.size()*2);
+	reg_t params;
+	Permutation<data_t> f(qubits_sorted,pairs,params);
+	set_params(params);
+	apply_function(f, qubits);
 
-	apply_function(Permutation<data_t>(qubits_sorted,pairs,&params[0]), qubits);
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_permutation_matrix",qubits);
-	DebugDump();
-#endif
 }
 
 
@@ -3101,22 +3044,26 @@ public:
 		return nqubits - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1;
 		uint_t gid,localMask;
-		thrust::complex<data_t>** ppChunk;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1;
 		thrust::complex<data_t>* pV0;
 		thrust::complex<data_t>* pV1;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		gid = params.gid_;
+		localMask = params.lmask_;
 
-		pV0 = ppChunk[0];
-		pV1 = ppChunk[1];
+		pV0 = pV + offsets[0];
+		pV1 = pV + offsets[1];
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
@@ -3131,15 +3078,17 @@ public:
 			if((localMask & 2) == 2)
 				pV1[i0] = q0;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "CX";
 	}
 };
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) 
 {
-
-//	DebugMsg("apply_mcx",qubits);
-
 #ifdef AER_TIMING
 		TimeStart(QS_GATE_CX);
 #endif
@@ -3150,10 +3099,6 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
 		TimeEnd(QS_GATE_CX);
 #endif
 
-#ifdef AER_DEBUG
-	DebugMsg("apply_mcx",qubits);
-	DebugDump();
-#endif
 }
 
 
@@ -3185,21 +3130,26 @@ public:
 		return nqubits - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1;
 		uint_t gid,localMask;
-		thrust::complex<data_t>** ppChunk;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1;
 		thrust::complex<data_t>* pV0;
 		thrust::complex<data_t>* pV1;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
-		pV0 = ppChunk[0];
-		pV1 = ppChunk[1];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		gid = params.gid_;
+		localMask = params.lmask_;
+
+		pV0 = pV + offsets[0];
+		pV1 = pV + offsets[1];
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
@@ -3214,6 +3164,11 @@ public:
 			if((localMask & 2) == 2)
 				pV1[i0] = thrust::complex<data_t>(-q0.imag(),q0.real());
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "CY";
 	}
 };
 
@@ -3221,12 +3176,6 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
 {
 	apply_function(CY_func<data_t>(qubits), qubits);
-
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_mcy",qubits);
-	DebugDump();
-#endif
 }
 
 template <typename data_t>
@@ -3268,21 +3217,26 @@ public:
 		return nqubits - 2;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1,i2;
 		uint_t gid,localMask;
-		thrust::complex<data_t>** ppChunk;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q1,q2;
 		thrust::complex<data_t>* pV1;
 		thrust::complex<data_t>* pV2;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
-		pV1 = ppChunk[1];
-		pV2 = ppChunk[2];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		gid = params.gid_;
+		localMask = params.lmask_;
+
+		pV1 = pV + offsets[1];
+		pV2 = pV + offsets[2];
 
 		i0 = i & mask0;
 		i2 = (i - i0) << 1;
@@ -3299,6 +3253,11 @@ public:
 			if(localMask & 4)
 				pV2[i0] = q1;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "CSWAP";
 	}
 };
 
@@ -3306,12 +3265,6 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 {
 	apply_function(CSwap_func<data_t>(qubits), qubits);
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_mcswap",qubits);
-	DebugDump();
-#endif
-
 }
 
 template <typename data_t>
@@ -3343,20 +3296,27 @@ public:
 		return true;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,gid;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
 		thrust::complex<data_t> q0;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		gid = params.gid_;
 
 		if(((i+gid) & mask) == mask){
-			q0 = ppV[0][i];
-			ppV[0][i] = q0 * phase;
+			q0 = pV[i];
+			pV[i] = q0 * phase;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "phase";
 	}
 };
 
@@ -3364,12 +3324,6 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
 {
 	apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), qubits );
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_mcphase",qubits);
-	DebugDump();
-#endif
-
 }
 
 template <typename data_t>
@@ -3406,16 +3360,18 @@ public:
 		return true;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,gid;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
 		thrust::complex<data_t> q0;
 		thrust::complex<double> m;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		gid = params.gid_;
 
 		if(((i + gid) & cmask) == cmask){
 			if((i + gid) & mask){
@@ -3425,9 +3381,14 @@ public:
 				m = m0;
 			}
 
-			q0 = ppV[0][i];
-			ppV[0][i] = m*q0;
+			q0 = pV[i];
+			pV[i] = m*q0;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "diagonal_Cmult2x2";
 	}
 };
 
@@ -3461,21 +3422,26 @@ public:
 		return nqubits - 1;
 	}
 
-	__host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1;
 		uint_t gid,localMask;
-		thrust::complex<data_t>** ppChunk;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1;
 		thrust::complex<data_t>* pV0;
 		thrust::complex<data_t>* pV1;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppChunk = ExtractBuffersFromTuple(iter);
-		localMask = ExtractLocalMaskFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
-		pV0 = ppChunk[0];
-		pV1 = ppChunk[1];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		gid = params.gid_;
+		localMask = params.lmask_;
+
+		pV0 = pV + offsets[0];
+		pV1 = pV + offsets[1];
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
@@ -3490,6 +3456,11 @@ public:
 			if(localMask & 2)
 				pV1[i0] = m1 * q0 + m3 * q1;
 		}
+		return 0.0;
+	}
+	const char* Name(void)
+	{
+		return "diagonal_CmultNxN";
 	}
 };
 	
@@ -3531,12 +3502,6 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 			apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits), qubits );
 		}
 	}
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_mcu",qubits);
-	DebugDump();
-#endif
-
 }
 
 
@@ -3548,9 +3513,8 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t<double>& mat) 
 {
-//	DebugMsg("apply_matrix",(int)qubit);
   // Check if matrix is diagonal and if so use optimized lambda
-  if (mat[1] == 0.0 && mat[2] == 0.0) {
+	if (mat[1] == 0.0 && mat[2] == 0.0) {
 #ifdef AER_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
@@ -3572,20 +3536,12 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 #ifdef AER_TIMING
 	TimeEnd(QS_GATE_MULT);
 #endif
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_matrix",(int)qubit);
-	DebugDump();
-#endif
-
 }
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t<double>& diag) 
 {
-//	DebugMsg("apply_diagonal_matrix",(int)qubit);
-
 #ifdef AER_TIMING
 	TimeStart(QS_GATE_DIAG);
 #endif
@@ -3594,11 +3550,6 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
 
 #ifdef AER_TIMING
 	TimeEnd(QS_GATE_DIAG);
-#endif
-
-#ifdef AER_DEBUG
-	DebugMsg("apply_diagonal_matrix",(int)qubit);
-	DebugDump();
 #endif
 
 }
@@ -3622,16 +3573,22 @@ public:
 	{
 		return true;
 	}
+	bool Reduction(void)
+	{
+		return true;
+	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i;
 		thrust::complex<data_t>* pV;
 		thrust::complex<data_t> q0;
 		double ret;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		pV = ExtractBuffersFromTuple(iter)[0];
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
 
 		ret = 0.0;
 
@@ -3640,18 +3597,17 @@ public:
 
 		return ret;
 	}
+	const char* Name(void)
+	{
+		return "Norm";
+	}
 };
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm() const
 {
 	reg_t qubits = {0};
-	double ret = apply_sum_function(Norm<data_t>(),qubits);
-
-#ifdef AER_DEBUG
-	DebugMsg("norm",ret);
-#endif
-
+	double ret = apply_function(Norm<data_t>(),qubits);
 	return ret;
 }
 
@@ -3666,17 +3622,17 @@ public:
 	{
 		nqubits = qb.size();
 		matSize = 1ull << nqubits;
-
-		GateFuncBase::m_matrixSize = mat.size();
-		GateFuncBase::m_matrix = const_cast<std::complex<double>*>(&mat[0]);
-		GateFuncBase::m_paramSize = nqubits;
-		GateFuncBase::m_params = const_cast<uint_t*>(&qb[0]);
+	}
+	bool Reduction(void)
+	{
+		return true;
 	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<double>* pMat;
 
 		thrust::complex<data_t> q;
@@ -3687,11 +3643,14 @@ public:
 		uint_t ii,idx,t;
 		uint_t mask;
 		uint_t* qubits;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+		pMat = params.matrix_;
+		qubits = params.params_;
 
 		idx = 0;
 		ii = i;
@@ -3709,12 +3668,16 @@ public:
 			for(k=0;k<matSize;k++){
 				l = (j + (k << nqubits));
 				m = pMat[l];
-				q = ppV[k][idx];
+				q = pV[offsets[k]+idx];
 				r += m*q;
 			}
 			sum += (r.real()*r.real() + r.imag()*r.imag());
 		}
 		return sum;
+	}
+	const char* Name(void)
+	{
+		return "Norm_multNxN";
 	}
 };
 
@@ -3727,12 +3690,9 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
 		return norm(qubits[0], mat);
 	}
 	else{
-		double ret = apply_sum_function(NormMatrixMultNxN<data_t>(mat,qubits), qubits);
-
-#ifdef AER_DEBUG
-		DebugMsg("norm",qubits);
-		DebugMsg("    ",ret);
-#endif
+		set_matrix(mat);
+		set_params(qubits);
+		double ret = apply_function(NormMatrixMultNxN<data_t>(mat,qubits), qubits);
 		return ret;
 	}
 }
@@ -3741,43 +3701,38 @@ template <typename data_t>
 class NormDiagonalMultNxN : public GateFuncBase
 {
 protected:
-	cvector_t<double> mat_copy;
-	std::vector<uint_t> qubits_copy;
-	thrust::complex<double>* pMat;
 	int nqubits;
-	uint_t* qubits;
 public:
-	NormDiagonalMultNxN(std::complex<double>* pM,uint_t* pBuf,const reg_t &qb)
+	NormDiagonalMultNxN(const reg_t &qb)
 	{
-		uint_t i,matSize;
 		nqubits = qb.size();
-
-		matSize = 1ull << nqubits;
-		GateFuncBase::m_matrixSize = matSize;
-		GateFuncBase::m_matrix = pM;
-		GateFuncBase::m_paramSize = nqubits;
-		GateFuncBase::m_params = const_cast<uint_t*>(&qb[0]);
 	}
 
 	bool IsDiagonal(void)
 	{
 		return true;
 	}
+	bool Reduction(void)
+	{
+		return true;
+	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,im,j,gid;
 		thrust::complex<data_t> q;
 		thrust::complex<double> m,r;
 		thrust::complex<double>* pMat;
+		thrust::complex<data_t>* pV;
 		uint_t* qubits;
+		struct GateParams<data_t> params;
 
-		thrust::complex<data_t>** ppV;
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		pMat = ExtractMatrixFromTuple(iter);
-		qubits = ExtractParamsFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		pMat = params.matrix_;
+		qubits = params.params_;
+		gid = params.gid_;
 
 		im = 0;
 		for(j=0;j<nqubits;j++){
@@ -3786,11 +3741,15 @@ public:
 			}
 		}
 
-		q = ppV[0][i];
+		q = pV[i];
 		m = pMat[im];
 
 		r = m * q;
 		return (r.real()*r.real() + r.imag()*r.imag());
+	}
+	const char* Name(void)
+	{
+		return "Norm_diagonal_multNxN";
 	}
 };
 
@@ -3803,12 +3762,9 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
 		return norm_diagonal(qubits[0], mat);
 	}
 	else{
-		double ret = apply_sum_function(NormDiagonalMultNxN<data_t>(mat,qubits), qubits );
-
-#ifdef AER_DEBUG
-		DebugMsg("norm_diagonal",qubits);
-		DebugMsg("						 ",ret);
-#endif
+		set_matrix(mat);
+		set_params(qubits);
+		double ret = apply_function(NormDiagonalMultNxN<data_t>(qubits), qubits );
 		return ret;
 	}
 }
@@ -3834,30 +3790,42 @@ public:
 
 		mask = (1ull << qubit) - 1;
 	}
+	bool Reduction(void)
+	{
+		return true;
+	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,i0,i1;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q0,q1;
 		thrust::complex<double> r0,r1;
 		double sum = 0.0;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
 
 		i1 = i & mask;
 		i0 = (i - i1) << 1;
 		i0 += i1;
 
-		q0 = ppV[0][i0];
-		q1 = ppV[1][i0];
+		q0 = pV[offsets[0]+i0];
+		q1 = pV[offsets[1]+i0];
 
 		r0 = m0 * q0 + m2 * q1;
 		sum += r0.real()*r0.real() + r0.imag()*r0.imag();
 		r1 = m1 * q0 + m3 * q1;
 		sum += r1.real()*r1.real() + r1.imag()*r1.imag();
 		return sum;
+	}
+	const char* Name(void)
+	{
+		return "Norm_mult2x2";
 	}
 };
 
@@ -3866,12 +3834,8 @@ double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<doubl
 {
 	reg_t qubits = {qubit};
 
-	double ret = apply_sum_function(NormMatrixMult2x2<data_t>(mat,qubit), qubits);
+	double ret = apply_function(NormMatrixMult2x2<data_t>(mat,qubit), qubits);
 
-#ifdef AER_DEBUG
-		DebugMsg("norm2x2",qubits);
-		DebugMsg("			 ",ret);
-#endif
 	return ret;
 }
 
@@ -3894,19 +3858,26 @@ public:
 	{
 		return true;
 	}
+	bool Reduction(void)
+	{
+		return true;
+	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,gid;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
+		uint_t* offsets;
 		thrust::complex<data_t> q;
 		thrust::complex<double> m,r;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		gid = params.gid_;
 
-		q = ppV[0][i];
+		q = pV[i];
 		if((((i+gid) >> qubit) & 1) == 0){
 			m = m0;
 		}
@@ -3918,19 +3889,18 @@ public:
 
 		return (r.real()*r.real() + r.imag()*r.imag());
 	}
+	const char* Name(void)
+	{
+		return "Norm_diagonal_mult2x2";
+	}
 };
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const
 {
 	reg_t qubits = {qubit};
+	double ret = apply_function(NormDiagonalMult2x2<data_t>(mat,qubit), qubits);
 
-	double ret = apply_sum_function(NormDiagonalMult2x2<data_t>(mat,qubit), qubits);
-
-#ifdef AER_DEBUG
-	DebugMsg("norm_diagonal",qubits);
-	DebugMsg("             ",ret);
-#endif
 	return ret;
 }
 
@@ -3945,13 +3915,13 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::probability(const uint_t outcome) const 
 {
 	uint_t lcid,lid;
-	int iPlace = GlobalToLocal(lcid,lid,outcome);
+	int iPlace = GlobalToLocal(lcid,lid,outcome,m_maxChunkBits);
 
 	UpdateReferencedValue();
 
 	if(iPlace >= 0){
 		std::complex<data_t> ret;
-		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid);
+		ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
 
 		return std::real(ret)*std::real(ret) + std::imag(ret) * std::imag(ret);
 	}
@@ -3964,6 +3934,10 @@ template <typename data_t>
 std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
   const int_t END = 1LL << num_qubits();
   std::vector<double> probs(END, 0.);
+#ifdef AER_DEBUG
+	DebugMsg("calling probabilities");
+#endif
+
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 	for (int_t j=0; j < END; j++) {
 		probs[j] = probability(j);
@@ -4002,25 +3976,36 @@ public:
 	{
 		return true;
 	}
+	bool Reduction(void)
+	{
+		return true;
+	}
 
-	__host__ __device__ double operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
 	{
 		uint_t i,gid;
 		thrust::complex<data_t> q;
-		thrust::complex<data_t>** ppV;
+		thrust::complex<data_t>* pV;
 		double ret;
+		struct GateParams<data_t> params;
 
 		i = ExtractIndexFromTuple(iter);
-		ppV = ExtractBuffersFromTuple(iter);
-		gid = ExtractGlobalIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		gid = params.gid_;
 
 		ret = 0.0;
 
 		if(((i + gid) & mask) == cmask){
-			q = ppV[0][i];
+			q = pV[i];
 			ret = q.real()*q.real() + q.imag()*q.imag();
 		}
 		return ret;
+	}
+
+	const char* Name(void)
+	{
+		return "dot";
 	}
 };
 
@@ -4039,12 +4024,8 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 
 	int i;
 	for(i=0;i<DIM;i++){
-		probs[i] = apply_sum_function(dot_func<data_t>(qubits,qubits_sorted,i), qubits_sorted);
+		probs[i] = apply_function(dot_func<data_t>(qubits,qubits_sorted,i), qubits_sorted);
 	}
-#ifdef AER_DEBUG
-	DebugMsg("probabilities",qubits);
-	DebugMsg("						 ",probs);
-#endif
 
 	return probs;
 }
@@ -4061,11 +4042,10 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	data_t* pVec;
 	uint_t i;
 //	double* pChunkSum;
-	uint_t iChunk,size;
+	uint_t iChunk,numChunks,size;
 	double sum,localSum,globalSum;
 //	double* pProcTotal;
-
-//	DebugMsg("sample_measure",samples);
+	int chunkBits;
 
 #ifdef AER_TIMING
 	TimeStart(QS_GATE_MEASURE);
@@ -4075,71 +4055,104 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 	samples.assign(SHOTS, 0);
 	localSamples.assign(SHOTS, 0);
-	chunkSum.assign(m_numChunks+1, 0.0);
 
-	size = (1ull << (m_chunkBits + 1));
+	if(m_nPlaces == 1 && m_Chunks[0].DeviceID() < 0){		//run on host
+		int nThreads;
+		chunkBits = m_maxChunkBits;
 
-	//calculate sum of each chunk
+#pragma omp parallel
+		{
+#pragma omp master
+			nThreads = omp_get_num_threads();
+		}
+
+		while(m_Chunks[0].NumChunks(chunkBits) < nThreads && chunkBits > 10){
+			chunkBits--;
+		}
+		size = (1ull << (chunkBits + 1));
+
+		numChunks = m_Chunks[0].NumChunks(chunkBits);
+
+		chunkSum.assign(numChunks+1, 0.0);
+
+#pragma omp parallel for private(iChunk,pVec)
+		for(iChunk=0;iChunk<numChunks;iChunk++){
+			pVec = (data_t*)m_Chunks[0].ChunkPtr(iChunk,chunkBits);
+
+			thrust::transform_inclusive_scan(thrust::host,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+
+			chunkSum[iChunk] = m_Chunks[0].GetState(iChunk,(1ull << chunkBits)-1,chunkBits).imag();
+		}
+
+	}
+	else{
+		chunkBits = m_maxChunkBits;
+		numChunks = m_numChunks;
+		chunkSum.assign(m_numChunks+1, 0.0);
+
+		size = (1ull << (m_maxChunkBits + 1));
+
+		//calculate sum of each chunk
 #pragma omp parallel private(pVec,iChunk)
-	{
-		int tid = omp_get_thread_num();
-		int nid = omp_get_num_threads();
-		int iHost,nHost,iPlace;
-		uint_t is,iAdd,localChunkID;
-		int iDev;
+		{
+			int tid = omp_get_thread_num();
+			int nid = omp_get_num_threads();
+			int iHost,nHost,iPlace;
+			uint_t is,iAdd,localChunkID;
+			int iDev;
 
-		if(tid < m_nDevParallel){
-			iPlace = tid;
-			is = 0;
-			iAdd = 1;
-		}
-		else if(m_nPlaces > m_nDevParallel){	//calculate on host
-			iPlace = m_nDevParallel;
-			iHost = tid - m_nDevParallel;
-			nHost = nid - m_nDevParallel;
-
-			is = iHost;
-			iAdd = nHost;
-		}
-		else{
-			iPlace = -1;
-		}
-
-		if(iPlace >= 0){
-#ifdef AER_THRUST_CUDA
-			iDev = m_Chunks[iPlace].DeviceID();
-			if(iDev >= 0){
-				cudaSetDevice(iDev);
+			if(tid < m_nDevParallel){
+				iPlace = tid;
+				is = 0;
+				iAdd = 1;
+				iDev = m_Chunks[iChunk].DeviceID();
 			}
+			else if(m_nPlaces > m_nDevParallel){	//calculate on host
+				iPlace = m_nDevParallel;
+				iHost = tid - m_nDevParallel;
+				nHost = nid - m_nDevParallel;
+
+				is = iHost;
+				iAdd = nHost;
+				iDev = -1;
+			}
+			else{
+				iPlace = -1;
+			}
+
+			if(iPlace >= 0){
+				if(iDev >= 0){
+#ifdef AER_THRUST_CUDA
+					cudaSetDevice(iDev);
 #endif
-
-			for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks();iChunk+=iAdd){
-				localChunkID = m_Chunks[iPlace].ChunkID(iChunk) - m_globalChunkIndex;
-				pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk);
-
-				if(tid < m_nDevParallel){
-					thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
 				}
-				else{
-					thrust::transform_inclusive_scan(thrust::host,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-				}
-				chunkSum[localChunkID] = m_Chunks[iPlace].GetState(iChunk,(1ull << m_chunkBits)-1).imag();
 
-//				printf("   chunkSum[%d] = %e\n",iChunk,chunkSum[localChunkID]);
+				for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks(m_maxChunkBits);iChunk+=iAdd){
+					localChunkID = m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits) - m_globalChunkIndex;
+					pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk,m_maxChunkBits);
+
+					if(tid < m_nDevParallel){
+						thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+					}
+					else{
+						thrust::transform_inclusive_scan(thrust::host,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+					}
+					chunkSum[localChunkID] = m_Chunks[iPlace].GetState(iChunk,(1ull << m_maxChunkBits)-1,m_maxChunkBits).imag();
+				}
 			}
 		}
 	}
 
 	localSum = 0.0;
-	for(iChunk=0;iChunk<m_numChunks;iChunk++){
+	for(iChunk=0;iChunk<numChunks;iChunk++){
 		sum = localSum;
 		localSum += chunkSum[iChunk];
 		chunkSum[iChunk] = sum;
 	}
-	chunkSum[m_numChunks] = localSum;
+	chunkSum[numChunks] = localSum;
 
 	globalSum = 0.0;
-#ifdef QASM_MPI
+#ifdef AER_MPI
 	if(m_nprocs > 1){
 		pProcTotal = new double[m_nprocs];
 
@@ -4157,80 +4170,111 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 #endif
 
 	//now search for the position
-#pragma omp parallel private(pVec,iChunk,i)
-	{
-		int tid = omp_get_thread_num();
-		int nid = omp_get_num_threads();
-		int iHost,nHost,iPlace;
-		uint_t is,iAdd,localChunkID;
-		thrust::host_vector<uint_t> vIdx(SHOTS);
-		thrust::host_vector<double> vRnd(SHOTS);
-		thrust::host_vector<uint_t> vSmp(SHOTS);
-		int iDev;
+	if(m_nPlaces == 1 && m_Chunks[0].DeviceID() < 0){		//run on host
+		
+#pragma omp parallel for private(iChunk,pVec,i)
+		for(iChunk=0;iChunk<numChunks;iChunk++){
+			thrust::host_vector<uint_t> vIdx(SHOTS);
+			thrust::host_vector<double> vRnd(SHOTS);
+			thrust::host_vector<uint_t> vSmp(SHOTS);
 
-		if(tid < m_nDevParallel){
-			iPlace = tid;
-			is = 0;
-			iAdd = 1;
-#ifdef AER_THRUST_CUDA
-			iDev = m_Chunks[iChunk].DeviceID();
-			if(iDev >= 0){
-				cudaSetDevice(iDev);
+			uint_t nIn = 0;
+			for(i=0;i<SHOTS;i++){
+				if(rnds[i] >= globalSum + chunkSum[iChunk] && rnds[i] < globalSum + chunkSum[iChunk+1]){
+					vRnd[nIn] = rnds[i] - (globalSum + chunkSum[iChunk]);
+					vIdx[nIn] = i;
+					nIn++;
+				}
 			}
-#endif
-		}
-		else if(m_nPlaces > m_nDevParallel){	//calculate on host
-			iPlace = m_nDevParallel;
-			iHost = tid - m_nDevParallel;
-			nHost = nid - m_nDevParallel;
+			if(nIn == 0){
+				continue;
+			}
+			pVec = (data_t*)m_Chunks[0].ChunkPtr(iChunk,chunkBits);
 
-			is = iHost;
-			iAdd = nHost;
-		}
-		else{
-			iPlace = -1;
-		}
+			thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
 
-		if(iPlace >= 0){
-			uint_t nIn;
+			for(i=0;i<nIn;i++){
+				localSamples[vIdx[i]] = ((m_Chunks[0].ChunkID(iChunk,chunkBits)) << chunkBits) + vSmp[i]/2;
+			}
+		}
+	}
+	else{
+#pragma omp parallel private(pVec,iChunk,i)
+		{
+			int tid = omp_get_thread_num();
+			int nid = omp_get_num_threads();
+			int iHost,nHost,iPlace;
+			uint_t is,iAdd,localChunkID;
+			thrust::host_vector<uint_t> vIdx(SHOTS);
+			thrust::host_vector<double> vRnd(SHOTS);
+			thrust::host_vector<uint_t> vSmp(SHOTS);
+			int iDev;
+
+			if(tid < m_nDevParallel){
+				iPlace = tid;
+				is = 0;
+				iAdd = 1;
+				iDev = m_Chunks[iChunk].DeviceID();
+			}
+			else if(m_nPlaces > m_nDevParallel){	//calculate on host
+				iPlace = m_nDevParallel;
+				iHost = tid - m_nDevParallel;
+				nHost = nid - m_nDevParallel;
+
+				is = iHost;
+				iAdd = nHost;
+				iDev = -1;
+			}
+			else{
+				iPlace = -1;
+			}
+
+			if(iPlace >= 0){
+				uint_t nIn;
 
 #ifdef AER_THRUST_CUDA
-			thrust::device_vector<double> vRnd_dev(SHOTS);
-			thrust::device_vector<uint_t> vSmp_dev(SHOTS);
+				thrust::device_vector<double> vRnd_dev;
+				thrust::device_vector<uint_t> vSmp_dev;
+				if(iDev >= 0){
+					cudaSetDevice(iDev);
+					vRnd_dev.resize(SHOTS);
+					vSmp_dev.resize(SHOTS);
+				}
 #endif
 
-			for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks();iChunk+=iAdd){
-				localChunkID = m_Chunks[iPlace].ChunkID(iChunk) - m_globalChunkIndex;
-				nIn = 0;
-				for(i=0;i<SHOTS;i++){
-					if(rnds[i] >= globalSum + chunkSum[localChunkID] && rnds[i] < globalSum + chunkSum[localChunkID+1]){
-						vRnd[nIn] = rnds[i] - (globalSum + chunkSum[localChunkID]);
-						vIdx[nIn] = i;
-						nIn++;
+				for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks(m_maxChunkBits);iChunk+=iAdd){
+					localChunkID = m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits) - m_globalChunkIndex;
+					nIn = 0;
+					for(i=0;i<SHOTS;i++){
+						if(rnds[i] >= globalSum + chunkSum[localChunkID] && rnds[i] < globalSum + chunkSum[localChunkID+1]){
+							vRnd[nIn] = rnds[i] - (globalSum + chunkSum[localChunkID]);
+							vIdx[nIn] = i;
+							nIn++;
+						}
 					}
-				}
-				if(nIn == 0){
-					continue;
-				}
+					if(nIn == 0){
+						continue;
+					}
 
 
-				pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk);
+					pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk,m_maxChunkBits);
 
 #ifdef AER_THRUST_CUDA
-				if(tid < m_nDevParallel){
-					vRnd_dev = vRnd;
-					thrust::lower_bound(thrust::device, pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
-					vSmp = vSmp_dev;
-				}
-				else{
+					if(tid < m_nDevParallel){
+						vRnd_dev = vRnd;
+						thrust::lower_bound(thrust::device, pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
+						vSmp = vSmp_dev;
+					}
+					else{
 #endif
-					thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+						thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
 #ifdef AER_THRUST_CUDA
-				}
+					}
 #endif
 
-				for(i=0;i<nIn;i++){
-					localSamples[vIdx[i]] = ((m_Chunks[iPlace].ChunkID(iChunk)) << m_chunkBits) + vSmp[i]/2;
+					for(i=0;i<nIn;i++){
+						localSamples[vIdx[i]] = ((m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits)) << m_maxChunkBits) + vSmp[i]/2;
+					}
 				}
 			}
 		}
@@ -4380,7 +4424,7 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::DebugDump(void)
+void QubitVectorThrust<data_t>::DebugDump(void) const
 {
 	if(debug_fp != NULL){
 		if(num_qubits_ < 10){
@@ -4388,15 +4432,15 @@ void QubitVectorThrust<data_t>::DebugDump(void)
 			int iPlace;
 			uint_t i,j,ic,nc;
 			uint_t pos = 0;
-			uint_t csize = 1ull << m_chunkBits;
+			uint_t csize = 1ull << m_maxChunkBits;
 			cvector_t<data_t> tmp(csize);
 
 			UpdateReferencedValue();
 
 			for(iPlace=0;iPlace<m_nPlaces;iPlace++){
-				nc = m_Chunks[iPlace].NumChunks();
+				nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
 				for(ic=0;ic<nc;ic++){
-					m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+					m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic,m_maxChunkBits);
 
 					for(i=0;i<csize;i++){
 						for(j=0;j<num_qubits_;j++){

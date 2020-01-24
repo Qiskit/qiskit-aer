@@ -338,16 +338,18 @@ public:
 
   }
 
-  __host__ __device__ void operator()(const thrust::tuple<uint_t,thrust::complex<data_t>**,thrust::complex<double>*,uint_t*,uint_t,uint_t> &iter) const
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
   {
     uint_t i,i0,i1,i2;
-    thrust::complex<data_t>** ppV;
+	thrust::complex<data_t>* pV;
+	uint_t* offsets;
     thrust::complex<data_t> q0,q1,q2,q3;
+		struct GateParams<data_t> params;
 
-//    i = thrust::get<0>(iter);
-//    ppV = thrust::get<1>(iter);
   	i = ExtractIndexFromTuple(iter);
-  	ppV = ExtractBuffersFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
 
     i0 = i & mask0;
     i2 = (i - i0) << 1;
@@ -356,22 +358,25 @@ public:
 
     i0 = i0 + i1 + i2;
 
-    q0 = ppV[0][i0];
-    q1 = ppV[1][i0];
-    q2 = ppV[2][i0];
-    q3 = ppV[3][i0];
+    q0 = pV[offsets[0]+i0];
+    q1 = pV[offsets[1]+i0];
+    q2 = pV[offsets[2]+i0];
+    q3 = pV[offsets[3]+i0];
 
-    ppV[0][i0] = q3;
-    ppV[1][i0] = q2;
-    ppV[2][i0] = q1;
-    ppV[3][i0] = q0;
+    pV[offsets[0]+i0] = q3;
+    pV[offsets[1]+i0] = q2;
+    pV[offsets[2]+i0] = q1;
+    pV[offsets[3]+i0] = q0;
+		return 0.0;
   }
+
 };
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
+
 	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
 
 #ifdef AER_DEBUG
