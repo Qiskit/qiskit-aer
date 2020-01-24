@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, QiskitError
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 from qiskit.quantum_info.random import random_unitary
