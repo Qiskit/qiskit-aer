@@ -184,7 +184,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython 'pip<20.0.0' virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-* cp38-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
@@ -193,14 +193,23 @@ jobs:
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
 #      if: tag IS present
       script:
-        - pip install -U "pip<20.0.0" virtualenv
+        - pip install -U pip virtualenv
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
+    - name: sdist upload
+#      if: tag IS present
+      <<: *stage_linux
+      env:
+        - TWINE_USERNAME=qiskit
+      python: 3.7
+      script:
+        - python setup.py sdist
+#        - twine upload dist/*
     - os: osx
 #      if: tag IS present
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython 'pip<20.0.0' virtualenv pybind11"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
@@ -210,7 +219,7 @@ jobs:
           packages:
           - openblas
       script:
-        - sudo pip2 install -U 'pip<20.0.0' virtualenv
+        - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
