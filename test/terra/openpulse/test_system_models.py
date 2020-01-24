@@ -17,6 +17,7 @@ import unittest
 import warnings
 from test.terra.common import QiskitAerTestCase
 import qiskit
+from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
@@ -96,8 +97,17 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
             self.assertEqual(len(w), 1)
             self.assertTrue('ControlChannel' in str(w[-1].message))
 
+    def test_control_channel_labels_from_backend(self):
+        """Test correct importing of backend control channel description."""
+        backend = FakeOpenPulse2Q()
 
-    def test_qubit_lo_default_from_backend(self):
+        system_model = PulseSystemModel.from_backend(backend)
+        expected = [{'driven_q': 1, 'freq': '(1+0j)q0'},
+                    {'driven_q': 0, 'freq': '(-1+0j)q0 + (1+0j)q1'}]
+
+        self.assertEqual(system_model.control_channel_labels, expected)
+
+    def test_qubit_lo_default(self):
         """Test drawing of defaults form a backend."""
         test_model = self._simple_system_model()
         default_qubit_lo_freq = self._default_qubit_lo_freq
