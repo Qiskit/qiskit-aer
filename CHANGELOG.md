@@ -20,7 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
-
+- Added high level pulse simulator tests (\#379)
 Changed
 -------
 
