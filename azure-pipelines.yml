@@ -17,6 +17,8 @@ stages:
       variables:
         TWINE_USERNAME: qiskit
       steps:
+        - checkout: self
+          submodules: true
         - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
           displayName: Add conda to PATH
         - bash: |
