@@ -81,8 +81,8 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
             self.assertEqual(len(w), 1)
             self.assertTrue('ControlChannel' in str(w[-1].message))
 
-        # add a control channel dict
-        test_model.control_channel_dict = {(0,1): 0}
+        # control channel labels
+        test_model.control_channel_labels = [(0,1)]
 
         self.assertEqual(test_model.control_channel_index((0,1)), 0)
 
