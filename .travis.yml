@@ -27,6 +27,7 @@ sudo: false
 #   * stage_osx
 stage_generic: &stage_generic
   install:
+    - pip install -U 'pip<20.0.0'
     - pip install cython
     # Installing qiskit-terra master branch...
     - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
@@ -117,6 +118,12 @@ jobs:
 
     # "test" stage
     ###########################################################################
+    # GNU/Linux, Python 3.8
+    - stage: test
+      name: Python 3.8 Tests Linux
+      <<: *stage_linux
+      python: 3.8
+
     # GNU/Linux, Python 3.7
     - stage: test
       name: Python 3.7 Tests Linux
@@ -136,6 +143,13 @@ jobs:
       name: Python 3.5 Tests Linux
       <<: *stage_linux
       python: 3.5
+
+    - stage: test
+      name: Python 3.8 Tests OSX
+      <<: *stage_osx
+      python: 3.8
+      env:
+        - PYTHON_VERSION=3.8.1
 
     # OSX, Python 3.7.2 (via pyenv)
     - stage: test

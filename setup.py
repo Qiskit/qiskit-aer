@@ -1,14 +1,22 @@
 import os
+import subprocess
+import sys
+
 try:
     from skbuild import setup
 except ImportError:
-    import subprocess, sys
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
     from skbuild import setup
+try:
+    import pybind11
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+
 from setuptools import find_packages
 
 requirements = [
-    "numpy>=1.13"
+    "numpy>=1.13",
+    "pybind11>=2.4"
 ]
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
@@ -47,12 +55,15 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: C++",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     install_requires=requirements,
-    setup_requires=['scikit-build', 'cmake', 'Cython'],
+    setup_requires=['scikit-build', 'cmake', 'Cython', 'pybind11>2.4'],
     include_package_data=True,
     cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
     keywords="qiskit aer simulator quantum addon backend",

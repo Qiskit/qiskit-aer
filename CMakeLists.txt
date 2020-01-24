@@ -131,8 +131,8 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -195,8 +195,9 @@ else() # Standalone build
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
-		CXX_STANDARD 14)
-	set_target_properties(qasm_simulator PROPERTIES
+		CXX_STANDARD 14
+		COMPILE_FLAGS ${AER_COMPILE_FLAGS}
+		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
