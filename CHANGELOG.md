@@ -20,6 +20,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
 
 Changed
 -------
