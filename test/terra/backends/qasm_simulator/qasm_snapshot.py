@@ -59,7 +59,8 @@ class QasmSnapshotStatevectorTests:
         statevecs = []
         for snap in snaps:
             svec = np.array(snap)
-            statevecs.append(svec[:, 0] + 1j * svec[:, 1])
+            statevecs.append(svec)
+            #statevecs.append(svec[:, 0] + 1j * svec[:, 1])
         return statevecs
 
     def test_snapshot_statevector_pre_measure_det(self):
@@ -605,7 +606,7 @@ class QasmSnapshotExpValPauliTests:
             inner = {}
             for snap_dict in snaps:
                 val = snap_dict['value']
-                inner[snap_dict['memory']] = val[0] + 1j * val[1]
+                inner[snap_dict['memory']] = val
             output[label] = inner
         return output
 

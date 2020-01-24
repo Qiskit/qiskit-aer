@@ -45,6 +45,7 @@ using namespace pybind11::literals;
 using json_t = nlohmann::json;
 
 #include "framework/results/result.hpp"
+#include "framework/results/data/average_data.hpp"
 
 namespace std {
 
@@ -274,6 +275,48 @@ void std::from_json(const json_t &js, py::object &o) {
 // Pybind Conversion for Simulator types
 //============================================================================
 
+template<typename T> 
+py::object from_matrix(const matrix<T> &mat) {
+  std::vector<std::vector<T> > tbr;
+  size_t rows = mat.GetRows();
+  size_t cols = mat.GetColumns();
+  for (size_t r = 0; r < rows; r++) {
+    std::vector<T> mrow;
+    for (size_t c = 0; c < cols; c++)
+      mrow.push_back(mat(r, c));
+    tbr.push_back(mrow);
+  }
+  return py::cast(tbr);
+}
+
+template<typename T> 
+py::dict from_avg_data(const AER::AverageData<T> &avg_data) {
+  py::dict d;
+  d["value"] = avg_data.mean();
+  if (avg_data.has_variance()) {
+    d["variance"] = avg_data.variance();
+  }
+  return d;
+}
+
+template<typename T> 
+py::object from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
+  py::dict d;
+  for (const auto &outer_pair : avg_snap.data()) {
+    py::list d1;
+    for (const auto &inner_pair : outer_pair.second) {
+      // Store mean and variance for snapshot
+      py::dict datum = from_avg_data(inner_pair.second);
+      // Add memory key if there are classical registers
+      auto memory = inner_pair.first;
+      if ( ! memory.empty()) datum["memory"] = inner_pair.first;
+        // Add to list of output
+      d1.append(datum);
+    }
+    d[outer_pair.first.data()] = d1;
+  }
+  return d;
+}
 
 py::object from_exp_data(const AER::ExperimentData &result) {
   py::dict pyresult;
@@ -288,21 +331,16 @@ py::object from_exp_data(const AER::ExperimentData &result) {
 
   // Add additional data
   for (const auto &pair : result.additional_json_data_) {
+    //std::cout << "HELLO 1" << std::endl;
     py::object tmp;
     from_json(pair.second, tmp);
     pyresult[pair.first.data()] = tmp;
   }
   for (const auto &pair : result.additional_cvector_data_) {
-    py::object tmp;
-    from_json(pair.second, tmp);
-    pyresult[pair.first.data()] = tmp;
-    //pyresult[pair.first.data()] = pair.second;
-    //py::print("    {}:, {}"_s.format(pair.first.data(), pyresult[pair.first.data()]));
+    pyresult[pair.first.data()] = pair.second;
   }
   for (const auto &pair : result.additional_cmatrix_data_) {
-    py::object tmp;
-    from_json(pair.second, tmp);
-    pyresult[pair.first.data()] = tmp;
+    pyresult[pair.first.data()] = from_matrix(pair.second);    
   }
 
   // Snapshot data
@@ -315,29 +353,19 @@ py::object from_exp_data(const AER::ExperimentData &result) {
       snapshots[pair.first.data()] = tmp;
     }
     for (auto &pair : result.average_complex_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      snapshots[pair.first.data()] = from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cvector_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      snapshots[pair.first.data()] = from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cmatrix_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      snapshots[pair.first.data()] = from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cmap_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      snapshots[pair.first.data()] = from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_rmap_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      snapshots[pair.first.data()] = from_avg_snap(pair.second);
     }
     // Singleshot snapshot data
     // Note these will override the average snapshots
@@ -348,29 +376,39 @@ py::object from_exp_data(const AER::ExperimentData &result) {
       snapshots[pair.first.data()] = tmp;
     }
     for (auto &pair : result.pershot_complex_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      py::dict d;
+      // string PershotData
+      for (auto &per_pair : pair.second.data())
+        d[per_pair.first.data()] = per_pair.second.data();
+      snapshots[pair.first.data()] = d;
     }
     for (auto &pair : result.pershot_cvector_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      py::dict d;
+      // string PershotData
+      for (auto &per_pair : pair.second.data())
+        d[per_pair.first.data()] = per_pair.second.data();
+      snapshots[pair.first.data()] = d;
     }
     for (auto &pair : result.pershot_cmatrix_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      py::dict d;
+      // string PershotData
+      for (auto &per_pair : pair.second.data())
+        d[per_pair.first.data()] = per_pair.second.data();
+      snapshots[pair.first.data()] = d;
     }
     for (auto &pair : result.pershot_cmap_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      py::dict d;
+      // string PershotData
+      for (auto &per_pair : pair.second.data())
+        d[per_pair.first.data()] = per_pair.second.data();
+      snapshots[pair.first.data()] = d;
     }
     for (auto &pair : result.pershot_rmap_snapshots_) {
-      py::object tmp;
-      from_json(pair.second, tmp);
-      snapshots[pair.first.data()] = tmp;
+      py::dict d;
+      // string PershotData
+      for (auto &per_pair : pair.second.data())
+        d[per_pair.first.data()] = per_pair.second.data();
+      snapshots[pair.first.data()] = d;
     }
     if ( py::len(snapshots) != 0 )
         pyresult["snapshots"] = snapshots;
