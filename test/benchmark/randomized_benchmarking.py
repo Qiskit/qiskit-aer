@@ -16,10 +16,14 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 import numpy as np
+
 from qiskit import assemble
 from qiskit import transpile
 from qiskit import Aer
 import qiskit.ignis.verification.randomized_benchmarking as rb
+
+from .tools import kraus_noise_model, no_noise, mixed_unitary_noise_model, \
+                   reset_noise_model
 
 
 def build_rb_circuit(nseeds=1, length_vector=None,
@@ -53,16 +57,18 @@ def build_rb_circuit(nseeds=1, length_vector=None,
     return all_circuits
 
 
-class RandomizedBenchmarkingBenchmark:
+class RandomizedBenchmarkingQasmSimBenchmark:
     # parameters for RB (1&2 qubits):
     params = ([[[0]], [[0, 1]], [[0, 2], [1]]],
               ['statevector', 'density_matrix', 'stabilizer',
-               'extended_stabilizer', 'matrix_product_state'])
-    param_names = ['rb_pattern', 'simulator_method']
+               'extended_stabilizer', 'matrix_product_state'],
+              [no_noise(), mixed_unitary_noise_model(), reset_noise_model(),
+               kraus_noise_model()])
+    param_names = ['rb_pattern', 'simulator_method', 'noise_model']
     version = '0.2.0'
     timeout = 600
 
-    def setup(self, rb_pattern, _):
+    def setup(self, rb_pattern, _, __):
         length_vector = np.arange(1, 200, 4)
         nseeds = 1
         self.seed = 10
@@ -75,9 +81,19 @@ class RandomizedBenchmarkingBenchmark:
                                seed_transpiler=self.seed)
         self.qobj = assemble(trans_circ, backend=self.sim_backend)
 
-    def time_run_rb_circuit(self, _, simulator_method):
+    def time_run_rb_circuit(self, _, simulator_method, noise_model):
         backend_options = {
             'method': simulator_method,
+            'noise_model': noise_model(),
+        }
+        job = self.sim_backend.run(self.qobj,
+                                   backend_options=backend_options)
+        job.result()
+
+    def peakmem_run_rb_circuit(self, _, simulator_method, noise_model):
+        backend_options = {
+            'method': simulator_method,
+            'noise_model': noise_model(),
         }
         job = self.sim_backend.run(self.qobj,
                                    backend_options=backend_options)
