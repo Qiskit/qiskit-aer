@@ -16,7 +16,6 @@ Terra tests
 
 import os
 
-
 def load_tests(loader, standard_tests, pattern):
     """
     test suite for unittest discovery

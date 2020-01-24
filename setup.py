@@ -1,3 +1,9 @@
+# pylint: disable=invalid-name
+
+"""
+Main setup file for qiskit-aer
+"""
+
 import os
 import subprocess
 import sys
@@ -26,6 +32,8 @@ with open(VERSION_PATH, "r") as version_file:
 
 
 def find_qiskit_aer_packages():
+    """Finds qiskit aer packages.
+    """
     location = 'qiskit/providers'
     prefix = 'qiskit.providers'
     aer_packages = find_packages(where=location)
