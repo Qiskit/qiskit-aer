@@ -37,9 +37,9 @@ stages:
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake openblas virtualenv pip setuptools pybind11
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
-                test-$version/bin/pip install dist/*whl
-                test-$version/bin/pip install git+https://github.com/Qiskit/qiskit-terra
-                test-$version/bin/python tools/verify_wheels.py
+                test-$version/Scripts/pip install dist/*whl
+                test-$version/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
+                test-$version/Scripts/python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 git clean -fdX
                 rm -rf test-$version
