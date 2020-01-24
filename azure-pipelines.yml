@@ -16,38 +16,36 @@ stages:
 #      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
-        CIBW_BEFORE_BUILD: pip install -U virtualenv pybind11
-        CIBW_SKIP: cp27-* cp34-* *win32
-        CIBW_TEST_COMMAND: python {project}\tools\verify_wheels.py
-        CIBW_TEST_REQUIRES: git+https://github.com/Qiskit/qiskit-terra.git
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
           displayName: Add conda to PATH
-        - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber)
-          displayName: Create Anaconda environment
         - bash: |
             set -x
             set -e
-            source activate qiskit-aer-$(Build.BuildNumber)
-            conda update --yes -n base conda
-            conda config --add channels conda-forge
-            conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=3.7 numpy cmake openblas flang clangdev perl libflang virtualenv pip
-            conda install -y -c isuruf kitware-ninja
-          displayName: Install Anaconda packages
+            for version in 3.5 3.6 3.7 3.8 ; do
+                conda create --yes --quiet --name qiskit-aer-$version python=$version
+            done
+          displayName: Create Anaconda environments
         - bash: |
+            set -x
             set -e
-            source activate qiskit-aer-$(Build.BuildNumber)
-            pip install cibuildwheel==1.1.0
-            pip install -U twine
-            CIBW_ENVIRONMENT="FORCE_GENERATOR='Visual Studio 15 2017 Win64'" cibuildwheel --output-dir wheelhouse .
+            mkdir wheelhouse
+            for version in 3.5 3.6 3.7 3.8 ; do
+                source activate qiskit-aer-$version
+                conda update --yes -n base conda
+                conda config --add channels conda-forge
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake openblas virtualenv pip setuptools pybind11
+                python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+                virtualenv test-$version
+                test-$version/bin/pip install dist/*whl
+                test-$version/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+                test-$version/bin/python tools/verify_wheels.py
+                mv dist/*whl wheelhouse/.
+                git clean -fdX
+                rm -rf test-$version
+            done
+
+          displayName: Build wheels
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
