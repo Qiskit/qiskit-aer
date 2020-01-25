@@ -21,8 +21,18 @@ except ImportError:
 from setuptools import find_packages
 
 requirements = [
-    "numpy>=1.13",
-    "pybind11>=2.4"
+    'numpy>=1.13',
+    'scipy>=1.0',
+    'cython>=0.27.1',
+    'pybind11>=2.4'  # This isn't really an install requirement,
+                     # Pybind11 is required to be pre-installed for
+                     # CMake to successfully find header files.
+                     # This should be fixed in the CMake build files.
+]
+
+setup_requirements = requirements + [
+    'scikit-build',
+    'cmake'
 ]
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
@@ -71,7 +81,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     install_requires=requirements,
-    setup_requires=['scikit-build', 'cmake', 'Cython', 'pybind11>2.4'],
+    setup_requires=setup_requirements,
     include_package_data=True,
     cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
     keywords="qiskit aer simulator quantum addon backend",
