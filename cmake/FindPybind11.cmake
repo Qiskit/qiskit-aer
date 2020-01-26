@@ -44,15 +44,7 @@ function(basic_pybind11_add_module target_name)
 
     # This sets various properties (python include dirs) and links to python libs
     target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS})
-    set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
-    set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}")
-
     target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
-    set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-    set_target_properties(${target_name} PROPERTIES CXX_STANDARD 14)
-
     if(WIN32 OR CYGWIN)
         # Link against the Python shared library on Windows
         target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
@@ -64,7 +56,7 @@ function(basic_pybind11_add_module target_name)
         # into Blender or Maya later on, this will cause segfaults when multiple
         # conflicting Python instances are active at the same time (even when they
         # are of the same version).
- 
+
         # Windows is not affected by this issue since it handles DLL imports
         # differently. The solution for Linux and Mac OS is simple: we just don't
         # link against the Python library. The resulting shared library will have
@@ -80,9 +72,15 @@ function(basic_pybind11_add_module target_name)
             # See: Two-Leve namespace symbol resolution
             set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} -undefined dynamic_lookup -flat_namespace")
         endif()
-        set_target_properties(${target_name} PROPERTIES
-            LINK_FLAGS ${AER_LINKER_FLAGS}
-            COMPILE_FLAGS ${AER_COMPILE_FLAGS}
-            MACOSX_RPATH ON)
+        set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
     endif()
+    set_target_properties(${target_name} PROPERTIES
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}"
+        CXX_STANDARD 14
+        LINKER_LANGUAGE CXX
+        CXX_VISIBILITY_PRESET "hidden"
+        CUDA_VISIBILITY_PRESET "hidden"
+        LINK_FLAGS ${AER_LINKER_FLAGS}
+        COMPILE_FLAGS ${AER_COMPILE_FLAGS})
 endfunction()
