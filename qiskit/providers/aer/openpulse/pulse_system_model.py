@@ -30,7 +30,7 @@ class PulseSystemModel():
                  qubit_freq_est=None,
                  meas_freq_est=None,
                  u_channel_lo=None,
-                 control_channel_dict=None,
+                 control_channel_labels=None,
                  qubit_list=None,
                  dt=None):
         """Basic constructor.
@@ -48,7 +48,7 @@ class PulseSystemModel():
             raise AerError("hamiltonian must be a HamiltonianModel object")
         self.hamiltonian = hamiltonian
         self.u_channel_lo = u_channel_lo
-        self.control_channel_dict = control_channel_dict or {}
+        self.control_channel_labels = control_channel_labels or []
         self.qubit_list = qubit_list
         self.dt = dt
 
@@ -84,31 +84,64 @@ class PulseSystemModel():
         # draw from configuration
         # if no qubit_list, use all for device
         qubit_list = qubit_list or list(range(config['n_qubits']))
-        hamiltonian = HamiltonianModel.from_dict(config['hamiltonian'], qubit_list)
+        ham_string = config['hamiltonian']
+        hamiltonian = HamiltonianModel.from_dict(ham_string, qubit_list)
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)
+
+        control_channel_labels = [None] * len(u_channel_lo)
+        # populate control_channel_dict
+        # for now it assumes the u channel drives a single qubit, and we return the index
+        # of the driven qubit, along with the frequency description
+        if u_channel_lo is not None:
+            for u_idx, u_lo in enumerate(u_channel_lo):
+                # find drive index
+                drive_idx = None
+                while drive_idx is None:
+                    u_str_label = 'U{0}'.format(str(u_idx))
+                    for h_term_str in ham_string['h_str']:
+                        # check if this string corresponds to this u channel
+                        if u_str_label in h_term_str:
+                            # get index of X operator drive term
+                            x_idx = h_term_str.find('X')
+                            # if 'X' is found, and is not at the end of the string, drive_idx
+                            # is the subsequent character
+                            if x_idx != -1 and x_idx + 1 < len(h_term_str):
+                                drive_idx = int(h_term_str[x_idx + 1])
+
+                if drive_idx is not None:
+                    # construct string for u channel
+                    u_string = ''
+                    for u_term_dict in u_lo:
+                        scale = u_term_dict.get('scale', [1.0, 0])
+                        q_idx = u_term_dict.get('q')
+                        if len(u_string) > 0:
+                            u_string += ' + '
+                        u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
+                    control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
 
         return cls(hamiltonian=hamiltonian,
                    qubit_freq_est=qubit_freq_est,
                    meas_freq_est=meas_freq_est,
                    u_channel_lo=u_channel_lo,
+                   control_channel_labels=control_channel_labels,
                    qubit_list=qubit_list,
                    dt=dt)
 
-    def control_channel_index(self, key):
-        """Return the index of the control channel with identifying key.
+    def control_channel_index(self, label):
+        """Return the index of the control channel with identifying label.
 
         Args:
-            key (Any): key that identifies a control channel
+            label (Any): label that identifies a control channel
 
         Returns:
-            int or None: index of the control channel
+            int or None: index of the ControlChannel
         """
-        if key not in self.control_channel_dict:
-            warn('There is no listed ControlChannel matching the provided key.')
+        if label not in self.control_channel_labels:
+            warn('There is no listed ControlChannel matching the provided label.')
             return None
         else:
-            return self.control_channel_dict.get(key)
+            return self.control_channel_labels.index(label)
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
         """Calculate frequencies for each channel.

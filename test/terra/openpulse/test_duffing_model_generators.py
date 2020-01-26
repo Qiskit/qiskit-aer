@@ -43,7 +43,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                                                       drive_strengths,
                                                       coupling_dict,
                                                       dt)
-        cr_idx_dict = system_model.control_channel_dict
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1])
@@ -124,7 +124,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                                                       drive_strengths,
                                                       coupling_dict,
                                                       dt)
-        cr_idx_dict = system_model.control_channel_dict
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2])
@@ -218,7 +218,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                                                       drive_strengths,
                                                       coupling_dict,
                                                       dt)
-        cr_idx_dict = system_model.control_channel_dict
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.qubit_list, [0, 1, 2, 3])
