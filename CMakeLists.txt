@@ -132,7 +132,7 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
@@ -143,6 +143,8 @@ if(OPENMP_FOUND)
 		endif()
 	endif()
 	message(STATUS "OpenMP found!")
+	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
@@ -234,7 +236,7 @@ else() # Standalone build
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
-		COMPILE_FLAGS ${AER_COMPILE_FLAGS}
+		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
 		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)

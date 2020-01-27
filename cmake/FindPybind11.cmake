@@ -45,6 +45,7 @@ function(basic_pybind11_add_module target_name)
     # This sets various properties (python include dirs) and links to python libs
     target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
+
     if(WIN32 OR CYGWIN)
         # Link against the Python shared library on Windows
         target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
@@ -74,13 +75,18 @@ function(basic_pybind11_add_module target_name)
         endif()
         set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
     endif()
+    # -fvisibility=hidden is required to allow multiple modules compiled against
+    # different pybind versions to work properly, and for some features (e.g.
+    # py::module_local).  We force it on everything inside the `pybind11`
+    # namespace; also turning it on for a pybind module compilation here avoids
+    # potential warnings or issues from having mixed hidden/non-hidden types.
+    set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
+    set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}")
     set_target_properties(${target_name} PROPERTIES
-        PREFIX "${PYTHON_MODULE_PREFIX}"
-        SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}"
         CXX_STANDARD 14
-        LINKER_LANGUAGE CXX
-        CXX_VISIBILITY_PRESET "hidden"
-        CUDA_VISIBILITY_PRESET "hidden"
-        LINK_FLAGS ${AER_LINKER_FLAGS}
-        COMPILE_FLAGS ${AER_COMPILE_FLAGS})
+        LINKER_LANGUAGE CXX)
+    # Warning: Do not merge PROPERTIES when one of the variables can be empty, it breaks
+    # the rest of the properties so they are not properly added.
+    set_target_properties(${target_name} PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
+    set_target_properties(${target_name} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS})
 endfunction()
