@@ -42,7 +42,7 @@ class PulseSystemModel():
             meas_freq_est (list): list of qubit meas frequencies defaults to be used in simulation
                                   if none are specified in the PulseQobj.
             u_channel_lo (list): list of ControlChannel frequency specifications.
-            control_channel_lables (list): list of labels for control channels, which can be of
+            control_channel_labels (list): list of labels for control channels, which can be of
                                            any type.
             qubit_list (list): list of valid qubit indicies for the model.
             dt (float): pixel size for pulse Instructions.
