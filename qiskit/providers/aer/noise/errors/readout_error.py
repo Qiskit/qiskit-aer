@@ -14,6 +14,7 @@ Readout error class for Qiskit Aer noise model.
 """
 
 import copy
+import warnings
 
 import numpy as np
 from numpy.linalg import norm
@@ -175,12 +176,11 @@ class ReadoutError:
         return error
 
     def compose(self, other, front=False):
-        """Return the composition readout error self∘other.
+        """Return the composition readout error other * self.
 
         Args:
             other (ReadoutError): a readout error.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
+            front (bool): DEPRECATED If True return self * other instead.
                           [default: False]
 
         Returns:
@@ -190,15 +190,27 @@ class ReadoutError:
             NoiseError: if other is not a ReadoutError or has incompatible
             dimensions.
         """
-        if not isinstance(other, ReadoutError):
-            other = ReadoutError(other)
-        if self.number_of_qubits != other.number_of_qubits:
-            raise NoiseError("other must have same number of qubits.")
         if front:
-            probs = np.dot(self._probabilities, other._probabilities)
-        else:
-            probs = np.dot(other._probabilities, self._probabilities)
-        return ReadoutError(probs)
+            # DEPRECATED kwarg `front`
+            warnings.warn('`compose(other, front=True)` is deprecated, use `dot(other)` instead.',
+                          DeprecationWarning)
+            return self._matmul(other)
+        return self._matmul(other, left_multiply=True)
+
+    def dot(self, other):
+        """Return the composition readout error self * other.
+
+        Args:
+            other (ReadoutError): a readout error.
+
+        Returns:
+            ReadoutError: The composition readout error.
+
+        Raises:
+            NoiseError: if other is not a ReadoutError or has incompatible
+            dimensions.
+        """
+        return self._matmul(other)
 
     def power(self, n):
         """Return the compose of the readout error with itself n times.
@@ -274,6 +286,30 @@ class ReadoutError:
                     "Invalid probabilities: {} "
                     "contains a negative probability.".format(vec))
 
+    def _matmul(self, other, left_multiply=False):
+        """Return the composition readout error.
+
+        Args:
+            other (ReadoutError): a readout error.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+        Returns:
+            ReadoutError: The composition readout error.
+
+        Raises:
+            NoiseError: if other is not a ReadoutError or has incompatible
+            dimensions.
+        """
+        if not isinstance(other, ReadoutError):
+            other = ReadoutError(other)
+        if self.number_of_qubits != other.number_of_qubits:
+            raise NoiseError("other must have same number of qubits.")
+        if left_multiply:
+            probs = np.dot(other._probabilities, self._probabilities)
+        else:
+            probs = np.dot(self._probabilities, other._probabilities)
+        return ReadoutError(probs)
+
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product readout error.
 
@@ -291,3 +327,33 @@ class ReadoutError:
         else:
             probs = np.kron(self._probabilities, other._probabilities)
         return ReadoutError(probs)
+
+    # Overloads
+    def __matmul__(self, other):
+        return self.compose(other)
+
+    def __mul__(self, other):
+        return self.dot(other)
+
+    def __pow__(self, n):
+        return self.power(n)
+
+    def __xor__(self, other):
+        return self.tensor(other)
+
+    def __rmul__(self, other):
+        raise NotImplementedError(
+            "'ReadoutError' does not support scalar multiplication.")
+
+    def __truediv__(self, other):
+        raise NotImplementedError("'ReadoutError' does not support division.")
+
+    def __add__(self, other):
+        raise NotImplementedError("'ReadoutError' does not support addition.")
+
+    def __sub__(self, other):
+        raise NotImplementedError(
+            "'ReadoutError' does not support subtraction.")
+
+    def __neg__(self):
+        raise NotImplementedError("'ReadoutError' does not support negation.")
