@@ -184,13 +184,15 @@ def _duffing_hamiltonian_dict(oscillators,
     hamiltonian_str += _drive_terms(drive_symbols, oscillators)
 
     # exchange terms
-    hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
+    if len(ordered_coupling_edges) > 0:
+        hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
 
     # cr terms
-    driven_system_indices = [key[0] for key in cr_idx_dict.keys()]
-    cr_drive_symbols = [drive_symbols[idx] for idx in driven_system_indices]
-    cr_channel_idx = cr_idx_dict.values()
-    hamiltonian_str += _cr_terms(cr_drive_symbols, driven_system_indices, cr_channel_idx)
+    if len(cr_idx_dict) > 0:
+        driven_system_indices = [key[0] for key in cr_idx_dict.keys()]
+        cr_drive_symbols = [drive_symbols[idx] for idx in driven_system_indices]
+        cr_channel_idx = cr_idx_dict.values()
+        hamiltonian_str += _cr_terms(cr_drive_symbols, driven_system_indices, cr_channel_idx)
 
     # construct vars dictionary
     var_dict = {}
@@ -199,8 +201,9 @@ def _duffing_hamiltonian_dict(oscillators,
         var_dict[anharm_symbols[idx]] = anharm_freqs[idx]
         var_dict[drive_symbols[idx]] = drive_strengths[idx]
 
-    for symbol, strength in zip(coupling_symbols, coupling_strengths):
-        var_dict[symbol] = strength
+    if len(coupling_symbols) > 0:
+        for symbol, strength in zip(coupling_symbols, coupling_strengths):
+            var_dict[symbol] = strength
 
     dim_dict = {str(oscillator): dim for oscillator, dim in zip(oscillators, oscillator_dims)}
 
