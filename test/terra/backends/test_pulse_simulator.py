@@ -621,6 +621,117 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         }  # non-swapped state (reverse bit order)
         self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
+    @run_cython_and_cpp_solvers
+    def test_random_3Q_propagator(self):
+        """Tests the evolution with a random three-qubit Hamiltonian."""
+        time = 10
+        np.random.seed(1)
+        h_abc = np.random.rand(4, 4, 4)
+        h_abc[0,0,0] = 0
+        h_abc[0,0,3] = h_abc[0,3,0] = h_abc[3,0,0] = .0
+        U_t = self._exponentiate_3Q_Hamiltonian(h_abc, time)
+        psi0 = np.zeros((U_t.shape[0],))
+        psi0[0] = 1
+        exp_statevector = np.dot(U_t, psi0)
+
+        system_model, n_drive_channels = self._system_model_3Q(h_abc)
+        schedule = self._schedule_3Q_constant_Hamiltonian(time, n_drive_channels)
+
+        qobj = assemble([schedule], backend = self.backend_sim, meas_level = 2, meas_return = 'single',
+                        meas_map = [[0, 1, 2]], qubit_lo_freq = list(np.zeros(n_drive_channels)), memory_slots = 3, shots = 1000)
+        backend_options = {'seed': 9000}
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(state_fidelity(statevector, exp_statevector), 0.999)
+
+    @run_cython_and_cpp_solvers
+    def test_3Q_X_drift(self):
+        """Tests the evolution with a three-qubit X-aligned drift Hamiltonian."""
+        time = 2
+        h_abc = np.zeros((4, 4, 4))
+        h_abc[0, 0, 1] = .3; h_abc[0, 1, 0] = 1.3; h_abc[1, 0, 0] = .91
+        h_abc[0, 0, 3] = 3.1
+
+        # Setting .040 in the following line - the test succeeds.
+        # Setting .045 results in the test failing - perhaps because the initial state changes discontinuously
+        h_abc *= .045
+        U_t = self._exponentiate_3Q_Hamiltonian(h_abc, time)
+        psi0 = -np.array([1, 1, 1, 1, 1, 1, 1, 1]) / 8**.5
+        # this is found to be the ground state that the simulator will use as initial state
+        exp_statevector = np.dot(U_t, psi0)
+
+        system_model, n_drive_channels = self._system_model_3Q(h_abc, h_drift_terms = [(1, 0, 0), (0, 1, 0), (0, 0, 1)])
+        schedule = self._schedule_3Q_constant_Hamiltonian(time, n_drive_channels)
+
+        qobj = assemble([schedule], backend = self.backend_sim, meas_level = 2, meas_return = 'single',
+                        meas_map = [[0, 1, 2]], qubit_lo_freq = list(np.zeros(n_drive_channels)), memory_slots = 3, shots = 1000)
+        backend_options = {'seed': 9000}
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(state_fidelity(statevector, exp_statevector), 0.999)
+
+    @run_cython_and_cpp_solvers
+    def test_3Q_truncation(self):
+        """Tests the truncation of a three-qubit Hamiltonian into two qubits."""
+
+        time = 10
+        h_abc = np.zeros((4, 4, 4))
+        # Evolve a Hamiltonian that depends only on two qubits
+        h_abc[0, 3, 0] = .33; h_abc[3, 0, 0] = .91
+        exp_statevector = np.zeros((8,))
+        exp_statevector[0] = 1
+
+        system_model, n_drive_channels = self._system_model_3Q(h_abc, qubit_list = [1, 2])
+        schedule = self._schedule_3Q_constant_Hamiltonian(time, n_drive_channels, b_truncate_q0 = True)
+
+        qobj = assemble([schedule], backend = self.backend_sim, meas_level = 2, meas_return = 'single',
+                        meas_map = [[1, 2]], qubit_lo_freq = list(np.zeros(n_drive_channels)), memory_slots = 3,
+                        shots = 1000)
+        backend_options = {'seed': 9000}
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(state_fidelity(statevector, exp_statevector), 0.999)
+
+    @run_cython_and_cpp_solvers
+    def test_3Q_truncation2(self):
+        """Tests the truncation of a three-qubit Hamiltonian into two qubits."""
+
+        time = 10
+        h_abc = np.zeros((4, 4, 4))
+        # Evolve a Hamiltonian that depends only on all three qubits
+        h_abc[0,0,3] = .51; h_abc[0,3,0] = .33; h_abc[3,0,0] = .91
+        h_abc[1,1,1] = 1.53
+        U_t = self._exponentiate_3Q_Hamiltonian(h_abc, time)
+        psi0 = np.zeros((U_t.shape[0],))
+        psi0[0] = 1
+        exp_statevector = np.dot(U_t, psi0)
+
+        # Now send to the simulator the same Hamiltonian, truncating the third qubit
+        system_model, n_drive_channels = self._system_model_3Q(h_abc, qubit_list = [0, 1])
+        schedule = self._schedule_3Q_constant_Hamiltonian(time, n_drive_channels)
+
+        qobj = assemble([schedule], backend = self.backend_sim, meas_level = 2, meas_return = 'single',
+                        meas_map = [[0, 1, 2]], qubit_lo_freq = list(np.zeros(n_drive_channels)), memory_slots = 3, shots = 1000)
+        backend_options = {'seed': 9000}
+        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        statevector = result.get_statevector()
+
+        # The two states are expected to be different, if the parameter qubit_list above has an effect
+        self.assertLessEqual(state_fidelity(statevector, exp_statevector), 0.999)
 
 
     def _system_model_1Q(self, omega_0, omega_a, qubit_dim=2):
@@ -828,6 +939,97 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                             [MemorySlot(0), MemorySlot(1)]) << schedule.duration
 
         return schedule
+
+    def _schedule_3Q_constant_Hamiltonian(self, time, n_drive_channels, b_truncate_q0 = False):
+        """Creates schedule for testing three qubits with a constant Hamiltonian.
+
+        Args:
+            time (int): length of pulses
+        Returns:
+            schedule (pulse schedule): schedule for 3Q experiment
+        """
+        # add commands to schedule
+        schedule = pulse.Schedule(name='3Q_constant')
+        const_pulse = np.ones(time)
+        drive_pulse = SamplePulse(const_pulse, name = 'drive_pulse')
+        for iD in range(n_drive_channels):
+            schedule |= drive_pulse(DriveChannel(iD))
+#        schedule += Delay(total_samples)
+
+        acq_cmd = pulse.Acquire(duration=2*time)
+        if b_truncate_q0:
+            schedule |= acq_cmd([AcquireChannel(1), AcquireChannel(2)],
+                                [MemorySlot(1), MemorySlot(2)]) << schedule.duration
+        else:
+            schedule |= acq_cmd([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
+                                [MemorySlot(0), MemorySlot(1), MemorySlot(2)]) << schedule.duration
+
+        return schedule
+
+    def _system_model_3Q(self, h_abc, h_drift_terms = [(3, 0, 0), (0, 3, 0), (0, 0, 3)], qubit_list = [0, 1, 2]):
+        """Constructs a general 3-qubit system model.
+
+        Args:
+            h_abc (np.array): The coefficient matrix of a 3-qubit Hamiltonian expanded in the Pauli basis, i.e.
+                H = \sum_{a,b,c} h_abc \sigma_1^a \sigma_2^b \sigma_3^c
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
+
+        # make Hamiltonian
+        hamiltonian = {}
+        # hamiltonian['h_str'] = ['omega0*(Z0+Z1+Z2)']
+        # hamiltonian['vars'] = {'omega0': 0}
+        hamiltonian['h_str'] = ['']
+        hamiltonian['vars'] = {}
+        r_0xyz = range(4)
+        s_Paulis = ['I', 'X', 'Y', 'Z']
+        i_channel = 0
+        for a in r_0xyz:
+            for b in r_0xyz:
+                for c in r_0xyz:
+                    if (a, b, c) in h_drift_terms:  # drift (nondriven) part of Hamiltonian
+                        b_drift = 1
+                    else:
+                        b_drift = 0
+                    if h_abc[a, b, c] or b_drift:
+                        s_var = f'h{a}{b}{c}'
+                        if b_drift:
+                            s_Di = ''
+                        else:
+                            s_Di = f'||D{i_channel}'
+                            i_channel += 1
+                        hamiltonian['h_str'].append(f'{s_var}*{s_Paulis[a]}0*{s_Paulis[b]}1*{s_Paulis[c]}2{s_Di}')
+                        hamiltonian['vars'][s_var] = h_abc[a, b, c]
+        hamiltonian['qub'] = {'0': 2, '1': 2, '2': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian = ham_model, u_channel_lo = u_channel_lo, qubit_list = qubit_list, dt = dt), i_channel
+
+    def _exponentiate_3Q_Hamiltonian(self, h_abc, time):
+        """Returns the propagator U(t) = exp( -i H t) for a general three-qubit Hamiltonian.
+
+        Args:
+            h_abc (np.array): The coefficient matrix of a 3-qubit Hamiltonian expanded in the Pauli basis, i.e.
+                H = \sum_{a,b,c} h_abc \sigma_1^a \sigma_2^b \sigma_3^c
+            time (int): length of pulses
+        Returns:
+            U_t: the propagator U(t) = exp( -i * H * time)
+        """
+        nside = 2 ** 3  # 3 qubits
+        Paulis = [np.array([[1., 0], [0, 1]]), np.array([[0., 1], [1, 0]]), np.array([[0., -1j], [1j, 0]]), np.array([[1., 0],[0, -1]])]
+        H = np.zeros((nside, nside))
+        r_0xyz = range(4)
+        for a in r_0xyz:
+            for b in r_0xyz:
+                for c in r_0xyz:
+                    if h_abc[a, b, c]:
+                        H = H + h_abc[a, b, c] * np.kron(np.kron( Paulis[c], Paulis[b]), Paulis[a])
+        U_t = expm(-1j * H * time)
+        return U_t
 
 
 if __name__ == '__main__':

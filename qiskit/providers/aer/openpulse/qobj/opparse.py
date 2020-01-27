@@ -82,7 +82,7 @@ class HamiltonianParser:
             # find time-dependent term
             if p_td:
                 coef, token = self._tokenizer(p_td.group('opr'), qubit_list)
-                if token is None:
+                if token is None or token == [] or token == '':
                     continue
                 # combine coefficient to time-dependent term
                 if coef:
@@ -95,7 +95,7 @@ class HamiltonianParser:
                 self.__td_hams.append(_td)
             else:
                 coef, token = self._tokenizer(ham, qubit_list)
-                if token is None:
+                if token is None or token == [] or token == '':
                     continue
                 token = self._shunting_yard(token)
                 _tc = self._token2qobj(token), coef
