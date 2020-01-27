@@ -73,7 +73,9 @@ function(basic_pybind11_add_module target_name)
             # See: Two-Leve namespace symbol resolution
             set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} -undefined dynamic_lookup -flat_namespace")
         endif()
-        set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
+        if(ARG_SHARED)
+            set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
+        endif()
     endif()
     # -fvisibility=hidden is required to allow multiple modules compiled against
     # different pybind versions to work properly, and for some features (e.g.
@@ -82,6 +84,8 @@ function(basic_pybind11_add_module target_name)
     # potential warnings or issues from having mixed hidden/non-hidden types.
     set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
     set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_EXTENSION_MODULE_SUFFIX}")
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
     set_target_properties(${target_name} PROPERTIES
         CXX_STANDARD 14
         LINKER_LANGUAGE CXX)

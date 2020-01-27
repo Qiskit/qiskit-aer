@@ -87,7 +87,9 @@ function(add_cython_module module)
             # See: Two-Leve namespace symbol resolution
             set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} -undefined dynamic_lookup -flat_namespace")
         endif()
-        set_target_properties(${module} PROPERTIES MACOSX_RPATH ON)
+        if(ARG_SHARED)
+            set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
+        endif()
     endif()
 
     set_target_properties(${module} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
