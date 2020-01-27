@@ -31,6 +31,9 @@ stage_generic: &stage_generic
     - pip install cython
     # Installing qiskit-terra master branch...
     - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
+    # Installing qiskit-ibmq-provider stable branch
+    # This is only needed to suppress warnings when importing Qiskit
+    - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
     # Installing qiskit-aer...
     - pip install -U -c constraints.txt -r requirements-dev.txt
 
@@ -51,9 +54,10 @@ stage_linux: &stage_linux
       if [ ! "$(ls -A .stestr)" ]; then
         rm -rf .stestr
       fi
-  script:
+    # Build and install qiskit-aer package
     - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
     - pip install dist/qiskit_aer*whl
+  script:
     - stestr run --slowest
 
 stage_osx: &stage_osx
@@ -61,6 +65,10 @@ stage_osx: &stage_osx
   os: osx
   osx_image: xcode9.2
   language: generic
+  python: 3.7
+  env:
+        - MPLBACKEND=ps
+        - PYTHON_VERSION=3.7.2
   cache:
     pip: true
     directories:
@@ -86,10 +94,10 @@ stage_osx: &stage_osx
       if [ ! "$(ls -A .stestr)" ]; then
         rm -rf .stestr
       fi
-
-  script:
-    - python setup.py bdist_wheel -- -- -j4
+    # Build and install qiskit-aer package
+    - python setup.py bdist_wheel -- -DAER_THRUST_BACKEND=OMP -- -j4
     - pip install dist/qiskit_aer*whl
+  script:
     - stestr run --slowest
 
 ###############################################################################
@@ -99,6 +107,7 @@ stage_osx: &stage_osx
 # Define the order of the stages.
 stages:
   - lint
+  - compile
   - test
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
@@ -112,9 +121,26 @@ jobs:
     - stage: lint
       name: Python Style and Linter
       <<: *stage_linux
+      before_script: true
       script:
         - pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
         - pylint -j 2 -rn qiskit/providers/aer
+
+    # "compile" stage
+    ###########################################################################
+    - stage: compile
+      name: Test Build Linux
+      <<: *stage_linux
+      before_script: true
+      script:
+        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+  
+    - stage: compile
+      name: Test Build MacOS
+      <<: *stage_osx
+      before_script: true
+      script:
+        - python setup.py bdist_wheel -- -- -j4
 
     # "test" stage
     ###########################################################################
@@ -144,36 +170,40 @@ jobs:
       <<: *stage_linux
       python: 3.5
 
+    # MacOS, Python 3.8 (via pyenv)
     - stage: test
-      name: Python 3.8 Tests OSX
+      if: type = cron
+      name: Python 3.8 Tests MacOS
       <<: *stage_osx
       python: 3.8
       env:
         - PYTHON_VERSION=3.8.1
 
-    # OSX, Python 3.7.2 (via pyenv)
+    # MacOS, Python 3.7 (via pyenv)
     - stage: test
-      name: Python 3.7 Tests OSX
+      name: Python 3.7 Tests MacOS
       <<: *stage_osx
+      python: 3.7
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
 
-    # OSX, Python 3.6.5 (via pyenv)
+    # MacOS, Python 3.6 (via pyenv)
     - stage: test
       if: type = cron
-      name: Python 3.6 Tests OSX
+      name: Python 3.6 Tests MacOS
       <<: *stage_osx
+      python: 3.6
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.6.5
 
-    # OSX, Python 3.5.6 (via pyenv)
+    # MacOS, Python 3.5 (via pyenv)
     - stage: test
       if: type = cron
+      name: Python 3.5 Tests MacOS
       <<: *stage_osx
-      name: Python 3.5 Tests OSX
+      python: 3.5
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-
