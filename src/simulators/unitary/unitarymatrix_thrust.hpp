@@ -133,7 +133,7 @@ json_t UnitaryMatrixThrust<data_t>::json() const
   int iPlace;
   uint_t i, irow, icol, ic, nc;
   uint_t pos = 0;
-  uint_t csize = 1ull << BaseVector::m_chunkBits;
+  uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
 
   const json_t ZERO = std::complex < data_t > (0.0, 0.0);
@@ -142,10 +142,10 @@ json_t UnitaryMatrixThrust<data_t>::json() const
   BaseVector::UpdateReferencedValue();
 
   for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
-    nc = BaseVector::m_Chunks[iPlace].NumChunks();
+    nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
 
     for (ic = 0; ic < nc; ic++) {
-      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic);
+      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic, BaseVector::m_maxChunkBits);
 
 #pragma omp parallel private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
       {
@@ -204,16 +204,16 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
   int iPlace;
   uint_t ic, nc;
   uint_t pos = 0;
-  uint_t csize = 1ull << BaseVector::m_chunkBits;
+  uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
 
 	BaseVector::UpdateReferencedValue();
 
   for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
-    nc = BaseVector::m_Chunks[iPlace].NumChunks();
+    nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
 
     for (ic = 0; ic < nc; ic++) {
-      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic);
+      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic, BaseVector::m_maxChunkBits);
 
       int_t i, irow, icol;
 #pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
@@ -267,11 +267,11 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
 	int iPlace;
 	uint_t i,irow,icol,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_chunkBits;
+	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
 
 	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks();
+		nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
 
 		for(ic=0;ic<nc;ic++){
 #pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
@@ -282,7 +282,7 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
 				tmp[i] = mat(irow,icol);
 			}
 
-			BaseVector::m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic);
+			BaseVector::m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic,BaseVector::m_maxChunkBits);
 			pos += csize;
 		}
 	}
@@ -342,16 +342,16 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 	int iPlace;
 	uint_t i,irow,icol,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_chunkBits;
+	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
 
 	BaseVector::UpdateReferencedValue();
 
 	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks();
+		nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
 
 		for(ic=0;ic<nc;ic++){
-			BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic);
+			BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic,BaseVector::m_maxChunkBits);
 
 			uint_t err_count = 0;
 #pragma omp parallel for private(i,irow,icol) reduction(+:delta,err_count) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
