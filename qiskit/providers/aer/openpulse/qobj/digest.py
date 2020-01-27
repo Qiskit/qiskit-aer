@@ -241,6 +241,7 @@ def _unsupported_warnings(qobj_dict, noise_model):
     if not _contains_acquire_instruction(qobj_dict['experiments']):
         raise AerError(required_str.format('Acquire instructions'))
 
+
 def _contains_acquire_instruction(experiments):
     """ Return True if the list of experiments contains an Acquire instruction
     Parameters:
