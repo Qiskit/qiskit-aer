@@ -152,6 +152,12 @@ endif()
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
+
+if(STATIC_LINKING)
+	message(STATUS "Using static linking with Threads...")
+	set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+	set(THREADS_PREFER_PTHREAD_FLAG True)
+endif()
 find_package(Threads)
 
 if(STATIC_LINKING)
@@ -214,6 +220,10 @@ get_muparserx_source_code()
 # I keep this disabled on purpose, just in case I need to debug muparserx related problems
 # file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
 
+find_library(DL_LIB NAMES dl)
+if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
+	message(FATAL_ERROR "No dl lib found")
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -222,7 +232,7 @@ set(AER_LIBRARIES
 	nlohmann_json
 	Threads::Threads
 	${SPDLOG_LIB}
-	${CMAKE_DL_LIBS}
+	${DL_LIB}
 	${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
