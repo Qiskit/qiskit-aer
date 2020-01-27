@@ -28,6 +28,15 @@ function(add_cython_module module)
         LINKER_LANGUAGE CXX
         CXX_STANDARD 14)
 
+    # Avoid warnings in cython cpp generated code
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS -Wno-everything)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS -w)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS /w)
+    endif()
+
     if(APPLE)
         set_target_properties(${module} PROPERTIES
             LINK_FLAGS ${AER_LINKER_FLAGS})
