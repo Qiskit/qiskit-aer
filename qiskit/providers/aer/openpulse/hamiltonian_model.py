@@ -226,7 +226,7 @@ def _hamiltonian_parse_exceptions(hamiltonian):
     Raises:
         AerError: if some part of the hamiltonian dictionary is unsupported
     """
-    if 'osc' in hamiltonian:
+    if hamiltonian.get('osc', {}) != {}:
         raise AerError('Oscillator-type systems are not supported.')
 
 
