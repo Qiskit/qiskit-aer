@@ -418,10 +418,10 @@ public:
   void StoreOffsets(const std::vector<uint_t>& ptr);
 
   template <typename Function>
-  int Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask);
+  int Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask, bool omp_parallel);
 
   template <typename Function>
-  double ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask);
+  double ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid, uint_t localMask, bool omp_parallel);
 
   void SetParams(struct GateParams<data_t>& params);
 
@@ -688,7 +688,7 @@ void QubitVectorChunkContainer<data_t>::StoreOffsets(const std::vector<uint_t>& 
 
 template <typename data_t>
 template <typename Function>
-int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask)
+int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask, bool omp_parallel)
 {
   struct GateParams<data_t> params;
 
@@ -718,7 +718,11 @@ int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Func
     thrust::for_each_n(thrust::device, chunkIter, size, func);
   }
   else{
-    thrust::for_each_n(thrust::omp::par, chunkIter, size, func);
+    if (omp_parallel) {
+      thrust::for_each_n(thrust::omp::par, chunkIter, size, func);
+    } else {
+      thrust::for_each_n(thrust::seq, chunkIter, size, func);
+    }
   }
 
   return 0;
@@ -726,7 +730,7 @@ int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Func
 
 template <typename data_t>
 template <typename Function>
-double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask)
+double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask, bool omp_parallel)
 {
   struct GateParams<data_t> params;
   double ret;
@@ -757,7 +761,11 @@ double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<uint_t>& offset
     ret = thrust::transform_reduce(thrust::device, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
   }
   else{
-    ret = thrust::transform_reduce(thrust::omp::par, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+    if (omp_parallel) {
+      ret = thrust::transform_reduce(thrust::omp::par, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+    } else {
+      ret = thrust::transform_reduce(thrust::seq, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
+    }
   }
   return ret;
 }
@@ -854,6 +862,13 @@ public:
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------
+
+  // Return the string name of the QubitVector class
+#ifdef AER_THRUST_CUDA
+  static std::string name() {return "statevector_gpu";}
+#else
+  static std::string name() {return "statevector_thrust";}
+#endif
 
   // Set the size of the vector in terms of qubit number
   virtual void set_num_qubits(size_t num_qubits);
@@ -2127,7 +2142,7 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
   }
 
   if(noDataExchange){
-#pragma omp parallel private(size,iChunk,i,ib) num_threads(m_nPlaces)
+#pragma omp parallel if (num_qubits_ > omp_threshold_ && m_nPlaces > 1) private(size,iChunk,i,ib) num_threads(m_nPlaces)
     {
       int iPlace = omp_get_thread_num();
       uint_t localMask = 0xffffffff;
@@ -2138,10 +2153,11 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
       }
 
       //execute kernel
+      bool enable_omp = (num_qubits_ > omp_threshold_ && omp_threads_ > 1);
       if(func.Reduction())
-        ret += m_Chunks[iPlace].ExecuteSum(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask);
+        ret += m_Chunks[iPlace].ExecuteSum(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask, enable_omp);
       else
-        m_Chunks[iPlace].Execute(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask);
+        m_Chunks[iPlace].Execute(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask, enable_omp);
     }
   }
   else{
@@ -2155,7 +2171,7 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
       controlFlag = controlMask;
     }
 
-#pragma omp parallel private(iChunk,i,ib) num_threads(m_nPlaces)
+#pragma omp parallel if (num_qubits_ > omp_threshold_ && m_nPlaces > 1) private(iChunk,i,ib) num_threads(m_nPlaces)
     {
       int iPlace = omp_get_thread_num();
       int iPlaceSrc;
@@ -2202,10 +2218,11 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
         }
 
         //execute kernel
+        bool enable_omp = (num_qubits_ > omp_threshold_ && omp_threads_ > 1);
         if(func.Reduction())
-          ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask);
+          ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask, enable_omp);
         else
-          m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask);
+          m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask, enable_omp);
 
         //copy back
         for(i=0;i<nChunk;i++){
@@ -4200,7 +4217,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
   placeSum.assign(m_nPlaces+1, 0.0);
 
   //calculate sum of each place
-#pragma omp parallel num_threads(m_nPlaces) private(pVec,size,iPlace)
+#pragma omp parallel if (num_qubits_ > omp_threshold_ && m_nPlaces > 1) num_threads(m_nPlaces) private(pVec,size,iPlace)
   {
     int iDev;
 
@@ -4219,7 +4236,10 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
       thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
     }
     else{
-      thrust::transform_inclusive_scan(thrust::omp::par,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+      auto policy = (num_qubits_ > omp_threshold_ && omp_threads_ > 1)
+          ? thrust::omp::par
+          : thrust::seq;
+      thrust::transform_inclusive_scan(policy,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
     }
     placeSum[iPlace] = m_Chunks[iPlace].GetState(m_Chunks[iPlace].Size()-1).imag();
   }
@@ -4252,7 +4272,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 
   //now search for the position
-#pragma omp parallel num_threads(m_nPlaces) private(pVec,iPlace,i,size)
+#pragma omp parallel if (num_qubits_ > omp_threshold_ && m_nPlaces > 1) num_threads(m_nPlaces) private(pVec,iPlace,i,size)
   {
     thrust::host_vector<uint_t> vIdx(SHOTS);
     thrust::host_vector<double> vRnd(SHOTS);
@@ -4292,7 +4312,10 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
       }
       else{
 #endif
-        thrust::lower_bound(thrust::omp::par, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+        auto policy = (num_qubits_ > omp_threshold_ && omp_threads_ > 1)
+          ? thrust::omp::par
+          : thrust::seq;
+        thrust::lower_bound(policy, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
 #ifdef AER_THRUST_CUDA
       }
 #endif

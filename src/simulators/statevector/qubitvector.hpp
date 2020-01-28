@@ -142,6 +142,9 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Return the string name of the QUbitVector class
+  static std::string name() {return "statevector";}
+
   // Set the size of the vector in terms of qubit number
   void set_num_qubits(size_t num_qubits);
 
