@@ -120,6 +120,8 @@ Added
 - Added tests for probabilities snapshot (\#380)
 - Added support for reset() in MPS simulation method (\#393)
 - Added tests for matrix and Pauli expectation value snapshot (\#386)
+- Added test decorators for tests that require OpenMP and multi-threading(\#551)
+- Added tests for automatic and custom parallel thread configuration (\#511)
 
 Changed
 -------
@@ -138,6 +140,8 @@ Removed
 
 Fixed
 -----
+- Fixed bug in parallel thread configuration where total threads could exceed
+  the "max_parallel_threads" config settings (\#551)
 
 
 [0.3.0](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...0.3.0) - 2019-08-21
