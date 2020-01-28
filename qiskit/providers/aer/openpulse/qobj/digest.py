@@ -53,6 +53,10 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     if backend_options is None:
         backend_options = {}
 
+    # override anything in qobj_config that is present in backend_options
+    for key in backend_options.keys():
+        qobj_config[key] = backend_options[key]
+
     noise_model = backend_options.get('noise_model', None)
 
     # post warnings for unsupported features
@@ -70,10 +74,24 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     out.global_data['memory'] = qobj_config.get('memory', False)
     out.global_data['n_registers'] = qobj_config.get('n_registers', 0)
 
-    if 'qubit_lo_freq' not in qobj_config:
-        raise ValueError('qubit_lo_freq must be specified in qobj.')
-    # qobj frequencies are divided by 1e9, so multiply back
-    qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
+    # Handle qubit_lo_freq
+    # First, try to draw from the PulseQobj. If the PulseQobj was assembled using the
+    # PulseSimulator as the backend, and no qubit_lo_freq was specified, it will default to
+    # [np.inf]
+    qubit_lo_freq = None
+    if 'qubit_lo_freq' in qobj_config and qobj_config['qubit_lo_freq'] != [np.inf]:
+        # qobj frequencies are divided by 1e9, so multiply back
+        qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
+
+    # if it wasn't specified in the PulseQobj, draw from system_model
+    if qubit_lo_freq is None:
+        qubit_lo_freq = system_model._qubit_freq_est
+
+    # if still None draw from the Hamiltonian
+    if qubit_lo_freq is None:
+        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
+        warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, \
+             so it is beign automatically determined from the drift Hamiltonian.')
 
     # Build pulse arrays ***************************************************************
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
@@ -219,10 +237,29 @@ def _unsupported_warnings(qobj_dict, noise_model):
     if _contains_pv_instruction(qobj_dict['experiments']):
         raise AerError(warning_str.format('PersistentValue instructions'))
 
+    required_str = '{} are required for simulation, and none were specified.'
+    if not _contains_acquire_instruction(qobj_dict['experiments']):
+        raise AerError(required_str.format('Acquire instructions'))
+
+
+def _contains_acquire_instruction(experiments):
+    """ Return True if the list of experiments contains an Acquire instruction
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain an Acquire command
+    Raises:
+    """
+
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'acquire':
+                return True
+    return False
+
 
 def _contains_pv_instruction(experiments):
-    """ Return True if the list of experiments from the output of _format_qobj_dict contains
-    a PersistentValue instruction
+    """ Return True if the list of experiments contains a PersistentValue instruction
 
     Parameters:
         experiments (list): list of schedules
