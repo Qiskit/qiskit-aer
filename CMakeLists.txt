@@ -220,9 +220,12 @@ get_muparserx_source_code()
 # I keep this disabled on purpose, just in case I need to debug muparserx related problems
 # file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
 
-find_library(DL_LIB NAMES dl)
-if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
-	message(FATAL_ERROR "No dl lib found")
+# Windows don't have a DL library (dlopen, dlclose, etc...)
+if(NOT MSVC)
+	find_library(DL_LIB NAMES dl)
+	if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
+		message(FATAL_ERROR "No dl lib found")
+	endif()
 endif()
 
 # Set dependent libraries
