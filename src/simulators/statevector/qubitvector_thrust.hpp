@@ -37,6 +37,8 @@
 #endif
 #include <thrust/host_vector.h>
 
+#include <thrust/system/omp/execution_policy.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -75,7 +77,7 @@ double mysecond()
 #define AER_DEFAULT_MATRIX_BITS		8
 
 #define AER_CHUNK_BITS				21
-#define AER_MAX_BUFFERS				32
+#define AER_MAX_BUFFERS				2
 
 namespace QV {
 
@@ -162,20 +164,34 @@ public:
 	virtual void Resize(uint_t size) = 0;
 
 	virtual void Copy(const std::vector<data_t>& v) = 0;
+
+	virtual void Copy(uint_t pos,QubitVectorBuffer<data_t>* pSrc,uint_t srcPos,uint_t size,int isDevice = 0) = 0;
+
+	virtual void CopyIn(uint_t pos,const data_t* pSrc,uint_t size) = 0;
+	virtual void CopyOut(uint_t pos,data_t* pDest,uint_t size) = 0;
+
 };
 
 #ifdef AER_THRUST_CUDA
-//currently only supports CUDA backend (enable this for other GPUs in the future)
+#define AERDeviceVector thrust::device_vector
+#else
+#define AERDeviceVector thrust::host_vector
+#endif
 
 template <typename data_t>
 class QubitVectorDeviceBuffer : public QubitVectorBuffer<data_t>
 {
 protected:
-	thrust::device_vector<data_t> m_Buffer;
+	AERDeviceVector<data_t> m_Buffer;
 public:
 	QubitVectorDeviceBuffer(uint_t size) : m_Buffer(size)
 	{
 		;
+	}
+
+	AERDeviceVector<data_t>& Buffer(void)
+	{
+		return m_Buffer;
 	}
 
 	data_t* BufferPtr(void)
@@ -203,9 +219,11 @@ public:
 		m_Buffer = v;
 	}
 
-};
+	void Copy(uint_t pos,QubitVectorBuffer<data_t>* pSrc,uint_t srcPos,uint_t size,int isDevice = 1);
 
-#endif	//AER_THRUST_CUDA
+	void CopyIn(uint_t pos,const data_t* pSrc,uint_t size);
+	void CopyOut(uint_t pos,data_t* pDest,uint_t size);
+};
 
 
 template <typename data_t>
@@ -217,6 +235,11 @@ public:
 	QubitVectorHostBuffer(uint_t size) : m_Buffer(size)
 	{
 		;
+	}
+
+	thrust::host_vector<data_t>& Buffer(void)
+	{
+		return m_Buffer;
 	}
 
 	data_t* BufferPtr(void)
@@ -243,8 +266,62 @@ public:
 	{
 		m_Buffer = v;
 	}
+
+	void Copy(uint_t pos,QubitVectorBuffer<data_t>* pSrc,uint_t srcPos,uint_t size,int isDevice = 0);
+
+	void CopyIn(uint_t pos,const data_t* pSrc,uint_t size);
+	void CopyOut(uint_t pos,data_t* pDest,uint_t size);
 };
 
+
+template <typename data_t>
+void QubitVectorDeviceBuffer<data_t>::Copy(uint_t pos,QubitVectorBuffer<data_t>* pSrc,uint_t srcPos,uint_t size,int isDevice)
+{
+	if(isDevice){
+		QubitVectorDeviceBuffer<data_t>* pSrcDev = (QubitVectorDeviceBuffer<data_t>*)pSrc;
+		thrust::copy_n(pSrcDev->Buffer().begin() + srcPos,size,m_Buffer.begin() + pos);
+	}
+	else{
+		QubitVectorHostBuffer<data_t>* pSrcHost = (QubitVectorHostBuffer<data_t>*)pSrc;
+		thrust::copy_n(pSrcHost->Buffer().begin() + srcPos,size,m_Buffer.begin() + pos);
+	}
+}
+
+template <typename data_t>
+void QubitVectorDeviceBuffer<data_t>::CopyIn(uint_t pos,const data_t* pSrc,uint_t size)
+{
+	thrust::copy_n(pSrc,size,m_Buffer.begin() + pos);
+}
+
+template <typename data_t>
+void QubitVectorDeviceBuffer<data_t>::CopyOut(uint_t pos,data_t* pDest,uint_t size)
+{
+	thrust::copy_n(m_Buffer.begin() + pos,size,pDest);
+}
+
+template <typename data_t>
+void QubitVectorHostBuffer<data_t>::Copy(uint_t pos,QubitVectorBuffer<data_t>* pSrc,uint_t srcPos,uint_t size,int isDevice)
+{
+	if(isDevice){
+		QubitVectorDeviceBuffer<data_t>* pSrcDev = (QubitVectorDeviceBuffer<data_t>*)pSrc;
+		thrust::copy_n(pSrcDev->Buffer().begin() + srcPos,size,m_Buffer.begin() + pos);
+	}
+	else{
+		QubitVectorHostBuffer<data_t>* pSrcHost = (QubitVectorHostBuffer<data_t>*)pSrc;
+		thrust::copy_n(pSrcHost->Buffer().begin() + srcPos,size,m_Buffer.begin() + pos);
+	}
+}
+
+template <typename data_t>
+void QubitVectorHostBuffer<data_t>::CopyIn(uint_t pos,const data_t* pSrc,uint_t size)
+{
+	thrust::copy_n(pSrc,size,m_Buffer.begin() + pos);
+}
+template <typename data_t>
+void QubitVectorHostBuffer<data_t>::CopyOut(uint_t pos,data_t* pDest,uint_t size)
+{
+	thrust::copy_n(m_Buffer.begin() + pos,size,pDest);
+}
 
 //=============================================================
 // chunk container class
@@ -265,6 +342,8 @@ protected:
 	int m_iDevice;			//device ID : if device ID < 0, allocate chunks on host memory
 
 	int m_matrixBits;
+
+	std::vector<int> m_p2pEnable;
 public:
 	QubitVectorChunkContainer(void)
 	{
@@ -290,6 +369,10 @@ public:
 	void SetGlobalIndex(uint_t idx)
 	{
 		m_globalID = idx;
+	}
+	uint_t GlobalIndex(void)
+	{
+		return m_globalID;
 	}
 	uint_t NumChunks(int chunkBits) const
 	{
@@ -322,7 +405,10 @@ public:
 	int CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits);
 
 	int SetState(uint_t chunkID,uint_t pos,thrust::complex<data_t> t,int chunkBits);
+	int SetState(uint_t lid,thrust::complex<data_t> t);
+
 	thrust::complex<data_t> GetState(uint_t chunkID,uint_t pos,int chunkBits) const;
+	thrust::complex<data_t> GetState(uint_t lid) const;
 
 	thrust::complex<data_t>* ChunkPtr(uint_t chunkID,int chunkBits) const;
 	thrust::complex<data_t>* BufferPtr(uint_t ibuf,int chunkBits);
@@ -338,6 +424,9 @@ public:
 	double ExecuteSum(std::vector<uint_t>& offsets,Function func,uint_t size,uint_t gid,uint_t localMask);
 
 	void SetParams(struct GateParams<data_t>& params);
+
+
+	void SetupP2P(int nDev);
 };
 
 template <typename data_t>
@@ -460,31 +549,25 @@ int QubitVectorChunkContainer<data_t>::AllocateParameters(int bits)
 template <typename data_t>
 int QubitVectorChunkContainer<data_t>::Get(const QubitVectorChunkContainer& chunks,uint_t src,uint_t bufDest,int chunkBits)
 {
-#ifdef AER_THRUST_CUDA
-	if(m_iDevice >= 0){
-		if(chunks.DeviceID() >= 0){
-			cudaMemcpyPeer(BufferPtr(bufDest,chunkBits),m_iDevice,chunks.ChunkPtr(src,chunkBits),chunks.DeviceID(),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
+	uint_t srcPos,destPos,size;
+	srcPos = src << chunkBits;
+	destPos = m_size + (bufDest << chunkBits);
+	size = 1ull << chunkBits;
+
+	if(m_iDevice >=0 && chunks.DeviceID() >= 0){
+		if(m_p2pEnable[chunks.DeviceID()]){
+			m_pChunks->Copy(destPos,chunks.m_pChunks,srcPos,size,1);
 		}
 		else{
-			cudaMemcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyHostToDevice);
+			QubitVectorHostBuffer<thrust::complex<data_t>> tmp(size);
+			tmp.Copy(0,chunks.m_pChunks,srcPos,size,1);		//D to H
+			m_pChunks->Copy(destPos,&tmp,0,size,0);			//H to D
 		}
-		cudaDeviceSynchronize();
 	}
 	else{
-		if(chunks.DeviceID() >= 0){
-			cudaMemcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyDeviceToHost);
-		}
-		else{
-			memcpy(BufferPtr(bufDest,chunkBits),chunks.ChunkPtr(src,chunkBits),(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
-		}
-		cudaDeviceSynchronize();	//this is needed for P100
+		m_pChunks->Copy(destPos,chunks.m_pChunks,srcPos,size,(chunks.DeviceID() >= 0));
 	}
-#else
-	thrust::copy(chunks.ChunkPtr(src,chunkBits),chunks.ChunkPtr(src,chunkBits) + (1ull << chunkBits),BufferPtr(bufDest,chunkBits));
-#endif
+
 	return 0;
 }
 
@@ -492,32 +575,25 @@ int QubitVectorChunkContainer<data_t>::Get(const QubitVectorChunkContainer& chun
 template <typename data_t>
 int QubitVectorChunkContainer<data_t>::Put(QubitVectorChunkContainer& chunks,uint_t dest,uint_t bufSrc,int chunkBits)
 {
-#ifdef AER_THRUST_CUDA
-	if(m_iDevice >= 0){
-		if(chunks.DeviceID() >= 0){
-			cudaMemcpyPeer(chunks.ChunkPtr(dest,chunkBits),chunks.DeviceID(),BufferPtr(bufSrc,chunkBits),m_iDevice,
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
+	uint_t srcPos,destPos,size;
+	destPos = dest << chunkBits;
+	srcPos = m_size + (bufSrc << chunkBits);
+	size = 1ull << chunkBits;
+
+	if(m_iDevice >=0 && chunks.DeviceID() >= 0){
+		if(m_p2pEnable[chunks.DeviceID()]){
+			chunks.m_pChunks->Copy(destPos,m_pChunks,srcPos,size,1);
 		}
 		else{
-			cudaMemcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyDeviceToHost);
+			QubitVectorHostBuffer<thrust::complex<data_t>> tmp(size);
+			tmp.Copy(0,m_pChunks,srcPos,size,1);			//D to H
+			chunks.m_pChunks->Copy(destPos,&tmp,0,size,0);	//H to D
 		}
-		cudaDeviceSynchronize();
 	}
 	else{
-		if(chunks.DeviceID() >= 0){
-			cudaMemcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits,cudaMemcpyHostToDevice);
-		}
-		else{
-			memcpy(chunks.ChunkPtr(dest,chunkBits),BufferPtr(bufSrc,chunkBits),
-							(uint_t)sizeof(thrust::complex<data_t>) << chunkBits);
-		}
-		cudaDeviceSynchronize();
+		chunks.m_pChunks->Copy(destPos,m_pChunks,srcPos,size,(DeviceID() >= 0));
 	}
-#else
-	thrust::copy(BufferPtr(bufSrc,chunkBits),BufferPtr(bufSrc,chunkBits) + (1ull << chunkBits),chunks.ChunkPtr(dest,chunkBits));
-#endif
+
 	return 0;
 }
 
@@ -525,10 +601,13 @@ int QubitVectorChunkContainer<data_t>::Put(QubitVectorChunkContainer& chunks,uin
 template <typename data_t>
 int QubitVectorChunkContainer<data_t>::CopyIn(const thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits)
 {
-	if(m_iDevice >= 0)
-		thrust::copy(thrust::device,pVec + offset,pVec + offset + (1ull << chunkBits),ChunkPtr(chunkID,chunkBits));
-	else
-		thrust::copy(thrust::host,pVec + offset,pVec + offset + (1ull << chunkBits),ChunkPtr(chunkID,chunkBits));
+	uint_t size,destPos;
+
+	size = 1ull << chunkBits;
+	destPos = chunkID << chunkBits;
+
+	m_pChunks->CopyIn(destPos,pVec + offset,size);
+
 	return 0;
 }
 
@@ -536,10 +615,13 @@ int QubitVectorChunkContainer<data_t>::CopyIn(const thrust::complex<data_t>* pVe
 template <typename data_t>
 int QubitVectorChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* pVec,uint_t offset,uint_t chunkID,int chunkBits)
 {
-	if(m_iDevice >= 0)
-		thrust::copy(thrust::device,ChunkPtr(chunkID,chunkBits),ChunkPtr(chunkID,chunkBits) + (1ull << chunkBits),pVec + offset);
-	else
-		thrust::copy(thrust::host,ChunkPtr(chunkID,chunkBits),ChunkPtr(chunkID,chunkBits) + (1ull << chunkBits),pVec + offset);
+	uint_t size,srcPos;
+
+	size = 1ull << chunkBits;
+	srcPos = chunkID << chunkBits;
+
+	m_pChunks->CopyOut(srcPos,pVec + offset,size);
+
 	return 0;
 }
 
@@ -565,9 +647,22 @@ int QubitVectorChunkContainer<data_t>::SetState(uint_t chunkID,uint_t pos,thrust
 }
 
 template <typename data_t>
+int QubitVectorChunkContainer<data_t>::SetState(uint_t lid,thrust::complex<data_t> t)
+{
+	m_pChunks->Set(lid,t);
+	return 0;
+}
+
+template <typename data_t>
 thrust::complex<data_t> QubitVectorChunkContainer<data_t>::GetState(uint_t chunkID,uint_t pos,int chunkBits) const
 {
 	return m_pChunks->Get((chunkID << chunkBits) + pos);
+}
+
+template <typename data_t>
+thrust::complex<data_t> QubitVectorChunkContainer<data_t>::GetState(uint_t lid) const
+{
+	return m_pChunks->Get(lid);
 }
 
 template <typename data_t>
@@ -623,15 +718,7 @@ int QubitVectorChunkContainer<data_t>::Execute(std::vector<uint_t>& offsets,Func
 		thrust::for_each_n(thrust::device, chunkIter, size, func);
 	}
 	else{
-#pragma omp parallel
-		{
-			int tid = omp_get_thread_num();
-			int nid = omp_get_num_threads();
-			uint_t is,ie;
-			is = size * (uint_t)tid / (uint_t)nid;
-			ie = size * (uint_t)(tid+1) / (uint_t)nid;
-			thrust::for_each(thrust::host, chunkIter + is, chunkIter + ie, func);
-		}
+		thrust::for_each_n(thrust::omp::par, chunkIter, size, func);
 	}
 
 	return 0;
@@ -670,16 +757,7 @@ double QubitVectorChunkContainer<data_t>::ExecuteSum(std::vector<uint_t>& offset
 		ret = thrust::transform_reduce(thrust::device, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	else{
-#pragma omp parallel reduction(+:ret)
-		{
-			int tid = omp_get_thread_num();
-			int nid = omp_get_num_threads();
-			uint_t is,ie;
-			is = size * (uint_t)tid / (uint_t)nid;
-			ie = size * (uint_t)(tid+1) / (uint_t)nid;
-
-			ret += thrust::transform_reduce(thrust::device, chunkIter + is, chunkIter + ie, func,0.0,thrust::plus<double>());
-		}
+		ret = thrust::transform_reduce(thrust::omp::par, chunkIter, chunkIter + size, func,0.0,thrust::plus<double>());
 	}
 	return ret;
 }
@@ -691,6 +769,41 @@ void QubitVectorChunkContainer<data_t>::SetParams(struct GateParams<data_t>& par
 	params.offsets_ = m_pOffsets->BufferPtr();
 	params.matrix_ = m_pMatrix->BufferPtr();
 	params.params_ = m_pParams->BufferPtr();
+}
+
+template <typename data_t>
+void QubitVectorChunkContainer<data_t>::SetupP2P(int nDev)
+{
+	int i;
+	if(nDev > 0){
+		m_p2pEnable.resize(nDev);
+
+		if(m_iDevice >= 0){
+			for(i=0;i<nDev;i++){
+				m_p2pEnable[i] = 0;
+			}
+
+#ifdef AER_THRUST_CUDA
+			cudaSetDevice(m_iDevice);
+			for(i=0;i<nDev;i++){
+				if(i != m_iDevice){
+					cudaDeviceCanAccessPeer(&m_p2pEnable[i],m_iDevice,i);
+					if(m_p2pEnable[i])
+						cudaDeviceEnablePeerAccess(i,0);
+				}
+				else{
+					m_p2pEnable[i] = 1;
+				}
+			}
+#endif
+		}
+		else{
+			//H to D is always p2p
+			for(i=0;i<nDev;i++){
+				m_p2pEnable[i] = 1;
+			}
+		}
+	}
 }
 
 //============================================================================
@@ -1003,12 +1116,13 @@ protected:
 	mutable std::vector<QubitVectorChunkContainer<data_t>> m_Chunks;
 
 	int m_maxChunkBits;						//bits per chunk
-	uint_t m_numGlobalChunks;				//number of total chunks
-	uint_t m_numChunks;						//number of chunks in this process
-	uint_t m_globalChunkIndex;				//starting chunk ID for this process
+	uint_t m_globalSize;					//number of total states
+	uint_t m_localSize;						//number of states in this process
+	uint_t m_globalIndex;					//starting state ID for this process
 	int m_maxNumBuffers;					//max number of buffer chunks
 
 	mutable uint_t m_refPosition;					//position for reference (if >= data_size_ data_ is empty)
+
 
 	int FindPlace(uint_t chunkID,int chunkBits) const;
 	int GlobalToLocal(uint_t& lcid,uint_t& lid,uint_t gid,int chunkBits) const;
@@ -1471,7 +1585,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	num_qubits_ = num_qubits;
 	data_size_ = 1ull << num_qubits;
 	char* str;
-	int i,j;
+	int i;
 
 #ifdef AER_TIMING
 	TimeReset();
@@ -1496,7 +1610,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	int tid,nid;
 	nid = omp_get_num_threads();
 	tid = omp_get_thread_num();
-	m_nDev = 0;
+	m_nDev = 1;
 #ifdef AER_THRUST_CUDA
 	cudaGetDeviceCount(&m_nDev);
 #endif
@@ -1531,9 +1645,9 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	if(str){
 		m_maxChunkBits = atol(str);
 	}
-	else if(m_nDevParallel <= 1){
-		m_maxChunkBits = num_qubits_;
-	}
+//	else if(m_nDevParallel <= 1){
+//		m_maxChunkBits = num_qubits_;
+//	}
 
 	if(m_maxChunkBits > num_qubits_){
 		m_maxChunkBits = num_qubits_;
@@ -1545,60 +1659,53 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 	}
 
 	//currently using only one process 
-	m_numGlobalChunks = 1ull << (num_qubits_ - m_maxChunkBits);
-	m_numChunks = m_numGlobalChunks;
-	m_globalChunkIndex = 0;
+	m_globalSize = 1ull << num_qubits_;
+	m_localSize = m_globalSize;
+	m_globalIndex = 0;
 	//--
+
+	int fitOneGPU = 0;
 
 #ifdef AER_THRUST_CUDA
 	if(m_nDevParallel == 1){
 		size_t freeMem,totalMem;
 		cudaMemGetInfo(&freeMem,&totalMem);
 
-		if(m_numChunks < (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) << m_maxChunkBits)) ){
-			if(str == NULL){	//if chunk bit is set, do not change chunk bit
-				//we do not need to divide state vector into chunks if all states can be stored in single GPU memory
-				m_maxChunkBits = num_qubits_;
-				m_numChunks = m_numGlobalChunks = 1;
-				numBuffers = 0;	//we do not need buffers for chunk exchange
-				numDummy = 0;
-			}
+		if(m_localSize < (freeMem / ((uint_t)sizeof(thrust::complex<data_t>) )) ){
+			fitOneGPU = 1;
 		}
 		else{
 			//need multiple GPUs
 			if(nid <= 1){
 				m_nDevParallel = m_nDev;
-				numBuffers = AER_MAX_BUFFERS;
 			}
 		}
 	}
+#else
+	//for OMP, TBB use 1 device
+	fitOneGPU = 1;
 
-	if(m_nDevParallel > 1){
-		//enable peer to peer memcpy
-		for(i=0;i<m_nDev;i++){
-			cudaSetDevice(i);
-			for(j=0;j<m_nDev;j++){
-				if(i != j)
-					cudaDeviceEnablePeerAccess(j,0);
-			}
-		}
-	}
+	omp_set_nested(1);
 #endif
-
-	if(m_maxChunkBits == num_qubits_){
-		//no buffer needed for chunk exchange
-		numBuffers = 0;
-		numDummy = 0;
-	}
 
 	m_Chunks.resize(m_nDevParallel+1);
 	m_nPlaces = m_nDevParallel;
 	m_iPlaceHost = -1;
 
-	uint_t is,ie,chunksOnDevice = m_numChunks;
+	uint_t is,ie,chunksOnDevice = m_localSize >> m_maxChunkBits;
 	str = getenv("AER_TEST_HYBRID");	//use only for debugging
 	if(str != NULL){
-		chunksOnDevice = m_numChunks/2;
+		chunksOnDevice = chunksOnDevice/2;
+	}
+	else if(fitOneGPU){
+		m_maxChunkBits = num_qubits_;
+	}
+
+	if(m_maxChunkBits == num_qubits_){
+		//no buffer needed for chunk exchange
+		numBuffers = 0;
+		numDummy = 0;
+		chunksOnDevice = 1;
 	}
 
 	is = 0;
@@ -1616,21 +1723,28 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 		}
 #endif
 
-		m_Chunks[i].SetGlobalIndex((m_globalChunkIndex + is) << m_maxChunkBits);
+		m_Chunks[i].SetGlobalIndex(m_globalIndex + (is << m_maxChunkBits));
+#ifdef AER_THRUST_CUDA
 		m_Chunks[i].SetDevice((m_iDev + i) % m_nDev);
+#else
+		m_Chunks[i].SetDevice(-1);
+#endif
 		m_Chunks[i].Allocate((ie - is) << m_maxChunkBits,numBuffers << m_maxChunkBits);
 		m_Chunks[i].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
+		m_Chunks[i].SetupP2P(m_nDevParallel);
+
 		is = ie;
 	}
 
-	if(is < m_numChunks){	//rest of chunks are stored on host memory
+	if(is < (m_localSize >> m_maxChunkBits)){	//rest of chunks are stored on host memory
 		m_iPlaceHost = m_nDevParallel;
 		m_nPlaces = m_nDevParallel + 1;
 
-		m_Chunks[m_iPlaceHost].SetGlobalIndex((m_globalChunkIndex + is) << m_maxChunkBits);
+		m_Chunks[m_iPlaceHost].SetGlobalIndex(m_globalIndex + (is << m_maxChunkBits));
 		m_Chunks[m_iPlaceHost].SetDevice(-1);
-		m_Chunks[m_iPlaceHost].Allocate((m_numChunks - is) << m_maxChunkBits,numBuffers << m_maxChunkBits);
+		m_Chunks[m_iPlaceHost].Allocate(m_localSize - (is << m_maxChunkBits),numBuffers << m_maxChunkBits);
 		m_Chunks[m_iPlaceHost].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
+		m_Chunks[m_iPlaceHost].SetupP2P(m_nDevParallel);
 
 		//Host execution uses nested parallelizm
 		omp_set_nested(1);
@@ -1651,7 +1765,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
 		fprintf(debug_fp," ==== Thrust qubit vector initialization %d qubits ====\n",num_qubits_);
 		fprintf(debug_fp,"    TEST : threads %d/%d , dev %d/%d, using %d devices\n",tid,nid,m_iDev,m_nDev,m_nDevParallel);
-		fprintf(debug_fp,"    TEST : max chunk bit = %d, %d/%d chunks, gid = %d , numBuffer = %d\n",m_maxChunkBits,m_numChunks,m_numGlobalChunks,m_globalChunkIndex,numBuffers);
+		fprintf(debug_fp,"    TEST : max chunk bit = %d, %d/%d states, gid = %d , numBuffer = %d\n",m_maxChunkBits,m_localSize,m_globalSize,m_globalIndex,numBuffers);
 		fprintf(debug_fp,"    TEST : ");
 		for(i=0;i<m_nPlaces;i++){
 			if(m_Chunks[i].DeviceID() >= 0){
@@ -1786,7 +1900,7 @@ void QubitVectorThrust<data_t>::initialize()
 	thrust::complex<data_t> t;
 	t = 1.0;
 
-	if(m_globalChunkIndex == 0){
+	if(m_globalIndex == 0){
 		m_Chunks[0].SetState(0,0,t,m_maxChunkBits);
 	}
 }
@@ -1869,8 +1983,8 @@ int QubitVectorThrust<data_t>::FindPlace(uint_t chunkID,int chunkBits) const
 	int i;
 	uint_t ids,baseGID,endGID;
 
-	baseGID = m_globalChunkIndex << (m_maxChunkBits - chunkBits);
-	endGID = (m_globalChunkIndex + m_numChunks) << (m_maxChunkBits - chunkBits);
+	baseGID = m_globalIndex;
+	endGID = m_globalIndex + m_localSize;
 	if(chunkID < baseGID || chunkID >= endGID){
 		return -1;		//not in this process
 	}
@@ -1945,8 +2059,9 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 	int i,ib,nBuf;
 	int nSmall,nLarge = 0;
 	reg_t large_qubits;
-	int chunkBits = m_maxChunkBits;
+	int chunkBits;
 	double ret = 0.0;
+	int noDataExchange = 0;
 
 #ifdef AER_DEBUG
 	DebugMsg(func.Name(),qubits);
@@ -1955,11 +2070,13 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 	UpdateReferencedValue();
 
 	//decreasing chunk-bits for fusion
-//	if(m_nPlaces > 1 && !func.IsDiagonal()){
-//		chunkBits -= (N - 1);
-//	}
-	//enable this after debugging
+	chunkBits = m_maxChunkBits - (N - 1);
 
+	//If no data exchange required execute along with all the state vectors
+	if(m_nPlaces == 1 || func.IsDiagonal()){		//note: for multi-process m_nPlaces == 1 is not valid
+		noDataExchange = 1;
+		chunkBits = num_qubits_;
+	}
 
 	//count number of qubits which is larger than chunk size
 	for(ib=numCBits;ib<N;ib++){
@@ -1969,6 +2086,11 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 		}
 	}
 	nSmall = N - nLarge - numCBits;
+
+	if(nLarge == 0){
+		noDataExchange = 1;
+		chunkBits = num_qubits_;
+	}
 
 	if(func.IsDiagonal()){
 		size = 1ull << chunkBits;
@@ -2004,72 +2126,92 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 		}
 	}
 
-	controlMask = 0;
-	controlFlag = 0;
-	for(ib=0;ib<numCBits;ib++){
-		if(qubits[ib] >= chunkBits)
-			controlMask |= (1ull << (qubits[ib] - chunkBits));
-	}
-	if(func.ControlMask() != 0){
-		controlFlag = controlMask;
-	}
+	if(noDataExchange){
+#pragma omp parallel private(size,iChunk,i,ib) num_threads(m_nPlaces)
+		{
+			int iPlace = omp_get_thread_num();
+			uint_t localMask = 0xffffffff;
 
-#pragma omp parallel private(iChunk,i,ib) num_threads(m_nPlaces)
-	{
-		int iPlace = omp_get_thread_num();
-		int iPlaceSrc;
-		uint_t localMask,baseChunk;
-		reg_t offsets(nBuf);
-		reg_t chunkOffsets(nChunk);
-		reg_t chunkIDs(nChunk);
-		std::vector<int> places(nChunk);
-
-		for(iChunk=0;iChunk<m_Chunks[iPlace].NumChunks(chunkBits);iChunk++){
-			baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk,chunkBits),large_qubits,chunkBits);
-			if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk,chunkBits)){	//already calculated
-				continue;
-			}
-
-			//control mask
-			if((baseChunk & controlMask) != controlFlag){
-				continue;
-			}
-
-			for(i=0;i<nChunk;i++){
-				chunkIDs[i] = baseChunk;
-				for(ib=0;ib<nLarge;ib++){
-					if((i >> ib) & 1){
-						chunkIDs[i] += (1ull << (large_qubits[ib] - chunkBits));
-					}
-				}
-				iPlaceSrc = FindPlace(chunkIDs[i],chunkBits);
-				places[i] = iPlaceSrc;
-				if(iPlaceSrc == iPlace){
-					chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
-				}
-				else{
-					m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);	//copy chunk from other place
-					chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits);	//offset to buffer
-				}
-			}
-
-			//setting buffers
-			localMask = 0;
-			for(i=0;i<nBuf;i++){
-				offsets[i] = chunkOffsets[buf2chunk[i]] + offsetBase[i];
-				localMask |= (1ull << i);	//currently all buffers are local
+			size = m_Chunks[iPlace].Size();
+			if(!func.IsDiagonal()){
+				size >>= (N - numCBits);
 			}
 
 			//execute kernel
 			if(func.Reduction())
-				ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask);
+				ret += m_Chunks[iPlace].ExecuteSum(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask);
 			else
-				m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask);
+				m_Chunks[iPlace].Execute(offsetBase,func,size,m_Chunks[iPlace].ChunkID(0,0),localMask);
+		}
+	}
+	else{
+		controlMask = 0;
+		controlFlag = 0;
+		for(ib=0;ib<numCBits;ib++){
+			if(qubits[ib] >= chunkBits)
+				controlMask |= (1ull << (qubits[ib] - chunkBits));
+		}
+		if(func.ControlMask() != 0){
+			controlFlag = controlMask;
+		}
 
-			//copy back
-			for(i=0;i<nChunk;i++){
-				if(places[i] != iPlace){
-					m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+#pragma omp parallel private(iChunk,i,ib) num_threads(m_nPlaces)
+		{
+			int iPlace = omp_get_thread_num();
+			int iPlaceSrc;
+			uint_t localMask,baseChunk;
+			reg_t offsets(nBuf);
+			reg_t chunkOffsets(nChunk);
+			reg_t chunkIDs(nChunk);
+			std::vector<int> places(nChunk);
+
+			for(iChunk=0;iChunk<m_Chunks[iPlace].NumChunks(chunkBits);iChunk++){
+				baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk,chunkBits),large_qubits,chunkBits);
+				if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk,chunkBits)){	//already calculated
+					continue;
+				}
+
+				//control mask
+				if((baseChunk & controlMask) != controlFlag){
+					continue;
+				}
+
+				for(i=0;i<nChunk;i++){
+					chunkIDs[i] = baseChunk;
+					for(ib=0;ib<nLarge;ib++){
+						if((i >> ib) & 1){
+							chunkIDs[i] += (1ull << (large_qubits[ib] - chunkBits));
+						}
+					}
+					iPlaceSrc = FindPlace(chunkIDs[i],chunkBits);
+					places[i] = iPlaceSrc;
+					if(iPlaceSrc == iPlace){
+						chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
+					}
+					else{
+						m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);	//copy chunk from other place
+						chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits);	//offset to buffer
+					}
+				}
+
+				//setting buffers
+				localMask = 0;
+				for(i=0;i<nBuf;i++){
+					offsets[i] = chunkOffsets[buf2chunk[i]] + offsetBase[i];
+					localMask |= (1ull << i);	//currently all buffers are local
+				}
+
+				//execute kernel
+				if(func.Reduction())
+					ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask);
+				else
+					m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask);
+
+				//copy back
+				for(i=0;i<nChunk;i++){
+					if(places[i] != iPlace){
+						m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+					}
 				}
 			}
 		}
@@ -4038,14 +4180,12 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 {
 	const int_t SHOTS = rnds.size();
 	reg_t samples,localSamples;
-	std::vector<double> chunkSum;
+	std::vector<double> placeSum;
 	data_t* pVec;
 	uint_t i;
-//	double* pChunkSum;
-	uint_t iChunk,numChunks,size;
+	uint_t size;
 	double sum,localSum,globalSum;
-//	double* pProcTotal;
-	int chunkBits;
+	int iPlace;
 
 #ifdef AER_TIMING
 	TimeStart(QS_GATE_MEASURE);
@@ -4054,102 +4194,43 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	UpdateReferencedValue();
 
 	samples.assign(SHOTS, 0);
+
 	localSamples.assign(SHOTS, 0);
 
-	if(m_nPlaces == 1 && m_Chunks[0].DeviceID() < 0){		//run on host
-		int nThreads;
-		chunkBits = m_maxChunkBits;
+	placeSum.assign(m_nPlaces+1, 0.0);
 
-#pragma omp parallel
-		{
-#pragma omp master
-			nThreads = omp_get_num_threads();
-		}
+	//calculate sum of each place
+#pragma omp parallel num_threads(m_nPlaces) private(pVec,size,iPlace)
+	{
+		int iDev;
 
-		while(m_Chunks[0].NumChunks(chunkBits) < nThreads && chunkBits > 10){
-			chunkBits--;
-		}
-		size = (1ull << (chunkBits + 1));
-
-		numChunks = m_Chunks[0].NumChunks(chunkBits);
-
-		chunkSum.assign(numChunks+1, 0.0);
-
-#pragma omp parallel for private(iChunk,pVec)
-		for(iChunk=0;iChunk<numChunks;iChunk++){
-			pVec = (data_t*)m_Chunks[0].ChunkPtr(iChunk,chunkBits);
-
-			thrust::transform_inclusive_scan(thrust::host,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-
-			chunkSum[iChunk] = m_Chunks[0].GetState(iChunk,(1ull << chunkBits)-1,chunkBits).imag();
-		}
-
-	}
-	else{
-		chunkBits = m_maxChunkBits;
-		numChunks = m_numChunks;
-		chunkSum.assign(m_numChunks+1, 0.0);
-
-		size = (1ull << (m_maxChunkBits + 1));
-
-		//calculate sum of each chunk
-#pragma omp parallel private(pVec,iChunk)
-		{
-			int tid = omp_get_thread_num();
-			int nid = omp_get_num_threads();
-			int iHost,nHost,iPlace;
-			uint_t is,iAdd,localChunkID;
-			int iDev;
-
-			if(tid < m_nDevParallel){
-				iPlace = tid;
-				is = 0;
-				iAdd = 1;
-				iDev = m_Chunks[iChunk].DeviceID();
-			}
-			else if(m_nPlaces > m_nDevParallel){	//calculate on host
-				iPlace = m_nDevParallel;
-				iHost = tid - m_nDevParallel;
-				nHost = nid - m_nDevParallel;
-
-				is = iHost;
-				iAdd = nHost;
-				iDev = -1;
-			}
-			else{
-				iPlace = -1;
-			}
-
-			if(iPlace >= 0){
-				if(iDev >= 0){
+		iPlace = omp_get_thread_num();
+		iDev = m_Chunks[iPlace].DeviceID();
 #ifdef AER_THRUST_CUDA
-					cudaSetDevice(iDev);
-#endif
-				}
-
-				for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks(m_maxChunkBits);iChunk+=iAdd){
-					localChunkID = m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits) - m_globalChunkIndex;
-					pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk,m_maxChunkBits);
-
-					if(tid < m_nDevParallel){
-						thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-					}
-					else{
-						thrust::transform_inclusive_scan(thrust::host,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-					}
-					chunkSum[localChunkID] = m_Chunks[iPlace].GetState(iChunk,(1ull << m_maxChunkBits)-1,m_maxChunkBits).imag();
-				}
-			}
+		if(iDev >= 0){
+			cudaSetDevice(iDev);
 		}
+#endif
+
+		pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(0,m_maxChunkBits);
+		size = m_Chunks[iPlace].Size() * 2;
+
+		if(iPlace < m_nDevParallel){
+			thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+		}
+		else{
+			thrust::transform_inclusive_scan(thrust::omp::par,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
+		}
+		placeSum[iPlace] = m_Chunks[iPlace].GetState(m_Chunks[iPlace].Size()-1).imag();
 	}
 
 	localSum = 0.0;
-	for(iChunk=0;iChunk<numChunks;iChunk++){
+	for(iPlace=0;iPlace<m_nPlaces;iPlace++){
 		sum = localSum;
-		localSum += chunkSum[iChunk];
-		chunkSum[iChunk] = sum;
+		localSum += placeSum[iPlace];
+		placeSum[iPlace] = sum;
 	}
-	chunkSum[numChunks] = localSum;
+	placeSum[m_nPlaces] = localSum;
 
 	globalSum = 0.0;
 #ifdef AER_MPI
@@ -4169,113 +4250,55 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 	}
 #endif
 
+
 	//now search for the position
-	if(m_nPlaces == 1 && m_Chunks[0].DeviceID() < 0){		//run on host
-		
-#pragma omp parallel for private(iChunk,pVec,i)
-		for(iChunk=0;iChunk<numChunks;iChunk++){
-			thrust::host_vector<uint_t> vIdx(SHOTS);
-			thrust::host_vector<double> vRnd(SHOTS);
-			thrust::host_vector<uint_t> vSmp(SHOTS);
+#pragma omp parallel num_threads(m_nPlaces) private(pVec,iPlace,i,size)
+	{
+		thrust::host_vector<uint_t> vIdx(SHOTS);
+		thrust::host_vector<double> vRnd(SHOTS);
+		thrust::host_vector<uint_t> vSmp(SHOTS);
+		uint_t nIn;
+		int iDev;
 
-			uint_t nIn = 0;
-			for(i=0;i<SHOTS;i++){
-				if(rnds[i] >= globalSum + chunkSum[iChunk] && rnds[i] < globalSum + chunkSum[iChunk+1]){
-					vRnd[nIn] = rnds[i] - (globalSum + chunkSum[iChunk]);
-					vIdx[nIn] = i;
-					nIn++;
-				}
-			}
-			if(nIn == 0){
-				continue;
-			}
-			pVec = (data_t*)m_Chunks[0].ChunkPtr(iChunk,chunkBits);
+		iPlace = omp_get_thread_num();
+		iDev = m_Chunks[iPlace].DeviceID();
+#ifdef AER_THRUST_CUDA
+		if(iDev >= 0){
+			cudaSetDevice(iDev);
+		}
+#endif
 
-			thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+		pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(0,m_maxChunkBits);
+		size = m_Chunks[iPlace].Size() * 2;
 
-			for(i=0;i<nIn;i++){
-				localSamples[vIdx[i]] = ((m_Chunks[0].ChunkID(iChunk,chunkBits)) << chunkBits) + vSmp[i]/2;
+		nIn = 0;
+		for(i=0;i<SHOTS;i++){
+			if(rnds[i] >= globalSum + placeSum[iPlace] && rnds[i] < globalSum + placeSum[iPlace+1]){
+				vRnd[nIn] = rnds[i] - (globalSum + placeSum[iPlace]);
+				vIdx[nIn] = i;
+				nIn++;
 			}
 		}
-	}
-	else{
-#pragma omp parallel private(pVec,iChunk,i)
-		{
-			int tid = omp_get_thread_num();
-			int nid = omp_get_num_threads();
-			int iHost,nHost,iPlace;
-			uint_t is,iAdd,localChunkID;
-			thrust::host_vector<uint_t> vIdx(SHOTS);
-			thrust::host_vector<double> vRnd(SHOTS);
-			thrust::host_vector<uint_t> vSmp(SHOTS);
-			int iDev;
 
-			if(tid < m_nDevParallel){
-				iPlace = tid;
-				is = 0;
-				iAdd = 1;
-				iDev = m_Chunks[iChunk].DeviceID();
-			}
-			else if(m_nPlaces > m_nDevParallel){	//calculate on host
-				iPlace = m_nDevParallel;
-				iHost = tid - m_nDevParallel;
-				nHost = nid - m_nDevParallel;
+		if(nIn > 0){
+#ifdef AER_THRUST_CUDA
+			if(iPlace < m_nDevParallel){
+				thrust::device_vector<double> vRnd_dev(SHOTS);
+				thrust::device_vector<uint_t> vSmp_dev(SHOTS);
 
-				is = iHost;
-				iAdd = nHost;
-				iDev = -1;
+				vRnd_dev = vRnd;
+				thrust::lower_bound(thrust::device, pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
+				vSmp = vSmp_dev;
 			}
 			else{
-				iPlace = -1;
+#endif
+				thrust::lower_bound(thrust::omp::par, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+#ifdef AER_THRUST_CUDA
 			}
-
-			if(iPlace >= 0){
-				uint_t nIn;
-
-#ifdef AER_THRUST_CUDA
-				thrust::device_vector<double> vRnd_dev;
-				thrust::device_vector<uint_t> vSmp_dev;
-				if(iDev >= 0){
-					cudaSetDevice(iDev);
-					vRnd_dev.resize(SHOTS);
-					vSmp_dev.resize(SHOTS);
-				}
 #endif
 
-				for(iChunk=is;iChunk<m_Chunks[iPlace].NumChunks(m_maxChunkBits);iChunk+=iAdd){
-					localChunkID = m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits) - m_globalChunkIndex;
-					nIn = 0;
-					for(i=0;i<SHOTS;i++){
-						if(rnds[i] >= globalSum + chunkSum[localChunkID] && rnds[i] < globalSum + chunkSum[localChunkID+1]){
-							vRnd[nIn] = rnds[i] - (globalSum + chunkSum[localChunkID]);
-							vIdx[nIn] = i;
-							nIn++;
-						}
-					}
-					if(nIn == 0){
-						continue;
-					}
-
-
-					pVec = (data_t*)m_Chunks[iPlace].ChunkPtr(iChunk,m_maxChunkBits);
-
-#ifdef AER_THRUST_CUDA
-					if(tid < m_nDevParallel){
-						vRnd_dev = vRnd;
-						thrust::lower_bound(thrust::device, pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
-						vSmp = vSmp_dev;
-					}
-					else{
-#endif
-						thrust::lower_bound(thrust::host, pVec, pVec + size, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
-#ifdef AER_THRUST_CUDA
-					}
-#endif
-
-					for(i=0;i<nIn;i++){
-						localSamples[vIdx[i]] = ((m_Chunks[iPlace].ChunkID(iChunk,m_maxChunkBits)) << m_maxChunkBits) + vSmp[i]/2;
-					}
-				}
+			for(i=0;i<nIn;i++){
+				localSamples[vIdx[i]] = m_Chunks[iPlace].GlobalIndex() + vSmp[i]/2;
 			}
 		}
 	}
