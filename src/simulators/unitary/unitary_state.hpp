@@ -23,7 +23,9 @@
 #include "framework/json.hpp"
 #include "base/state.hpp"
 #include "unitarymatrix.hpp"
-
+#ifdef AER_THRUST_SUPPORTED
+#include "unitarymatrix_thrust.hpp"
+#endif
 
 namespace AER {
 namespace QubitUnitary {
@@ -40,10 +42,10 @@ enum class Gates {
 // QubitUnitary State subclass
 //=========================================================================
 
-template <class data_t = double>
-class State : public Base::State<QV::UnitaryMatrix<data_t>> {
+template <class data_t = double, class unitary_matrix_t = QV::UnitaryMatrix<data_t>>
+class State : public Base::State<unitary_matrix_t> {
 public:
-  using BaseState = Base::State<QV::UnitaryMatrix<data_t>>;
+  using BaseState = Base::State<unitary_matrix_t>;
 
   State() = default;
   virtual ~State() = default;
@@ -88,7 +90,7 @@ public:
 
   // Initializes to a specific n-qubit unitary matrix
   virtual void initialize_qreg(uint_t num_qubits,
-                               const QV::UnitaryMatrix<data_t> &unitary) override;
+                               const unitary_matrix_t &unitary) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -171,8 +173,8 @@ protected:
 // Implementation: Allowed ops and gateset
 //============================================================================
 
-template <class data_t>
-const stringmap_t<Gates> State<data_t>::gateset_({
+template <class data_t, class unitary_matrix_t>
+const stringmap_t<Gates> State<data_t, unitary_matrix_t>::gateset_({
   // Single qubit gates
   {"id", Gates::id},   // Pauli-Identity gate
   {"x", Gates::mcx},    // Pauli-X gate
@@ -192,7 +194,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
   {"cy", Gates::mcy},       // Controlled-Z gate
   {"cz", Gates::mcz},       // Controlled-Z gate
   {"cu1", Gates::mcu1},     // Controlled-u1 gate
-  {"cu2", Gates::mcu2},     // Controlled-u2
+  {"cu2", Gates::mcu2},    // Controlled-u2
   {"cu3", Gates::mcu3},     // Controlled-u3 gate
   {"swap", Gates::mcswap},  // SWAP gate
   // Three-qubit gates
@@ -212,8 +214,8 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 // Implementation: Base class method overrides
 //============================================================================
 
-template <class data_t>
-void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                   ExperimentData &data,
                                   RngEngine &rng) {
   // Simple loop over vector of input operations
@@ -239,8 +241,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
   }
 }
 
-template <class data_t>
-size_t State<data_t>::required_memory_mb(uint_t num_qubits,
+template <class data_t, class unitary_matrix_t>
+size_t State<data_t, unitary_matrix_t>::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops)
                                  const {
   // An n-qubit unitary as 2^2n complex doubles
@@ -252,8 +254,8 @@ size_t State<data_t>::required_memory_mb(uint_t num_qubits,
 }
 
 
-template <class data_t>
-void State<data_t>::set_config(const json_t &config) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
 
@@ -263,17 +265,17 @@ void State<data_t>::set_config(const json_t &config) {
 }
 
 
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
 }
 
 
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits,
-                                    const QV::UnitaryMatrix<data_t> &unitary) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
+                                    const unitary_matrix_t &unitary) {
   // Check dimension of state
   if (unitary.num_qubits() != num_qubits) {
     throw std::invalid_argument("Unitary::State::initialize: initial state does not match qubit number");
@@ -285,8 +287,8 @@ void State<data_t>::initialize_qreg(uint_t num_qubits,
 }
 
 
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits,
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
                                     const cmatrix_t &unitary) {
   // Check dimension of unitary
   if (unitary.size() != 1ULL << (2 * num_qubits)) {
@@ -298,8 +300,8 @@ void State<data_t>::initialize_qreg(uint_t num_qubits,
 }
 
 
-template <class data_t>
-void State<data_t>::initialize_omp() {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::initialize_omp() {
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in qubitvector
@@ -310,8 +312,8 @@ void State<data_t>::initialize_omp() {
 // Implementation: Gates
 //=========================================================================
 
-template <class data_t>
-void State<data_t>::apply_gate(const Operations::Op &op) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -379,15 +381,15 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
   }
 }
 
-template <class data_t>
-void State<data_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (qubits.empty() == false && mat.size() > 0) {
     apply_matrix(qubits, Utils::vectorize_matrix(mat));
   }
 }
 
-template <class data_t>
-void State<data_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     BaseState::qreg_.apply_diagonal_matrix(qubits, vmat);
@@ -397,8 +399,8 @@ void State<data_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
 }
 
 
-template <class data_t>
-void State<data_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
   cmatrix_t diag(1, 2);
   diag(0, 0) = 1.0;
   diag(0, 1) = phase;
@@ -406,8 +408,8 @@ void State<data_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
 }
 
 
-template <class statevec_t>
-void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_gate_mcu3(const reg_t& qubits,
                                         double theta,
                                         double phi,
                                         double lambda) {
@@ -416,8 +418,8 @@ void State<statevec_t>::apply_gate_mcu3(const reg_t& qubits,
 }
 
 
-template <class data_t>
-void State<data_t>::apply_snapshot(const Operations::Op &op,
+template <class data_t, class unitary_matrix_t>
+void State<data_t, unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {

@@ -9,22 +9,25 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 UnitarySimulator Integration Tests
 """
 
 import unittest
 from test.terra import common
+from test.terra.decorators import requires_gpu
 # Basic circuit instruction tests
 from test.terra.backends.unitary_simulator.unitary_basics import UnitaryBasicsTests
 
-
-class TestUnitarySimulator(common.QiskitAerTestCase,
+@requires_gpu
+class TestUnitaryGPUSimulator(common.QiskitAerTestCase,
                            UnitaryBasicsTests):
     """QasmSimulator automatic method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 2113
+        "seed_simulator": 2113,
+        "method": "unitarymatrix_gpu"
     }
 
 if __name__ == '__main__':
