@@ -35,13 +35,10 @@ class PulseSimulator(AerBackend):
     """
     Aer OpenPulse simulator
 
-    The `PulseSimulator` simulates pulse `Schedules` on a model of a quantum system, where a model
-    is specified by a `PulseSystemModel` object, which stores Hamiltonian and control channel
-    information. Simulation is performed in the rotating frame of the drift Hamiltonian in the
-    `PulseSystemModel`.
-
-    `PulseSystemModel` objects can be constructed from backends with a hamiltonian description, or
-    from the `transmon_system_model` function.
+    The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
+    with controls specified by pulse :class:`Schedule` objects, and the model of the physical
+    system specified by :class:`PulseSystemModel` objects. Simulation is performed in the
+    rotating frame of the drift Hamiltonian in the :class:`PulseSystemModel`.
 
     Results are returned in the same format as when jobs are submitted to actual devices.
 
@@ -55,12 +52,12 @@ class PulseSimulator(AerBackend):
 
     .. code-block:: python
 
-        backend_sim = qiskit.Aer.get_backend('pulse_simulator')
+        backend_sim = qiskit.providers.aer.PulseSimulator
 
-        # assemble pulse_qobj with backend=backend_sim
+        # Assemble schedules using PulseSimulator as the backend
         pulse_qobj = assemble(schedules, backend=backend_sim)
 
-        # Run simulation
+        # Run simulation on a PulseSystemModel object
         results = backend_sim.run(pulse_qobj, system_model)
 
     **Important parameters**
