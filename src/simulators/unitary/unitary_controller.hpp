@@ -73,6 +73,19 @@ protected:
   size_t required_memory_mb(const Circuit& circ,
                             const Noise::NoiseModel& noise) const override;
 
+  // Simulation methods for the Unitary Controller
+  enum class Method {
+    automatic,
+    unitarymatrix,
+    unitarymatrix_gpu
+  };
+
+  // Simulation precision
+  enum class Precision {
+    double_precision,
+    single_precision
+  };
+
 private:
 
   //-----------------------------------------------------------------------
@@ -87,10 +100,25 @@ private:
                                  uint_t shots,
                                  uint_t rng_seed) const override;
   
+  template <class State_t>
+  ExperimentData run_circuit_helper(const Circuit &circ,
+                                 const Noise::NoiseModel& noise,
+                                 const json_t &config,
+                                 uint_t shots,
+                                 uint_t rng_seed,
+                                 std::string method_name) const;
+
   //-----------------------------------------------------------------------
   // Custom initial state
   //-----------------------------------------------------------------------        
   cmatrix_t initial_unitary_;
+
+  // Method to construct a unitary matrix
+  Method method_ = Method::automatic;
+
+  // Precision of a unitary matrix
+  Precision precision_ = Precision::double_precision;
+
 };
 
 //=========================================================================
@@ -116,6 +144,28 @@ void UnitaryController::set_config(const json_t &config) {
     if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
       throw std::runtime_error("UnitaryController: initial_unitary is not unitary");
   }
+
+  //Add method
+  std::string method;
+  if (JSON::get_value(method, "method", config)) {
+    if (method == "unitarymatrix") {
+      method_ = Method::unitarymatrix;
+    } else if (method == "unitarymatrix_gpu") {
+      method_ = Method::unitarymatrix_gpu;
+    } else if (method != "automatic") {
+      throw std::runtime_error(std::string("UnitaryController: Invalid simulation method (") +
+                               method + std::string(")."));
+    }
+  }
+
+  std::string precision;
+  if (JSON::get_value(precision, "precision", config)) {
+    if (precision == "double") {
+      precision_ = Precision::double_precision;
+    } else if (precision == "single") {
+      precision_ = Precision::single_precision;
+    }
+  }
 }
 
 void UnitaryController::clear_config() {
@@ -138,9 +188,69 @@ ExperimentData UnitaryController::run_circuit(const Circuit &circ,
                                           const json_t &config,
                                           uint_t shots,
                                           uint_t rng_seed) const {
+
+  switch(method_) {
+    case Method::automatic:
+    case Method::unitarymatrix: {
+      if (precision_ == Precision::double_precision) {
+        // Double-precision Statevector simulation
+        return run_circuit_helper<QubitUnitary::State<double>>(circ,
+                                                         noise,
+                                                         config,
+                                                         shots,
+                                                         rng_seed,
+                                                         "unitarymatrix");
+      } else {
+        // Single-precision Statevector simulation
+        return run_circuit_helper<QubitUnitary::State<float>>(circ,
+                                                         noise,
+                                                         config,
+                                                         shots,
+                                                         rng_seed,
+                                                         "unitarymatrix");
+      }
+    }
+    case Method::unitarymatrix_gpu: {
+#ifdef AER_THRUST_SUPPORTED
+      if (precision_ == Precision::double_precision) {
+        // Double-precision Statevector simulation
+        return run_circuit_helper<QubitUnitary::State<double, QV::UnitaryMatrixThrust<double>>>(
+                                                         circ,
+                                                         noise,
+                                                         config,
+                                                         shots,
+                                                         rng_seed,
+                                                         "unitarymatrix_gpu");
+      } else {
+        // Single-precision Statevector simulation
+        return run_circuit_helper<QubitUnitary::State<float, QV::UnitaryMatrixThrust<float>>>(
+                                                         circ,
+                                                         noise,
+                                                         config,
+                                                         shots,
+                                                         rng_seed,
+                                                         "unitarymatrix_gpu");
+      }
+#else
+      throw std::runtime_error("UnitaryController: method unitarymatrix_gpu is not supported");
+#endif
+    }
+    default:
+      throw std::runtime_error("UnitaryController:Invalid simulation method");
+  }
+}
+
+template <class State_t>
+ExperimentData UnitaryController::run_circuit_helper(const Circuit &circ,
+                                          const Noise::NoiseModel& noise,
+                                          const json_t &config,
+                                          uint_t shots,
+                                          uint_t rng_seed,
+                                          std::string method_name) const {
+
   // Initialize state
-  QubitUnitary::State<> state;
-  
+  State_t state;
+
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
 
@@ -172,6 +282,7 @@ ExperimentData UnitaryController::run_circuit(const Circuit &circ,
   // Output data container
   ExperimentData data;
   data.set_config(config);
+  data.add_metadata("method", method_name);
 
   // Run single shot collecting measure data or snapshots
   if (initial_unitary_.empty())

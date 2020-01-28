@@ -12,17 +12,17 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _qv_density_matrix_hpp_
-#define _qv_density_matrix_hpp_
+#ifndef _qv_density_matrix_thrust_hpp_
+#define _qv_density_matrix_thrust_hpp_
 
 
 #include "framework/utils.hpp"
-#include "simulators/unitary/unitarymatrix.hpp"
+#include "simulators/unitary/unitarymatrix_thrust.hpp"
 
 namespace QV {
 
 //============================================================================
-// DensityMatrix class
+// DensityMatrixThrust class
 //============================================================================
 
 // This class is derived from the UnitaryMatrix class and stores an N-qubit 
@@ -32,28 +32,28 @@ namespace QV {
 // of the vectorized 2*N qubit vector also on qubit-n.
 
 template <typename data_t = double>
-class DensityMatrix : public UnitaryMatrix<data_t> {
+class DensityMatrixThrust : public UnitaryMatrixThrust<data_t> {
 
 public:
   // Parent class aliases
-  using BaseVector = QubitVector<data_t>;
-  using BaseMatrix = UnitaryMatrix<data_t>;
+  using BaseVector = QubitVectorThrust<data_t>;
+  using BaseMatrix = UnitaryMatrixThrust<data_t>;
 
   //-----------------------------------------------------------------------
   // Constructors and Destructor
   //-----------------------------------------------------------------------
 
-  DensityMatrix() : DensityMatrix(0) {};
-  explicit DensityMatrix(size_t num_qubits);
-  DensityMatrix(const DensityMatrix& obj) = delete;
-  DensityMatrix &operator=(const DensityMatrix& obj) = delete;
+  DensityMatrixThrust() : DensityMatrixThrust(0) {};
+  explicit DensityMatrixThrust(size_t num_qubits);
+  DensityMatrixThrust(const DensityMatrixThrust& obj) = delete;
+  DensityMatrixThrust &operator=(const DensityMatrixThrust& obj) = delete;
 
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------
 
   // Return the string name of the DensityMatrix class
-  static std::string name() {return "density_matrix";}
+  static std::string name() {return "density_matrix_gpu";}
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
@@ -120,6 +120,11 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+  // Return M sampled outcomes for Z-basis measurement of all qubits
+  // The input is a length M list of random reals between [0, 1) used for
+  // generating samples.
+  virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
+
 protected:
 
   // Convert qubit indicies to vectorized-density matrix qubitvector indices
@@ -147,23 +152,24 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
-  : UnitaryMatrix<data_t>(num_qubits) {};
+DensityMatrixThrust<data_t>::DensityMatrixThrust(size_t num_qubits)
+  : UnitaryMatrixThrust<data_t>(num_qubits) {};
 
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void DensityMatrix<data_t>::initialize() {
+void DensityMatrixThrust<data_t>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be all |0> sate
-  BaseVector::data_[0] = 1.0;
+	std::complex<data_t> one = 1.0;
+	BaseVector::set_state(0,one);
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
+void DensityMatrixThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
   if (BaseVector::data_size_ == statevec.size()) {
     // Use base class initialize for already vectorized matrix
     BaseVector::initialize_from_vector(statevec);
@@ -171,12 +177,17 @@ void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &stat
     // Convert statevector into density matrix
     cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
                                                       statevec);
-    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
+//    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
+    BaseVector::initialize_from_vector(densitymat);
+
   } else {
-    throw std::runtime_error("DensityMatrix::initialize input vector is incorrect length. Expected: " +
+    throw std::runtime_error("DensityMatrixThrust::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
                              std::to_string(statevec.size()));
   }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::initialize_from_vector");
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -184,7 +195,7 @@ void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &stat
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
+reg_t DensityMatrixThrust<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
@@ -195,7 +206,7 @@ reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
 }
 
 template <typename data_t>
-cvector_t<double> DensityMatrix<data_t>::vmat2vsuperop(const cvector_t<double> &vmat) const {
+cvector_t<double> DensityMatrixThrust<data_t>::vmat2vsuperop(const cvector_t<double> &vmat) const {
   // Get dimension of unvectorized matrix
   size_t dim = size_t(std::sqrt(vmat.size()));
   cvector_t<double> ret(dim * dim * dim * dim, 0.);
@@ -208,19 +219,25 @@ cvector_t<double> DensityMatrix<data_t>::vmat2vsuperop(const cvector_t<double> &
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_superop_matrix(const reg_t &qubits,
+void DensityMatrixThrust<data_t>::apply_superop_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
   BaseVector::apply_matrix(superop_qubits(qubits), mat);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_superop_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_diagonal_superop_matrix(const reg_t &qubits,
+void DensityMatrixThrust<data_t>::apply_diagonal_superop_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) {
   BaseVector::apply_diagonal_matrix(superop_qubits(qubits), diag);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_diagonal_superop_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
+void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
   // Check if we apply as two N-qubit matrix multiplications or a single 2N-qubit matrix mult.
   if (qubits.size() > apply_unitary_threshold_) {
@@ -238,10 +255,13 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as single 2N-qubit matrix mult.
     apply_superop_matrix(qubits, vmat2vsuperop(mat));
   }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
+void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) {
   // Apply as single 2N-qubit matrix mult.
   apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
@@ -252,82 +272,156 @@ void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
 //-----------------------------------------------------------------------
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
+void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
     {{1, 3}, {4, 12}, {5, 15}, {6, 14}, {7, 13}, {9, 11}}
   };
   const size_t nq = num_qubits();
   const reg_t qubits = {{qctrl, qtrgt, qctrl + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_cnot",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  // Lambda function for CZ gate
-  auto lambda = [&](const areg_t<1ULL << 4> &inds)->void {
-    BaseVector::data_[inds[3]] *= -1.;
-    BaseVector::data_[inds[7]] *= -1.;
-    BaseVector::data_[inds[11]] *= -1.;
-    BaseVector::data_[inds[12]] *= -1.;
-    BaseVector::data_[inds[13]] *= -1.;
-    BaseVector::data_[inds[14]] *= -1.;
-  };
+void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+
+  vec[3] = -1.;
+  vec[7] = -1.;
+  vec[11] = -1.;
+  vec[12] = -1.;
+  vec[13] = -1.;
+  vec[14] = -1.;
+
   const auto nq =  num_qubits();
-  const areg_t<4> qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
+  BaseVector::apply_matrix(qubits, vec);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_cz",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
+void DensityMatrixThrust<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
    {{1, 2}, {4, 8}, {5, 10}, {6, 9}, {7, 11}, {13, 14}}
   };
   const size_t nq = num_qubits();
-  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
+  const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};  //TODO support
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_swap",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_x(const uint_t qubit) {
-  // Lambda function for X gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
-    std::swap(BaseVector::data_[inds[1]], BaseVector::data_[inds[2]]);
-  };
+class DensityX : public GateFuncBase
+{
+protected:
+  uint_t mask0;
+  uint_t mask1;
+
+public:
+  DensityX(int q0,int q1)
+  {
+  	if(q0 < q1){
+      mask0 = (1ull << q0) - 1;
+      mask1 = (1ull << q1) - 1;
+  	}
+  	else{
+      mask0 = (1ull << q1) - 1;
+      mask1 = (1ull << q0) - 1;
+  	}
+
+  }
+
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,i0,i1,i2;
+	thrust::complex<data_t>* pV;
+	uint_t* offsets;
+    thrust::complex<data_t> q0,q1,q2,q3;
+		struct GateParams<data_t> params;
+
+  	i = ExtractIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+
+    i0 = i & mask0;
+    i2 = (i - i0) << 1;
+    i1 = i2 & mask1;
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = pV[offsets[0]+i0];
+    q1 = pV[offsets[1]+i0];
+    q2 = pV[offsets[2]+i0];
+    q3 = pV[offsets[3]+i0];
+
+    pV[offsets[0]+i0] = q3;
+    pV[offsets[1]+i0] = q2;
+    pV[offsets[2]+i0] = q1;
+    pV[offsets[3]+i0] = q0;
+		return 0.0;
+  }
+
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
 
+	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_x",qubits);
+	BaseVector::DebugDump();
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_y(const uint_t qubit) {
-  // Lambda function for Y gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
-    const std::complex<data_t> cache = std::complex<data_t>(-1) * BaseVector::data_[inds[1]];
-    BaseVector::data_[inds[1]] = std::complex<data_t>(-1) * BaseVector::data_[inds[2]];
-    BaseVector::data_[inds[2]] = cache;
-  };
+void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[0 * 4 + 3] = 1.;
+  vec[1 * 4 + 2] = -1.;
+  vec[2 * 4 + 1] = -1.;
+  vec[3 * 4 + 0] = 1.;
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
+  BaseVector::apply_matrix(qubits, vec);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_y",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_z(const uint_t qubit) {
-  // Lambda function for Z gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    BaseVector::data_[inds[1]] *= -1;
-    BaseVector::data_[inds[2]] *= -1;
-  };
+void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
+  cvector_t<double> vec;
+  vec.resize(16, 0.);
+  vec[0 * 4 + 0] = 1.;
+  vec[1 * 4 + 1] = -1.;
+  vec[2 * 4 + 2] = -1.;
+  vec[3 * 4 + 3] = 1.;
+
   // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_lambda(lambda, qubits);
+  const reg_t qubits = {{qubit, qubit + num_qubits()}};
+  BaseVector::apply_matrix(qubits, vec);
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_z",qubits);
+#endif
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
+void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
                                           const uint_t qctrl1,
                                           const uint_t qtrgt) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
@@ -338,6 +432,10 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
   const reg_t qubits = {{qctrl0, qctrl1, qtrgt,
                          qctrl0 + nq, qctrl1 + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_toffoli",qubits);
+#endif
+
 }
 
 //-----------------------------------------------------------------------
@@ -345,9 +443,92 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
 //-----------------------------------------------------------------------
 
 template <typename data_t>
-double DensityMatrix<data_t>::probability(const uint_t outcome) const {
+double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
-  return std::real(BaseVector::data_[outcome * shift]);
+
+	return std::real(BaseVector::get_state(outcome * shift));
+}
+
+template <typename data_t>
+reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const {
+
+  const int_t END = 1LL << num_qubits();
+  const int_t SHOTS = rnds.size();
+  reg_t samples;
+  samples.assign(SHOTS, 0);
+
+  const int INDEX_SIZE = BaseVector::sample_measure_index_size_;
+  const int_t INDEX_END = BITS[INDEX_SIZE];
+  // Qubit number is below index size, loop over shots
+  if (END < INDEX_END) {
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < SHOTS; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample;
+        for (sample = 0; sample < END - 1; ++sample) {
+          p += probability(sample);
+          if (rnd < p)
+            break;
+        }
+        samples[i] = sample;
+      }
+    } // end omp parallel
+  }
+  // Qubit number is above index size, loop over index blocks
+  else {
+    // Initialize indexes
+    std::vector<double> idxs;
+    idxs.assign(INDEX_END, 0.0);
+    uint_t loop = (END >> INDEX_SIZE);
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < INDEX_END; ++i) {
+        uint_t base = loop * i;
+        double total = .0;
+        double p = .0;
+        for (uint_t j = 0; j < loop; ++j) {
+          uint_t k = base | j;
+          p = probability(k);
+          total += p;
+        }
+        idxs[i] = total;
+      }
+    } // end omp parallel
+
+    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < SHOTS; ++i) {
+        double rnd = rnds[i];
+        double p = .0;
+        int_t sample = 0;
+        for (uint_t j = 0; j < idxs.size(); ++j) {
+          if (rnd < (p + idxs[j])) {
+            break;
+          }
+          p += idxs[j];
+          sample += loop;
+        }
+
+        for (; sample < END - 1; ++sample) {
+          p += probability(sample);
+          if (rnd < p){
+            break;
+          }
+        }
+        samples[i] = sample;
+      }
+    } // end omp parallel
+  }
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::sample_measure",samples);
+#endif
+	
+  return samples;
 }
 
 //------------------------------------------------------------------------------
@@ -356,7 +537,7 @@ double DensityMatrix<data_t>::probability(const uint_t outcome) const {
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrix<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrixThrust<data_t>&m) {
   out << m.matrix();
   return out;
 }
