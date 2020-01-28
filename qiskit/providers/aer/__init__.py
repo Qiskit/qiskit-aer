@@ -34,6 +34,7 @@ Simulator Backends
     QasmSimulator
     StatevectorSimulator
     UnitarySimulator
+    PulseSimulator
 
 Job Class
 =========
