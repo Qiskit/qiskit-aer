@@ -58,9 +58,7 @@ class QasmSnapshotStatevectorTests:
         snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
         statevecs = []
         for snap in snaps:
-            svec = np.array(snap)
-            statevecs.append(svec)
-            #statevecs.append(svec[:, 0] + 1j * svec[:, 1])
+            statevecs.append(np.array(snap))
         return statevecs
 
     def test_snapshot_statevector_pre_measure_det(self):
