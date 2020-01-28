@@ -128,13 +128,14 @@ jobs:
 
     # "compile" stage
     ###########################################################################
+    # Linux on Intel
     - stage: compile
       name: Test Build Linux
       <<: *stage_linux
       before_script: true
       script:
         - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
-  
+    # MacOS
     - stage: compile
       name: Test Build MacOS
       <<: *stage_osx
@@ -207,3 +208,21 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
+  
+  # POWER tests
+  allow_failures:
+    # Power Build
+    - stage: compile
+      name: Test Build Linux (Power)
+      arch: ppc64le
+      <<: *stage_linux
+      before_script: true
+      script:
+        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    # Power Tests
+    - stage: test
+      arch: ppc64le
+      name: Python 3.7 Tests Linux (Power)
+      <<: *stage_linux
+      python: 3.7
+      
