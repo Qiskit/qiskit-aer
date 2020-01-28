@@ -23,6 +23,9 @@
 #include "framework/json.hpp"
 #include "base/state.hpp"
 #include "densitymatrix.hpp"
+#ifdef AER_THRUST_SUPPORTED
+#include "densitymatrix_thrust.hpp"
+#endif
 
 
 namespace AER {
@@ -61,7 +64,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the State class
-  virtual std::string name() const override {return "density_matrix";}
+  virtual std::string name() const override {return densmat_t::name();}
 
   // Return the set of qobj instruction types supported by the State
   virtual Operations::OpSet::optypeset_t allowed_ops() const override {
@@ -622,6 +625,7 @@ template <class densmat_t>
 std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) {
+
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
