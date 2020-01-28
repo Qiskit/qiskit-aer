@@ -78,7 +78,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotProbabilitiesTests,
         QasmSnapshotStabilizerTests,
         QasmSnapshotExpValPauliTests,
-        QasmSnapshotExpValMatrixTests,
+        #QasmSnapshotExpValMatrixTests,
         ):
     """QasmSimulator matrix product state method tests."""
 
