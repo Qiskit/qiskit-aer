@@ -183,7 +183,7 @@ class AerBackend(BaseBackend):
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
         return Result.from_dict(output)
- 
+
     def _validate_controller_output(self, output):
         """Validate output from the controller wrapper."""
         if not isinstance(output, dict):
