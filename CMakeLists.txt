@@ -132,8 +132,8 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -143,6 +143,8 @@ if(OPENMP_FOUND)
 		endif()
 	endif()
 	message(STATUS "OpenMP found!")
+	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
@@ -150,6 +152,12 @@ endif()
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
+
+if(STATIC_LINKING)
+	message(STATUS "Using static linking with Threads...")
+	set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+	set(THREADS_PREFER_PTHREAD_FLAG True)
+endif()
 find_package(Threads)
 
 if(STATIC_LINKING)
@@ -212,6 +220,13 @@ get_muparserx_source_code()
 # I keep this disabled on purpose, just in case I need to debug muparserx related problems
 # file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
 
+# Windows don't have a DL library (dlopen, dlclose, etc...)
+if(NOT MSVC)
+	find_library(DL_LIB NAMES dl)
+	if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
+		message(FATAL_ERROR "No dl lib found")
+	endif()
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -220,7 +235,7 @@ set(AER_LIBRARIES
 	nlohmann_json
 	Threads::Threads
 	${SPDLOG_LIB}
-	${CMAKE_DL_LIBS}
+	${DL_LIB}
 	${MUPARSERX_LIB})
 
 # Cython build is only enabled if building through scikit-build.
@@ -234,7 +249,7 @@ else() # Standalone build
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
-		COMPILE_FLAGS ${AER_COMPILE_FLAGS}
+		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
 		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)

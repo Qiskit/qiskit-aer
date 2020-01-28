@@ -6,9 +6,6 @@ find_package(Pybind11 REQUIRED)
 # dependencies we can, so some of these dependencies are linked statically into our
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-if(APPLE OR LINUX)
-    string(CONCAT CMAKE_CXX_FLAGS "-fvisibility=hidden")
-endif()
 
 # Controllers
 basic_pybind11_add_module(controller_wrappers bindings.cc)
