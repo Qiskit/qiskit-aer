@@ -20,7 +20,13 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added ``PulseSimulator`` backend (\#542)
+- Added ``PulseSystemModel`` and ``HamiltonianModel`` classes to represent models to be used in ``PulseSimulator`` (\#496, \#493)
+- Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
+- Migrated ODE function solver to C++ (\#442, \#350)
 - Added high level pulse simulator tests (\#379)
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
+
 Changed
 -------
 
@@ -48,7 +54,7 @@ Removed
 
 Fixed
 -----
-- MPS simulation method: fixed computation of snapshot_probabilities 
+- MPS simulation method: fixed computation of snapshot_probabilities
  on subsets of the qubits, in any ordering (\#424)
 - Fixes bug where cu3 was being applied as cu1 for unitary_simulator (\#483)
 
