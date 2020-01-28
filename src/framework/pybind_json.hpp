@@ -65,6 +65,12 @@ void from_json(const json_t &js, py::object &o);
 
 } // end namespace std.
 
+//------------------------------------------------------------------------------
+// Python->JSON Conversion
+//------------------------------------------------------------------------------
+
+namespace JSON {
+
 /**
  * Convert a numpy array to a json object
  * @param arr is a numpy array
@@ -97,6 +103,61 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr);
 template <typename T>
 json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr);
 
+} //end namespace JSON
+
+//------------------------------------------------------------------------------
+// Aer C++ -> Python Conversion
+//------------------------------------------------------------------------------
+
+namespace AERPy {
+
+/**
+ * Convert a Matrix to a python object
+ * @param mat is a Matrix
+ * @returns a python object (py::list of lists)
+ */
+template<typename T>
+py::object from_matrix(const matrix<T> &mat);
+
+/**
+ * Convert a AverageData to a python object
+ * @param avg_data is an AverageData
+ * @returns a py::dict
+ */
+template<typename T>
+py::dict from_avg_data(const AER::AverageData<T> &avg_data);
+
+/**
+ * Convert a AverageSnapshot to a python object
+ * @param avg_snap is an AverageSnapshot
+ * @returns a py::dict
+ */
+template<typename T>
+py::object from_avg_snap(const AER::AverageSnapshot<T> &avg_snap);
+
+/**
+ * Convert an ExperimentData to a python object
+ * @param result is an ExperimentData
+ * @returns a py::dict
+ */
+py::object from_exp_data(const AER::ExperimentData &result);
+
+/**
+ * Convert an ExperimentResult to a python object
+ * @param result is an ExperimentResult
+ * @returns a py::dict
+ */
+py::object from_exp_result(const AER::ExperimentResult &result);
+
+/**
+ * Convert a Result to a python object
+ * @param result is a Result
+ * @returns a py::dict
+ */
+py::object from_result(const AER::Result &result);
+
+} //end namespace AERPy
+
 /*******************************************************************************
  *
  * Implementations
@@ -108,7 +169,7 @@ json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr);
 //------------------------------------------------------------------------------
 
 template <typename T>
-json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
+json_t JSON::numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 1) {
         throw std::runtime_error("Number of dims must be 1");
@@ -125,7 +186,7 @@ json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
 }
 
 template <typename T>
-json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
+json_t JSON::numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 2) {
         throw std::runtime_error("Number of dims must be 2");
@@ -149,7 +210,7 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
 }
 
 template <typename T>
-json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
+json_t JSON::numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 3) {
         throw std::runtime_error("Number of dims must be 3");
@@ -178,16 +239,16 @@ json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
 }
 
 template <typename T>
-json_t numpy_to_json(py::array_t<T, py::array::c_style> arr) {
+json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     //std::cout << "buff dim: " << buf.ndim << std::endl;
 
     if (buf.ndim == 1) {
-        return numpy_to_json_1d(arr);
+        return JSON::numpy_to_json_1d(arr);
     } else if (buf.ndim == 2) {
-        return numpy_to_json_2d(arr);
+        return JSON::numpy_to_json_2d(arr);
     } else if (buf.ndim == 3) {
-        return numpy_to_json_3d(arr);
+        return JSON::numpy_to_json_3d(arr);
     } else {
         throw std::runtime_error("Invalid number of dimensions!");
     }
@@ -217,9 +278,9 @@ void std::to_json(json_t &js, const py::handle &obj) {
             js[item.first.cast<nl::json::string_t>()] = item.second;
         }
     } else if (py::isinstance<py::array_t<double> >(obj)) {
-        js = numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
+        js = JSON::numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
     } else if (py::isinstance<py::array_t<std::complex<double> > >(obj)) {
-        js = numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
+        js = JSON::numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
     } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>") {
         auto tmp = obj.cast<std::complex<double>>();
         js.push_back(tmp.real());
@@ -276,7 +337,7 @@ void std::from_json(const json_t &js, py::object &o) {
 //============================================================================
 
 template<typename T> 
-py::object from_matrix(const matrix<T> &mat) {
+py::object AERPy::from_matrix(const matrix<T> &mat) {
   std::vector<std::vector<T> > tbr;
   size_t rows = mat.GetRows();
   size_t cols = mat.GetColumns();
@@ -290,7 +351,7 @@ py::object from_matrix(const matrix<T> &mat) {
 }
 
 template<typename T> 
-py::dict from_avg_data(const AER::AverageData<T> &avg_data) {
+py::dict AERPy::from_avg_data(const AER::AverageData<T> &avg_data) {
   py::dict d;
   d["value"] = avg_data.mean();
   if (avg_data.has_variance()) {
@@ -300,13 +361,13 @@ py::dict from_avg_data(const AER::AverageData<T> &avg_data) {
 }
 
 template<typename T> 
-py::object from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
+py::object AERPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
   py::dict d;
   for (const auto &outer_pair : avg_snap.data()) {
     py::list d1;
     for (const auto &inner_pair : outer_pair.second) {
       // Store mean and variance for snapshot
-      py::dict datum = from_avg_data(inner_pair.second);
+      py::dict datum = AERPy::from_avg_data(inner_pair.second);
       // Add memory key if there are classical registers
       auto memory = inner_pair.first;
       if ( ! memory.empty()) datum["memory"] = inner_pair.first;
@@ -318,7 +379,7 @@ py::object from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
   return d;
 }
 
-py::object from_exp_data(const AER::ExperimentData &result) {
+py::object AERPy::from_exp_data(const AER::ExperimentData &result) {
   py::dict pyresult;
 
   // Measure data
@@ -340,7 +401,7 @@ py::object from_exp_data(const AER::ExperimentData &result) {
     pyresult[pair.first.data()] = pair.second;
   }
   for (const auto &pair : result.additional_cmatrix_data_) {
-    pyresult[pair.first.data()] = from_matrix(pair.second);    
+    pyresult[pair.first.data()] = AERPy::from_matrix(pair.second);    
   }
 
   // Snapshot data
@@ -353,19 +414,19 @@ py::object from_exp_data(const AER::ExperimentData &result) {
       snapshots[pair.first.data()] = tmp;
     }
     for (auto &pair : result.average_complex_snapshots_) {
-      snapshots[pair.first.data()] = from_avg_snap(pair.second);
+      snapshots[pair.first.data()] = AERPy::from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cvector_snapshots_) {
-      snapshots[pair.first.data()] = from_avg_snap(pair.second);
+      snapshots[pair.first.data()] = AERPy::from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cmatrix_snapshots_) {
-      snapshots[pair.first.data()] = from_avg_snap(pair.second);
+      snapshots[pair.first.data()] = AERPy::from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_cmap_snapshots_) {
-      snapshots[pair.first.data()] = from_avg_snap(pair.second);
+      snapshots[pair.first.data()] = AERPy::from_avg_snap(pair.second);
     }
     for (auto &pair : result.average_rmap_snapshots_) {
-      snapshots[pair.first.data()] = from_avg_snap(pair.second);
+      snapshots[pair.first.data()] = AERPy::from_avg_snap(pair.second);
     }
     // Singleshot snapshot data
     // Note these will override the average snapshots
@@ -418,14 +479,14 @@ py::object from_exp_data(const AER::ExperimentData &result) {
   return pyresult;
 }
 
-py::object from_exp_result(const AER::ExperimentResult &result) {
+py::object AERPy::from_exp_result(const AER::ExperimentResult &result) {
   py::dict pyresult;
 
   pyresult["shots"] = result.shots;
   pyresult["seed_simulator"] = result.seed;
 
   //std::cout << "  ExpResult:" << std::endl;
-  pyresult["data"] = from_exp_data(result.data);
+  pyresult["data"] = AERPy::from_exp_data(result.data);
 
   pyresult["success"] = (result.status == AER::ExperimentResult::Status::completed);
   switch (result.status) {
@@ -453,7 +514,7 @@ py::object from_exp_result(const AER::ExperimentResult &result) {
 
 }
 
-py::object from_result(const AER::Result &result) {
+py::object AERPy::from_result(const AER::Result &result) {
   py::dict pyresult;
   pyresult["qobj_id"] = result.qobj_id;
 
@@ -465,7 +526,7 @@ py::object from_result(const AER::Result &result) {
   //std::cout << "Result:" << std::endl;
   py::list exp_results;
   for( const AER::ExperimentResult& exp : result.results)
-    exp_results.append(from_exp_result(exp));
+    exp_results.append(AERPy::from_exp_result(exp));
   pyresult["results"] = exp_results;
 
   // For header and metadata we continue using the json->pyobject casting
