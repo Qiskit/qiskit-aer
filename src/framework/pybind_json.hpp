@@ -338,6 +338,7 @@ void std::from_json(const json_t &js, py::object &o) {
 
 template<typename T> 
 py::object AERPy::from_matrix(const matrix<T> &mat) {
+  // THIS SHOULD RETURN A py::array_t but the author was la...
   std::vector<std::vector<T> > tbr;
   size_t rows = mat.GetRows();
   size_t cols = mat.GetColumns();
@@ -392,7 +393,6 @@ py::object AERPy::from_exp_data(const AER::ExperimentData &result) {
 
   // Add additional data
   for (const auto &pair : result.additional_json_data_) {
-    //std::cout << "HELLO 1" << std::endl;
     py::object tmp;
     from_json(pair.second, tmp);
     pyresult[pair.first.data()] = tmp;
@@ -485,7 +485,6 @@ py::object AERPy::from_exp_result(const AER::ExperimentResult &result) {
   pyresult["shots"] = result.shots;
   pyresult["seed_simulator"] = result.seed;
 
-  //std::cout << "  ExpResult:" << std::endl;
   pyresult["data"] = AERPy::from_exp_data(result.data);
 
   pyresult["success"] = (result.status == AER::ExperimentResult::Status::completed);
@@ -523,7 +522,6 @@ py::object AERPy::from_result(const AER::Result &result) {
   pyresult["date"] = result.date;
   pyresult["job_id"] = result.job_id;
 
-  //std::cout << "Result:" << std::endl;
   py::list exp_results;
   for( const AER::ExperimentResult& exp : result.results)
     exp_results.append(AERPy::from_exp_result(exp));
