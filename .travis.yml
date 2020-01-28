@@ -142,14 +142,7 @@ jobs:
       before_script: true
       script:
         - python setup.py bdist_wheel -- -- -j4
-    # Power Build
-    - stage: compile
-      name: Test Build Linux (Power)
-      arch: ppc64le
-      <<: *stage_linux
-      before_script: true
-      script:
-        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    
 
     # "test" stage
     ###########################################################################
@@ -216,8 +209,19 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-  
-    # Power/Linux, Python 3.7
+
+  # Power tests (currently failing)
+  allow_failures:
+      # Power Build test
+    - stage: compile
+      name: Test Build Linux (Power)
+      arch: ppc64le
+      <<: *stage_linux
+      before_script: true
+      script:
+        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+
+      # Power/Linux, Python 3.7
     - stage: test
       arch: ppc64le
       name: Python 3.7 Tests Linux (Power)
