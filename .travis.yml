@@ -52,7 +52,7 @@ stage_linux: &stage_linux
         rm -rf .stestr
       fi
   script:
-    - VERBOSE=1 python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
     - pip install dist/qiskit_aer*whl
     - stestr run --slowest
 
