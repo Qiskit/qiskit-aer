@@ -95,7 +95,7 @@ stage_osx: &stage_osx
         rm -rf .stestr
       fi
     # Build and install qiskit-aer package
-    - python setup.py bdist_wheel -- -DAER_THRUST_BACKEND=OMP -- -j4
+    - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
   script:
     - stestr run --slowest
