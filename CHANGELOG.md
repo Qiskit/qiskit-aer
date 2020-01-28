@@ -25,6 +25,7 @@ Added
 - Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
 - Migrated ODE function solver to C++ (\#442, \#350)
 - Added high level pulse simulator tests (\#379)
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
 
 Changed
 -------
