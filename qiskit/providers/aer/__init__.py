@@ -43,6 +43,15 @@ Job Class
 
    AerJob
 
+OpenPulse
+=========
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    PulseSystemModel
+    duffing_system_model
+
 Exceptions
 ==========
 .. autosummary::
@@ -65,6 +74,7 @@ from .aerprovider import AerProvider
 from .aerjob import AerJob
 from .aererror import AerError
 from .backends import *
+from .openpulse import *
 from . import noise
 from . import utils
 from .version import __version__

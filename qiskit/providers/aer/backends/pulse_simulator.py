@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -37,10 +37,8 @@ class PulseSimulator(AerBackend):
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
     with controls specified by pulse :class:`Schedule` objects, and the model of the physical
-    system specified by :class:`PulseSystemModel` objects. Simulation is performed in the
-    rotating frame of the drift Hamiltonian in the :class:`PulseSystemModel`.
-
-    Results are returned in the same format as when jobs are submitted to actual devices.
+    system specified by :class:`PulseSystemModel` objects. Results are returned in the same format
+    as when jobs are submitted to actual devices.
 
     **Example**
 
@@ -70,9 +68,12 @@ class PulseSimulator(AerBackend):
     * ``shots``: Number of shots per experiment. Defaults to ``1024``.
 
 
-    **Simulation method**
+    **Simulation details**
 
     The simulator uses the ``zvode`` differential equation solver method through ``scipy``.
+    Simulation is performed in the rotating frame of the diagonal of the drift Hamiltonian
+    contained in the :class:`PulseSystemModel`. Measurements are performed in the `dressed basis`
+    of the drift Hamiltonian.
 
     **Other options**
 

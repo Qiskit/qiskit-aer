@@ -13,6 +13,9 @@
 # that they have been altered from the originals.
 """Init for openpulse"""
 
+from .duffing_model_generators import duffing_system_model
+from .pulse_system_model import PulseSystemModel
+
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
