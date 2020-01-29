@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,17 +15,32 @@ UnitarySimulator Integration Tests
 
 import unittest
 from test.terra import common
+from test.terra.decorators import requires_method
 # Basic circuit instruction tests
-from test.terra.backends.unitary_simulator.unitary_basics import UnitaryBasicsTests
+from test.terra.backends.unitary_simulator.unitary_basics import UnitarySimulatorTests
 
 
-class TestUnitarySimulator(common.QiskitAerTestCase,
-                           UnitaryBasicsTests):
-    """QasmSimulator automatic method tests."""
+class TestUnitarySimulator(common.QiskitAerTestCase, UnitarySimulatorTests):
+    """UnitarySimulator automatic method tests."""
 
-    BACKEND_OPTS = {
-        "seed_simulator": 2113
-    }
+    BACKEND_OPTS = {"seed_simulator": 2113}
+
+
+@requires_method("unitary_simulator", "unitary_gpu")
+class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
+                                    UnitarySimulatorTests):
+    """UnitarySimulator unitary_gpu method tests."""
+
+    BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_gpu"}
+
+
+@requires_method("unitary_simulator", "unitary_thrust")
+class TestUnitarySimulatorThrustCPU(common.QiskitAerTestCase,
+                                    UnitarySimulatorTests):
+    """UnitarySimulator unitary_thrust method tests."""
+
+    BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_thrust"}
+
 
 if __name__ == '__main__':
     unittest.main()
