@@ -212,18 +212,14 @@ class HamiltonianModel():
         pos_list = []
         min_overlap = 1
         for i, estate in enumerate(estates.T):
-            pos = -1
+            # make a copy and set entries with indices in pos_list to 0
             estate_copy = estate.copy()
-            while pos == -1:
-                # find the index with max overlap, excluding indices that have already been filled
-                idx = np.argmax(np.abs(estate_copy))
-                if idx in pos_list:
-                    estate_copy[idx] = 0
-                else:
-                    pos = idx
+            estate_copy[pos_list] = 0
 
-            min_overlap = min(np.abs(estate_copy)[pos]**2, min_overlap)
+            pos = np.argmax(np.abs(estate_copy))
             pos_list.append(pos)
+            min_overlap = min(np.abs(estate_copy)[pos]**2, min_overlap)
+
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
 
