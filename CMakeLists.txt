@@ -134,17 +134,10 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-<<<<<<< HEAD
-	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-=======
 	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
->>>>>>> upstream/pr/544
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -282,65 +275,8 @@ else()
 	message(STATUS "No Thrust support enabled")
 endif()
 
-# GPU support through Thrust library (CPU fallbacks)
-# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-set(AER_THRUST_SUPPORTED TRUE)
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	get_clang_version(${CMAKE_CXX_COMPILER_VERSION})
-	if(${CLANG_MAJOR_VERSION} LESS 11)
-		set(AER_THRUST_SUPPORTED FALSE)
-		message(STATUS "WARNING: Clang is not compatbile with Thrust at the moment. Disabling Thrust support")
-	endif()
-endif()
-if(AER_THRUST_SUPPORTED)
-	if(AER_THRUST_BACKEND STREQUAL "CUDA")
-		message(STATUS "Thrust library: Looking for CUDA backend...")
-		find_package(CUDA REQUIRED)
-		message(STATUS "Thrust library: CUDA found!")
-		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-		set(THRUST_DEPENDANT_LIBS "")
-	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
-		message(STATUS "Thrust library: Looking for TBB backend...")
-		find_package(TBB REQUIRED)
-		message(STATUS "TBB Support found!")
-		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB)
-	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
-		message(STATUS "Thrust library: Setting OMP backend")
-		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
-		# We don't need to add OMP because it's already an AER dependency
-		set(THRUST_DEPENDANT_LIBS "")
-	else()
-		message(STATUS "No Thrust supported backend")
-		set(AER_THRUST_SUPPORTED FALSE)
-	endif()
-endif()
-
-if(AER_THRUST_SUPPORTED)
-	list(APPEND AER_COMPILER_DEFINITIONS AER_THRUST_SUPPORTED=TRUE)
-	list(APPEND AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_THRUST_PATH})
-else()
-	message(STATUS "No Thrust support enabled")
-endif()
-
-if(AER_DEBUG)
-	list(APPEND AER_COMPILER_DEFINITIONS AER_DEBUG=TRUE)
-endif()
-
-
 # Set dependent libraries
 set(AER_LIBRARIES
-<<<<<<< HEAD
-		${OPENMP_EXTERNAL_LIB}
-	    ${BLAS_LIBRARIES}
-	    nlohmann_json
-		Threads::Threads
-		${CMAKE_DL_LIBS}
-		${THRUST_DEPENDANT_LIBS})
-=======
 	${OPENMP_EXTERNAL_LIB}
 	${BLAS_LIBRARIES}
 	nlohmann_json
@@ -349,7 +285,6 @@ set(AER_LIBRARIES
 	${DL_LIB}
 	${MUPARSERX_LIB}
 	${THRUST_DEPENDANT_LIBS})
->>>>>>> upstream/pr/544
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
@@ -369,11 +304,8 @@ else() # Standalone build
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
-<<<<<<< HEAD
-=======
 		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
 		LINK_FLAGS ${AER_LINKER_FLAGS}
->>>>>>> upstream/pr/544
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator
@@ -391,7 +323,7 @@ endif()
 if(BUILD_TESTS)
 	# These tests were meant to be as an example, or template for C++ specific
 	# code, but they're not being maintained, so we are disabling them until we
-	# have real C++ tests in the codebase.
+	# have real C++ tests in the codebase.
 	# add_subdirectory(test)
 endif()
 

@@ -50,19 +50,10 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabili
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
-<<<<<<< HEAD
-# Other tests
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
-=======
->>>>>>> upstream/pr/544
 
 
 @requires_gpu
 class TestQasmStatevectorSimulator(common.QiskitAerTestCase,
-<<<<<<< HEAD
-#                                   QasmMethodTests,
-=======
->>>>>>> upstream/pr/544
                                    QasmMeasureTests,
                                    QasmMultiQubitMeasureTests,
                                    QasmResetTests,
