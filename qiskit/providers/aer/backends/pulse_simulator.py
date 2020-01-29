@@ -46,8 +46,7 @@ class PulseSimulator(AerBackend):
 
     To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object from a list of pulse
     :class:`Schedule` objects, using ``backend=PulseSimulator()``. Call the simulator with the
-    :class:`PulseQobj` and a :class:`PulseSystemModel` object representing the properties of the
-    physical system.
+    :class:`PulseQobj` and a :class:`PulseSystemModel` object representing the physical system.
 
     .. code-block:: python
 
@@ -59,43 +58,30 @@ class PulseSimulator(AerBackend):
         # Run simulation on a PulseSystemModel object
         results = backend_sim.run(pulse_qobj, system_model)
 
-    **Important parameters**
+    **Supported PulseQobj parameters**
 
-    * `qubit_lo_freq`: The local oscillator frequency for each `DriveChannel`. This can be drawn
-                       from several places, listed in order of importance:
-           * passed as an argument to `assemble`
-           * determined from PulseSystemModel attribute `_qubit_freq_est`, if not passed to assemble
-           * computed from the dressed energy gaps of the drift Hamiltonian
+    * ``qubit_lo_freq``: Local oscillator frequencies for each :class:`DriveChannel`.
+      Defaults to either the value given in the :class:`PulseSystemModel`, or
+      is calculated directly from the Hamiltonian.
+    * ``meas_level``: Type of desired measurement output, in ``[1, 2]``.
+      ``1`` gives complex numbers (IQ values), and ``2`` gives discriminated states ``|0>`` and
+      ``|1>``.
+    * ``meas_return``: Measurement type, ``'single'`` or ``'avg'``. Defaults to ``'avg'``.
+    * ``shots``: Number of shots per experiment. Defaults to ``1024``.
 
-    **Measurement and output**
-
-    The measurement results are from projections of the state vector in dressed energy basis of
-    the drift Hamiltonian.
-
-    There are three measurement levels that return the data, specified when using assemble.
-    Measurement level `0` gives the raw data.
-    Measurement level `1` gives complex numbers (IQ values).
-    Measurement level `2` gives the discriminated states, `|0>` and `|1>`.
 
     **Simulation method**
 
-    The simulator uses the `zvode` differential equation solver method through `scipy`.
+    The simulator uses the ``zvode`` differential equation solver method through ``scipy``.
 
     **Other options**
 
-    The `run` function additionally takes an argument `backend_options` for additional
-    customization. It accepts keys:
+    :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options` for
+    customization. Accepted keys:
 
-    * `'ode_options'`: a dictionary containing options to pass to the `zvode` solver. Accepted keys
-      for this option are `'atol'`, `'rtol'`, `'nsteps'`, `'max_step'`, `'num_cpus'`, `'norm_tol'`,
-      and `'norm_steps'`
-
-    **Default behaviors**
-
-    Defaults filled in for `assemble` parameters if not specified:
-    * `meas_level`: `2`
-    * `meas_return`: `'avg'`
-    * `shots`: `1024`
+    * ``'ode_options'``: A ``dict`` for ``zvode`` solver options. Accepted keys
+      are ``'atol'``, ``'rtol'``, ``'nsteps'``, ``'max_step'``, ``'num_cpus'``, ``'norm_tol'``,
+      and ``'norm_steps'``.
     """
 
     DEFAULT_CONFIGURATION = {
