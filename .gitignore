@@ -9,14 +9,17 @@
 # Ignore make and cython build files
 
 *.o
+*.a
 out/*
 *.so
+rhs*_op.pyx
 *.pyc
 *_skbuild*
 *_cmake_test_compile*
 *.whl
 *.egg*
 build/*
+qiskit/providers/aer/backends/libomp.dylib
 
 # Ignore macOS DS_Store
 .DS_Store
@@ -33,4 +36,3 @@ test/.asv
 docs/_build/
 docs/stubs/
 docs/api/
-

@@ -20,6 +20,12 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added ``PulseSimulator`` backend (\#542)
+- Added ``PulseSystemModel`` and ``HamiltonianModel`` classes to represent models to be used in ``PulseSimulator`` (\#496, \#493)
+- Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
+- Migrated ODE function solver to C++ (\#442, \#350)
+- Added high level pulse simulator tests (\#379)
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
 
 Changed
 -------
@@ -47,7 +53,7 @@ Removed
 
 Fixed
 -----
-- MPS simulation method: fixed computation of snapshot_probabilities 
+- MPS simulation method: fixed computation of snapshot_probabilities
  on subsets of the qubits, in any ordering (\#424)
 - Fixes bug where cu3 was being applied as cu1 for unitary_simulator (\#483)
 
@@ -73,6 +79,14 @@ Removed
 
 Fixed
 -----
+
+Deprecated
+----------
+
+- Python 3.5 support in qiskit-aer is deprecated. Support will be
+  removed on the upstream python community's end of life date for the version,
+  which is 09/13/2020.
+
 
 
 [0.3.2](https://github.com/Qiskit/qiskit-aer/compare/0.3.1...0.3.2) - 2019-10-16
@@ -106,6 +120,8 @@ Added
 - Added tests for probabilities snapshot (\#380)
 - Added support for reset() in MPS simulation method (\#393)
 - Added tests for matrix and Pauli expectation value snapshot (\#386)
+- Added test decorators for tests that require OpenMP and multi-threading(\#551)
+- Added tests for automatic and custom parallel thread configuration (\#511)
 
 Changed
 -------
@@ -124,6 +140,8 @@ Removed
 
 Fixed
 -----
+- Fixed bug in parallel thread configuration where total threads could exceed
+  the "max_parallel_threads" config settings (\#551)
 
 
 [0.3.0](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...0.3.0) - 2019-08-21

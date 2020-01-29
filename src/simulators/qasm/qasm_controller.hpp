@@ -417,7 +417,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
 #ifdef AER_THRUST_SUPPORTED
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
-      	return run_circuit_helper<StatevectorThrust::State<QV::QubitVectorThrust<double>>>(
+      	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<double>>>(
                                                       circ,
                                                       noise,
                                                       config,
@@ -427,7 +427,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                                       Method::statevector_gpu);
       } else {
         // Single-precision Statevector simulation
-      	return run_circuit_helper<StatevectorThrust::State<QV::QubitVectorThrust<float>>>(
+      	return run_circuit_helper<Statevector::State<QV::QubitVectorThrust<float>>>(
                                                       circ,
                                                       noise,
                                                       config,
@@ -549,10 +549,10 @@ QasmController::simulation_method(const Circuit &circ,
 #else
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-          StatevectorThrust::State<QV::QubitVectorThrust<float>> state;
+          Statevector::State<QV::QubitVectorThrust<float>> state;
           validate_state(state, circ, noise_model, true);
         } else {
-          StatevectorThrust::State<QV::QubitVectorThrust<>> state;
+          Statevector::State<QV::QubitVectorThrust<>> state;
           validate_state(state, circ, noise_model, true);
         }
       }
@@ -701,9 +701,6 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
 
 void QasmController::set_parallelization_circuit(const Circuit& circ,
                                                  const Noise::NoiseModel& noise_model) {
-
-  if (max_parallel_threads_ < max_parallel_shots_)
-    max_parallel_shots_ = max_parallel_threads_;
   const auto method = simulation_method(circ, noise_model, false);
   switch (method) {
     case Method::statevector:
@@ -713,7 +710,9 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
-        parallel_state_update_ = max_parallel_threads_;
+        parallel_state_update_ = std::max<int>(
+          {1, max_parallel_threads_ / parallel_experiments_}
+        );
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
@@ -723,9 +722,13 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
     case Method::density_matrix_gpu: {
       if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
         parallel_shots_ = 1;
-        parallel_state_update_ = max_parallel_threads_;
+        parallel_state_update_ = std::max<int>(
+          {1, max_parallel_threads_ / parallel_experiments_}
+        );
         return;
       }
+      Base::Controller::set_parallelization_circuit(circ, noise_model);
+      break;
     }
     default: {
       Base::Controller::set_parallelization_circuit(circ, noise_model);

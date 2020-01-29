@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,8 +15,9 @@
 """Decorator for using with Qiskit Aer unit tests."""
 
 import unittest
+import multiprocessing
 
-from qiskit import QuantumCircuit, assemble
+from qiskit import QuantumCircuit, assemble, execute
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
 
@@ -37,6 +38,37 @@ def is_qasm_method_available(method):
     return True
 
 
+def requires_omp(test_item):
+    """Decorator that skips test if OpenMP is not available.
+
+    Args:
+        test_item (callable): function or class to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    # Run dummy circuit to check OpenMP status
+    result = execute(QuantumCircuit(1), QasmSimulator()).result()
+    omp_enabled = result.metadata.get('omp_enabled', False)
+    skip = not omp_enabled
+    reason = 'OpenMP not available, skipping test'
+    return unittest.skipIf(skip, reason)(test_item)
+
+
+def requires_multiprocessing(test_item):
+    """Decorator that skips test if run on single-core CPU.
+
+    Args:
+        test_item (callable): function or class to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    skip = multiprocessing.cpu_count() <= 1
+    reason = 'Multicore CPU not available, skipping test'
+    return unittest.skipIf(skip, reason)(test_item)
+
+
 def requires_gpu(test_item):
     """Decorator that skips test if GPU statevector method is not available.
 
@@ -47,5 +79,5 @@ def requires_gpu(test_item):
         callable: the decorated function.
     """
     reason = 'GPU not available, skipping test'
-    skip = not is_qasm_method_available("statevector_gpu") 
+    skip = not is_qasm_method_available("statevector_gpu")
     return unittest.skipIf(skip, reason)(test_item)
