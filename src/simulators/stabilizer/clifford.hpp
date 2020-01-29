@@ -106,6 +106,10 @@ public:
   // the outcome was random.
   bool measure_and_update(const uint64_t qubit, const uint64_t randint);
 
+  // Return 1 or -1: the expectation value of observable Z on all
+  // the qubits in the parameter `qubits`
+  int64_t expectation_value(const std::vector<uint64_t>& qubits);
+
   //-----------------------------------------------------------------------
   // Configuration settings
   //-----------------------------------------------------------------------
@@ -333,11 +337,41 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
   }
 }
 
+int64_t Clifford::expectation_value(const std::vector<uint64_t>& qubits) {
+  // Check if there is a row that anti-commutes with an odd number of qubits
+  // If so expectation value is 0
+  for (uint64_t p = num_qubits_; p < 2 * num_qubits_; p++) {
+    uint64_t num_of_x = 0;
+    for (auto qubit : qubits) {
+      if (table_[p].X[qubit])
+	num_of_x ++;
+    }
+    if(num_of_x % 2 == 1)
+      return 0;
+  }
+
+  // Otherwise the expectation value is +1 or -1
+  uint64_t sum_of_outcomes = 0;
+  for (auto qubit : qubits) {
+    Pauli::Pauli accum(num_qubits_);
+    phase_t outcome = 0;
+    for (uint64_t i = 0; i < num_qubits_; i++) {
+      if (table_[i].X[qubit]) {
+        rowsum_helper(table_[i + num_qubits_], phases_[i + num_qubits_],
+                      accum, outcome);
+      }
+    }
+    sum_of_outcomes += outcome;
+  }
+
+  return (sum_of_outcomes % 2 == 0) ? 1 : -1;
+}
+
 void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
                              Pauli::Pauli &accum, phase_t &accum_phase) const {
   int8_t newr = ((2 * row_phase + 2 * accum_phase) +
                  Pauli::Pauli::phase_exponent(row, accum)) % 4;
-  // Sign we are only using +1 and -1 phases in our Clifford phases
+  // Since we are only using +1 and -1 phases in our Clifford phases
   // the exponent must be 0 (for +1) or 2 (for -1)
   if ((newr != 0) && (newr != 2)) {
     throw std::runtime_error("Clifford: rowsum error");

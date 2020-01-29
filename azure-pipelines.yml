@@ -16,6 +16,7 @@ jobs:
           python.version: '3.7'
     steps:
      - checkout: self
+       submodules: true
      - task: UsePythonVersion@0
        inputs:
          versionSpec: '$(python.version)'
@@ -45,35 +46,55 @@ jobs:
           python.version: '3.6'
         Python37:
           python.version: '3.7'
+        Python38:
+          python.version: '3.8'
     steps:
+      - checkout: self
+        submodules: true
       - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         displayName: Add conda to PATH
       - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
         displayName: Create Anaconda environment
-      - script: |
-          call activate qiskit-aer-$(Build.BuildNumber)
-          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% numpy
+      - bash: |
+          set -x
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) numpy pip virtualenv
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) setuptools
         displayName: Install Anaconda packages
         condition: ne(variables['python.version'], '3.5')
-      - script: |
-          call activate qiskit-aer-$(Build.BuildNumber)
-          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% mkl
-          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION% openblas
+      - bash: |
+          set -x
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) mkl
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) openblas
         displayName: Install Anaconda packages
-        condition: eq(variables['python.version'], '3.5')
+        condition: or(eq(variables['python.version'], '3.5'), eq(variables['python.version'], '3.8'))
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) osqp
+          pip install -r requirements-dev.txt
+          pip install git+https://github.com/Qiskit/qiskit-terra.git
+        displayName: "Install dependencies py3.8"
+        condition: eq(variables['python.version'], '3.8')
+      - bash: |
+          set -e
+          source activate qiskit-aer-$(Build.BuildNumber)
+          pip install -r requirements-dev.txt
+          pip install git+https://github.com/Qiskit/qiskit-terra.git
+        displayName: "Install dependencies"
+        condition: ne(variables['python.version'], '3.8')
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
           git clean -fdX
-          python -m pip install -U pip virtualenv setuptools
-          pip install cython
-          pip install git+https://github.com/Qiskit/qiskit-terra.git
-          pip install --ignore-installed -r requirements-dev.txt
           python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-        displayName: 'Install Dependencies and Build Aer'
+        displayName: 'Build Aer'
       - bash: |
           set -e
           source activate qiskit-aer-$(Build.BuildNumber)
-          pip install dist/qiskit_aer*.whl
+          pip install -v dist/qiskit_aer*.whl
           stestr run --slowest
         displayName: 'Install Aer and Run Tests'

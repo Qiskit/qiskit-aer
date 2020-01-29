@@ -3,4 +3,6 @@ recursive-include src *
 recursive-include contrib *
 include CMakeLists.txt
 include cmake/*.cmake
-
+# Exclude static libraries (they are all compressed with 7z)
+exclude src/third-party/*/lib/*.a
+exclude src/third-party/*/lib/*.lib

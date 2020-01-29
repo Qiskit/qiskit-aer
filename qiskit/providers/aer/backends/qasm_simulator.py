@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -119,7 +120,7 @@ class QasmSimulator(AerBackend):
       parallel shot execution will be disabled. If set to 0 the
       maximum will be automatically set to max_parallel_threads.
       Note that this cannot be enabled at the same time as parallel
-      experiment execution (Default: 1).
+      experiment execution (Default: 0).
 
     * ``"max_memory_mb"`` (int): Sets the maximum size of memory
       to store a state vector. If a state vector needs more, an error
