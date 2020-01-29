@@ -1,6 +1,7 @@
 recursive-include qiskit *
 recursive-include src *
 recursive-include contrib *
+include qiskit/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
 # Exclude static libraries (they are all compressed with 7z)
