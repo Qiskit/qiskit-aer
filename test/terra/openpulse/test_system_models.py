@@ -175,7 +175,7 @@ class TestHamiltonianModel(QiskitAerTestCase):
         Z = array([[1,0], [0, -1]])
 
         simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
-                      'vars': {'a': 0.1, 'b': 1, 'c' : 0.2},
+                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},
                       'qub': {'0': 2}}
 
         ham_model = HamiltonianModel.from_dict(simple_ham)
@@ -185,16 +185,26 @@ class TestHamiltonianModel(QiskitAerTestCase):
             self.assertAlmostEqual(norm(estate), 1)
 
         # check actually an eigenstate
-        mat = 0.1 * X + 1 * Y + 0.2 * Z
+        mat = 0.1 * X + 0.1 * Y + 1 * Z
         for idx, eval in enumerate(ham_model._evals):
             diff = mat @ ham_model._estates[:, idx] - eval * ham_model._estates[:, idx]
             self.assertAlmostEqual(norm(diff), 0)
 
+        # Same test but with strongly off-diagonal hamiltonian, which should raise warning
         simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
                       'vars': {'a': 100, 'b': 32.1, 'c' : 0.12},
                       'qub': {'0': 2}}
 
-        ham_model = HamiltonianModel.from_dict(simple_ham)
+        # construc the model, verify the off-diagonal warning is thrown
+        # test that it gives a warning when a key has no corresponding control channel
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+
+            ham_model = HamiltonianModel.from_dict(simple_ham)
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('minimum overlap' in str(w[-1].message))
 
         # check norm
         for estate in ham_model._estates:
