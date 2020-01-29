@@ -21,7 +21,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "qubitvector.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "qubitvector_thrust.hpp"
