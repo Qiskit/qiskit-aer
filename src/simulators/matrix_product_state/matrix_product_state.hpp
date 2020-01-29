@@ -399,14 +399,14 @@ void State::set_config(const json_t &config) {
     }
   }
   
-  uint_t max_num_coefficients_for_approx = UINT64_MAX;
-  if (JSON::get_value(max_num_coefficients_for_approx, "max_num_coefficients_for_approx", config)) {
-    MPS_Tensor::set_max_num_coefficients_for_approx(max_num_coefficients_for_approx);
+  uint_t max_bond_dimension = UINT64_MAX;
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
+    MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
   }
 
-  double approx_threshold = CHOP_THRESHOLD;
-  if (JSON::get_value(approx_threshold, "approx_threshold", config))
-    MPS_Tensor::set_approx_threshold(approx_threshold);
+  double truncation_threshold = CHOP_THRESHOLD;
+  if (JSON::get_value(truncation_threshold, "matrix_product_state_truncation_threshold", config))
+    MPS_Tensor::set_truncation_threshold(truncation_threshold);
 }
 
 //=========================================================================

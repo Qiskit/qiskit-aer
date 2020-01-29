@@ -97,31 +97,27 @@ uint_t num_of_SV(rvector_t S, double threshold)
 
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  approx_type approximation_type,
-		  uint_t max_num_coefficients_for_approx, double approx_threshold) {
+		  uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
 
-  if (approx_threshold == CHOP_THRESHOLD || 
-      approximation_type == NO_APPROX ) {
-    new_SV_num = SV_num;
-  } else {
-    if (approximation_type == RELATIVE_APPROX && 
-	max_num_coefficients_for_approx < SV_num) {
+  new_SV_num = SV_num;
+  if (approximation_type == RELATIVE_APPROX && 
+      max_bond_dimension < SV_num) {
     // approx_threshold is the fraction relative
     // to the norm of the largest value in S, which is S[0].
     // Any value smaller than approx_threshold * norm(S[i] will be 
     // discarded
-      new_SV_num = num_of_SV(S, approx_threshold * std::norm(S[0]));
-      if (new_SV_num < max_num_coefficients_for_approx)
-	new_SV_num = max_num_coefficients_for_approx;
-
-    } else if (approximation_type == ABSOLUTE_APPROX && 
-	       max_num_coefficients_for_approx < SV_num) {
-      // in this case, leave only the first max_num_coefficients_for_approx
-      // values in S, and discard all the rest
-      new_SV_num = max_num_coefficients_for_approx;
-    } 
-  }
+    new_SV_num = num_of_SV(S, truncation_threshold * std::norm(S[0]));
+    if (new_SV_num < max_bond_dimension)
+      new_SV_num = max_bond_dimension;
+    
+  } else if (approximation_type == ABSOLUTE_APPROX && 
+	     max_bond_dimension < SV_num) {
+    // in this case, leave only the first max_bond_dimension
+    // values in S, and discard all the rest
+    new_SV_num = max_bond_dimension;
+  } 
 
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);

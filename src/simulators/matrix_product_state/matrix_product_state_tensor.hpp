@@ -116,28 +116,28 @@ public:
     approximation_type_ = type;
   }
 
-  static void set_max_num_coefficients_for_approx(uint_t max_num_coefficients_for_approx) {
-    max_num_coefficients_for_approx_ = max_num_coefficients_for_approx;
+  static void set_max_bond_dimension(uint_t max_bond_dimension) {
+    max_bond_dimension_ = max_bond_dimension;
   }
 
-  static void set_approx_threshold(double approx_threshold) {
-    approx_threshold_ = approx_threshold;
+  static void set_truncation_threshold(double truncation_threshold) {
+    truncation_threshold_ = truncation_threshold;
   }
 
   static double get_chop_threshold() {
     return chop_threshold_;
   }
 
-  static AER::approx_type get_approx_type() {
+  static AER::approx_type get_approximation_type() {
     return approximation_type_;
   }
 
-  static uint_t get_max_num_coefficients_for_approx() {
-    return max_num_coefficients_for_approx_;
+  static uint_t get_max_bond_dimension() {
+    return max_bond_dimension_;
   }
 
-  static double get_approx_threshold() {
-    return approx_threshold_;
+  static double get_truncation_threshold() {
+    return truncation_threshold_;
   }
   //------------------------------------------------------------------
   // function name: get_dim
@@ -185,16 +185,16 @@ private:
 
   static double chop_threshold_;
   static approx_type approximation_type_;
-  static uint_t max_num_coefficients_for_approx_;
-  static double approx_threshold_;
+  static uint_t max_bond_dimension_;
+  static double truncation_threshold_;
 };
 
 //=========================================================================
 // Implementation
 //=========================================================================
 double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
-uint_t MPS_Tensor::max_num_coefficients_for_approx_ = UINT64_MAX;
-double MPS_Tensor::approx_threshold_ = 1e-16;
+uint_t MPS_Tensor::max_bond_dimension_ = UINT64_MAX;
+double MPS_Tensor::truncation_threshold_ = 1e-16;
 approx_type MPS_Tensor::approximation_type_ = approx_type::NO_APPROX; 
 
 //---------------------------------------------------------------
@@ -547,7 +547,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 
   csvd_wrapper(C, U, S, V);
   reduce_zeros(U, S, V, approximation_type_, 
-	       max_num_coefficients_for_approx_, approx_threshold_);
+	       max_bond_dimension_, truncation_threshold_);
 
 #ifdef DEBUG
   std::cout << "matrices after SVD:" <<std::endl;

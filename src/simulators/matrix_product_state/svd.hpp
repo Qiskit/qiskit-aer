@@ -37,7 +37,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V);
 uint_t num_of_SV(rvector_t S, double threshold);
 void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  approx_type approximation_type,
-                  uint_t max_num_coefficients_for_approx, double approx_threshold);
+                  uint_t max_bond_dimension, double truncation_threshold);
 status csvd(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 void csvd_wrapper(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 
