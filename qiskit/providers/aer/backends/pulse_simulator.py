@@ -42,13 +42,12 @@ class PulseSimulator(AerBackend):
 
     Results are returned in the same format as when jobs are submitted to actual devices.
 
-    **Example of usage**
+    **Example**
 
-    To use the simulator, `assemble` a `PulseQobj` object from a list of pulse `Schedules`, using
-    `backend=PulseSimulator()`.
-
-    In the following, `schedules` is a list of pulse `Schedule` objects, and `system_model` is a
-    `PulseSystemModel` object.
+    To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object from a list of pulse
+    :class:`Schedule` objects, using ``backend=PulseSimulator()``. Call the simulator with the
+    :class:`PulseQobj` and a :class:`PulseSystemModel` object representing the properties of the
+    physical system.
 
     .. code-block:: python
 
@@ -130,7 +129,17 @@ class PulseSimulator(AerBackend):
                          provider=provider)
 
     def run(self, qobj, system_model, backend_options=None, validate=False):
-        """Run a qobj on the backend."""
+        """Run a qobj on system_model.
+
+        Args:
+            qobj (PulseQobj): Qobj for pulse Schedules to run
+            system_model (PulseSystemModel): Physical model to run simulation on
+            backend_options (dict): Other options
+            validate (bool): Flag for validation checks
+
+        Returns:
+            Result: results of simulation
+        """
         # Submit job
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
