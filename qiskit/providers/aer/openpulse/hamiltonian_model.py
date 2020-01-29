@@ -15,6 +15,7 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -207,7 +208,7 @@ class HamiltonianModel():
         evals_mapped = np.zeros(evals.shape, dtype=evals.dtype)
         estates_mapped = np.zeros(estates.shape, dtype=estates.dtype)
 
-        #order the eigenvalues and eigenstates according to overlap with computational basis
+        # order the eigenvalues and eigenstates according to overlap with computational basis
         pos_list = []
         min_overlap = 1
         for i, estate in enumerate(estates.T):
