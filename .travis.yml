@@ -128,21 +128,30 @@ jobs:
 
     # "compile" stage
     ###########################################################################
-    # Linux on Intel
+    # Linux Wheel
     - stage: compile
-      name: Test Build Linux
+      name: Python Wheel Build Linux
       <<: *stage_linux
       before_script: true
       script:
         - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
-    # MacOS
+    # MacOS Wheel
     - stage: compile
-      name: Test Build MacOS
+      name: Python Wheel Build MacOS
       <<: *stage_osx
       before_script: true
       script:
         - python setup.py bdist_wheel -- -- -j4
-    
+    # Linux Standalone
+    - stage: compile
+      name: Standalone Build Linux
+      <<: *stage_linux
+      language: cpp
+      install: true
+      before_script: true
+      script:
+        - mkdir out; cd out; cmake ..
+        - make
 
     # "test" stage
     ###########################################################################
@@ -212,16 +221,25 @@ jobs:
 
   # Power tests (currently failing)
   allow_failures:
-      # Power Build test
+    # Power Build test
     - stage: compile
-      name: Test Build Linux (Power)
+      name: Python Wheel Build Linux (Power)
       arch: ppc64le
       <<: *stage_linux
       before_script: true
       script:
         - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
-
-      # Power/Linux, Python 3.7
+    # Linux Standalone
+    - stage: compile
+      name: Standalone Build Linux (Power)
+      arch: ppc64le
+      <<: *stage_linux
+      install: true
+      before_script: true
+      script:
+        - mkdir out; cd out; cmake ..
+        - make
+    # Power/Linux, Python 3.7
     - stage: test
       arch: ppc64le
       name: Python 3.7 Tests Linux (Power)
