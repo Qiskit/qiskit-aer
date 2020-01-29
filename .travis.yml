@@ -140,6 +140,16 @@ jobs:
       before_script: true
       script:
         - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -- -j4
+    - stage: compile
+      name: Python sdist Build Linux
+      <<: *stage_linux
+      before_script: true
+      script:
+        - python setup.py sdist
+        - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install ../dist/*tar.gz
+        # TODO(mtreinish): After #168 merges run tools/verify_wheels.py
+        - aer-test/bin/python -c 'import qiskit'
     # MacOS Wheel
     - stage: compile
       name: Python Wheel Build MacOS
@@ -147,6 +157,17 @@ jobs:
       before_script: true
       script:
         - python setup.py bdist_wheel -- -- -j4
+    - stage: compile
+      name: Python sdist Build MacOS
+      <<: *stage_osx
+      before_script: true
+      script:
+        - python setup.py sdist
+        - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install ../dist/*tar.gz
+        # TODO(mtreinish): After #168 merges run tools/verify_wheels.py
+        - aer-test/bin/python -c 'import qiskit'
+
     # Linux Standalone
     - stage: compile
       name: Standalone Build Linux
