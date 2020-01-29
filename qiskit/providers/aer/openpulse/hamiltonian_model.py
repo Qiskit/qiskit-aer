@@ -207,10 +207,29 @@ class HamiltonianModel():
         evals_mapped = np.zeros(evals.shape, dtype=evals.dtype)
         estates_mapped = np.zeros(estates.shape, dtype=estates.dtype)
 
+        #order the eigenvalues and eigenstates according to overlap with computational basis
+        pos_list = []
+        min_overlap = 1
         for i, estate in enumerate(estates.T):
-            pos = np.argmax(np.abs(estate))
+            pos = -1
+            estate_copy = estate.copy()
+            while pos == -1:
+                # find the index with max overlap, excluding indices that have already been filled
+                idx = np.argmax(np.abs(estate_copy))
+                if idx in pos_list:
+                    estate_copy[idx] = 0
+                else:
+                    pos = idx
+
+            min_overlap = min(np.abs(estate_copy)[pos]**2, min_overlap)
+            pos_list.append(pos)
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
+
+        overlap_threshold = 0.6
+        if min_overlap < overlap_threshold:
+            warn('Warning: The minimum overlap of an eigenstate of the drift is below ' +
+                 '{0}, and may result in unexpected behavior.'.format(str(overlap_threshold)))
 
         self._evals = evals_mapped
         self._estates = estates_mapped
