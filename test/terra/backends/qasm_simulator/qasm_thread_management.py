@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 QasmSimulator Integration Tests
 """
@@ -17,12 +18,13 @@ import multiprocessing
 import psutil
 
 from test.benchmark.tools import quantum_volume_circuit
-from qiskit import execute
+from qiskit import execute, QuantumCircuit
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from test.terra.decorators import requires_omp, requires_multiprocessing
 
-
+# pylint: disable=no-member
 class QasmThreadManagementTests:
     """QasmSimulator thread tests."""
 
@@ -30,344 +32,471 @@ class QasmThreadManagementTests:
     BACKEND_OPTS = {}
 
     def dummy_noise_model(self):
-        """Return test reset noise model"""
+        """Return dummy noise model for dummy circuit"""
         noise_model = NoiseModel()
         error = pauli_error([('X', 0.25), ('I', 0.75)])
-        noise_model.add_all_qubit_quantum_error(error, 'reset')
+        noise_model.add_all_qubit_quantum_error(error, 'x')
         return noise_model
 
-    def test_qasm_default_parallelization(self):
-        """test default parallelization"""
-        # Test circuit
-        shots = 100
-        circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        backend_opts = self.BACKEND_OPTS.copy()
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                multiprocessing.cpu_count(),
-                msg="parallel_state_update should be " + str(
-                    multiprocessing.cpu_count()))
+    def dummy_circuit(self, num_qubits):
+        """Dummy circuit for testing thread settings"""
+        circ = QuantumCircuit(num_qubits, num_qubits)
+        circ.x(range(num_qubits))
+        circ.measure(range(num_qubits), range(num_qubits))
+        return circ
 
-    def test_qasm_max_memory_default(self):
-        """test default max memory"""
-        # Test circuit
+    def measure_in_middle_circuit(self, num_qubits):
+        """Dummy circuit for testing thread settings"""
+        circ = QuantumCircuit(num_qubits, num_qubits)
+        circ.measure(range(num_qubits), range(num_qubits))
+        circ.x(range(num_qubits))
+        circ.measure(range(num_qubits), range(num_qubits))
+        return circ
+
+    def threads_used(self, result):
+        """Return a list of threads used for each execution"""
+        exp_threads = getattr(result, 'metadata', {}).get('parallel_experiments', 1)
+        threads = []
+        for exp_result in getattr(result, 'results', []):
+            exp_meta = getattr(exp_result, 'metadata', {})
+            shot_threads = exp_meta.get('parallel_shots', 1)
+            state_threads = exp_meta.get('parallel_state_update', 1)
+            threads.append({
+                'experiments': exp_threads,
+                'shots': shot_threads,
+                'state_update': state_threads,
+                'total': exp_threads * shot_threads * state_threads
+            })
+        return threads
+
+    def test_max_memory_settings(self):
+        """test max memory configuration"""
+
+        # 4-qubit quantum volume test circuit
         shots = 100
         circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
-        backend_opts = self.BACKEND_OPTS.copy()
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
         system_memory = int(psutil.virtual_memory().total / 1024 / 1024)
-        self.assertGreaterEqual(
-            result.metadata['max_memory_mb'],
-            int(system_memory / 2),
-            msg="statevector_memory is too small.")
-        self.assertLessEqual(
-            result.metadata['max_memory_mb'],
-            system_memory,
-            msg="statevector_memory is too big.")
 
-    def test_qasm_max_memory_specified(self):
-        """test default max memory configuration"""
-        # Test circuit
-        shots = 100
-        circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
+        # Test defaults
+        opts = self.BACKEND_OPTS.copy()
+        result = execute(circuit, self.SIMULATOR, shots=shots,
+                         backend_options=opts).result()
+        max_mem_result = result.metadata.get('max_memory_mb')
+        self.assertGreaterEqual(max_mem_result, int(system_memory / 2),
+                                msg="Default 'max_memory_mb' is too small.")
+        self.assertLessEqual(max_mem_result, system_memory,
+                             msg="Default 'max_memory_mb' is too large.")
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_memory_mb'] = 128
+        # Test custom value
+        max_mem_target = 128
+        opts['max_memory_mb'] = max_mem_target
+        result = execute(circuit, self.SIMULATOR, shots=shots,
+                         backend_options=opts).result()
+        max_mem_result = result.metadata.get('max_memory_mb')
+        self.assertEqual(max_mem_result, max_mem_target,
+                         msg="Custom 'max_memory_mb' is not being set correctly.")
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        self.assertEqual(
-            result.metadata['max_memory_mb'],
-            128,
-            msg="max_memory_mb is not configured correctly.")
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_thread_defaults(self):
+        """Test parallel thread assignment defaults"""
 
-    def test_qasm_auto_enable_parallel_experiments(self):
-        """test default max memory configuration"""
-        # Test circuit
-        shots = 100
-        experiments = multiprocessing.cpu_count()
-        circuits = []
-        for _ in range(experiments):
-            circuits.append(quantum_volume_circuit(4, 1, measure=True, seed=0))
+        opts = self.BACKEND_OPTS
+        max_threads = multiprocessing.cpu_count()
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_experiments'] = experiments
-        backend_opts['max_memory_mb'] = 1024
+        # Test single circuit, no noise
+        # Parallel experiments and shots should always be 1
+        result = execute(self.dummy_circuit(1),
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        result = execute(
-            circuits, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                multiprocessing.cpu_count(),
-                msg="parallel_experiments should be multiprocessing.cpu_count()"
-            )
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                1,
-                msg="parallel_state_update should be 1")
+        # Test single circuit, with noise
+        # Parallel experiments should always be 1
+        # parallel shots should be greater than 1
+        result = execute(self.dummy_circuit(1),
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-    def test_qasm_auto_disable_parallel_experiments_with_memory_shortage(self):
-        """test auto-disabling max_parallel_experiments because memory is short"""
-        # Test circuit
-        shots = 100
-        experiments = multiprocessing.cpu_count()
-        circuits = []
-        for _ in range(experiments):
-            circuits.append(
-                quantum_volume_circuit(16, 1, measure=True,
-                                       seed=0))  # 2 MB for each
+        # Test single circuit, with measure in middle, no noise
+        # Parallel experiments should always be 1
+        # parallel shots should be greater than 1
+        result = execute(self.measure_in_middle_circuit(1),
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_experiments'] = experiments
-        backend_opts['max_memory_mb'] = 1
+        # Test multiple circuit, no noise
+        # Parallel experiments always be 1
+        # parallel shots should always be 1
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        result = execute(
-            circuits, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                multiprocessing.cpu_count(),
-                msg="parallel_state_update should be " + str(
-                    multiprocessing.cpu_count()))
+        # Test multiple circuits, with noise
+        # Parallel experiments should always be 1
+        # parallel shots should be greater than 1
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-    def test_qasm_auto_short_parallel_experiments(self):
-        """test auto-disabling max_parallel_experiments because a number of circuits is few"""
-        # Test circuit
-        shots = 1
-        experiments = multiprocessing.cpu_count()
-        if experiments == 1:
-            return
-        circuits = []
-        for _ in range(experiments - 1):
-            circuits.append(
-                quantum_volume_circuit(4, 1, measure=True,
-                                       seed=0))  # 2 MB for each
+        # Test multiple circuit, with measure in middle, no noise
+        # Parallel experiments should always be 1
+        # parallel shots should be greater than 1
+        result = execute(max_threads*[self.measure_in_middle_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_experiments'] = experiments
-        backend_opts['max_memory_mb'] = 1024
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_thread_assignment_priority(self):
+        """Test parallel thread assignment priority"""
 
-        result = execute(
-            circuits, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                multiprocessing.cpu_count() - 1,
-                msg="parallel_experiments should be {}".format(
-                    multiprocessing.cpu_count() - 1))
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
+        # If we set all values to max test output
+        # We intentionally set the max shot and experiment threads to
+        # twice the max threads to check they are limited correctly
+        for custom_max_threads in [0, 1, 2, 4]:
+            opts = self.BACKEND_OPTS.copy()
+            opts['max_parallel_threads'] = custom_max_threads
+            opts['max_parallel_experiments'] = 2 * custom_max_threads
+            opts['max_parallel_shots'] = 2 * custom_max_threads
 
-    def test_qasm_auto_enable_shot_parallelization(self):
-        """test explicit shot parallelization"""
-        # Test circuit
-        shots = multiprocessing.cpu_count()
-        circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
+            # Calculate actual max threads from custom max and CPU number
+            max_threads = multiprocessing.cpu_count()
+            if custom_max_threads > 0:
+                max_threads = min(max_threads, custom_max_threads)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_shots'] = shots
-        backend_opts['noise_model'] = self.dummy_noise_model()
+            # Test single circuit, no noise
+            # Parallel experiments and shots should always be 1
+            result = execute(self.dummy_circuit(1),
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': 1,
+                    'shots': 1,
+                    'state_update': max_threads,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                multiprocessing.cpu_count(),
-                msg="parallel_shots must be " + str(
-                    multiprocessing.cpu_count()))
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                1,
-                msg="parallel_state_update should be 1")
+            # Test single circuit, with noise
+            # Parallel experiments should always be 1
+            # parallel shots should be greater than 1
+            result = execute(self.dummy_circuit(1),
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             noise_model=self.dummy_noise_model(),
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': 1,
+                    'shots': max_threads,
+                    'state_update': 1,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-    def test_qasm_auto_disable_shot_parallelization_with_sampling(self):
-        """test auto-disabling max_parallel_shots because sampling is enabled"""
-        # Test circuit
-        shots = multiprocessing.cpu_count()
-        circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
+            # Test single circuit, with measure in middle, no noise
+            # Parallel experiments should always be 1
+            # parallel shots should be greater than 1
+            result = execute(self.measure_in_middle_circuit(1),
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': 1,
+                    'shots': max_threads,
+                    'state_update': 1,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_shots'] = shots
+            # Test multiple circuit, no noise
+            # Parallel experiments always be greater than 1
+            # parallel shots should always be 1
+            result = execute(max_threads*[self.dummy_circuit(1)],
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': max_threads,
+                    'shots': 1,
+                    'state_update': 1,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                multiprocessing.cpu_count(),
-                msg="parallel_state_update should be " + str(
-                    multiprocessing.cpu_count()))
+            # Test multiple circuits, with noise
+            # Parallel experiments always be greater than 1
+            # parallel shots should always be 1
+            result = execute(max_threads*[self.dummy_circuit(1)],
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             noise_model=self.dummy_noise_model(),
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': max_threads,
+                    'shots': 1,
+                    'state_update': 1,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-    def test_qasm_auto_short_shot_parallelization(self):
-        """test auto-disabling max_parallel_shots because a number of shots is few"""
-        # Test circuit
-        max_threads = 4
-        shots = 2
-        circuit = quantum_volume_circuit(4, 1, measure=True, seed=0)
+            # Test multiple circuit, with measure in middle, no noise
+            # Parallel experiments always be greater than 1
+            # parallel shots should always be 1
+            result = execute(max_threads*[self.measure_in_middle_circuit(1)],
+                             self.SIMULATOR,
+                             shots=10*max_threads,
+                             noise_model=self.dummy_noise_model(),
+                             backend_options=opts).result()
+            for threads in self.threads_used(result):
+                target = {
+                    'experiments': max_threads,
+                    'shots': 1,
+                    'state_update': 1,
+                    'total': max_threads
+                }
+                self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_threads'] = max_threads
-        backend_opts['max_parallel_shots'] = max_threads
-        backend_opts['noise_model'] = self.dummy_noise_model()
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_experiment_thread_assignment(self):
+        """Test parallel experiment thread assignment"""
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                shots, msg="parallel_shots must be " + str(shots))
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'], max_threads/shots,
-                msg="parallel_state_update should be " + str(max_threads/shots))
+        max_threads = multiprocessing.cpu_count()
+        opts = self.BACKEND_OPTS.copy()
+        opts['max_parallel_experiments'] = max_threads
 
-    def test_qasm_auto_disable_shot_parallelization_with_memory_shortage(self):
-        """test auto-disabling max_parallel_shots because memory is short"""
-        # Test circuit
-        max_threads = 2
-        shots = 2
-        circuit = quantum_volume_circuit(17, 1, measure=True, seed=0)
+        # Test single circuit
+        # Parallel experiments and shots should always be 1
+        result = execute(self.dummy_circuit(1),
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_threads'] = max_threads
-        backend_opts['max_parallel_shots'] = shots
-        backend_opts['noise_model'] = self.dummy_noise_model()
-        backend_opts['max_memory_mb'] = 2
+        # Test multiple circuit, no noise
+        # Parallel experiments should take priority
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': max_threads,
+                'shots': 1,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1, msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'], max_threads,
-                msg="parallel_state_update should be " + str(max_threads))
+        # Test multiple circuits, with noise
+        # Parallel experiments should take priority
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': max_threads,
+                'shots': 1,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-    def test_qasm_auto_enable_shot_parallelization_with_single_precision(self):
-        """test auto-enabling max_parallel_shots with single-precision"""
-        # Test circuit
-        max_threads = 2
-        shots = 2
-        circuit = quantum_volume_circuit(17, 1, measure=True, seed=0)
+        # Test multiple circuit, with measure in middle, no noise
+        # Parallel experiments should take priority
+        result = execute(max_threads*[self.measure_in_middle_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': max_threads,
+                'shots': 1,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_threads'] = max_threads
-        backend_opts['max_parallel_shots'] = shots
-        backend_opts['noise_model'] = self.dummy_noise_model()
-        backend_opts['max_memory_mb'] = 2
-        backend_opts['precision'] = "single"
+        # Test multiple circuits, with memory limitation
+        # NOTE: this assumes execution on statevector simulator
+        # which required approx 2 MB for 16 qubit circuit.
+        opts['max_memory_mb'] = 1
+        result = execute(2 * [quantum_volume_circuit(16, 1, measure=True, seed=0)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                shots, msg="parallel_shots must be " + str(shots))
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'], 1,
-                msg="parallel_state_update should be 1")
-            
-    def test_qasm_auto_disable_shot_parallelization_with_max_parallel_shots(self):
-        """test disabling parallel shots because max_parallel_shots is 1"""
-        # Test circuit
-        shots = multiprocessing.cpu_count()
-        circuit = quantum_volume_circuit(16, 1, measure=True, seed=0)
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_shot_thread_assignment(self):
+        """Test parallel shot thread assignment"""
 
-        backend_opts = self.BACKEND_OPTS.copy()
-        backend_opts['max_parallel_shots'] = 1
-        backend_opts['noise_model'] = self.dummy_noise_model()
+        max_threads = multiprocessing.cpu_count()
+        opts = self.BACKEND_OPTS.copy()
+        opts['max_parallel_shots'] = max_threads
 
-        result = execute(
-            circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
-        if result.metadata['omp_enabled']:
-            self.assertEqual(
-                result.metadata['parallel_experiments'],
-                1,
-                msg="parallel_experiments should be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']['parallel_shots'],
-                1,
-                msg="parallel_shots must be 1")
-            self.assertEqual(
-                result.to_dict()['results'][0]['metadata']
-                ['parallel_state_update'],
-                multiprocessing.cpu_count(),
-                msg="parallel_state_update should be " + str(
-                    multiprocessing.cpu_count()))
+        # Test single circuit
+        # Parallel experiments and shots should always be 1
+        result = execute(self.dummy_circuit(1),
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
+        # Test multiple circuit, no noise
+        # Parallel experiments and shots should always be 1
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
 
+        # Test multiple circuits, with noise
+        # Parallel shots should take priority
+        result = execute(max_threads*[self.dummy_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
+
+        # Test multiple circuit, with measure in middle, no noise
+        # Parallel shots should take priority
+        result = execute(max_threads*[self.measure_in_middle_circuit(1)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         noise_model=self.dummy_noise_model(),
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': max_threads,
+                'state_update': 1,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
+
+        # Test multiple circuits, with memory limitation
+        # NOTE: this assumes execution on statevector simulator
+        # which required approx 2 MB for 16 qubit circuit.
+        opts['max_memory_mb'] = 1
+        result = execute(2 * [quantum_volume_circuit(16, 1, measure=True, seed=0)],
+                         self.SIMULATOR,
+                         shots=10*max_threads,
+                         backend_options=opts).result()
+        for threads in self.threads_used(result):
+            target = {
+                'experiments': 1,
+                'shots': 1,
+                'state_update': max_threads,
+                'total': max_threads
+            }
+            self.assertEqual(threads, target)
+
+    @requires_omp
+    @requires_multiprocessing
     def _test_qasm_explicit_parallelization(self):
         """test disabling parallel shots because max_parallel_shots is 1"""
         # Test circuit
