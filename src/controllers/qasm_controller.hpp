@@ -15,8 +15,8 @@
 #ifndef _aer_qasm_controller_hpp_
 #define _aer_qasm_controller_hpp_
 
-#include "base/controller.hpp"
-#include "simulators/densitymatrix/densitymatrix_state.hpp"
+#include "controller.hpp"
+#include "simulators/density_matrix/densitymatrix_state.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"

@@ -15,8 +15,8 @@
 #ifndef _aer_unitary_controller_hpp_
 #define _aer_unitary_controller_hpp_
 
-#include "base/controller.hpp"
-#include "unitary_state.hpp"
+#include "controller.hpp"
+#include "simulators/unitary/unitary_state.hpp"
 
 namespace AER {
 namespace Simulator {

@@ -15,8 +15,8 @@
 #ifndef _aer_statevector_controller_hpp_
 #define _aer_statevector_controller_hpp_
 
-#include "base/controller.hpp"
-#include "statevector_state.hpp"
+#include "controller.hpp"
+#include "simulators/statevector/statevector_state.hpp"
 
 namespace AER {
 namespace Simulator {
