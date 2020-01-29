@@ -229,7 +229,8 @@ class HamiltonianModel():
 
         overlap_threshold = 0.6
         if min_overlap < overlap_threshold:
-            warn('Warning: The minimum overlap of an eigenstate of the drift is below ' +
+            warn('Warning: The minimum overlap of an eigenstate of the drift to an element of '
+                 'the computational basis is below ' +
                  '{0}, and may result in unexpected behavior.'.format(str(overlap_threshold)))
 
         self._evals = evals_mapped
