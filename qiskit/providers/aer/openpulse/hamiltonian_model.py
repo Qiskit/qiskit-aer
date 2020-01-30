@@ -15,7 +15,6 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
-from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
