@@ -200,16 +200,8 @@ else()
 endif()
 
 message(STATUS "Uncompressing muparserx static library...")
-if(MSVC)
-	set(PLATFORM "win64")
-elseif(APPLE)
-	set(PLATFORM "macos")
-elseif(UNIX)
-	set(PLATFORM "linux")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/muparserx.7z"
-	WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
-set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib")
+
+uncompress_muparsersx_lib()
 
 find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
 if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
