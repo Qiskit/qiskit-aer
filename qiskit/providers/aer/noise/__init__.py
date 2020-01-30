@@ -68,14 +68,6 @@ IBMQ hardware devices based on the parameters in their backend properties.
     basic_device_noise_model
     basic_device_readout_errors
     basic_device_gate_errors
-
-
-Noise Model Utilities
-=====================
-
-The :mod:`qiskit.providers.aer.noise.utils` submodule contains utilities
-for remapping and approximating noise models, and inserting noise into
-quantum circuits.
 """
 
 # Noise and Error classes
