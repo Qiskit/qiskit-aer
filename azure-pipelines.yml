@@ -60,8 +60,10 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
 
   - stage: 'Tests'
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:
       - job: 'Docs'
+        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'ubuntu-16.04'}
         strategy:
           matrix:
@@ -90,6 +92,7 @@ stages:
              pathtoPublish: 'docs/_build/html'
              artifactName: 'html_docs'
       - job: 'Windows'
+        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
           matrix:
