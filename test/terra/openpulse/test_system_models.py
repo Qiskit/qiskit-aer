@@ -195,16 +195,7 @@ class TestHamiltonianModel(QiskitAerTestCase):
                       'vars': {'a': 100, 'b': 32.1, 'c' : 0.12},
                       'qub': {'0': 2}}
 
-        # construc the model, verify the off-diagonal warning is thrown
-        # test that it gives a warning when a key has no corresponding control channel
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-
-            ham_model = HamiltonianModel.from_dict(simple_ham)
-
-            self.assertEqual(len(w), 1)
-            self.assertTrue('minimum overlap' in str(w[-1].message))
+        ham_model = HamiltonianModel.from_dict(simple_ham)
 
         # check norm
         for estate in ham_model._estates:
