@@ -824,8 +824,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule += const_pulse(ControlChannel(uchannel)) << schedule.duration  # u chan pulse
 
         acq_cmd = pulse.Acquire(duration=total_samples)
-        schedule |= acq_cmd([AcquireChannel(0), AcquireChannel(1)],
-                            [MemorySlot(0), MemorySlot(1)]) << schedule.duration
+        acq_sched = acq_cmd(AcquireChannel(0), MemorySlot(0))
+        acq_sched += acq_cmd(AcquireChannel(1), MemorySlot(1))
+
+        schedule |= acq_sched << schedule.duration
 
         return schedule
 
