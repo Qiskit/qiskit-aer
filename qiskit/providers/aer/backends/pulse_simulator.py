@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,74 +32,57 @@ logger = logging.getLogger(__name__)
 
 
 class PulseSimulator(AerBackend):
-    """
-    Aer OpenPulse simulator
+    r"""Aer OpenPulse simulator.
 
-    The `PulseSimulator` simulates pulse `Schedules` on a model of a quantum system, where a model
-    is specified by a `PulseSystemModel` object, which stores Hamiltonian and control channel
-    information. Simulation is performed in the rotating frame of the drift Hamiltonian in the
-    `PulseSystemModel`.
+    The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
+    with controls specified by pulse :class:`Schedule` objects, and the model of the physical
+    system specified by :class:`PulseSystemModel` objects. Results are returned in the same format
+    as when jobs are submitted to actual devices.
 
-    `PulseSystemModel` objects can be constructed from backends with a hamiltonian description, or
-    from the `transmon_system_model` function.
+    **Example**
 
-    Results are returned in the same format as when jobs are submitted to actual devices.
-
-    **Example of usage**
-
-    To use the simulator, `assemble` a `PulseQobj` object from a list of pulse `Schedules`, using
-    `backend=PulseSimulator()`.
-
-    In the following, `schedules` is a list of pulse `Schedule` objects, and `system_model` is a
-    `PulseSystemModel` object.
+    To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object
+    from a list of pulse :class:`Schedule` objects, using ``backend=PulseSimulator()``.
+    Call the simulator with the :class:`PulseQobj` and a :class:`PulseSystemModel`
+    object representing the physical system.
 
     .. code-block:: python
 
-        backend_sim = qiskit.Aer.get_backend('pulse_simulator')
+        backend_sim = qiskit.providers.aer.PulseSimulator()
 
-        # assemble pulse_qobj with backend=backend_sim
+        # Assemble schedules using PulseSimulator as the backend
         pulse_qobj = assemble(schedules, backend=backend_sim)
 
-        # Run simulation
+        # Run simulation on a PulseSystemModel object
         results = backend_sim.run(pulse_qobj, system_model)
 
-    **Important parameters**
+    **Supported PulseQobj parameters**
 
-    * `qubit_lo_freq`: The local oscillator frequency for each `DriveChannel`. This can be drawn
-                       from several places, listed in order of importance:
-           * passed as an argument to `assemble`
-           * determined from PulseSystemModel attribute `_qubit_freq_est`, if not passed to assemble
-           * computed from the dressed energy gaps of the drift Hamiltonian
+    * ``qubit_lo_freq``: Local oscillator frequencies for each :class:`DriveChannel`.
+      Defaults to either the value given in the :class:`PulseSystemModel`, or
+      is calculated directly from the Hamiltonian.
+    * ``meas_level``: Type of desired measurement output, in ``[1, 2]``.
+      ``1`` gives complex numbers (IQ values), and ``2`` gives discriminated states ``|0>`` and
+      ``|1>``. Defaults to ``2``.
+    * ``meas_return``: Measurement type, ``'single'`` or ``'avg'``. Defaults to ``'avg'``.
+    * ``shots``: Number of shots per experiment. Defaults to ``1024``.
 
-    **Measurement and output**
 
-    The measurement results are from projections of the state vector in dressed energy basis of
-    the drift Hamiltonian.
+    **Simulation details**
 
-    There are three measurement levels that return the data, specified when using assemble.
-    Measurement level `0` gives the raw data.
-    Measurement level `1` gives complex numbers (IQ values).
-    Measurement level `2` gives the discriminated states, `|0>` and `|1>`.
-
-    **Simulation method**
-
-    The simulator uses the `zvode` differential equation solver method through `scipy`.
+    The simulator uses the ``zvode`` differential equation solver method through ``scipy``.
+    Simulation is performed in the rotating frame of the diagonal of the drift Hamiltonian
+    contained in the :class:`PulseSystemModel`. Measurements are performed in the `dressed basis`
+    of the drift Hamiltonian.
 
     **Other options**
 
-    The `run` function additionally takes an argument `backend_options` for additional
-    customization. It accepts keys:
+    :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options`` for
+    customization. Accepted keys:
 
-    * `'ode_options'`: a dictionary containing options to pass to the `zvode` solver. Accepted keys
-      for this option are `'atol'`, `'rtol'`, `'nsteps'`, `'max_step'`, `'num_cpus'`, `'norm_tol'`,
-      and `'norm_steps'`
-
-    **Default behaviors**
-
-    Defaults filled in for `assemble` parameters if not specified:
-    * `meas_level`: `2`
-    * `meas_return`: `'avg'`
-    * `shots`: `1024`
+    * ``'ode_options'``: A ``dict`` for ``zvode`` solver options. Accepted keys
+      are ``'atol'``, ``'rtol'``, ``'nsteps'``, ``'max_step'``, ``'num_cpus'``, ``'norm_tol'``,
+      and ``'norm_steps'``.
     """
 
     DEFAULT_CONFIGURATION = {
@@ -133,7 +116,17 @@ class PulseSimulator(AerBackend):
                          provider=provider)
 
     def run(self, qobj, system_model, backend_options=None, validate=False):
-        """Run a qobj on the backend."""
+        """Run a qobj on system_model.
+
+        Args:
+            qobj (PulseQobj): Qobj for pulse Schedules to run
+            system_model (PulseSystemModel): Physical model to run simulation on
+            backend_options (dict): Other options
+            validate (bool): Flag for validation checks
+
+        Returns:
+            Result: results of simulation
+        """
         # Submit job
         job_id = str(uuid.uuid4())
         aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,

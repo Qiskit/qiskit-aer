@@ -134,12 +134,12 @@ class TestDigest(QiskitAerTestCase):
         # set up u channel freqs,
         u_channel_lo = [[{'q': 1, 'scale': [1.0, 0.0]}],
                         [{'q': 0, 'scale': [1.0, 0.0]}]]
-        qubit_list = [0, 1]
+        subsystem_list = [0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
 

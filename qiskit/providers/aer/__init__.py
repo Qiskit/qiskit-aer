@@ -34,6 +34,7 @@ Simulator Backends
     QasmSimulator
     StatevectorSimulator
     UnitarySimulator
+    PulseSimulator
 
 Job Class
 =========
@@ -41,6 +42,15 @@ Job Class
    :toctree: ../stubs/
 
    AerJob
+
+OpenPulse
+=========
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    PulseSystemModel
+    duffing_system_model
 
 Exceptions
 ==========
@@ -64,6 +74,7 @@ from .aerprovider import AerProvider
 from .aerjob import AerJob
 from .aererror import AerError
 from .backends import *
+from .openpulse import *
 from . import noise
 from . import utils
 from .version import __version__

@@ -23,7 +23,35 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """PulseSystemModel containing all model parameters necessary for simulation.
+    r"""Physical model object for use in :class:`PulseSimulator`.
+
+    This class contains model information required by :class:`PulseSimulator`. It contains:
+
+        * ``"hamiltonian"``: a :class:`HamiltonianModel` object representing the
+          Hamiltonian of the system.
+        * ``"qubit_freq_est"`` and ``"meas_freq_est"``: optional default values for
+          qubit and measurement frequencies.
+        * ``"u_channel_lo"``: A description of :class:`ControlChannel` local oscillator
+          frequencies in terms of qubit local oscillator frequencies.
+        * ``"control_channel_labels"``: Optional list of identifying information for
+          each :class:`ControlChannel` that the model supports.
+        * ``"subsystem_list"``: List of subsystems in the model.
+        * ``"dt"``: Sample width size for OpenPulse instructions.
+
+    A :class:`PulseSystemModel` object can be instantiated from the
+    helper function :meth:`duffing_system_model`, or using the
+    :meth:`PulseSystemModel.from_backend` constructor.
+
+    **Example**
+
+    Constructing from a backend:
+
+    .. code-block: python
+
+        provider = IBMQ.load_account()
+        armonk_backend = provider.get_backend('ibmq_armonk')
+
+        system_model = PulseSystemModel.from_backend(armonk_backend)
     """
     def __init__(self,
                  hamiltonian=None,
@@ -31,7 +59,7 @@ class PulseSystemModel():
                  meas_freq_est=None,
                  u_channel_lo=None,
                  control_channel_labels=None,
-                 qubit_list=None,
+                 subsystem_list=None,
                  dt=None):
         """Initialize a PulseSystemModel.
 
@@ -44,7 +72,7 @@ class PulseSystemModel():
             u_channel_lo (list): list of ControlChannel frequency specifications.
             control_channel_labels (list): list of labels for control channels, which can be of
                                            any type.
-            qubit_list (list): list of valid qubit indicies for the model.
+            subsystem_list (list): list of valid qubit indicies for the model.
             dt (float): pixel size for pulse Instructions.
         Raises:
             AerError: if hamiltonian is not None or a HamiltonianModel
@@ -60,16 +88,16 @@ class PulseSystemModel():
         self.hamiltonian = hamiltonian
         self.u_channel_lo = u_channel_lo
         self.control_channel_labels = control_channel_labels or []
-        self.qubit_list = qubit_list
+        self.subsystem_list = subsystem_list
         self.dt = dt
 
     @classmethod
-    def from_backend(cls, backend, qubit_list=None):
-        """Returns a PulseSystemModel constructed from a backend object.
+    def from_backend(cls, backend, subsystem_list=None):
+        """Returns a PulseSystemModel constructed from an OpenPulse enabled backend object.
 
         Args:
             backend (Backend): backend object to draw information from.
-            qubit_list (list): a list of ints for which qubits to include in the model.
+            subsystem_list (list): a list of ints for which qubits to include in the model.
 
         Returns:
             PulseSystemModel: the PulseSystemModel constructed from the backend.
@@ -93,10 +121,10 @@ class PulseSystemModel():
         meas_freq_est = defaults.get('meas_freq_est', None)
 
         # draw from configuration
-        # if no qubit_list, use all for device
-        qubit_list = qubit_list or list(range(config['n_qubits']))
+        # if no subsystem_list, use all for device
+        subsystem_list = subsystem_list or list(range(config['n_qubits']))
         ham_string = config['hamiltonian']
-        hamiltonian = HamiltonianModel.from_dict(ham_string, qubit_list)
+        hamiltonian = HamiltonianModel.from_dict(ham_string, subsystem_list)
         u_channel_lo = config.get('u_channel_lo', None)
         dt = config.get('dt', None)
 
@@ -136,7 +164,7 @@ class PulseSystemModel():
                    meas_freq_est=meas_freq_est,
                    u_channel_lo=u_channel_lo,
                    control_channel_labels=control_channel_labels,
-                   qubit_list=qubit_list,
+                   subsystem_list=subsystem_list,
                    dt=dt)
 
     def control_channel_index(self, label):
@@ -155,7 +183,7 @@ class PulseSystemModel():
             return self.control_channel_labels.index(label)
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
-        """Calculate frequencies for each channel.
+        """Calculate frequencies for each channel given qubit_lo_freq.
 
         Args:
             qubit_lo_freq (list or None): list of qubit linear
