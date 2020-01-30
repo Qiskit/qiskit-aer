@@ -200,23 +200,6 @@ else()
 endif()
 
 message(STATUS "Uncompressing muparserx static library...")
-#if(MSVC)
-#	set(PLATFORM "win64")
-#elseif(APPLE)
-#	set(PLATFORM "macos")
-#elseif(UNIX)
-#	execute_process(COMMAND echo "#include <string>" COMMAND g++ ${CMAKE_CXX_FLAGS} -x c++ -E -dM - COMMAND fgrep _GLIBCXX_USE_CXX11_ABI OUTPUT_VARIABLE C++11_ABI OUTPUT_STRIP_TRAILING_WHITESPACE)
-#	message(STATUS "ABI ${C++11_ABI_OUT}")
-#	string(REGEX REPLACE "#define _GLIBCXX_USE_CXX11_ABI " "" C++11_ABI ${C++11_ABI_OUT})
-#	if(C++11_ABI EQUAL "0")
-#		set(MUPARSER_ABI_PREFIX oldabi_)
-#	endif()
-#	set(PLATFORM "linux")
-#endif()
-#
-#execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
-#	WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
-#set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib")
 
 uncompress_muparsersx_lib()
 
