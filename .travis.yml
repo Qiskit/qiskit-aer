@@ -106,10 +106,14 @@ stage_osx: &stage_osx
 
 # Define the order of the stages.
 stages:
-  - wheels
-  - lint
-  - compile
-  - test
+  - name: deploy
+    if: tag IS present
+  - name: lint
+    if: tag IS blank
+  - name: compile
+    if: tag IS blank
+  - name: test
+    if: tag IS blank
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
