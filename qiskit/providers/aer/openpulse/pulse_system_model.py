@@ -23,9 +23,35 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """Contains all model parameters necessary for :class:`PulseSimulator`.
+    """Physical model object for use in :class:`PulseSimulator`.
 
-    
+    This class contains model information required by :class:`PulseSimulator`. It contains:
+
+        * ``"hamiltonian"``: a :class:`HamiltonianModel` object representing the
+          Hamiltonian of the system.
+        * ``"qubit_freq_est"`` and ``"meas_freq_est"``: optional default values for
+          qubit and measurement frequencies.
+        * ``"u_channel_lo"``: A description of :class:`ControlChannel` local oscillator
+          frequencies in terms of qubit local oscillator frequencies.
+        * ``"control_channel_labels"``: Optional list of identifying information for
+          each :class:`ControlChannel` that the model supports.
+        * ``"qubit_list"``: List of qubits in the model.
+        * ``"dt"``: Sample width size for OpenPulse instructions.
+
+    A :class:`PulseSystemModel` object can be instantiated from the
+    helper function :meth:`duffing_system_model`, or using the
+    :meth:`PulseSystemModel.from_backend` constructor.
+
+    **Example**
+
+    Constructing from a backend:
+
+    .. code-block: python
+
+        provider = IBMQ.load_account()
+        armonk_backend = provider.get_backend('ibmq_armonk')
+
+        system_model = PulseSystemModel.from_backend(armonk_backend)
     """
     def __init__(self,
                  hamiltonian=None,
@@ -157,7 +183,7 @@ class PulseSystemModel():
             return self.control_channel_labels.index(label)
 
     def calculate_channel_frequencies(self, qubit_lo_freq=None):
-        """Calculate frequencies for each channel.
+        """Calculate frequencies for each channel given qubit_lo_freq.
 
         Args:
             qubit_lo_freq (list or None): list of qubit linear
