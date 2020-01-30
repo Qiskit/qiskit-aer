@@ -219,7 +219,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-    - sudo: required
+    - name: Release Linux Wheel Builds and Upload
       stage: wheels
       language: python
       python: 3.7
@@ -240,17 +240,20 @@ jobs:
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
-    - name: sdist upload
+    - name: sdist Build and Upload
       stage: wheels
 #      if: tag IS present
       <<: *stage_linux
       env:
         - TWINE_USERNAME=qiskit
       python: 3.7
+      before_script: true
+      install: true
       script:
         - python setup.py sdist
 #        - twine upload dist/*
-    - os: osx
+    - name: Release MacOS Wheel Builds and Upload
+      os: osx
       stage: wheels
 #      if: tag IS present
       env:
