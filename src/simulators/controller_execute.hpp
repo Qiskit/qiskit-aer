@@ -18,6 +18,7 @@
 #include <string>
 #include "framework/json.hpp"
 #include "misc/hacks.hpp"
+#include "framework/results/result.hpp"
 
 //=========================================================================
 // Controller Execute interface
@@ -43,7 +44,7 @@ std::string controller_execute_json(const std::string &qobj_str) {
 }
 
 template <class controller_t>
-json_t controller_execute(const json_t &qobj_js) {
+Result controller_execute(const json_t &qobj_js) {
   controller_t controller;
 
   // Fix for MacOS and OpenMP library double initialization crash.
@@ -54,7 +55,7 @@ json_t controller_execute(const json_t &qobj_js) {
     Hacks::maybe_load_openmp(path);
   }
 
-  return controller.execute(qobj_js).json();
+  return controller.execute(qobj_js);
 }
 
 } // end namespace AER
