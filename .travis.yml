@@ -228,7 +228,7 @@ jobs:
         - docker
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
-        - CIBW_SKIP="cp27-* cp34-* cp38-manylinux_i686"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - TWINE_USERNAME=qiskit
