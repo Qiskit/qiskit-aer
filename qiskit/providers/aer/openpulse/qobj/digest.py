@@ -196,6 +196,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
 
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
+        # Note: the extraction of multiple measurements works, but the simulator itself
+        # implicitly assumes there is only one measurement at the end
         if any(exp_struct['acquire']):
             for acq in exp_struct['acquire']:
                 for jj in acq[1]:
@@ -492,7 +494,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
 
     structs['tlist'] = np.asarray([0] + structs['tlist'], dtype=float)
 
-    if len(structs['acquire']) > 1 or structs['tlist'][-1] > structs['acquire'][-1][0]:
+    if structs['tlist'][-1] > structs['acquire'][-1][0]:
         structs['can_sample'] = False
 
     return structs
