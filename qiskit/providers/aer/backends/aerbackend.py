@@ -177,7 +177,6 @@ class AerBackend(BaseBackend):
 
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
-        # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()

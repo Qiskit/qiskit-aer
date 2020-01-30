@@ -237,6 +237,7 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/simulators/open_pulse)
 else() # Standalone build
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
@@ -247,6 +248,7 @@ else() # Standalone build
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
 	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	install(TARGETS qasm_simulator DESTINATION bin)
 	# Linter
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)
