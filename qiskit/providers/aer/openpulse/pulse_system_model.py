@@ -23,7 +23,7 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """Physical model object for use in :class:`PulseSimulator`.
+    r"""Physical model object for use in :class:`PulseSimulator`.
 
     This class contains model information required by :class:`PulseSimulator`. It contains:
 

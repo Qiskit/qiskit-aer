@@ -32,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class PulseSimulator(AerBackend):
-    """
-    Aer OpenPulse simulator
+    r"""Aer OpenPulse simulator.
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
     with controls specified by pulse :class:`Schedule` objects, and the model of the physical
@@ -42,9 +41,10 @@ class PulseSimulator(AerBackend):
 
     **Example**
 
-    To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object from a list of pulse
-    :class:`Schedule` objects, using ``backend=PulseSimulator()``. Call the simulator with the
-    :class:`PulseQobj` and a :class:`PulseSystemModel` object representing the physical system.
+    To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object
+    from a list of pulse :class:`Schedule` objects, using ``backend=PulseSimulator()``.
+    Call the simulator with the :class:`PulseQobj` and a :class:`PulseSystemModel`
+    object representing the physical system.
 
     .. code-block:: python
 
@@ -77,7 +77,7 @@ class PulseSimulator(AerBackend):
 
     **Other options**
 
-    :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options` for
+    :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options`` for
     customization. Accepted keys:
 
     * ``'ode_options'``: A ``dict`` for ``zvode`` solver options. Accepted keys

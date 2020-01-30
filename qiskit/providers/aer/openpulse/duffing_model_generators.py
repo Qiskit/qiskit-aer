@@ -27,22 +27,22 @@ def duffing_system_model(dim_oscillators,
                          drive_strengths,
                          coupling_dict,
                          dt):
-    """Returns a :class:`PulseSystemModel` representing a physical model for a
+    r"""Returns a :class:`PulseSystemModel` representing a physical model for a
     collection of Duffing oscillators.
 
     In the model, each individual oscillator is specified by the parameters:
 
-        * Frequency: :math:`\\nu`, specified in the list ``oscillator_freqs``
-        * Anharmonicity: :math:`\\alpha`, specified in the list ``anharm_freqs``, and
+        * Frequency: :math:`\nu`, specified in the list ``oscillator_freqs``
+        * Anharmonicity: :math:`\alpha`, specified in the list ``anharm_freqs``, and
         * Drive strength: :math:`r`, specified in the list ``drive_strengths``.
 
     For each oscillator, the above parameters enter into the Hamiltonian via the terms:
 
     .. math::
-        \\pi(2 \\nu - \\alpha)a^\\dagger a +
-        \\pi \\alpha (a^\\dagger a)^2 + 2 \\pi r D(t) (a + a^\\dagger),
+        \pi(2 \nu - \alpha)a^\dagger a +
+        \pi \alpha (a^\dagger a)^2 + 2 \pi r D(t) (a + a^\dagger),
 
-    where :math:`a^\\dagger` and :math:`a` are, respectively, the creation and annihilation
+    where :math:`a^\dagger` and :math:`a` are, respectively, the creation and annihilation
     operators for the oscillator, and :math:`D(t)` is the drive signal for the oscillator.
 
     Each coupling term between a pair of oscillators is specified by:
@@ -55,7 +55,7 @@ def duffing_system_model(dim_oscillators,
     results in the Hamiltonian term:
 
     .. math::
-        2 \\pi j (a_i^\\dagger a_k + a_i a_k^\\dagger).
+        2 \pi j (a_i^\dagger a_k + a_i a_k^\dagger).
 
     Finally, the returned :class:`PulseSystemModel` is setup for performing cross-resonance
     drives between coupled qubits. The index for the :class:`ControlChannel` corresponding
