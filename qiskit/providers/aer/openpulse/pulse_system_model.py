@@ -23,7 +23,9 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    """PulseSystemModel containing all model parameters necessary for simulation.
+    """Contains all model parameters necessary for :class:`PulseSimulator`.
+
+    
     """
     def __init__(self,
                  hamiltonian=None,
@@ -65,7 +67,7 @@ class PulseSystemModel():
 
     @classmethod
     def from_backend(cls, backend, qubit_list=None):
-        """Returns a PulseSystemModel constructed from a backend object.
+        """Returns a PulseSystemModel constructed from an OpenPulse enabled backend object.
 
         Args:
             backend (Backend): backend object to draw information from.
