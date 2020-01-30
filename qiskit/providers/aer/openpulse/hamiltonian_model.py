@@ -223,12 +223,6 @@ class HamiltonianModel():
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
 
-        overlap_threshold = 0.6
-        if min_overlap < overlap_threshold:
-            warn('Warning: The minimum overlap of an eigenstate of the drift to an element of '
-                 'the computational basis is below ' +
-                 '{0}, and may result in unexpected behavior.'.format(str(overlap_threshold)))
-
         self._evals = evals_mapped
         self._estates = estates_mapped
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
