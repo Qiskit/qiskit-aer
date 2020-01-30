@@ -57,3 +57,30 @@ function(get_muparserx_source_code)
                 and checkout latest stable release")
     endif()
 endfunction()
+
+function(check_compiler_cpp11_abi)
+    # Consider also if -D_GLIBCXX_USE_CXX11_ABI has been passed as flag
+    string(REGEX MATCH "-D_GLIBCXX_USE_CXX11_ABI=[(A-z)|(a-z)|(0-9)]+" CUSTOM_PREP_FLAGS ${CMAKE_CXX_FLAGS})
+    # Preprocessor run to check if CXX11_ABI is set
+    execute_process(COMMAND echo "#include <string>" COMMAND ${CMAKE_CXX_COMPILER} ${CUSTOM_PREP_FLAGS} -x c++ -E -dM -  COMMAND fgrep _GLIBCXX_USE_CXX11_ABI OUTPUT_VARIABLE C++11_ABI_OUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX REPLACE "#define _GLIBCXX_USE_CXX11_ABI " "" C++11_ABI "${C++11_ABI_OUT}")
+    set(C++11_ABI ${C++11_ABI} PARENT_SCOPE)
+endfunction()
+
+function(uncompress_muparsersx_lib)
+    if(MSVC)
+        set(PLATFORM "win64")
+    elseif(APPLE)
+        set(PLATFORM "macos")
+    elseif(UNIX)
+        check_compiler_cpp11_abi()
+        if(C++11_ABI EQUAL "0")
+            set(MUPARSER_ABI_PREFIX oldabi_)
+        endif()
+        set(PLATFORM "linux")
+    endif()
+
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
+            WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
+    set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
+endfunction()
