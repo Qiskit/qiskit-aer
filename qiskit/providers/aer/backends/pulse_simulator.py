@@ -63,7 +63,7 @@ class PulseSimulator(AerBackend):
       is calculated directly from the Hamiltonian.
     * ``meas_level``: Type of desired measurement output, in ``[1, 2]``.
       ``1`` gives complex numbers (IQ values), and ``2`` gives discriminated states ``|0>`` and
-      ``|1>``.
+      ``|1>``. Defaults to ``2``.
     * ``meas_return``: Measurement type, ``'single'`` or ``'avg'``. Defaults to ``'avg'``.
     * ``shots``: Number of shots per experiment. Defaults to ``1024``.
 

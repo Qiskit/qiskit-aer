@@ -27,50 +27,92 @@ def duffing_system_model(dim_oscillators,
                          drive_strengths,
                          coupling_dict,
                          dt):
-    """Returns a PulseSystemModel for a specified Duffing oscillator system.
+    """Returns a :class:`PulseSystemModel` representing a physical model for a
+    collection of Duffing oscillators.
 
-    Note: Frequencies are assumed to be in frequency units (as opposed to radial).
+    In the model, each individual oscillator is specified by the parameters:
 
-    Single oscillators are specified by three parameters: frequency v, anharmonicity alpha, and
-    drive strength r, which enter into the Hamiltonian model via the terms:
-        pi*(2*v-alpha)*O + pi*alpha*O*O + 2*pi*r*X*D(t),
-    where O is the number operator, X is the drive operator, and D(t) is the signal of the
-    corresponding DriveChannel.
+        * Frequency: :math:`\\nu`, specified in the list ``oscillator_freqs``
+        * Anharmonicity: :math:`\\alpha`, specified in the list ``anharm_freqs``, and
+        * Drive strength: :math:`r`, specified in the list ``drive_strengths``.
 
-    Couplings between oscillators are specified in the argument coupling_dict, with keys being
-    edges, and values being the coupling strenghts. Couplings enter the Hamiltonian model via an
-    exchange coupling term:
-        2*pi*j*(A0*C1+C0*A1),
-    where j is the coupling strength, and A0*C1+C0*A1 is the exchange coupling operator between the
-    two oscillators, where A is the annihiliation operator, and C is the creation operator.
+    For each oscillator, the above parameters enter into the Hamiltonian via the terms:
 
-    For each pair of coupled oscillators, pulse ControlChannels are prepared for doing cross
-    resonance (CR) drives between oscillators. A CR drive on oscillators 0 with target oscillators
-    1 is modeled with the Hamiltonian term:
-        2*pi*r0*X0*U(t),
-    where r0 is the drive strength for oscillators 0, X0 is the drive operator for oscillators 0,
-    and U(t) is the signal for the CR drive. U(t) is set to have carrier frequency equal to that of
-    the target oscillators.
+    .. math::
+        \\pi(2 \\nu - \\alpha)a^\\dagger a +
+        \\pi \\alpha (a^\\dagger a)^2 + 2 \\pi r D(t) (a + a^\\dagger),
 
-    Indices for ControlChannels corresponding to CR drives can be retrieved from the returned
-    PulseSystemModel using the control_channel_index() method, with keys being tuples. E.g. the
-    index for the ControlChannel corresponding to a CR drive on oscillator 0 with target 1 is
-    given by system_model.control_channel_index((0,1)).
+    where :math:`a^\\dagger` and :math:`a` are, respectively, the creation and annihilation
+    operators for the oscillator, and :math:`D(t)` is the drive signal for the oscillator.
+
+    Each coupling term between a pair of oscillators is specified by:
+
+        * Oscillator pair: :math:`(i,k)`, and
+        * Coupling strength: :math:`j`,
+
+    which are passed in the argument ``coupling_dict``, which is a ``dict`` with keys
+    being the ``tuple`` ``(i,k)``, and values the strength ``j``. Specifying a coupling
+    results in the Hamiltonian term:
+
+    .. math::
+        2 \\pi j (a_i^\\dagger a_k + a_i a_k^\\dagger).
+
+    Finally, the returned :class:`PulseSystemModel` is setup for performing cross-resonance
+    drives between coupled qubits. The index for the :class:`ControlChannel` corresponding
+    to a particular cross-resonance drive channel is retreived by calling
+    :meth:`PulseSystemModel.control_channel_index` with the tuple ``(drive_idx, target_idx)``,
+    where ``drive_idx`` is the index of the oscillator being driven, and ``target_idx`` is
+    the target oscillator (see example below).
+
+    Note: In this model, all frequencies are in frequency units (as opposed to radial).
+
+    **Example**
+
+    Constructing a three Duffing Oscillator :class:``PulseSystemModel``.
+
+    .. code-block:: python
+
+        # cutoff dimensions
+        dim_oscillators = 3
+
+        # single oscillator drift parameters
+        oscillator_freqs = [5.0e9, 5.1e9, 5.2e9]
+        anharm_freqs = [-0.33e9, -0.33e9, -0.33e9]
+
+        # drive strengths
+        drive_strengths = [0.02e9, 0.02e9, 0.02e9]
+
+        # specify coupling as a dictionary; here the qubit pair (0,1) is coupled with
+        # strength 0.002e9, and the qubit pair (1,2) is coupled with strength 0.001e9
+        coupling_dict = {(0,1): 0.002e9, (1,2): 0.001e9}
+
+        # time
+        dt = 1e-9
+
+        # create the model
+        three_qubit_model = duffing_system_model(dim_oscillators=dim_oscillators,
+                                                 oscillator_freqs=oscillator_freqs,
+                                                 anharm_freqs=anharm_freqs,
+                                                 drive_strengths=drive_strengths,
+                                                 coupling_dict=coupling_dict,
+                                                 dt=dt)
+
+    In the above model, qubit pairs (0,1) and (1,2) are coupled. To perform a
+    cross-resonance drive on qubit 1 with target 0, use the :class:`ControlChannel`
+    with index:
+
+    .. code-block:: python
+
+        three_qubit_model.control_channel_index((1,0))
 
     Args:
-        dim_oscillators (int): Dimension of truncation for each oscillator
-        oscillator_freqs (list): Oscillator frequencies in frequency units
-        anharm_freqs (list): Anharmonicity values in frequency units
-        drive_strengths (list): Drive strength values in frequency units
-        coupling_dict (dict): Specification of the coupling graph with keys being edges, and values
+        dim_oscillators (int): Dimension of truncation for each oscillator.
+        oscillator_freqs (list): Oscillator frequencies in frequency units.
+        anharm_freqs (list): Anharmonicity values in frequency units.
+        drive_strengths (list): Drive strength values in frequency units.
+        coupling_dict (dict): Coupling graph with keys being edges, and values
                               the coupling strengths in frequency units.
-
-                              For example:
-
-                              * ``{(0,1): 0.02, (1,3): 0.01}`` specifies a system in which
-                                oscillators (0,1) are coupled with strength 0.02, and (1,3) are
-                                coupled with strength 0.01
-        dt (float): Sample width for pulse instructions
+        dt (float): Sample width for pulse instructions.
 
     Returns:
         PulseSystemModel: The generated Duffing system model
