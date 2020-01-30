@@ -32,19 +32,19 @@ logger = logging.getLogger(__name__)
 
 
 class PulseSimulator(AerBackend):
-    r"""Aer OpenPulse simulator.
+    r"""Pulse schedule simulator backend.
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
     with controls specified by pulse :class:`Schedule` objects, and the model of the physical
-    system specified by :class:`PulseSystemModel` objects. Results are returned in the same format
-    as when jobs are submitted to actual devices.
+    system specified by :class:`~qiskit.providers.aer.pulse.PulseSystemModel` objects.
+    Results are returned in the same format as when jobs are submitted to actual devices.
 
     **Example**
 
     To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object
     from a list of pulse :class:`Schedule` objects, using ``backend=PulseSimulator()``.
-    Call the simulator with the :class:`PulseQobj` and a :class:`PulseSystemModel`
-    object representing the physical system.
+    Call the simulator with the :class:`PulseQobj` and a
+    :class:`~qiskit.providers.aer.PulseSystemModel` object representing the physical system.
 
     .. code-block:: python
 
@@ -59,8 +59,9 @@ class PulseSimulator(AerBackend):
     **Supported PulseQobj parameters**
 
     * ``qubit_lo_freq``: Local oscillator frequencies for each :class:`DriveChannel`.
-      Defaults to either the value given in the :class:`PulseSystemModel`, or
-      is calculated directly from the Hamiltonian.
+      Defaults to either the value given in the
+      :class:`~qiskit.providers.aer.pulse.PulseSystemModel`, or is calculated directly
+      from the Hamiltonian.
     * ``meas_level``: Type of desired measurement output, in ``[1, 2]``.
       ``1`` gives complex numbers (IQ values), and ``2`` gives discriminated states ``|0>`` and
       ``|1>``. Defaults to ``2``.
@@ -72,8 +73,8 @@ class PulseSimulator(AerBackend):
 
     The simulator uses the ``zvode`` differential equation solver method through ``scipy``.
     Simulation is performed in the rotating frame of the diagonal of the drift Hamiltonian
-    contained in the :class:`PulseSystemModel`. Measurements are performed in the `dressed basis`
-    of the drift Hamiltonian.
+    contained in the :class:`~qiskit.providers.aer.pulse.PulseSystemModel`. Measurements
+    are performed in the `dressed basis` of the drift Hamiltonian.
 
     **Other options**
 

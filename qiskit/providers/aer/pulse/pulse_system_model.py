@@ -23,9 +23,10 @@ from ..aererror import AerError
 
 
 class PulseSystemModel():
-    r"""Physical model object for use in :class:`PulseSimulator`.
+    r"""Physical model object for pulse simulator.
 
-    This class contains model information required by :class:`PulseSimulator`. It contains:
+    This class contains model information required by the
+    :class:`~qiskit.providers.aer.PulseSimulator`. It contains:
 
         * ``"hamiltonian"``: a :class:`HamiltonianModel` object representing the
           Hamiltonian of the system.
@@ -38,9 +39,8 @@ class PulseSystemModel():
         * ``"subsystem_list"``: List of subsystems in the model.
         * ``"dt"``: Sample width size for OpenPulse instructions.
 
-    A :class:`PulseSystemModel` object can be instantiated from the
-    helper function :meth:`duffing_system_model`, or using the
-    :meth:`PulseSystemModel.from_backend` constructor.
+    A model can be instantiated from the helper function :meth:`duffing_system_model`,
+    or using the :meth:`PulseSystemModel.from_backend` constructor.
 
     **Example**
 
