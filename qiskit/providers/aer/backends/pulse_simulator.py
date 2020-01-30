@@ -48,7 +48,7 @@ class PulseSimulator(AerBackend):
 
     .. code-block:: python
 
-        backend_sim = qiskit.providers.aer.PulseSimulator
+        backend_sim = qiskit.providers.aer.PulseSimulator()
 
         # Assemble schedules using PulseSimulator as the backend
         pulse_qobj = assemble(schedules, backend=backend_sim)
