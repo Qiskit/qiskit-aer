@@ -15,7 +15,6 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
-from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -29,15 +28,13 @@ class HamiltonianModel():
     def __init__(self,
                  system=None,
                  variables=None,
-                 qubit_dims=None,
-                 oscillator_dims=None):
+                 subsystem_dims=None):
         """Initialize a Hamiltonian model.
 
         Args:
             system (list): List of Qobj objects representing operator form of the Hamiltonian.
             variables (OrderedDict): Ordered dict for parameter values in Hamiltonian.
-            qubit_dims (dict): dict of qubit dimensions.
-            oscillator_dims (dict): dict of oscillator dimensions.
+            subsystem_dims (dict): dict of subsystem dimensions.
 
         Raises:
             ValueError: if arguments are invalid.
@@ -50,9 +47,7 @@ class HamiltonianModel():
         self._variables = variables
         # Channels in the Hamiltonian string
         # Qubit subspace dimensinos
-        self._qubit_dims = qubit_dims or {}
-        # Oscillator subspace dimensions
-        self._oscillator_dims = oscillator_dims or {}
+        self._subsystem_dims = subsystem_dims or {}
 
         # The rest are computed from the previous
 
@@ -73,12 +68,12 @@ class HamiltonianModel():
         self._compute_drift_data()
 
     @classmethod
-    def from_dict(cls, hamiltonian, qubit_list=None):
+    def from_dict(cls, hamiltonian, subsystem_list=None):
         """Initialize from a Hamiltonian string specification.
 
         Args:
             hamiltonian (dict): dictionary representing Hamiltonian in string specification.
-            qubit_list (list or None): List of qubits to extract from the hamiltonian.
+            subsystem_list (list or None): List of subsystems to extract from the hamiltonian.
 
         Returns:
             HamiltonianModel: instantiated from hamiltonian dictionary
@@ -94,15 +89,15 @@ class HamiltonianModel():
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
-            if qubit_list is None:
-                qubit_list = [int(qubit) for qubit in hamiltonian['qub']]
+            if subsystem_list is None:
+                subsystem_list = [int(qubit) for qubit in hamiltonian['qub']]
 
-            qubit_dims = {
+            subsystem_dims = {
                 int(key): val
                 for key, val in hamiltonian['qub'].items()
             }
         else:
-            qubit_dims = {}
+            subsystem_dims = {}
 
         # Get oscillator subspace dimensions
         if 'osc' in hamiltonian:
@@ -116,11 +111,11 @@ class HamiltonianModel():
         # Parse the Hamiltonian
         system = HamiltonianParser(h_str=hamiltonian['h_str'],
                                    dim_osc=oscillator_dims,
-                                   dim_qub=qubit_dims)
-        system.parse(qubit_list)
+                                   dim_qub=subsystem_dims)
+        system.parse(subsystem_list)
         system = system.compiled
 
-        return cls(system, variables, qubit_dims, oscillator_dims)
+        return cls(system, variables, subsystem_dims)
 
     def get_qubit_lo_from_drift(self):
         """ Computes a list of qubit frequencies corresponding to the exact energy
@@ -129,13 +124,13 @@ class HamiltonianModel():
         Returns:
             qubit_lo_freq (list): the list of frequencies
         """
-        qubit_lo_freq = [0] * len(self._qubit_dims)
+        qubit_lo_freq = [0] * len(self._subsystem_dims)
 
         # compute difference between first excited state of each qubit and
         # the ground energy
         min_eval = np.min(self._evals)
-        for q_idx in range(len(self._qubit_dims)):
-            single_excite = _first_excited_state(q_idx, self._qubit_dims)
+        for q_idx in range(len(self._subsystem_dims)):
+            single_excite = _first_excited_state(q_idx, self._subsystem_dims)
             dressed_eval = _eval_for_max_espace_overlap(
                 single_excite, self._evals, self._estates)
             qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
@@ -223,12 +218,6 @@ class HamiltonianModel():
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
 
-        overlap_threshold = 0.6
-        if min_overlap < overlap_threshold:
-            warn('Warning: The minimum overlap of an eigenstate of the drift to an element of '
-                 'the computational basis is below ' +
-                 '{0}, and may result in unexpected behavior.'.format(str(overlap_threshold)))
-
         self._evals = evals_mapped
         self._estates = estates_mapped
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
@@ -247,7 +236,7 @@ def _hamiltonian_parse_exceptions(hamiltonian):
         raise AerError('Oscillator-type systems are not supported.')
 
 
-def _first_excited_state(qubit_idx, qubit_dims):
+def _first_excited_state(qubit_idx, subsystem_dims):
     """
     Returns the vector corresponding to all qubits in the 0 state, except for
     qubit_idx in the 1 state.
@@ -259,18 +248,18 @@ def _first_excited_state(qubit_idx, qubit_dims):
     Parameters:
         qubit_idx (int): the qubit to be in the 1 state
 
-        qubit_dims (dict): a dictionary with keys being qubit index, and
-                        value being the dimension of the qubit
+        subsystem_dims (dict): a dictionary with keys being subsystem index, and
+                        value being the dimension of the subsystem
 
     Returns:
         vector: the state with qubit_idx in state 1, and the rest in state 0
     """
     vector = np.array([1.])
     # iterate through qubits, tensoring on the state
-    qubit_indices = [int(qubit) for qubit in qubit_dims]
+    qubit_indices = [int(qubit) for qubit in subsystem_dims]
     qubit_indices.sort()
     for idx in qubit_indices:
-        new_vec = np.zeros(qubit_dims[idx])
+        new_vec = np.zeros(subsystem_dims[idx])
         if idx == qubit_idx:
             new_vec[1] = 1
         else:
