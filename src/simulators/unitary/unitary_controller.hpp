@@ -25,12 +25,11 @@ namespace Simulator {
 // UnitaryController class
 //=========================================================================
 
-
 /**************************************************************************
  * Config settings:
- * 
+ *
  * From QubitUnitary::State class
- * 
+ *
  * - "initial_unitary" (json complex matrix): Use a custom initial unitary
  *      matrix for the simulation [Default: null].
  * - "zero_threshold" (double): Threshold for truncating small values to
@@ -38,7 +37,7 @@ namespace Simulator {
  * - "unitary_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
  *      level [Default: 6]
- * 
+ *
  * From BaseController Class
  *
  * - "max_parallel_threads" (int): Set the maximum OpenMP threads that may
@@ -48,11 +47,11 @@ namespace Simulator {
  *      executed in parallel. Set to 0 to use the number of max parallel
  *      threads [Default: 1]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
- * 
+ *
  **************************************************************************/
 
 class UnitaryController : public Base::Controller {
-public:
+ public:
   //-----------------------------------------------------------------------
   // Base class config override
   //-----------------------------------------------------------------------
@@ -68,26 +67,22 @@ public:
   // Clear the current config
   void virtual clear_config() override;
 
-protected:
-
-  size_t required_memory_mb(const Circuit& circ,
-                            const Noise::NoiseModel& noise) const override;
+ protected:
+  size_t required_memory_mb(const Circuit &circ,
+                            const Noise::NoiseModel &noise) const override;
 
   // Simulation methods for the Unitary Controller
   enum class Method {
     automatic,
-    unitarymatrix,
-    unitarymatrix_gpu
+    unitary_cpu,
+    unitary_thrust_gpu,
+    unitary_thrust_cpu
   };
 
   // Simulation precision
-  enum class Precision {
-    double_precision,
-    single_precision
-  };
+  enum class Precision { double_precision, single_precision };
 
-private:
-
+ private:
   //-----------------------------------------------------------------------
   // Base class abstract method override
   //-----------------------------------------------------------------------
@@ -95,22 +90,19 @@ private:
   // This simulator will only return a single shot, regardless of the
   // input shot number
   virtual ExperimentData run_circuit(const Circuit &circ,
-                                 const Noise::NoiseModel& noise,
-                                 const json_t &config,
-                                 uint_t shots,
-                                 uint_t rng_seed) const override;
-  
+                                     const Noise::NoiseModel &noise,
+                                     const json_t &config, uint_t shots,
+                                     uint_t rng_seed) const override;
+
   template <class State_t>
   ExperimentData run_circuit_helper(const Circuit &circ,
-                                 const Noise::NoiseModel& noise,
-                                 const json_t &config,
-                                 uint_t shots,
-                                 uint_t rng_seed,
-                                 std::string method_name) const;
+                                    const Noise::NoiseModel &noise,
+                                    const json_t &config, uint_t shots,
+                                    uint_t rng_seed) const;
 
   //-----------------------------------------------------------------------
   // Custom initial state
-  //-----------------------------------------------------------------------        
+  //-----------------------------------------------------------------------
   cmatrix_t initial_unitary_;
 
   // Method to construct a unitary matrix
@@ -118,7 +110,6 @@ private:
 
   // Precision of a unitary matrix
   Precision precision_ = Precision::double_precision;
-
 };
 
 //=========================================================================
@@ -138,23 +129,27 @@ void UnitaryController::set_config(const json_t &config) {
   // Set base controller config
   Base::Controller::set_config(config);
 
-  //Add custom initial unitary
-  if (JSON::get_value(initial_unitary_, "initial_unitary", config) ) {
+  // Add custom initial unitary
+  if (JSON::get_value(initial_unitary_, "initial_unitary", config)) {
     // Check initial state is unitary
     if (!Utils::is_unitary(initial_unitary_, validation_threshold_))
-      throw std::runtime_error("UnitaryController: initial_unitary is not unitary");
+      throw std::runtime_error(
+          "UnitaryController: initial_unitary is not unitary");
   }
 
-  //Add method
+  // Add method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
-    if (method == "unitarymatrix") {
-      method_ = Method::unitarymatrix;
-    } else if (method == "unitarymatrix_gpu") {
-      method_ = Method::unitarymatrix_gpu;
+    if (method == "unitary" || method == "unitary_cpu") {
+      method_ = Method::unitary_cpu;
+    } else if (method == "unitary_gpu") {
+      method_ = Method::unitary_thrust_gpu;
+    } else if (method == "unitary_thrust") {
+      method_ = Method::unitary_thrust_cpu;
     } else if (method != "automatic") {
-      throw std::runtime_error(std::string("UnitaryController: Invalid simulation method (") +
-                               method + std::string(")."));
+      throw std::runtime_error(
+          std::string("UnitaryController: Invalid simulation method (") +
+          method + std::string(")."));
     }
   }
 
@@ -173,10 +168,15 @@ void UnitaryController::clear_config() {
   initial_unitary_ = cmatrix_t();
 }
 
-size_t UnitaryController::required_memory_mb(const Circuit& circ,
-                                             const Noise::NoiseModel& noise) const {
-  QubitUnitary::State<> state;
-  return state.required_memory_mb(circ.num_qubits, circ.ops);
+size_t UnitaryController::required_memory_mb(
+    const Circuit &circ, const Noise::NoiseModel &noise) const {
+  if (precision_ == Precision::single_precision) {
+    QubitUnitary::State<QV::UnitaryMatrix<float>> state;
+    return state.required_memory_mb(circ.num_qubits, circ.ops);
+  } else {
+    QubitUnitary::State<> state;
+    return state.required_memory_mb(circ.num_qubits, circ.ops);
+  }
 }
 
 //-------------------------------------------------------------------------
@@ -184,55 +184,61 @@ size_t UnitaryController::required_memory_mb(const Circuit& circ,
 //-------------------------------------------------------------------------
 
 ExperimentData UnitaryController::run_circuit(const Circuit &circ,
-                                          const Noise::NoiseModel& noise,
-                                          const json_t &config,
-                                          uint_t shots,
-                                          uint_t rng_seed) const {
-
-  switch(method_) {
+                                              const Noise::NoiseModel &noise,
+                                              const json_t &config,
+                                              uint_t shots,
+                                              uint_t rng_seed) const {
+  switch (method_) {
     case Method::automatic:
-    case Method::unitarymatrix: {
+    case Method::unitary_cpu: {
       if (precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<QubitUnitary::State<double>>(circ,
-                                                         noise,
-                                                         config,
-                                                         shots,
-                                                         rng_seed,
-                                                         "unitarymatrix");
+        // Double-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
+                                                            shots, rng_seed);
       } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<QubitUnitary::State<float>>(circ,
-                                                         noise,
-                                                         config,
-                                                         shots,
-                                                         rng_seed,
-                                                         "unitarymatrix");
+        // Single-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
+                                                           shots, rng_seed);
       }
     }
-    case Method::unitarymatrix_gpu: {
-#ifdef AER_THRUST_SUPPORTED
+    case Method::unitary_thrust_gpu: {
+#ifdef AER_THRUST_CUDA
       if (precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<QubitUnitary::State<double, QV::UnitaryMatrixThrust<double>>>(
-                                                         circ,
-                                                         noise,
-                                                         config,
-                                                         shots,
-                                                         rng_seed,
-                                                         "unitarymatrix_gpu");
+        // Double-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
+            circ, noise, config, shots, rng_seed);
       } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<QubitUnitary::State<float, QV::UnitaryMatrixThrust<float>>>(
-                                                         circ,
-                                                         noise,
-                                                         config,
-                                                         shots,
-                                                         rng_seed,
-                                                         "unitarymatrix_gpu");
+        // Single-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
+            circ, noise, config, shots, rng_seed);
       }
 #else
-      throw std::runtime_error("UnitaryController: method unitarymatrix_gpu is not supported");
+      throw std::runtime_error(
+          "UnitaryController: method unitary_gpu is not supported on this "
+          "system");
+#endif
+    }
+    case Method::unitary_thrust_cpu: {
+#ifdef AER_THRUST_CPU
+      if (precision_ == Precision::double_precision) {
+        // Double-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
+            circ, noise, config, shots, rng_seed);
+      } else {
+        // Single-precision unitary simulation
+        return run_circuit_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
+            circ, noise, config, shots, rng_seed);
+      }
+#else
+      throw std::runtime_error(
+          "UnitaryController: method unitary_thrust is not supported on this "
+          "system");
 #endif
     }
     default:
@@ -241,13 +247,9 @@ ExperimentData UnitaryController::run_circuit(const Circuit &circ,
 }
 
 template <class State_t>
-ExperimentData UnitaryController::run_circuit_helper(const Circuit &circ,
-                                          const Noise::NoiseModel& noise,
-                                          const json_t &config,
-                                          uint_t shots,
-                                          uint_t rng_seed,
-                                          std::string method_name) const {
-
+ExperimentData UnitaryController::run_circuit_helper(
+    const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+    uint_t shots, uint_t rng_seed) const {
   // Initialize state
   State_t state;
 
@@ -258,8 +260,9 @@ ExperimentData UnitaryController::run_circuit_helper(const Circuit &circ,
   if (!initial_unitary_.empty()) {
     auto nrows = initial_unitary_.GetRows();
     auto ncols = initial_unitary_.GetColumns();
-    if (nrows != ncols ) {
-      throw std::runtime_error("UnitaryController: initial unitary is not square.");
+    if (nrows != ncols) {
+      throw std::runtime_error(
+          "UnitaryController: initial unitary is not square.");
     }
     auto nstates = 1ULL << circ.num_qubits;
     if (nrows != nstates) {
@@ -282,7 +285,7 @@ ExperimentData UnitaryController::run_circuit_helper(const Circuit &circ,
   // Output data container
   ExperimentData data;
   data.set_config(config);
-  data.add_metadata("method", method_name);
+  data.add_metadata("method", state.name());
 
   // Run single shot collecting measure data or snapshots
   if (initial_unitary_.empty())
@@ -299,10 +302,9 @@ ExperimentData UnitaryController::run_circuit_helper(const Circuit &circ,
   return data;
 }
 
-
 //-------------------------------------------------------------------------
-} // end namespace Simulator
+}  // end namespace Simulator
 //-------------------------------------------------------------------------
-} // end namespace AER
+}  // end namespace AER
 //-------------------------------------------------------------------------
 #endif

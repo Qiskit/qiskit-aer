@@ -51,6 +51,13 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Return the string name of the class
+#ifdef AER_THRUST_CUDA
+  static std::string name() {return "unitary_gpu";}
+#else
+  static std::string name() {return "unitary_thrust";}
+#endif
+
   // Set the size of the vector in terms of qubit number
   void set_num_qubits(size_t num_qubits);
 

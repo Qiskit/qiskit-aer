@@ -52,8 +52,12 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
-  // Return the string name of the DensityMatrix class
+  // Return the string name of the class
+#ifdef AER_THRUST_CUDA
   static std::string name() {return "density_matrix_gpu";}
+#else
+  static std::string name() {return "density_matrix_thrust";}
+#endif
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();

@@ -859,7 +859,7 @@ public:
 #ifdef AER_THRUST_CUDA
   static std::string name() {return "statevector_gpu";}
 #else
-  static std::string name() {return "statevector_fake_gpu";}
+  static std::string name() {return "statevector_thrust";}
 #endif
 
   // Set the size of the vector in terms of qubit number
