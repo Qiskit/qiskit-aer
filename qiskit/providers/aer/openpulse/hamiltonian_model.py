@@ -15,6 +15,7 @@
 
 "HamiltonianModel class for system specification for the PulseSimulator"
 
+from warnings import warn
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
@@ -207,10 +208,26 @@ class HamiltonianModel():
         evals_mapped = np.zeros(evals.shape, dtype=evals.dtype)
         estates_mapped = np.zeros(estates.shape, dtype=estates.dtype)
 
+        # order the eigenvalues and eigenstates according to overlap with computational basis
+        pos_list = []
+        min_overlap = 1
         for i, estate in enumerate(estates.T):
-            pos = np.argmax(np.abs(estate))
+            # make a copy and set entries with indices in pos_list to 0
+            estate_copy = estate.copy()
+            estate_copy[pos_list] = 0
+
+            pos = np.argmax(np.abs(estate_copy))
+            pos_list.append(pos)
+            min_overlap = min(np.abs(estate_copy)[pos]**2, min_overlap)
+
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
+
+        overlap_threshold = 0.6
+        if min_overlap < overlap_threshold:
+            warn('Warning: The minimum overlap of an eigenstate of the drift to an element of '
+                 'the computational basis is below ' +
+                 '{0}, and may result in unexpected behavior.'.format(str(overlap_threshold)))
 
         self._evals = evals_mapped
         self._estates = estates_mapped
@@ -226,7 +243,7 @@ def _hamiltonian_parse_exceptions(hamiltonian):
     Raises:
         AerError: if some part of the hamiltonian dictionary is unsupported
     """
-    if 'osc' in hamiltonian:
+    if hamiltonian.get('osc', {}) != {}:
         raise AerError('Oscillator-type systems are not supported.')
 
 

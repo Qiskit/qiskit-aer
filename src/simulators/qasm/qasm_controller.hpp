@@ -601,9 +601,6 @@ size_t QasmController::required_memory_mb(const Circuit& circ,
 
 void QasmController::set_parallelization_circuit(const Circuit& circ,
                                                  const Noise::NoiseModel& noise_model) {
-
-  if (max_parallel_threads_ < max_parallel_shots_)
-    max_parallel_shots_ = max_parallel_threads_;
   const auto method = simulation_method(circ, noise_model, false);
   switch (method) {
     case Method::statevector:
@@ -612,7 +609,9 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
-        parallel_state_update_ = max_parallel_threads_;
+        parallel_state_update_ = std::max<int>(
+          {1, max_parallel_threads_ / parallel_experiments_}
+        );
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
@@ -621,9 +620,13 @@ void QasmController::set_parallelization_circuit(const Circuit& circ,
     case Method::density_matrix: {
       if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
         parallel_shots_ = 1;
-        parallel_state_update_ = max_parallel_threads_;
+        parallel_state_update_ = std::max<int>(
+          {1, max_parallel_threads_ / parallel_experiments_}
+        );
         return;
       }
+      Base::Controller::set_parallelization_circuit(circ, noise_model);
+      break;
     }
     default: {
       Base::Controller::set_parallelization_circuit(circ, noise_model);

@@ -83,7 +83,7 @@ namespace Base {
  *      available. [Default : 0]
  * - "max_parallel_experiments" (int): Set number of circuits that may be
  *      executed in parallel. Set to 0 to automatically select a number of
- *      parallel threads. [Default: 0]
+ *      parallel threads. [Default: 1]
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Set to 0 to automatically select a
  *      number of parallel threads. [Default: 0].
@@ -263,15 +263,28 @@ void Controller::set_config(const json_t &config) {
   // Load qubit truncation
   JSON::get_value(truncate_qubits_, "truncate_enable", config);
 
+  #ifdef _OPENMP
   // Load OpenMP maximum thread settings
   if (JSON::check_key("max_parallel_threads", config))
     JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
-
-  // Load configurations for parallelization
   if (JSON::check_key("max_parallel_experiments", config))
     JSON::get_value(max_parallel_experiments_, "max_parallel_experiments", config);
   if (JSON::check_key("max_parallel_shots", config))
     JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
+  // Limit max threads based on number of available OpenMP threads
+  auto omp_threads = omp_get_max_threads();
+  max_parallel_threads_ = (max_parallel_threads_ > 0)
+      ? std::min(max_parallel_threads_, omp_threads)
+      : std::max(1, omp_threads);
+  #else
+  // No OpenMP so we disable parallelization
+  max_parallel_threads_ = 1;
+  max_parallel_shots_ = 1;
+  max_parallel_experiments_ = 1;
+  #endif
+
+  // Load configurations for parallelization
+  
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   }
@@ -311,7 +324,7 @@ void Controller::clear_config() {
 
 void Controller::clear_parallelization() {
   max_parallel_threads_ = 0;
-  max_parallel_experiments_ = 0;
+  max_parallel_experiments_ = 1;
   max_parallel_shots_ = 0;
 
   parallel_experiments_ = 1;
@@ -324,10 +337,19 @@ void Controller::clear_parallelization() {
 
 void Controller::set_parallelization_experiments(const std::vector<Circuit>& circuits,
                                                  const Noise::NoiseModel& noise) {
-
-  if (max_parallel_experiments_ <= 0)
+  // Use a local variable to not override stored maximum based
+  // on currently executed circuits
+  const auto max_experiments = (max_parallel_experiments_ > 0)
+    ? std::min({max_parallel_experiments_, max_parallel_threads_})
+    : max_parallel_threads_;
+  
+  if (max_experiments == 1) {
+    // No parallel experiment execution
+    parallel_experiments_ = 1;
     return;
-  // if memory allows, execute experiments in parallel
+  }
+
+  // If memory allows, execute experiments in parallel
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j=0; j<circuits.size(); j++) {
     required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
@@ -342,50 +364,44 @@ void Controller::set_parallelization_experiments(const std::vector<Circuit>& cir
     ++parallel_experiments_;
   }
 
-  if (parallel_experiments_ == 0)
+  if (parallel_experiments_ <= 0)
     throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
-
-  if (parallel_experiments_ != 1) {
-    parallel_experiments_ = std::min<int> ({ parallel_experiments_,
-                                             max_parallel_experiments_,
-                                             max_parallel_threads_,
-                                             static_cast<int>(circuits.size()) });
-    max_parallel_shots_ = 1;
-  }
+  parallel_experiments_ = std::min<int>({parallel_experiments_,
+                                         max_experiments,
+                                         max_parallel_threads_,
+                                         static_cast<int>(circuits.size())});
 }
 
 void Controller::set_parallelization_circuit(const Circuit& circ,
                                              const Noise::NoiseModel& noise) {
 
-  if (max_parallel_threads_ < max_parallel_shots_)
-    max_parallel_shots_ = max_parallel_threads_;
+  // Use a local variable to not override stored maximum based
+  // on currently executed circuits
+  const auto max_shots = (max_parallel_shots_ > 0)
+    ? std::min({max_parallel_shots_, max_parallel_threads_})
+    : max_parallel_threads_;
 
-  int circ_memory_mb = required_memory_mb(circ, noise);
-
-  if (max_memory_mb_ < circ_memory_mb)
-    throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
-
-  if (circ_memory_mb == 0) {
-    parallel_shots_ = max_parallel_threads_;
-    parallel_state_update_ = 1;
-  } else if (max_parallel_shots_ > 0) {
-    parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
-                                       max_parallel_shots_,
-                                       static_cast<int>(circ.shots) });
-    parallel_state_update_ = max_parallel_threads_ / parallel_shots_;
+  // If we are executing circuits in parallel we disable
+  // parallel shots
+  if (max_shots == 1 || parallel_experiments_ > 1) {
+    parallel_shots_ = 1;
   } else {
-    // try to use all the threads for shot-level parallelization
-    // no nested parallelization if max_parallel_shots is not configured
-    parallel_shots_ = std::min<int> ({ static_cast<int>(max_memory_mb_ / circ_memory_mb),
-                                       max_parallel_threads_,
-                                       static_cast<int>(circ.shots) });
-    if (parallel_shots_ == max_parallel_threads_) {
-      parallel_state_update_ = 1;
-    } else {
-      parallel_shots_ = 1;
-      parallel_state_update_ = max_parallel_threads_;
-    }
+    // Parallel shots is > 1
+    // Limit parallel shots by available memory and number of shots
+    // And assign the remaining threads to state update
+    int circ_memory_mb = required_memory_mb(circ, noise);
+    if (max_memory_mb_ < circ_memory_mb)
+      throw std::runtime_error("a circuit requires more memory than max_memory_mb.");
+    // If circ memory is 0, set it to 1 so that we don't divide by zero
+    circ_memory_mb = std::max<int>({1, circ_memory_mb});
+
+    parallel_shots_ = std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
+                                     max_shots,
+                                     static_cast<int>(circ.shots)});
   }
+  parallel_state_update_ = (parallel_shots_ > 1)
+    ? std::max<int>({1, max_parallel_threads_ / parallel_shots_})
+    : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
 }
 
 
@@ -535,14 +551,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
   // Execute each circuit in a try block
   try {
-    // Set max_parallel_threads_
-    if (max_parallel_threads_ < 1)
-    #ifdef _OPENMP
-      max_parallel_threads_ = std::max(1, omp_get_max_threads());
-    #else
-      max_parallel_threads_ = 1;
-    #endif
-
     if (!explicit_parallelization_) {
       // set parallelization for experiments
       set_parallelization_experiments(circuits, noise_model);
@@ -627,7 +635,7 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
       truncate_pass.optimize_circuit(circ, noise, Operations::OpSet(), data);
     }
     // set parallelization for this circuit
-    if (!explicit_parallelization_ && parallel_experiments_ == 1) {
+    if (!explicit_parallelization_) {
       set_parallelization_circuit(circ, noise);
     }
     // Single shot thread execution
