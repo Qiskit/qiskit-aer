@@ -641,12 +641,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
         u_channel_lo = []
-        qubit_list = [0]
+        subsystem_list = [0]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
     def _system_model_2Q(self, omega_0, omega_a, omega_i, qubit_dim=2):
@@ -678,12 +678,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
                         [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
-        qubit_list = [0, 1]
+        subsystem_list = [0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
     def _simple_1Q_schedule(self, phi, total_samples, shape="square", gauss_sigma=0):

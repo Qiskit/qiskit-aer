@@ -106,7 +106,7 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     # ###############################
 
     # Get qubit list and number
-    qubit_list = system_model.qubit_list
+    qubit_list = system_model.subsystem_list
     if qubit_list is None:
         raise ValueError('Model must have a qubit list to simulate.')
     n_qubits = len(qubit_list)
@@ -123,8 +123,8 @@ def digest_pulse_obj(qobj, system_model, backend_options=None):
     out.h_diag = ham_model._h_diag
     out.evals = ham_model._evals
     out.estates = ham_model._estates
-    dim_qub = ham_model._qubit_dims
-    dim_osc = ham_model._oscillator_dims
+    dim_qub = ham_model._subsystem_dims
+    dim_osc = {}
     out.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     # convert estates into a Qutip qobj
     estates = [op.state(state) for state in ham_model._estates.T[:]]

@@ -169,7 +169,7 @@ def duffing_system_model(dim_oscillators,
     return PulseSystemModel(hamiltonian=hamiltonian_model,
                             u_channel_lo=u_channel_lo,
                             control_channel_labels=coupling_graph.sorted_two_way_graph,
-                            qubit_list=oscillators,
+                            subsystem_list=oscillators,
                             dt=dt)
 
 

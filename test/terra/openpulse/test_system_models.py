@@ -55,13 +55,13 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
                                'alpha1': alpha1}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
-        qubit_list =[0, 1]
+        subsystem_list =[0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 qubit_freq_est=self._default_qubit_lo_freq,
                                 u_channel_lo=self._u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
 
