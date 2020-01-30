@@ -106,9 +106,14 @@ stage_osx: &stage_osx
 
 # Define the order of the stages.
 stages:
-  - lint
-  - compile
-  - test
+  - name: deploy
+    if: tag IS present
+  - name: lint
+    if: tag IS blank
+  - name: compile
+    if: tag IS blank
+  - name: test
+    if: tag IS blank
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -218,7 +223,61 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-
+    # "wheels" stage
+    ##########################################################################
+    #
+    - name: Release Linux Wheel Builds and Upload
+      stage: wheels
+      language: python
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
+        - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      if: tag IS present
+      script:
+        - pip install -U pip virtualenv
+        - pip install cibuildwheel==1.1.0
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
+    - name: sdist Build and Upload
+      stage: wheels
+      if: tag IS present
+      <<: *stage_linux
+      env:
+        - TWINE_USERNAME=qiskit
+      python: 3.7
+      before_script: true
+      install: true
+      script:
+        - python setup.py sdist
+        - twine upload dist/*
+    - name: Release MacOS Wheel Builds and Upload
+      os: osx
+      stage: wheels
+      if: tag IS present
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
+        - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      addons:
+        homebrew:
+          packages:
+          - openblas
+      script:
+        - sudo pip2 install -U pip virtualenv
+        - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
   # Power tests (currently failing)
   allow_failures:
     # Power Build test
