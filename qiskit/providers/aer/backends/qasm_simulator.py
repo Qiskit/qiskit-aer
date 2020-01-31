@@ -207,8 +207,8 @@ class QasmSimulator(AerBackend):
         'conditional': True,
         'open_pulse': False,
         'memory': True,
-        'max_shots': 100000,
-        'description': 'A C++ simulator with realistic noise for qobj files',
+        'max_shots': int(1e6),
+        'description': 'A C++ simulator with realistic noise for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',

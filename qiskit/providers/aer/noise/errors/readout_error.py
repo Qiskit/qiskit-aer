@@ -14,7 +14,6 @@ Readout error class for Qiskit Aer noise model.
 """
 
 import copy
-import warnings
 
 import numpy as np
 from numpy.linalg import norm
@@ -24,7 +23,6 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
 from .errorutils import qubits_from_mat
-from ...utils.helpers import deprecation
 
 
 class ReadoutError:
@@ -156,16 +154,6 @@ class ReadoutError:
         """Convert the ReadoutError to a circuit Instruction."""
         return Instruction("roerror", 0, self.number_of_qubits, self._probabilities)
 
-    def as_dict(self):
-        """
-        Return the current error as a dictionary (DEPRECATED).
-
-        DEPRECATED: use :meth:`to_dict`.
-        """
-        deprecation("ReadoutError::as_dict() method is deprecated and will be removed after 0.3."
-                    "Use '.to_dict()' instead")
-        return self.to_dict()
-
     def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
@@ -178,10 +166,13 @@ class ReadoutError:
     def compose(self, other, front=False):
         """Return the composition readout error other * self.
 
+        Note that for `front=True` this is equivalent to the
+        :meth:`ReadoutError.dot` method.
+
         Args:
             other (ReadoutError): a readout error.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            front (bool): If True return the reverse order composation
+                          self * other instead [default: False].
 
         Returns:
             ReadoutError: The composition readout error.
@@ -191,9 +182,6 @@ class ReadoutError:
             dimensions.
         """
         if front:
-            # DEPRECATED kwarg `front`
-            warnings.warn('`compose(other, front=True)` is deprecated, use `dot(other)` instead.',
-                          DeprecationWarning)
             return self._matmul(other)
         return self._matmul(other, left_multiply=True)
 

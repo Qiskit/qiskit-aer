@@ -16,8 +16,8 @@ Remap qubits in a NoiseModel.
 
 import logging
 
-from ..noise_model import NoiseModel
-from ..noiseerror import NoiseError
+from ..noise.noise_model import NoiseModel
+from ..noise.noiseerror import NoiseError
 
 logger = logging.getLogger(__name__)
 
