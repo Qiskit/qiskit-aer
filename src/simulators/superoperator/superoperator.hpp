@@ -17,7 +17,7 @@
 
 
 #include "framework/utils.hpp"
-#include "simulators/densitymatrix/densitymatrix.hpp"
+#include "simulators/density_matrix/densitymatrix.hpp"
 
 namespace QV {
 

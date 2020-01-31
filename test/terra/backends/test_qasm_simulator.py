@@ -40,6 +40,8 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 # Noise model simulation tests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -54,8 +56,6 @@ from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 from test.terra.backends.qasm_simulator.qasm_delay_measure import QasmDelayMeasureTests
 from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
 from test.terra.backends.qasm_simulator.qasm_basics import QasmBasicsTests
-from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
-from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 
 
 class TestQasmSimulator(common.QiskitAerTestCase,

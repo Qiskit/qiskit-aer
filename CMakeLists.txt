@@ -43,6 +43,8 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
 
+set(AER_COMPILER_DEFINITIONS "")
+
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
 	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
@@ -134,6 +136,8 @@ endif()
 if(OPENMP_FOUND)
 	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -220,6 +224,42 @@ if(NOT MSVC)
 	endif()
 endif()
 
+# GPU support through Thrust library (CPU fallbacks)
+# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
+set(AER_THRUST_SUPPORTED TRUE)
+if(AER_THRUST_SUPPORTED)
+	if(AER_THRUST_BACKEND STREQUAL "CUDA")
+		message(STATUS "Thrust library: Looking for CUDA backend...")
+		find_package(CUDA REQUIRED)
+		message(STATUS "Thrust library: CUDA found!")
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		set(THRUST_DEPENDANT_LIBS "")
+	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
+		message(STATUS "Thrust library: Looking for TBB backend...")
+		find_package(TBB REQUIRED)
+		message(STATUS "TBB Support found!")
+		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB AER_THRUST_CPU=TRUE)
+	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
+		message(STATUS "Thrust library: Setting OMP backend")
+		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		# We don't need to add OMP because it's already an AER dependency
+		set(THRUST_DEPENDANT_LIBS "")
+	else()
+		message(STATUS "No Thrust supported backend")
+		set(AER_THRUST_SUPPORTED FALSE)
+	endif()
+endif()
+
+if(AER_THRUST_SUPPORTED)
+	list(APPEND AER_COMPILER_DEFINITIONS AER_THRUST_SUPPORTED=TRUE)
+else()
+	message(STATUS "No Thrust support enabled")
+endif()
+
 # Set dependent libraries
 set(AER_LIBRARIES
 	${OPENMP_EXTERNAL_LIB}
@@ -228,17 +268,24 @@ set(AER_LIBRARIES
 	Threads::Threads
 	${SPDLOG_LIB}
 	${DL_LIB}
-	${MUPARSERX_LIB})
+	${MUPARSERX_LIB}
+	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/pulse/cy)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
-	add_subdirectory(src/simulators/open_pulse)
+	add_subdirectory(src/open_pulse)
 else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	if(CUDA_FOUND)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+	else(CUDA_FOUND)
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
@@ -246,9 +293,13 @@ else() # Standalone build
 		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	target_include_directories(qasm_simulator
+		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+	target_compile_definitions(qasm_simulator
+		PRIVATE ${AER_COMPILER_DEFINITIONS})
 	install(TARGETS qasm_simulator DESTINATION bin)
+
 	# Linter
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)

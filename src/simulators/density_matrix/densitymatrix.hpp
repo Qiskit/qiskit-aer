@@ -52,6 +52,9 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Return the string name of the DensityMatrix class
+  static std::string name() {return "density_matrix";}
+
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
@@ -294,6 +297,7 @@ void DensityMatrix<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
   const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
   BaseVector::apply_lambda(lambda, qubits);
+
 }
 
 template <typename data_t>

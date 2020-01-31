@@ -20,6 +20,13 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added multi-GPU enabled simulation methods to the `QasmSimulator`, `StatevectorSimulator`,
+  and `UnitarySimulator`. The qasm simulator has gpu version of the density matrix and
+  statevector methods and can be accessed using `"method": "density_matrix_gpu"` or
+  `"method": "statevector_gpu"` in `backend_options`. The statevector simulator gpu method
+  can be accessed using `"method": "statevector_gpu"`. The unitary simulator GPU method can
+  be accessed using `"method": "unitary_gpu"`. These backends use CUDA and require an NVidia
+  GPU.(\#544)
 - Added ``PulseSimulator`` backend (\#542)
 - Added ``PulseSystemModel`` and ``HamiltonianModel`` classes to represent models to be used in ``PulseSimulator`` (\#496, \#493)
 - Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
@@ -29,6 +36,9 @@ Added
 
 Changed
 -------
+- Changed the structure of the `src` directory to organise simulator source code.
+  Simulator controller headers were moved to `src/controllers` and simulator method State
+  headers are in `src/simulators` (\#544)
 
 Removed
 -------
