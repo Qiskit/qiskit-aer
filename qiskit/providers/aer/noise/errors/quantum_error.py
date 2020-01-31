@@ -13,7 +13,6 @@
 Quantum error class for Qiskit Aer noise model
 """
 import logging
-import warnings
 import copy
 
 import numpy as np
@@ -27,7 +26,6 @@ from .errorutils import kraus2instructions
 from .errorutils import circuit2superop
 from .errorutils import standard_instruction_channel
 from .errorutils import standard_instruction_operator
-from ...utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -287,16 +285,6 @@ class QuantumError:
             raise NoiseError("Position {} is greater than the number".format(
                 position) + "of error outcomes {}".format(self.size))
 
-    def as_dict(self):
-        """
-        Return the current error as a dictionary (DEPRECATED).
-
-        DEPRECATED: use :meth:`to_dict`.
-        """
-        deprecation("QuantumError::as_dict() method is deprecated and will be removed after 0.3."
-                    "Use '.to_dict()' instead")
-        return self.to_dict()
-
     def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
@@ -310,10 +298,13 @@ class QuantumError:
     def compose(self, other, front=False):
         """Return the composition error channel other * self.
 
+        Note that for `front=True` this is equivalent to the
+        :meth:`QuantumError.dot` method.
+
         Args:
             other (QuantumError): a quantum error channel.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            front (bool): If True return the reverse order composation
+                          self * other instead [default: False].
 
         Returns:
             QuantumError: The composition error channel.
@@ -323,9 +314,6 @@ class QuantumError:
             or has incompatible dimensions.
         """
         if front:
-            # DEPRECATED kwarg `front`
-            warnings.warn('`compose(other, front=True)` is deprecated, use `dot(other)` instead.',
-                          DeprecationWarning)
             return self._matmul(other, left_multiply=False)
         return self._matmul(other, left_multiply=True)
 

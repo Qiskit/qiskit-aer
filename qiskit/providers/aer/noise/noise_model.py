@@ -23,7 +23,6 @@ from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
-from ..utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -545,23 +544,6 @@ class NoiseModel:
                     "%s overrides previously defined "
                     "all-qubit readout error for these qubits.", qubits)
         self._noise_instructions.add("measure")
-
-    def as_dict(self, serializable=False):
-        """
-        Return the noise model as a dictionary (DEPRECATED).
-
-        DEPRECATED: Use :meth:`to_dict`
-
-        Args:
-            serializable (bool): if `True`, return a dict containing only types
-                that can be serializable by the stdlib `json` module.
-
-        Returns:
-            dict: a dictionary for a noise model.
-        """
-        deprecation("NoiseModel::as_dict() method is deprecated and will be removed after 0.3."
-                    "Use '.to_dict()' instead")
-        self.to_dict(serializable)
 
     def to_dict(self, serializable=False):
         """
