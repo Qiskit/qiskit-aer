@@ -20,7 +20,7 @@
 cimport cython
 import numpy as np
 cimport numpy as np
-from qiskit.providers.aer.openpulse.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr
+from qiskit.providers.aer.pulse.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr
 
 @cython.boundscheck(False)
 def occ_probabilities(unsigned int[::1] qubits, complex[::1] state, list meas_ops):

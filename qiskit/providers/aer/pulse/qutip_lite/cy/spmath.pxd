@@ -33,7 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qiskit.providers.aer.openpulse.qutip_lite.cy.sparse_structs cimport CSR_Matrix
+from qiskit.providers.aer.pulse.qutip_lite.cy.sparse_structs cimport CSR_Matrix
 
 cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B,
                     CSR_Matrix * C, double complex alpha)

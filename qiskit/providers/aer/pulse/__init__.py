@@ -11,7 +11,38 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Init for openpulse"""
+
+"""
+=======================================================
+Pulse System Models (:mod:`qiskit.providers.aer.pulse`)
+=======================================================
+
+.. currentmodule:: qiskit.providers.aer.pulse
+
+This module contains classes and functions to build a pulse system model
+for simulating a Qiskit pulse schedule.
+
+
+Classes
+=======
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    PulseSystemModel
+
+
+Functions
+=========
+
+These functions can be used to generate a pulse system model for certain types
+of systems.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    duffing_system_model
+"""
 
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa

@@ -9,6 +9,7 @@ API Documentation
 
     aer_provider
     aer_extensions
+    aer_pulse
     aer_noise
     aer_noise_errors
     aer_noise_device

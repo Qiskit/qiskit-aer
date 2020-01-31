@@ -23,8 +23,8 @@ from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
-from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
