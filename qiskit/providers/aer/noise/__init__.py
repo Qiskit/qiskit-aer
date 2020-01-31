@@ -79,7 +79,7 @@ Constructing a simple depolarizing noise model
     error_2 = noise.depolarizing_error(prob_2, 2)
 
     # Add errors to noise model
-    noise_model = noise.NoiseModel
+    noise_model = noise.NoiseModel()
     noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
     noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
 

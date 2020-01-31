@@ -9,8 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,import-outside-toplevel
 """
 Simplified noise models for devices backends.
 """
@@ -111,6 +110,9 @@ def basic_device_noise_model(properties,
         '`NoiseModel` class. For equivalent functionality use'
         ' `NoiseModel.from_backend(properties, **kwargs).',
         DeprecationWarning)
+    # This wrapper is for the deprecated function
+    # We need to import noise model here to avoid cyclic import errors
+    # pylint: disable=import-outside-toplevel
     from qiskit.providers.aer.noise.noise_model import NoiseModel
     return NoiseModel.from_backend(properties,
                                    gate_error=gate_error,
