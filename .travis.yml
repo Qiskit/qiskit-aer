@@ -223,11 +223,11 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
-    # "wheels" stage
+    # "deploy" stage
     ##########################################################################
     #
     - name: Release Linux Wheel Builds and Upload
-      stage: wheels
+      stage: deploy
       language: python
       python: 3.7
       os: linux
@@ -248,7 +248,7 @@ jobs:
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
     - name: sdist Build and Upload
-      stage: wheels
+      stage: deploy
       if: tag IS present
       <<: *stage_linux
       env:
@@ -261,7 +261,7 @@ jobs:
         - twine upload dist/*
     - name: Release MacOS Wheel Builds and Upload
       os: osx
-      stage: wheels
+      stage: deploy
       if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
