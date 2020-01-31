@@ -3,8 +3,8 @@ recursive-include qiskit *pxd
 recursive-include qiskit *.pxi
 recursive-include qiskit *cpp
 recursive-include qiskit *hpp
-recursive-include src *
-recursive-include contrib *
+graft src
+graft contrib
 include qiskit/providers/aer/backends/wrappers/CMakeLists.txt
 include qiskit/providers/aer/backends/wrappers/bindings.cc
 include qiskit/providers/aer/openpulse/cy/CMakeLists.txt
