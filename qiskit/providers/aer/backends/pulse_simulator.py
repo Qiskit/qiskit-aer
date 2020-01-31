@@ -98,8 +98,8 @@ class PulseSimulator(AerBackend):
         'conditional': True,
         'open_pulse': True,
         'memory': False,
-        'max_shots': 10**6,
-        'description': 'A pulse-based Hamiltonian simulator',
+        'max_shots': int(1e6),
+        'description': 'A pulse-based Hamiltonian simulator for Pulse Qobj files',
         'gates': [],
         'basis_gates': []
     }
