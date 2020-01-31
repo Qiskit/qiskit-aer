@@ -53,7 +53,7 @@ with open(VERSION_PATH, "r") as version_file:
 setup(
     name='qiskit-aer',
     version=VERSION,
-    packages=setuptools.find_namespace_packages(exclude=['test*', 'docs*']),
+    packages=setuptools.find_namespace_packages(include=['qiskit.*']),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     url="https://github.com/Qiskit/qiskit-aer",

@@ -1,3 +1,4 @@
+include MANIFEST.in
 recursive-include qiskit *pyx
 recursive-include qiskit *pxd
 recursive-include qiskit *.pxi
