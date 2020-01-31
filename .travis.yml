@@ -147,9 +147,9 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
-        # TODO(mtreinish): After #168 merges run tools/verify_wheels.py
-        - aer-test/bin/python -c 'import qiskit'
+        - aer-test/bin/python ../tools/verify_wheels.py
     # MacOS Wheel
     - stage: compile
       name: Python Wheel Build MacOS
@@ -164,10 +164,9 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
-        # TODO(mtreinish): After #168 merges run tools/verify_wheels.py
-        - aer-test/bin/python -c 'import qiskit'
-
+        - aer-test/bin/python ../tools/verify_wheels.py
     # Linux Standalone
     - stage: compile
       name: Standalone Build Linux
