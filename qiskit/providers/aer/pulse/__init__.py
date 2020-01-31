@@ -35,6 +35,9 @@ Classes
 Functions
 =========
 
+These functions can be used to generate a pulse system model for certain types
+of systems.
+
 .. autosummary::
     :toctree: ../stubs/
 

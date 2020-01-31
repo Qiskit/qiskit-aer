@@ -12,7 +12,7 @@
 # pylint: disable=arguments-differ, missing-return-type-doc
 
 """
-Qiskit Aer OpenPulse simulator backend.
+Qiskit Aer pulse simulator backend.
 """
 
 import uuid
@@ -35,16 +35,16 @@ class PulseSimulator(AerBackend):
     r"""Pulse schedule simulator backend.
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
-    with controls specified by pulse :class:`Schedule` objects, and the model of the physical
-    system specified by :class:`~qiskit.providers.aer.pulse.PulseSystemModel` objects.
+    with controls specified by pulse :class:`~qiskit.Schedule` objects, and the model of the
+    physical system specified by :class:`~qiskit.providers.aer.pulse.PulseSystemModel` objects.
     Results are returned in the same format as when jobs are submitted to actual devices.
 
     **Example**
 
-    To use the simulator, first :meth:`assemble` a :class:`PulseQobj` object
-    from a list of pulse :class:`Schedule` objects, using ``backend=PulseSimulator()``.
+    To use the simulator, first :func:`~qiskit.assemble` a :class:`PulseQobj` object
+    from a list of pulse :class:`~qiskit.Schedule` objects, using ``backend=PulseSimulator()``.
     Call the simulator with the :class:`PulseQobj` and a
-    :class:`~qiskit.providers.aer.PulseSystemModel` object representing the physical system.
+    :class:`~qiskit.providers.aer.pulse.PulseSystemModel` object representing the physical system.
 
     .. code-block:: python
 

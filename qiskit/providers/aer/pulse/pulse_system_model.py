@@ -39,7 +39,7 @@ class PulseSystemModel():
         * ``"subsystem_list"``: List of subsystems in the model.
         * ``"dt"``: Sample width size for OpenPulse instructions.
 
-    A model can be instantiated from the helper function :meth:`duffing_system_model`,
+    A model can be instantiated from the helper function :func:`duffing_system_model`,
     or using the :meth:`PulseSystemModel.from_backend` constructor.
 
     **Example**

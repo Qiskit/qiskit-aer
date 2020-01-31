@@ -18,7 +18,7 @@ from numpy import array, array_equal, kron
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.openpulse import duffing_model_generators as model_gen
+from qiskit.providers.aer.pulse import duffing_model_generators as model_gen
 from qiskit.providers.aer.pulse.qobj.op_qobj import get_oper
 
 class TestDuffingModelGenerators(QiskitAerTestCase):
