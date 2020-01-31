@@ -40,7 +40,11 @@ function(basic_pybind11_add_module target_name)
         set(exclude_from_all EXCLUDE_FROM_ALL)
     endif()
 
-    add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    if(CUDA_FOUND)
+        cuda_add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    else()
+        add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
+    endif()
 
     # This sets various properties (python include dirs) and links to python libs
     target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS})

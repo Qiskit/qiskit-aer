@@ -128,7 +128,7 @@ class QasmMeasureTests:
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
         self.assertTrue(getattr(result, 'success', False))
-        sampling = (self.BACKEND_OPTS.get("method") == "density_matrix")
+        sampling = (self.BACKEND_OPTS.get("method", "automatic").startswith("density_matrix"))
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
 

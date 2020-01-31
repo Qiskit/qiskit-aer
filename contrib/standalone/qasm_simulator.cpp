@@ -19,7 +19,7 @@
 
 #include "version.hpp"
 // Simulator
-#include "simulators/qasm/qasm_controller.hpp"
+#include "controllers/qasm_controller.hpp"
 
 /*******************************************************************************
  *
@@ -60,9 +60,9 @@ inline CmdArguments parse_cmd_options(const std::string& argv){
 
 inline void show_version(){
   std::cout << "Qiskit Aer: "
-  << MAJOR_VERSION << "."
-  << MINOR_VERSION << "."
-  << PATCH_VERSION << "\n";
+  << AER_MAJOR_VERSION << "."
+  << AER_MINOR_VERSION << "."
+  << AER_PATCH_VERSION << "\n";
 }
 
 inline void failed(const std::string &msg, std::ostream &o = std::cout,

@@ -21,8 +21,11 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "qubitvector.hpp"
+#ifdef AER_THRUST_SUPPORTED
+#include "qubitvector_thrust.hpp"
+#endif
 
 
 namespace AER {
@@ -63,7 +66,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the State class
-  virtual std::string name() const override {return "statevector";}
+  virtual std::string name() const override {return statevec_t::name();}
 
   // Return the set of qobj instruction types supported by the State
   virtual Operations::OpSet::optypeset_t allowed_ops() const override {
