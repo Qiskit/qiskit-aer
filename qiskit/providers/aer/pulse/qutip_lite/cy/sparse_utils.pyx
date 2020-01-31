@@ -33,7 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qiskit.providers.aer.openpulse.qutip_lite.fastsparse import fast_csr_matrix
+from qiskit.providers.aer.pulse.qutip_lite.fastsparse import fast_csr_matrix
 cimport numpy as cnp
 from libc.math cimport abs, fabs, sqrt
 from libcpp cimport bool
