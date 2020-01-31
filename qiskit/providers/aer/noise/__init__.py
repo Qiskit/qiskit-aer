@@ -24,21 +24,40 @@ simulating a Qiskit quantum circuit in the presence of errors.
 Classes
 =======
 
+The following are the classes used to represented noise and error terms.
+
 .. autosummary::
     :toctree: ../stubs/
 
     NoiseModel
+    QuantumError
+    ReadoutError
+
+
+Quantum Error Functions
+=======================
+
+The following functions can be used to generate many common types of
+:class:`QuantumError` objects for inclusion in a :class:`NoiseModel`.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    pauli_error
+    depolarizing_error
+    pauli_error
+    mixed_unitary_error
+    coherent_unitary_error
+    reset_error
+    amplitude_damping_error
+    phase_damping_error
+    phase_amplitude_damping_error
+    thermal_relaxation_error
+    kraus_error
 
 
 Submodules
 ==========
-
-Errors for Noise Models
------------------------
-
-The :mod:`qiskit.providers.aer.noise.errors` submodule contains classes
-and functions for constructing generating errors for custom noise models.
-
 
 Device Noise Models
 -------------------
@@ -55,7 +74,24 @@ for remapping and approximating noise models, and inserting noise into
 quantum circuits.
 """
 
+# Noise and Error classes
 from .noise_model import NoiseModel
+from .errors import QuantumError
+from .errors import ReadoutError
+
+# Error generating functions
+from .errors import kraus_error
+from .errors import mixed_unitary_error
+from .errors import coherent_unitary_error
+from .errors import pauli_error
+from .errors import depolarizing_error
+from .errors import reset_error
+from .errors import thermal_relaxation_error
+from .errors import phase_amplitude_damping_error
+from .errors import amplitude_damping_error
+from .errors import phase_damping_error
+
+# Submodules
 from . import errors
 from . import device
 from . import utils
