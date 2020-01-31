@@ -15,7 +15,6 @@
 Simplified noise models for devices backends.
 """
 
-import warnings
 from numpy import inf, exp, allclose
 
 from .parameters import readout_error_values
@@ -35,10 +34,24 @@ def basic_device_noise_model(properties,
                              thermal_relaxation=True,
                              temperature=0,
                              gate_lengths=None,
-                             gate_times=None,
                              standard_gates=True):
     """
-    Return a NoiseModel derived from a devices BackendProperties.
+    Return a noise model derived from a devices backend properties.
+
+    This function generates a noise model based on:
+
+    * 1 and 2 qubit gate errors consisting of a
+      :func:`depolarizing_error` followed
+      by a :func:`thermal_relaxation_error`.
+
+    * Single qubit :class:`ReadoutError` on all measurements.
+
+    The Error error parameters are tuned for each individual qubit based on
+    the :math:`T_1`, :math:`T_2`, frequency and readout error parameters for
+    each qubit, and the gate error and gate time parameters for each gate
+    obtained from the device backend properties.
+
+    **Additional Information**
 
     The noise model includes the following errors:
 
@@ -47,22 +60,21 @@ def basic_device_noise_model(properties,
 
     * If ``gate_error=True`` and ``thermal_relaxation=True`` include:
 
-        * Single-qubit gate errors consisting of a depolarizing error
-          followed by a thermal relaxation error for the qubit the gate
-          acts on.
+        * Single-qubit gate errors consisting of a :func:`depolarizing_error`
+          followed by a :func:`thermal_relaxation_error` for the qubit the
+          gate acts on.
 
-        * Two-qubit gate errors consisting of a 2-qubit depolarizing
-          error followed by single qubit thermal relaxation errors for
-          all qubits participating in the gate.
+        * Two-qubit gate errors consisting of a 2-qubit
+          :func:`depolarizing_error` followed by single qubit
+          :func:`thermal_relaxation_error` on each qubit participating in
+          the gate.
 
     * If ``gate_error=True`` is ``True`` and ``thermal_relaxation=False``:
 
-        * Single-qubit depolarizing gate errors.
-
-        * Multi-qubit depolarizing gate errors.
+        * An N-qubit :func:`depolarizing_error` on each N-qubit gate.
 
     * If ``gate_error=False`` and ``thermal_relaxation=True`` include
-      single-qubit thermal relaxation errors for all qubits
+      single-qubit :func:`thermal_relaxation_errors` on each qubits
       participating in a multi-qubit gate.
 
     For best practice in simulating a backend make sure that the
@@ -97,7 +109,6 @@ def basic_device_noise_model(properties,
         gate_lengths (list): Custom gate times for thermal relaxation errors.
                              Used to extend or override the gate times in
                              the backend properties (Default: None))
-        gate_times (list): DEPRECATED -- use gate_lengths.
         standard_gates (bool): If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions (Default: True)
@@ -105,18 +116,6 @@ def basic_device_noise_model(properties,
     Returns:
         NoiseModel: An approximate noise model for the device backend.
     """
-    # Deprecation warning for change of name field in device model
-    # from gate_times to gate_lengths
-    if gate_times:
-        warnings.warn(
-            'gate_times kwarg is deprecated and will be removed '
-            'in a future release. Use gate_lengths kwarg instead.',
-            DeprecationWarning)
-        # Convert deprecated kwarg to current kwarg if it is not
-        # also defined
-        if gate_lengths is None:
-            gate_lengths = gate_times
-
     noise_model = NoiseModel()
 
     # Add single-qubit readout errors
@@ -146,8 +145,8 @@ def basic_device_readout_errors(properties):
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of pairs ``(qubits, value)`` for qubits with non-zero
-        readout error values.
+        list: A list of pairs ``(qubits, ReadoutError)`` for qubits with
+        non-zero readout error values.
     """
     errors = []
     for qubit, value in enumerate(readout_error_values(properties)):
@@ -161,7 +160,6 @@ def basic_device_gate_errors(properties,
                              gate_error=True,
                              thermal_relaxation=True,
                              gate_lengths=None,
-                             gate_times=None,  # DEPRECATED
                              temperature=0,
                              standard_gates=True):
     """
@@ -181,7 +179,6 @@ def basic_device_gate_errors(properties,
         gate_lengths (list): Override device gate times with custom
                              values. If None use gate times from
                              backend properties. (Default: None).
-        gate_times (list): DEPRECATED -- use gate_lengths.
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
         standard_gates (bool): If true return errors as standard
@@ -189,22 +186,10 @@ def basic_device_gate_errors(properties,
                                qobj instructions (Default: True).
 
     Returns:
-        dict: A dictionary of pairs name: ``(qubits, error)``. If gate
-        error information is not available ``None`` will be returned for
-        value.
+        list: A list of tuples ``(label, qubits, QuantumError)``, for gates
+        with non-zero quantum error terms, where `label` is the label of the
+        noisy gate, `qubits` is the list of qubits for the gate.
     """
-    # Decrecation warning for change of name field in device model
-    # from gate_times to gate_lengths
-    if gate_times:
-        warnings.warn(
-            'gate_times kwarg is deprecated and will be removed '
-            'in a future release. Use gate_lengths kwarg instead.',
-            DeprecationWarning)
-        # Convert deprecated kwarg to current kwarg if it is not
-        # also defined
-        if gate_lengths is None:
-            gate_lengths = gate_times
-
     # Initilize empty errors
     depol_error = None
     relax_error = None

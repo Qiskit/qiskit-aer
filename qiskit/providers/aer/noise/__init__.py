@@ -56,18 +56,22 @@ The following functions can be used to generate many common types of
     kraus_error
 
 
-Submodules
-==========
+Noise Model Functions
+=====================
 
-Device Noise Models
--------------------
+The following functions can be used to generate approximate noise models for
+IBMQ hardware devices based on the parameters in their backend properties.
 
-The :mod:`qiskit.providers.aer.noise.device` submodule contains functions
-for generating approximate noise models for a hardware device.
+.. autosummary::
+    :toctree: ../stubs/
+
+    basic_device_noise_model
+    basic_device_readout_errors
+    basic_device_gate_errors
 
 
-Noise Utilities
----------------
+Noise Model Utilities
+=====================
 
 The :mod:`qiskit.providers.aer.noise.utils` submodule contains utilities
 for remapping and approximating noise models, and inserting noise into
@@ -90,6 +94,11 @@ from .errors import thermal_relaxation_error
 from .errors import phase_amplitude_damping_error
 from .errors import amplitude_damping_error
 from .errors import phase_damping_error
+
+# Noise model generating functions
+from .device.models import basic_device_noise_model
+from .device.models import basic_device_readout_errors
+from .device.models import basic_device_gate_errors
 
 # Submodules
 from . import errors
