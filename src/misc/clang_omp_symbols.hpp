@@ -196,6 +196,11 @@ extern "C" {
     void __KAI_KMPC_CONVENTION omp_set_nested(int foo){
         _hook_omp_set_nested(foo);
     }
+    using omp_get_num_procs_t = int(*)(void);
+    omp_get_num_procs_t _hook_omp_get_num_procs;
+    int __KAI_KMPC_CONVENTION omp_get_num_procs(void) {
+        return _hook_omp_get_num_procs();
+    }
 
 
     // Symbols above this line would be needed in a future, if clang changes
@@ -294,6 +299,7 @@ void populate_hooks(void * handle){
     _hook__kmpc_end_critical = reinterpret_cast<decltype(&__kmpc_end_critical)>(dlsym(handle, "__kmpc_end_critical"));
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
+    _hook_omp_get_num_procs = reinterpret_cast<decltype(&omp_get_num_procs)>(dlsym(handle, "omp_get_num_procs"));
 }
 
 }
