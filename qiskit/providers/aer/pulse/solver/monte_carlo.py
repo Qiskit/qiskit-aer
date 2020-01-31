@@ -27,8 +27,7 @@ from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
 
 from qiskit.providers.aer.pulse.solver.zvode import qiskit_zvode
-from qiskit.providers.aer.pulse.cy.measure import (occ_probabilities,
-                                                       write_shots_memory)
+from qiskit.providers.aer.pulse.cy.measure import occ_probabilities, write_shots_memory
 from ..qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
