@@ -35,21 +35,43 @@ Device Noise Models
 
 A simplified approximate :class:`NoiseModel` can be generated automatically
 from the properties of real device backends from the IBMQ provider using the
-:meth:`~NoiseModel.from_backend` method. See the method documentation for
+:meth:`NoiseModel.from_backend` method. See the method documentation for
 details.
 
-**Example**
-
-Constructing an approximate noise model from a backend
+**Example: Basic device noise model**
 
 .. code-block:: python
 
-    from qiskit import IBMQ
+    from qiskit import QuantumCircuit, execute
+    from qiskit import IBMQ, Aer
+    from qiskit.visualization import plot_histogram
     from qiskit.providers.aer.noise import NoiseModel
 
+    # Build noise model from backend properties
     provider = IBMQ.load_account()
     backend = provider.get_backend('ibmq_vigo')
     noise_model = NoiseModel.from_backend(backend)
+
+    # Get coupling map from backend
+    coupling_map = backend.configuration().coupling_map
+
+    # Get basis gates from noise model
+    basis_gates = noise_model.basis_gates
+
+    # Make a circuit
+    circ = QuantumCircuit(3, 3)
+    circ.h(0)
+    circ.cx(0, 1)
+    circ.cx(1, 2)
+    circ.measure([0, 1, 2], [0, 1, 2])
+
+    # Perform a noise simulation
+    result = execute(circ, Aer.get_backend('qasm_simulator'),
+                     coupling_map=coupling_map,
+                     basis_gates=basis_gates,
+                     noise_model=noise_model).result()
+    counts = result.get_counts(0)
+    plot_histogram(counts)
 
 
 Custom Noise Models
@@ -62,12 +84,12 @@ instructions. This module includes several helper functions for generating
 Quantum Information Theory that can simplify building noise models. See the
 documentation for the :class:`NoiseModel` class for additional details.
 
-**Example**
-
-Constructing a simple depolarizing noise model
+**Example: depolarizing noise model**
 
 .. code-block:: python
 
+    from qiskit import QuantumCircuit, execute, Aer
+    from qiskit.visualization import plot_histogram
     import qiskit.providers.aer.noise as noise
 
     # Error probabilities
@@ -83,6 +105,22 @@ Constructing a simple depolarizing noise model
     noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
     noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
 
+    # Get basis gates from noise model
+    basis_gates = noise_model.basis_gates
+
+    # Make a circuit
+    circ = QuantumCircuit(3, 3)
+    circ.h(0)
+    circ.cx(0, 1)
+    circ.cx(1, 2)
+    circ.measure([0, 1, 2], [0, 1, 2])
+
+    # Perform a noise simulation
+    result = execute(circ, Aer.get_backend('qasm_simulator'),
+                     basis_gates=basis_gates,
+                     noise_model=noise_model).result()
+    counts = result.get_counts(0)
+    plot_histogram(counts)
 
 Classes
 =======

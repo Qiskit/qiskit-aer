@@ -33,7 +33,57 @@ logger = logging.getLogger(__name__)
 
 
 class NoiseModel:
-    """Noise model class for Qiskit Aer simulators."""
+    """Noise model class for Qiskit Aer simulators.
+
+    This class is used to represent noise model for the
+    :class:`~qiskit.providers.aer.QasmSimulator`. It can be used to construct
+    custom noise models for simulator, or to automatically generate a basic
+    device noise model for an IBMQ backend. See the
+    :mod:`~qiskit.providers.aer.noise` module documentation for additional
+    information.
+
+    **Example: Basic device noise model**
+
+    An approximate :class:`NoiseModel` can be generated automatically from the
+    properties of real device backends from the IBMQ provider using the
+    :meth:`~NoiseModel.from_backend` method.
+
+    .. code-block:: python
+
+        from qiskit import IBMQ, Aer
+        from qiskit.providers.aer.noise import NoiseModel
+
+        provider = IBMQ.load_account()
+        backend = provider.get_backend('ibmq_vigo')
+        noise_model = NoiseModel.from_backend(backend)
+        print(noise_model)
+
+
+    **Example: Custom noise model**
+
+    Custom noise models can be used by adding :class:`QuantumError` to circuit
+    gate, reset or measure instructions, and :class:`ReadoutError` to measure
+    instructions.
+
+    .. code-block:: python
+
+        import qiskit.providers.aer.noise as noise
+
+        # Error probabilities
+        prob_1 = 0.001  # 1-qubit gate
+        prob_2 = 0.01   # 2-qubit gate
+
+        # Depolarizing quantum errors
+        error_1 = noise.depolarizing_error(prob_1, 1)
+        error_2 = noise.depolarizing_error(prob_2, 2)
+
+        # Add errors to noise model
+        noise_model = noise.NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
+        noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+        print(noise_model)
+
+    """
 
     # Get the default basis gates for the Qiskit Aer Qasm Simulator
     # this is used to decide what are instructions for a noise model
