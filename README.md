@@ -27,17 +27,16 @@ $ python
 
 ```python
 from qiskit import QuantumCircuit, execute
-from qiskit import Aer, IBMQ  # import the Aer and IBMQ providers
-from qiskit.providers.aer import noise  # import Aer noise module
+from qiskit import Aer, IBMQ
+from qiskit.providers.aer.noise import NoiseModel
 
-# Choose a real device to simulate
+# Choose a real device to simulate from IBMQ provider
 provider = IBMQ.load_account()
-device = provider.get_backend('ibmq_vigo')
-properties = device.properties()
-coupling_map = device.configuration().coupling_map
+backend = provider.get_backend('ibmq_vigo')
+coupling_map = backend.configuration().coupling_map
 
 # Generate an Aer noise model for device
-noise_model = noise.basic_device_noise_model(properties)
+noise_model = NoiseModel.from_backend(backend)
 basis_gates = noise_model.basis_gates
 
 # Generate 3-qubit GHZ state
