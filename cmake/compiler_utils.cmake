@@ -33,8 +33,23 @@ function(get_version version_str)
     set(PATCH_VERSION ${TMP_PATCH_VERSION} PARENT_SCOPE)
 endfunction()
 
+function(is_dir_empty dir)
+    file(GLOB RESULT dir)
+    list(LENGTH RESULT num_files)
+    if(num_files EQUAL 0)
+        set(dir_is_empty TRUE)
+    else()
+        set(dir_is_empty FALSE)
+    endif()
+endfunction()
+
 
 function(get_muparserx_source_code)
+    is_dir_empty(${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx)
+    if(NOT dir_is_empty)
+        message(STATUS "MuparserX library source code already exists")
+        return()
+    endif()
     find_package(Git QUIET)
     if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         # if we have cloned the sources, muparserx is a submodule, so we need
