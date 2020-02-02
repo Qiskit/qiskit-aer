@@ -142,6 +142,9 @@ public:
   // Utility functions
   //-----------------------------------------------------------------------
 
+  // Return the string name of the QUbitVector class
+  static std::string name() {return "statevector";}
+
   // Set the size of the vector in terms of qubit number
   void set_num_qubits(size_t num_qubits);
 
@@ -739,9 +742,8 @@ void QubitVector<data_t>::initialize_component(const reg_t &qubits, const cvecto
   cvector_t<data_t> state = convert(state0);
 
   // Lambda function for initializing component
-  const size_t N = qubits.size();
   auto lambda = [&](const indexes_t &inds, const cvector_t<data_t> &_state)->void {
-    const uint_t DIM = 1ULL << N;
+    const uint_t DIM = 1ULL << qubits.size();
     std::complex<data_t> cache = data_[inds[0]];  // the k-th component of non-initialized vector
     for (size_t i = 0; i < DIM; i++) {
       data_[inds[i]] = cache * _state[i];  // set component to psi[k] * state[i]
@@ -1162,9 +1164,9 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
       return;
     }
     default: {
-      const uint_t DIM = BITS[N];
       // Lambda function for N-qubit matrix multiplication
       auto lambda = [&](const indexes_t &inds, const cvector_t<data_t> &_mat)->void {
+        const uint_t DIM = BITS[N];
         auto cache = std::make_unique<std::complex<data_t>[]>(DIM);
         for (size_t i = 0; i < DIM; i++) {
           const auto ii = inds[i];
@@ -1186,14 +1188,14 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
                                             const reg_t &target_qubits,
                                             const cvector_t<double>  &mat) {
   
-  // General implementation
-  const size_t control_count = control_qubits.size();
-  const size_t target_count  = target_qubits.size();
-  const uint_t DIM = BITS[(target_count+control_count)];
-  const uint_t columns = BITS[target_count];
-  const uint_t blocks = BITS[control_count];
-  // Lambda function for stacked matrix multiplication
   auto lambda = [&](const indexes_t &inds, const cvector_t<data_t> &_mat)->void {
+    // General implementation
+    const size_t control_count = control_qubits.size();
+    const size_t target_count  = target_qubits.size();
+    const uint_t DIM = BITS[(target_count+control_count)];
+    const uint_t columns = BITS[target_count];
+    const uint_t blocks = BITS[control_count];
+    // Lambda function for stacked matrix multiplication
     auto cache = std::make_unique<std::complex<data_t>[]>(DIM);
     for (uint_t i = 0; i < DIM; i++) {
       const auto ii = inds[i];
@@ -1219,13 +1221,12 @@ template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
 
-  const int_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
-  check_vector(diag, N);
+  check_vector(diag, qubits.size());
   #endif
 
-  if (N == 1) {
+  if (qubits.size() == 1) {
     apply_diagonal_matrix(qubits[0], diag);
     return;
   }
@@ -1234,7 +1235,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
     for (int_t i = 0; i < 2; ++i) {
       const int_t k = inds[i];
       int_t iv = 0;
-      for (int_t j = 0; j < N; j++)
+      for (int_t j = 0; j < qubits.size(); j++)
         if ((k & (1ULL << qubits[j])) != 0)
           iv += (1 << j);
       if (_diag[iv] != (data_t) 1.0)
@@ -1802,15 +1803,13 @@ double QubitVector<data_t>::norm() const {
 template <typename data_t>
 double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t<double> &mat) const {
 
-  const uint_t N = qubits.size();
-
   // Error checking
   #ifdef DEBUG
-  check_vector(mat, 2 * N);
+  check_vector(mat, 2 * qubits.size());
   #endif
 
   // Static array optimized lambda functions
-  switch (N) {
+  switch (qubits.size()) {
     case 1:
       return norm(qubits[0], mat);
     case 2: {
@@ -1860,10 +1859,10 @@ double QubitVector<data_t>::norm(const reg_t &qubits, const cvector_t<double> &m
     }
     default: {
       // Lambda function for N-qubit matrix norm
-      const uint_t DIM = BITS[N];
       auto lambda = [&](const indexes_t &inds, const cvector_t<data_t> &_mat,
                         double &val_re, double &val_im)->void {
         (void)val_im; // unused
+        const uint_t DIM = BITS[qubits.size()];
         for (size_t i = 0; i < DIM; i++) {
           std::complex<data_t> vi = 0;
           for (size_t j = 0; j < DIM; j++)

@@ -16,10 +16,10 @@ Tests for pulse system generator functions
 import unittest
 from numpy import array, array_equal, kron
 from test.terra.common import QiskitAerTestCase
-from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.openpulse import duffing_model_generators as model_gen
-from qiskit.providers.aer.openpulse.qobj.op_qobj import get_oper
+from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse import duffing_model_generators as model_gen
+from qiskit.providers.aer.pulse.qobj.op_qobj import get_oper
 
 class TestDuffingModelGenerators(QiskitAerTestCase):
     """Tests for functions in duffing_model_generators.py"""
@@ -46,7 +46,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
-        self.assertEqual(system_model.qubit_list, [0, 1])
+        self.assertEqual(system_model.subsystem_list, [0, 1])
         self.assertEqual(system_model.dt, 1.3)
 
         # check that cr_idx_dict is correct
@@ -70,7 +70,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                          'r0': 1.1, 'r1': 1.2,
                          'j01': 0.02}
         self.assertEqual(ham_model._variables, expected_vars)
-        self.assertEqual(ham_model._qubit_dims, {0: 2, 1: 2})
+        self.assertEqual(ham_model._subsystem_dims, {0: 2, 1: 2})
         self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'U0', 'U1'])
 
         # check that Hamiltonian terms have been imported correctly
@@ -127,7 +127,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
-        self.assertEqual(system_model.qubit_list, [0, 1, 2])
+        self.assertEqual(system_model.subsystem_list, [0, 1, 2])
         self.assertEqual(system_model.dt, 1.3)
 
         # check that cr_idx_dict is correct
@@ -154,7 +154,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                          'r0': 1.1, 'r1': 1.2, 'r2': 1.3,
                          'j01': 0.02, 'j12': 0.03}
         self.assertEqual(ham_model._variables, expected_vars)
-        self.assertEqual(ham_model._qubit_dims, {0: 3, 1: 3, 2: 3})
+        self.assertEqual(ham_model._subsystem_dims, {0: 3, 1: 3, 2: 3})
         self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'D3', 'U0', 'U1', 'U2', 'U3'])
 
         # check that Hamiltonian terms have been imported correctly
@@ -221,7 +221,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
-        self.assertEqual(system_model.qubit_list, [0, 1, 2, 3])
+        self.assertEqual(system_model.subsystem_list, [0, 1, 2, 3])
         self.assertEqual(system_model.dt, 1.3)
 
         # check that cr_idx_dict is correct
@@ -253,7 +253,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                          'r0': 1.1, 'r1': 1.2, 'r2': 1.3, 'r3': 1.4,
                          'j01': 0.02, 'j02': 0.03, 'j03': 0.14, 'j12': 0.33, 'j13': 0.18}
         self.assertEqual(ham_model._variables, expected_vars)
-        self.assertEqual(ham_model._qubit_dims, {0: 2, 1: 2, 2: 2, 3: 2})
+        self.assertEqual(ham_model._subsystem_dims, {0: 2, 1: 2, 2: 2, 3: 2})
         self._compare_str_lists(list(ham_model._channels), ['D0', 'D1', 'D3', 'D4',
                                                             'U0', 'U1', 'U2', 'U3', 'U4',
                                                             'U5', 'U6', 'U7', 'U8', 'U9'])

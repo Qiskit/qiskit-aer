@@ -32,7 +32,7 @@
 #include <math.h>
 
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
 

@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 include(CheckCXXCompilerFlag)
 function(enable_cxx_compiler_flag_if_supported flag)
     string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
@@ -21,8 +33,23 @@ function(get_version version_str)
     set(PATCH_VERSION ${TMP_PATCH_VERSION} PARENT_SCOPE)
 endfunction()
 
+function(is_dir_empty dir)
+    file(GLOB RESULT dir)
+    list(LENGTH RESULT num_files)
+    if(num_files EQUAL 0)
+        set(dir_is_empty TRUE)
+    else()
+        set(dir_is_empty FALSE)
+    endif()
+endfunction()
+
 
 function(get_muparserx_source_code)
+    is_dir_empty(${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx)
+    if(NOT dir_is_empty)
+        message(STATUS "MuparserX library source code already exists")
+        return()
+    endif()
     find_package(Git QUIET)
     if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         # if we have cloned the sources, muparserx is a submodule, so we need
@@ -56,4 +83,34 @@ function(get_muparserx_source_code)
                 Please download MuparserX library from https://github.com/beltoforion/muparserx.git \
                 and checkout latest stable release")
     endif()
+endfunction()
+
+function(check_compiler_cpp11_abi)
+    # This is needed in case the compiler doesn't work with the new C++11 ABI,
+    # is the case of GCC in RHEL6 and RHEL7
+    # https://bugzilla.redhat.com/show_bug.cgi?id=1546704
+    # Consider also if -D_GLIBCXX_USE_CXX11_ABI has been passed as flag
+    string(REGEX MATCH "-D_GLIBCXX_USE_CXX11_ABI=[(A-z)|(a-z)|(0-9)]+" CUSTOM_PREP_FLAGS ${CMAKE_CXX_FLAGS})
+    # Preprocessor run to check if CXX11_ABI is set
+    execute_process(COMMAND echo "#include <string>" COMMAND ${CMAKE_CXX_COMPILER} ${CUSTOM_PREP_FLAGS} -x c++ -E -dM -  COMMAND fgrep _GLIBCXX_USE_CXX11_ABI OUTPUT_VARIABLE CXX11_ABI_OUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX REPLACE "#define _GLIBCXX_USE_CXX11_ABI " "" CXX11_ABI "${CXX11_ABI_OUT}")
+    set(CXX11_ABI ${CXX11_ABI} PARENT_SCOPE)
+endfunction()
+
+function(uncompress_muparsersx_lib)
+    if(MSVC)
+        set(PLATFORM "win64")
+    elseif(APPLE)
+        set(PLATFORM "macos")
+    elseif(UNIX)
+        check_compiler_cpp11_abi()
+        if(CXX11_ABI EQUAL "0")
+            set(MUPARSER_ABI_PREFIX oldabi_)
+        endif()
+        set(PLATFORM "linux")
+    endif()
+
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
+            WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
+    set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
 endfunction()
