@@ -97,6 +97,7 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix);
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 		               const rvector_t &lambda);
 
+std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits);
 
 //------------------------------------------------------------------------
 // local function implementations
@@ -190,7 +191,9 @@ std::vector<uint_t> calc_new_indices(const reg_t &indices) {
   // assumes indices vector is sorted
   uint_t n = indices.size();
   uint_t mid_index = indices[(n-1)/2];
-  uint_t first = mid_index - (n-1)/2;
+  uint_t first = 0;
+  if (mid_index > 0)
+    first = mid_index - (n-1)/2;
   std::vector<uint_t> new_indices(n);
   std::iota( std::begin( new_indices ), std::end( new_indices ), first);
   return new_indices;
@@ -223,6 +226,24 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
   return reshaped_matrix;
 }
 
+std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits) {
+  uint_t min = UINT_MAX;
+  uint_t min_index = 0;
+
+  std::string new_paulis;
+  std::vector<uint_t> temp_qubits = qubits;
+  for (uint_t i=0; i<paulis.size(); i++) {
+    min = temp_qubits[0];
+    for (int_t qubit=0; qubit<qubits.size(); qubit++)
+      if (temp_qubits[qubit] <= min) {
+	min = temp_qubits[qubit];
+	min_index = qubit;
+      }
+    new_paulis.push_back(paulis[min_index]);
+    temp_qubits[min_index] = UINT_MAX;
+  }
+  return new_paulis;
+}
 
 //------------------------------------------------------------------------
 // implementation of MPS methods
@@ -628,29 +649,18 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
   return trace_rho;
 }
 
+// this method assumes the qubits are ordered from smallest to largest - MERAV
+// check if we should move the sorting inside
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
 			      MPS& temp_MPS, 
 			      uint_t &front, uint_t &back) const {
-  // ***** Assuming ascending sorted qubits register *****
-  std::vector<uint_t> internalIndices;
-  for (uint_t index : qubits)
-    internalIndices.push_back(index);
 
   temp_MPS.initialize(*this);
-  std::vector<uint_t> new_indices = calc_new_indices(internalIndices);
-  uint_t avg = new_indices[new_indices.size()/2];
-  std::vector<uint_t>::iterator it = lower_bound(internalIndices.begin(), internalIndices.end(), avg);
-  int mid = std::distance(internalIndices.begin(), it);
-  for(uint_t i = mid; i < internalIndices.size(); i++)
-  {
-    temp_MPS.change_position(internalIndices[i], new_indices[i]);
-  }
-  for(int i = mid-1; i >= 0; i--)
-  {
-    temp_MPS.change_position(internalIndices[i], new_indices[i]);
-  }
-  front = internalIndices.front();
-  back = internalIndices.back();
+  bool ordered = true;
+  reg_t new_indices;
+  temp_MPS.centralize_qubits(qubits, new_indices, ordered);
+  front = new_indices.front();
+  back = new_indices.back();
 }
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
@@ -708,11 +718,32 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
 {
   MPS temp_MPS;
   uint_t first_index = 0, last_index = 0;
-  MPS_with_new_indices(qubits, temp_MPS, first_index, last_index);
+  reg_t sorted_qubits = qubits;
+  uint_t num_qubits = qubits.size();
+
+  // if the qubits are not ordered, we can sort them, because the order doesn't matter
+  // in computing the expectation value. We only have to sort the pauli matrices
+  // to be in the same ordering as the qubits
+  bool ordered = false;
+  for (uint_t index=0; index < num_qubits-1; index++) {
+    if (qubits[index] > qubits[index+1]){
+      ordered = false;
+      break;
+    }
+  }
+  if (!ordered)
+    std::sort(sorted_qubits.begin(), sorted_qubits.end());
+
+  MPS_with_new_indices(sorted_qubits, temp_MPS, first_index, last_index);
 
   // Preliminary step - reverse the order of the matrices because 
   // they are ordered in reverse to that of the qubits (in the interface)
-  std::string reversed_matrices = matrices;
+  //  std::string reversed_matrices = matrices;
+  //reverse(reversed_matrices.begin(), reversed_matrices.end());
+  std::string sorted_matrices = matrices;
+  sorted_matrices = sort_paulis_by_qubits(matrices, qubits);
+
+  std::string reversed_matrices = sorted_matrices;
   reverse(reversed_matrices.begin(), reversed_matrices.end());
   char gate = reversed_matrices[0];
 
@@ -727,7 +758,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
   // on a single qubit
   // we need to mul every gamma by its right lambda
   if (first_index==last_index && first_index < num_qubits_-1) {
-      left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
+    left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
   }
 
   // Step 2 - prepare the dagger of left_tensor
