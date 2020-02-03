@@ -95,7 +95,7 @@ function(get_muparserx_source_code)
     )
 endfunction()
 
-function(get_thurst_source_code)
+function(get_thrust_source_code)
     _get_library_source_code(
         thrust
         https://github.com/thrust/thrust.git
