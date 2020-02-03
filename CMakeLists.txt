@@ -203,19 +203,6 @@ else()
 	set(SPDLOG_LIB "")
 endif()
 
-message(STATUS "Uncompressing muparserx static library...")
-
-uncompress_muparsersx_lib()
-
-find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
-if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
-	message(FATAL_ERROR "No muparserx library found")
-endif()
-message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
-get_muparserx_source_code()
-# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
-
 # Windows don't have a DL library (dlopen, dlclose, etc...)
 if(NOT MSVC)
 	find_library(DL_LIB NAMES dl)
@@ -268,11 +255,12 @@ set(AER_LIBRARIES
 	Threads::Threads
 	${SPDLOG_LIB}
 	${DL_LIB}
-	${MUPARSERX_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
+	add_muparserx_lib()
+
 	add_subdirectory(qiskit/providers/aer/pulse/cy)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
