@@ -119,7 +119,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer numpy cmake openblas pybind11 cython
+              conda install --yes --quiet --name qiskit-aer numpy cmake
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -127,8 +127,8 @@ stages:
               source activate qiskit-aer
               mkdir out
               cd out
-              cmake ..
-              make
+              cmake .. -G "Visual Studio 15 2017 Win64"
+              cmake --build . --config Release
 
   - stage: 'Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
