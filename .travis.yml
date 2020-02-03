@@ -49,12 +49,6 @@ stage_linux: &stage_linux
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
-    # Install Thrust headers
-    - pushd src/third-party/headers
-    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
-    - popd
-    # Move thrust headers into build path
-    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
@@ -95,12 +89,6 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
-    # Install Thrust headers
-    - pushd src/third-party/headers
-    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
-    - popd
-    # Move thrust headers into build path
-    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
