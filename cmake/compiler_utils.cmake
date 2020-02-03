@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 include(CheckCXXCompilerFlag)
 function(enable_cxx_compiler_flag_if_supported flag)
     string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
@@ -21,8 +33,23 @@ function(get_version version_str)
     set(PATCH_VERSION ${TMP_PATCH_VERSION} PARENT_SCOPE)
 endfunction()
 
+function(is_dir_empty dir)
+    file(GLOB RESULT dir)
+    list(LENGTH RESULT num_files)
+    if(num_files EQUAL 0)
+        set(dir_is_empty TRUE PARENT_SCOPE)
+    else()
+        set(dir_is_empty FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
 
 function(get_muparserx_source_code)
+    is_dir_empty(${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx)
+    if(NOT dir_is_empty)
+        message(STATUS "MuparserX library source code already exists")
+        return()
+    endif()
     find_package(Git QUIET)
     if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         # if we have cloned the sources, muparserx is a submodule, so we need

@@ -15,7 +15,6 @@
 Simplified noise models for devices backends.
 """
 
-import warnings
 from numpy import inf, exp, allclose
 
 from .parameters import readout_error_values
@@ -23,119 +22,9 @@ from .parameters import gate_param_values
 from .parameters import thermal_relaxation_values
 
 from ..noiseerror import NoiseError
-from ..noise_model import NoiseModel
 from ..errors.readout_error import ReadoutError
 from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
-
-
-def basic_device_noise_model(properties,
-                             gate_error=True,
-                             readout_error=True,
-                             thermal_relaxation=True,
-                             temperature=0,
-                             gate_lengths=None,
-                             gate_times=None,
-                             standard_gates=True):
-    """
-    Return a NoiseModel derived from a devices BackendProperties.
-
-    The noise model includes the following errors:
-
-    * If ``readout_error=True`` include single qubit readout
-      errors on measurements.
-
-    * If ``gate_error=True`` and ``thermal_relaxation=True`` include:
-
-        * Single-qubit gate errors consisting of a depolarizing error
-          followed by a thermal relaxation error for the qubit the gate
-          acts on.
-
-        * Two-qubit gate errors consisting of a 2-qubit depolarizing
-          error followed by single qubit thermal relaxation errors for
-          all qubits participating in the gate.
-
-    * If ``gate_error=True`` is ``True`` and ``thermal_relaxation=False``:
-
-        * Single-qubit depolarizing gate errors.
-
-        * Multi-qubit depolarizing gate errors.
-
-    * If ``gate_error=False`` and ``thermal_relaxation=True`` include
-      single-qubit thermal relaxation errors for all qubits
-      participating in a multi-qubit gate.
-
-    For best practice in simulating a backend make sure that the
-    circuit is compiled using the set of basis gates in the noise
-    module by setting ``basis_gates=noise_model.basis_gates``
-    and using the device coupling map with
-    ``coupling_map=backend.configuration().coupling_map``
-
-    **Specifying custom gate times**
-
-    The ``gate_lengths`` kwarg can be used to specify custom gate times
-    to add gate errors using the :math:`T_1` and :math:`T_2` values from
-    the backend properties. This should be passed as a list of tuples
-    ``gate_lengths=[(name, value), ...]``
-    where ``name`` is the gate name string, and ``value`` is the gate time
-    in nanoseconds.
-
-    If a custom gate is specified that already exists in
-    the backend properties, the ``gate_lengths`` value will override the
-    gate time value from the backend properties.
-    If non-default values are used gate_lengths should be a list
-
-    Args:
-        properties (BackendProperties): backend properties.
-        gate_error (bool): Include depolarizing gate errors (Default: True).
-        readout_error (Bool): Include readout errors in model
-                              (Default: True).
-        thermal_relaxation (Bool): Include thermal relaxation errors
-                                   (Default: True).
-        temperature (double): qubit temperature in milli-Kelvin (mK) for
-                              thermal relaxation errors (Default: 0).
-        gate_lengths (list): Custom gate times for thermal relaxation errors.
-                             Used to extend or override the gate times in
-                             the backend properties (Default: None))
-        gate_times (list): DEPRECATED -- use gate_lengths.
-        standard_gates (bool): If true return errors as standard
-                               qobj gates. If false return as unitary
-                               qobj instructions (Default: True)
-
-    Returns:
-        NoiseModel: An approximate noise model for the device backend.
-    """
-    # Deprecation warning for change of name field in device model
-    # from gate_times to gate_lengths
-    if gate_times:
-        warnings.warn(
-            'gate_times kwarg is deprecated and will be removed '
-            'in a future release. Use gate_lengths kwarg instead.',
-            DeprecationWarning)
-        # Convert deprecated kwarg to current kwarg if it is not
-        # also defined
-        if gate_lengths is None:
-            gate_lengths = gate_times
-
-    noise_model = NoiseModel()
-
-    # Add single-qubit readout errors
-    if readout_error:
-        for qubits, error in basic_device_readout_errors(properties):
-            noise_model.add_readout_error(error, qubits)
-
-    # Add gate errors
-    gate_errors = basic_device_gate_errors(
-        properties,
-        gate_error=gate_error,
-        thermal_relaxation=thermal_relaxation,
-        gate_lengths=gate_lengths,
-        temperature=temperature,
-        standard_gates=standard_gates)
-    for name, qubits, error in gate_errors:
-        noise_model.add_quantum_error(error, name, qubits)
-
-    return noise_model
 
 
 def basic_device_readout_errors(properties):
@@ -146,8 +35,8 @@ def basic_device_readout_errors(properties):
         properties (BackendProperties): device backend properties
 
     Returns:
-        list: A list of pairs ``(qubits, value)`` for qubits with non-zero
-        readout error values.
+        list: A list of pairs ``(qubits, ReadoutError)`` for qubits with
+        non-zero readout error values.
     """
     errors = []
     for qubit, value in enumerate(readout_error_values(properties)):
@@ -161,7 +50,6 @@ def basic_device_gate_errors(properties,
                              gate_error=True,
                              thermal_relaxation=True,
                              gate_lengths=None,
-                             gate_times=None,  # DEPRECATED
                              temperature=0,
                              standard_gates=True):
     """
@@ -181,7 +69,6 @@ def basic_device_gate_errors(properties,
         gate_lengths (list): Override device gate times with custom
                              values. If None use gate times from
                              backend properties. (Default: None).
-        gate_times (list): DEPRECATED -- use gate_lengths.
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
         standard_gates (bool): If true return errors as standard
@@ -189,22 +76,10 @@ def basic_device_gate_errors(properties,
                                qobj instructions (Default: True).
 
     Returns:
-        dict: A dictionary of pairs name: ``(qubits, error)``. If gate
-        error information is not available ``None`` will be returned for
-        value.
+        list: A list of tuples ``(label, qubits, QuantumError)``, for gates
+        with non-zero quantum error terms, where `label` is the label of the
+        noisy gate, `qubits` is the list of qubits for the gate.
     """
-    # Decrecation warning for change of name field in device model
-    # from gate_times to gate_lengths
-    if gate_times:
-        warnings.warn(
-            'gate_times kwarg is deprecated and will be removed '
-            'in a future release. Use gate_lengths kwarg instead.',
-            DeprecationWarning)
-        # Convert deprecated kwarg to current kwarg if it is not
-        # also defined
-        if gate_lengths is None:
-            gate_lengths = gate_times
-
     # Initilize empty errors
     depol_error = None
     relax_error = None

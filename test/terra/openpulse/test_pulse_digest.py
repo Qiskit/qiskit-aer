@@ -19,13 +19,13 @@ import qiskit
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
-from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.openpulse.qobj.digest import digest_pulse_obj
+from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.qobj.digest import digest_pulse_obj
 
 
 class TestDigest(QiskitAerTestCase):
-    """Testing of functions in providers.aer.openpulse.qobj.digest."""
+    """Testing of functions in providers.aer.pulse.qobj.digest."""
     def setUp(self):
         self.backend_sim = backend_sim = qiskit.Aer.get_backend('pulse_simulator')
 
