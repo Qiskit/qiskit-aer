@@ -34,7 +34,7 @@ function(get_version version_str)
 endfunction()
 
 function(is_dir_empty dir)
-    file(GLOB RESULT dir)
+    file(GLOB RESULT ${dir})
     list(LENGTH RESULT num_files)
     if(num_files EQUAL 0)
         set(dir_is_empty TRUE PARENT_SCOPE)
