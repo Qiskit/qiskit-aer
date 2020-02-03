@@ -738,14 +738,14 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
 
   // Preliminary step - reverse the order of the matrices because 
   // they are ordered in reverse to that of the qubits (in the interface)
-  //  std::string reversed_matrices = matrices;
-  //reverse(reversed_matrices.begin(), reversed_matrices.end());
-  std::string sorted_matrices = matrices;
-  sorted_matrices = sort_paulis_by_qubits(matrices, qubits);
-
-  std::string reversed_matrices = sorted_matrices;
+  std::string reversed_matrices = matrices;
   reverse(reversed_matrices.begin(), reversed_matrices.end());
-  char gate = reversed_matrices[0];
+
+  // sort the paulis according to the initial ordering of the qubits
+  std::string sorted_matrices = matrices;
+  sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
+  
+  char gate = sorted_matrices[0];
 
   // Step 1 - multiply tensor of q0 by its left lambda
   MPS_Tensor left_tensor = temp_MPS.q_reg_[first_index];
@@ -792,7 +792,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
 				 AER::Utils::dagger(next_gamma.get_data(1)));
     
     // Step 7 - apply gate (same as Step 3)
-    gate = reversed_matrices[qubit_num - first_index];
+    gate = sorted_matrices[qubit_num - first_index];
     next_gamma.apply_pauli(gate);
     
     // Step 8 - contract final_contract from previous stage with next gamma over a1
