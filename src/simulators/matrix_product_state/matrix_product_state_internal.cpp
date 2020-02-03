@@ -543,13 +543,13 @@ void MPS::centralize_qubits(const reg_t &qubits,
 }
 
 void MPS::centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indices,
-			             reg_t &new_indices, bool & ordered) {
+			             reg_t &centralized_qubits, bool & ordered) {
   sorted_indices = qubits;
   uint_t num_qubits = qubits.size();
 
   ordered = false;
   if (num_qubits == 1) {
-    new_indices = qubits;
+    centralized_qubits = qubits;
     ordered = true;
     return;
   }
@@ -563,16 +563,16 @@ void MPS::centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indices,
   if (!ordered)
       sort(sorted_indices.begin(), sorted_indices.end());
 
-  new_indices = calc_new_indices(sorted_indices);
+  centralized_qubits = calc_new_indices(sorted_indices);
   // We wish to minimize the number of swaps. Therefore we center the 
   // new indices around the median
   uint_t mid_index = (num_qubits-1)/2;
   
   for(uint_t i = mid_index; i < sorted_indices.size(); i++) {
-    change_position(sorted_indices[i], new_indices[i]);
+    change_position(sorted_indices[i], centralized_qubits[i]);
   }
   for(int i = mid_index-1; i >= 0; i--) {
-    change_position(sorted_indices[i], new_indices[i]);
+    change_position(sorted_indices[i], centralized_qubits[i]);
   }
 }
 
@@ -649,18 +649,16 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
   return trace_rho;
 }
 
-// this method assumes the qubits are ordered from smallest to largest - MERAV
-// check if we should move the sorting inside
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
-			      MPS& temp_MPS, 
-			      uint_t &front, uint_t &back) const {
+			       reg_t &sorted_qubits,
+			       reg_t &centralized_qubits,
+			       MPS& temp_MPS) const {
 
   temp_MPS.initialize(*this);
   bool ordered = true;
-  reg_t new_indices;
-  temp_MPS.centralize_qubits(qubits, new_indices, ordered);
-  front = new_indices.front();
-  back = new_indices.back();
+  temp_MPS.centralize_and_sort_qubits(qubits, sorted_qubits, 
+				      centralized_qubits, ordered);
+
 }
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
@@ -717,24 +715,16 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const
 {
   MPS temp_MPS;
-  uint_t first_index = 0, last_index = 0;
   reg_t sorted_qubits = qubits;
-  uint_t num_qubits = qubits.size();
+  reg_t centralized_qubits = qubits;
 
   // if the qubits are not ordered, we can sort them, because the order doesn't matter
   // in computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
-  bool ordered = false;
-  for (uint_t index=0; index < num_qubits-1; index++) {
-    if (qubits[index] > qubits[index+1]){
-      ordered = false;
-      break;
-    }
-  }
-  if (!ordered)
-    std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
-  MPS_with_new_indices(sorted_qubits, temp_MPS, first_index, last_index);
+  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
+  uint_t first_index = centralized_qubits.front();
+  uint_t last_index = centralized_qubits.back();
 
   // Preliminary step - reverse the order of the matrices because 
   // they are ordered in reverse to that of the qubits (in the interface)

@@ -151,10 +151,16 @@ public:
   //   selected qubits have been moved for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: new MPS.
+  // Returns: temp_MPS - the new MPS after reordering the qubits
+  //          sorted_qubits - the qubits, after sorting
+  //          centralized_qubits - the qubits, after sorting and centralizing
+  //          
   //----------------------------------------------------------------
-  void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
-			    uint_t &front, uint_t &back) const;
+  void MPS_with_new_indices(const reg_t &qubits,
+			    reg_t &sorted_qubits,
+			    reg_t &centralized_qubits,
+			    MPS& temp_MPS) const;
+
 
   //----------------------------------------------------------------
   // function name: print
@@ -270,7 +276,7 @@ protected:
   // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
   //----------------------------------------------------------------
   void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
-			 reg_t &new_qubits, bool &ordered);
+			 reg_t &centralized_qubits, bool &ordered);
 
   //----------------------------------------------------------------
   // function name: move_qubits_to_original_location
