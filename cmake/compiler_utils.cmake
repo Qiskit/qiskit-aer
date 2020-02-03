@@ -34,7 +34,7 @@ function(get_version version_str)
 endfunction()
 
 function(is_dir_empty dir)
-    file(GLOB RESULT dir)
+    file(GLOB RESULT ${dir})
     list(LENGTH RESULT num_files)
     if(num_files EQUAL 0)
         set(dir_is_empty TRUE PARENT_SCOPE)
@@ -113,4 +113,20 @@ function(uncompress_muparsersx_lib)
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
             WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
     set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
+endfunction()
+
+function(add_muparserx_lib)
+    message(STATUS "Uncompressing muparserx static library...")
+    uncompress_muparsersx_lib()
+
+    find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
+    if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
+        message(FATAL_ERROR "No muparserx library found")
+    endif()
+    message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
+    get_muparserx_source_code()
+    # I keep this disabled on purpose, just in case I need to debug muparserx related problems
+    # file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
+
+    set(AER_LIBRARIES ${AER_LIBRARIES} ${MUPARSERX_LIB} PARENT_SCOPE)
 endfunction()
