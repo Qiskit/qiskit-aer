@@ -43,46 +43,65 @@ function(is_dir_empty dir)
     endif()
 endfunction()
 
-
-function(get_muparserx_source_code)
-    is_dir_empty(${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx)
-    if(NOT dir_is_empty)
-        message(STATUS "MuparserX library source code already exists")
-        return()
-    endif()
-    find_package(Git QUIET)
-    if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-        # if we have cloned the sources, muparserx is a submodule, so we need
-        # to initialize it
-        if(EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
-            # Update submodules as needed
-            message(STATUS "Submodule update")
-            execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+function(_get_library_source_code library repo_url version proof_of_existance)
+    is_dir_empty(${PROJECT_SOURCE_DIR}/src/third-party/headers/${library})
+    if(dir_is_empty)
+        find_package(Git QUIET)
+        if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+            # if we have cloned the sources, muparserx is a submodule, so we need
+            # to initialize it
+            if(EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
+                # Update submodules as needed
+                message(STATUS "Submodule update")
+                execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                                RESULT_VARIABLE GIT_SUBMOD_RESULT)
+                if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+                    message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+                endif()
+            endif()
+        # Not comming from git, so probably: pip install https://...zip or similar.
+        # This time, we want to clone muparserx and change the latests stable release
+        elseif(GIT_FOUND)
+            execute_process(COMMAND ${GIT_EXECUTABLE} clone --branch ${version} ${repo_url} ${PROJECT_SOURCE_DIR}/src/third-party/headers/${library}
                             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                             RESULT_VARIABLE GIT_SUBMOD_RESULT)
             if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-                message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+                message(FATAL_ERROR "git clone failed with ${GIT_SUBMOD_RESULT},\
+                        please checkout ${library} manually from ${repo_url} and \
+                        checkout latest stable relase")
             endif()
+        # TODO: If there's no git, we have to get muparserx using other method (curl)
         endif()
-    # Not comming from git, so probably: pip install https://...zip or similar.
-    # This time, we want to clone muparserx and change the latests stable release
-    elseif(GIT_FOUND)
-        execute_process(COMMAND ${GIT_EXECUTABLE} clone --branch v4.0.8 https://github.com/beltoforion/muparserx.git ${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
-        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-            message(FATAL_ERROR "git clone failed with ${GIT_SUBMOD_RESULT},\
-                    please checkout muparserx manually from https://github.com/beltoforion/muparserx.git and \
-                    checkout latest stable relase")
-        endif()
-    # TODO: If there's no git, we have to get muparserx using other method (curl)
-    endif()
 
-    if(NOT EXISTS "${PROJECT_SOURCE_DIR}/src/third-party/headers/muparserx/CMakeLists.txt")
-        message(FATAL_ERROR "MuparserX doesn't exist! GIT_SUBMODULE was turned off or download failed.\
-                Please download MuparserX library from https://github.com/beltoforion/muparserx.git \
-                and checkout latest stable release")
+        if(NOT EXISTS "${PROJECT_SOURCE_DIR}/src/third-party/headers/${proof_of_existance}")
+            message(FATAL_ERROR "${library} doesn't exist! GIT_SUBMODULE was turned off or download failed.\
+                    Please download ${library} library from ${repo_url} \
+                    and checkout latest stable release")
+        endif()
+    else()
+        message(STATUS "${library} library source code already exists")
     endif()
+    # TODO: We should be adding included directories to targets, and not globally
+    include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/src/third-party/headers/${library})
+endfunction()
+
+function(get_muparserx_source_code)
+    _get_library_source_code(
+        muparserx
+        https://github.com/beltoforion/muparserx.git
+        v4.0.8
+        muparserx/CMakeLists.txt
+    )
+endfunction()
+
+function(get_thrust_source_code)
+    _get_library_source_code(
+        thrust
+        https://github.com/thrust/thrust.git
+        1.9.5
+        thrust/thrust/version.h
+    )
 endfunction()
 
 function(check_compiler_cpp11_abi)

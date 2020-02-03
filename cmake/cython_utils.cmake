@@ -47,7 +47,14 @@ function(add_cython_module module)
         set(exclude_from_all EXCLUDE_FROM_ALL)
     endif()
 
-    add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
+    if(CUDA_FOUND)
+        cuda_add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
+        set_source_files_properties(${module} PROPERTIES
+            CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+    else()
+        add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
+    endif()
+
 
     # We only need to pass the linter once, as the codebase is the same for
     # all controllers
@@ -101,6 +108,7 @@ function(add_cython_module module)
     # the rest of the properties so they are not properly added.
     set_target_properties(${module} PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
     set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS})
+    target_compile_definitions(${module} PRIVATE ${AER_COMPILER_DEFINITIONS})
 
     python_extension_module(${module}
         FORWARD_DECL_MODULES_VAR fdecl_module_list)
