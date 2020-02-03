@@ -8,8 +8,8 @@ graft src
 graft contrib
 include qiskit/providers/aer/backends/wrappers/CMakeLists.txt
 include qiskit/providers/aer/backends/wrappers/bindings.cc
-include qiskit/providers/aer/openpulse/cy/CMakeLists.txt
-include qiskit/providers/aer/openpulse/qutip_lite/cy/CMakeLists.txt
+include qiskit/providers/aer/pulse/cy/CMakeLists.txt
+include qiskit/providers/aer/pulse/qutip_lite/cy/CMakeLists.txt
 include qiskit/providers/aer/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
