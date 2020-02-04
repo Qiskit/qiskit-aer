@@ -126,10 +126,13 @@ function(uncompress_muparsersx_lib)
         if(CXX11_ABI EQUAL "0")
             set(MUPARSER_ABI_PREFIX oldabi_)
         endif()
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+            set(MUPARSER_ARCH_POSTFIX ".ppc64le")
+        endif()
         set(PLATFORM "linux")
     endif()
 
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx${MUPARSER_ARCH_POSTFIX}.7z"
             WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
     set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
 endfunction()
