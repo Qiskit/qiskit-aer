@@ -204,16 +204,8 @@ else()
 endif()
 
 message(STATUS "Uncompressing muparserx static library...")
-if(MSVC)
-	set(PLATFORM "win64")
-elseif(APPLE)
-	set(PLATFORM "macos")
-elseif(UNIX)
-	set(PLATFORM "linux")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/muparserx.7z"
-	WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
-set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib")
+
+uncompress_muparsersx_lib()
 
 find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
 if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
@@ -281,11 +273,12 @@ set(AER_LIBRARIES
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	add_subdirectory(qiskit/providers/aer/openpulse/cy)
-	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
+	add_subdirectory(qiskit/providers/aer/pulse/cy)
+	add_subdirectory(qiskit/providers/aer/pulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
-	add_subdirectory(src/simulators/open_pulse)
+	add_subdirectory(src/open_pulse)
 else() # Standalone build
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
 		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
@@ -293,7 +286,6 @@ else() # Standalone build
 		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	endif(CUDA_FOUND)
-
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
@@ -306,6 +298,7 @@ else() # Standalone build
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 	target_compile_definitions(qasm_simulator
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
+	install(TARGETS qasm_simulator DESTINATION bin)
 
 	# Linter
 	# This will add the linter as part of the compiling build target

@@ -51,18 +51,25 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValP
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
+from test.terra.backends.qasm_simulator.qasm_delay_measure import QasmDelayMeasureTests
+from test.terra.backends.qasm_simulator.qasm_truncate import QasmQubitsTruncateTests
+from test.terra.backends.qasm_simulator.qasm_basics import QasmBasicsTests
 
 
 class StatevectorTests(
         QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
-        QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
-        QasmConditionalKrausTests, QasmCliffordTests,
-        QasmCliffordTestsWaltzBasis, QasmCliffordTestsMinimalBasis,
-        QasmNonCliffordTests, QasmNonCliffordTestsWaltzBasis,
-        QasmNonCliffordTestsMinimalBasis, QasmAlgorithmTests,
-        QasmAlgorithmTestsWaltzBasis, QasmAlgorithmTestsMinimalBasis,
-        QasmUnitaryGateTests, QasmInitializeTests, QasmReadoutNoiseTests,
-        QasmPauliNoiseTests, QasmResetNoiseTests, QasmKrausNoiseTests,
+        QasmResetTests, QasmInitializeTests, QasmConditionalGateTests,
+        QasmConditionalUnitaryTests, QasmConditionalKrausTests,
+        QasmCliffordTests, QasmCliffordTestsWaltzBasis,
+        QasmCliffordTestsMinimalBasis, QasmNonCliffordTests,
+        QasmNonCliffordTestsWaltzBasis, QasmNonCliffordTestsMinimalBasis,
+        QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
+        QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests,
+        QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmThreadManagementTests,
+        QasmFusionTests, QasmDelayMeasureTests, QasmQubitsTruncateTests,
+        QasmResetNoiseTests, QasmKrausNoiseTests, QasmBasicsTests,
         QasmSnapshotStatevectorTests, QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests, QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):

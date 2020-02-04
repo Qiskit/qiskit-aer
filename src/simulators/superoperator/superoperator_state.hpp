@@ -21,7 +21,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "superoperator.hpp"
 
 

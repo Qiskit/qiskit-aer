@@ -203,10 +203,25 @@ extern "C" {
     int __KAI_KMPC_CONVENTION omp_get_max_threads(void) {
         return _hook_omp_get_max_threads();
     }
+    using omp_get_num_threads_t = int(*)(void);
+    omp_get_num_threads_t _hook_omp_get_num_threads;
+    int __KAI_KMPC_CONVENTION omp_get_num_threads(void) {
+        return _hook_omp_get_num_threads();
+    }
+    using omp_get_thread_num_t = int(*)(void);
+    omp_get_thread_num_t _hook_omp_get_thread_num;
+    int __KAI_KMPC_CONVENTION omp_get_thread_num(void) {
+        return _hook_omp_get_thread_num();
+    }
     using omp_set_nested_t = void(*)(int);
     omp_set_nested_t _hook_omp_set_nested;
     void __KAI_KMPC_CONVENTION omp_set_nested(int foo){
         _hook_omp_set_nested(foo);
+    }
+    using omp_get_num_procs_t = int(*)(void);
+    omp_get_num_procs_t _hook_omp_get_num_procs;
+    int __KAI_KMPC_CONVENTION omp_get_num_procs(void) {
+        return _hook_omp_get_num_procs();
     }
 
 
@@ -307,7 +322,10 @@ void populate_hooks(void * handle){
     _hook__kmpc_master = reinterpret_cast<decltype(&__kmpc_master)>(dlsym(handle, "__kmpc_master"));
     _hook__kmpc_end_master = reinterpret_cast<decltype(&__kmpc_end_master)>(dlsym(handle, "__kmpc_end_master"));
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
+    _hook_omp_get_num_threads = reinterpret_cast<decltype(&omp_get_num_threads)>(dlsym(handle, "omp_get_num_threads"));
+    _hook_omp_get_thread_num = reinterpret_cast<decltype(&omp_get_thread_num)>(dlsym(handle, "omp_get_thread_num"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
+    _hook_omp_get_num_procs = reinterpret_cast<decltype(&omp_get_num_procs)>(dlsym(handle, "omp_get_num_procs"));
 }
 
 }

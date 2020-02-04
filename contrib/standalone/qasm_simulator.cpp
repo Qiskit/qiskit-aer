@@ -19,7 +19,7 @@
 
 #include "version.hpp"
 // Simulator
-#include "simulators/qasm/qasm_controller.hpp"
+#include "controllers/qasm_controller.hpp"
 
 /*******************************************************************************
  *

@@ -203,7 +203,7 @@ if (BLA_VENDOR STREQUAL "OpenBLAS" OR BLA_VENDOR STREQUAL "All")
   sgemm
   ""
   "openblas"
-  "pthread"
+#  "pthread"
   )
  endif()
 endif ()

@@ -69,12 +69,32 @@ function(get_muparserx_source_code)
     endif()
 endfunction()
 
-function(get_clang_version version_str)
-    string(REPLACE "." ";" VERSION_LIST ${version_str})
-    list(GET VERSION_LIST 0 TMP_MAJOR_VERSION)
-    list(GET VERSION_LIST 1 TMP_MINOR_VERSION)
-    list(GET VERSION_LIST 2 TMP_PATCH_VERSION)
-    set(CLANG_MAJOR_VERSION ${TMP_MAJOR_VERSION} PARENT_SCOPE)
-    set(CLANG_MINOR_VERSION ${TMP_MINOR_VERSION} PARENT_SCOPE)
-    set(CLANG_PATCH_VERSION ${TMP_PATCH_VERSION} PARENT_SCOPE)
+function(check_compiler_cpp11_abi)
+    # This is needed in case the compiler doesn't work with the new C++11 ABI,
+    # is the case of GCC in RHEL6 and RHEL7
+    # https://bugzilla.redhat.com/show_bug.cgi?id=1546704
+    # Consider also if -D_GLIBCXX_USE_CXX11_ABI has been passed as flag
+    string(REGEX MATCH "-D_GLIBCXX_USE_CXX11_ABI=[(A-z)|(a-z)|(0-9)]+" CUSTOM_PREP_FLAGS ${CMAKE_CXX_FLAGS})
+    # Preprocessor run to check if CXX11_ABI is set
+    execute_process(COMMAND echo "#include <string>" COMMAND ${CMAKE_CXX_COMPILER} ${CUSTOM_PREP_FLAGS} -x c++ -E -dM -  COMMAND fgrep _GLIBCXX_USE_CXX11_ABI OUTPUT_VARIABLE CXX11_ABI_OUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX REPLACE "#define _GLIBCXX_USE_CXX11_ABI " "" CXX11_ABI "${CXX11_ABI_OUT}")
+    set(CXX11_ABI ${CXX11_ABI} PARENT_SCOPE)
+endfunction()
+
+function(uncompress_muparsersx_lib)
+    if(MSVC)
+        set(PLATFORM "win64")
+    elseif(APPLE)
+        set(PLATFORM "macos")
+    elseif(UNIX)
+        check_compiler_cpp11_abi()
+        if(CXX11_ABI EQUAL "0")
+            set(MUPARSER_ABI_PREFIX oldabi_)
+        endif()
+        set(PLATFORM "linux")
+    endif()
+
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
+            WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
+    set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
 endfunction()
