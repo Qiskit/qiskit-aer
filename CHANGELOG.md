@@ -20,6 +20,8 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 
 Added
 -----
+- Added `NoiseModel.from_backend` for building a basic device noise model for an IBMQ
+  backend (\#569)
 - Added multi-GPU enabled simulation methods to the `QasmSimulator`, `StatevectorSimulator`,
   and `UnitarySimulator`. The qasm simulator has gpu version of the density matrix and
   statevector methods and can be accessed using `"method": "density_matrix_gpu"` or
@@ -32,16 +34,27 @@ Added
 - Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
 - Migrated ODE function solver to C++ (\#442, \#350)
 - Added high level pulse simulator tests (\#379)
-- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543)
 
 Changed
 -------
 - Changed the structure of the `src` directory to organise simulator source code.
   Simulator controller headers were moved to `src/controllers` and simulator method State
   headers are in `src/simulators` (\#544)
+- Moved the location of several functions (\#568):
+  - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
+  - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+
+Deprecated
+----------
+- Deprecated `utils.qobj_utils` functions (\#568)
+- Deprecated `qiskit.providers.aer.noise.device.basic_device_noise_model`. It is superseded by the
+  `NoiseModel.from_backend` method (\#569)
 
 Removed
 -------
+- Removed `NoiseModel.as_dict`, `QuantumError.as_dict`, `ReadoutError.as_dict`, and 
+  `QuantumError.kron` methods that were deprecated in 0.3 (\#568).
 
 Fixed
 -----
@@ -54,9 +67,6 @@ Added
 -----
 - Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
 - MPS simulation method: added support for ``ccx`` (\#454)
-
-Changed
--------
 
 Removed
 -------
@@ -107,9 +117,19 @@ Added
 
 Changed
 -------
+- Moved the location of several functions (\#568):
+  - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
+  - Moved contents of `qiskit.provider.aer.noise.device` into the `qiskit.providers.noise` module.
+  - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+
+Deprecated
+----------
+- Deprecated `utils.qobj_utils` functions (\#568)
 
 Removed
 -------
+- Removed `NoiseModel.as_dict`, `QuantumError.as_dict`, `ReadoutError.as_dict`, and 
+  `QuantumError.kron` methods that were deprecated in 0.3 (\#568).
 
 Fixed
 -----

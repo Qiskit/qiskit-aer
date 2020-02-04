@@ -14,7 +14,7 @@ noise_model_inserter module tests
 """
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.providers.aer.noise.utils import insert_noise
+from qiskit.providers.aer.utils import insert_noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.qasm import pi

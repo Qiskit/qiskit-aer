@@ -7,7 +7,7 @@ from test.terra import common
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors import depolarizing_error
-from qiskit.providers.aer.noise.utils import remap_noise_model
+from qiskit.providers.aer.utils import remap_noise_model
 
 
 class TestNoiseRemapper(common.QiskitAerTestCase):
