@@ -133,7 +133,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              python setup.py sdist
+              python setup.py sdist -- -G "Visual Studio 15 2017 Win64" 
             displayName: Build sdist
           - bash: |
               set -x
