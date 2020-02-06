@@ -52,7 +52,7 @@ public:
   ~MPS() {}
 
   //--------------------------------------------------------------------------
-  // function name: initialize
+  // Function name: initialize
   // Description: Initialize the MPS with some state.
   // 1.	Parameters: none. Initializes all qubits to |0>.
   // 2.	Parameters: const MPS &other - Copy another MPS
@@ -66,7 +66,7 @@ public:
   //void initialize(uint_t num_qubits, const cvector_t &vecState);
 
   //----------------------------------------------------------------
-  // function name: num_qubits
+  // Function name: num_qubits
   // Description: Get the number of qubits in the MPS
   // Parameters: none.
   // Returns: none.
@@ -74,7 +74,7 @@ public:
   uint_t num_qubits() const{return num_qubits_;}
 
   //----------------------------------------------------------------
-  // function name: set_num_qubits
+  // Function name: set_num_qubits
   // Description: Set the number of qubits in the MPS
   // Parameters: size_t num_qubits - number of qubits to set.
   // Returns: none.
@@ -88,7 +88,7 @@ public:
   }
 
   //----------------------------------------------------------------
-  // function name: apply_x,y,z,...
+  // Function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes.
   // Parameters: uint_t index of the qubit/qubits.
   // Returns: none.
@@ -146,7 +146,7 @@ public:
   complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
 
   //------------------------------------------------------------------
-  // function name: MPS_with_new_indices
+  // Function name: MPS_with_new_indices
   // Description: Creates a copy of *this where the indices of the
   //   selected qubits have been moved for more efficient computation
   //   of the expectation value
@@ -163,19 +163,19 @@ public:
 
 
   //----------------------------------------------------------------
-  // function name: print
+  // Function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
    //----------------------------------------------------------------
-   // function name: get_matrices_sizes
+   // Function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
   std::vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
-  // function name: state_vec_as_MPS
+  // Function name: state_vec_as_MPS
   // Description: Computes the state vector of a subset of qubits.
   // 	The regular use is with for all qubits. in this case the output is
   //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
@@ -237,7 +237,7 @@ public:
 		       RngEngine &rng);
 
   //----------------------------------------------------------------
-  // function name: initialize_from_statevector
+  // Function name: initialize_from_statevector
   // Description: This function receives as input a state_vector and
   //      initializes the internal structures of the MPS according to its
   //      state.
@@ -257,7 +257,7 @@ public:
 
 protected:
   //----------------------------------------------------------------
-  // function name: centralize_qubits
+  // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
@@ -272,21 +272,51 @@ protected:
 			 reg_t &new_qubits, bool &ordered);
 
   //----------------------------------------------------------------
-  // function name: centralize_and_sort_qubits
+  // Function name: centralize_and_sort_qubits
   // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
   //----------------------------------------------------------------
   void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
 			 reg_t &centralized_qubits, bool &ordered);
 
   //----------------------------------------------------------------
-  // function name: move_qubits_to_original_location
+  // Function name: find_centralized_indices
+  // Description: Performs the first part of centralize_qubits, i.e., returns the
+  //    new target indices, but does not actually change the MPS structure.
+  //----------------------------------------------------------------
+  void find_centralized_indices(const reg_t &qubits, 
+				reg_t &sorted_indices,
+			        reg_t &centralized_qubits, 
+			        bool & ordered) const;
+
+  //----------------------------------------------------------------
+  // Function name: move_qubits_to_centralized_indices
+  // Description: Performs the second part of centralize_qubits, i.e., moves the
+  // qubits to the centralized indices
+  //----------------------------------------------------------------
+  void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
+					  const reg_t &centralized_qubits);
+
+    //----------------------------------------------------------------
+  // Function name: move_qubits_to_new_position
+  // Description: This function moves qubits from the default (sorted) position to a 
+  //              given position.
+  // Parameters: Input: new_position - the target ordering of the qubits
+  //                    sorted_qubits - the default ordering, i.e., sorted
+  // Effect: Swaps the qubits in the MPS to put them in the positions given in new_position
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_to_new_position(const reg_t &new_position,
+				   const reg_t &sorted_indices);
+
+  //----------------------------------------------------------------
+  // Function name: move_qubits_to_original_location
   // Description: This function reverses the effect of centralize_qubits.
   //      It returns the qubits that were previously centralized, to their original positions.
   // Parameters: Input: first - the index of the first qubit that was moved
   //                    original_qubits - the subset of qubits that were moved
   //                    sorted_qubits - the original_qubits in sorted order
-  //             Returns: the MPS (this) where the qubits have been moved back to their original
-  //                 position.
+  // Effect: the MPS (this) where the qubits have been moved back to their original
+  //         position.
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
@@ -294,7 +324,7 @@ protected:
 
   //----------------------------------------------------------------
 
-  // function name: change_position
+  // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
   //   for expectation value calculations. Similar to swap, but doesn't
   //   move qubit in dst back to src, therefore being used only on the temp MPS

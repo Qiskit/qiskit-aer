@@ -234,7 +234,7 @@ std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits) {
   std::vector<uint_t> temp_qubits = qubits;
   for (uint_t i=0; i<paulis.size(); i++) {
     min = temp_qubits[0];
-    for (int_t qubit=0; qubit<qubits.size(); qubit++)
+    for (uint_t qubit=0; qubit<qubits.size(); qubit++)
       if (temp_qubits[qubit] <= min) {
 	min = temp_qubits[qubit];
 	min_index = qubit;
@@ -544,6 +544,14 @@ void MPS::centralize_qubits(const reg_t &qubits,
 
 void MPS::centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indices,
 			             reg_t &centralized_qubits, bool & ordered) {
+  find_centralized_indices(qubits, sorted_indices, centralized_qubits, ordered);
+  move_qubits_to_centralized_indices(sorted_indices, centralized_qubits);
+}
+
+void MPS::find_centralized_indices(const reg_t &qubits, 
+				   reg_t &sorted_indices,
+				   reg_t &centralized_qubits, 
+				   bool & ordered) const {
   sorted_indices = qubits;
   uint_t num_qubits = qubits.size();
 
@@ -564,9 +572,13 @@ void MPS::centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indices,
       sort(sorted_indices.begin(), sorted_indices.end());
 
   centralized_qubits = calc_new_indices(sorted_indices);
+}
+
+void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
+					     const reg_t &centralized_qubits) {
   // We wish to minimize the number of swaps. Therefore we center the 
   // new indices around the median
-  uint_t mid_index = (num_qubits-1)/2;
+  uint_t mid_index = (centralized_qubits.size()-1)/2;
   
   for(uint_t i = mid_index; i < sorted_indices.size(); i++) {
     change_position(sorted_indices[i], centralized_qubits[i]);
@@ -594,7 +606,37 @@ void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_q
   // during centralize_qubits
 }
 
+void MPS::move_qubits_to_new_position(const reg_t &new_position, 
+				      const reg_t &sorted_indices) {
+  // actual_qubits is a temporary structure that stores the current ordering of the 
+  // qubits in the MPS structure. It is necessary, because when we perform swaps, 
+  // the positions of the qubits change. We need to move the qubits from their 
+  // current position (as in actual qubits), not from the original position
+  reg_t actual_qubits = sorted_indices;;
+
+  for (uint_t i=0; i<new_position.size(); i++) {
+    uint_t current_qubit = new_position[i];
+    for (uint_t src=0; src<actual_qubits.size(); src++) {
+      if (actual_qubits[src] == current_qubit) {
+	change_position(src, i);
+
+	// Here we update actual_qubits as needed after the change in MPS positions
+	if (src < i)
+	  for (uint_t dst=src; dst<i; dst++) {
+	    std::swap(actual_qubits[dst], actual_qubits[dst+1]);
+	  } else {
+	  for (uint_t dst=src; dst>i; dst--){
+	    std::swap(actual_qubits[dst], actual_qubits[dst-1]);
+	  }
+	}
+	break;
+      }
+    }
+  }
+}
+
 void MPS::change_position(uint_t src, uint_t dst) {
+  //std::cout <<src << " to " << dst << std::endl;
   if(src == dst)
     return;
   else if(src < dst)
@@ -663,7 +705,29 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
-  cmatrix_t rho = density_matrix(qubits);
+  MPS temp_MPS;
+  temp_MPS.initialize(*this);
+  std::cout << "at the beginning: temp_MPS" << std::endl;
+  temp_MPS.print(std::cout);
+  reg_t sorted_indices(qubits.size());
+  reg_t centralized_qubits(qubits.size());
+  bool ordered = true;
+  
+  reg_t reversed_qubits = qubits;
+  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
+  find_centralized_indices(reversed_qubits, sorted_indices, centralized_qubits, ordered);
+  
+  //temp_MPS.move_qubits_to_new_position(centralized_qubits);
+  temp_MPS.move_qubits_to_new_position(reversed_qubits, sorted_indices);
+  std::cout << "after centralize: temp_MPS" << std::endl;
+  temp_MPS.print(std::cout);
+
+  std::cout << "centralized_qubits ";
+  for (uint_t i=0; i< centralized_qubits.size(); i++)
+    std::cout << " " <<centralized_qubits[i]; 
+  std::cout <<std::endl;
+
+  cmatrix_t rho = temp_MPS.density_matrix(centralized_qubits);
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
