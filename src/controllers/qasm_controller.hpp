@@ -99,6 +99,16 @@ namespace Simulator {
  *      If specified, is divided by the number of parallel shots/experiments.
  *      [Default: 0]
  *
+ * From Transpile:Fision Class
+ * - fusion_enable (bool): Enable fusion optimization in circuit optimization
+ *       passes [Default: True]
+ * - fusion_verbose (bool): Output gates generated in fusion optimization
+ *       into metadata [Default: False]
+ * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
+ *       in a fusion optimization [Default: 5]
+ * - fusion_threshold (int): Threshold that number of qubits must be greater
+ *       than or equal to enable fusion optimization [Default: 20]
+ *
  **************************************************************************/
 
 class QasmController : public Base::Controller {
