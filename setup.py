@@ -5,6 +5,7 @@ Main setup file for qiskit-aer
 """
 
 import os
+import warnings
 import subprocess
 import sys
 import inspect
@@ -48,6 +49,23 @@ VERSION_PATH = os.path.join(os.path.dirname(__file__),
                             "qiskit", "providers", "aer", "VERSION.txt")
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
+
+# Add optional ext modules here
+if "--with-numpy-blas" in sys.argv:
+    sys.argv.remove("--with-numpy-blas")
+    try:
+        import numpy as np
+    except:
+        raise ImportError('NumPy must be pre-installed.')
+    else:
+        config = np.__config__
+        blas_info = config.blas_opt_info
+        has_lib_key = 'libraries' in blas_info.keys()
+        if has_lib_key:
+            os.environ['DBLAS_LIB_PATH'] = blas_info['library_dirs'][0]
+        else:
+            warnings.warn('Could not find NumPy blas library.  Continuing without.')
+
 
 
 setup(
