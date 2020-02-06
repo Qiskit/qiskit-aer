@@ -433,10 +433,6 @@ def model_and_pi_schedule():
 
     return model, schedule
 
-
-def simple_pulse_schedule():
-    """Return a pulse schedule corresponding to a pi pulse"""
-
 if __name__ == '__main__':
     # Run qasm simulator
     shots = 2000
