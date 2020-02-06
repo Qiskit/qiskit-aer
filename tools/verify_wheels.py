@@ -12,11 +12,17 @@ from qiskit import ClassicalRegister
 from qiskit.compiler import assemble, transpile
 from qiskit import execute
 from qiskit import QuantumCircuit
-from qiskit import QuantumRegister 
+from qiskit import QuantumRegister
+
+from qiskit.providers.aer.pulse.duffing_model_generators import duffing_system_model
+from qiskit.pulse import Schedule, Acquire
+from qiskit.pulse.channels import (DriveChannel, AcquireChannel, MemorySlot)
+from qiskit.pulse.commands.parametric_pulses import Gaussian
 
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.aer import UnitarySimulator
+from qiskit.providers.aer import PulseSimulator
 
 
 def assertAlmostEqual(first, second, places=None, msg=None,
@@ -402,6 +408,30 @@ def compare_unitary(result, circuits, targets,
                 np.dot(np.conj(np.transpose(output)), target)) - len(output)
             assertAlmostEqual(delta, 0, places=places)
 
+def model_and_pi_schedule():
+    """Return a simple model and schedule for pulse simulation"""
+
+    # construct model
+    model = duffing_system_model(dim_oscillators=2,
+                                 oscillator_freqs=[5.0],
+                                 anharm_freqs=[0],
+                                 drive_strengths=[1.0],
+                                 coupling_dict={},
+                                 dt=1.0)
+
+    # construct Schedule
+    schedule = Schedule(name='test_sched')
+
+    # note: parameters set so that area under curve is 1/4
+    gauss_pulse = Gaussian(duration=10,
+                amp=(1.0/4)/2.506627719963857,
+                sigma=1)
+    schedule = Schedule(name='test_sched')
+    schedule |= gauss_pulse(DriveChannel(0))
+    acq_cmd = Acquire(duration=10)
+    schedule += acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
+
+    return model, schedule
 
 if __name__ == '__main__':
     # Run qasm simulator
@@ -434,3 +464,17 @@ if __name__ == '__main__':
     assert result.status == 'COMPLETED'
     assert result.success is True
     compare_unitary(result, circuits, targets)
+
+    # Run pulse simulator
+    system_model, schedule = model_and_pi_schedule()
+    backend_sim = PulseSimulator()
+    qobj = assemble([schedule],
+                    backend=backend_sim,
+                    qubit_lo_freq=[5.0],
+                    meas_level=1,
+                    meas_return='avg',
+                    shots=1)
+    results = backend_sim.run(qobj, system_model).result()
+    state = results.get_statevector(0)
+    assertAlmostEqual(state[0], 0, delta=10**-5)
+    assertAlmostEqual(state[1], -1j, delta=10**-5)
