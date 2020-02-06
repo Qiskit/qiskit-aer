@@ -35,7 +35,7 @@ Fixed
 
 
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
+[0.4.0](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
 ======================================================================================
 
 Added
