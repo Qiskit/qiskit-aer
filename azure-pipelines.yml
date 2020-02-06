@@ -9,11 +9,11 @@ trigger:
 
 stages:
   - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'Windows_Wheel_Builds'
       pool: {vmImage: 'vs2017-win2016'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
       steps:
@@ -55,15 +55,16 @@ stages:
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
         - bash: |
+            pip install -U twine
             twine upload wheelhouse/*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
 
   - stage: 'Tests'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+#    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:
       - job: 'Docs'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+#        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'ubuntu-16.04'}
         strategy:
           matrix:
@@ -92,7 +93,7 @@ stages:
              pathtoPublish: 'docs/_build/html'
              artifactName: 'html_docs'
       - job: 'Windows'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+#        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
           matrix:

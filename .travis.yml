@@ -110,13 +110,13 @@ stage_osx: &stage_osx
 # Define the order of the stages.
 stages:
   - name: deploy
-    if: tag IS present
+    if: tag IS blank
   - name: lint
-    if: tag IS blank
+    if: tag IS present
   - name: compile
-    if: tag IS blank
+    if: tag IS present
   - name: test
-    if: tag IS blank
+    if: tag IS present
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -267,20 +267,21 @@ jobs:
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
-      if: tag IS present
+#      if: tag IS present
       script:
-        - pip install -U pip virtualenv
+        - pip install -U pip virtualenv twine
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
     - name: sdist Build and Upload
       stage: deploy
-      if: tag IS present
+#      if: tag IS present
       <<: *stage_linux
       env:
         - TWINE_USERNAME=qiskit
       python: 3.7
-      before_script: true
+      before_script:
+        - pip install -U twine pip virtualenv setuptools
       install: true
       script:
         - python setup.py sdist
