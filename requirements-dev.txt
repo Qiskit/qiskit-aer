@@ -8,6 +8,7 @@ pylint
 pycodestyle
 Sphinx>=1.8.3
 sphinx-rtd-theme>=0.4.0
-sphinx-tabs>=1.1.11
-jupyter-sphinx
+sphinx-tabs>=1.1.11 
+sphinx-automodapi
+jupyter-sphinx;python_version<'3.8'
 stestr>=2.5.0

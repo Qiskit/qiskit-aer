@@ -90,7 +90,7 @@ class AverageData {
 
 template <typename T>
 T AverageData<T>::mean() const {
-  return (count_ > 1) ? Linalg::div(accum_, double(count_)) : accum_;
+  return (count_ > 1) ? Linalg::div(T(accum_), double(count_)) : accum_;
 }
 
 template <typename T>

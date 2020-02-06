@@ -11,62 +11,16 @@
 # that they have been altered from the originals.
 
 """
-=============================================================
-Device Noise Model (:mod:`qiskit.providers.aer.noise.device`)
-=============================================================
-
-.. currentmodule:: qiskit.providers.aer.noise.device
-
-Approximate noise models for a hardware device can be generated from the
-device properties using the functions in this module.
-
-Basic device noise model
-========================
-
-The :func:`basic_device_noise_model` function generates a noise model
-based on:
-
-* 1 and 2 qubit gate errors consisting of a
-  :func:`~qiskit.providers.aer.noise.errors.depolarizing_error` followed
-  by a :func:`~qiskit.providers.aer.noise.errors.thermal_relaxation_error`.
-
-* Single qubit :class:`~qiskit.providers.aer.noise.errors.ReadoutError` on
-  all measurements.
-
-The Error error parameters are tuned for each individual qubit based on
-the :math:`T_1`, :math:`T_2`, frequency and readout error parameters for
-each qubit, and the gate error and gate time parameters for each gate
-obtained from the device backend properties.
-
-
-Functions
-=========
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    basic_device_noise_model
-    basic_device_readout_errors
-    basic_device_gate_errors
-
-
-Helper functions
-================
-
-The following helper functions can be used to extract parameters from
-a device ``BackendProperties`` object.
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    parameters.gate_param_values
-    parameters.gate_error_values
-    parameters.gate_length_values
-    parameters.readout_error_values
-    parameters.thermal_relaxation_values
+Functions for building noise models from backend properties.
 """
 
-from .models import basic_device_noise_model
+from .basic_device_model import basic_device_noise_model
 from .models import basic_device_readout_errors
 from .models import basic_device_gate_errors
+from .parameters import gate_param_values
+from .parameters import gate_error_values
+from .parameters import gate_length_values
+from .parameters import readout_error_values
+from .parameters import thermal_relaxation_values
+
 from . import parameters

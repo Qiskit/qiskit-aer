@@ -17,7 +17,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "clifford.hpp"
 
 namespace AER {
@@ -567,7 +567,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-    reg_t measured_qubits;
+    std::vector<uint64_t> measured_qubits;
     for (uint_t pos=0; pos < op.qubits.size(); ++pos) {
       uint_t qubit = op.qubits[pos];
       switch (pauli[pauli.size() - 1 - pos]) {
@@ -593,27 +593,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
       }      
     }
 
-    stringmap_t<double> probs;
-    snapshot_probabilities_auxiliary(measured_qubits,
-				     std::string(measured_qubits.size(), 'X'),
-				     1, probs);
-
-    complex_t local_val(0., 0.);
-    for(auto it = probs.begin(); it != probs.end(); ++it) {
-      std::string outcome = Utils::hex2bin(it->first);
-      int_t parity = 0;
-      for(uint_t pos=0; pos < measured_qubits.size(); ++pos) {
-	// first two characters of outcome are always 0b
-	int_t bit = ((outcome[pos+2] == '1') ? 1 : 0);
-	parity = ((parity + bit) % 2);
-      }
-      local_val += (it->second * ((-parity*2)+1));
-    }
-
-    // Pauli expecation values should always be real for a valid state
-    // so we truncate the imaginary part
-    expval += coeff * std::real(local_val);
-
+    expval += coeff * (double)BaseState::qreg_.expectation_value(measured_qubits);
     BaseState::qreg_ = copy_of_qreg;
   }
 

@@ -32,7 +32,7 @@
 #include <math.h>
 
 #include "framework/json.hpp"
-#include "base/state.hpp"
+#include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
 
@@ -316,8 +316,7 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},     // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-  // TODO: No Toffoli support?
-  //{"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
+   {"ccx", Gates::mcx}    // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -532,6 +531,9 @@ void State::apply_gate(const Operations::Op &op) {
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
 
   switch (it -> second) {
+  case Gates::mcx:
+      qreg_.apply_ccx(op.qubits);
+      break;
     case Gates::u3:
       qreg_.apply_u3(op.qubits[0],
                     std::real(op.params[0]),

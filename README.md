@@ -26,42 +26,40 @@ $ python
 ```
 
 ```python
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
-from qiskit import Aer, IBMQ  # import the Aer and IBMQ providers
-from qiskit.providers.aer import noise  # import Aer noise models
+from qiskit import QuantumCircuit, execute
+from qiskit import Aer, IBMQ
+from qiskit.providers.aer.noise import NoiseModel
 
-# Choose a real device to simulate
-IBMQ.load_accounts()
-device = IBMQ.get_backend('ibmq_16_melbourne')
-properties = device.properties()
-coupling_map = device.configuration().coupling_map
+# Choose a real device to simulate from IBMQ provider
+provider = IBMQ.load_account()
+backend = provider.get_backend('ibmq_vigo')
+coupling_map = backend.configuration().coupling_map
 
 # Generate an Aer noise model for device
-noise_model = noise.device.basic_device_noise_model(properties)
+noise_model = NoiseModel.from_backend(backend)
 basis_gates = noise_model.basis_gates
 
-# Generate a quantum circuit
-q = QuantumRegister(2)
-c = ClassicalRegister(2)
-qc = QuantumCircuit(q, c)
-
-qc.h(q[0])
-qc.cx(q[0], q[1])
-qc.measure(q, c)
+# Generate 3-qubit GHZ state
+num_qubits = 3
+circ = QuantumCircuit(3, 3)
+circ.h(0)
+circ.cx(0, 1)
+circ.cx(1, 2)
+circ.measure([0, 1, 2], [0, 1 ,2])
 
 # Perform noisy simulation
 backend = Aer.get_backend('qasm_simulator')
-job_sim = execute(qc, backend,
-                  coupling_map=coupling_map,
-                  noise_model=noise_model,
-                  basis_gates=basis_gates)
-sim_result = job_sim.result()
+job = execute(circ, backend,
+              coupling_map=coupling_map,
+              noise_model=noise_model,
+              basis_gates=basis_gates)
+result = job.result()
 
-print(sim_result.get_counts(qc))
+print(result.get_counts(0))
 ```
 
 ```python
-{'11': 412, '00': 379, '10': 117, '01': 116}
+{'000': 495, '001': 18, '010': 8, '011': 18, '100': 2, '101': 14, '110': 28, '111': 441}
 ```
 
 
@@ -75,7 +73,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 ## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/qiskit/aer) repository.
+[Qiskit IQX Tutorials](https://github.com/Qiskit/qiskit-iqx-tutorials/tree/master/qiskit/advanced/aer) or [Qiskit Community Tutorials](https://github.com/Qiskit/qiskit-community-tutorials/tree/master/aer) repositories.
 
 ## Authors and Citation
 

@@ -24,7 +24,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 from ..aererror import AerError
 # pylint: disable=import-error
-from .unitary_controller_wrapper import unitary_controller_execute
+from .controller_wrappers import unitary_controller_execute
 from ..version import __version__
 
 # Logger
@@ -87,13 +87,16 @@ class UnitarySimulator(AerBackend):
         'conditional': False,
         'open_pulse': False,
         'memory': False,
-        'max_shots': 1,
-        'description': 'A Python simulator for computing the unitary'
-                       'matrix for experiments in qobj files',
+        'max_shots': int(1e6),  # Note that this backend will only ever
+                                # perform a single shot. This value is just
+                                # so that the default shot value for execute
+                                # will not raise an error when trying to run
+                                # a simulation
+        'description': 'A C++ unitary simulator for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx', 'unitary', 'initialize', 'cu1', 'cu2',
+            't', 'tdg', 'swap', 'ccx', 'unitary', 'cu1', 'cu2',
             'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcu1', 'mcu2', 'mcu3',
             'mcswap', 'multiplexer',
         ],
@@ -211,13 +214,6 @@ class UnitarySimulator(AerBackend):
             'description': 'N-qubit arbitrary unitary gate. '
                            'The parameter is the N-qubit matrix to apply.',
             'qasm_def': 'unitary(matrix) q1, q2,...'
-        }, {
-            'name': 'initialize',
-            'parameters': ['vector'],
-            'conditional': False,
-            'description': 'N-qubit state initialize. '
-                           'Resets qubits then sets statevector to the parameter vector.',
-            'qasm_def': 'initialize(vector) q1, q2,...'
         }, {
             'name': 'cu1',
             'parameters': ['lam'],

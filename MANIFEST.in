@@ -1,6 +1,18 @@
-recursive-include qiskit *
-recursive-include src *
-recursive-include contrib *
+include MANIFEST.in
+recursive-include qiskit *pyx
+recursive-include qiskit *pxd
+recursive-include qiskit *.pxi
+recursive-include qiskit *cpp
+recursive-include qiskit *hpp
+graft src
+graft contrib
+include qiskit/providers/aer/backends/wrappers/CMakeLists.txt
+include qiskit/providers/aer/backends/wrappers/bindings.cc
+include qiskit/providers/aer/pulse/cy/CMakeLists.txt
+include qiskit/providers/aer/pulse/qutip_lite/cy/CMakeLists.txt
+include qiskit/providers/aer/VERSION.txt
 include CMakeLists.txt
 include cmake/*.cmake
-
+# Exclude static libraries (they are all compressed with 7z)
+exclude src/third-party/*/lib/*.a
+exclude src/third-party/*/lib/*.lib

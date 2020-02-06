@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -19,7 +20,7 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
-from .qasm_controller_wrapper import qasm_controller_execute
+from .controller_wrappers import qasm_controller_execute
 from ..version import __version__
 
 logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class QasmSimulator(AerBackend):
       parallel shot execution will be disabled. If set to 0 the
       maximum will be automatically set to max_parallel_threads.
       Note that this cannot be enabled at the same time as parallel
-      experiment execution (Default: 1).
+      experiment execution (Default: 0).
 
     * ``"max_memory_mb"`` (int): Sets the maximum size of memory
       to store a state vector. If a state vector needs more, an error
@@ -206,8 +207,8 @@ class QasmSimulator(AerBackend):
         'conditional': True,
         'open_pulse': False,
         'memory': True,
-        'max_shots': 100000,
-        'description': 'A C++ simulator with realistic noise for qobj files',
+        'max_shots': int(1e6),
+        'description': 'A C++ simulator with realistic noise for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
@@ -421,10 +422,10 @@ class QasmSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(qasm_controller_execute,
-                         QasmBackendConfiguration.from_dict(
-                             self.DEFAULT_CONFIGURATION),
-                         provider=provider)
+        super().__init__(
+            qasm_controller_execute,
+            QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
         """Semantic validations of the qobj which cannot be done via schemas.

@@ -17,3 +17,4 @@ Aer Provider Simulator Backends
 from .qasm_simulator import QasmSimulator
 from .statevector_simulator import StatevectorSimulator
 from .unitary_simulator import UnitarySimulator
+from .pulse_simulator import PulseSimulator

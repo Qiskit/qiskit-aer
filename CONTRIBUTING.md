@@ -257,6 +257,14 @@ USER_LIB_PATH
     Default: No value.
     Example: ``cmake -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so ..``
 
+BLAS_LIB_PATH
+    Tells CMake the directory to look for the BLAS library instead of the usual paths.
+    If no BLAS library is found under that directory, CMake will raise an error and stop.
+
+    Values: An absolute path with file included.
+    Default: No value.
+    Example: ``cmake -DBLAS_LIB_PATH=/path/to/look/for/blas/ ..``
+
 STATIC_LINKING
     Tells the build system whether to create static versions of the programs being built or not.
     NOTE: On MacOS static linking is not fully working for all versions of GNU G++/Clang
@@ -282,6 +290,18 @@ CMAKE_CXX_COMPILER
     Default: Depends on the running platform and the toolchains installed
     Example: ``cmake -DCMAKE_CXX_COMPILER=g++``
 
+AER_THRUST_BACKEND
+    We use Thrust library for GPU support through CUDA. If we want to build a version of Aer with GPU acceleration, we need to install CUDA and set this variable to the value: "CUDA".
+    There are other values that will use different CPU methods depending on the kind of backend we want to use:
+    - "OMP": For OpenMP support
+    - "TBB": For Intel Threading Building Blocks
+
+    Values: CUDA|OMP|TTB
+    Default: No value
+    Example: ``cmake -DAER_THRUST_BACKEND=CUDA``
+
+
+
 
 ## Tests
 
@@ -298,6 +318,18 @@ qiskit-aer$ python ./setup.py install
 # if you had to use --plat-name macosx-10.9-x86_64 for bdist_wheel then you need to do this for install:
 #   python ./setup.py install -- -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9 -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64
 qiskit-aer$ python -m unittest discover -s test -v
+```
+
+Alternatively you can run the integration tests in parallel using `stestr`.
+```
+qiskit-aer$ stestr run --slowest
+```
+
+The `slowest` option will print the slowest tests at the end. 
+Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/MANUAL.html#).
+You may need to install it:
+```
+qiskit-aer$ pip install stestr
 ```
 
 The integration tests for Terra addon are included in: `test/terra`.

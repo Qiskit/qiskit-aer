@@ -24,7 +24,7 @@ from numpy import ndarray
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
-from qiskit.qobj import QasmQobjConfig, validate_qobj_against_schema
+from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
@@ -130,43 +130,53 @@ class AerBackend(BaseBackend):
         if validate:
             validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
-        qobj_str = self._format_qobj_str(qobj, backend_options, noise_model)
-        output = json.loads(self._controller(qobj_str).decode('UTF-8'))
+        output = self._controller(self._format_qobj(qobj, backend_options, noise_model))
         self._validate_controller_output(output)
         end = time.time()
         return self._format_results(job_id, output, end - start)
 
-    def _format_qobj_str(self, qobj, backend_options, noise_model):
+    def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
-        # Save original qobj config so we can revert our modification
-        # after execution
-        original_config = qobj.config
-        # Convert to dictionary and add new parameters
-        # from noise model and backend options
-        config = original_config.to_dict()
+        # Convert qobj to dict so as to avoid editing original
+        output = qobj.to_dict()
+        # Add new parameters to config from backend options
+        config = output["config"]
         if backend_options is not None:
             for key, val in backend_options.items():
-                config[key] = val
-        if "max_memory_mb" not in config:
-            max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
-            config['max_memory_mb'] = max_memory_mb
-        # Add noise model
+                config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
+        # Add noise model to config
         if noise_model is not None:
             config["noise_model"] = noise_model
 
         # Add runtime config
-        config['library_dir'] = LIBRARY_DIR
-        qobj.config = QasmQobjConfig.from_dict(config)
-        # Get the JSON serialized string
-        output = json.dumps(qobj, cls=AerJSONEncoder).encode('UTF-8')
-        # Revert original qobj
-        qobj.config = original_config
+        if 'library_dir' not in config:
+            config['library_dir'] = LIBRARY_DIR
+        if "max_memory_mb" not in config:
+            max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
+            config['max_memory_mb'] = max_memory_mb
+
+        self._validate_config(config)
         # Return output
         return output
 
+    def _validate_config(self, config):
+        # sanity checks on config- should be removed upon fixing of assemble w.r.t. backend_options
+        if 'backend_options' in config:
+            if isinstance(config['backend_options'], dict):
+                for key, val in config['backend_options'].items():
+                    if hasattr(val, 'to_dict'):
+                        config['backend_options'][key] = val.to_dict()
+            elif not isinstance(config['backend_options'], list):
+                raise ValueError("config[backend_options] must be a dict or list!")
+        # Double-check noise_model is a dict type
+        if 'noise_model' in config and not isinstance(config["noise_model"], dict):
+            if hasattr(config["noise_model"], 'to_dict'):
+                config["noise_model"] = config["noise_model"].to_dict()
+            else:
+                raise ValueError("noise_model must be a dict : " + str(type(config["noise_model"])))
+
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
-        # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()

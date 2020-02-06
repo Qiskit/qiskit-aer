@@ -17,9 +17,9 @@ import unittest
 import numpy
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.utils import NoiseTransformer
-from qiskit.providers.aer.noise.utils import approximate_quantum_error
-from qiskit.providers.aer.noise.utils import approximate_noise_model
+from qiskit.providers.aer.utils import NoiseTransformer
+from qiskit.providers.aer.utils import approximate_quantum_error
+from qiskit.providers.aer.utils import approximate_noise_model
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Qiskit Aer statevector simulator backend.
 """
@@ -22,7 +20,7 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
 # pylint: disable=import-error
-from .statevector_controller_wrapper import statevector_controller_execute
+from .controller_wrappers import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
 
@@ -82,8 +80,12 @@ class StatevectorSimulator(AerBackend):
         'conditional': True,
         'open_pulse': False,
         'memory': True,
-        'max_shots': 1,
-        'description': 'A C++ statevector simulator for qobj files',
+        'max_shots': int(1e6),  # Note that this backend will only ever
+                                # perform a single shot. This value is just
+                                # so that the default shot value for execute
+                                # will not raise an error when trying to run
+                                # a simulation
+        'description': 'A C++ statevector simulator for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
