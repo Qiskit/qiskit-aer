@@ -632,6 +632,7 @@ class QasmSnapshotExpValPauliTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
+        print(result)
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
         if method not in QasmSnapshotExpValPauliTests.SUPPORTED_QASM_METHODS:

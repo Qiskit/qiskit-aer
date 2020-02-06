@@ -477,7 +477,6 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
     complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
-
     expval += coeff * pauli_expval;
   }
 
@@ -511,9 +510,12 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
     complex_t coeff = param.first;
 
     for (const auto &pair: param.second) {
-      const reg_t &qubits = pair.first;
+      reg_t sub_qubits;
+      for (const auto pos : pair.first) {
+        sub_qubits.push_back(op.qubits[pos]);
+      }
       const cmatrix_t &mat = pair.second;
-      one_expval = qreg_.expectation_value(qubits, mat);
+      one_expval = qreg_.expectation_value(sub_qubits, mat);
       expval += coeff * one_expval;
     }
   }
@@ -561,7 +563,6 @@ void State::apply_gate(const Operations::Op &op) {
   if (it == gateset_.end())
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
-
   switch (it -> second) {
   case Gates::mcx:
       qreg_.apply_ccx(op.qubits);

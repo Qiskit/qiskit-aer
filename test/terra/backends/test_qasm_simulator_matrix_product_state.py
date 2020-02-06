@@ -76,15 +76,16 @@ class TestQasmMatrixProductStateSimulator(
         QasmResetNoiseTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotProbabilitiesTests,
-        QasmSnapshotStabilizerTests
-        #QasmSnapshotExpValPauliTests,
-        #QasmSnapshotExpValMatrixTests,
+        QasmSnapshotStabilizerTests,
+        QasmSnapshotExpValPauliTests,
+        QasmSnapshotExpValMatrixTests,
         ):
     """QasmSimulator matrix product state method tests."""
 
     BACKEND_OPTS = {
         "seed_simulator": 314159,
-        "method": "matrix_product_state"
+        "method": "matrix_product_state",
+        "max_parallel_threads": 1
     }
 
 
