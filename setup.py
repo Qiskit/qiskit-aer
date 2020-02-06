@@ -22,6 +22,7 @@ except ImportError:
 import setuptools
 
 requirements = [
+    'qiskit-terra>=0.12.0',
     'numpy>=1.13',
     'scipy>=1.0',
     'cython>=0.27.1',
