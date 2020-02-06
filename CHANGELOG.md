@@ -44,6 +44,7 @@ Changed
 - Moved the location of several functions (\#568):
   - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
   - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+- Enabled optimization to aggregate consecutive gates in a circuit (fusion) by default (\#579).
 
 Deprecated
 ----------
