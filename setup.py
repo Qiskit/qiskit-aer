@@ -62,7 +62,8 @@ if "--with-numpy-blas" in sys.argv:
         blas_info = config.blas_opt_info
         has_lib_key = 'libraries' in blas_info.keys()
         if has_lib_key:
-            sys.argv.append('--')
+            if '--' not in sys.argv:
+                sys.argv.append('--')
             sys.argv.append('-DBLAS_LIB_PATH='+blas_info['library_dirs'][0])
         else:
             warnings.warn('Could not find NumPy blas library.  Continuing without...')
