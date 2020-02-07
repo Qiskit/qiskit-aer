@@ -5,7 +5,6 @@ Main setup file for qiskit-aer
 """
 
 import os
-import warnings
 import subprocess
 import sys
 import inspect
@@ -39,7 +38,7 @@ setup_requirements = requirements + [
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
-                    setuptools.find_namespace_packages):
+                   setuptools.find_namespace_packages):
     print("Your setuptools version:'{}' does not support PEP 420 "
           "(find_namespace_packages). Upgrade it to version >='40.1.0' and "
           "repeat install.".format(setuptools.__version__))
@@ -50,23 +49,90 @@ VERSION_PATH = os.path.join(os.path.dirname(__file__),
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
-# check if wanting to use NumPy BLAS
-if "--with-numpy-blas" in sys.argv:
-    sys.argv.remove("--with-numpy-blas")
+class text_colors:
+    """Text colors for terminal
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def _conda_blas_dir():
+    """Finds the BLAS used in the NumPy installed via conda.
+    """
+    print(text_colors.HEADER + "="*80 + text_colors.ENDC)
+    print(text_colors.HEADER + "Looking for Conda NumPy BLAS" + text_colors.ENDC)
+    config = np.__config__
+    blas_info = config.blas_opt_info
+    has_lib_key = 'libraries' in blas_info.keys()
+    blas = None
+    if has_lib_key:
+        blas_lib_dir = blas_info['library_dirs'][0]
+    if hasattr(config, 'mkl_info') or \
+            (has_lib_key and any('mkl' in lib for lib in blas_info['libraries'])):
+        blas = 'INTEL MKL'
+        blas_lib_name = ('libmkl_rt',)
+    elif hasattr(config, 'openblas_info') or \
+            (has_lib_key and any('openblas' in lib for lib in blas_info['libraries'])):
+        blas = 'OPENBLAS'
+        blas_lib_name = 'libopenblas'
+    else:
+        blas = None
+
+    blas_file = None
+    if blas:
+        print(text_colors.OKGREEN + "BLAS Found: " + blas + text_colors.ENDC)
+
+        if 'conda' in blas_lib_dir:
+            #Go up a dir due to issues on Windows
+            base_dir = os.path.join(os.path.dirname(blas_lib_dir))
+
+            for subdir, _, files in os.walk(base_dir):
+                for file in files:
+                    if file.startswith(blas_lib_name):
+                        if 'pkgs' not in subdir:
+                            blas_file = file
+                            blas_lib_dir = subdir
+                            break
+            if blas_file:
+                print(text_colors.OKBLUE + "BLAS dir: " + blas_lib_dir + text_colors.ENDC)
+                print(text_colors.OKGREEN + "BLAS executible: " + blas_file + text_colors.ENDC)
+            else:
+                print(text_colors.WARNING + \
+                      "BLAS executible not found. Continuing without... " + \
+                      text_colors.ENDC)
+        else:
+            print(text_colors.WARNING + \
+                  "NumPy build without BLAS executible.  Continuing without..." + \
+                  text_colors.ENDC)
+    else:
+        print(text_colors.WARNING + \
+                  "No BLAS found. Continuing without... " + \
+                  text_colors.ENDC)
+
+    print(text_colors.HEADER + "="*80 + text_colors.ENDC)
+
+    if blas_file:
+        return blas_lib_dir
+    return None
+
+# check if wanting to use Conda NumPy BLAS
+if "--with-conda-blas" in sys.argv:
+    sys.argv.remove("--with-conda-blas")
     try:
         import numpy as np
     except:
         raise ImportError('NumPy must be pre-installed.')
     else:
-        config = np.__config__
-        blas_info = config.blas_opt_info
-        has_lib_key = 'libraries' in blas_info.keys()
-        if has_lib_key:
+        blas_dir = _conda_blas_dir()
+        if blas_dir:
             if '--' not in sys.argv:
                 sys.argv.append('--')
-            sys.argv.append('-DBLAS_LIB_PATH='+blas_info['library_dirs'][0])
-        else:
-            warnings.warn('Could not find NumPy blas library.  Continuing without...')
+            sys.argv.append('-DBLAS_LIB_PATH='+blas_dir)
 
 setup(
     name='qiskit-aer',
