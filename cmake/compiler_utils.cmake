@@ -34,7 +34,7 @@ function(get_version version_str)
 endfunction()
 
 function(is_dir_empty dir)
-    file(GLOB RESULT ${dir})
+    file(GLOB RESULT ${dir}/*)
     list(LENGTH RESULT num_files)
     if(num_files EQUAL 0)
         set(dir_is_empty TRUE PARENT_SCOPE)
@@ -48,20 +48,23 @@ function(_get_library_source_code library repo_url version proof_of_existance)
     if(dir_is_empty)
         find_package(Git QUIET)
         if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-            # if we have cloned the sources, muparserx is a submodule, so we need
+            # if we have cloned the sources, the library is a submodule, so we need
             # to initialize it
             if(EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
-                # Update submodules as needed
+                # Update library submodule as needed
                 message(STATUS "Submodule update")
-                execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive src/third-party/headers/${library}
                                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                                 RESULT_VARIABLE GIT_SUBMOD_RESULT)
                 if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-                    message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+                    message(FATAL_ERROR "git submodule update --init --recursive src/third-party/headers/${library} \
+                            failed with ${GIT_SUBMOD_RESULT}, please checkout submodule ${library}")
                 endif()
+            else()
+                message(WARNING "Git checkout but ${PROJECT_SOURCE_DIR}/.gitmodules file not found!")
             endif()
         # Not comming from git, so probably: pip install https://...zip or similar.
-        # This time, we want to clone muparserx and change the latests stable release
+        # This time, we want to clone the library and change the latests stable release
         elseif(GIT_FOUND)
             execute_process(COMMAND ${GIT_EXECUTABLE} clone --branch ${version} ${repo_url} ${PROJECT_SOURCE_DIR}/src/third-party/headers/${library}
                             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -71,7 +74,7 @@ function(_get_library_source_code library repo_url version proof_of_existance)
                         please checkout ${library} manually from ${repo_url} and \
                         checkout latest stable relase")
             endif()
-        # TODO: If there's no git, we have to get muparserx using other method (curl)
+        # TODO: If there's no git, we have to get the library using other method (curl)
         endif()
 
         if(NOT EXISTS "${PROJECT_SOURCE_DIR}/src/third-party/headers/${proof_of_existance}")
@@ -126,10 +129,13 @@ function(uncompress_muparsersx_lib)
         if(CXX11_ABI EQUAL "0")
             set(MUPARSER_ABI_PREFIX oldabi_)
         endif()
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+            set(MUPARSER_ARCH_POSTFIX ".ppc64le")
+        endif()
         set(PLATFORM "linux")
     endif()
 
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx.7z"
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/${MUPARSER_ABI_PREFIX}muparserx${MUPARSER_ARCH_POSTFIX}.7z"
             WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
     set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib" PARENT_SCOPE)
 endfunction()
