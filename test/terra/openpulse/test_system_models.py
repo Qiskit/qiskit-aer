@@ -15,14 +15,16 @@ Tests for PulseSystemModel and HamiltonianModel functionality
 
 import unittest
 import warnings
+from numpy import array
+from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
 import qiskit
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
-from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
@@ -53,13 +55,13 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
                                'alpha1': alpha1}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
-        qubit_list =[0, 1]
+        subsystem_list =[0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 qubit_freq_est=self._default_qubit_lo_freq,
                                 u_channel_lo=self._u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
 
@@ -161,6 +163,49 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
                 u_lo_freq += qfreq * qscale
             u_lo_freqs.append(u_lo_freq)
         return u_lo_freqs
+
+class TestHamiltonianModel(QiskitAerTestCase):
+    """Tests for HamiltonianModel"""
+
+    def test_eigen_sorting(self):
+        """Test estate mappings"""
+
+        X = array([[0,1],[1,0]])
+        Y = array([[0,-1j], [1j, 0]])
+        Z = array([[1,0], [0, -1]])
+
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
+                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},
+                      'qub': {'0': 2}}
+
+        ham_model = HamiltonianModel.from_dict(simple_ham)
+
+        # check norm
+        for estate in ham_model._estates:
+            self.assertAlmostEqual(norm(estate), 1)
+
+        # check actually an eigenstate
+        mat = 0.1 * X + 0.1 * Y + 1 * Z
+        for idx, eval in enumerate(ham_model._evals):
+            diff = mat @ ham_model._estates[:, idx] - eval * ham_model._estates[:, idx]
+            self.assertAlmostEqual(norm(diff), 0)
+
+        # Same test but with strongly off-diagonal hamiltonian, which should raise warning
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
+                      'vars': {'a': 100, 'b': 32.1, 'c' : 0.12},
+                      'qub': {'0': 2}}
+
+        ham_model = HamiltonianModel.from_dict(simple_ham)
+
+        # check norm
+        for estate in ham_model._estates:
+            self.assertAlmostEqual(norm(estate), 1)
+
+        # check actually an eigenstate
+        mat = 100 * X + 32.1 * Y + 0.12 * Z
+        for idx, eval in enumerate(ham_model._evals):
+            diff = mat @ ham_model._estates[:, idx] - eval * ham_model._estates[:, idx]
+            self.assertAlmostEqual(norm(diff), 0)
 
 if __name__ == '__main__':
     unittest.main()

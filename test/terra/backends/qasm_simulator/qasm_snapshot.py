@@ -30,17 +30,13 @@ from test.terra.reference.ref_snapshot_state import (
     snapshot_state_pre_measure_statevector_nondeterministic,
     snapshot_state_post_measure_statevector_nondeterministic)
 from test.terra.reference.ref_snapshot_probabilities import (
-    snapshot_probabilities_circuits,
-    snapshot_probabilities_counts,
+    snapshot_probabilities_circuits, snapshot_probabilities_counts,
     snapshot_probabilities_labels_qubits,
     snapshot_probabilities_post_meas_probs,
     snapshot_probabilities_pre_meas_probs)
 from test.terra.reference.ref_snapshot_expval import (
-    snapshot_expval_circuits,
-    snapshot_expval_counts,
-    snapshot_expval_labels,
-    snapshot_expval_post_meas_values,
-    snapshot_expval_pre_meas_values)
+    snapshot_expval_circuits, snapshot_expval_counts, snapshot_expval_labels,
+    snapshot_expval_post_meas_values, snapshot_expval_pre_meas_values)
 
 
 class QasmSnapshotStatevectorTests:
@@ -48,7 +44,8 @@ class QasmSnapshotStatevectorTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -58,8 +55,7 @@ class QasmSnapshotStatevectorTests:
         snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
         statevecs = []
         for snap in snaps:
-            svec = np.array(snap)
-            statevecs.append(svec[:, 0] + 1j * svec[:, 1])
+            statevecs.append(np.array(snap))
         return statevecs
 
     def test_snapshot_statevector_pre_measure_det(self):
@@ -74,8 +70,7 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -105,8 +100,7 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -139,8 +133,7 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -170,8 +163,7 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -230,8 +222,7 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -262,8 +253,7 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -297,8 +287,7 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -329,8 +318,7 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj,
-                                 backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -358,7 +346,8 @@ class QasmSnapshotDensityMatrixTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'density_matrix'
+        'automatic', 'density_matrix', 'density_matrix_gpu',
+        'density_matrix_thrust'
     ]
     BACKEND_OPTS = {}
 
@@ -366,7 +355,8 @@ class QasmSnapshotDensityMatrixTests:
     def density_snapshots(data, label):
         """Format snapshots as list of Numpy arrays"""
         # Check snapshot entry exists in data
-        snaps = data.get("snapshots", {}).get("density_matrix", {}).get(label, [])
+        snaps = data.get("snapshots", {}).get("density_matrix",
+                                              {}).get(label, [])
         # Convert nested lists to numpy arrays
         output = {}
         for snap_dict in snaps:
@@ -401,7 +391,8 @@ class QasmSnapshotDensityMatrixTests:
                 data = result.data(circuit)
                 snaps = self.density_snapshots(data, label)
                 self.assertTrue(len(snaps), 1)
-                target = np.outer(statevec_targets[j], statevec_targets[j].conj())
+                target = np.outer(statevec_targets[j],
+                                  statevec_targets[j].conj())
                 # Pre-measurement all memory bits should be 0
                 value = snaps.get('0x0')
                 self.assertTrue(np.allclose(value, target))
@@ -435,7 +426,8 @@ class QasmSnapshotDensityMatrixTests:
                 data = result.data(circuit)
                 snaps = self.density_snapshots(data, label)
                 self.assertTrue(len(snaps), 1)
-                target = np.outer(statevec_targets[j], statevec_targets[j].conj())
+                target = np.outer(statevec_targets[j],
+                                  statevec_targets[j].conj())
                 value = snaps.get('0x0')
                 self.assertTrue(np.allclose(value, target))
 
@@ -510,7 +502,15 @@ class QasmSnapshotProbabilitiesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'density_matrix', 'matrix_product_state'
+        'automatic',
+        'statevector',
+        'statevector_gpu',
+        'statevector_thrust',
+        'stabilizer',
+        'density_matrix',
+        'density_matrix_gpu',
+        'density_matrix_thrust',
+        'matrix_product_state',
     ]
     BACKEND_OPTS = {}
 
@@ -520,9 +520,12 @@ class QasmSnapshotProbabilitiesTests:
         # Check snapshot entry exists in data
         output = {}
         for label in labels:
-            snaps = data.get("snapshots", {}).get("probabilities", {}).get(label, [])
-            output[label] = {snap_dict['memory']: snap_dict['value']
-                             for snap_dict in snaps}
+            snaps = data.get("snapshots", {}).get("probabilities",
+                                                  {}).get(label, [])
+            output[label] = {
+                snap_dict['memory']: snap_dict['value']
+                for snap_dict in snaps
+            }
         return output
 
     def test_snapshot_probabilities_pre_measure(self):
@@ -543,7 +546,10 @@ class QasmSnapshotProbabilitiesTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -573,7 +579,10 @@ class QasmSnapshotProbabilitiesTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -590,7 +599,8 @@ class QasmSnapshotExpValPauliTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'stabilizer', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+        'matrix_product_state', 'stabilizer'
     ]
     BACKEND_OPTS = {}
 
@@ -600,12 +610,13 @@ class QasmSnapshotExpValPauliTests:
         # Check snapshot entry exists in data
         output = {}
         for label in labels:
-            snaps = data.get("snapshots", {}).get("expectation_value", {}).get(label, [])
+            snaps = data.get("snapshots", {}).get("expectation_value",
+                                                  {}).get(label, [])
             # Convert list into dict
             inner = {}
             for snap_dict in snaps:
                 val = snap_dict['value']
-                inner[snap_dict['memory']] = val[0] + 1j * val[1]
+                inner[snap_dict['memory']] = val
             output[label] = inner
         return output
 
@@ -627,7 +638,10 @@ class QasmSnapshotExpValPauliTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -636,7 +650,8 @@ class QasmSnapshotExpValPauliTests:
                     snaps = all_snapshots.get(label, {})
                     self.assertTrue(len(snaps), 1)
                     for memory, value in snaps.items():
-                        target = value_targets[j].get(label, {}).get(memory, {})
+                        target = value_targets[j].get(label,
+                                                      {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_pauli_post_measure(self):
@@ -657,7 +672,10 @@ class QasmSnapshotExpValPauliTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -666,15 +684,18 @@ class QasmSnapshotExpValPauliTests:
                     snaps = all_snapshots.get(label, {})
                     self.assertTrue(len(snaps), 1)
                     for memory, value in snaps.items():
-                        target = value_targets[j].get(label, {}).get(memory, {})
+                        target = value_targets[j].get(label,
+                                                      {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
+
 
 class QasmSnapshotExpValMatrixTests:
     """QasmSimulator snapshot pauli expectation value tests."""
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'statevector', 'matrix_product_state'
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -684,7 +705,8 @@ class QasmSnapshotExpValMatrixTests:
         # Check snapshot entry exists in data
         output = {}
         for label in labels:
-            snaps = data.get("snapshots", {}).get("expectation_value", {}).get(label, [])
+            snaps = data.get("snapshots", {}).get("expectation_value",
+                                                  {}).get(label, [])
             # Convert list into dict
             inner = {}
             for snap_dict in snaps:
@@ -710,7 +732,10 @@ class QasmSnapshotExpValMatrixTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -719,7 +744,8 @@ class QasmSnapshotExpValMatrixTests:
                     snaps = all_snapshots.get(label, {})
                     self.assertTrue(len(snaps), 1)
                     for memory, value in snaps.items():
-                        target = value_targets[j].get(label, {}).get(memory, {})
+                        target = value_targets[j].get(label,
+                                                      {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
     def test_snapshot_expval_matrix_post_measure(self):
@@ -740,7 +766,10 @@ class QasmSnapshotExpValMatrixTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
@@ -749,5 +778,6 @@ class QasmSnapshotExpValMatrixTests:
                     snaps = all_snapshots.get(label, {})
                     self.assertTrue(len(snaps), 1)
                     for memory, value in snaps.items():
-                        target = value_targets[j].get(label, {}).get(memory, {})
+                        target = value_targets[j].get(label,
+                                                      {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)

@@ -15,23 +15,67 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.4.0...HEAD)
 =======================================================================
 
 Added
 -----
+
+Changed
+-------
+
+Deprecated
+----------
+
+Removed
+-------
+
+Fixed
+-----
+
+
+
+[0.4.0](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
+======================================================================================
+
+Added
+-----
+- Added `NoiseModel.from_backend` for building a basic device noise model for an IBMQ
+  backend (\#569)
+- Added multi-GPU enabled simulation methods to the `QasmSimulator`, `StatevectorSimulator`,
+  and `UnitarySimulator`. The qasm simulator has gpu version of the density matrix and
+  statevector methods and can be accessed using `"method": "density_matrix_gpu"` or
+  `"method": "statevector_gpu"` in `backend_options`. The statevector simulator gpu method
+  can be accessed using `"method": "statevector_gpu"`. The unitary simulator GPU method can
+  be accessed using `"method": "unitary_gpu"`. These backends use CUDA and require an NVidia
+  GPU.(\#544)
 - Added ``PulseSimulator`` backend (\#542)
 - Added ``PulseSystemModel`` and ``HamiltonianModel`` classes to represent models to be used in ``PulseSimulator`` (\#496, \#493)
 - Added ``duffing_model_generators`` to generate ``PulseSystemModel`` objects from a list of parameters (\#516)
 - Migrated ODE function solver to C++ (\#442, \#350)
 - Added high level pulse simulator tests (\#379)
-- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543) 
+- CMake BLAS_LIB_PATH flag to set path to look for BLAS lib (\#543)
 
 Changed
 -------
+- Changed the structure of the `src` directory to organise simulator source code.
+  Simulator controller headers were moved to `src/controllers` and simulator method State
+  headers are in `src/simulators` (\#544)
+- Moved the location of several functions (\#568):
+  - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
+  - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+- Enabled optimization to aggregate consecutive gates in a circuit (fusion) by default (\#579).
+
+Deprecated
+----------
+- Deprecated `utils.qobj_utils` functions (\#568)
+- Deprecated `qiskit.providers.aer.noise.device.basic_device_noise_model`. It is superseded by the
+  `NoiseModel.from_backend` method (\#569)
 
 Removed
 -------
+- Removed `NoiseModel.as_dict`, `QuantumError.as_dict`, `ReadoutError.as_dict`, and 
+  `QuantumError.kron` methods that were deprecated in 0.3 (\#568).
 
 Fixed
 -----
@@ -45,9 +89,6 @@ Added
 - MPS simulation method: added approximation subject to user control (\#475)
 - Added support for probabilities snapshot and Pauli expectation value snapshot in the stabilizer simulator (\#423)
 - MPS simulation method: added support for ``ccx`` (\#454)
-
-Changed
--------
 
 Removed
 -------
@@ -98,9 +139,19 @@ Added
 
 Changed
 -------
+- Moved the location of several functions (\#568):
+  - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
+  - Moved contents of `qiskit.provider.aer.noise.device` into the `qiskit.providers.noise` module.
+  - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+
+Deprecated
+----------
+- Deprecated `utils.qobj_utils` functions (\#568)
 
 Removed
 -------
+- Removed `NoiseModel.as_dict`, `QuantumError.as_dict`, `ReadoutError.as_dict`, and 
+  `QuantumError.kron` methods that were deprecated in 0.3 (\#568).
 
 Fixed
 -----
@@ -121,6 +172,8 @@ Added
 - Added tests for probabilities snapshot (\#380)
 - Added support for reset() in MPS simulation method (\#393)
 - Added tests for matrix and Pauli expectation value snapshot (\#386)
+- Added test decorators for tests that require OpenMP and multi-threading(\#551)
+- Added tests for automatic and custom parallel thread configuration (\#511)
 
 Changed
 -------
@@ -139,6 +192,8 @@ Removed
 
 Fixed
 -----
+- Fixed bug in parallel thread configuration where total threads could exceed
+  the "max_parallel_threads" config settings (\#551)
 
 
 [0.3.0](https://github.com/Qiskit/qiskit-aer/compare/0.2.3...0.3.0) - 2019-08-21

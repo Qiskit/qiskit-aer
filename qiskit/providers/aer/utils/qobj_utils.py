@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Temporary hacks for qobj until Terra supports Aer instructions (likely 0.8)
 
@@ -18,6 +17,7 @@ IS ADDED TO QISKIT TERRA. THEY WILL NOT BE SUPPORTED AFTER THAT.
 """
 
 import copy
+import warnings
 import numpy as np
 from qiskit.qobj import QasmQobjInstruction
 
@@ -33,6 +33,9 @@ def append_instr(qobj, exp_index, instruction):
     Returns:
         qobj(Qobj): The Qobj object
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     qobj.experiments[exp_index].instructions.append(instruction)
     return qobj
 
@@ -49,6 +52,9 @@ def insert_instr(qobj, exp_index, item, pos):
     Returns:
         qobj(Qobj): The Qobj object
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     qobj.experiments[exp_index].instructions.insert(pos, item)
     return qobj
 
@@ -67,9 +73,14 @@ def get_instr_pos(qobj, exp_index, name):
     Returns:
         list[int]: A list of positions where the QasmQobjInstruction is located.
     """
+    warnings.warn(
+        'This funnction is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     # Check only the name string of the item
-    positions = [i for i, val in enumerate(qobj.experiments[exp_index].instructions)
-                 if val.name == name]
+    positions = [
+        i for i, val in enumerate(qobj.experiments[exp_index].instructions)
+        if val.name == name
+    ]
     return positions
 
 
@@ -100,43 +111,64 @@ def unitary_instr(mat, qubits, label=None):
             model so that noise may be applied to the implementation of
             this matrix.
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     array = np.array(mat, dtype=complex)
-    dim = 2 ** len(qubits)
+    dim = 2**len(qubits)
     if array.shape not in [(dim, dim), (1, dim)]:
         raise ValueError("Invalid")
-    instruction = {"name": "unitary", "qubits": list(qubits),
-                   "params": [np.array(mat, dtype=complex)]}
+    instruction = {
+        "name": "unitary",
+        "qubits": list(qubits),
+        "params": [np.array(mat, dtype=complex)]
+    }
     if label is not None:
         instruction["label"] = str(label)
     return QasmQobjInstruction(**instruction)
 
 
 def measure_instr(qubits, memory, registers=None):
-
     """Create a multi-qubit measure instruction"""
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     if len(qubits) != len(memory):
         raise ValueError("Number of qubits does not match number of memory")
     if registers is None:
-        return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory)
+        return QasmQobjInstruction(name='measure',
+                                   qubits=qubits,
+                                   memory=memory)
     # Case where we also measure to registers
     if len(qubits) != len(registers):
         raise ValueError("Number of qubits does not match number of registers")
-    return QasmQobjInstruction(name='measure', qubits=qubits, memory=memory,
+    return QasmQobjInstruction(name='measure',
+                               qubits=qubits,
+                               memory=memory,
                                register=registers)
 
 
 def reset_instr(qubits):
     """Create a multi-qubit reset instruction"""
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     return QasmQobjInstruction(name='reset', qubits=qubits)
 
 
 def barrier_instr(num_qubits):
     """Create a barrier QasmQobjInstruction."""
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     return QasmQobjInstruction(name='barrier', qubits=list(range(num_qubits)))
 
 
 def iden_instr(qubit):
     """Create a barrier QasmQobjInstruction."""
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     return QasmQobjInstruction(name='id', qubits=[qubit])
 
 
@@ -179,7 +211,15 @@ def snapshot_instr(snapshot_type, label, qubits=None, params=None):
         Matrix expectation value params:
             TODO
     """
-    snap = {"name": "snapshot", "snapshot_type": snapshot_type, "label": str(label)}
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.'
+        ' Use the snapshot circuit instructions in'
+        ' `qiskit.provider.aer.extensions` instead.', DeprecationWarning)
+    snap = {
+        "name": "snapshot",
+        "snapshot_type": snapshot_type,
+        "label": str(label)
+    }
     if qubits is not None:
         snap["qubits"] = list(qubits)
     if params is not None:
@@ -211,6 +251,9 @@ def insert_snapshots_after_barriers(qobj, snapshot):
 
     Additional Information:
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     if snapshot.name != "snapshot":
         raise ValueError("Invalid snapshot instruction")
     label = snapshot.label

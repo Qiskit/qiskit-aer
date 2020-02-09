@@ -43,6 +43,8 @@ set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
 
+set(AER_COMPILER_DEFINITIONS "")
+
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
 	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
@@ -132,8 +134,10 @@ if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
 endif()
 
 if(OPENMP_FOUND)
-	set(AER_COMPILE_FLAGS "${AER_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 	if(APPLE)
 		# On Apple and clang, we do need to link against the library unless we are building
 		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -143,6 +147,8 @@ if(OPENMP_FOUND)
 		endif()
 	endif()
 	message(STATUS "OpenMP found!")
+	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
 	message(STATUS "WARNING: No OpenMP support found!")
 endif()
@@ -150,6 +156,12 @@ endif()
 message(STATUS "Looking for NLOHMANN Json library...")
 set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 find_package(nlohmann_json REQUIRED)
+
+if(STATIC_LINKING)
+	message(STATUS "Using static linking with Threads...")
+	set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+	set(THREADS_PREFER_PTHREAD_FLAG True)
+endif()
 find_package(Threads)
 
 if(STATIC_LINKING)
@@ -182,7 +194,7 @@ endif()
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 message(STATUS "Looking for spdlog library...")
-find_package(spdlog)
+find_package(spdlog QUIET)
 if(spdlog_FOUND)
 	message(STATUS "spdlog found.")
 	set(SPDLOG_LIB spdlog::spdlog)
@@ -191,26 +203,54 @@ else()
 	set(SPDLOG_LIB "")
 endif()
 
-message(STATUS "Uncompressing muparserx static library...")
-if(MSVC)
-	set(PLATFORM "win64")
-elseif(APPLE)
-	set(PLATFORM "macos")
-elseif(UNIX)
-	set(PLATFORM "linux")
+# Windows don't have a DL library (dlopen, dlclose, etc...)
+if(NOT MSVC)
+	find_library(DL_LIB NAMES dl)
+	if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
+		message(FATAL_ERROR "No dl lib found")
+	endif()
 endif()
-execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/muparserx.7z"
-	WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib/")
-set(MUPARSERX_LIB_PATH "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${PLATFORM}/lib")
 
-find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
-if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
-	message(FATAL_ERROR "No muparserx library found")
+# GPU support through Thrust library (CPU fallbacks)
+# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
+set(AER_THRUST_SUPPORTED TRUE)
+if(AER_THRUST_SUPPORTED)
+	if(AER_THRUST_BACKEND STREQUAL "CUDA")
+		message(STATUS "Thrust library: Looking for CUDA backend...")
+		find_package(CUDA REQUIRED)
+		message(STATUS "Thrust library: CUDA found!")
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
+		set(THRUST_DEPENDANT_LIBS "")
+	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
+		message(STATUS "Thrust library: Looking for TBB backend...")
+		find_package(TBB REQUIRED)
+		message(STATUS "TBB Support found!")
+		get_thrust_source_code()
+		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB AER_THRUST_CPU=TRUE)
+	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
+		message(STATUS "Thrust library: Setting OMP backend")
+		if(NOT OPENMP_FOUND)
+			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
+		endif()
+		get_thrust_source_code()
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		# We don't need to add OMP because it's already an AER dependency
+		set(THRUST_DEPENDANT_LIBS "")
+	else()
+		message(STATUS "No Thrust supported backend")
+		set(AER_THRUST_SUPPORTED FALSE)
+	endif()
 endif()
-message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
-get_muparserx_source_code()
-# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
+
+if(AER_THRUST_SUPPORTED)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_SUPPORTED=TRUE)
+else()
+	message(STATUS "No Thrust support enabled")
+endif()
+
 
 
 # Set dependent libraries
@@ -220,26 +260,42 @@ set(AER_LIBRARIES
 	nlohmann_json
 	Threads::Threads
 	${SPDLOG_LIB}
-	${CMAKE_DL_LIBS}
-	${MUPARSERX_LIB})
+	${DL_LIB}
+	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	add_subdirectory(qiskit/providers/aer/openpulse/cy)
-	add_subdirectory(qiskit/providers/aer/openpulse/qutip_lite/cy)
+	add_muparserx_lib()
+
+	add_subdirectory(qiskit/providers/aer/pulse/cy)
+	add_subdirectory(qiskit/providers/aer/pulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
-	add_subdirectory(src/simulators/open_pulse)
+	add_subdirectory(src/open_pulse)
 else() # Standalone build
-	add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+	if(CUDA_FOUND)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+	else(CUDA_FOUND)
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
 		LINKER_LANGUAGE CXX
 		CXX_STANDARD 14
-		COMPILE_FLAGS ${AER_COMPILE_FLAGS}
+		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
 		LINK_FLAGS ${AER_LINKER_FLAGS}
 		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	target_include_directories(qasm_simulator PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
-	target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+	target_include_directories(qasm_simulator
+		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+	target_compile_definitions(qasm_simulator
+		PRIVATE ${AER_COMPILER_DEFINITIONS})
+	install(TARGETS qasm_simulator DESTINATION bin)
+
 	# Linter
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)

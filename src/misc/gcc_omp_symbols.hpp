@@ -81,6 +81,11 @@ extern "C" {
     int __KAI_KMPC_CONVENTION omp_get_thread_num(void) {
         return _hook_omp_get_thread_num();
     }
+    using omp_get_num_procs_t = int(*)(void);
+    omp_get_num_procs_t _hook_omp_get_num_procs;
+    int __KAI_KMPC_CONVENTION omp_get_num_procs(void) {
+        return _hook_omp_get_num_procs();
+    }
 }
 
 namespace AER {
@@ -97,6 +102,7 @@ namespace Hacks {
         _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
         _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
         _hook_omp_get_thread_num = reinterpret_cast<decltype(&omp_get_thread_num)>(dlsym(handle, "omp_get_thread_num"));
+        _hook_omp_get_num_procs = reinterpret_cast<decltype(&omp_get_num_procs)>(dlsym(handle, "omp_get_num_procs"));
     }
 }
 }

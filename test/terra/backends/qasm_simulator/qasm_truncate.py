@@ -16,7 +16,7 @@ from qiskit.providers.aer import noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.providers.models import BackendProperties
-from qiskit.providers.aer.noise.device import basic_device_noise_model
+
 
 class QasmQubitsTruncateTests:
     """QasmSimulator Qubits Truncate tests."""
@@ -215,7 +215,7 @@ class QasmQubitsTruncateTests:
 
         result = execute(circuit, 
                             qasm_sim, 
-                            noise_model=basic_device_noise_model(self.device_properties()), 
+                            noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
                             backend_options=backend_options).result()
@@ -234,7 +234,7 @@ class QasmQubitsTruncateTests:
 
         result = execute(circuit, 
                             qasm_sim, 
-                            noise_model=basic_device_noise_model(self.device_properties()), 
+                            noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]], # 4-qubit device
                             backend_options=backend_options).result()
@@ -255,7 +255,7 @@ class QasmQubitsTruncateTests:
 
         result = execute(circuit, 
                             qasm_sim, 
-                            noise_model=basic_device_noise_model(self.device_properties()), 
+                            noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
                             backend_options=backend_options).result()
