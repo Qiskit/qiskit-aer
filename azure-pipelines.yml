@@ -4,8 +4,13 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
-- master
-- stable
+  branches:
+    include:
+      - master
+      - stable/*
+  tags:
+    include:
+      - '*'
 
 stages:
   - stage: 'Wheel_Builds'
@@ -55,6 +60,7 @@ stages:
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
         - bash: |
+            pip install -U twine
             twine upload wheelhouse/*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)

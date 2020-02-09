@@ -269,7 +269,7 @@ jobs:
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       if: tag IS present
       script:
-        - pip install -U pip virtualenv
+        - pip install -U pip virtualenv twine
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
@@ -280,7 +280,8 @@ jobs:
       env:
         - TWINE_USERNAME=qiskit
       python: 3.7
-      before_script: true
+      before_script:
+        - pip install -U pip setuptools virtualenv twine
       install: true
       script:
         - python setup.py sdist
