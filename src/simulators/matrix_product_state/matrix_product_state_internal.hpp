@@ -306,7 +306,7 @@ protected:
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_to_new_position(const reg_t &new_position,
-				   const reg_t &sorted_indices);
+				   reg_t &target_qubits);
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_original_location

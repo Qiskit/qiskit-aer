@@ -606,45 +606,48 @@ void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_q
   // during centralize_qubits
 }
 
-void MPS::move_qubits_to_new_position(const reg_t &new_position, 
-				      const reg_t &sorted_indices) {
+void MPS::move_qubits_to_new_position(const reg_t &new_positions, 
+				      reg_t &target_qubits) {
   // actual_qubits is a temporary structure that stores the current ordering of the 
   // qubits in the MPS structure. It is necessary, because when we perform swaps, 
   // the positions of the qubits change. We need to move the qubits from their 
   // current position (as in actual qubits), not from the original position
-  reg_t actual_qubits = sorted_indices;;
-
-  for (uint_t i=0; i<new_position.size(); i++) {
-    uint_t current_qubit = new_position[i];
-    for (uint_t src=0; src<actual_qubits.size(); src++) {
-      if (actual_qubits[src] == current_qubit) {
-	change_position(src, i);
-
-	// Here we update actual_qubits as needed after the change in MPS positions
-	if (src < i)
-	  for (uint_t dst=src; dst<i; dst++) {
-	    std::swap(actual_qubits[dst], actual_qubits[dst+1]);
-	  } else {
-	  for (uint_t dst=src; dst>i; dst--){
-	    std::swap(actual_qubits[dst], actual_qubits[dst-1]);
-	  }
+  
+  reg_t actual_indices(num_qubits_);
+  std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
+  
+  uint_t num_target_qubits = new_positions.size();
+  uint_t num_moved = 0;
+  // This is similar to bubble sort - move the qubits to the right end
+  for (int_t right_index=new_positions.size()-1; right_index>=0; right_index--) {
+    // find "largest" element and move it to the right end
+    uint_t biggest = new_positions[right_index];
+    num_moved++;
+    for (uint_t i=0; i<actual_indices.size(); i++) {
+      if (actual_indices[i] == biggest) {
+	for (uint_t j=i; j<actual_indices.size()-num_moved; j++) {
+	  //swap the qubits until biggest reaches right end
+	  apply_swap(j, j+1);
+	  // swap actual_indices to keep track of the new qubit positions
+	  std::swap(actual_indices[j], actual_indices[j+1]);
 	}
 	break;
       }
     }
   }
+  // the target qubits are simply the rightmost qubits
+  std::iota( std::begin(target_qubits), std::end(target_qubits), num_qubits_-num_target_qubits);
 }
 
-void MPS::change_position(uint_t src, uint_t dst) {
-  //std::cout <<src << " to " << dst << std::endl;
-  if(src == dst)
-    return;
-  else if(src < dst)
-    for(uint_t i = src; i < dst; i++)
-      apply_swap(i,i+1);
-  else
-    for(uint_t i = src; i > dst; i--)
-      apply_swap(i,i-1);
+ void MPS::change_position(uint_t src, uint_t dst) {
+   if(src == dst)
+     return;
+   else if(src < dst)
+     for(uint_t i = src; i < dst; i++)
+       apply_swap(i,i+1);
+   else
+     for(uint_t i = src; i > dst; i--)
+       apply_swap(i,i-1);
 }
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const
@@ -707,27 +710,26 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
   MPS temp_MPS;
   temp_MPS.initialize(*this);
-  std::cout << "at the beginning: temp_MPS" << std::endl;
-  temp_MPS.print(std::cout);
-  reg_t sorted_indices(qubits.size());
-  reg_t centralized_qubits(qubits.size());
   bool ordered = true;
-  
+  for (uint_t index=0; index < qubits.size()-1; index++) {
+    if (qubits[index]+1 != qubits[index+1]){
+      ordered = false;
+      break;
+    }
+  }
+
   reg_t reversed_qubits = qubits;
   std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
-  find_centralized_indices(reversed_qubits, sorted_indices, centralized_qubits, ordered);
   
-  //temp_MPS.move_qubits_to_new_position(centralized_qubits);
-  temp_MPS.move_qubits_to_new_position(reversed_qubits, sorted_indices);
-  std::cout << "after centralize: temp_MPS" << std::endl;
-  temp_MPS.print(std::cout);
-
-  std::cout << "centralized_qubits ";
-  for (uint_t i=0; i< centralized_qubits.size(); i++)
-    std::cout << " " <<centralized_qubits[i]; 
-  std::cout <<std::endl;
-
-  cmatrix_t rho = temp_MPS.density_matrix(centralized_qubits);
+  // if qubits are in consecutive order, can extract the density matrix without moving
+  // them, for performance reasons
+  reg_t target_qubits(qubits.size());
+  if (ordered) {
+    target_qubits = qubits;
+  } else {
+    temp_MPS.move_qubits_to_new_position(reversed_qubits, target_qubits);
+  }
+  cmatrix_t rho = temp_MPS.density_matrix(target_qubits);
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
