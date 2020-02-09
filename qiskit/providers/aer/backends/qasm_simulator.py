@@ -201,8 +201,8 @@ class QasmSimulator(AerBackend):
       the svd algorithm. Coefficients beyond this limit will be discarded.
       (Default: None, i.e., no limit on the bond dimension).
 
-    * ``"matrix_product_state_truncation_threshold"`` (double): 
-      Discard all coefficients that are smaller than 
+    * ``"matrix_product_state_truncation_threshold"`` (double):
+      Discard all coefficients that are smaller than
       this threshold x the maximum coefficient.
       (Default: 1e-16).
 
