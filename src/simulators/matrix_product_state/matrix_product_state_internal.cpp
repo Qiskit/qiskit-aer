@@ -708,28 +708,30 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
+  // need to reverse qubits because that is the way they
+  // are defined in the Qiskit interface
+  reg_t reversed_qubits = qubits;
+  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
   bool ordered = true;
   for (uint_t index=0; index < qubits.size()-1; index++) {
-    if (qubits[index]+1 != qubits[index+1]){
+    if (reversed_qubits[index]+1 != reversed_qubits[index+1]){
       ordered = false;
       break;
     }
   }
+  cmatrix_t rho;
 
-  reg_t reversed_qubits = qubits;
-  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
-  
-  // if qubits are in consecutive order, can extract the density matrix without moving
-  // them, for performance reasons
+  // if qubits are in consecutive order, can extract the density matrix
+  // without moving them, for performance reasons
   reg_t target_qubits(qubits.size());
   if (ordered) {
-    target_qubits = qubits;
+    rho = density_matrix(reversed_qubits);
   } else {
+    MPS temp_MPS;
+    temp_MPS.initialize(*this);
     temp_MPS.move_qubits_to_new_position(reversed_qubits, target_qubits);
+    rho = temp_MPS.density_matrix(target_qubits);
   }
-  cmatrix_t rho = temp_MPS.density_matrix(target_qubits);
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
