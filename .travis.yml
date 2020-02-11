@@ -139,10 +139,22 @@ jobs:
     # Linux Wheel
     - stage: compile
       name: Python Wheel Build Linux
-      <<: *stage_linux
-      before_script: true
+      language: python
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
+        - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       script:
-        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
+        - pip install -U pip virtualenv twine
+        - pip install cibuildwheel==1.1.0
+        - cibuildwheel --output-dir wheelhouse
     - stage: compile
       name: Python sdist Build Linux
       <<: *stage_linux
