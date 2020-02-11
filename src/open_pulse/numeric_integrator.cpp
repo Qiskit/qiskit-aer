@@ -123,7 +123,7 @@ PyArrayObject * td_ode_rhs(
     CALLGRIND_START_INSTRUMENTATION;
     #endif
 
-    const static auto numpy_initialized = init_numpy();
+    import_array();
 
     // I left this commented on porpose so we can use logging eventually
     // This is just a RAII for the logger
