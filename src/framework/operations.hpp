@@ -197,6 +197,13 @@ public:
   void insert(const std::vector<Op> &ops);
 
   //-----------------------------------------------------------------------
+  // Check if operations are in all in the OpSet
+  //-----------------------------------------------------------------------
+
+  // Return true if an operation is contained in the current OpSet
+  bool contains(const OpType &optype) const;
+
+  //-----------------------------------------------------------------------
   // Validate OpSet against sets of allowed operations
   //-----------------------------------------------------------------------
 
@@ -286,6 +293,12 @@ void OpSet::insert(const OpSet &opset) {
                 opset.gates.end());
   snapshots.insert(opset.snapshots.begin(),
                     opset.snapshots.end());
+}
+
+bool OpSet::contains(const OpType &optype) const {
+  if (optypes.find(optype) == optypes.end())
+    return false;
+  return true;
 }
 
 bool OpSet::validate(const optypeset_t &allowed_ops,
@@ -410,18 +423,6 @@ inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
   op.name = "superop";
   op.qubits = qubits;
   op.mats = {mat};
-  return op;
-}
-
-inline Op make_fusion(const reg_t &qubits, const cmatrix_t &mat, const std::vector<Op>& fusioned_ops, std::string label = "") {
-  Op op;
-  op.type = OpType::matrix;
-  op.name = "fusion";
-  op.qubits = qubits;
-  op.mats = {mat};
-  if (label != "")
-    op.string_params = {label};
-
   return op;
 }
 
