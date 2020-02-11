@@ -26,7 +26,7 @@ class SnapshotExpectationValue(Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
     def __init__(self, label, op, single_shot=False, variance=False):
-        """Create a probability snapshot instruction.
+        """Create an expectation value snapshot instruction.
 
         Args:
             label (str): the snapshot label.
@@ -76,7 +76,6 @@ class SnapshotExpectationValue(Snapshot):
     @staticmethod
     def _format_single_matrix(op):
         """Format op into Matrix op, return None if not Pauli op"""
-        # This can be specified as list [[coeff, Pauli], ... ]
         if isinstance(op, numpy.ndarray):
             return op
         if isinstance(op, (Instruction, QuantumCircuit)):

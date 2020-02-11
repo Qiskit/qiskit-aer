@@ -104,7 +104,7 @@ namespace Simulator {
  *       passes [Default: True]
  * - fusion_verbose (bool): Output gates generated in fusion optimization
  *       into metadata [Default: False]
- * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
+ * - fusion_max_qubit (int): Maximum number of qubits for an operation generated
  *       in a fusion optimization [Default: 5]
  * - fusion_threshold (int): Threshold that number of qubits must be greater
  *       than or equal to enable fusion optimization [Default: 20]
