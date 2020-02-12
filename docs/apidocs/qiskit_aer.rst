@@ -1,8 +1,8 @@
 .. _qiskit-aer:
 
-=================
-API Documentation
-=================
+========================
+Qiskit Aer API Reference
+========================
 
 .. toctree::
     :maxdepth: 1
