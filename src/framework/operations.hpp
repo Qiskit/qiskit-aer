@@ -197,7 +197,7 @@ public:
   void insert(const std::vector<Op> &ops);
 
   //-----------------------------------------------------------------------
-  // Check if operations are in all in the OpSet
+  // Check if operations are in the OpSet
   //-----------------------------------------------------------------------
 
   // Return true if an operation is contained in the current OpSet
