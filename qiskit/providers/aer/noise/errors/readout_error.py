@@ -92,7 +92,7 @@ class ReadoutError:
         if self.number_of_qubits != other.number_of_qubits:
             return False
         return np.allclose(self._probabilities, other._probabilities,
-                           atol=self.atol, rtol=self.rtol)
+                           atol=self._atol, rtol=self._rtol)
 
     def copy(self):
         """Make a copy of current ReadoutError."""
@@ -111,12 +111,12 @@ class ReadoutError:
         return self._probabilities
 
     @property
-    def atol(self):
+    def _atol(self):
         """The absolute tolerance parameter for float comparisons."""
         return self.ATOL
 
-    @atol.setter
-    def atol(self, atol):
+    @_atol.setter
+    def _atol(self, atol):
         """Set the absolute tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if atol < 0:
@@ -127,12 +127,12 @@ class ReadoutError:
         self.ATOL = atol
 
     @property
-    def rtol(self):
+    def _rtol(self):
         """The relative tolerance parameter for float comparisons."""
         return self.RTOL
 
-    @rtol.setter
-    def rtol(self, rtol):
+    @_rtol.setter
+    def _rtol(self, rtol):
         """Set the relative tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if rtol < 0:

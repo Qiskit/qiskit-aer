@@ -186,12 +186,12 @@ class QuantumError:
         return copy.deepcopy(self)
 
     @property
-    def atol(self):
+    def _atol(self):
         """The absolute tolerance parameter for float comparisons."""
         return self.ATOL
 
-    @atol.setter
-    def atol(self, atol):
+    @_atol.setter
+    def _atol(self, atol):
         """Set the absolute tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if atol < 0:
@@ -202,12 +202,12 @@ class QuantumError:
         self.ATOL = atol
 
     @property
-    def rtol(self):
+    def _rtol(self):
         """The relative tolerance parameter for float comparisons."""
         return self.RTOL
 
-    @rtol.setter
-    def rtol(self, rtol):
+    @_rtol.setter
+    def _rtol(self, rtol):
         """Set the relative tolerance parameter for float comparisons."""
         max_tol = self.MAX_TOL
         if rtol < 0:
