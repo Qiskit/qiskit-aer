@@ -267,7 +267,7 @@ create an Anaconda virtual environment or activate it if you already have create
 
     > conda create -y -n QiskitDevEnv python=3
     > conda activate QiskitDevEnv
-    (QiskitDevEnv) > _
+    (QiskitDevEnv) >_
 
 We only support *Visual Studio* compilers on Windows, so if you have others installed in your machine (MinGW, TurboC)
 you have to make sure that the path to the *Visual Studio* tools has precedence over others so that the build system
@@ -429,6 +429,83 @@ qiskit-aer$ stestr run
 Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/MANUAL.html#).
 
 The integration tests for Qiskit python extension are included in: `test/terra`.
+
+
+## Debug
+
+We have to build in debug mode if we want to start a debugging session with tools like `gdb` or `lldb`.
+In order to create a Debug build for all platforms, we just need to pass a parameter while invoking the build to
+create the wheel file:
+
+    qiskit-aer$> python ./setup.py bdist_wheel --build-type=Debug
+
+If you want to debug the standalone executable, then the parameter changes to:
+
+    qiskit-aer/out$> cmake -DCMAKE_BUILD_TYPE=Debug
+
+There are three different build configurations: `Release`, `Debug`, and `Release with Debug Symbols`, which parameters are:
+`Release`, `Debug`, `RelWithDebInfo` respectively.
+
+We recommend building in verbose mode and dump all the output to a file so it's easier to inspect possible build issues:
+
+On Linux and Mac:
+
+    qiskit-aer$ VERBOSE=1 python ./setup.py bdist_wheel --build-type=Debug 2>&1|tee build.log
+
+On Windows:
+
+    qisikt-aer> set VERBOSE=1
+    qiskit-aer> python ./setup.py bdist_wheel --build-type=Debug 1> build.log 2>&1
+
+We encourage to always send the whole `build.log` file when reporting a build issue, otherwise we will ask for it :)
+
+
+**Stepping through the code**
+
+Standalone version doesn't require anything special, just use your debugger like always:
+
+    qiskit-aer/out/Debug$ gdb qasm_simulator
+
+Stepping through the code of a Python extension is another story, trickier, but possible. This is because Python interpreters
+usually load Python extensions dynamically, so we need to start debugging the python interpreter and set our breakpoints ahead of time, before any of our python extension symbols are loaded into the process.
+
+Once built and installed we have to run the debugger with the python interpreter:
+
+    $ lldb python
+
+That will get us into the debugger (lldb in our case) interactive shell:
+
+    (lldb) target create "python"
+    Current executable set to 'python' (x86_64).
+    (lldb)
+
+Then we have to set our breakpoints:
+
+    (lldb) b AER::controller_execute
+    Breakpoint 1: no locations (pending).
+    WARNING:  Unable to resolve breakpoint to any actual locations.
+
+Here the message is clear, it can't find the function: `AER::controller_execute` because our python extension hasn't been loaded yet
+ by the python interpreter, so it's "on-hold" hoping to find the function later in the execution.
+Now we can run the python interpreter and pass the arguments (the python file to execute):
+
+    (lldb) r test_qiskit_program.py
+    Process 24896 launched: '/opt/anaconda3/envs/aer37/bin/python' (x86_64)
+    3 locations added to breakpoint 1
+    Executing on QasmSimulator for nq=16
+    Process 24896 stopped
+    * thread #12, stop reason = breakpoint 1.1
+         frame #0: 0x000000012f834c10 controller_wrappers.cpython-37m-darwin.so`AER::Result AER::controller_execute<AER::Simulator::QasmController>(qobj_js=0x00007000032716b0) at controller_execute.hpp:48:16
+         45
+         46  	template <class controller_t>
+         47  	Result controller_execute(const json_t &qobj_js) {
+     ->  48  	  controller_t controller;
+         49
+         50  	  // Fix for MacOS and OpenMP library double initialization crash.
+         51  	  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+    Target 0: (python) stopped.
+
+After this, you can step through the code and continue with your debug session as always.
 
 
 ## Style guide
@@ -617,6 +694,6 @@ sign that setting the target branch as stable was not a mistake. Also,
 reference to the PR number in master that you are porting.
 
 
-Troubleshooting:
-----------------
+Troubleshooting
+---------------
 
