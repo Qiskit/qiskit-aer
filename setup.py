@@ -22,7 +22,8 @@ except ImportError:
 import setuptools
 
 requirements = [
-    'numpy>=1.13',
+    'qiskit-terra>=0.12.0',
+    'numpy>=1.16.3',
     'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
