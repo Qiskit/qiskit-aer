@@ -32,14 +32,6 @@
 #include "iterators.hpp"
 #include "eval_hamiltonian.hpp"
 
-static bool init_numpy(){
-    static bool initialized = false;
-    if(!initialized){
-        import_array();
-        initialized = true;
-    }
-};
-
 bool check_is_integer(PyObject * value){
     if(value == nullptr)
         throw std::invalid_argument("PyObject is null!");
@@ -117,7 +109,7 @@ bool check_is_dict(PyObject * value){
 bool check_is_np_array(PyArrayObject * value){
     if(value == nullptr)
         throw std::invalid_argument("Numpy ndarray is null!");
-    init_numpy();
+    import_array();
     // Check that it's a numpy ndarray
     if(!PyArray_Check(value))
         return false;
