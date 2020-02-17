@@ -191,9 +191,7 @@ std::vector<uint_t> calc_new_indices(const reg_t &indices) {
   // assumes indices vector is sorted
   uint_t n = indices.size();
   uint_t mid_index = indices[(n-1)/2];
-  uint_t first = 0;
-  if (mid_index > 0)
-    first = mid_index - (n-1)/2;
+  uint_t first = mid_index - (n-1)/2;
   std::vector<uint_t> new_indices(n);
   std::iota( std::begin( new_indices ), std::end( new_indices ), first);
   return new_indices;
@@ -232,6 +230,7 @@ std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits) {
 
   std::string new_paulis;
   std::vector<uint_t> temp_qubits = qubits;
+  // find min_index, the next smallest index in qubits
   for (uint_t i=0; i<paulis.size(); i++) {
     min = temp_qubits[0];
     for (uint_t qubit=0; qubit<qubits.size(); qubit++)
@@ -239,7 +238,10 @@ std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits) {
 	min = temp_qubits[qubit];
 	min_index = qubit;
       }
+    // select the corresponding pauli, and put it next in 
+    // the sorted vector
     new_paulis.push_back(paulis[min_index]);
+    // make sure we don't select this index again by setting it to UINT_MAX
     temp_qubits[min_index] = UINT_MAX;
   }
   return new_paulis;
@@ -611,7 +613,7 @@ void MPS::move_qubits_to_new_position(const reg_t &new_positions,
   // actual_qubits is a temporary structure that stores the current ordering of the 
   // qubits in the MPS structure. It is necessary, because when we perform swaps, 
   // the positions of the qubits change. We need to move the qubits from their 
-  // current position (as in actual qubits), not from the original position
+  // current position (as in actual_qubits), not from the original position
   
   reg_t actual_indices(num_qubits_);
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
@@ -787,7 +789,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
   reg_t centralized_qubits = qubits;
 
   // if the qubits are not ordered, we can sort them, because the order doesn't matter
-  // in computing the expectation value. We only have to sort the pauli matrices
+  // when computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
 
   MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
