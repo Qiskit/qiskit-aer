@@ -314,8 +314,11 @@ cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
 
     cdef int k
     cdef size_t ii, jj
-    cdef double * col_sum = <double *>PyDataMem_NEW_ZEROED(ncols, sizeof(double))
+#    cdef double * col_sum = <double *>PyDataMem_NEW_ZEROED(ncols, sizeof(double))
+    cdef double * col_sum = <double *>PyDataMem_NEW(ncols * sizeof(double))
     cdef double max_col = 0
+    for ii in range(ncols):
+        col_sum[ii] = 0
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             k = ind[jj]
@@ -334,8 +337,11 @@ cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
 
     cdef int k
     cdef size_t ii, jj
-    cdef double * row_sum = <double *>PyDataMem_NEW_ZEROED(nrows, sizeof(double))
+#    cdef double * row_sum = <double *>PyDataMem_NEW_ZEROED(nrows, sizeof(double))
+    cdef double * row_sum = <double *>PyDataMem_NEW(nrows * sizeof(double))
     cdef double max_row = 0
+    for ii in range(ncols):
+        row_sum[ii] = 0
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             row_sum[ii] += cabs(data[jj])

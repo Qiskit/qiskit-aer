@@ -15,13 +15,8 @@
 #ifndef _aer_qasm_controller_hpp_
 #define _aer_qasm_controller_hpp_
 
-<<<<<<< HEAD:src/simulators/qasm/qasm_controller.hpp
-#include "base/controller.hpp"
-#include "simulators/densitymatrix/densitymatrix_state.hpp"
-=======
 #include "controller.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
->>>>>>> upstream/pr/544:src/controllers/qasm_controller.hpp
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
@@ -391,7 +386,6 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
-<<<<<<< HEAD:src/simulators/qasm/qasm_controller.hpp
       }
     case Method::statevector_thrust_gpu:
 #ifndef AER_THRUST_CUDA
@@ -432,48 +426,6 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector_thrust_cpu);
       }
-=======
-      }
-    case Method::statevector_thrust_gpu:
-#ifndef AER_THRUST_CUDA
-      throw std::runtime_error(
-          "QasmController: method statevector_gpu is not supported on this "
-          "system");
-#else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu);
-      }
-#endif
-    case Method::statevector_thrust_cpu:
-#ifndef AER_THRUST_CPU
-      throw std::runtime_error(
-          "QasmController: method statevector_thrust is not supported on this "
-          "system");
-#else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu);
-      }
->>>>>>> upstream/pr/544:src/controllers/qasm_controller.hpp
 #endif
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
