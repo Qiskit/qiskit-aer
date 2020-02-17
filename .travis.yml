@@ -49,12 +49,6 @@ stage_linux: &stage_linux
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
-    # Install Thrust headers
-    - pushd src/third-party/headers
-    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
-    - popd
-    # Move thrust headers into build path
-    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
@@ -95,12 +89,6 @@ stage_osx: &stage_osx
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
-    # Install Thrust headers
-    - pushd src/third-party/headers
-    - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
-    - popd
-    # Move thrust headers into build path
-    - cp -r src/third-party/headers/thrust/thrust src/thrust
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
@@ -150,17 +138,34 @@ jobs:
     ###########################################################################
     # Linux Wheel
     - stage: compile
-      name: Python Wheel Linux
+      name: Python Wheel Build Linux
+      language: python
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
+        - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      script:
+        - pip install -U pip virtualenv twine
+        - pip install cibuildwheel==1.1.0
+        - cibuildwheel --output-dir wheelhouse
+    - stage: compile
+      name: Python sdist Build Linux
       <<: *stage_linux
       before_script:
-        # Install Thrust headers
-        - pushd src/third-party/headers
-        - git clone --depth 1 --branch 1.9.5 https://github.com/thrust/thrust.git thrust
-        - popd
-        # Move thrust headers into build path
-        - cp -r src/third-party/headers/thrust/thrust src/thrust
+        - pip install -U virtualenv pip setuptools
       script:
-        - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
+        - python setup.py sdist
+        - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install ../dist/*tar.gz
+        - aer-test/bin/python ../tools/verify_wheels.py
     # MacOS Wheel
     - stage: compile
       name: Python Wheel MacOS
@@ -174,6 +179,17 @@ jobs:
         - cp -r src/third-party/headers/thrust/thrust src/thrust
       script:
         - python setup.py bdist_wheel -- -DAER_THRUST_BACKEND=OMP -- -j4
+    - stage: compile
+      name: Python sdist Build MacOS
+      <<: *stage_osx
+      before_script:
+        - pip install -U virtualenv pip setuptools
+      script:
+        - python setup.py sdist
+        - mkdir out; cd out; virtualenv aer-test
+        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install ../dist/*tar.gz
+        - aer-test/bin/python ../tools/verify_wheels.py
     # Linux Standalone
     - stage: compile
       name: Standalone Linux
@@ -293,7 +309,7 @@ jobs:
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       if: tag IS present
       script:
-        - pip install -U pip virtualenv
+        - pip install -U pip virtualenv twine
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
@@ -304,7 +320,8 @@ jobs:
       env:
         - TWINE_USERNAME=qiskit
       python: 3.7
-      before_script: true
+      before_script:
+        - pip install -U pip setuptools virtualenv twine
       install: true
       script:
         - python setup.py sdist

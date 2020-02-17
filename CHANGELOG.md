@@ -15,8 +15,28 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.4.0...HEAD)
 =======================================================================
+
+Added
+-----
+
+Changed
+-------
+
+Deprecated
+----------
+
+Removed
+-------
+
+Fixed
+-----
+
+
+
+[0.4.0](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
+======================================================================================
 
 Added
 -----
@@ -44,6 +64,7 @@ Changed
 - Moved the location of several functions (\#568):
   - Moved contents of `qiskit.provider.aer.noise.errors` into the `qiskit.providers.noise` module
   - Moved contents of `qiskit.provider.aer.noise.utils` into the `qiskit.provider.aer.utils` module.
+- Enabled optimization to aggregate consecutive gates in a circuit (fusion) by default (\#579).
 
 Deprecated
 ----------

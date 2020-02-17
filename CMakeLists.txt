@@ -194,7 +194,7 @@ endif()
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 message(STATUS "Looking for spdlog library...")
-find_package(spdlog)
+find_package(spdlog QUIET)
 if(spdlog_FOUND)
 	message(STATUS "spdlog found.")
 	set(SPDLOG_LIB spdlog::spdlog)
@@ -202,19 +202,6 @@ else()
 	message(STATUS "spdlog not found.")
 	set(SPDLOG_LIB "")
 endif()
-
-message(STATUS "Uncompressing muparserx static library...")
-
-uncompress_muparsersx_lib()
-
-find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
-if(${MUPARSERX_LIB} MATCHES "MUPARSERX_LIB-NOTFOUND")
-	message(FATAL_ERROR "No muparserx library found")
-endif()
-message(STATUS "Muparserx library found: ${MUPARSERX_LIB}")
-get_muparserx_source_code()
-# I keep this disabled on purpose, just in case I need to debug muparserx related problems
-# file(GLOB MUPARSERX_SOURCES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/muparserx/parser/*.cpp")
 
 # Windows don't have a DL library (dlopen, dlclose, etc...)
 if(NOT MSVC)
@@ -234,18 +221,22 @@ if(AER_THRUST_SUPPORTED)
 		message(STATUS "Thrust library: CUDA found!")
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "Thrust library: Looking for TBB backend...")
 		find_package(TBB REQUIRED)
 		message(STATUS "TBB Support found!")
+		get_thrust_source_code()
 		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TTB AER_THRUST_CPU=TRUE)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
-		list(APPEND AER_COMPILER_DEFINITIONS THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		if(NOT OPENMP_FOUND)
+			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
+		endif()
+		get_thrust_source_code()
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDANT_LIBS "")
 	else()
@@ -255,10 +246,12 @@ if(AER_THRUST_SUPPORTED)
 endif()
 
 if(AER_THRUST_SUPPORTED)
-	list(APPEND AER_COMPILER_DEFINITIONS AER_THRUST_SUPPORTED=TRUE)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_SUPPORTED=TRUE)
 else()
 	message(STATUS "No Thrust support enabled")
 endif()
+
+
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -268,11 +261,12 @@ set(AER_LIBRARIES
 	Threads::Threads
 	${SPDLOG_LIB}
 	${DL_LIB}
-	${MUPARSERX_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
+	add_muparserx_lib()
+
 	add_subdirectory(qiskit/providers/aer/pulse/cy)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
@@ -281,6 +275,8 @@ else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
 		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
 		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
