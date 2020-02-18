@@ -52,7 +52,7 @@ window
     $ conda create -y -n QiskitDevEnv python=3
     $ conda activate QiskitDevEnv
 
-Clone the Qiskit Aer repo via *git*.
+Clone the `Qiskit Aer` repo via *git*.
 
     $ git clone https://github.com/Qiskit/qiskit-aer
 
@@ -75,12 +75,12 @@ and libraries, install the *build-essential* package by running
     $ sudo apt install build-essential
 
 Although the *BLAS* and *LAPACK* library implementations included in the
-*build-essential* package are sufficient to build all of the Aer simulators, we
+*build-essential* package are sufficient to build all of the `Aer` simulators, we
 recommend using *OpenBLAS*, which you can install by running
 
     $ sudo apt install libopenblas-dev
 
-There are two ways of building Aer simulators, depending on your goal:
+There are two ways of building `Aer` simulators, depending on your goal:
 
 1. Build a python extension that works with Terra.
 2. Build a standalone executable.
@@ -198,7 +198,7 @@ There's another pythonic approach to build and install software: build the wheel
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
 
-**Advanced options**
+***Advanced options***
 
 As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlaying build system that offers a lot of options you can tune by setting some parameters.
 
@@ -244,7 +244,7 @@ option):
     qiskit-aer/out/Release/$ ls
     aer_simulator_cpp
 
-**Advanced options**
+***Advanced options***
 
 Because the standalone version of `Aer` doesn't need Python at all, the build system is
 based on CMake, just like most of other C++ projects. So in order to pass all the different
@@ -259,8 +259,11 @@ options we have on `Aer` to CMake we use it's native mechanism:
 On Windows, you must have *Anaconda3* installed. We recommend also installing
 *Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
 
-*Anaconda 3* can be installed from their web: https://www.anaconda.com/distribution/#download-section
-*Visual Studio 2017/2019 Community Edition* can be installed from: https://visualstudio.microsoft.com/vs/community/
+>*Anaconda 3* can be installed from their web:
+>https://www.anaconda.com/distribution/#download-section
+>
+>*Visual Studio 2017/2019 Community Edition* can be installed from:
+>https://visualstudio.microsoft.com/vs/community/
 
 Once you have *Anaconda3* and *Visual Studio Community Edition* installed, you have to open a new cmd terminal and
 create an Anaconda virtual environment or activate it if you already have created one:
@@ -290,7 +293,7 @@ There's another pythonic approach to build and install software: build the wheel
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
 
-**Advanced options**
+***Advanced options***
 
 As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlaying build system that offers a lot of options you can tune by setting some parameters.
 
@@ -336,7 +339,7 @@ option):
     (QiskitDevEnv) qiskit-aer\out\Release> dir
     aer_simulator_cpp
 
-**Advanced options**
+***Advanced options***
 
 Because the standalone version of `Aer` doesn't need Python at all, the build system is
 based on CMake, just like most of other C++ projects. So in order to pass all the different
@@ -366,16 +369,16 @@ qiskit-aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
 
 These are the flags:
 
-USER_LIB_PATH
-    This flag tells CMake to look for libraries that are needed by some of the native
-    components to be built, but they are not in a common place where CMake could find
-    it automatically.
+* USER_LIB_PATH
+
+    This flag tells CMake to look for libraries that are needed by some of the native components to be built, but they are not in a common place where CMake could find it automatically.
 
     Values: An absolute path with file included.
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
 
-BLAS_LIB_PATH
+* BLAS_LIB_PATH
+
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
 
@@ -383,23 +386,26 @@ BLAS_LIB_PATH
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DBLAS_LIB_PATH=/path/to/look/for/blas/``
 
-BUILD_TESTS
+* BUILD_TESTS
+
     It will tell the build system to build C++ tests along with the simulator.
 
     Values: True|False
     Default: False
     Example: ``python ./setup.py bdist_wheel -- -DBUILD_TESTS=True``
 
-CMAKE_CXX_COMPILER
-    This is an internal CMake flag. It forces CMake to use the provided toolchain to build everthing.
+* CMAKE_CXX_COMPILER
+
+    This is an internal CMake flag. It forces CMake to use the provided toolchain to build everything.
     If it's not set, CMake system will use one of the toolchains installed in system.
 
     Values: g++|clang++|g++-8
     Default: Depends on the running platform and the toolchains installed
     Example: ``python ./setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++``
 
-AER_THRUST_BACKEND
-    We use Thrust library for GPU support through CUDA. If we want to build a version of Aer with GPU acceleration, we need to install CUDA and set this variable to the value: "CUDA".
+* AER_THRUST_BACKEND
+
+    We use Thrust library for GPU support through CUDA. If we want to build a version of `Aer` with GPU acceleration, we need to install CUDA and set this variable to the value: "CUDA".
     There are other values that will use different CPU methods depending on the kind of backend we want to use:
     - "OMP": For OpenMP support
     - "TBB": For Intel Threading Building Blocks
