@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019.
+ * (C) Copyright IBM 2018, 2019, 2020.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -52,8 +52,6 @@ namespace Simulator {
  * - "statevector_sample_measure_opt" (int): Threshold that number of qubits
  *      must be greater than to enable indexing optimization during
  *      measure sampling [Default: 10]
- * - "statevector_hpc_gate_opt" (bool): Enable large qubit gate optimizations.
- *      [Default: False]
  *
  * From ExtendedStabilizer::State class
  * - "extended_stabilizer_approximation_error" (double): Set the error in the
@@ -99,7 +97,7 @@ namespace Simulator {
  *      If specified, is divided by the number of parallel shots/experiments.
  *      [Default: 0]
  *
- * From Transpile:Fision Class
+ * From Transpile:Fusion Class
  * - fusion_enable (bool): Enable fusion optimization in circuit optimization
  *       passes [Default: True]
  * - fusion_verbose (bool): Output gates generated in fusion optimization
