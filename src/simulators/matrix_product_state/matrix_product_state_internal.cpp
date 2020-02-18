@@ -802,8 +802,7 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
   reverse(reversed_matrices.begin(), reversed_matrices.end());
 
   // sort the paulis according to the initial ordering of the qubits
-  std::string sorted_matrices = matrices;
-  sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
+  auto sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
   
   char gate = sorted_matrices[0];
 
