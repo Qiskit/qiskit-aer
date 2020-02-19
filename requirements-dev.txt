@@ -12,3 +12,4 @@ sphinx-automodapi
 jupyter-sphinx;python_version<'3.8'
 stestr>=2.5.0
 reno>=2.11.0
+conan>=1.22.2

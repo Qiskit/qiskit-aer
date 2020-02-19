@@ -1,0 +1,7 @@
+[requires]
+nlohmann_json/3.7.3
+spdlog/1.5.0
+muparserx/4.0.8@demo/testing
+
+[generators]
+cmake

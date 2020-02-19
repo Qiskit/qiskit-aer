@@ -27,6 +27,7 @@ include(CTest)
 include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
+include(conan_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -58,11 +59,11 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Set default build type to Release with Debug Symbols
-IF(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release CACHE STRING
 		"Choose the type of build, options are: Debug Release"
 		FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
@@ -117,45 +118,30 @@ endif()
 #
 # Looking for external libraries
 #
+setup_conan()
+
+# If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
+set(AER_LINKER_FLAGS " ")
+set(AER_COMPILER_FLAGS " ")
+
 message(STATUS "Looking for OpenMP support...")
-find_package(OpenMP QUIET)
-# This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
-# so we need to link with an external library: libomp.
-# NOTE: CMake >= 3.12.0 doesn't need this hack. It will just find OpenMP in the
-# first find_package(OpenMP) call
-if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
-	if(APPLE)
-		set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
-		set(OpenMP_CXX_LIB_NAMES "omp")
-		set(OpenMP_omp_LIBRARY "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib")
-		include_directories("${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
-		set(OPENMP_FOUND TRUE)
-	endif()
-endif()
-
-if(OPENMP_FOUND)
-	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	if(APPLE)
-		# On Apple and clang, we do need to link against the library unless we are building
-		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
-		if(NOT SKBUILD)
-			set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			message(STATUS "Adding Clang: ${OPENMP_EXTERNAL_LIB}")
-		endif()
-	endif()
-	message(STATUS "OpenMP found!")
-	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
-	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+if(APPLE)
+	set(OPENMP_FOUND TRUE)
+	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
 else()
-	message(STATUS "WARNING: No OpenMP support found!")
+	find_package(OpenMP QUIET)
+	if(OPENMP_FOUND)
+		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+		message(STATUS "OpenMP found!")
+		message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+		message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+	else()
+		message(STATUS "WARNING: No OpenMP support found!")
+	endif()
 endif()
-
-message(STATUS "Looking for NLOHMANN Json library...")
-set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-find_package(nlohmann_json REQUIRED)
 
 if(STATIC_LINKING)
 	message(STATUS "Using static linking with Threads...")
@@ -172,36 +158,9 @@ endif()
 if(BLAS_LIB_PATH)
 	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
 else()
-	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS library...")
-		set(BLA_VENDOR "Apple")
-	else()
-		message(STATUS "Looking for OpenBLAS library...")
-		set(BLA_VENDOR "OpenBLAS")
-	endif()
-	if(WIN32)
-		message(STATUS "Uncompressing OpenBLAS static library...")
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
-	endif()
-	find_package(BLAS QUIET)
-	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
-		unset(BLA_VENDOR)
-		find_package(BLAS REQUIRED)
-	endif()
+	set(BLAS_LIBRARIES CONAN_PKG::openblas)
 endif()
-
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
-
-message(STATUS "Looking for spdlog library...")
-find_package(spdlog QUIET)
-if(spdlog_FOUND)
-	message(STATUS "spdlog found.")
-	set(SPDLOG_LIB spdlog::spdlog)
-else()
-	message(STATUS "spdlog not found.")
-	set(SPDLOG_LIB "")
-endif()
 
 # Windows don't have a DL library (dlopen, dlclose, etc...)
 if(NOT MSVC)
@@ -226,18 +185,18 @@ if(AER_THRUST_SUPPORTED)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
-		message(STATUS "Thrust library: Looking for TBB backend...")
-		find_package(TBB REQUIRED)
 		message(STATUS "TBB Support found!")
-		get_thrust_source_code()
-		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
+		#TODO: To target!!!
+		include_directories(SYSTEM ${CONAN_INCLUDE_DIRS_THRUST})
+		set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
 		if(NOT OPENMP_FOUND)
 			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
 		endif()
-		get_thrust_source_code()
+		#TODO: To target!!!
+		include_directories(SYSTEM ${CONAN_INCLUDE_DIRS_THRUST})
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDANT_LIBS "")
@@ -254,21 +213,20 @@ else()
 endif()
 
 
-
 # Set dependent libraries
 set(AER_LIBRARIES
-	${OPENMP_EXTERNAL_LIB}
+	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	nlohmann_json
+	CONAN_PKG::nlohmann_json
 	Threads::Threads
-	${SPDLOG_LIB}
+	CONAN_PKG::spdlog
 	${DL_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	add_muparserx_lib()
-
+	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
+	add_subdirectory(qiskit/providers/aer/pulse/cy)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)

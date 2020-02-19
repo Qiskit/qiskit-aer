@@ -22,6 +22,7 @@ except ImportError:
 import setuptools
 
 requirements = [
+    'conan',
     'qiskit-terra>=0.12.0',
     'numpy>=1.16.3;python_version>"3.5"',
     'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
@@ -35,7 +36,8 @@ requirements = [
 
 setup_requirements = requirements + [
     'scikit-build',
-    'cmake!=3.17,!=3.17.0'
+    'cmake!=3.17,!=3.17.0',
+    'conan>=1.22.2'
 ]
 
 if not hasattr(setuptools,

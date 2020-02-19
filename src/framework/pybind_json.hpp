@@ -36,7 +36,7 @@
 #include <iostream>
 #include <type_traits>
 
-#include <nlohmann_json.hpp>
+#include <nlohmann/json.hpp>
 #include "framework/json.hpp"
 
 namespace py = pybind11;
