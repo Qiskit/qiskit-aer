@@ -297,16 +297,15 @@ protected:
 					  const reg_t &centralized_qubits);
 
     //----------------------------------------------------------------
-  // Function name: move_qubits_to_new_position
-  // Description: This function moves qubits from the default (sorted) position to a 
-  //              given position.
-  // Parameters: Input: new_position - the target ordering of the qubits
-  //                    sorted_qubits - the default ordering, i.e., sorted
-  // Effect: Swaps the qubits in the MPS to put them in the positions given in new_position
+  // Function name: move_qubits_to_right_end
+  // Description: This function moves qubits from the default (sorted) position 
+  //    to the right end, in the order specified in qubits.
+  // Parameters: Input: qubits - the qubits we wish to move
+  //                    target_qubits - the new location of qubits
   // Returns: none.
   //----------------------------------------------------------------
-  void move_qubits_to_new_position(const reg_t &new_position,
-				   reg_t &target_qubits);
+  void move_qubits_to_right_end(const reg_t &qubits,
+				reg_t &target_qubits);
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_original_location

@@ -97,7 +97,8 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix);
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 		               const rvector_t &lambda);
 
-std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits);
+std::string sort_paulis_by_qubits(const std::string &paulis, 
+				  const reg_t &qubits);
 
 //------------------------------------------------------------------------
 // local function implementations
@@ -224,7 +225,8 @@ cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
   return reshaped_matrix;
 }
 
-std::string sort_paulis_by_qubits(std::string paulis, reg_t qubits) {
+std::string sort_paulis_by_qubits(const std::string &paulis, 
+				  const reg_t &qubits) {
   uint_t min = UINT_MAX;
   uint_t min_index = 0;
 
@@ -608,8 +610,8 @@ void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_q
   // during centralize_qubits
 }
 
-void MPS::move_qubits_to_new_position(const reg_t &new_positions, 
-				      reg_t &target_qubits) {
+void MPS::move_qubits_to_right_end(const reg_t &qubits, 
+				   reg_t &target_qubits) {
   // actual_qubits is a temporary structure that stores the current ordering of the 
   // qubits in the MPS structure. It is necessary, because when we perform swaps, 
   // the positions of the qubits change. We need to move the qubits from their 
@@ -618,12 +620,12 @@ void MPS::move_qubits_to_new_position(const reg_t &new_positions,
   reg_t actual_indices(num_qubits_);
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
   
-  uint_t num_target_qubits = new_positions.size();
+  uint_t num_target_qubits = qubits.size();
   uint_t num_moved = 0;
   // This is similar to bubble sort - move the qubits to the right end
-  for (int_t right_index=new_positions.size()-1; right_index>=0; right_index--) {
+  for (int_t right_index=qubits.size()-1; right_index>=0; right_index--) {
     // find "largest" element and move it to the right end
-    uint_t biggest = new_positions[right_index];
+    uint_t biggest = qubits[right_index];
     num_moved++;
     for (uint_t i=0; i<actual_indices.size(); i++) {
       if (actual_indices[i] == biggest) {
@@ -731,7 +733,7 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
   } else {
     MPS temp_MPS;
     temp_MPS.initialize(*this);
-    temp_MPS.move_qubits_to_new_position(reversed_qubits, target_qubits);
+    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits);
     rho = temp_MPS.density_matrix(target_qubits);
   }
 
