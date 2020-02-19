@@ -149,7 +149,11 @@ PyArrayObject * td_ode_rhs(
 
     auto vec = get_value<NpArray<complex_t>>(py_vec);
     auto num_rows = vec.shape[0];
-    auto out = static_cast<complex_t *>(PyDataMem_NEW_ZEROED(num_rows, sizeof(complex_t)));
+//    auto out = static_cast<complex_t *>(PyDataMem_NEW_ZEROED(num_rows, sizeof(complex_t)));
+    auto out = static_cast<complex_t *>(PyDataMem_NEW(num_rows * sizeof(complex_t)));
+    for(auto i=0; i<num_rows; i++){
+        out[i] = 0;
+    }
 
     auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
     auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
