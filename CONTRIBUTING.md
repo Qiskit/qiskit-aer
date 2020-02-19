@@ -103,7 +103,7 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 **Advanced options**
 
-As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlaying build system that offers a lot of options you can tune by setting some parameters.
+As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
 We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
 basically the glue between *setuptools* and *CMake*, so there are various
@@ -180,7 +180,7 @@ You further need to have *Xcode Command Line Tools* installed on macOS:
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
-1. Build a Terra compatible add-on;
+1. Build a python extension that works with Terra;
 2. Build a standalone executable.
 
 **Python extension**
@@ -200,7 +200,7 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 ***Advanced options***
 
-As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlaying build system that offers a lot of options you can tune by setting some parameters.
+As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
 We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
 basically the glue between *setuptools* and *CMake*, so there are various
@@ -295,7 +295,7 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 ***Advanced options***
 
-As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlaying build system that offers a lot of options you can tune by setting some parameters.
+As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
 We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
 basically the glue between *setuptools* and *CMake*, so there are various
@@ -373,7 +373,7 @@ These are the flags:
 
     This flag tells CMake to look for libraries that are needed by some of the native components to be built, but they are not in a common place where CMake could find it automatically.
 
-    Values: An absolute path with file included.
+    Values: An absolute path.
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
 
@@ -382,7 +382,7 @@ These are the flags:
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
 
-    Values: An absolute path with file included.
+    Values: An absolute path.
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DBLAS_LIB_PATH=/path/to/look/for/blas/``
 
@@ -410,7 +410,7 @@ These are the flags:
     - "OMP": For OpenMP support
     - "TBB": For Intel Threading Building Blocks
 
-    Values: CUDA|OMP|TTB
+    Values: CUDA|OMP|TBB
     Default: No value
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA``
 
