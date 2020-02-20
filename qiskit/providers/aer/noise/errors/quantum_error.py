@@ -18,7 +18,7 @@ import copy
 import numpy as np
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators import Kraus, SuperOp, Operator
+from qiskit.quantum_info.operators import Kraus, SuperOp, Choi, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
@@ -130,14 +130,14 @@ class QuantumError:
                     gate_qubits = max(gate["qubits"]) + 1
                     minimum_qubits = max([minimum_qubits, gate_qubits])
 
-        # Combine any kraus circuits
-        noise_ops = self._combine_kraus(noise_ops)
-
         # Set number of qubits
         if number_of_qubits is None:
             self._number_of_qubits = minimum_qubits
         else:
             self._number_of_qubits = number_of_qubits
+
+        # Combine any kraus circuits
+        noise_ops = self._combine_kraus(noise_ops, self.number_of_qubits)
 
         # Error checking
         if minimum_qubits > self._number_of_qubits:
@@ -442,7 +442,8 @@ class QuantumError:
                 # Add circuit
                 combined_noise_circuits.append(combined_circuit)
         noise_ops = self._combine_kraus(
-            zip(combined_noise_circuits, combined_noise_probabilities))
+            zip(combined_noise_circuits, combined_noise_probabilities),
+            self.number_of_qubits)
         return QuantumError(noise_ops)
 
     def _tensor_product(self, other, reverse=False):
@@ -510,11 +511,12 @@ class QuantumError:
                 combined_noise_circuits.append(combined_circuit)
         # Now we combine any error circuits containing only Kraus operations
         noise_ops = self._combine_kraus(
-            zip(combined_noise_circuits, combined_noise_probabilities))
+            zip(combined_noise_circuits, combined_noise_probabilities),
+            self.number_of_qubits + other.number_of_qubits)
         return QuantumError(noise_ops)
 
     @staticmethod
-    def _combine_kraus(noise_ops):
+    def _combine_kraus(noise_ops, num_qubits):
         """Combine any noise circuits containing only Kraus instructions."""
         kraus_instr = []
         kraus_probs = []
@@ -528,24 +530,27 @@ class QuantumError:
             else:
                 new_circuits.append(circuit)
                 new_probs.append(prob)
-        # Recursivly combine matching Kraus instructions
-        while kraus_instr:
-            instr = kraus_instr.pop(0)
-            prob = kraus_probs.pop(0)
-            for i, item in enumerate(kraus_instr):
-                if item['qubits'] == instr['qubits']:
-                    # remove from lists
-                    kraus_instr.pop(i)
-                    prob_i = kraus_probs.pop(i)
-                    sum_prob = prob + prob_i
-                    kraus = (prob / sum_prob) * Kraus(
-                        instr['params']) + (prob_i / sum_prob) * Kraus(item['params'])
-                    # update instruction
-                    instr['param'] = kraus.data
-                    prob = sum_prob
-            # append combined instruction to circuits
-            new_circuits.append([instr])
-            new_probs.append(prob)
+        # Combine matching Kraus instructions via Choi rep
+        if len(kraus_probs) == 1:
+            new_circuits.append([kraus_instr[0]])
+            new_probs.append(kraus_probs[0])
+        elif len(kraus_probs) > 1:
+            dim = 2 ** num_qubits
+            iden = SuperOp(np.eye(dim ** 2))
+            choi_sum = Choi(np.zeros((dim ** 2, dim ** 2)))
+            for prob, instr in zip(kraus_probs, kraus_instr):
+                choi_sum = choi_sum + prob * iden.compose(Kraus(instr['params']),
+                                                          instr['qubits'])
+            # Renormalize the Choi operator to find probability
+            # of Kraus error
+            chan_prob = np.trace(choi_sum.data) / dim
+            chan_instr = {
+                "name": "kraus",
+                "qubits": list(range(num_qubits)),
+                "params": Kraus(choi_sum / chan_prob).data
+            }
+            new_circuits.append([chan_instr])
+            new_probs.append(chan_prob)
         return list(zip(new_circuits, new_probs))
 
     @staticmethod
