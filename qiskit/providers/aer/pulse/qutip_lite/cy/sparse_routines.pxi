@@ -41,12 +41,12 @@ from libcpp.algorithm cimport sort
 from libcpp.vector cimport vector
 from .sparse_structs cimport CSR_Matrix, COO_Matrix
 np.import_array()
+from libc.string cimport memset
 
 cdef extern from "numpy/arrayobject.h" nogil:
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
     void PyDataMem_FREE(void * ptr)
     void PyDataMem_RENEW(void * ptr, size_t size)
-    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
 
 
@@ -131,29 +131,22 @@ cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int ncols = 0,
         Maximum length of data and indices arrays.  Used for resizing.
         Default value of zero indicates no resizing.
     """
-    cdef size_t ii
     if max_length == 0:
         max_length = nnz
     if nnz > max_length:
         raise_error_CSR(-7, mat)
     if init_zeros:
-#        mat.data = <double complex *>PyDataMem_NEW_ZEROED(nnz, sizeof(double complex))
         mat.data = <double complex *>PyDataMem_NEW(nnz * sizeof(double complex))
-        for ii in range(nnz):
-            mat.data[ii] = 0
+        memset(&mat.data[0],0,nnz * sizeof(double complex))
     else:
         mat.data = <double complex *>PyDataMem_NEW(nnz * sizeof(double complex))
     if mat.data == NULL:
         raise_error_CSR(-1, mat)
     if init_zeros:
-#        mat.indices = <int *>PyDataMem_NEW_ZEROED(nnz, sizeof(int))
-#        mat.indptr = <int *>PyDataMem_NEW_ZEROED((nrows+1), sizeof(int))
         mat.indices = <int *>PyDataMem_NEW(nnz * sizeof(int))
-        for ii in range(nnz):
-            mat.indices[ii] = 0
         mat.indptr = <int *>PyDataMem_NEW((nrows+1) * sizeof(int))
-        for ii in range(nrows+1):
-            mat.indptr[ii] = 0
+        memset(&mat.indices[0],0,nnz * sizeof(int))
+        memset(&mat.indptr[0],0,(nrows+1) * sizeof(int))
     else:
         mat.indices = <int *>PyDataMem_NEW(nnz * sizeof(int))
         mat.indptr = <int *>PyDataMem_NEW((nrows+1) * sizeof(int))
@@ -211,28 +204,22 @@ cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0,
         Maximum length of arrays.  Used for resizing.
         Default value of zero indicates no resizing.
     """
-    cdef size_t ii
     if max_length == 0:
         max_length = nnz
     if nnz > max_length:
         raise_error_COO(-7, mat)
     if init_zeros:
-#        mat.data = <double complex *>PyDataMem_NEW_ZEROED(nnz, sizeof(double complex))
         mat.data = <double complex *>PyDataMem_NEW(nnz * sizeof(double complex))
-        for ii in range(nnz):
-            mat.data[ii] = 0
+        memset(&mat.data[0],0,nnz * sizeof(double complex))
     else:
         mat.data = <double complex *>PyDataMem_NEW(nnz * sizeof(double complex))
     if mat.data == NULL:
         raise_error_COO(-1, mat)
     if init_zeros:
-#        mat.rows = <int *>PyDataMem_NEW_ZEROED(nnz, sizeof(int))
-#        mat.cols = <int *>PyDataMem_NEW_ZEROED(nnz, sizeof(int))
         mat.rows = <int *>PyDataMem_NEW(nnz * sizeof(int))
         mat.cols = <int *>PyDataMem_NEW(nnz * sizeof(int))
-        for ii in range(nnz):
-            mat.rows[ii] = 0
-            mat.cols[ii] = 0
+        memset(&mat.rows[0],0,nnz * sizeof(int))
+        memset(&mat.cols[0],0,nnz * sizeof(int))
     else:
         mat.rows = <int *>PyDataMem_NEW(nnz * sizeof(int))
         mat.cols = <int *>PyDataMem_NEW(nnz * sizeof(int))
@@ -476,10 +463,8 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
     cdef int i, j, init, inext, jnext, ipos
     cdef int * _tmp_rows
     cdef complex val, val_next
-#    cdef int * work = <int *>PyDataMem_NEW_ZEROED(mat.nrows+1, sizeof(int))
     cdef int * work = <int *>PyDataMem_NEW((mat.nrows+1) * sizeof(int))
-    for kk in range(mat.nrows+1):
-        work[kk] = 0
+    memset(&work[0],0,(mat.nrows+1) * sizeof(int))
     # Determine output indptr array
     for kk in range(mat.nnz):
         i = mat.rows[kk]

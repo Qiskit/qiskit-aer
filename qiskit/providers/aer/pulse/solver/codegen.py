@@ -212,16 +212,13 @@ class OPCodegen():
 def func_header(op_system):
     """Header for the RHS function.
     """
-    func_vars = ["", 'cdef size_t row, jj', 'cdef unsigned int row_start, row_end',
+    func_vars = ["", 'cdef size_t row', 'cdef unsigned int row_start, row_end',
                  'cdef unsigned int num_rows = vec.shape[0]',
                  'cdef double complex dot, osc_term, coef',
                  "cdef double complex * " +
                  'out = <complex *>PyDataMem_NEW(num_rows * sizeof(complex))',
-                 'for jj in range(num_rows):' +
-                 'out[jj] = 0'
+                 'memset(&out[0],0,num_rows * sizeof(complex))'
                  ]
-#                 'out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))'
-#                 ]
     func_vars.append("")
 
     for val in op_system.channels:
@@ -257,7 +254,6 @@ cimport numpy as np
 cimport cython
 np.import_array()
 cdef extern from "numpy/arrayobject.h" nogil:
-#    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
 

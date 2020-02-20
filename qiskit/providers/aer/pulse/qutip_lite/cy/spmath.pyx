@@ -36,6 +36,7 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 from libcpp cimport bool
+from libc.string cimport memset
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -300,12 +301,12 @@ cdef void _zcsr_mult_pass2(double complex * Adata, int * Aind, int * Aptr,
     cdef int head, length, temp, j, k, nnz = 0
     cdef size_t ii,jj,kk
     cdef double complex val
-#    cdef double complex * sums = <double complex *>PyDataMem_NEW_ZEROED(ncols, sizeof(double complex))
     cdef double complex * sums = <double complex *>PyDataMem_NEW(ncols * sizeof(double complex))
     cdef int * nxt = <int *>PyDataMem_NEW(ncols*sizeof(int))
+
+    memset(&sums[0],0,ncols * sizeof(double complex))
     for ii in range(ncols):
         nxt[ii] = -1
-        sums[ii] = 0
 
     C.indptr[0] = 0
     for ii in range(nrows):
@@ -595,11 +596,9 @@ def zcsr_isherm(object A not None, double tol = 1e-12):
     if nrows != ncols:
         return 0
 
-#    cdef int * out_ptr = <int *>PyDataMem_NEW_ZEROED(ncols+1, sizeof(int))
     cdef int * out_ptr = <int *>PyDataMem_NEW( (ncols+1) * sizeof(int))
 
-    for ii in range(ncols+1):
-        out_ptr[ii] = 0
+    memset(&out_ptr[0],0,(ncols+1) * sizeof(int))
 
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):

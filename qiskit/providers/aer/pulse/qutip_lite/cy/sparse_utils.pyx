@@ -39,12 +39,12 @@ from libc.math cimport abs, fabs, sqrt
 from libcpp cimport bool
 cimport cython
 cnp.import_array()
+from libc.string cimport memset
 
 cdef extern from "numpy/arrayobject.h" nogil:
     void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
     void PyDataMem_FREE(void * ptr)
     void PyDataMem_RENEW(void * ptr, size_t size)
-    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
 
 
@@ -314,11 +314,10 @@ cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
 
     cdef int k
     cdef size_t ii, jj
-#    cdef double * col_sum = <double *>PyDataMem_NEW_ZEROED(ncols, sizeof(double))
     cdef double * col_sum = <double *>PyDataMem_NEW(ncols * sizeof(double))
     cdef double max_col = 0
-    for ii in range(ncols):
-        col_sum[ii] = 0
+
+    memset(&col_sum[0],0,ncols * sizeof(double))
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             k = ind[jj]
@@ -337,11 +336,10 @@ cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
 
     cdef int k
     cdef size_t ii, jj
-#    cdef double * row_sum = <double *>PyDataMem_NEW_ZEROED(nrows, sizeof(double))
     cdef double * row_sum = <double *>PyDataMem_NEW(nrows * sizeof(double))
     cdef double max_row = 0
-    for ii in range(ncols):
-        row_sum[ii] = 0
+
+    memset(&row_sum[0],0,nrows * sizeof(double))
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             row_sum[ii] += cabs(data[jj])
