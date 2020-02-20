@@ -607,9 +607,7 @@ void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
     qreg_.apply_matrix(qubits, mat);
     return;
   }
-#ifdef DEBUG
-  cout << "Currently only support matrices applied to 1 or 2 qubits";
-#endif
+  throw std::runtime_error("\"matrix_product_state\" method only supports 1 and 2 qubit unitary matrices.");
 }
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
