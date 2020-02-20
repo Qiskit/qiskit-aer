@@ -268,6 +268,8 @@ from libc.math cimport pi
 
 from qiskit.providers.aer.pulse.cy.channel_value cimport chan_value
 
+from libc.string cimport memset
+
 include """ + _include_string + """
 """]
     return preamble
