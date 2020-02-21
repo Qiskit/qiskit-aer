@@ -52,6 +52,9 @@ def digest_pulse_qobj(qobj):
     digested_qobj.pulses_idx = pulses_idx
     digested_qobj.pulse_dict = pulse_dict
 
+    return digested_qobj
+
+
 def _unsupported_warnings(qobj_dict):
     """ Warns the user about untested/unsupported features.
 
