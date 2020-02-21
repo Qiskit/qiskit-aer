@@ -156,6 +156,57 @@ jobs:
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
     - stage: compile
+      name: Python Wheel Build Linux
+      language: python
+      arch: arm64
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip setuptools virtualenv pybind11 scikit-build && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && yum install -y openblas-devel openssl-devel && bash tools/install_cmake.sh"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      script:
+        - pip install -U pip virtualenv twine
+        - git clone https://github.com/mtreinish/cibuildwheel.git --branch non-x86-support
+        - pip install ./cibuildwheel
+        - cibuildwheel --output-dir wheelhouse
+    - stage: compile
+      name: Python Wheel Build Linux
+      language: python
+      arch: ppc64le
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip setuptools virtualenv pybind11 scikit-build && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && yum install -y openblas-devel openssl-devel && bash tools/install_cmake.sh"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      script:
+        - pip install -U pip virtualenv twine
+        - git clone https://github.com/mtreinish/cibuildwheel.git --branch non-x86-support
+        - pip install ./cibuildwheel
+        - cibuildwheel --output-dir wheelhouse
+    - stage: compile
+      name: Python Wheel Build Linux
+      language: python
+      arch: s390x
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip setuptools virtualenv pybind11 scikit-build && yum install -y openblas-devel openssl-devel && bash tools/install_cmake.sh"
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      script:
+        - pip install -U pip virtualenv twine
+        - git clone https://github.com/mtreinish/cibuildwheel.git --branch non-x86-support
+        - pip install ./cibuildwheel
+        - cibuildwheel --output-dir wheelhouse
+    - stage: compile
       name: Python sdist Build Linux
       <<: *stage_linux
       before_script:
