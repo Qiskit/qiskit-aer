@@ -29,8 +29,8 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.pulse.commands import SamplePulse, FrameChange
-from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 
 USE_CPP_ODE_FUNC = True
 def run_cython_and_cpp_solvers(func):

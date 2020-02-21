@@ -19,8 +19,8 @@ import qiskit
 import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
-from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.aer.pulse.controllers.pulse0_full_pulse_digest import digest_pulse_obj
 
 
