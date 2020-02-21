@@ -65,6 +65,11 @@ def _unsupported_warnings(qobj_dict):
         AerError: for unsupported features
     """
 
+    # Warnings that don't stop execution
+    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
+    if _contains_pv_instruction(qobj_dict['experiments']):
+        raise AerError(warning_str.format('PersistentValue instructions'))
+
     required_str = '{} are required for simulation, and none were specified.'
     if not _contains_acquire_instruction(qobj_dict['experiments']):
         raise AerError(required_str.format('Acquire instructions'))
