@@ -17,11 +17,18 @@
 """
 
 from warnings import warn
+from collections import OrderedDict
+import numpy as np
 from qiskit.providers.aer.aererror import AerError
 from ..cy.utils import oplist_to_array
 from .pulse0_digested_qobj import DigestedPulseQobj
 
-def digest_pulse_qobj(qobj):
+def digest_pulse_qobj(qobj, channels, dt, qubit_list):
+    """
+    I'm not sure if channels, dt, or qubit_list should be here. This really seems like
+    an interpretation of the qobj only, and the augmentation of the qobj output
+    by things that are not strictly qobj-related should maybe be done by the solver
+    """
 
     digested_qobj = DigestedPulseQobj()
 
@@ -40,7 +47,7 @@ def digest_pulse_qobj(qobj):
     digested_qobj.n_registers = qobj_config.get('n_registers', 0)
 
     # set qubit_lo_freq as given in qobj
-    if 'qubit_lo_freq' in qobj_config:
+    if 'qubit_lo_freq' in qobj_config and qobj_config['qubit_lo_freq'] != [np.inf]:
         # qobj frequencies are divided by 1e9, so multiply back
         digested_qobj.qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
 
@@ -48,9 +55,24 @@ def digest_pulse_qobj(qobj):
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
                                                         qobj_config['pulse_library'])
 
-    digested_qobj.pulses = pulses
-    digested_qobj.pulses_idx = pulses_idx
-    digested_qobj.pulse_dict = pulse_dict
+    digested_qobj.pulse_array = pulses
+    digested_qobj.pulse_indices = pulses_idx
+    digested_qobj.pulse_to_int = pulse_dict
+
+
+    experiments = []
+
+    for exp in qobj_dict['experiments']:
+        exp_struct = experiment_to_structs(exp,
+                                           channels,
+                                           pulses_idx,
+                                           pulse_dict,
+                                           dt,
+                                           qubit_list)
+        experiments.append(exp_struct)
+
+    digested_qobj.experiments = experiments
+
 
     return digested_qobj
 
