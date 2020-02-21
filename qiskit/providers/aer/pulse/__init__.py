@@ -49,8 +49,8 @@ import distutils.sysconfig  # noqa
 import numpy as np
 from .qutip_lite.cy import pyxbuilder as pbldr
 
-from .duffing_model_generators import duffing_system_model
-from .pulse_system_model import PulseSystemModel
+from .system_models.duffing_model_generators import duffing_system_model
+from .system_models.pulse_system_model import PulseSystemModel
 
 # Remove -Wstrict-prototypes from cflags
 CFG_VARS = distutils.sysconfig.get_config_vars()
