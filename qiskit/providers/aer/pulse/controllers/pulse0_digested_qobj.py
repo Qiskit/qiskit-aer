@@ -30,9 +30,12 @@ class DigestedPulseQobj:
 
 
         # signal stuff, to be put into pulse/signals
-        self.pulses = None
-        self.pulse_idx = None
+        self.pulse_array = None
+        self.pulse_indices = None
         self.pulse_dict = None
 
         # maybe to be put into signal when we have a "mixedsignal"
         self.qubit_lo_freq = None
+
+        # the digested experiments
+        self.experiments = None
