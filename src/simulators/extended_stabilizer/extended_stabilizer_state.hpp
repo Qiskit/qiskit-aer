@@ -53,9 +53,9 @@ public:
   State() = default;
   virtual ~State() = default;
 
-  virtual std::string name() const override {return "extended_stabilizer";}
+  std::string name() const override {return "extended_stabilizer";}
 
-  inline virtual Operations::OpSet::optypeset_t allowed_ops() const override {
+  inline Operations::OpSet::optypeset_t allowed_ops() const override {
     return Operations::OpSet::optypeset_t({
       Operations::OpType::gate,
       Operations::OpType::measure,
@@ -67,32 +67,32 @@ public:
     });
   }
 
-  inline virtual stringset_t allowed_gates() const override {
+  inline stringset_t allowed_gates() const override {
     return {"CX", "u0", "u1", "cx", "cz", "swap", "id",
             "x", "y", "z", "h", "s", "sdg", "t", "tdg", 
             "ccx", "ccz"};
   }
 
-  inline virtual stringset_t allowed_snapshots() const override {
+  inline stringset_t allowed_snapshots() const override {
     return {"statevector", "probabilities", "memory", "register"};//, "state"};
   }
   //Apply a sequence of operations to the cicuit. For each operation,
   //we loop over the terms in the decomposition in parallel
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
+  void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
                          RngEngine &rng) override;
 
-  virtual void initialize_qreg(uint_t num_qubits) override;
+  void initialize_qreg(uint_t num_qubits) override;
 
-  virtual void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
+  void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
 
-  virtual size_t required_memory_mb(uint_t num_qubits,
+  size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
                                     const override;
 
-  virtual void set_config(const json_t &config) override;
+  void set_config(const json_t &config) override;
 
-  virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
+  std::vector<reg_t> sample_measure(const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
 
@@ -164,19 +164,21 @@ protected:
 
   double probabilities_snapshot_samples_ = 3000.;
 
+  bool use_metropolis_ = false;  
+
   // Compute the required stabilizer rank of the circuit
-  uint_t compute_chi(const std::vector<Operations::Op> &ops) const;
+  auto compute_chi(const std::vector<Operations::Op> &ops) const -> uint_t;
   // Add the given operation to the extent
   void compute_extent(const Operations::Op &op, double &xi) const;
 
   //Compute the required chi, and count the number of three qubit gates
-  std::pair<uint_t, uint_t> decomposition_parameters(const std::vector<Operations::Op> &ops);
+  auto decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>;
   
   //Check if this is a stabilizer circuit, for the locaiton of the first non-CLifford gate
-  std::pair<bool, size_t> check_stabilizer_opt(const std::vector<Operations::Op> &ops) const;
+  auto check_stabilizer_opt(const std::vector<Operations::Op> &ops) const -> std::pair<bool, size_t>;
 
   //Check if we can use the sample_measure optimisation
-  bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
+  auto check_measurement_opt(const std::vector<Operations::Op> &ops) const -> bool;
 };
 
 //=========================================================================
@@ -250,9 +252,11 @@ void State::set_config(const json_t &config)
   JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
   //Set the number of samples for the probabilities snapshot
   JSON::get_value(probabilities_snapshot_samples_, "probabilities_snapshot_samples", config);
+  //Set the measurement strategy
+  JSON::get_value(use_metropolis_, "extended_stabilizer_use_metropolis", config);
 }
 
-std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Operations::Op> &ops)
+auto State::decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>
 {
   double xi=1.;
   unsigned three_qubit_gate_count = 0;
@@ -277,7 +281,7 @@ std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Oper
   return std::pair<uint_t, uint_t>({chi, three_qubit_gate_count});
 }
 
-std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const
+auto State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const -> std::pair<bool, size_t>
 {
   for(auto op = ops.cbegin(); op != ops.cend(); op++)
   {
@@ -299,7 +303,7 @@ std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations
   return std::pair<bool, size_t>({true, 0});
 }
 
-bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
+auto State::check_measurement_opt(const std::vector<Operations::Op> &ops) const -> bool
 {
   for (const auto op: ops)
   {
@@ -387,9 +391,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentData &da
   
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t& qubits,
-                                            uint_t shots,
-                                            RngEngine &rng)
+auto State::sample_measure(const reg_t& qubits,
+                           uint_t shots,
+                           RngEngine &rng) -> std::vector<reg_t>
 {
   std::vector<uint_t> output_samples;
   if(BaseState::qreg_.get_num_states() == 1)
@@ -398,7 +402,19 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
   }
   else
   {
-    output_samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, shots, rng);
+    if(use_metropolis_)
+    {
+        output_samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, shots, rng);
+    }
+    else
+    {
+      output_samples.reserve(shots);
+      for(uint_t i=0; i<shots; i++)
+      {
+        output_samples.push_back(BaseState::qreg_.ne_single_sample(
+                                 norm_estimation_samples_, qubits, rng));
+      }
+    }
   }
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
@@ -491,36 +507,59 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
 {
-  uint_t full_string;
+  uint_t out_string;;
+  bool used_ne = false;
   if(BaseState::qreg_.get_num_states() == 1)
   {
     //For a single state, we use the efficient sampler defined in Sec IV.A ofarxiv:1808.00128
-    full_string = BaseState::qreg_.stabilizer_sampler(rng);
+    out_string = BaseState::qreg_.stabilizer_sampler(rng);
   }
   else
   {
-    //We use the metropolis algorithm to sample an output string non-destructively
-    full_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
+    if (use_metropolis_)
+    {
+        //We use the metropolis algorithm to sample an output string non-destructively
+        out_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_,
+                                   rng);
+    }
+    else
+    {
+      used_ne = true;
+      //Run the norm estimation routine
+      out_string = BaseState::qreg_.ne_single_sample(norm_estimation_samples_,
+                                                     qubits, rng);
+    }
   }
-  //We prepare the Pauli projector corresponding to the measurement result
-  std::vector<chpauli_t>paulis(qubits.size(), chpauli_t());
   // Prepare an output register for the qubits we are measurig
   reg_t outcome(qubits.size(), 0ULL);
+  if (!used_ne) 
+  {
+    //We prepare the Pauli projector corresponding to the measurement result
+    std::vector<chpauli_t>paulis(qubits.size(), chpauli_t());
+    for (uint_t i=0; i<qubits.size(); i++)
+    {
+      //Create a Pauli projector onto 1+-Z_{i} on qubit i
+      paulis[i].Z = (1ULL << qubits[i]);
+      if ((out_string >> qubits[i]) & 1ULL)
+      {
+        //Additionally, store the output bit for this qubit
+        paulis[i].e = 2;
+      }
+    }
+    //Project the decomposition onto the measurement outcome
+    BaseState::qreg_.apply_pauli_projector(paulis);
+  }
   for (uint_t i=0; i<qubits.size(); i++)
   {
     //Create a Pauli projector onto 1+-Z_{i} on qubit i
-    paulis[i].Z = (1ULL << qubits[i]);
-    if ((full_string >> qubits[i]) & 1ULL)
+    if ((out_string >> qubits[i]) & 1ULL)
     {
       //Additionally, store the output bit for this qubit
-      outcome[i]= 1ULL;
-      paulis[i].e = 2;
+      outcome[i] = 1ULL;
     }
   }
   // Convert the output string to a reg_t. and store
   BaseState::creg_.store_measure(outcome, cmemory, cregister);
-  //Project the decomposition onto the measurement outcome
-  BaseState::qreg_.apply_pauli_projector(paulis);
 }
 
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
@@ -741,7 +780,7 @@ inline void to_json(json_t &js, cvector_t vec)
 }
 
 //
-uint_t State::compute_chi(const std::vector<Operations::Op> &ops) const
+auto State::compute_chi(const std::vector<Operations::Op> &ops) const -> uint_t
 {
   double xi = 1;
   for (const auto op: ops)
@@ -785,9 +824,8 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
   }
 }
 
-size_t State::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops)
-                                 const
+auto State::required_memory_mb(uint_t num_qubits,
+                                 const std::vector<Operations::Op> &ops) const -> size_t
 {
   size_t required_chi = compute_chi(ops);
   // 5 vectors of num_qubits*8byte words

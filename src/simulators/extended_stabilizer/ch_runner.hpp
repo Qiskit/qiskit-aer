@@ -26,7 +26,7 @@
 
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include <cstdint>
 #include <complex>
@@ -53,8 +53,8 @@ thread_local std::unordered_map<double, U1Sample> Z_ROTATIONS;
 class Runner
 {
 private:
-  uint_t n_qubits_;
-  uint_t num_states_;
+  uint_t n_qubits_ = 0;
+  uint_t num_states_ = 0;
   std::vector<chstabilizer_t> states_;
   std::vector<complex_t> coefficients_;
   uint_t num_threads_;
@@ -79,17 +79,17 @@ public:
   void initialize(uint_t n_qubits);
   void initialize_omp(uint_t n_threads, uint_t threshold_rank);
 
-  bool empty() const
+  auto empty() const -> bool
   {
     return (n_qubits_ == 0 || num_states_ == 0);
   }
 
-  uint_t get_num_states() const;
-  uint_t get_n_qubits() const;
-  bool check_omp_threshold();
+  auto get_num_states() const -> uint_t;
+  auto get_n_qubits() const -> uint_t;
+  auto check_omp_threshold() -> bool;
 
   //Convert each state to a json object and return it.
-  std::vector<std::string> serialize_decomposition() const;
+  auto serialize_decomposition() const -> std::vector<std::string>;
 
   //Creates num_states_ copies of the 'base state' in the runner
   //This will be either the |0>^n state, or a stabilizer state
@@ -97,7 +97,7 @@ public:
   //circuit. 
   void initialize_decomposition(uint_t n_states);
   //Check if the coefficient omega is 0
-  bool check_eps(uint_t rank);
+  auto check_eps(uint_t rank) -> bool;
 
   //Methods for applying gates
   void apply_cx(uint_t control, uint_t target, uint_t rank);
@@ -117,21 +117,25 @@ public:
   void apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t branch, int rank);
   //Measure a Pauli projector on each term in the decomposition and update their coefficients
   // omega.
+  void apply_pauli(pauli_t &P);
   void apply_pauli_projector(const std::vector<pauli_t> &generators);
   void apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank);
   //Routine for Norm Estimation, thin wrapper for the CHSimulator method that uses AER::RngEngine
   //to set up the estimation routine.
-  double norm_estimation(uint_t n_samples, AER::RngEngine &rng);
-  double norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng);
+  auto norm_estimation(uint_t n_samples, AER::RngEngine &rng) -> double;
+  auto norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double;
 
   //Metropolis Estimation for sampling from the output distribution
-  uint_t metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
-  std::vector<uint_t> metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng);
+  auto metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t;
+  auto metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
+  // NE Sampling Routines
+  auto ne_single_sample(uint_t n_samples, const AER::reg_t &qubits,
+                        AER::RngEngine &rng) -> uint_t;
   //Efficient Sampler for the output distribution of a stabilizer state
-  uint_t stabilizer_sampler(AER::RngEngine &rng);
-  std::vector<uint_t> stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng);
+  auto stabilizer_sampler(AER::RngEngine &rng) -> uint_t;
+  auto stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
   //Utilities for the state-vector snapshot.
-  complex_t amplitude(uint_t x_measure);
+  auto amplitude(uint_t x_measure) -> complex_t;
   void state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng);
 
 };
@@ -182,17 +186,17 @@ void Runner::initialize_omp(uint_t n_threads, uint_t threshold_rank)
   omp_threshold_ = threshold_rank;
 }
 
-uint_t Runner::get_num_states() const
+auto Runner::get_num_states() const -> uint_t
 {
   return num_states_;
 }
 
-uint_t Runner::get_n_qubits() const
+auto Runner::get_n_qubits() const -> uint_t
 {
   return n_qubits_;
 }
 
-bool Runner::check_omp_threshold()
+auto Runner::check_omp_threshold() -> bool
 {
   return num_states_ > omp_threshold_;
 }
@@ -200,6 +204,16 @@ bool Runner::check_omp_threshold()
 //-------------------------------------------------------------------------
 // Operations on the decomposition
 //-------------------------------------------------------------------------
+
+void Runner::apply_pauli(pauli_t &P)
+{
+  const int_t END = num_states_;
+  #pragma omp parallel for if (num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_)
+  for(int_t i=0; i<END; i++)
+  {
+    states_[i].MeasurePauli(P);
+  }
+}
 
 void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators)
 {
@@ -216,7 +230,7 @@ void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators, uint_
   states_[rank].MeasurePauliProjector(generators);
 }
 
-bool Runner::check_eps(uint_t rank)
+auto Runner::check_eps(uint_t rank) -> bool
 {
   return (states_[rank].Omega().eps == 1);
 }
@@ -408,7 +422,7 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
 //Measurement
 //-------------------------------------------------------------------------
 
-double Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng)
+auto Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng) -> double
 {
   std::vector<uint_t> adiag_1(n_samples, 0ULL);
   std::vector<uint_t> adiag_2(n_samples, 0ULL);
@@ -445,13 +459,47 @@ double Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng)
   return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
 }
 
-double Runner::norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng)
+auto Runner::norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double
 {
   apply_pauli_projector(generators);
   return norm_estimation(n_samples, rng);
 }
 
-uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng)
+auto Runner::ne_single_sample(uint_t n_samples,
+                              const AER::reg_t &qubits,
+                              AER::RngEngine &rng) -> uint_t
+{
+  double denominator = norm_estimation(n_samples, rng);
+  std::vector<pauli_t> generators;
+  std::vector<chstabilizer_t> states_cache(states_);
+  uint_t out_string = ZERO;
+  for (uint_t i=0; i<qubits.size(); i++)
+  {
+    pauli_t generator;
+    generator.Z = (1ULL << qubits[i]);
+    apply_pauli(generator);
+  // Compute probability this bit is 0, given the previous assignemnts
+    double numerator = norm_estimation(n_samples, rng);
+    if (rng.rand() < (numerator / denominator))
+    {
+      // We sample a 0 for this bit
+      generators.push_back(generator);
+      denominator = numerator;
+    }
+    else
+    {
+      // We sample a 1, we need to update the states with this projection
+      generator.e = 2;
+      generators.push_back(generator);
+      states_ = states_cache;
+      apply_pauli_projector(generators);
+      out_string ^= (1ULL << qubits[i]);
+    }
+  }
+  return out_string;
+}
+
+auto Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t
 {
   init_metropolis(rng);
   for (uint_t i=0; i<n_steps; i++)
@@ -461,7 +509,7 @@ uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng)
   return x_string_;
 }
 
-std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng)
+auto Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>
 {
   std::vector<uint_t> shots(n_shots, zer);
   shots[0] = metropolis_estimation(n_steps, rng);
@@ -475,7 +523,7 @@ std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots
 
 void Runner::init_metropolis(AER::RngEngine &rng)
 {
-  accept_ = 0;
+  accept_ = false;
   //Random initial x_string from RngEngine
   uint_t max = (1ULL<<n_qubits_) - 1;
   x_string_ = rng.rand_int(ZERO, max);
@@ -543,7 +591,7 @@ void Runner::metropolis_step(AER::RngEngine &rng)
   if(std::isinf(p_threshold) || std::isnan(p_threshold))
   #endif
   {
-    accept_ = 1;
+    accept_ = true;
     old_ampsum_ = ampsum;
     last_proposal_ = proposal; //We try to move away from node with 0 probability.
   }
@@ -552,24 +600,24 @@ void Runner::metropolis_step(AER::RngEngine &rng)
     double rand = rng.rand();
     if (rand < p_threshold)
     {
-      accept_ = 1;
+      accept_ = true;
       old_ampsum_ = ampsum;
       last_proposal_ = proposal;
     }
     else
     {
-      accept_ = 0;
+      accept_ = false;
     }
   }
 }
 
-uint_t Runner::stabilizer_sampler(AER::RngEngine &rng)
+auto Runner::stabilizer_sampler(AER::RngEngine &rng) -> uint_t
 {
   uint_t max = (1ULL << n_qubits_) -1;
   return states_[0].Sample(rng.rand_int(ZERO, max));
 }
 
-std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng)
+auto Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>
 {
   if(num_states_ > 1)
   {
@@ -584,7 +632,7 @@ std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &r
   return shots;
 }
 
-complex_t Runner::amplitude(uint_t x_measure)
+auto Runner::amplitude(uint_t x_measure) -> complex_t
 {
   double real_part=0., imag_part=0.;
   //Splitting the reduction guarantees support on more OMP versions.
@@ -597,7 +645,7 @@ complex_t Runner::amplitude(uint_t x_measure)
     real_part += amplitude.real();
     imag_part += amplitude.imag();
   }
-  return complex_t(real_part, imag_part);
+  return {real_part, imag_part};
 }
 
 void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
@@ -631,7 +679,7 @@ inline void to_json(json_t &js, const Runner &rn)
   js["decomposition"] = rn.serialize_decomposition();
 }
 
-std::vector<std::string> Runner::serialize_decomposition() const
+auto Runner::serialize_decomposition() const -> std::vector<std::string>
 {
   std::vector<std::string> serialized_states(num_states_);
   const int_t END = num_states_;

@@ -15,7 +15,8 @@
 #ifndef CH_STABILIZER_HPP
 #define CH_STABILIZER_HPP
 
-#include <limits.h>
+#include <array>
+#include <climits>
 #include <complex>
 #include <cstdlib>
 #include <ctime>
@@ -38,31 +39,31 @@ public:
   // qubits are numbered as q=0,1,...,n-1
 
 
-  uint_fast64_t NQubits() const
+  auto NQubits() const -> uint_fast64_t
   {
     return n;
   }
-  scalar_t Omega() const
+  auto Omega() const -> scalar_t
   {
     return omega;
   }
-  uint_fast64_t Gamma1() const
+  auto Gamma1() const -> uint_fast64_t
   {
     return gamma1;
   }
-  uint_fast64_t Gamma2() const
+  auto Gamma2() const -> uint_fast64_t
   {
     return gamma2;
   }
-  std::vector<uint_fast64_t> GMatrix() const
+  auto GMatrix() const -> std::vector<uint_fast64_t>
   {
     return G;
   }
-  std::vector<uint_fast64_t> FMatrix() const
+  auto FMatrix() const -> std::vector<uint_fast64_t>
   {
     return F;
   }
-  std::vector<uint_fast64_t> MMatrix() const
+  auto MMatrix() const -> std::vector<uint_fast64_t>
   {
     return M;
   }
@@ -85,38 +86,38 @@ public:
 
 
   // measurements
-  scalar_t Amplitude(uint_fast64_t x); // computes the  amplitude <x|phi>
-  uint_fast64_t Sample(); // returns a sample from the distribution |<x|phi>|^2
-  uint_fast64_t Sample(uint_fast64_t v_mask);
+  auto Amplitude(uint_fast64_t x) -> scalar_t; // computes the  amplitude <x|phi>
+  auto Sample() -> uint_fast64_t; // returns a sample from the distribution |<x|phi>|^2
+  auto Sample(uint_fast64_t v_mask) -> uint_fast64_t;
   void MeasurePauli(const pauli_t P); // applies a gate (I+P)/2 
                                 // where P is an arbitrary Pauli operator
   void MeasurePauliProjector(const std::vector<pauli_t>& generators);
 
-  inline scalar_t ScalarPart() {return omega;} 
+  inline auto ScalarPart() -> scalar_t {return omega;} 
 
   
   //InnerProduct & Norm Estimation
-  scalar_t InnerProduct(const uint_fast64_t& A_diag1, const uint_fast64_t& A_diag2, const std::vector<uint_fast64_t>& A);
+  auto InnerProduct(const uint_fast64_t& A_diag1, const uint_fast64_t& A_diag2, const std::vector<uint_fast64_t>& A) -> scalar_t;
   
   // Metropolis updates:
   // To initialize Metropolis by a state x call Amplitude(x)
-  scalar_t ProposeFlip(unsigned flip_pos); // returns the amplitude <x'|phi> 
+  auto ProposeFlip(unsigned flip_pos) -> scalar_t; // returns the amplitude <x'|phi> 
                                            // where x'=bitflip(x,q)
                                            // x = current Metropolis state
   inline void AcceptFlip() {P=Q;} // accept the proposed bit flip
     
-  friend double NormEstimate(std::vector<StabilizerState>& states,
+  friend auto NormEstimate(std::vector<StabilizerState>& states,
               const std::vector< std::complex<double> >& phases, 
               const std::vector<uint_fast64_t>& Samples_d1,
               const std::vector<uint_fast64_t> &Samples_d2, 
-              const std::vector< std::vector<uint_fast64_t> >& Samples);
+              const std::vector< std::vector<uint_fast64_t> >& Samples) -> double;
   #ifdef _OPENMP
-  friend double ParallelNormEstimate(std::vector<StabilizerState>& states,
+  friend auto ParallelNormEstimate(std::vector<StabilizerState>& states,
                         const std::vector< std::complex<double> >& phases, 
                         const std::vector<uint_fast64_t>& Samples_d1,
                         const std::vector<uint_fast64_t> &Samples_d2, 
                         const std::vector< std::vector<uint_fast64_t> >& Samples,
-                        int n_threads);
+                        int n_threads) -> double;
   #endif
 
 private:
@@ -145,7 +146,7 @@ private:
   void RightSdag(unsigned q);
   
   // computes a Pauli operator U_C^{-1}X(x)U_C 
-  pauli_t GetPauliX(uint_fast64_t x);
+  auto GetPauliX(uint_fast64_t x) -> pauli_t;
 
   // replace the initial state |s> in the CH-form by a superposition
   // (|t> + i^b |u>)*sqrt(1/2) as described in Proposition 3
@@ -169,15 +170,15 @@ private:
   
 };
 
-typedef std::complex<double> cdouble;
+using cdouble =  std::complex<double>;
 
 //-------------------------------//
 // Implementation                //
 //-------------------------------//
 
 //Lookup table for e^(i pi m / 4)
-static const int RE_PHASE[8] = {1, 1, 0, -1, -1, -1, 0, 1};
-static const int IM_PHASE[8] = {0, 1, 1, 1, 0, -1, -1, -1};
+static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
+static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
 
 // Clifford simulator based on the CH-form for for n<=64 qubits
 
@@ -407,7 +408,7 @@ void StabilizerState::CZ(unsigned q, unsigned r)
   }
 }
 
-pauli_t StabilizerState::GetPauliX(uint_fast64_t x)
+auto StabilizerState::GetPauliX(uint_fast64_t x) -> pauli_t
 {
   // make sure that M-transposed and F-transposed have been already computed
   if (!isReadyMT)
@@ -435,7 +436,7 @@ pauli_t StabilizerState::GetPauliX(uint_fast64_t x)
  return R;
 }
 
-scalar_t StabilizerState::Amplitude(uint_fast64_t x)
+auto StabilizerState::Amplitude(uint_fast64_t x) -> scalar_t
 {
   // compute transposed matrices if needed
   if (!isReadyMT)
@@ -493,7 +494,7 @@ scalar_t StabilizerState::Amplitude(uint_fast64_t x)
   return amp;
 }
 
-scalar_t StabilizerState::ProposeFlip(unsigned flip_pos)
+auto StabilizerState::ProposeFlip(unsigned flip_pos) -> scalar_t
 {
   // Q gets Pauli operator U_C^{-1} X_{flip_pos} U_C
   Q.e=1*((gamma1>>flip_pos) & one);
@@ -547,7 +548,7 @@ scalar_t StabilizerState::ProposeFlip(unsigned flip_pos)
   return amp;
 }
 
-uint_fast64_t StabilizerState::Sample()
+auto StabilizerState::Sample() -> uint_fast64_t
 {
   uint_fast64_t x=zer;
   for (unsigned q=0; q<n; q++)
@@ -559,7 +560,7 @@ uint_fast64_t StabilizerState::Sample()
   return x;
 }
 
-uint_fast64_t StabilizerState::Sample(uint_fast64_t v_mask)
+auto StabilizerState::Sample(uint_fast64_t v_mask) -> uint_fast64_t
 {
   //v_mask is a uniform random binary string we use to sample the bits
   //of v in a single step.
@@ -861,9 +862,9 @@ void StabilizerState::MeasurePauliProjector(const std::vector<pauli_t>& generato
     }
 }
 
-scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
+auto StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
                                        const uint_fast64_t& A_diag2,
-                                       const std::vector<uint_fast64_t>& A)
+                                       const std::vector<uint_fast64_t>& A) -> scalar_t
 {
     uint_fast64_t K_diag1 = zer, K_diag2=zer, J_diag1=gamma1, J_diag2=gamma2;
     std::vector<uint_fast64_t> J(n, zer);
@@ -996,9 +997,9 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
     return amp;
 }
 
-double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std::complex<double> >& phases, 
+auto NormEstimate(std::vector<StabilizerState>& states, const std::vector< std::complex<double> >& phases, 
                     const std::vector<uint_fast64_t>& Samples_d1, const std::vector<uint_fast64_t> &Samples_d2, 
-                    const std::vector< std::vector<uint_fast64_t> >& Samples)
+                    const std::vector< std::vector<uint_fast64_t> >& Samples) -> double
 {
     // Norm estimate for a state |psi> = \sum_{i} c_{i}|phi_{i}>
     double xi=0;
@@ -1033,9 +1034,9 @@ double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std
     return std::pow(2, states[0].NQubits()) * (xi/L);
 }
 
-double ParallelNormEstimate(std::vector<StabilizerState>& states, const std::vector< std::complex<double> >& phases, 
+auto ParallelNormEstimate(std::vector<StabilizerState>& states, const std::vector< std::complex<double> >& phases, 
                     const std::vector<uint_fast64_t>& Samples_d1, const std::vector<uint_fast64_t>& Samples_d2, 
-                    const std::vector< std::vector<uint_fast64_t> >& Samples, int n_threads)
+                    const std::vector< std::vector<uint_fast64_t> >& Samples, int n_threads) -> double
 {
     double xi=0;
     unsigned L = Samples_d1.size();

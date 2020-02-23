@@ -16,7 +16,7 @@
 #define _aer_chsimulator_gates_hpp
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include <complex>
 #include <cstdint>
@@ -84,7 +84,7 @@ namespace CHSimulator
     Sample(const Sample& other) : branches(other.branches) {};
     std::vector<sample_branch_t> branches;
 
-    virtual sample_branch_t sample(double r) const = 0;
+    virtual auto sample(double r) const -> sample_branch_t = 0;
   };
 
   //Functor class that defines how to sample branches over a U1 operation
@@ -101,9 +101,9 @@ struct U1Sample : public Sample
     p_threshold = other.p_threshold;
   }
 
-  ~U1Sample() = default;
+  ~U1Sample() override = default;
 
-  sample_branch_t sample(double r) const override;
+  auto sample(double r) const -> sample_branch_t override;
 };
 
 U1Sample::U1Sample(double lambda)
@@ -140,25 +140,21 @@ U1Sample::U1Sample(double lambda)
   angle /= 2;
   complex_t coeff_0 = std::cos(angle)-std::sin(angle);
   complex_t coeff_1 = root2*std::sin(angle);
+  complex_t phase_0, phase_1;
+  std::array<Gates, 2> gates;
   if(lambda < 0)
   {
     coeff_0 *= root_omega_star;
     coeff_1 = coeff_1 * root_omega;
     if(s_z_quadrant)
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::sdg),
-        sample_branch_t(coeff_1, Gates::z)
-      };
+      gates[0] = Gates::sdg;
+      gates[1] = Gates::z;
     }
     else
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::id),
-        sample_branch_t(coeff_1, Gates::sdg)
-      };
+      gates[0] = Gates::id;
+      gates[1] = Gates::sdg;
     }
   }
   else
@@ -167,21 +163,22 @@ U1Sample::U1Sample(double lambda)
     coeff_1 = coeff_1 * root_omega_star;
     if(s_z_quadrant)
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::s),
-        sample_branch_t(coeff_1, Gates::z)
-      };
+      gates[0] = Gates::s;
+      gates[1] = Gates::z;
     }
     else
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::id),
-        sample_branch_t(coeff_1, Gates::s)
-      };
+      gates[0] = Gates::id;
+      gates[1] = Gates::s;
     }
   }
+  phase_0 = coeff_0/std::abs(coeff_0);
+  phase_1 = coeff_1/std::abs(coeff_1);
+  branches =
+  {
+    sample_branch_t(phase_0, gates[0]),
+    sample_branch_t(phase_1, gates[1])
+  };
   p_threshold = std::abs(coeff_0) / (std::abs(coeff_0)+std::abs(coeff_1));
 }
 
@@ -204,7 +201,7 @@ sample_branch_t U1Sample::sample(double r) const
   const double ccx_extent = 16./9.;
   const double ccx_coeff = 1./6.;
   //General result for z rotations, Eq. 28 in arXiv 1809.00128
-  inline double u1_extent(double lambda)
+  inline auto u1_extent(double lambda) -> double
   {
     // Shift parameter into +- 2 Pi
     uint_t shift_factor = std::floor(std::abs(lambda)/(2*M_PI));
