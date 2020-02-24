@@ -18,7 +18,7 @@
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
-from ..controllers.string_spec_parser import HamiltonianParser
+from ..controllers.string_model_parser import HamiltonianParser
 from qiskit.providers.aer.aererror import AerError
 
 

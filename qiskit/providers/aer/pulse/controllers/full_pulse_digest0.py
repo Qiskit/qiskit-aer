@@ -33,7 +33,7 @@ from warnings import warn
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
 from ..qobj.op_system import OPSystem
-from .string_spec_parser import NoiseParser
+from .string_model_parser import NoiseParser
 from ..qobj.operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
 from ..qobj import op_qobj as op
