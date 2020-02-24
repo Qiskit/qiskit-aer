@@ -15,16 +15,20 @@
 
 """A temporary placeholder object for storing what is extracted from a PulseQobj.
 
-Not 100% sure but I think this class should disolve into the more general structure of the
-simulator package. I.e. the point of "pulse digest" should ideally be to converted into the
-pulse-independent description of this simulation package.
+This class should eventually disolve into the more general structure of the
+simulator package
 """
 
 class DigestedPulseQobj:
 
     def __init__(self):
 
+        # ####################################
+        # Some "Simulation description"
+        # ####################################
+
         # stuff related to memory/measurements
+        # some of these may always remain pulse-specific
         self.shots = None
         self.meas_level = None
         self.meas_return = None
@@ -32,6 +36,9 @@ class DigestedPulseQobj:
         self.memory = None
         self.n_registers = None
 
+        # ####################################
+        # Some Signal portion
+        # ####################################
 
         # signal stuff, to be put into pulse/signals
         self.pulse_array = None
@@ -41,5 +48,11 @@ class DigestedPulseQobj:
         # maybe to be put into signal when we have a "mixedsignal"
         self.qubit_lo_freq = None
 
-        # the digested experiments
+
+        # ####################################
+        # Mix of both signal and simulation description
+        # ####################################
+
+        # "experiments" contains a combination of signal information and
+        # other experiment descriptions, which should be separated
         self.experiments = None

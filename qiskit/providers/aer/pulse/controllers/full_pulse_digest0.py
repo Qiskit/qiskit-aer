@@ -15,6 +15,16 @@
 
 """ This file should ultimately disappear into different pieces.
 
+
+Need separate:
+    - interpretation of qobj/pulse schedules (this is the only thing that
+      should be called "pulse digest"). This needs to be further separated into:
+        - construction of signals
+        - construction of "simulation description"
+    - Simulation preparation
+        - e.g. frame transformations, computing eigenvalues, setting solver steps ...
+        - These are all specific to, and should be contained in, a solver
+
 - actual qobj digest has now been separated, though unfortunately it depends on
   3 parameters from the model, which needs to be changed/figured out
 """
@@ -23,11 +33,9 @@ from warnings import warn
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
 from ..qobj.op_system import OPSystem
-from ..qobj.opparse import NoiseParser
+from .string_spec_parser import NoiseParser
 from ..qobj.operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
-# pylint: disable=no-name-in-module,import-error
-from ..cy.utils import oplist_to_array
 from ..qobj import op_qobj as op
 from .pulse_qobj_digest0 import digest_pulse_qobj
 
@@ -102,8 +110,7 @@ def full_digest(qobj, system_model, backend_options=None):
     # Parse noise
     noise_dict = noise_model or {}
     if noise_dict:
-        noise = NoiseParser(noise_dict=noise_dict,
-                            dim_osc=dim_osc, dim_qub=dim_qub)
+        noise = NoiseParser(noise_dict=noise_dict, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
         out.noise = noise.compiled
