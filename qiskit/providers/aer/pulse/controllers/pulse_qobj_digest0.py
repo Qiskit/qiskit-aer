@@ -21,7 +21,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
 from ..cy.utils import oplist_to_array
-from .pulse0_digested_qobj import DigestedPulseQobj
+from .digested_qobj0 import DigestedPulseQobj
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     """
