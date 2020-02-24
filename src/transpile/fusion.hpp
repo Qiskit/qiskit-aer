@@ -49,7 +49,7 @@ public:
 
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
-                        const opset_t &opset,
+                        const opset_t &allowed_opset,
                         ExperimentData &data) const override;
 
 private:
@@ -178,8 +178,10 @@ void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               ExperimentData &data) const {
-
-  if (circ.num_qubits < threshold_ || !active_)
+  // Check if fusion should be skipped
+  if (circ.num_qubits < threshold_
+      || !active_
+      || !allowed_opset.contains(optype_t::matrix))
     return;
 
   bool applied = false;
@@ -235,8 +237,6 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
   if (op.conditional)
     return false;
   switch (op.type) {
-  case optype_t::barrier:
-    return false;
   case optype_t::matrix:
     return op.mats.size() == 1 && op.mats[0].size() <= 4;
   case optype_t::gate:
@@ -247,6 +247,7 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
   case optype_t::roerror:
   case optype_t::snapshot:
   case optype_t::kraus:
+  case optype_t::barrier:
   default:
     return false;
   }
@@ -367,7 +368,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops) co
     U = u_tmp;
   }
 
-  return Operations::make_fusion(sorted_qubits, U, fusioned_ops);
+  return Operations::make_unitary(sorted_qubits, U, std::string("fusion"));
 }
 
 cmatrix_t Fusion::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted_qubits, const cmatrix_t& mat) const {
