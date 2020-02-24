@@ -13,13 +13,13 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
-""" Parser for the string specification of Hamiltonians and noise models"""
+"""Parser for the string specification of Hamiltonians and noise models"""
 
 import re
 import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
-from ..qobj.op_qobj import get_func
+from ..qutip_string_parsing.apply_string_function import apply_func
 from ..qobj.operators import gen_oper
 
 
@@ -277,7 +277,7 @@ class HamiltonianParser:
                 elif token.name == '/':
                     stack.append(op1 / op2)
             elif token.type in ['Func', 'Ext']:
-                stack.append(get_func(token.name, stack.pop(-1)))
+                stack.append(apply_func(token.name, stack.pop(-1)))
             else:
                 raise Exception('Invalid token %s is found' % token.name)
 
