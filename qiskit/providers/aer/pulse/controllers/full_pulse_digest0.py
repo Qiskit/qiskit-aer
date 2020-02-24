@@ -29,7 +29,7 @@ from ..solver.options import OPoptions
 # pylint: disable=no-name-in-module,import-error
 from ..cy.utils import oplist_to_array
 from ..qobj import op_qobj as op
-from .pulse0_pulse_qobj_digest import digest_pulse_qobj
+from .pulse_qobj_digest0 import digest_pulse_qobj
 
 
 def full_digest(qobj, system_model, backend_options=None):

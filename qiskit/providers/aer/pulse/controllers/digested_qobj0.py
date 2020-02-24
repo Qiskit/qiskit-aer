@@ -13,7 +13,11 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name, missing-return-type-doc
 
-"""A temporary placeholder object for storing what is extracted from a PulseQobj
+"""A temporary placeholder object for storing what is extracted from a PulseQobj.
+
+Not 100% sure but I think this class should disolve into the more general structure of the
+simulator package. I.e. the point of "pulse digest" should ideally be to converted into the
+pulse-independent description of this simulation package.
 """
 
 class DigestedPulseQobj:
