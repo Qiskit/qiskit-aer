@@ -28,6 +28,8 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     I'm not sure if channels, dt, or qubit_list should be here. This really seems like
     an interpretation of the qobj only, and the augmentation of the qobj output
     by things that are not strictly qobj-related should maybe be done by the solver
+
+    One option is to have the non-qobj arguments be optional,
     """
 
     digested_qobj = DigestedPulseQobj()

@@ -13,8 +13,10 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name, missing-return-type-doc
 
-"""A module of routines for digesting a PULSE qobj
-into something we can actually use.
+""" This file should ultimately disappear into different pieces.
+
+- actual qobj digest has now been separated, though unfortunately it depends on
+  3 parameters from the model, which needs to be changed/figured out
 """
 
 from warnings import warn
@@ -115,7 +117,7 @@ def full_digest(qobj, system_model, backend_options=None):
     # ### Parse qobj_config settings
     # ###############################
 
-    # This should just depend on the qobj
+    # This should just depend on the qobj, or at most, also on dt
     digested_qobj = digest_pulse_qobj(qobj, out.channels, out.dt, qubit_list)
 
     out.global_data['shots'] = digested_qobj.shots
