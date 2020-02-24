@@ -36,7 +36,7 @@ from ..qobj.op_system import OPSystem
 from .string_model_parser import NoiseParser
 from ..qobj.operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
-from ..qobj import op_qobj as op
+from ..qutip_qobj import qobj_generators as op
 from .pulse_qobj_digest0 import digest_pulse_qobj
 
 

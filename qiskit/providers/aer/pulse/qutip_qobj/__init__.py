@@ -12,5 +12,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Temporary folder collecting Hamiltonian and noise model string parsing functionality
+"""Temporary folder for collecting functionality centered around the qutip "qobj"
 """
