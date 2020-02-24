@@ -21,7 +21,7 @@ from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
-from qiskit.providers.aer.pulse.controllers.pulse0_full_pulse_digest import full_digest
+from qiskit.providers.aer.pulse.controllers.full_pulse_digest0 import full_digest
 
 
 class TestDigest(QiskitAerTestCase):
