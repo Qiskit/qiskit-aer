@@ -29,8 +29,7 @@ stage_generic: &stage_generic
   install:
     - pip install -U 'pip<20.0.0'
     - pip install cython
-    # Installing qiskit-terra master branch...
-    - pip install https://github.com/Qiskit/qiskit-terra/archive/master.zip
+    - pip install -U qiskit-terra
     # Installing qiskit-ibmq-provider stable branch
     # This is only needed to suppress warnings when importing Qiskit
     - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
