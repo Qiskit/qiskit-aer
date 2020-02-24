@@ -631,19 +631,12 @@ void State::apply_gate(const Operations::Op &op) {
 
 }
 
-void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (!qubits.empty() && qubits.size()==1 && mat.size() == 4) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
+  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+   if (!qubits.empty() && mat.size() > 0) {
+     qreg_.apply_matrix(qubits, mat);
+     return;
+   }
   }
-  if (!qubits.empty() && qubits.size()==2 && mat.size() == 16) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
-  }
-#ifdef DEBUG
-  cout << "Currently only support matrices applied to 1 or 2 qubits";
-#endif
-}
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
