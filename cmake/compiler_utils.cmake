@@ -141,7 +141,19 @@ function(uncompress_muparsersx_lib)
 endfunction()
 
 function(add_muparserx_lib)
-    message(STATUS "Uncompressing muparserx static library...")
+    message(STATUS "Looking for muparserx library...")
+
+    # Look first for already installed muparserx
+    find_package(muparserx QUIET)
+
+    if(muparserx_FOUND)
+        message(STATUS "Muparserx library version '${muparserx_VERSION}' found")
+        set(AER_LIBRARIES ${AER_LIBRARIES} PkgConfig::muparserx PARENT_SCOPE)
+        return()
+    endif()
+
+    message(STATUS "Muparserx library not found. Uncompressing muparserx static library...")
+
     uncompress_muparsersx_lib()
 
     find_library(MUPARSERX_LIB NAMES libmuparserx.a muparserx HINTS ${MUPARSERX_LIB_PATH})
