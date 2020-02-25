@@ -29,7 +29,13 @@ stage_generic: &stage_generic
   install:
     - pip install -U 'pip<20.0.0'
     - pip install cython
-    - pip install -U qiskit-terra
+    # Install terra from master on aer master else use the most recent release
+    - |
+      if [[ $TRAVIS_BRANCH == "master" ]] ; then
+          pip install -U -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+      else
+          pip install -U -c constraints.txt qiskit-terra
+      fi
     # Installing qiskit-ibmq-provider stable branch
     # This is only needed to suppress warnings when importing Qiskit
     - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
