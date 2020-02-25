@@ -704,7 +704,6 @@ void MPS::move_qubits_to_right_end(const reg_t &qubits,
       }
     }
   }
-
   // the target qubits are simply the rightmost qubits
   std::iota( std::begin(target_qubits), std::end(target_qubits), num_qubits_-num_target_qubits);
 }
@@ -823,6 +822,7 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
     reg_t actual_indices(num_qubits_);
     std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
     temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+
     rho = temp_MPS.density_matrix(target_qubits);
   }
 
