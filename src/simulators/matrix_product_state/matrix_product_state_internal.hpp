@@ -187,27 +187,39 @@ public:
   void full_state_vector(cvector_t &state_vector) const;
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
-  //methods from qasm_controller that are not supported yet
-  void set_omp_threads(int threads) {
+  static void set_omp_threads(uint_t threads) {
     if (threads > 0)
       omp_threads_ = threads;
   }
-
-  void set_omp_threshold(int omp_qubit_threshold) {
+  static void set_omp_threshold(uint_t omp_qubit_threshold) {
     if (omp_qubit_threshold > 0)
       omp_threshold_ = omp_qubit_threshold;
   }
-
-  void set_json_chop_threshold(double json_chop_threshold) {
+  static void set_json_chop_threshold(double json_chop_threshold) {
     json_chop_threshold_ = json_chop_threshold;
   }
-
-  void set_sample_measure_index_size(int index_size){
+  static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }
+  static void set_enable_gate_opt(bool enable_gate_opt) {
+    enable_gate_opt_ = enable_gate_opt;
+  }
 
-  void enable_gate_opt() {
-    std::cout << "enable_gate_opt not supported yet" <<std::endl;
+  static uint_t get_omp_threads() {
+  return omp_threads_;
+  }
+  static uint_t get_omp_threshold() {
+    return omp_threshold_;
+  }
+  static double get_json_chop_threshold() {
+    return json_chop_threshold_;
+  }
+  static uint_t get_sample_measure_index_size(){
+    return sample_measure_index_size_;
+  }
+
+  static bool get_enable_gate_opt() {
+    return enable_gate_opt_;
   }
 
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
@@ -241,10 +253,12 @@ public:
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
     cmatrix_t statevector_as_matrix(1, state_vector.size());
-#pragma omp parallel for
-    for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-      statevector_as_matrix(0, i) = state_vector[i];
-    }
+
+#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+        for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
+	  statevector_as_matrix(0, i) = state_vector[i];
+	}
+    
     initialize_from_matrix(num_qubits, statevector_as_matrix);
   }
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
@@ -305,11 +319,12 @@ protected:
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
-  uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
-  int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  double json_chop_threshold_ = 1E-8;  // Threshold for choping small values
+  static uint_t omp_threads_;     // Disable multithreading by default
+  static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
+  static int sample_measure_index_size_; // Sample measure indexing qubit size
+  static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
+  static bool enable_gate_opt_;      // allow optimizations on gates
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
