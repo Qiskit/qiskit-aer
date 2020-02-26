@@ -520,9 +520,9 @@ void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat)
   case 1: 
     q_reg_[qubits[0]].apply_matrix(mat);
     break;
-    //  case 2:
-    //    apply_2_qubit_gate(qubits[0], qubits[1], su4, mat);
-    //    break;
+  case 2:
+    apply_2_qubit_gate(qubits[0], qubits[1], su4, mat);
+    break;
   default:
     apply_multi_qubit_gate(qubits, mat);
   }
@@ -715,7 +715,7 @@ void MPS::move_qubits_back_from_right_end(const reg_t &qubits, reg_t &actual_ind
     uint_t min_index = left_index;
     for (uint_t i = left_index+1; i < actual_indices.size(); i++) {
       if (actual_indices[i] < actual_indices[min_index])
-	min_index = i;
+	  min_index = i;
     }
 
     // Move this qubit back to its original position
