@@ -12,5 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Temporary folder collecting Hamiltonian and noise model string parsing functionality
+"""Temporary folder for string parsers.
+
+Currently:
+- Nothing in this folder directly depends on QuTip, but it does depend on qutip
+  functionality (i.e. it manipulates qutip qobjs, though never directly creates them
+  itself)
 """
