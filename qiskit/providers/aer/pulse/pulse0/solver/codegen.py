@@ -263,10 +263,10 @@ cdef extern from "<complex>" namespace "std" nogil:
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
-from qiskit.providers.aer.pulse.qutip_lite.cy.spmatfuncs cimport spmvpy
+from qiskit.providers.aer.pulse.pulse0.qutip_lite.cy.spmatfuncs cimport spmvpy
 from libc.math cimport pi
 
-from qiskit.providers.aer.pulse.cy.channel_value cimport chan_value
+from qiskit.providers.aer.pulse.pulse0.cy.channel_value cimport chan_value
 
 from libc.string cimport memset
 
