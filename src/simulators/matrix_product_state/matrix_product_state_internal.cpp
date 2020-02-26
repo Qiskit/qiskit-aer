@@ -203,14 +203,16 @@ std::vector<uint_t> calc_new_indices(const reg_t &indices) {
 }
 
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
-			       const rvector_t &lambda,
-			       uint_t omp_threads)
-{
+			       const rvector_t &lambda) {
   if (lambda == rvector_t {1.0}) return mat;
   cmatrix_t res_mat(mat);
   uint_t num_rows = mat.GetRows(), num_cols = mat.GetColumns();
 
+#ifdef _WIN32
+#pragma omp parallel for if (num_rows*num_cols > 64 && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#else
 #pragma omp parallel for collapse(2) if (num_rows*num_cols > 64 && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#endif
   for(int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
     for(int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
 	res_mat(row, col) = mat(row, col) * lambda[col];
@@ -668,7 +670,11 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
-#pragma omp parallel for collapse(2) if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+#ifdef _WIN32
+    #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+#else
+    #pragma omp parallel for collapse(2) if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+#endif
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(j))) );
@@ -832,8 +838,8 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
   // Before contraction, Gamma0' has size a1 x a0 x i, Gamma0 has size i x a0 x a1
   // result = left_contract is a matrix of size a1 x a1
   cmatrix_t final_contract;
-  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, 
-				    omp_threads_, final_contract);
+  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, omp_threads_,
+				    final_contract);
 
   for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
     // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
@@ -864,13 +870,10 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &m
     // with next_gamma_dagger (i x a2 x a1) (same as Step 4)
     // here we need to contract across two dimensions: a1 and i
     // result is a matrix of size a2 x a2
-    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, 
-				      omp_threads_, final_contract); 
+    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, omp_threads_,
+				      final_contract); 
 
   }
-
-
-
  
   // Step 10 - contract over final matrix of size aN x aN
   // We need to contract the final matrix with itself
@@ -1050,7 +1053,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     if (first_iter) {
       remaining_matrix = mat;
     } else {
-      cmatrix_t temp = mul_matrix_by_lambda(V, S, omp_threads_); 
+      cmatrix_t temp = mul_matrix_by_lambda(V, S); 
       remaining_matrix = AER::Utils::dagger(temp);
     }
     reshaped_matrix = reshape_matrix(remaining_matrix);

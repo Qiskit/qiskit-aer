@@ -270,16 +270,7 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-  /*
-  // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 14;
 
-  // QubitVector sample measure index size
-  int sample_measure_index_size_ = 10;
-
-  // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
-  */
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
 

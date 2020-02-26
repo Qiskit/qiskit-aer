@@ -26,7 +26,6 @@
 #include <math.h>
 #include <string.h>
 #include <exception>
-#include <chrono>
 
 #include "svd.hpp"
 #include "svd.cpp"
@@ -35,12 +34,6 @@
 
 namespace AER {
 namespace MatrixProductState {
-
-// Data types
-using complex_t = std::complex<double>;
-using cvector_t = std::vector<complex_t>;
-using rvector_t = std::vector<double>;
-using cmatrix_t = matrix<complex_t>;
 
 //============================================================================
 // MPS_Tensor class
@@ -143,7 +136,7 @@ public:
   static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
 static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
 				  const MPS_Tensor &right_gamma,
-				  uint_t my_omp_threads,
+				  uint_t omp_threads,
 				  cmatrix_t &result);
 
 private:
@@ -463,13 +456,21 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   result.resize(left_rows, right_columns);
 
   uint_t omp_limit = left_rows*right_columns;
-#pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+
+#ifdef _WIN32
+    #pragma omp parallel for if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+#else
+    #pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+#endif 
       for (int_t l_row=0; l_row<left_rows; l_row++)
          for (int_t r_col=0; r_col<right_columns; r_col++)
            result(l_row, r_col) = 0;
 
-
-#pragma omp parallel for collapse(2) if ( (omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads) 
+#ifdef _WIN32
+    #pragma omp parallel for if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+#else
+    #pragma omp parallel for collapse(2) if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+#endif
       for (int_t l_row=0; l_row<left_rows; l_row++)
         for (int_t r_col=0; r_col<right_columns; r_col++) {
 

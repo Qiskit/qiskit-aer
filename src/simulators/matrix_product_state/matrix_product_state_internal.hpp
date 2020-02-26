@@ -212,7 +212,7 @@ public:
   }
 
   static uint_t get_omp_threads() {
-  return omp_threads_;
+    return omp_threads_;
   }
   static uint_t get_omp_threshold() {
     return omp_threshold_;
