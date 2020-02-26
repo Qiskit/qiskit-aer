@@ -32,7 +32,7 @@ Need separate:
 from warnings import warn
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
-from ..qobj.op_system import OPSystem
+from ..pulse0.qobj.op_system import OPSystem
 from ..string_model_parser.string_model_parser import NoiseParser
 #from ..qobj.operators import qubit_occ_oper_dressed
 from ..pulse0.solver.options import OPoptions

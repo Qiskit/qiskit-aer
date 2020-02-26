@@ -6,7 +6,7 @@ include(cython_utils)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-set(CYTHON_INSTALL_DIR "qiskit/providers/aer/pulse/qutip_lite/cy")
+set(CYTHON_INSTALL_DIR "qiskit/providers/aer/pulse/pulse0/qutip_lite/cy")
 add_cython_module(spconvert src/zspmv.cpp)
 add_cython_module(spmath src/zspmv.cpp)
 add_cython_module(sparse_utils src/zspmv.cpp)
