@@ -36,7 +36,7 @@ from ..pulse0.qobj.op_system import OPSystem
 from ..string_model_parser.string_model_parser import NoiseParser
 #from ..qobj.operators import qubit_occ_oper_dressed
 from ..pulse0.solver.options import OPoptions
-from ..direct_qutip_dependence import qobj_generators as op
+from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .pulse_qobj_digest0 import digest_pulse_qobj
 
 
@@ -96,7 +96,7 @@ def full_digest(qobj, system_model, backend_options=None):
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
-    estates = [op.state(state) for state in ham_model._estates.T[:]]
+    estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
     out.initial_state = estates[0]
     out.global_data['vars'] = list(out.vars.values())
     # Need this info for evaluating the hamiltonian vars in the c++ solver
@@ -210,12 +210,12 @@ def full_digest(qobj, system_model, backend_options=None):
                         continue
                     if not out.global_data['measurement_ops'][jj]:
                         out.global_data['measurement_ops'][jj] = \
-                            op.qubit_occ_oper_dressed(jj,
-                                                   estates,
-                                                   h_osc=dim_osc,
-                                                   h_qub=dim_qub,
-                                                   level=out.global_data['q_level_meas']
-                                                   )
+                            qobj_gen.qubit_occ_oper_dressed(jj,
+                                                            estates,
+                                                            h_osc=dim_osc,
+                                                            h_qub=dim_qub,
+                                                            level=out.global_data['q_level_meas']
+                                                            )
 
         if not exp['can_sample']:
             out.can_sample = False
