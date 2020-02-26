@@ -35,7 +35,7 @@ from qiskit.providers.aer.aererror import AerError
 from ..qobj.op_system import OPSystem
 from ..string_model_parser.string_model_parser import NoiseParser
 #from ..qobj.operators import qubit_occ_oper_dressed
-from ..solver.options import OPoptions
+from ..pulse0.solver.options import OPoptions
 from ..direct_qutip_dependence import qobj_generators as op
 from .pulse_qobj_digest0 import digest_pulse_qobj
 

@@ -47,7 +47,7 @@ of systems.
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
-from .qutip_lite.cy import pyxbuilder as pbldr
+from .pulse0.qutip_lite.cy import pyxbuilder as pbldr
 
 from .system_models.duffing_model_generators import duffing_system_model
 from .system_models.pulse_system_model import PulseSystemModel
