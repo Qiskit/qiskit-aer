@@ -165,7 +165,6 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index) {
 
 uint_t reverse_bits(uint_t num, uint_t len) {
   uint_t sum = 0;
-  //  std::assert(num < pow(2, len));
   for (uint_t i=0; i<len; ++i) {
     if ((num & 0x1) == 1) {
       sum += 1ULL << (len-1-i);   // adding pow(2, len-1-i)

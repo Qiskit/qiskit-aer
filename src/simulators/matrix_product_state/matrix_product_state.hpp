@@ -334,7 +334,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 //-------------------------------------------------------------------------
 
 void State::initialize_qreg(uint_t num_qubits) {
-  //initialize_omp();
   qreg_.initialize((uint_t)num_qubits);
 }
 
@@ -343,8 +342,6 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  //initialize_omp();
-  //qreg_.initialize((uint_t)num_qubits, state);
 #ifdef DEBUG
   cout << "initialize with state not supported yet";
 #endif
@@ -355,7 +352,6 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  //initialize_omp();
 
   // internal bit ordering is the opposite of ordering in Qasm, so must
   // reverse order before starting
@@ -363,12 +359,6 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
 
   qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
 }
-
-  //void State::initialize_omp() {
-  //  MPS::set_omp_threshold(omp_qubit_threshold_);
-  //  if (MPS::threads_ > 0)
-  //    MPS::set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
-  //}
 
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
