@@ -483,7 +483,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   }
 
   // add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
       data.add_average_snapshot("expectation_value", op.string_params[0],
@@ -523,7 +523,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   }
 
   // add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
       data.add_average_snapshot("expectation_value", op.string_params[0],
