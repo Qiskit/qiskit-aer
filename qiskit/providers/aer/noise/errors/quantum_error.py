@@ -543,7 +543,7 @@ class QuantumError:
                                                           instr['qubits'])
             # Renormalize the Choi operator to find probability
             # of Kraus error
-            chan_prob = np.trace(choi_sum.data) / dim
+            chan_prob = abs(np.trace(choi_sum.data) / dim)
             chan_instr = {
                 "name": "kraus",
                 "qubits": list(range(num_qubits)),
