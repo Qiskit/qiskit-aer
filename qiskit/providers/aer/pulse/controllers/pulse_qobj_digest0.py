@@ -20,7 +20,7 @@ from warnings import warn
 from collections import OrderedDict
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
-from ..cy.utils import oplist_to_array
+from ..pulse0.cy.utils import oplist_to_array
 from .digested_qobj0 import DigestedPulseQobj
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list):
