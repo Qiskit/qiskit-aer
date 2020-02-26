@@ -33,10 +33,10 @@ from warnings import warn
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
 from ..qobj.op_system import OPSystem
-from .string_model_parser import NoiseParser
-from ..qobj.operators import qubit_occ_oper_dressed
+from ..string_model_parser.string_model_parser import NoiseParser
+#from ..qobj.operators import qubit_occ_oper_dressed
 from ..solver.options import OPoptions
-from ..qutip_qobj import qobj_generators as op
+from ..qutip_dependence import qobj_generators as op
 from .pulse_qobj_digest0 import digest_pulse_qobj
 
 
@@ -210,7 +210,7 @@ def full_digest(qobj, system_model, backend_options=None):
                         continue
                     if not out.global_data['measurement_ops'][jj]:
                         out.global_data['measurement_ops'][jj] = \
-                            qubit_occ_oper_dressed(jj,
+                            op.qubit_occ_oper_dressed(jj,
                                                    estates,
                                                    h_osc=dim_osc,
                                                    h_qub=dim_qub,

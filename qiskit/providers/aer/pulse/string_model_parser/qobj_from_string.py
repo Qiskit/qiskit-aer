@@ -17,7 +17,7 @@
 
 import numpy as np
 import scipy.linalg as la
-from ..qutip_qobj import qobj_generators as op
+from ..qutip_dependence import qobj_generators as op
 
 
 def gen_oper(opname, index, h_osc, h_qub, states=None):

@@ -12,5 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Temporary folder for collecting functionality centered around the qutip "qobj"
+"""Temporary folder for functionality directly depending on qutip qobj
+
+- The functionality in qobj_generators could be changed to return the form of Operator
+  used in the simulator
 """
