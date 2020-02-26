@@ -120,6 +120,9 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
+  // apply_matrix for more than 2 qubits
+  void apply_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
@@ -296,16 +299,31 @@ protected:
   void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					  const reg_t &centralized_qubits);
 
-    //----------------------------------------------------------------
+  //----------------------------------------------------------------
   // Function name: move_qubits_to_right_end
   // Description: This function moves qubits from the default (sorted) position 
   //    to the right end, in the order specified in qubits.
   // Parameters: Input: qubits - the qubits we wish to move
   //                    target_qubits - the new location of qubits
+  //                    actual_indices - the final location of all the qubits in the MPS
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_to_right_end(const reg_t &qubits,
-				reg_t &target_qubits);
+				reg_t &target_qubits,
+				reg_t &actual_indices);
+
+
+//----------------------------------------------------------------
+  // Function name: move_qubits_back_from_right_end
+  // Description: This function moves qubits back to their original position after
+  //              move_qubits_to_right_end
+  // Parameters: Input/output: qubits - the qubits we wish to move
+  //                    actual_indices - the actual location of qubits, returned from 
+  //                    move_qubits_to_right_end, and updated here.
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_back_from_right_end(const reg_t &qubits,
+				       reg_t &actual_indices);
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_original_location
