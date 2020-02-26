@@ -17,7 +17,7 @@
 
 import numpy as np
 import scipy.linalg as la
-from ..direct_qutip_dependence import qobj_generators as op
+from ..direct_qutip_dependence import qobj_generators
 
 
 def gen_oper(opname, index, h_osc, h_qub, states=None):
@@ -43,22 +43,23 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
 
         if opname in ['X', 'Y', 'Z'] and dim > 2:
             if opname == 'X':
-                opr_tmp = op.get_oper('A', dim) + op.get_oper('C', dim)
+                opr_tmp = qobj_generators.get_oper('A', dim) + qobj_generators.get_oper('C', dim)
             elif opname == 'Y':
-                opr_tmp = (-1j * op.get_oper('A', dim) +
-                           1j * op.get_oper('C', dim))
+                opr_tmp = (-1j * qobj_generators.get_oper('A', dim) +
+                           1j * qobj_generators.get_oper('C', dim))
             else:
-                opr_tmp = op.get_oper('I', dim) - 2 * op.get_oper('N', dim)
+                opr_tmp = (qobj_generators.get_oper('I', dim) -
+                           2 * qobj_generators.get_oper('N', dim))
 
     else:
         is_qubit = False
         dim = h_osc.get(index, 5)
 
     if opname == 'P':
-        opr_tmp = op.get_oper(opname, dim, states)
+        opr_tmp = qobj_generators.get_oper(opname, dim, states)
     else:
         if opr_tmp is None:
-            opr_tmp = op.get_oper(opname, dim)
+            opr_tmp = qobj_generators.get_oper(opname, dim)
 
     # reverse sort by index
     rev_h_osc = sorted(h_osc.items(), key=lambda x: x[0])[::-1]
@@ -70,11 +71,11 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
         if ii == index and not is_qubit:
             opers.append(opr_tmp)
         else:
-            opers.append(op.qeye(dd))
+            opers.append(qobj_generators.qeye(dd))
     for ii, dd in rev_h_qub:
         if ii == index and is_qubit:
             opers.append(opr_tmp)
         else:
-            opers.append(op.qeye(dd))
+            opers.append(qobj_generators.qeye(dd))
 
-    return op.tensor(opers)
+    return qobj_generators.tensor(opers)

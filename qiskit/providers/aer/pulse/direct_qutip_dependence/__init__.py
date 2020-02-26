@@ -14,6 +14,7 @@
 
 """Temporary folder for functionality directly depending on qutip qobj
 
-- The functionality in qobj_generators could be changed to return the form of Operator
-  used in the simulator
+Contains:
+- qobj_generators
+    - Creates qutip qobj objects to from a string 
 """
