@@ -527,10 +527,77 @@ void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat)
     apply_2_qubit_gate(qubits[0], qubits[1], su4, mat);
     break;
   default:
-    throw std::invalid_argument("currently support apply_matrix for 1 or 2 qubits only");
+    apply_multi_qubit_gate(qubits, mat);
   }
 }
 
+void MPS::apply_multi_qubit_gate(const reg_t &qubits,
+				 const cmatrix_t &mat) {
+  uint_t num_qubits = qubits.size();
+  // need to reverse qubits because that is the way they
+  // are defined in the Qiskit interface
+  reg_t reversed_qubits = qubits;
+  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
+
+  bool ordered = true;
+  for (uint_t index=0; index < qubits.size()-1; index++) {
+    if (reversed_qubits[index]+1 != reversed_qubits[index+1]){
+      ordered = false;
+      break;
+    }
+  }
+  reg_t actual_indices(num_qubits_);
+  std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
+  reg_t target_qubits(num_qubits);
+  if (ordered) {
+    target_qubits = reversed_qubits;
+  } else {
+    move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+  }
+
+  uint_t first = target_qubits.front();
+  MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
+
+  sub_tensor.apply_matrix(mat, false /* swapped */);
+
+
+  // state_mat is a matrix containing the flattened representation of the sub-tensor 
+  // into a single matrix. Note that sub_tensor will contain 8 matrices for 3-qubit
+  // gates. state_mat will be the concatenation of them all.
+  cmatrix_t state_mat = sub_tensor.get_data(0);
+  for (uint_t i=1; i<sub_tensor.get_data().size(); i++)
+    state_mat = AER::Utils::concatenate(state_mat, sub_tensor.get_data(i), 1) ;
+
+  // We convert the matrix back into an MPS structure
+  MPS sub_MPS;
+  sub_MPS.initialize_from_matrix(qubits.size(), state_mat);
+
+  if (num_qubits == num_qubits_) {
+    q_reg_.clear();
+    q_reg_ = sub_MPS.q_reg_;
+    lambda_reg_ = sub_MPS.lambda_reg_;
+  } else {
+    // copy the sub_MPS back to the corresponding positions in the original MPS
+    for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
+      q_reg_[first+i] = sub_MPS.q_reg_[i];
+    }
+    lambda_reg_[first] = sub_MPS.lambda_reg_[0];
+    if (first > 0)
+      q_reg_[first].div_Gamma_by_left_Lambda(lambda_reg_[first-1]);
+
+    for (uint_t i=1; i<num_qubits-1; i++) {
+      lambda_reg_[first+i] = sub_MPS.lambda_reg_[i]; 
+    }
+    if (first+num_qubits-1 < num_qubits_-1)
+	q_reg_[first+num_qubits-1].div_Gamma_by_right_Lambda(lambda_reg_[first+num_qubits-1]);
+      
+  }
+  // need to move qubits back to original position, if they were moved
+  // at the beginning
+  if (!ordered) {
+    move_qubits_back_from_right_end(reversed_qubits, actual_indices);
+  }
+}
 void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) {
   //temporarily support by converting the vector to a full matrix whose diagonal is vmat
   uint_t dim = vmat.size();
@@ -614,14 +681,12 @@ void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_q
 }
 
 void MPS::move_qubits_to_right_end(const reg_t &qubits, 
-				   reg_t &target_qubits) {
+				   reg_t &target_qubits,
+				   reg_t &actual_indices) {
   // actual_qubits is a temporary structure that stores the current ordering of the 
   // qubits in the MPS structure. It is necessary, because when we perform swaps, 
   // the positions of the qubits change. We need to move the qubits from their 
   // current position (as in actual_qubits), not from the original position
-  
-  reg_t actual_indices(num_qubits_);
-  std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
   
   uint_t num_target_qubits = qubits.size();
   uint_t num_moved = 0;
@@ -646,7 +711,28 @@ void MPS::move_qubits_to_right_end(const reg_t &qubits,
   std::iota( std::begin(target_qubits), std::end(target_qubits), num_qubits_-num_target_qubits);
 }
 
- void MPS::change_position(uint_t src, uint_t dst) {
+void MPS::move_qubits_back_from_right_end(const reg_t &qubits, reg_t &actual_indices) {
+  for (uint_t left_index=num_qubits_-qubits.size();  left_index< qubits.size(); left_index++) {
+    // find the qubit with the smallest index
+    //uint_t min_index = actual_indices[left_index];
+    uint_t min_index = left_index;
+    for (uint_t i = left_index+1; i < actual_indices.size(); i++) {
+      if (actual_indices[i] < actual_indices[min_index])
+	  min_index = i;
+    }
+
+    // Move this qubit back to its original position
+    uint_t final_pos = actual_indices[min_index];
+    for (uint_t j=min_index; j>final_pos; j--) {
+      //swap the qubits until smallest reaches its original position
+      apply_swap(j, j-1);
+      // swap actual_indices to keep track of the new qubit positions
+    }
+  break;
+  }
+}
+
+void MPS::change_position(uint_t src, uint_t dst) {
    if(src == dst)
      return;
    else if(src < dst)
@@ -737,7 +823,10 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
   } else {
     MPS temp_MPS;
     temp_MPS.initialize(*this);
-    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits);
+    reg_t actual_indices(num_qubits_);
+    std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
+    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+
     rho = temp_MPS.density_matrix(target_qubits);
   }
 
