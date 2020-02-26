@@ -101,7 +101,6 @@ def tensor(list_qobj):
     return ten.tensor(list_qobj)
 
 
-
 def basis(level, pos):
     """ Qiskit wrapper of basis
     """
@@ -118,6 +117,46 @@ def fock_dm(level, eigv):
     """ Qiskit wrapper of fock_dm
     """
     return st.fock_dm(level, eigv)
+
+
+def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
+    """Builds the occupation number operator for a target qubit
+    in a qubit oscillator system, where the oscillator are the first
+    subsystems, and the qubit last. This does it for a dressed systems
+    assuming estates has the same ordering
+
+    Args:
+        target_qubit (int): Qubit for which operator is built.
+        estates (list): eigenstates in the dressed frame
+        h_osc (dict): Dict of number of levels in each oscillator.
+        h_qub (dict): Dict of number of levels in each qubit system.
+        level (int): Level of qubit system to be measured.
+
+    Returns:
+        Qobj: Occupation number operator for target qubit.
+    """
+    # reverse sort by index
+    rev_h_osc = sorted(h_osc.items(), key=lambda x: x[0])[::-1]
+    rev_h_qub = sorted(h_qub.items(), key=lambda x: x[0])[::-1]
+
+    # osc_n * … * osc_0 * qubit_n * … * qubit_0
+    states = []
+    proj_op = 0 * fock_dm(len(estates), 0)
+    for ii, dd in rev_h_osc:
+        states.append(basis(dd, 0))
+    for ii, dd in rev_h_qub:
+        if ii == target_qubit:
+            states.append(basis(dd, level))
+        else:
+            states.append(state(np.ones(dd)))
+
+    out_state = tensor(states)
+
+    for ii, estate in enumerate(estates):
+        if out_state[ii] == 1:
+            proj_op += estate * estate.dag()
+
+    return proj_op
 
 
 def get_oper(name, *args):

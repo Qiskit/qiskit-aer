@@ -19,8 +19,8 @@ import re
 import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
-from ..qutip_string_parsing.apply_string_function import apply_func
-from ..qutip_string_parsing.qobj_from_string import gen_oper
+from .apply_string_function import apply_func
+from .qobj_from_string import gen_oper
 
 
 Token = namedtuple('Token', ('type', 'name'))
