@@ -100,6 +100,7 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
 std::string sort_paulis_by_qubits(const std::string &paulis, 
 				  const reg_t &qubits);
 
+bool is_ordered(const reg_t &qubits);
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
@@ -249,6 +250,16 @@ std::string sort_paulis_by_qubits(const std::string &paulis,
   return new_paulis;
 }
 
+bool is_ordered(const reg_t &qubits) {
+  bool ordered = true;
+  for (uint_t index=0; index < qubits.size()-1; index++) {
+    if (qubits[index]+1 != qubits[index+1]){
+      ordered = false;
+      break;
+    }
+  }
+  return ordered;
+}
 //------------------------------------------------------------------------
 // implementation of MPS methods
 //------------------------------------------------------------------------
@@ -536,17 +547,12 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
   reg_t reversed_qubits = qubits;
   std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
 
-  bool ordered = true;
-  for (uint_t index=0; index < qubits.size()-1; index++) {
-    if (reversed_qubits[index]+1 != reversed_qubits[index+1]){
-      ordered = false;
-      break;
-    }
-  }
+  bool are_qubits_ordered = is_ordered(reversed_qubits);
+
   reg_t actual_indices(num_qubits_);
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
   reg_t target_qubits(num_qubits);
-  if (ordered) {
+  if (are_qubits_ordered) {
     target_qubits = reversed_qubits;
   } else {
     move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
@@ -555,11 +561,10 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat, false /* swapped */);
-
+  sub_tensor.apply_matrix(mat);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
-  // into a single matrix. Note that sub_tensor will contain 8 matrices for 3-qubit
+  // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
   // gates. state_mat will be the concatenation of them all.
   cmatrix_t state_mat = sub_tensor.get_data(0);
   for (uint_t i=1; i<sub_tensor.get_data().size(); i++)
@@ -591,7 +596,7 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
   }
   // need to move qubits back to original position, if they were moved
   // at the beginning
-  if (!ordered) {
+  if (!are_qubits_ordered) {
     move_qubits_back_from_right_end(reversed_qubits, actual_indices);
   }
 }
@@ -802,19 +807,15 @@ double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
   std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
-  bool ordered = true;
-  for (uint_t index=0; index < qubits.size()-1; index++) {
-    if (reversed_qubits[index]+1 != reversed_qubits[index+1]){
-      ordered = false;
-      break;
-    }
-  }
+
+  bool are_qubits_ordered = is_ordered(reversed_qubits);
+
   cmatrix_t rho;
 
   // if qubits are in consecutive order, can extract the density matrix
   // without moving them, for performance reasons
   reg_t target_qubits(qubits.size());
-  if (ordered) {
+  if (are_qubits_ordered) {
     rho = density_matrix(reversed_qubits);
   } else {
     MPS temp_MPS;
