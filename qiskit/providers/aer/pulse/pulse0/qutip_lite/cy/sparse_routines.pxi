@@ -34,7 +34,7 @@
 ###############################################################################
 import numpy as np
 from scipy.sparse import coo_matrix
-from qiskit.providers.aer.pulse.qutip_lite.fastsparse import fast_csr_matrix
+from ..fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
 from libcpp.algorithm cimport sort
