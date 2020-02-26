@@ -37,7 +37,7 @@ from ..string_model_parser.string_model_parser import NoiseParser
 #from ..qobj.operators import qubit_occ_oper_dressed
 from ..pulse0.solver.options import OPoptions
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
-from .pulse_qobj_digest0 import digest_pulse_qobj
+from .digest_pulse_qobj import digest_pulse_qobj
 
 
 def full_digest(qobj, system_model, backend_options=None):
