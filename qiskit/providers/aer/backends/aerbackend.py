@@ -171,7 +171,7 @@ class AerBackend(BaseBackend):
         # Double-check noise_model is a dict type
         if 'noise_model' in config and not isinstance(config["noise_model"], dict):
             if hasattr(config["noise_model"], 'to_dict'):
-                config["noise_model"] = config["noise_model"].to_dict(serializable=True)
+                config["noise_model"] = config["noise_model"].to_dict()
             else:
                 raise ValueError("noise_model must be a dict : " + str(type(config["noise_model"])))
 
