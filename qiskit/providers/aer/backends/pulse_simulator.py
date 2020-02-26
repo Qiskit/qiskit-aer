@@ -25,8 +25,8 @@ from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..version import __version__
-from ..pulse.controllers.full_pulse_digest import full_digest
 from ..pulse.pulse0.solver.opsolve import opsolve
+from ..pulse.controllers.pulse_controller import pulse_controller
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +140,8 @@ class PulseSimulator(AerBackend):
         start = time.time()
         if validate:
             self._validate(qobj, backend_options, noise_model=None)
-        # Send to solver
-        openpulse_system = full_digest(qobj, system_model, backend_options)
-        results = opsolve(openpulse_system)
+        # Send problem specification to pulse_controller and get results
+        results = pulse_controller(qobj, system_model, backend_options)
         end = time.time()
         return self._format_results(job_id, results, end - start, qobj.qobj_id)
 

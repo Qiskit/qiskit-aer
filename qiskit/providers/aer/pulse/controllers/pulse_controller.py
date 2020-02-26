@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,55 +13,51 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name, missing-return-type-doc
 
-""" This file should ultimately disappear into different pieces.
+"""
+Initial attempt to clarify simulation flow.
 
-
-Need separate:
-    - interpretation of qobj/pulse schedules (this is the only thing that
-      should be called "pulse digest"). This needs to be further separated into:
-        - construction of signals
-        - construction of "simulation description"
-    - Simulation preparation
-        - e.g. frame transformations, computing eigenvalues, setting solver steps ...
-        - These are all specific to, and should be contained in, a solver
-
-- actual qobj digest has now been separated, though unfortunately it depends on
-  3 parameters from the model, which needs to be changed/figured out
+This should:
+    - interpret the qobj (ultimately eliminating full_digest)
+        - For now just call digest_pulse_qobj and accept the current output format
+        - Eventually have internal descriptions of: signals, "events" (e.g. measurements), etc
+    - set up the DE solving portion (either using OPSystem or eliminating OPSystem)
+        - this is a mix of pieces from digest and opsolve
+    - call the DE solver
+        - the DE solver will be pieces of unitary.py, but also the parts of digest that
+          make decisions about things having to do with DE solving
+    - given the output, perform measurement
+        - This is currently also in unitary.py
+        - ultimately measurements should probably consist of calling some Operator function
+    - format output
+        - currently in opsolve
 """
 
 from warnings import warn
 import numpy as np
-from qiskit.providers.aer.aererror import AerError
-from ..pulse0.qobj.op_system import OPSystem
 from ..string_model_parser.string_model_parser import NoiseParser
-#from ..qobj.operators import qubit_occ_oper_dressed
-from ..pulse0.solver.options import OPoptions
+from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
+from ..de_solvers.qutip_unitary_solver import qutip_unitary_solver
 
+"""
+Remaining pulse0 dependencies:
+- opsolve is no longer used for unitary evolution, so can be removed, but is kept just in case
+- OPoptions should be eliminated
+"""
+from ..pulse0.solver.options import OPoptions
+from ..pulse0.solver.opsolve import opsolve
 
-def full_digest(qobj, system_model, backend_options=None):
-    """Convert specification of a simulation in the pulse language into the format accepted
-    by the simulator.
-
-    Args:
-        qobj (PulseQobj): experiment specification
-        system_model (PulseSystemModel): object representing system model
-        backend_options (dict): dictionary of simulation options
-    Returns:
-        out (OPSystem): object understandable by the pulse simulator
-    Raises:
-        ValueError: When necessary parameters are missing
-        Exception: For invalid ode options
+def pulse_controller(qobj, system_model, backend_options):
+    """Setup and run simulation, then return results
     """
-
-    out = OPSystem()
+    out = PulseSimDescription()
 
     if backend_options is None:
         backend_options = {}
 
     """ Note: the overriding behaviour of backend_options is currently
-    broken """
+    broken. I think this should be handled later."""
     # override anything in qobj_config that is present in backend_options
     #for key in backend_options.keys():
     #    qobj_config[key] = backend_options[key]
@@ -193,6 +189,7 @@ def full_digest(qobj, system_model, backend_options=None):
 
     # ###############################
     # ### Further interpretation of experiments
+    # Should this be in the digest pulse qobj, or is the digest pulse qobj just a description?
     # ###############################
     out.global_data['measurement_ops'] = [None] * n_qubits
 
@@ -222,7 +219,15 @@ def full_digest(qobj, system_model, backend_options=None):
 
     # This is a temporary flag while stabilizing cpp func ODE solver
     out.use_cpp_ode_func = True
-    return out
+
+
+    # temporarily keeping old qutip solver
+    if out.can_sample == False:
+        return opsolve(out)
+
+
+    results = qutip_unitary_solver(out)
+    return results
 
 
 def _unsupported_warnings(noise_model):
@@ -239,3 +244,47 @@ def _unsupported_warnings(noise_model):
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if noise_model is not None:
         warn(warning_str.format('Noise models'))
+
+
+class PulseSimDescription():
+    """ Place holder for "simulation description"
+    """
+    def __init__(self):
+        # The system Hamiltonian in numerical format
+        self.system = None
+        # The noise (if any) in numerical format
+        self.noise = None
+        # System variables
+        self.vars = None
+        # The initial state of the system
+        self.initial_state = None
+        # Channels in the Hamiltonian string
+        # these tell the order in which the channels
+        # are evaluated in the RHS solver.
+        self.channels = None
+        # options of the ODE solver
+        self.ode_options = None
+        # time between pulse sample points.
+        self.dt = None
+        # Array containing all pulse samples
+        self.pulse_array = None
+        # Array of indices indicating where a pulse starts in the self.pulse_array
+        self.pulse_indices = None
+        # A dict that translates pulse names to integers for use in self.pulse_indices
+        self.pulse_to_int = None
+        # Holds the parsed experiments
+        self.experiments = []
+        # Can experiments be simulated once then sampled
+        self.can_sample = True
+        # holds global data
+        self.global_data = {}
+        # holds frequencies for the channels
+        self.freqs = {}
+        # diagonal elements of the hamiltonian
+        self.h_diag = None
+        # eigenvalues of the time-independent hamiltonian
+        self.evals = None
+        # Use C++ version of the function to pass to the ODE solver or the Cython one
+        self.use_cpp_ode_func = False
+        # eigenstates of the time-independent hamiltonian
+        self.estates = None
