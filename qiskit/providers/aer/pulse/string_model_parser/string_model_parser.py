@@ -19,7 +19,7 @@ import re
 import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
-from .apply_string_function import apply_func
+from .apply_str_func_to_qobj import apply_func
 from .qobj_from_string import gen_oper
 
 
