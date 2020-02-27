@@ -24,7 +24,6 @@ from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.test import mock
-#from qiskit.providers import aer
 
 
 class TestNoise(common.QiskitAerTestCase):
