@@ -16,4 +16,7 @@
 computations that are part of the same "simulation".
 
 May need a notion of "instruction", so that the controllers know what to call.
+
+Files that still depend on pulse0:
+- digest_pulse_qobj
 """

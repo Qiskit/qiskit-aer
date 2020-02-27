@@ -116,6 +116,8 @@ def pulse_controller(qobj, system_model, backend_options):
     # This should just depend on the qobj, or at most, also on dt
     digested_qobj = digest_pulse_qobj(qobj, out.channels, out.dt, qubit_list)
 
+    # does this even need to be extracted here, or can the relevant info just be passed to the
+    # relevant functions?
     out.global_data['shots'] = digested_qobj.shots
     out.global_data['meas_level'] = digested_qobj.meas_level
     out.global_data['meas_return'] = digested_qobj.meas_return
@@ -153,6 +155,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     # ###############################
     # ### Parse backend_options
+    # # solver-specific information should be extracted in the solver
     # ###############################
     if 'seed' in backend_options:
         out.global_data['seed'] = int(backend_options.get('seed'))
@@ -180,10 +183,9 @@ def pulse_controller(qobj, system_model, backend_options):
             min_width = min(min_width, stop - start)
     out.ode_options.max_step = min_width / 2 * out.dt
 
-    # ###############################
-    # ### Further interpretation of experiments
-    # Should this be in the digest pulse qobj, or is the digest pulse qobj just a description?
-    # ###############################
+    # ########################################
+    # Determination of measurement operators.
+    # ########################################
     out.global_data['measurement_ops'] = [None] * n_qubits
 
 
@@ -215,8 +217,10 @@ def pulse_controller(qobj, system_model, backend_options):
 
 
     # if can_sample == False, unitary solving can't be used
+    # when a different solver is moved to the refactored structure (e.g. the monte carlo one),
+    # have it call that here
     if out.can_sample == False:
-        raise AerError('Simulations specified can not be simulated with unitary dynamics.')
+        raise AerError('Simulations specified cannot be simulated with unitary dynamics.')
 
 
     results = qutip_unitary_solver(out)

@@ -25,10 +25,11 @@ from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..pulse0.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr
 from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
-from ..pulse0.qobj.operators import apply_projector
 from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
-from ..pulse0.solver.data_config import op_data_config
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
+
+# this import needs to be eliminated
+from .qutip_data_config import op_data_config
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
