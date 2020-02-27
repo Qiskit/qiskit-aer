@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Models of 'systems', which correspond roughly to things defined on tensor product
-systems, e.g. Hamiltonian and matrix DEs. At the time of writing, these are meant to be mostly
-descriptive classes that facilitate construction and modification of
+systems, e.g. Hamiltonian, noise, and certain types of matrix DEs. At the time of writing,
+these are meant to be mostly descriptive classes that facilitate construction and modification of
 Hamiltonians, noise models, and differential equations.
 """
