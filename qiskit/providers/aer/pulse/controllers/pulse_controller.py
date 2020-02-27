@@ -27,7 +27,7 @@ This should:
           make decisions about things having to do with DE solving
     - given the output, perform measurement
         - This is currently also in unitary.py
-        - ultimately measurements should probably consist of calling some Operator function
+        - ultimately measurements should probably consist of calling some Operator functionality
     - format output
         - currently in opsolve
 """
@@ -39,13 +39,12 @@ from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.qutip_unitary_solver import qutip_unitary_solver
+from ..de_solvers.qutip_solver_options import OPoptions
 
 """
 Remaining pulse0 dependencies:
 - opsolve is no longer used for unitary evolution, so can be removed, but is kept just in case
-- OPoptions should be eliminated
 """
-from ..pulse0.solver.options import OPoptions
 from ..pulse0.solver.opsolve import opsolve
 
 def pulse_controller(qobj, system_model, backend_options):
