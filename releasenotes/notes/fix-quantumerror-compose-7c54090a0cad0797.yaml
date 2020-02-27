@@ -3,4 +3,4 @@ fixes:
   - |
     Fixed bug in the :meth:`qiskit.providers.aer.noise.QuantumError.compose`
     method when composing Kraus with non-Kraus errors. Fixes
-    `issue #580 <https://github.com/Qiskit/qiskit-aer/issues/580`_
+    `issue #580 <https://github.com/Qiskit/qiskit-aer/issues/580>`_
