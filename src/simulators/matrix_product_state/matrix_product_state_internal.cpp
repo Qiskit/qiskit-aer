@@ -604,7 +604,6 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
     }
     if (first+num_qubits-1 < num_qubits_-1)
 	q_reg_[first+num_qubits-1].div_Gamma_by_right_Lambda(lambda_reg_[first+num_qubits-1]);
-      
   }
 }
 
