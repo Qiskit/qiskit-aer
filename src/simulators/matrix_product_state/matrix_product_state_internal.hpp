@@ -123,6 +123,13 @@ public:
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat);
+
+  // The following two are helper functions for apply_multi_qubit_gate
+  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
+				     const cmatrix_t &mat);
+
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;

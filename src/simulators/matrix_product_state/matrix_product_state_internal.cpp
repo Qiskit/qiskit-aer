@@ -549,15 +549,29 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 
   bool are_qubits_ordered = is_ordered(reversed_qubits);
 
+  if (is_ordered(reversed_qubits))
+    apply_matrix_to_target_qubits(reversed_qubits, mat);
+  else
+    apply_unordered_multi_qubit_gate(reversed_qubits, mat);
+}
+
+void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
+					const cmatrix_t &mat){
   reg_t actual_indices(num_qubits_);
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-  reg_t target_qubits(num_qubits);
-  if (are_qubits_ordered) {
-    target_qubits = reversed_qubits;
-  } else {
-    move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
-  }
+  reg_t target_qubits(qubits.size());
+  // need to move all target qubits to be together at the right end
+  move_qubits_to_right_end(qubits, target_qubits, actual_indices);
+  
+  apply_matrix_to_target_qubits(target_qubits, mat);
 
+  // need to move qubits back to original position
+  move_qubits_back_from_right_end(qubits, actual_indices);
+}
+
+void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
+					  const cmatrix_t &mat) {
+  uint_t num_qubits = target_qubits.size();
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
@@ -572,7 +586,7 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 
   // We convert the matrix back into an MPS structure
   MPS sub_MPS;
-  sub_MPS.initialize_from_matrix(qubits.size(), state_mat);
+  sub_MPS.initialize_from_matrix(num_qubits, state_mat);
 
   if (num_qubits == num_qubits_) {
     q_reg_.clear();
@@ -594,12 +608,8 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 	q_reg_[first+num_qubits-1].div_Gamma_by_right_Lambda(lambda_reg_[first+num_qubits-1]);
       
   }
-  // need to move qubits back to original position, if they were moved
-  // at the beginning
-  if (!are_qubits_ordered) {
-    move_qubits_back_from_right_end(reversed_qubits, actual_indices);
-  }
 }
+
 void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) {
   //temporarily support by converting the vector to a full matrix whose diagonal is vmat
   uint_t dim = vmat.size();
