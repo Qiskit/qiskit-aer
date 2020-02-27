@@ -312,6 +312,8 @@ protected:
   //    to the 'right_end', in the order specified in qubits.
   //    right_end is defined as the position of the largest qubit i 'qubits',
   //    because this will ensure we only move qubits to the right 
+  // Example: num_qubits_=8, 'qubits'= [5, 1, 2], then at the end of the function,
+  //          actual_indices=[0, 3, 4, 2, 1, 5, 6, 7], target_qubits=[3, 4, 5]
   // Parameters: Input: qubits - the qubits we wish to move
   //                    target_qubits - the new location of qubits
   //                    actual_indices - the final location of all the qubits in the MPS
