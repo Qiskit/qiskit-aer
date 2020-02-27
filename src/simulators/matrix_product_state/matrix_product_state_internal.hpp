@@ -309,16 +309,17 @@ protected:
   //----------------------------------------------------------------
   // Function name: move_qubits_to_right_end
   // Description: This function moves qubits from the default (sorted) position 
-  //    to the right end, in the order specified in qubits.
+  //    to the 'right_end', in the order specified in qubits.
+  //    right_end is defined as the position of the largest qubit i 'qubits',
+  //    because this will ensure we only move qubits to the right 
   // Parameters: Input: qubits - the qubits we wish to move
   //                    target_qubits - the new location of qubits
   //                    actual_indices - the final location of all the qubits in the MPS
-  // Returns: none.
+  // Returns: right_end - the rightmost position of 'qubits'.
   //----------------------------------------------------------------
-  void move_qubits_to_right_end(const reg_t &qubits,
-				reg_t &target_qubits,
-				reg_t &actual_indices);
-
+  uint_t move_qubits_to_right_end(const reg_t &qubits,
+				 reg_t &target_qubits,
+				 reg_t &actual_indices);
 
 //----------------------------------------------------------------
   // Function name: move_qubits_back_from_right_end
@@ -327,10 +328,13 @@ protected:
   // Parameters: Input/output: qubits - the qubits we wish to move
   //                    actual_indices - the actual location of qubits, returned from 
   //                    move_qubits_to_right_end, and updated here.
+  //                    right_end - location of the rightmost qubit out
+  //                                of 'qubits'
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_back_from_right_end(const reg_t &qubits,
-				       reg_t &actual_indices);
+				       reg_t &actual_indices,
+				       uint_t right_end);
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_original_location
