@@ -41,12 +41,6 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.qutip_unitary_solver import qutip_unitary_solver
 from ..de_solvers.qutip_solver_options import OPoptions
 
-"""
-Remaining pulse0 dependencies:
-- opsolve is no longer used for unitary evolution, so can be removed, but is kept just in case
-"""
-from ..pulse0.solver.opsolve import opsolve
-
 def pulse_controller(qobj, system_model, backend_options):
     """Setup and run simulation, then return results
     """
@@ -220,9 +214,9 @@ def pulse_controller(qobj, system_model, backend_options):
     out.use_cpp_ode_func = True
 
 
-    # temporarily keeping old qutip solver
+    # if can_sample == False, unitary solving can't be used
     if out.can_sample == False:
-        return opsolve(out)
+        raise AerError('Simulations specified can not be simulated with unitary dynamics.')
 
 
     results = qutip_unitary_solver(out)
