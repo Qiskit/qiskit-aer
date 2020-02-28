@@ -17,6 +17,7 @@
 from concurrent import futures
 import logging
 import functools
+import uuid
 
 from qiskit.providers import BaseJob, JobStatus, JobError
 
@@ -51,11 +52,14 @@ class AerJob(BaseJob):
 
     _executor = futures.ThreadPoolExecutor(max_workers=1)
 
-    def __init__(self, backend, job_id, fn, qobj, *args):
+    def __init__(self, backend, run_fn, qobj, job_id=None, **kwargs):
+
+        if job_id is None:
+            job_id = str(uuid.uuid4())
         super().__init__(backend, job_id)
-        self._fn = fn
+        self._run_fn = run_fn
         self._qobj = qobj
-        self._args = args
+        self._kwargs = kwargs
         self._future = None
 
     def submit(self):
@@ -70,8 +74,9 @@ class AerJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
-                                             *self._args)
+        self._future = self._executor.submit(self._run_fn, self._qobj,
+                                             job_id=self._job_id,
+                                             **self._kwargs)
 
     @requires_submit
     def result(self, timeout=None):
