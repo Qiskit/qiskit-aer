@@ -52,8 +52,8 @@ def unitary_evolution(exp, op_system):
 
     num_channels = len(exp['channels'])
 
-    cy_rhs_func = global_data['rhs_func']
-    ODE = ode(cy_rhs_func)
+    rhs_func = global_data['rhs_func']
+    ODE = ode(rhs_func)
     if op_system.use_cpp_ode_func:
         # Don't know how to use OrderedDict type on Cython, so transforming it to dict
         channels = dict(op_system.channels)
