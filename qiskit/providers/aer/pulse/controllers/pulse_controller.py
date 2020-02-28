@@ -48,6 +48,8 @@ from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
 # last import from original structure
 from ..pulse0.solver.opsolve import opsolve
 from .qutip_data_config import op_data_config
+from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
+
 
 def pulse_controller(qobj, system_model, backend_options):
     """Setup and run simulation, then return results
@@ -271,8 +273,41 @@ def run_unitary_experiments(op_system):
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
 
 
+    # set up full simulation, i.e. combining different (ideally modular) computational
+    # resources into one function
+    def full_simulation(exp, op_system):
+
+        # run DE portion of simulation
+        psi, ode_t = unitary_evolution(exp, op_system)
+
+        # ###############
+        # do measurement
+        # ###############
+        rng = np.random.RandomState(exp['seed'])
+
+        shots = op_system.global_data['shots']
+        # Init memory
+        memory = np.zeros((shots, op_system.global_data['memory_slots']),
+                          dtype=np.uint8)
+
+        qubits = []
+        memory_slots = []
+        tlist = exp['tlist']
+        for acq in exp['acquire']:
+            if acq[0] == tlist[-1]:
+                qubits += list(acq[1])
+                memory_slots += list(acq[2])
+        qubits = np.array(qubits, dtype='uint32')
+        memory_slots = np.array(memory_slots, dtype='uint32')
+
+        probs = occ_probabilities(qubits, psi, op_system.global_data['measurement_ops'])
+        rand_vals = rng.rand(memory_slots.shape[0] * shots)
+        write_shots_memory(memory, memory_slots, probs, rand_vals)
+
+        return [memory, psi, ode_t]
+
     start = time.time()
-    exp_results = parallel_map(unitary_evolution,
+    exp_results = parallel_map(full_simulation,
                                op_system.experiments,
                                task_args=(op_system,),
                                **map_kwargs
