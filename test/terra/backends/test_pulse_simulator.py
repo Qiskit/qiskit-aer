@@ -44,8 +44,8 @@ def run_cython_and_cpp_solvers(func):
         # Run C++ Solver first
         func(*args, **kwargs)
         # Run Cython Solver afterwards
-        #USE_CPP_ODE_FUNC = False
-        #func(*args, **kwargs)
+        USE_CPP_ODE_FUNC = False
+        func(*args, **kwargs)
     return wrapper
 
 class TestPulseSimulator(common.QiskitAerTestCase):
