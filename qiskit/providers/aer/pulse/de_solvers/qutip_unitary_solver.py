@@ -90,7 +90,7 @@ def unitary_evolution(exp, op_system):
             raise Exception(err_msg)
 
 
-    # Do final measurement at end, only take acquire channels at the end
+    # apply final rotation to come out of rotating frame
     psi_rot = np.exp(-1j * global_data['h_diag_elems'] * ODE.t)
     psi *= psi_rot
 
