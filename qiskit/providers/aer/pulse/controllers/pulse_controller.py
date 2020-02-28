@@ -235,7 +235,9 @@ def pulse_controller(qobj, system_model, backend_options):
 
 
 def run_unitary_experiments(op_system):
-    """ unitary solver
+    """ Runs unitary experiments
+
+    - sets up everything needed for unitary simulator, which is just a de solver
     """
 
     if not op_system.initial_state.isket:
