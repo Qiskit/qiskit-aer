@@ -41,6 +41,9 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.qutip_unitary_solver import qutip_unitary_solver
 from ..de_solvers.qutip_solver_options import OPoptions
 
+# last import from original structure
+from ..pulse0.solver.opsolve import opsolve
+
 def pulse_controller(qobj, system_model, backend_options):
     """Setup and run simulation, then return results
     """
@@ -220,7 +223,7 @@ def pulse_controller(qobj, system_model, backend_options):
     # when a different solver is moved to the refactored structure (e.g. the monte carlo one),
     # have it call that here
     if out.can_sample == False:
-        raise AerError('Simulations specified cannot be simulated with unitary dynamics.')
+        opsolve(out)
 
 
     results = qutip_unitary_solver(out)
