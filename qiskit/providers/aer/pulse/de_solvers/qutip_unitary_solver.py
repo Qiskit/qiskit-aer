@@ -22,7 +22,6 @@ import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -47,13 +46,7 @@ def unitary_evolution(exp, op_system):
     global_data = op_system.global_data
     ode_options = op_system.ode_options
 
-    rng = np.random.RandomState(exp['seed'])
     tlist = exp['tlist']
-    snapshots = []
-    shots = global_data['shots']
-    # Init memory
-    memory = np.zeros((shots, global_data['memory_slots']),
-                      dtype=np.uint8)
     # Init register
     register = np.zeros(global_data['n_registers'], dtype=np.uint8)
 
@@ -101,20 +94,4 @@ def unitary_evolution(exp, op_system):
     psi_rot = np.exp(-1j * global_data['h_diag_elems'] * ODE.t)
     psi *= psi_rot
 
-
-    # #########################################
-    # this is break, unitary simulation is over
-    # #########################################
-    qubits = []
-    memory_slots = []
-    for acq in exp['acquire']:
-        if acq[0] == tlist[-1]:
-            qubits += list(acq[1])
-            memory_slots += list(acq[2])
-    qubits = np.array(qubits, dtype='uint32')
-    memory_slots = np.array(memory_slots, dtype='uint32')
-
-    probs = occ_probabilities(qubits, psi, global_data['measurement_ops'])
-    rand_vals = rng.rand(memory_slots.shape[0] * shots)
-    write_shots_memory(memory, memory_slots, probs, rand_vals)
-    return [memory, psi, ODE.t]
+    return psi, ODE.t
