@@ -42,13 +42,15 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.qutip_unitary_solver import unitary_evolution
 from ..de_solvers.qutip_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
+
+# this needs to be refactored
+from .qutip_data_config import op_data_config
+
+# remaining imports from pulse0
+from ..pulse0.solver.opsolve import opsolve
+from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
 from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
-
-# last import from original structure
-from ..pulse0.solver.opsolve import opsolve
-from .qutip_data_config import op_data_config
-from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 
 
 def pulse_controller(qobj, system_model, backend_options):
@@ -306,6 +308,7 @@ def run_unitary_experiments(op_system):
 
         return [memory, psi, ode_t]
 
+    # run simulation on each experiment in parallel
     start = time.time()
     exp_results = parallel_map(full_simulation,
                                op_system.experiments,
