@@ -47,7 +47,6 @@ def unitary_evolution(exp, op_system):
     global_data = op_system.global_data
     ode_options = op_system.ode_options
 
-    cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(exp['seed'])
     tlist = exp['tlist']
     snapshots = []
@@ -60,6 +59,7 @@ def unitary_evolution(exp, op_system):
 
     num_channels = len(exp['channels'])
 
+    cy_rhs_func = global_data['rhs_func']
     ODE = ode(cy_rhs_func)
     if op_system.use_cpp_ode_func:
         # Don't know how to use OrderedDict type on Cython, so transforming it to dict
@@ -100,6 +100,11 @@ def unitary_evolution(exp, op_system):
     # Do final measurement at end, only take acquire channels at the end
     psi_rot = np.exp(-1j * global_data['h_diag_elems'] * ODE.t)
     psi *= psi_rot
+
+
+    # #########################################
+    # this is break, unitary simulation is over
+    # #########################################
     qubits = []
     memory_slots = []
     for acq in exp['acquire']:
