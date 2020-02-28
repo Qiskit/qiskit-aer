@@ -34,14 +34,16 @@ This should:
 
 from warnings import warn
 import numpy as np
+import time
 from ..string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.qutip_unitary_solver import run_unitary_experiments
+from ..de_solvers.qutip_unitary_solver import unitary_evolution
 from ..de_solvers.qutip_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
+from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
 
 # last import from original structure
 from ..pulse0.solver.opsolve import opsolve
@@ -218,7 +220,7 @@ def pulse_controller(qobj, system_model, backend_options):
             out.can_sample = False
 
     # This is a temporary flag while stabilizing cpp func ODE solver
-    out.use_cpp_ode_func = True
+    out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', True)
 
 
     # if can_sample == False, unitary solving can't be used
@@ -228,11 +230,11 @@ def pulse_controller(qobj, system_model, backend_options):
         opsolve(out)
 
 
-    results = run_unitary_solver(out)
+    results = run_unitary_experiments(out)
     return results
 
 
-def run_unitary_solver(op_system):
+def run_unitary_experiments(op_system):
     """ unitary solver
     """
 
@@ -251,9 +253,107 @@ def run_unitary_solver(op_system):
     # Load cython function
     _op_func_load(op_system)
 
-    results = run_unitary_experiments(op_system)
-    # Results are stored in ophandler.result
-    return results
+    """unitary evolution requires no seeds, so move this out of this deterministic DE
+    solving class once measurements are moved
+    """
+    # setup seeds array
+    if op_system.global_data['seed']:
+        prng = np.random.RandomState(op_system.global_data['seed'])
+    else:
+        prng = np.random.RandomState(
+            np.random.randint(np.iinfo(np.int32).max - 1))
+    for exp in op_system.experiments:
+        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
+
+
+    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
+
+
+    start = time.time()
+    exp_results = parallel_map(unitary_evolution,
+                               op_system.experiments,
+                               task_args=(op_system,),
+                               **map_kwargs
+                               )
+    end = time.time()
+    exp_times = (np.ones(len(op_system.experiments)) *
+                 (end - start) / len(op_system.experiments))
+
+
+    # format the data into the proper output
+    all_results = []
+    for idx_exp, exp in enumerate(op_system.experiments):
+
+        m_lev = op_system.global_data['meas_level']
+        m_ret = op_system.global_data['meas_return']
+
+        # populate the results dictionary
+        results = {'seed_simulator': exp['seed'],
+                   'shots': op_system.global_data['shots'],
+                   'status': 'DONE',
+                   'success': True,
+                   'time_taken': exp_times[idx_exp],
+                   'header': exp['header'],
+                   'meas_level': m_lev,
+                   'meas_return': m_ret,
+                   'data': {}}
+
+        memory = exp_results[idx_exp][0]
+        results['data']['statevector'] = []
+        for coef in exp_results[idx_exp][1]:
+            results['data']['statevector'].append([np.real(coef),
+                                                   np.imag(coef)])
+        results['header']['ode_t'] = exp_results[idx_exp][2]
+
+        # meas_level 2 return the shots
+        if m_lev == 2:
+
+            # convert the memory **array** into a n
+            # integer
+            # e.g. [1,0] -> 2
+            int_mem = memory.dot(np.power(2.0,
+                                          np.arange(memory.shape[1]))).astype(int)
+
+            # if the memory flag is set return each shot
+            if op_system.global_data['memory']:
+                hex_mem = [hex(val) for val in int_mem]
+                results['data']['memory'] = hex_mem
+
+            # Get hex counts dict
+            unique = np.unique(int_mem, return_counts=True)
+            hex_dict = {}
+            for kk in range(unique[0].shape[0]):
+                key = hex(unique[0][kk])
+                hex_dict[key] = unique[1][kk]
+
+            results['data']['counts'] = hex_dict
+
+        # meas_level 1 returns the <n>
+        elif m_lev == 1:
+
+            if m_ret == 'avg':
+
+                memory = [np.mean(memory, 0)]
+
+            # convert into the right [real, complex] pair form for json
+            # this should be cython?
+            results['data']['memory'] = []
+
+            for mem_shot in memory:
+                results['data']['memory'].append([])
+                for mem_slot in mem_shot:
+                    results['data']['memory'][-1].append(
+                        [np.real(mem_slot), np.imag(mem_slot)])
+
+            if m_ret == 'avg':
+                results['data']['memory'] = results['data']['memory'][0]
+
+        all_results.append(results)
+
+    if not op_system.use_cpp_ode_func:
+        _cython_build_cleanup(op_system.global_data['rhs_file_name'])
+
+    return all_results
 
 
 def _unsupported_warnings(noise_model):

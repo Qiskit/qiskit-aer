@@ -25,7 +25,6 @@ from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from .aerbackend import AerBackend
 from ..aerjob import AerJob
 from ..version import __version__
-from ..pulse.pulse0.solver.opsolve import opsolve
 from ..pulse.controllers.pulse_controller import pulse_controller
 
 logger = logging.getLogger(__name__)
