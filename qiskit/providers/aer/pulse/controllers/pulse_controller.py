@@ -38,11 +38,14 @@ from ..string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.qutip_unitary_solver import qutip_unitary_solver
+from ..de_solvers.qutip_unitary_solver import run_unitary_experiments
 from ..de_solvers.qutip_solver_options import OPoptions
+from qiskit.tools.parallel import parallel_map, CPU_COUNT
+from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
 
 # last import from original structure
 from ..pulse0.solver.opsolve import opsolve
+from .qutip_data_config import op_data_config
 
 def pulse_controller(qobj, system_model, backend_options):
     """Setup and run simulation, then return results
@@ -108,7 +111,6 @@ def pulse_controller(qobj, system_model, backend_options):
         out.noise = noise.compiled
         if any(out.noise):
             out.can_sample = False
-            out.global_data['c_num'] = len(out.noise)
     else:
         out.noise = None
 
@@ -226,7 +228,31 @@ def pulse_controller(qobj, system_model, backend_options):
         opsolve(out)
 
 
-    results = qutip_unitary_solver(out)
+    results = run_unitary_solver(out)
+    return results
+
+
+def run_unitary_solver(op_system):
+    """ unitary solver
+    """
+
+    if not op_system.initial_state.isket:
+        raise Exception("Initial state must be a state vector.")
+
+    # set num_cpus to the value given in settings if none in Options
+    if not op_system.ode_options.num_cpus:
+        op_system.ode_options.num_cpus = CPU_COUNT
+
+    # build Hamiltonian data structures
+    op_data_config(op_system)
+    if not op_system.use_cpp_ode_func:
+        # compile Cython RHS
+        _op_generate_rhs(op_system)
+    # Load cython function
+    _op_func_load(op_system)
+
+    results = run_unitary_experiments(op_system)
+    # Results are stored in ophandler.result
     return results
 
 

@@ -25,11 +25,7 @@ from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..pulse0.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr
 from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
-from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
-
-# this import needs to be refactored
-from .qutip_data_config import op_data_config
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -38,30 +34,6 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 # cython functions
 #
 _cy_rhs_func = None
-
-
-def qutip_unitary_solver(op_system):
-    """ unitary solver
-    """
-
-    if not op_system.initial_state.isket:
-        raise Exception("Initial state must be a state vector.")
-
-    # set num_cpus to the value given in settings if none in Options
-    if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = CPU_COUNT
-
-    # build Hamiltonian data structures
-    op_data_config(op_system)
-    if not op_system.use_cpp_ode_func:
-        # compile Cython RHS
-        _op_generate_rhs(op_system)
-    # Load cython function
-    _op_func_load(op_system)
-
-    results = run_unitary_experiments(op_system)
-    # Results are stored in ophandler.result
-    return results
 
 def run_unitary_experiments(op_system):
 

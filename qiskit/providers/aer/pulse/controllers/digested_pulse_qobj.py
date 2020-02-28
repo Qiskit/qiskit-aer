@@ -28,7 +28,6 @@ class DigestedPulseQobj:
         # ####################################
 
         # stuff related to memory/measurements
-        # some of these may always remain pulse-specific
         self.shots = None
         self.meas_level = None
         self.meas_return = None
@@ -40,18 +39,22 @@ class DigestedPulseQobj:
         # Some Signal portion
         # ####################################
 
-        # signal stuff, to be put into pulse/signals
+        # I think these should ultimately construct and return "Signal" objects
+
+        # specific data struct being used
         self.pulse_array = None
         self.pulse_indices = None
         self.pulse_dict = None
 
-        # maybe to be put into signal when we have a "mixedsignal"
         self.qubit_lo_freq = None
 
 
-        # ####################################
+        # #############################################
         # Mix of both signal and simulation description
-        # ####################################
+        # #############################################
+
+        # These should be turned into an internal "simulation events"
+        # structure
 
         # "experiments" contains a combination of signal information and
         # other experiment descriptions, which should be separated
