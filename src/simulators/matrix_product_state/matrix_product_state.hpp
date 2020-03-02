@@ -271,15 +271,6 @@ protected:
   // Config Settings
   //-----------------------------------------------------------------------
 
-  // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 14;
-
-  // QubitVector sample measure index size
-  int sample_measure_index_size_ = 10;
-
-  // Threshold for chopping small values to zero in JSON
-  double json_chop_threshold_ = 1e-15;
-
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
 
@@ -343,7 +334,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 //-------------------------------------------------------------------------
 
 void State::initialize_qreg(uint_t num_qubits) {
-  initialize_omp();
   qreg_.initialize((uint_t)num_qubits);
 }
 
@@ -352,8 +342,6 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  initialize_omp();
-  //qreg_.initialize((uint_t)num_qubits, state);
 #ifdef DEBUG
   cout << "initialize with state not supported yet";
 #endif
@@ -364,19 +352,12 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  initialize_omp();
 
   // internal bit ordering is the opposite of ordering in Qasm, so must
   // reverse order before starting
   cvector_t mps_format_state_vector = reverse_all_bits(statevector, num_qubits);
 
   qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
-}
-
-void State::initialize_omp() {
-  qreg_.set_omp_threshold(omp_qubit_threshold_);
-  if (BaseState::threads_ > 0)
-    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
 }
 
 size_t State::required_memory_mb(uint_t num_qubits,
@@ -394,23 +375,25 @@ size_t State::required_memory_mb(uint_t num_qubits,
 void State::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
-  qreg_.set_json_chop_threshold(json_chop_threshold_);
+  uint_t json_chop_threshold;
+  if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
+    MPS::set_json_chop_threshold(json_chop_threshold);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  uint_t omp_qubit_threshold;
+  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
+    MPS::set_omp_threshold(omp_qubit_threshold);
 
   // Set the sample measure indexing size
   int index_size;
-  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
-    qreg_.set_sample_measure_index_size(index_size);
+  if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
+    MPS::set_sample_measure_index_size(index_size);
   };
 
   // Enable sorted gate optimzations
   bool gate_opt = false;
-  JSON::get_value(gate_opt, "statevector_gate_opt", config);
-  if (gate_opt)
-    qreg_.enable_gate_opt();
+  //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
+  //    MPS::set_enable_gate_opt(gate_opt);
 }
 
 //=========================================================================
@@ -481,7 +464,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   }
 
   // add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
       data.add_average_snapshot("expectation_value", op.string_params[0],
@@ -521,7 +504,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   }
 
   // add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
       data.add_average_snapshot("expectation_value", op.string_params[0],
@@ -550,7 +533,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
-  auto probs = Utils::vec2ket(prob_vector, json_chop_threshold_, 16);
+  auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
   bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
@@ -631,17 +614,12 @@ void State::apply_gate(const Operations::Op &op) {
 
 }
 
-void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (!qubits.empty() && qubits.size()==1 && mat.size() == 4) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
+  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+   if (!qubits.empty() && mat.size() > 0) {
+     qreg_.apply_matrix(qubits, mat);
+     return;
+   }
   }
-  if (!qubits.empty() && qubits.size()==2 && mat.size() == 16) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
-  }
-  throw std::runtime_error("\"matrix_product_state\" method only supports 1 and 2 qubit unitary matrices.");
-}
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
