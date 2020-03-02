@@ -50,14 +50,12 @@ Notes:
 - opsolve
     - only used currently if can_sample == False. Can try to eliminate once
       monte carlo solver is brought over
-- rhs_utils
-    - small pieces of code that can be brought over, but they have further dependencies
-      on pulse0 which may be better dealt with later
+- numeric_integrator_wrapper.td_ode_rhs_static
+    - Need to figure out how to move this
 """
 from ..pulse0.solver.opsolve import opsolve
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
-from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
-from ..pulse0.qutip_lite.cy.utilities import _cython_build_cleanup
+from ..pulse0.cy.numeric_integrator_wrapper import td_ode_rhs_static
 
 
 def pulse_controller(qobj, system_model, backend_options):
@@ -230,26 +228,16 @@ def pulse_controller(qobj, system_model, backend_options):
         if not exp['can_sample']:
             out.can_sample = False
 
-    # This is a temporary flag while stabilizing cpp func ODE solver
-    out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', True)
-
-
-    """
-    just commented this out to start trying to get monte carlo simulator to work
 
     # if can_sample == False, unitary solving can't be used
     # when a different solver is moved to the refactored structure (e.g. the monte carlo one),
     # have it call that here
-    #if out.can_sample == False:
-    #    return opsolve(out)
+    if out.can_sample == False:
+        out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', False)
+        return opsolve(out)
 
 
-    #return run_unitary_experiments(out)
-    """
-
-    #pdb.set_trace()
-
-    return opsolve(out)
+    return run_unitary_experiments(out)
 
 
 def run_unitary_experiments(op_system):
@@ -267,11 +255,8 @@ def run_unitary_experiments(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-    if not op_system.use_cpp_ode_func:
-        # compile Cython RHS
-        _op_generate_rhs(op_system)
-    # Load cython function
-    _op_func_load(op_system)
+    # Load RHS function
+    op_system.global_data['rhs_func'] = td_ode_rhs_static
 
     # setup seeds array for measurements
     if op_system.global_data['seed']:
@@ -302,8 +287,7 @@ def run_unitary_experiments(op_system):
                                        unitary_sim_data,
                                        op_system.ode_options,
                                        system=op_system.system,
-                                       channels=op_system.channels,
-                                       use_cpp_ode_func=op_system.use_cpp_ode_func)
+                                       channels=op_system.channels)
 
         # ###############
         # do measurement
@@ -413,9 +397,6 @@ def run_unitary_experiments(op_system):
 
         all_results.append(results)
 
-    if not op_system.use_cpp_ode_func:
-        _cython_build_cleanup(op_system.global_data['rhs_file_name'])
-
     return all_results
 
 
@@ -435,12 +416,7 @@ def unitary_required_data(global_data):
                 'h_ops_data', 'h_ops_ind', 'h_ops_ptr',
                 'h_diag_elems']
 
-    # keys used if cython generated code used
-    # currently I don't actually think any are used as all data has been
-    # baked into the cython
-    cy_keys = []
-
-    all_keys = general_keys + cpp_keys + cy_keys
+    all_keys = general_keys + cpp_keys
 
     return {key : global_data.get(key) for key in all_keys}
 
@@ -499,7 +475,7 @@ def op_data_config(op_system):
         # It seems to be looping over the system, as opposed to h_ops_data below,
         # which makes it loop one time too few (if there is noise)
         # all that seems to matter from initial tests is that a tuple is added to
-        # op_system.system so that type checking passes, but the actual entry doesn't matter 
+        # op_system.system so that type checking passes, but the actual entry doesn't matter
         #op_system.system += [(H_noise, '1')]
         op_system.system += [(0, '1')]
 
@@ -508,63 +484,6 @@ def op_data_config(op_system):
                                            for hpart in H]
     op_system.global_data['h_ops_ind'] = [hpart.data.indices for hpart in H]
     op_system.global_data['h_ops_ptr'] = [hpart.data.indptr for hpart in H]
-
-    # ##############################################
-    # I *believe* this block is only for cython stuff
-    # ##############################################
-
-    # setup ode args string
-    ode_var_str = ""
-
-    # diagonal elements
-    ode_var_str += "global_data['h_diag_elems'], "
-
-    # Hamiltonian data
-    for kk in range(op_system.global_data['num_h_terms']):
-        h_str = "global_data['h_ops_data'][%s], " % kk
-        h_str += "global_data['h_ops_ind'][%s], " % kk
-        h_str += "global_data['h_ops_ptr'][%s], " % kk
-        ode_var_str += h_str
-
-    # Add pulse array and pulse indices
-    ode_var_str += "global_data['pulse_array'], "
-    ode_var_str += "global_data['pulse_indices'], "
-
-    var_list = list(op_system.vars.keys())
-    final_var = var_list[-1]
-
-    freq_list = list(op_system.freqs.keys())
-    final_freq = freq_list[-1]
-
-    # Now add channel variables
-    chan_list = list(op_system.channels.keys())
-    final_chan = chan_list[-1]
-    for chan in chan_list:
-        ode_var_str += "exp['channels']['%s'][0], " % chan
-        ode_var_str += "exp['channels']['%s'][1]" % chan
-        if chan != final_chan or var_list:
-            ode_var_str += ', '
-
-    # now do the variables
-    for idx, var in enumerate(var_list):
-        ode_var_str += "global_data['vars'][%s]" % idx
-        if var != final_var or freq_list:
-            ode_var_str += ', '
-
-    # now do the freq
-    for idx, freq in enumerate(freq_list):
-        ode_var_str += "global_data['freqs'][%s]" % idx
-        if freq != final_freq:
-            ode_var_str += ', '
-
-    # Add register
-    ode_var_str += ", register"
-    op_system.global_data['string'] = ode_var_str
-
-    # ##############################################
-    # end cython block
-    # ##############################################
-
 
     # Convert inital state to flat array in global_data
     op_system.global_data['initial_state'] = \
@@ -626,7 +545,5 @@ class PulseSimDescription():
         self.h_diag = None
         # eigenvalues of the time-independent hamiltonian
         self.evals = None
-        # Use C++ version of the function to pass to the ODE solver or the Cython one
-        self.use_cpp_ode_func = False
         # eigenstates of the time-independent hamiltonian
         self.estates = None

@@ -30,8 +30,7 @@ def unitary_evolution(exp,
                       sim_data,
                       ode_options,
                       system=None,
-                      channels=None,
-                      use_cpp_ode_func=True):
+                      channels=None):
     """
     Note: parameters with None default are required for C++ evaluation
 
@@ -86,15 +85,10 @@ def unitary_evolution(exp,
 
     rhs_func = global_data['rhs_func']
     ODE = ode(rhs_func)
-    if use_cpp_ode_func:
-        # Don't know how to use OrderedDict type on Cython, so transforming it to dict
-        channels = dict(channels)
-        ODE.set_f_params(global_data, exp, system, channels, register)
-    else:
-        _inst = 'ODE.set_f_params(%s)' % global_data['string']
-        logging.debug("Unitary Evolution: %s\n\n", _inst)
-        code = compile(_inst, '<string>', 'exec')
-        exec(code)  # pylint disable=exec-used
+
+    # Don't know how to use OrderedDict type on Cython, so transforming it to dict
+    channels = dict(channels)
+    ODE.set_f_params(global_data, exp, system, channels, register)
 
     ODE.set_integrator('zvode',
                        method=ode_options.method,
