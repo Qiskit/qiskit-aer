@@ -15,7 +15,7 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.4.0...HEAD)
+[UNRELEASED](https://github.com/Qiskit/qiskit-aer/compare/0.4.1...HEAD)
 =======================================================================
 
 Added
@@ -32,8 +32,41 @@ Removed
 
 Fixed
 -----
+
+
+
+[0.4.1](https://github.com/Qiskit/qiskit-aer/compare/0.4.0...0.4.1) - 2020-02-03
+======================================================================================
+
+Added
+-----
+- Add terra to the  `Aer` requirements list (\#593)
+- Find muparserx system library before using distributed one (\#621)
+- MPS: Support multi-qubit apply matrix (\#634)
+- MPS: Added thresholds to loops that use parallelization (\#638)
+- MPS: Improvements to apply_matrix (\#641)
+
+Changed
+-------
+- Bump minimum required version of numpy (\#594)
+- Replace PyDataMem_NEW_ZEROED to PyDataMem_NEW (\#578)
+
+Deprecated
+----------
+
+Removed
+-------
+
+Fixed
+-----
 - Fixed bug in QuantumError compose method when composing Kraus with non-Kraus
   errors (\#605).
+- Fix TBB compilation (\#598)
+- Fixed MPS expectation value when qubits are not given in ascending order (\#603)
+- Fix bug in QuantumError compose method (\#605)
+- Fix gate fusion (\#606)
+- Removes static numpy initialization strategy for the Pulse simulator (\#609)
+- Fix QuantumError sometimes casting probabilities to complex (\#640)
 
 
 [0.4.0](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
