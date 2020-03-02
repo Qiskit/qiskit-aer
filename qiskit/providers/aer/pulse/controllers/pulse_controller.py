@@ -39,10 +39,9 @@ from ..string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.qutip_unitary_solver import unitary_evolution
+from ..de_solvers.qutip_solvers import unitary_evolution, monte_carlo_evolution
 from ..de_solvers.qutip_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-import pdb
 
 """Remaining imports for pulse0
 
@@ -229,16 +228,14 @@ def pulse_controller(qobj, system_model, backend_options):
             out.can_sample = False
 
 
-    # if can_sample == False, unitary solving can't be used
-    # when a different solver is moved to the refactored structure (e.g. the monte carlo one),
-    # have it call that here
-    if out.can_sample == False:
-        out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', False)
-        return opsolve(out)
+    if out.can_sample == True:
+        exp_results, exp_times = run_unitary_experiments(out)
+    else:
+        #out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', False)
+        #return opsolve(out)
+        exp_results, exp_times = run_monte_carlo_experiments(out)
 
-
-    return run_unitary_experiments(out)
-
+    return format_exp_results(exp_results, exp_times, out)
 
 def run_unitary_experiments(op_system):
     """ Runs unitary experiments
@@ -258,7 +255,7 @@ def run_unitary_experiments(op_system):
     # Load RHS function
     op_system.global_data['rhs_func'] = td_ode_rhs_static
 
-    # setup seeds array for measurements
+    # setup seeds array
     if op_system.global_data['seed']:
         prng = np.random.RandomState(op_system.global_data['seed'])
     else:
@@ -271,8 +268,8 @@ def run_unitary_experiments(op_system):
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
 
 
-    # extract the exactly the data required by the unitary solver
-    unitary_sim_data = unitary_required_data(op_system.global_data)
+    # extract exactly the data required by the solver
+    unitary_sim_data = sim_required_data(op_system.global_data)
 
     # set up full simulation, i.e. combining different (ideally modular) computational
     # resources into one function
@@ -327,80 +324,71 @@ def run_unitary_experiments(op_system):
                  (end - start) / len(op_system.experiments))
 
 
-    # format the data into the proper output
-    all_results = []
-    for idx_exp, exp in enumerate(op_system.experiments):
-
-        m_lev = op_system.global_data['meas_level']
-        m_ret = op_system.global_data['meas_return']
-
-        # populate the results dictionary
-        results = {'seed_simulator': exp['seed'],
-                   'shots': op_system.global_data['shots'],
-                   'status': 'DONE',
-                   'success': True,
-                   'time_taken': exp_times[idx_exp],
-                   'header': exp['header'],
-                   'meas_level': m_lev,
-                   'meas_return': m_ret,
-                   'data': {}}
-
-        memory = exp_results[idx_exp][0]
-        results['data']['statevector'] = []
-        for coef in exp_results[idx_exp][1]:
-            results['data']['statevector'].append([np.real(coef),
-                                                   np.imag(coef)])
-        results['header']['ode_t'] = exp_results[idx_exp][2]
-
-        # meas_level 2 return the shots
-        if m_lev == 2:
-
-            # convert the memory **array** into a n
-            # integer
-            # e.g. [1,0] -> 2
-            int_mem = memory.dot(np.power(2.0,
-                                          np.arange(memory.shape[1]))).astype(int)
-
-            # if the memory flag is set return each shot
-            if op_system.global_data['memory']:
-                hex_mem = [hex(val) for val in int_mem]
-                results['data']['memory'] = hex_mem
-
-            # Get hex counts dict
-            unique = np.unique(int_mem, return_counts=True)
-            hex_dict = {}
-            for kk in range(unique[0].shape[0]):
-                key = hex(unique[0][kk])
-                hex_dict[key] = unique[1][kk]
-
-            results['data']['counts'] = hex_dict
-
-        # meas_level 1 returns the <n>
-        elif m_lev == 1:
-
-            if m_ret == 'avg':
-
-                memory = [np.mean(memory, 0)]
-
-            # convert into the right [real, complex] pair form for json
-            # this should be cython?
-            results['data']['memory'] = []
-
-            for mem_shot in memory:
-                results['data']['memory'].append([])
-                for mem_slot in mem_shot:
-                    results['data']['memory'][-1].append(
-                        [np.real(mem_slot), np.imag(mem_slot)])
-
-            if m_ret == 'avg':
-                results['data']['memory'] = results['data']['memory'][0]
-
-        all_results.append(results)
-
-    return all_results
+    return exp_results, exp_times
 
 
-def unitary_required_data(global_data):
+def run_monte_carlo_experiments(op_system):
+    """ Runs monte carlo experiments
+
+    Initially will have large overlap with run_unitary_experiments, but will refactor them
+    after getting it working
+    """
+
+    if not op_system.initial_state.isket:
+        raise Exception("Initial state must be a state vector.")
+
+    # set num_cpus to the value given in settings if none in Options
+    if not op_system.ode_options.num_cpus:
+        op_system.ode_options.num_cpus = CPU_COUNT
+
+    # build Hamiltonian data structures
+    op_data_config(op_system)
+    # Load RHS function
+    op_system.global_data['rhs_func'] = td_ode_rhs_static
+
+    # setup seeds array
+    if op_system.global_data['seed']:
+        prng = np.random.RandomState(op_system.global_data['seed'])
+    else:
+        prng = np.random.RandomState(
+            np.random.randint(np.iinfo(np.int32).max - 1))
+    for exp in op_system.experiments:
+        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
+
+
+    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
+
+
+    # extract exactly the data required by the solver
+    #sim_data = sim_required_data(op_system.global_data)
+
+
+    exp_results = []
+    exp_times = []
+    for exp in op_system.experiments:
+        start = time.time()
+        rng = np.random.RandomState(exp['seed'])
+        seeds = rng.randint(np.iinfo(np.int32).max - 1,
+                            size=op_system.global_data['shots'])
+        exp_res = parallel_map(monte_carlo_evolution,
+                               seeds,
+                               task_args=(exp, op_system,),
+                               **map_kwargs)
+
+        # exp_results is a list for each shot
+        # so transform back to an array of shots
+        exp_res2 = []
+        for exp_shot in exp_res:
+            exp_res2.append(exp_shot[0].tolist())
+
+        end = time.time()
+        exp_times.append(end - start)
+        exp_results.append(np.array(exp_res2))
+
+    return exp_results, exp_times
+
+
+def sim_required_data(global_data):
     """
     A temporary function to clearly isolate the pieces of global_data
     potentially required by unitary_evolution
@@ -488,6 +476,87 @@ def op_data_config(op_system):
     # Convert inital state to flat array in global_data
     op_system.global_data['initial_state'] = \
         op_system.initial_state.full().ravel()
+
+
+def format_exp_results(exp_results, exp_times, op_system):
+    """format results
+    """
+
+    # format the data into the proper output
+    all_results = []
+    for idx_exp, exp in enumerate(op_system.experiments):
+
+        m_lev = op_system.global_data['meas_level']
+        m_ret = op_system.global_data['meas_return']
+
+        # populate the results dictionary
+        results = {'seed_simulator': exp['seed'],
+                   'shots': op_system.global_data['shots'],
+                   'status': 'DONE',
+                   'success': True,
+                   'time_taken': exp_times[idx_exp],
+                   'header': exp['header'],
+                   'meas_level': m_lev,
+                   'meas_return': m_ret,
+                   'data': {}}
+
+        if op_system.can_sample:
+            memory = exp_results[idx_exp][0]
+            results['data']['statevector'] = []
+            for coef in exp_results[idx_exp][1]:
+                results['data']['statevector'].append([np.real(coef),
+                                                       np.imag(coef)])
+            results['header']['ode_t'] = exp_results[idx_exp][2]
+        else:
+            memory = exp_results[idx_exp]
+
+        # meas_level 2 return the shots
+        if m_lev == 2:
+
+            # convert the memory **array** into a n
+            # integer
+            # e.g. [1,0] -> 2
+            int_mem = memory.dot(np.power(2.0,
+                                          np.arange(memory.shape[1]))).astype(int)
+
+            # if the memory flag is set return each shot
+            if op_system.global_data['memory']:
+                hex_mem = [hex(val) for val in int_mem]
+                results['data']['memory'] = hex_mem
+
+            # Get hex counts dict
+            unique = np.unique(int_mem, return_counts=True)
+            hex_dict = {}
+            for kk in range(unique[0].shape[0]):
+                key = hex(unique[0][kk])
+                hex_dict[key] = unique[1][kk]
+
+            results['data']['counts'] = hex_dict
+
+        # meas_level 1 returns the <n>
+        elif m_lev == 1:
+
+            if m_ret == 'avg':
+
+                memory = [np.mean(memory, 0)]
+
+            # convert into the right [real, complex] pair form for json
+            # this should be cython?
+            results['data']['memory'] = []
+
+            for mem_shot in memory:
+                results['data']['memory'].append([])
+                for mem_slot in mem_shot:
+                    results['data']['memory'][-1].append(
+                        [np.real(mem_slot), np.imag(mem_slot)])
+
+            if m_ret == 'avg':
+                results['data']['memory'] = results['data']['memory'][0]
+
+        all_results.append(results)
+
+    return all_results
+
 
 
 
