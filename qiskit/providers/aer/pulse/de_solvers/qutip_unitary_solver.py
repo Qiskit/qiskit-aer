@@ -26,8 +26,39 @@ from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def unitary_evolution(exp, op_system):
+def unitary_evolution(exp,
+                      sim_data,
+                      ode_options,
+                      system=None,
+                      channels=None,
+                      use_cpp_ode_func=True):
     """
+    Note: parameters with None default are required for C++ evaluation
+
+    depends on op_system attributes:
+        - x use_cpp_ode_func
+        - x channels
+        - x system
+        - global_data (a dict), uses following keys:
+            - 'string'
+            - 'initial_state'
+            - 'n_registers' (no idea what this is)
+            - 'rhs_func'
+            - 'h_diag_elems'
+        - global_data keys used in cpp numeric_integrator:
+            - 'freqs'
+            - 'pulse_array'
+            - 'pulse_indices'
+            - 'vars'
+            - 'var_names'
+            - 'num_h_terms'
+            - 'h_ops_data'
+            - 'h_ops_ind'
+            - 'h_ops_ptr'
+            - 'h_diag_elems'
+        - global_data keys used in cython
+            - maybe none, it's already baked into the cython before this point???
+
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
     of the experiment.
@@ -43,21 +74,22 @@ def unitary_evolution(exp, op_system):
         Exception: Error in ODE solver.
     """
 
-    global_data = op_system.global_data
-    ode_options = op_system.ode_options
+    global_data = sim_data
 
     tlist = exp['tlist']
+
     # Init register
-    register = np.zeros(global_data['n_registers'], dtype=np.uint8)
+    # Not sure how this is being used
+    register = np.ones(global_data['n_registers'], dtype=np.uint8)
 
     num_channels = len(exp['channels'])
 
     rhs_func = global_data['rhs_func']
     ODE = ode(rhs_func)
-    if op_system.use_cpp_ode_func:
+    if use_cpp_ode_func:
         # Don't know how to use OrderedDict type on Cython, so transforming it to dict
-        channels = dict(op_system.channels)
-        ODE.set_f_params(global_data, exp, op_system.system, channels, register)
+        channels = dict(channels)
+        ODE.set_f_params(global_data, exp, system, channels, register)
     else:
         _inst = 'ODE.set_f_params(%s)' % global_data['string']
         logging.debug("Unitary Evolution: %s\n\n", _inst)

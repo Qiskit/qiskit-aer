@@ -42,6 +42,7 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.qutip_unitary_solver import unitary_evolution
 from ..de_solvers.qutip_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
+import pdb
 
 # remaining imports from pulse0.
 # opsolve is only called if can_sample == False, though it is not really used
@@ -232,8 +233,7 @@ def pulse_controller(qobj, system_model, backend_options):
         opsolve(out)
 
 
-    results = run_unitary_experiments(out)
-    return results
+    return run_unitary_experiments(out)
 
 
 def run_unitary_experiments(op_system):
@@ -257,10 +257,7 @@ def run_unitary_experiments(op_system):
     # Load cython function
     _op_func_load(op_system)
 
-    """unitary evolution requires no seeds, so move this out of this deterministic DE
-    solving class once measurements are moved
-    """
-    # setup seeds array
+    # setup seeds array for measurements
     if op_system.global_data['seed']:
         prng = np.random.RandomState(op_system.global_data['seed'])
     else:
@@ -273,12 +270,24 @@ def run_unitary_experiments(op_system):
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
 
 
+    # extract the exactly the data required by the unitary solver
+    unitary_sim_data = unitary_required_data(op_system.global_data)
+
     # set up full simulation, i.e. combining different (ideally modular) computational
     # resources into one function
     def full_simulation(exp, op_system):
 
+        # inserting op_system.global data for unitary_sim_data makes it work
+
         # run DE portion of simulation
-        psi, ode_t = unitary_evolution(exp, op_system)
+        # would like to use unitary_sim_data here but I run into errors
+        # with the C++/Cython interfaces
+        psi, ode_t = unitary_evolution(exp,
+                                       unitary_sim_data,
+                                       op_system.ode_options,
+                                       system=op_system.system,
+                                       channels=op_system.channels,
+                                       use_cpp_ode_func=op_system.use_cpp_ode_func)
 
         # ###############
         # do measurement
@@ -394,8 +403,37 @@ def run_unitary_experiments(op_system):
     return all_results
 
 
+def unitary_required_data(global_data):
+    """
+    A temporary function to clearly isolate the pieces of global_data
+    potentially required by unitary_evolution
+    """
+
+    # keys required regardless of solver used
+    general_keys = ['string', 'initial_state', 'n_registers',
+                    'rhs_func', 'h_diag_elems']
+
+    # keys required for cpp solver
+    cpp_keys = ['freqs', 'pulse_array', 'pulse_indices',
+                'vars', 'vars_names', 'num_h_terms',
+                'h_ops_data', 'h_ops_ind', 'h_ops_ptr',
+                'h_diag_elems']
+
+    # keys used if cython generated code used
+    # currently I don't actually think any are used as all data has been
+    # baked into the cython
+    cy_keys = []
+
+    all_keys = general_keys + cpp_keys + cy_keys
+
+    return {key : global_data.get(key) for key in all_keys}
+
+
 def op_data_config(op_system):
     """ Preps the data for the opsolver.
+
+    This should eventually be replaced by functions that construct different types of DEs
+    in standard formats
 
     Everything is stored in the passed op_system.
 
@@ -448,6 +486,10 @@ def op_data_config(op_system):
     op_system.global_data['h_ops_ind'] = [hpart.data.indices for hpart in H]
     op_system.global_data['h_ops_ptr'] = [hpart.data.indptr for hpart in H]
 
+    # ##############################################
+    # I *believe* this block is only for cython stuff
+    # ##############################################
+
     # setup ode args string
     ode_var_str = ""
 
@@ -495,6 +537,11 @@ def op_data_config(op_system):
     # Add register
     ode_var_str += ", register"
     op_system.global_data['string'] = ode_var_str
+
+    # ##############################################
+    # end cython block
+    # ##############################################
+
 
     # Convert inital state to flat array in global_data
     op_system.global_data['initial_state'] = \
