@@ -153,7 +153,7 @@ class QuantumError:
             raise NoiseError(
                 "Probabilities are not normalized: {} != 1".format(
                     total_probs))
-        if [p for p in self._noise_probabilities if p < 0]:
+        if [p for p in self._noise_probabilities if (isinstance(p, complex) or (p < 0))]:
             raise NoiseError("Probabilities are invalid.")
         # Rescale probabilities if their sum is ok to avoid
         # accumulation of rounding errors
@@ -543,7 +543,7 @@ class QuantumError:
                                                           instr['qubits'])
             # Renormalize the Choi operator to find probability
             # of Kraus error
-            chan_prob = np.trace(choi_sum.data) / dim
+            chan_prob = abs(np.trace(choi_sum.data) / dim)
             chan_instr = {
                 "name": "kraus",
                 "qubits": list(range(num_qubits)),
