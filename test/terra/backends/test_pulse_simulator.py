@@ -35,7 +35,7 @@ from qiskit.providers.aer.pulse.system_models.hamiltonian_model import Hamiltoni
 USE_CPP_ODE_FUNC = True
 def run_cython_and_cpp_solvers(func):
     """ This is a temporary decorator to test both the C++ solver and Cython one.
-    It should be removed when the cyhton one will be removed """
+    It should be removed when the cython one will be removed """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # pylint: disable=global-statement
