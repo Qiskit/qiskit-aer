@@ -32,22 +32,6 @@ from qiskit.pulse.commands import SamplePulse, FrameChange
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 
-USE_CPP_ODE_FUNC = True
-def run_cython_and_cpp_solvers(func):
-    """ This is a temporary decorator to test both the C++ solver and Cython one.
-    It should be removed when the cython one will be removed """
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # pylint: disable=global-statement
-        global USE_CPP_ODE_FUNC
-        USE_CPP_ODE_FUNC = True
-        # Run C++ Solver first
-        func(*args, **kwargs)
-        # Run Cython Solver afterwards
-        USE_CPP_ODE_FUNC = False
-        func(*args, **kwargs)
-    return wrapper
-
 class TestPulseSimulator(common.QiskitAerTestCase):
     r"""PulseSimulator tests.
 
@@ -78,7 +62,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
 
-    @run_cython_and_cpp_solvers
     def test_x_gate(self):
         """
         Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
@@ -104,7 +87,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set backend backend_options
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -115,7 +97,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_counts = {'1': 256}
         self.assertDictAlmostEqual(counts, exp_counts)
 
-    @run_cython_and_cpp_solvers
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the solver.
@@ -148,7 +129,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
             # set backend backend_options
             backend_options = {'seed' : 9000}
-            backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
             # run simulation
             result = self.backend_sim.run(qobj, system_model=system_model,
@@ -163,7 +143,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for scale in scales:
             scale_test(scale)
 
-    @run_cython_and_cpp_solvers
     def test_hadamard_gate(self):
         """Test Hadamard. Is a rotation of pi/2 about the y-axis. Set omega_d0=omega_0
         (drive on resonance), phi=-pi/2, omega_a = pi/2/time
@@ -197,7 +176,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set backend backend_options
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -213,7 +191,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
-    @run_cython_and_cpp_solvers
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
         shots = 10000  # large number of shots so get good proportions
@@ -245,7 +222,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 # Run qobj and compare prop to expected result
                 backend_options = {'seed' : 9000}
-                backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
                 result = self.backend_sim.run(qobj, system_model, backend_options).result()
                 counts = result.get_counts()
 
@@ -263,7 +239,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
 
-    @run_cython_and_cpp_solvers
     def test_meas_level_1(self):
         """Test measurement level 1. """
 
@@ -297,7 +272,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set backend backend_options
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
 
@@ -316,7 +290,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
 
-    @run_cython_and_cpp_solvers
     def test_gaussian_drive(self):
         """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
         phi=0, omega_a = pi/time
@@ -358,7 +331,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 memory_slots=2,
                                 shots=1000)
                 backend_options = {'seed' : 9000}
-                backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
                 result = self.backend_sim.run(qobj, system_model, backend_options).result()
                 statevector = result.get_statevector()
@@ -369,7 +341,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 self.assertGreaterEqual(
                     state_fidelity(statevector, exp_statevector), 0.99)
 
-    @run_cython_and_cpp_solvers
     def test_frame_change(self):
         """Test frame change command. """
         shots = 10000
@@ -406,7 +377,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
         exp_counts = {'0': shots}
@@ -435,7 +405,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
 
@@ -449,7 +418,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop = {'0' : prop0, '1': 1 - prop0}
         self.assertDictAlmostEqual(prop_shift, exp_prop, delta=0.01)
 
-    @run_cython_and_cpp_solvers
     def test_three_level(self):
         r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form
         given in _analytic_statevector_3level function docstring.
@@ -502,7 +470,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         statevector = result.get_statevector()
@@ -528,7 +495,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed' : 9000}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         statevector = result.get_statevector()
@@ -539,7 +505,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertGreaterEqual(
             state_fidelity(statevector, exp_statevector), 0.99)
 
-    @run_cython_and_cpp_solvers
     def test_interaction(self):
         r"""Test 2 qubit interaction via swap gates."""
 
@@ -575,7 +540,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed': 12387}
-        backend_options['use_cpp_ode_func'] = True if USE_CPP_ODE_FUNC else False
 
         result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi_swap = result_pi_swap.get_counts()
