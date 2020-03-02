@@ -44,8 +44,16 @@ from ..de_solvers.qutip_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 import pdb
 
-# remaining imports from pulse0.
-# opsolve is only called if can_sample == False, though it is not really used
+"""Remaining imports for pulse0
+
+Notes:
+- opsolve
+    - only used currently if can_sample == False. Can try to eliminate once
+      monte carlo solver is brought over
+- rhs_utils
+    - small pieces of code that can be brought over, but they have further dependencies
+      on pulse0 which may be better dealt with later
+"""
 from ..pulse0.solver.opsolve import opsolve
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 from ..pulse0.solver.rhs_utils import _op_generate_rhs, _op_func_load
@@ -226,14 +234,22 @@ def pulse_controller(qobj, system_model, backend_options):
     out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', True)
 
 
+    """
+    just commented this out to start trying to get monte carlo simulator to work
+
     # if can_sample == False, unitary solving can't be used
     # when a different solver is moved to the refactored structure (e.g. the monte carlo one),
     # have it call that here
-    if out.can_sample == False:
-        opsolve(out)
+    #if out.can_sample == False:
+    #    return opsolve(out)
 
 
-    return run_unitary_experiments(out)
+    #return run_unitary_experiments(out)
+    """
+
+    #pdb.set_trace()
+
+    return opsolve(out)
 
 
 def run_unitary_experiments(op_system):
@@ -479,6 +495,13 @@ def op_data_config(op_system):
 
     if H_noise:
         H = H + [H_noise]
+        # THIS IS A HACK to get the C++ solver to work with Monte Carlo
+        # It seems to be looping over the system, as opposed to h_ops_data below,
+        # which makes it loop one time too few (if there is noise)
+        # all that seems to matter from initial tests is that a tuple is added to
+        # op_system.system so that type checking passes, but the actual entry doesn't matter 
+        #op_system.system += [(H_noise, '1')]
+        op_system.system += [(0, '1')]
 
     # construct data sets
     op_system.global_data['h_ops_data'] = [-1.0j * hpart.data.data
