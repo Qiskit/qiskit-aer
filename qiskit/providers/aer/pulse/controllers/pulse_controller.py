@@ -39,8 +39,8 @@ from ..string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.qutip_solvers import unitary_evolution, monte_carlo_evolution
-from ..de_solvers.qutip_solver_options import OPoptions
+from ..de_solvers.pulse0_solvers import unitary_evolution, monte_carlo_evolution
+from ..de_solvers.pulse0_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 
 """Remaining imports for pulse0

@@ -14,7 +14,7 @@
 # pylint: disable=no-name-in-module, import-error, invalid-name
 
 """
-Solver from qutip.
+Solvers from qutip.
 """
 
 from math import log
