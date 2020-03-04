@@ -97,6 +97,45 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_counts = {'1': 256}
         self.assertDictAlmostEqual(counts, exp_counts)
 
+    def test_1Q_noise(self):
+        """
+        Tests simulation of noise operators. Uses the same schedule as test_x_gate, but
+        with a high level of amplitude damping noise.
+        """
+
+        # setup system model
+        total_samples = 100
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+        omega_a = np.pi / total_samples
+        system_model = self._system_model_1Q(omega_0, omega_a)
+
+        # set up schedule and qobj
+        schedule = self._simple_1Q_schedule(0, total_samples)
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        memory_slots=2,
+                        shots=256)
+
+        # set seed for simulation, and set noise
+        backend_options = {'seed' : 9000}
+        backend_options['noise_model'] = {"qubit": {"0": {"Sm": 1}}}
+
+        # run simulation
+        result = self.backend_sim.run(qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+
+        # test results
+        # This level of noise is high enough that all counts should yield 0,
+        # whereas in the noiseless simulation (in test_x_gate) all counts yield 1
+        counts = result.get_counts()
+        exp_counts = {'0': 256}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the solver.
