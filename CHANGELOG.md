@@ -32,7 +32,8 @@ Removed
 
 Fixed
 -----
-
+- Fixed bug in QuantumError compose method when composing Kraus with non-Kraus
+  errors (\#605).
 
 
 [0.4.0](https://github.com/Qiskit/qiskit-aer/compare/0.3.4...0.4.0) - 2020-06-02
