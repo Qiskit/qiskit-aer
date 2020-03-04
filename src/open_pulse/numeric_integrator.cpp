@@ -192,7 +192,6 @@ PyArrayObject * td_ode_rhs(
         if(sys_index == systems.size() && num_h_terms > systems.size()){
             term = "1.0";
         }else if(sys_index < systems.size()){
-            //term = sys.second;
             term = sys.term;
         }else{
             continue;
