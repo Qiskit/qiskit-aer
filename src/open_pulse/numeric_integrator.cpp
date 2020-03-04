@@ -183,16 +183,13 @@ PyArrayObject * td_ode_rhs(
     auto idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
     auto ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
     auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
-    for(const auto& idx_sys : enumerate(systems)){
-        auto sys_index = idx_sys.first;
-        auto sys = idx_sys.second;
-
+    for(int h_idx = 0; h_idx < num_h_terms; h_idx++){
         // TODO: Refactor
         std::string term;
-        if(sys_index == systems.size() && num_h_terms > systems.size()){
+        if(h_idx == systems.size() && num_h_terms > systems.size()){
             term = "1.0";
-        }else if(sys_index < systems.size()){
-            term = sys.term;
+        }else if(h_idx < systems.size()){
+            term = systems[h_idx].term;
         }else{
             continue;
         }
@@ -201,16 +198,16 @@ PyArrayObject * td_ode_rhs(
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){
                 complex_t dot = {0., 0.};
-                auto row_start = ptrs[sys_index][i];
-                auto row_end = ptrs[sys_index][i+1];
+                auto row_start = ptrs[h_idx][i];
+                auto row_end = ptrs[h_idx][i+1];
                 for(auto j = row_start; j<row_end; ++j){
-                    auto tmp_idx = idxs[sys_index][j];
+                    auto tmp_idx = idxs[h_idx][j];
                     auto osc_term =
                         std::exp(
                             complex_t(0.,1.) * (energy[i] - energy[tmp_idx]) * t
                         );
                     complex_t coef = (i < tmp_idx ? std::conj(td) : td);
-                    dot += coef * osc_term * datas[sys_index][j] * vec[tmp_idx];
+                    dot += coef * osc_term * datas[h_idx][j] * vec[tmp_idx];
 
                 }
                 out[i] += dot;
