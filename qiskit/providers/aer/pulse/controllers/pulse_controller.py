@@ -456,12 +456,6 @@ def op_data_config(op_system):
 
     if H_noise:
         H = H + [H_noise]
-        # THIS IS A HACK to get the C++ solver to work with Monte Carlo
-        # It seems to be looping over the system, as opposed to h_ops_data below,
-        # which makes it loop one time too few (if there is noise)
-        # all that seems to matter from initial tests is that a tuple is added to
-        # op_system.system so that type checking passes, but the actual entry doesn't matter
-        op_system.system += [(0, '1')]
 
     # construct data sets
     op_system.global_data['h_ops_data'] = [-1.0j * hpart.data.data
