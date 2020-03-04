@@ -35,7 +35,7 @@ This should:
 from warnings import warn
 import numpy as np
 import time
-from ..string_model_parser.string_model_parser import NoiseParser
+from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..direct_qutip_dependence import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
@@ -52,7 +52,6 @@ Notes:
 - numeric_integrator_wrapper.td_ode_rhs_static
     - Need to figure out how to move this
 """
-from ..pulse0.solver.opsolve import opsolve
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 from ..pulse0.cy.numeric_integrator_wrapper import td_ode_rhs_static
 
@@ -231,8 +230,6 @@ def pulse_controller(qobj, system_model, backend_options):
     if out.can_sample == True:
         exp_results, exp_times = run_unitary_experiments(out)
     else:
-        #out.use_cpp_ode_func = backend_options.get('use_cpp_ode_func', False)
-        #return opsolve(out)
         exp_results, exp_times = run_monte_carlo_experiments(out)
 
     return format_exp_results(exp_results, exp_times, out)
@@ -464,7 +461,6 @@ def op_data_config(op_system):
         # which makes it loop one time too few (if there is noise)
         # all that seems to matter from initial tests is that a tuple is added to
         # op_system.system so that type checking passes, but the actual entry doesn't matter
-        #op_system.system += [(H_noise, '1')]
         op_system.system += [(0, '1')]
 
     # construct data sets

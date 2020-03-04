@@ -22,8 +22,8 @@ import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-
 from .zvode import qiskit_zvode
+
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 from ..pulse0.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
@@ -36,32 +36,6 @@ def unitary_evolution(exp,
                       system=None,
                       channels=None):
     """
-    Note: parameters with None default are required for C++ evaluation
-
-    depends on op_system attributes:
-        - x use_cpp_ode_func
-        - x channels
-        - x system
-        - global_data (a dict), uses following keys:
-            - 'string'
-            - 'initial_state'
-            - 'n_registers' (no idea what this is)
-            - 'rhs_func'
-            - 'h_diag_elems'
-        - global_data keys used in cpp numeric_integrator:
-            - 'freqs'
-            - 'pulse_array'
-            - 'pulse_indices'
-            - 'vars'
-            - 'var_names'
-            - 'num_h_terms'
-            - 'h_ops_data'
-            - 'h_ops_ind'
-            - 'h_ops_ptr'
-            - 'h_diag_elems'
-        - global_data keys used in cython
-            - maybe none, it's already baked into the cython before this point???
-
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
     of the experiment.
