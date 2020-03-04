@@ -274,9 +274,9 @@ if(SKBUILD) # Terra Addon build
 else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
 			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
 		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
