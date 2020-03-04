@@ -221,6 +221,8 @@ if(AER_THRUST_SUPPORTED)
 		message(STATUS "Thrust library: CUDA found!")
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
+			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -274,8 +276,6 @@ if(SKBUILD) # Terra Addon build
 else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
