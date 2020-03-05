@@ -18,7 +18,7 @@
 #    All rights reserved.
 # pylint: disable=no-value-for-parameter, invalid-name
 
-"""Hack for the ZVODE solver to do the correct stepping without restart."""
+"""Wrapper for the ZVODE solver to do the correct stepping without restart."""
 
 from scipy.integrate._ode import zvode
 
