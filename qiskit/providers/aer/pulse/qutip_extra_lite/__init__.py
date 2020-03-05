@@ -12,9 +12,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Temporary folder for functionality directly depending on qutip qobj
-
-Contains:
-- qobj_generators
-    - Creates qutip qobj objects to from a string 
+"""Temporary folder containing trimmed down qutip objects and functions
 """
