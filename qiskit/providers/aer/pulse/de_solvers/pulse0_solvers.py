@@ -22,8 +22,9 @@ import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from .zvode import qiskit_zvode
+from .qiskit_zvode import qiskit_zvode
 
+# These pulse0 imports are only used by the Monte-Carlo solver
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
 from ..pulse0.qutip_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 

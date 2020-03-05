@@ -43,17 +43,12 @@ from ..de_solvers.pulse0_solvers import unitary_evolution, monte_carlo_evolution
 from ..de_solvers.pulse0_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 
-"""Remaining imports for pulse0
 
-Notes:
-- opsolve
-    - only used currently if can_sample == False. Can try to eliminate once
-      monte carlo solver is brought over
-- numeric_integrator_wrapper.td_ode_rhs_static
-    - Need to figure out how to move this
-"""
+# put the rhs wrapper into de_solvers, maybe should be moved
+from ..de_solvers.numeric_integrator_wrapper import td_ode_rhs_static
+
+# remaining pulse0 imports
 from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
-from ..pulse0.cy.numeric_integrator_wrapper import td_ode_rhs_static
 
 
 def pulse_controller(qobj, system_model, backend_options):
