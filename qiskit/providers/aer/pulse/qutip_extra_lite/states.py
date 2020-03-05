@@ -44,69 +44,72 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Module for the creation of composite quantum objects via the tensor product.
+# pylint: disable=invalid-name
+
+"""States
 """
 
 import numpy as np
-# pylint: disable=no-name-in-module, import-error
-from .cy.spmath import zcsr_kron
+import scipy.sparse as sp
+
 from .qobj import Qobj
-from ..qutip_lite.settings import auto_tidyup
+from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix
 
 
-def tensor(*args):
-    """Calculates the tensor product of input operators.
+# used by qobj_generators
+def fock_dm(N, n=0, offset=0):
+    """Density matrix representation of a Fock state
+
+    Constructed via outer product of :func:`qutip.states.fock`.
 
     Args:
-        args (array_like): List or array of quantum objects for tensor product.
+        N (int): Number of Fock states in Hilbert space.
+
+        n (int): Desired number state, defaults to 0 if omitted.
+
+        offset (int): Energy level offset.
 
     Returns:
-        qobj.Qobj: A composite quantum object.
+        Qobj: Density matrix representation of Fock state.
+
+    """
+    psi = basis(N, n, offset=offset)
+
+    return psi * psi.dag()
+
+
+def basis(N, n=0, offset=0):
+    """Generates the vector representation of a Fock state.
+
+    Args:
+        N (int): Number of Fock states in Hilbert space.
+
+        n (int): Integer corresponding to desired number
+        state, defaults to 0 if omitted.
+
+        offset (int): The lowest number state that is included
+                      in the finite number state representation
+                      of the state.
+
+    Returns:
+        Qobj: Qobj representing the requested number state ``|n>``.
 
     Raises:
-        TypeError: Requires at least one input argument.
+        ValueError: Invalid input value.
+
     """
-    if not args:
-        raise TypeError("Requires at least one input argument")
+    if (not isinstance(N, (int, np.integer))) or N < 0:
+        raise ValueError("N must be integer N >= 0")
 
-    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
-        # this is the case when tensor is called on the form:
-        # tensor([q1, q2, q3, ...])
-        qlist = args[0]
+    if (not isinstance(n, (int, np.integer))) or n < offset:
+        raise ValueError("n must be integer n >= 0")
 
-    elif len(args) == 1 and isinstance(args[0], Qobj):
-        # tensor is called with a single Qobj as an argument, do nothing
-        return args[0]
+    if n - offset > (N - 1):  # check if n is within bounds
+        raise ValueError("basis vector index need to be in n <= N-1")
 
-    else:
-        # this is the case when tensor is called on the form:
-        # tensor(q1, q2, q3, ...)
-        qlist = args
+    data = np.array([1], dtype=complex)
+    ind = np.array([0], dtype=np.int32)
+    ptr = np.array([0] * ((n - offset) + 1) + [1] * (N - (n - offset)),
+                   dtype=np.int32)
 
-    if not all([isinstance(q, Qobj) for q in qlist]):
-        # raise error if one of the inputs is not a quantum object
-        raise TypeError("One of inputs is not a quantum object")
-
-    out = Qobj()
-    if qlist[0].issuper:
-        out.superrep = qlist[0].superrep
-        if not all([q.superrep == out.superrep for q in qlist]):
-            raise TypeError("In tensor products of superroperators, all must" +
-                            "have the same representation")
-
-    out.isherm = True
-    for n, q in enumerate(qlist):
-        if n == 0:
-            out.data = q.data
-            out.dims = q.dims
-        else:
-            out.data = zcsr_kron(out.data, q.data)
-            out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
-
-        out.isherm = out.isherm and q.isherm
-
-    if not out.isherm:
-        out._isherm = None
-
-    return out.tidyup() if auto_tidyup else out
+    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(N, 1)), isherm=False)

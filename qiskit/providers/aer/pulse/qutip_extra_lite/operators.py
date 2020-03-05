@@ -54,9 +54,11 @@ of commonly occuring quantum operators.
 
 import numpy as np
 import scipy.sparse as sp
-from .fastsparse import fast_csr_matrix, fast_identity
+from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix, fast_identity
 
-# pylint: disable=no-member
+# pylint: disable=wrong-import-position
+from .qobj import Qobj
+
 
 
 # Spin operators
@@ -430,6 +432,7 @@ def momentum(N, offset=0):
     return -1j / np.sqrt(2.0) * (a - a.dag())
 
 
+# number operator, important!
 def num(N, offset=0):
     """Quantum object for number operator.
 
@@ -456,157 +459,3 @@ def num(N, offset=0):
 
     return Qobj(fast_csr_matrix((data, ind, ptr),
                                 shape=(N, N)), isherm=True)
-
-
-def squeeze(N, z, offset=0):
-    """Single-mode Squeezing operator.
-
-    Args:
-        N (int): Dimension of hilbert space.
-
-        z (complex): Squeezing parameter.
-
-        offset (int): (default 0) The lowest number state that is included
-                      in the finite number state representation of the operator.
-
-    Returns:
-        Qobj:`Squeezing operator.
-
-    """
-    a = destroy(N, offset=offset)
-    op = (1 / 2.0) * np.conj(z) * (a ** 2) - (1 / 2.0) * z * (a.dag()) ** 2
-    return op.expm()
-
-
-def squeezing(a1, a2, z):
-    """Generalized squeezing operator.
-
-    Args:
-        a1 (Qobj): Operator 1.
-
-        a2 (Qobj): Operator 2.
-
-        z (complex): Squeezing parameter.
-
-    Returns:
-        Qobj: Squeezing operator.
-
-    """
-    b = 0.5 * (np.conj(z) * (a1 * a2) - z * (a1.dag() * a2.dag()))
-    return b.expm()
-
-
-def displace(N, alpha, offset=0):
-    """Single-mode displacement operator.
-
-    Args:
-        N (int): Dimension of Hilbert space.
-
-        alpha (complex): Displacement amplitude.
-
-        offset (int): The lowest number state that is included
-                      in the finite number state
-                      representation of the operator.
-
-    Returns:
-        Qobj: Displacement operator.
-    """
-    a = destroy(N, offset=offset)
-    D = (alpha * a.dag() - np.conj(alpha) * a).expm()
-    return D
-
-
-def commutator(A, B, kind="normal"):
-    """
-    Return the commutator of kind `kind` (normal, anti) of the
-    two operators A and B.
-
-    Args:
-        A (Qobj): Operator A.
-
-        B (Qobj): Operator B.
-
-        kind (str): 'normal' or 'anti' commutator.
-
-    Returns:
-        Qobj: Commutator
-
-    Raises:
-        TypeError: Invalid input.
-    """
-    if kind == 'normal':
-        return A * B - B * A
-
-    elif kind == 'anti':
-        return A * B + B * A
-
-    else:
-        raise TypeError("Unknown commutator kind '%s'" % kind)
-
-
-def qzero(N):
-    """
-    Zero operator
-
-    Args:
-        N (int or list): Dimension of Hilbert space. If provided as a
-                         list of ints, then the dimension is the product
-                         over this list, but the ``dims`` property of the
-                         new Qobj are set to this list.
-    Returns:
-        Qobj: Zero operator Qobj.
-
-    Raises:
-        ValueError: Invalid input.
-    """
-    N = int(N)
-    if (not isinstance(N, (int, np.integer))) or N < 0:
-        raise ValueError("N must be integer N>=0")
-    return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
-
-
-def charge(Nmax, Nmin=None, frac=1):
-    """
-    Generate the diagonal charge operator over charge states
-    from Nmin to Nmax.
-
-    Args:
-        Nmax (int): Maximum charge state to consider.
-
-        Nmin (int): (default = -Nmax) Lowest charge state to consider.
-
-        frac (float): (default = 1) Specify fractional charge if needed.
-
-    Returns:
-        Qobj: Charge operator over [Nmin,Nmax].
-    """
-    if Nmin is None:
-        Nmin = -Nmax
-    diag = np.arange(Nmin, Nmax + 1, dtype=float)
-    if frac != 1:
-        diag *= frac
-    C = sp.diags(diag, 0, format='csr', dtype=complex)
-    return Qobj(C, isherm=True)
-
-
-def tunneling(N, m=1):
-    """
-    Tunneling operator with elements of the form
-    :math:`\\sum |N><N+m| + |N+m><N|`.
-
-    Args:
-        N (int): Number of basis states in Hilbert space.
-
-        m (int): Number of excitations in tunneling event.
-
-    Returns:
-        Qobj: Tunneling operator.
-    """
-
-    diags = [np.ones(N - m, dtype=int), np.ones(N - m, dtype=int)]
-    T = sp.diags(diags, [m, -m], format='csr', dtype=complex)
-    return Qobj(T, isherm=True)
-
-
-# pylint: disable=wrong-import-position
-from .qobj import Qobj
