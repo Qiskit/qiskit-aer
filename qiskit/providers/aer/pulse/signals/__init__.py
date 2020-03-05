@@ -13,5 +13,5 @@
 # that they have been altered from the originals.
 
 """Classes and tools for representing and manipulating signals, which are thought of as
-functions of time appearing in coeffients of system models
+functions of time appearing in coefficients of system models
 """
