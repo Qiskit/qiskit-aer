@@ -42,9 +42,6 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.pulse0_solvers import unitary_evolution, monte_carlo_evolution
 from ..de_solvers.pulse0_solver_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-
-
-# put the rhs wrapper into de_solvers, maybe should be moved
 from ..de_solvers.numeric_integrator_wrapper import td_ode_rhs_static
 
 # remaining pulse0 imports
