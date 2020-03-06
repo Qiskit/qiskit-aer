@@ -14,7 +14,7 @@ from qiskit import execute
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 
-from qiskit.providers.aer.pulse.duffing_model_generators import duffing_system_model
+from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
 from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse.channels import (DriveChannel, AcquireChannel, MemorySlot)
 from qiskit.pulse.commands.parametric_pulses import Gaussian
