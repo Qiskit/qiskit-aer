@@ -45,7 +45,7 @@ from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..de_solvers.numeric_integrator_wrapper import td_ode_rhs_static
 
 # remaining pulse0 imports
-from ..pulse0.cy.measure import occ_probabilities, write_shots_memory
+from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
 
 
 def pulse_controller(qobj, system_model, backend_options):
