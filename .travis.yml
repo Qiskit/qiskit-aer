@@ -106,7 +106,7 @@ stage_osx: &stage_osx
     - pip install dist/qiskit_aer*whl
   script:
     - stestr run --slowest
-  
+
 ###############################################################################
 # Stage-related definitions
 ###############################################################################
@@ -130,7 +130,7 @@ jobs:
     ###########################################################################
     # C++ and Python linters
     # TODO: C++ clang-tidy!
-    - stage: lint
+    - stage: test
       name: Python Style and Linter
       <<: *stage_linux
       before_script: true
