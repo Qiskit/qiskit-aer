@@ -269,8 +269,7 @@ set(AER_LIBRARIES
 if(SKBUILD) # Terra Addon build
 	add_muparserx_lib()
 
-	add_subdirectory(qiskit/providers/aer/pulse/pulse0/cy)
-	add_subdirectory(qiskit/providers/aer/pulse/pulse0/qutip_lite/cy)
+	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
