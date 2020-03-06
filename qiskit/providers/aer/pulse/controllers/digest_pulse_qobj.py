@@ -20,7 +20,7 @@ from warnings import warn
 from collections import OrderedDict
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
-from ..pulse0.cy.utils import oplist_to_array
+from ..qutip_extra_lite.cy.utils import oplist_to_array
 
 
 class DigestedPulseQobj:
