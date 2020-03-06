@@ -130,7 +130,7 @@ jobs:
     ###########################################################################
     # C++ and Python linters
     # TODO: C++ clang-tidy!
-    - stage: test
+    - stage: lint
       name: Python Style and Linter
       <<: *stage_linux
       before_script: true
