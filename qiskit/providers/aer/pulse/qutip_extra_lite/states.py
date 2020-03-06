@@ -53,7 +53,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .qobj import Qobj
-from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix
+from .fastsparse import fast_csr_matrix
 
 
 # used by qobj_generators

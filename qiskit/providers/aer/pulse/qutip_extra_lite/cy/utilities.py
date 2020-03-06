@@ -44,68 +44,29 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Module for the creation of composite quantum objects via the tensor product.
-"""
-
-import numpy as np
-# pylint: disable=no-name-in-module, import-error
-from .cy.spmath import zcsr_kron
-from .qobj import Qobj
+# pylint: disable=invalid-name, no-name-in-module, import-error
+"""Cython utilities"""
+import os
 
 
-def tensor(*args):
-    """Calculates the tensor product of input operators.
-
-    Args:
-        args (array_like): List or array of quantum objects for tensor product.
-
-    Returns:
-        qobj.Qobj: A composite quantum object.
-
-    Raises:
-        TypeError: Requires at least one input argument.
+def _cython_build_cleanup(tdname, build_dir=None):
+    """Cleanup cython build files
     """
-    if not args:
-        raise TypeError("Requires at least one input argument")
+    if build_dir is None:
+        build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
 
-    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
-        # this is the case when tensor is called on the form:
-        # tensor([q1, q2, q3, ...])
-        qlist = args[0]
+    # Remove tdname.pyx
+    pyx_file = tdname + ".pyx"
+    try:
+        os.remove(pyx_file)
+    except OSError:
+        pass
 
-    elif len(args) == 1 and isinstance(args[0], Qobj):
-        # tensor is called with a single Qobj as an argument, do nothing
-        return args[0]
-
-    else:
-        # this is the case when tensor is called on the form:
-        # tensor(q1, q2, q3, ...)
-        qlist = args
-
-    if not all([isinstance(q, Qobj) for q in qlist]):
-        # raise error if one of the inputs is not a quantum object
-        raise TypeError("One of inputs is not a quantum object")
-
-    out = Qobj()
-    if qlist[0].issuper:
-        out.superrep = qlist[0].superrep
-        if not all([q.superrep == out.superrep for q in qlist]):
-            raise TypeError("In tensor products of superroperators, all must" +
-                            "have the same representation")
-
-    out.isherm = True
-    for n, q in enumerate(qlist):
-        if n == 0:
-            out.data = q.data
-            out.dims = q.dims
-        else:
-            out.data = zcsr_kron(out.data, q.data)
-            out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
-
-        out.isherm = out.isherm and q.isherm
-
-    if not out.isherm:
-        out._isherm = None
-
-    return out
+    # Remove temp build files
+    for dirpath, _, files in os.walk(build_dir):
+        for file in files:
+            if file.startswith(tdname):
+                try:
+                    os.remove(os.path.join(dirpath, file))
+                except OSError:
+                    pass
