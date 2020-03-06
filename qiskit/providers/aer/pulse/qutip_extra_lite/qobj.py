@@ -62,9 +62,9 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from qiskit.providers.aer.version import __version__
 
+from .dimensions import type_from_dims
+
 # used in existing functions that break if removed
-from ..pulse0.qutip_lite.cy.sparse_utils import cy_tidyup
-from ..pulse0.qutip_lite.dimensions import type_from_dims
 from ..pulse0.qutip_lite.cy.spmath import (zcsr_adjoint, zcsr_isherm)
 from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix, fast_identity
 
@@ -713,34 +713,6 @@ class Qobj():
         return self.full()
 
 
-
-    # breaks if removed - called in tensor
-    def tidyup(self, atol=1e-12):
-        """Removes small elements from the quantum object.
-
-        Parameters
-        ----------
-        atol : float
-            Absolute tolerance used by tidyup. Default is set
-            via qutip global settings parameters.
-
-        Returns
-        -------
-        oper : :class:`qutip.Qobj`
-            Quantum object with small elements removed.
-
-        """
-        if self.data.nnz:
-            # This does the tidyup and returns True if
-            # The sparse data needs to be shortened
-            if cy_tidyup(self.data.data, atol, self.data.nnz):
-                self.data.eliminate_zeros()
-            return self
-        else:
-            return self
-
-
-
     # breaks if removed due to tensor
     @property
     def isherm(self):
@@ -761,7 +733,6 @@ class Qobj():
     @isherm.setter
     def isherm(self, isherm):
         self._isherm = isherm
-
 
 
     @property
