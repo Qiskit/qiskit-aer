@@ -14,7 +14,7 @@
 
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, The QuTiP Project
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -44,68 +44,33 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Module for the creation of composite quantum objects via the tensor product.
-"""
+"""Utility for making the build options for compiling the Hamiltonian"""
+import sys
+import os
+import pyximport
+from pyximport import install
 
-import numpy as np
-# pylint: disable=no-name-in-module, import-error
-from .cy.spmath import zcsr_kron
-from .qobj import Qobj
+__all__ = ["install"]
+
+OLD_EXT = pyximport.pyximport.get_distutils_extension
 
 
-def tensor(*args):
-    """Calculates the tensor product of input operators.
+def new_get_distutils_extension(modname, pyxfilename, language_level=None):
+    """Get the distutils extension"""
+    extension_mod, setup_args = OLD_EXT(modname, pyxfilename, language_level)
+    extension_mod.language = 'c++'
+    # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
+    if sys.platform == 'win32' and \
+        (int(str(sys.version_info[0]) + str(sys.version_info[1])) >= 35) \
+            and os.environ.get('MSYSTEM') is None:
 
-    Args:
-        args (array_like): List or array of quantum objects for tensor product.
-
-    Returns:
-        qobj.Qobj: A composite quantum object.
-
-    Raises:
-        TypeError: Requires at least one input argument.
-    """
-    if not args:
-        raise TypeError("Requires at least one input argument")
-
-    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
-        # this is the case when tensor is called on the form:
-        # tensor([q1, q2, q3, ...])
-        qlist = args[0]
-
-    elif len(args) == 1 and isinstance(args[0], Qobj):
-        # tensor is called with a single Qobj as an argument, do nothing
-        return args[0]
-
+        extension_mod.extra_compile_args = ['/w', '/O1']
     else:
-        # this is the case when tensor is called on the form:
-        # tensor(q1, q2, q3, ...)
-        qlist = args
+        extension_mod.extra_compile_args = ['-w', '-O1']
+        if sys.platform == 'darwin':
+            extension_mod.extra_compile_args.append('-mmacosx-version-min=10.9')
+            extension_mod.extra_link_args = ['-mmacosx-version-min=10.9']
+    return extension_mod, setup_args
 
-    if not all([isinstance(q, Qobj) for q in qlist]):
-        # raise error if one of the inputs is not a quantum object
-        raise TypeError("One of inputs is not a quantum object")
 
-    out = Qobj()
-    if qlist[0].issuper:
-        out.superrep = qlist[0].superrep
-        if not all([q.superrep == out.superrep for q in qlist]):
-            raise TypeError("In tensor products of superroperators, all must" +
-                            "have the same representation")
-
-    out.isherm = True
-    for n, q in enumerate(qlist):
-        if n == 0:
-            out.data = q.data
-            out.dims = q.dims
-        else:
-            out.data = zcsr_kron(out.data, q.data)
-            out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
-
-        out.isherm = out.isherm and q.isherm
-
-    if not out.isherm:
-        out._isherm = None
-
-    return out
+pyximport.pyximport.get_distutils_extension = new_get_distutils_extension

@@ -54,7 +54,7 @@ of commonly occuring quantum operators.
 
 import numpy as np
 import scipy.sparse as sp
-from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix, fast_identity
+from .fastsparse import fast_csr_matrix, fast_identity
 
 # pylint: disable=wrong-import-position
 from .qobj import Qobj

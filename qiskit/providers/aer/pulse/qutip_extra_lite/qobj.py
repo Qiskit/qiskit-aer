@@ -65,8 +65,8 @@ from qiskit.providers.aer.version import __version__
 from .dimensions import type_from_dims
 
 # used in existing functions that break if removed
-from ..pulse0.qutip_lite.cy.spmath import (zcsr_adjoint, zcsr_isherm)
-from ..pulse0.qutip_lite.fastsparse import fast_csr_matrix, fast_identity
+from .cy.spmath import (zcsr_adjoint, zcsr_isherm)
+from .fastsparse import fast_csr_matrix, fast_identity
 
 
 class Qobj():
