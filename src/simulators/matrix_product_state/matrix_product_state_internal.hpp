@@ -94,13 +94,13 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
   void apply_h(uint_t index);
-  void apply_x(uint_t index){q_reg_[index].apply_x();}
-  void apply_y(uint_t index){q_reg_[index].apply_y();}
-  void apply_z(uint_t index){q_reg_[index].apply_z();}
-  void apply_s(uint_t index){q_reg_[index].apply_s();}
-  void apply_sdg(uint_t index){q_reg_[index].apply_sdg();}
-  void apply_t(uint_t index){q_reg_[index].apply_t();}
-  void apply_tdg(uint_t index){q_reg_[index].apply_tdg();}
+  void apply_x(uint_t index){get_qubit(index).apply_x();}
+  void apply_y(uint_t index){get_qubit(index).apply_y();}
+  void apply_z(uint_t index){get_qubit(index).apply_z();}
+  void apply_s(uint_t index){get_qubit(index).apply_s();}
+  void apply_sdg(uint_t index){get_qubit(index).apply_sdg();}
+  void apply_t(uint_t index){get_qubit(index).apply_t();}
+  void apply_tdg(uint_t index){get_qubit(index).apply_tdg();}
   void apply_u1(uint_t index, double lambda);
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
@@ -280,6 +280,19 @@ public:
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
 protected:
+
+  MPS_Tensor get_qubit(uint_t index) {
+    
+    return q_reg_[qubit_pos_[index]];
+  }
+  uint_t get_qubit_index(uint_t index) {
+    std::cout << "get_qubit, index = " << index << ", returning " << qubit_pos_[index] << std::endl;
+    return qubit_pos_[index];
+  }
+
+  //  uint_t get_lambda(uint_t index) {
+  //    return lambda_reg_[qubit_pos_[index]];
+  //  }
   //----------------------------------------------------------------
   // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
@@ -382,6 +395,8 @@ protected:
   uint_t num_qubits_;
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
+  reg_t qubit_pos_;  // contains a mapping between the qubit index
+                    // and its actual position in q_reg_
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------

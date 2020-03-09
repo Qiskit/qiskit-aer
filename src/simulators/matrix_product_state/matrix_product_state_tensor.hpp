@@ -18,6 +18,7 @@
 
 #define SQR_HALF sqrt(0.5)
 #define NUMBER_OF_PRINTED_DIGITS 3
+#define MATRIX_OMP_THRESHOLD 8
 
 #include <cstdio>
 #include <iostream>
@@ -254,6 +255,7 @@ void MPS_Tensor::apply_pauli(char gate) {
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
+  std::cout << "apply_x" << std::endl;
   std::swap(data_[0],data_[1]);
 }
   void MPS_Tensor::apply_y()
@@ -458,18 +460,18 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   uint_t omp_limit = left_rows*right_columns;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #endif 
       for (int_t l_row=0; l_row<left_rows; l_row++)
          for (int_t r_col=0; r_col<right_columns; r_col++)
            result(l_row, r_col) = 0;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #endif
       for (int_t l_row=0; l_row<left_rows; l_row++)
         for (int_t r_col=0; r_col<right_columns; r_col++) {
@@ -530,7 +532,6 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
             temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
             temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
             temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
-  std::cout << temp0_1 ;
   std::vector<cmatrix_t> new_data_vector;
   new_data_vector.push_back(temp0_1);
   new_data_vector.push_back(temp2_3);

@@ -209,9 +209,9 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   uint_t num_rows = mat.GetRows(), num_cols = mat.GetColumns();
 
 #ifdef _WIN32
-#pragma omp parallel for if (num_rows*num_cols > 64 && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for if (num_rows*num_cols > MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
 #else
-#pragma omp parallel for collapse(2) if (num_rows*num_cols > 64 && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for collapse(2) if (num_rows*num_cols > MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
 #endif
   for(int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
     for(int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
@@ -279,6 +279,14 @@ void MPS::initialize(uint_t num_qubits)
   }
   // need to add one more Gamma tensor, because above loop only initialized up to n-1 
   q_reg_.push_back(MPS_Tensor(alpha,beta));
+
+  qubit_pos_.clear();
+  qubit_pos_.resize(num_qubits);
+  std::iota(qubit_pos_.begin(), qubit_pos_.end(), 0);
+  std::cout << "in intiatlize, qubit_pos_ = ";
+  for (uint i=0; i<num_qubits; i++)
+    std::cout << qubit_pos_[i] << " ";
+  std::cout << std::endl;
 }
 
 void MPS::initialize(const MPS &other){
@@ -286,31 +294,32 @@ void MPS::initialize(const MPS &other){
       num_qubits_ = other.num_qubits_;
       q_reg_ = other.q_reg_;
       lambda_reg_ = other.lambda_reg_;
+      qubit_pos_ = other.qubit_pos_;
     }     
 }
 
 void MPS::apply_h(uint_t index) 
 {
     cmatrix_t h_matrix = AER::Utils::Matrix::H;
-    q_reg_[index].apply_matrix(h_matrix);
+    get_qubit(index).apply_matrix(h_matrix);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
 {
   cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
-  q_reg_[index].apply_matrix(u1_matrix);
+  get_qubit(index).apply_matrix(u1_matrix);
 }
 
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
   cmatrix_t u2_matrix = AER::Utils::Matrix::u2(phi, lambda);
-  q_reg_[index].apply_matrix(u2_matrix);
+  get_qubit(index).apply_matrix(u2_matrix);
 }
 
 void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
   cmatrix_t u3_matrix = AER::Utils::Matrix::u3(theta, phi, lambda);
-  q_reg_[index].apply_matrix(u3_matrix);
+  get_qubit(index).apply_matrix(u3_matrix);
 }
 
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
@@ -335,34 +344,32 @@ void MPS::apply_ccx(const reg_t &qubits)
 
 void MPS::apply_swap(uint_t index_A, uint_t index_B)
 {
-	if(index_A > index_B)
-	{
-	  std::swap(index_A, index_B);
-	}
-	//for MPS
-	if(index_A + 1 < index_B)
-	{
-		uint_t i;
-		for(i = index_A; i < index_B; i++)
-		{
-			apply_swap(i,i+1);
-		}
-		for(i = index_B-1; i > index_A; i--)
-		{
-			apply_swap(i,i-1);
-		}
-		return;
-	}
+  uint_t actual_A = get_qubit_index(index_A);
+  uint_t actual_B = get_qubit_index(index_B);
+  if(actual_A > actual_B) {
+    std::swap(actual_A, actual_B);
+  }
+  //for MPS
+  if(actual_A + 1 < actual_B) {
+    uint_t i;
+    for(i = actual_A; i < actual_B; i++) {
+      apply_swap(i,i+1);
+    }
+    for(i = actual_B-1; i > actual_A; i--) {
+      apply_swap(i,i-1);
+    }
+    return;
+  }
 
-	MPS_Tensor A = q_reg_[index_A], B = q_reg_[index_B];
-	rvector_t left_lambda, right_lambda;
-	//There is no lambda in the edges of the MPS
-	left_lambda  = (index_A != 0) 	    ? lambda_reg_[index_A-1] : rvector_t {1.0};
-	right_lambda = (index_B != num_qubits_-1) ? lambda_reg_[index_B  ] : rvector_t {1.0};
+  MPS_Tensor A = q_reg_[actual_A], B = q_reg_[actual_B];
+  rvector_t left_lambda, right_lambda;
+  //There is no lambda in the edges of the MPS
+  left_lambda  = (actual_A != 0) 	    ? lambda_reg_[actual_A-1] : rvector_t {1.0};
+	right_lambda = (actual_B != num_qubits_-1) ? lambda_reg_[actual_B  ] : rvector_t {1.0};
 
-	q_reg_[index_A].mul_Gamma_by_left_Lambda(left_lambda);
-	q_reg_[index_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[index_A], lambda_reg_[index_A], q_reg_[index_B]);
+	q_reg_[actual_A].mul_Gamma_by_left_Lambda(left_lambda);
+	q_reg_[actual_B].mul_Gamma_by_right_Lambda(right_lambda);
+	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[actual_A], lambda_reg_[actual_A], q_reg_[actual_B]);
 
 	temp.apply_swap();
 	MPS_Tensor left_gamma,right_gamma;
@@ -370,9 +377,9 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
 	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
 	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-	q_reg_[index_A] = left_gamma;
-	lambda_reg_[index_A] = lambda;
-	q_reg_[index_B] = right_gamma;
+	q_reg_[actual_A] = left_gamma;
+	lambda_reg_[actual_A] = lambda;
+	q_reg_[actual_B] = right_gamma;
 }
 
 //-------------------------------------------------------------------------
@@ -393,18 +400,21 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   // If index_B > index_A, we move the qubit at index_B to index_A+1
   // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
   // swap between the qubits
+  uint_t actual_A = get_qubit_index(index_A);
+  uint_t actual_B = get_qubit_index(index_B);
   uint_t A = index_A;
+
   bool swapped = false, greater = false, smaller = false;
 
-  if (index_B > index_A+1) {
+  if (actual_B > actual_A+1) {
     greater = true;
-    change_position(index_B, index_A+1);  // Move B to be right after A
-  } else if (index_A > 0 && index_B < index_A-1) {
+    change_position(actual_B, actual_A+1);  // Move B to be right after A
+  } else if (actual_A > 0 && actual_B < actual_A-1) {
     smaller = true;
-    change_position(index_B, index_A-1);  // Move B to be right before A
+    change_position(actual_B, actual_A-1);  // Move B to be right before A
   }
-  if (index_B < index_A) {
-    A = index_A - 1;
+  if (actual_B < actual_A) {
+    A = actual_A - 1;
     swapped = true;
   }
   // After we moved the qubits as necessary, 
@@ -455,9 +465,9 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   q_reg_[A+1] = right_gamma;
 
   if (greater) {
-    change_position(index_A+1, index_B);  // Move B back to its original position
+    change_position(actual_A+1, actual_B);  // Move B back to its original position
   } else if (smaller) {
-    change_position(index_A-1, index_B);
+    change_position(actual_A-1, actual_B);
   }
 }
 
@@ -823,6 +833,7 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 
 double MPS::expectation_value(const reg_t &qubits, const cmatrix_t &M) const
 {
+  std::cout << "in expval, qubits = " << qubits[0] << " " << qubits[1] << std::endl;
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
