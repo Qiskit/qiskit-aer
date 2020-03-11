@@ -18,7 +18,7 @@ import numpy
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+from qiskit.qobj import QasmQobjInstruction
 from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.providers.aer.extensions import Snapshot
 
