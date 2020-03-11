@@ -300,8 +300,8 @@ void MPS::initialize(const MPS &other){
 
 void MPS::apply_h(uint_t index) 
 {
-    cmatrix_t h_matrix = AER::Utils::Matrix::H;
-    get_qubit(index).apply_matrix(h_matrix);
+  cmatrix_t h_matrix = AER::Utils::Matrix::H;
+  get_qubit(index).apply_matrix(h_matrix);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
@@ -342,25 +342,32 @@ void MPS::apply_ccx(const reg_t &qubits)
   apply_3_qubit_gate(qubits, mcx, cmatrix_t(1));
 }
 
-void MPS::apply_swap(uint_t index_A, uint_t index_B)
+void MPS::apply_swap(uint_t index_A, uint_t index_B) {
+  apply_swap_internal(get_qubit_index(index_A), get_qubit_index(index_B), true);
+}
+
+void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate)
 {
-  uint_t actual_A = get_qubit_index(index_A);
-  uint_t actual_B = get_qubit_index(index_B);
+  std::cout <<"in apply_swap_internal(" << index_A<<", " << index_B<<")" << std::endl;
+  uint_t actual_A = index_A;
+  uint_t actual_B = index_B;
+  //  std::cout << "actual_A = " << actual_A << " actual_B = " <<actual_B << std::endl;
   if(actual_A > actual_B) {
     std::swap(actual_A, actual_B);
   }
-  //for MPS
+
   if(actual_A + 1 < actual_B) {
     uint_t i;
     for(i = actual_A; i < actual_B; i++) {
-      apply_swap(i,i+1);
+      apply_swap_internal(i,i+1);
     }
     for(i = actual_B-1; i > actual_A; i--) {
-      apply_swap(i,i-1);
+      apply_swap_internal(i,i-1);
     }
     return;
   }
 
+  // when actual_A+1 == actual_B then we can really do the swap
   MPS_Tensor A = q_reg_[actual_A], B = q_reg_[actual_B];
   rvector_t left_lambda, right_lambda;
   //There is no lambda in the edges of the MPS
@@ -380,6 +387,16 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B)
 	q_reg_[actual_A] = left_gamma;
 	lambda_reg_[actual_A] = lambda;
 	q_reg_[actual_B] = right_gamma;
+	
+	if (!swap_gate) {
+
+	  std::cout << "qubit_pos_ = ";
+	  for (uint i=0; i<num_qubits_; i++)
+	    std::cout << qubit_pos_[i] << " ";
+	  std::cout << std::endl;
+
+	  std::swap(qubit_pos_[index_A], qubit_pos_[index_B]);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -428,6 +445,11 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   q_reg_[A+1].mul_Gamma_by_right_Lambda(right_lambda);
   MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
   
+  std::cout << "before gate, qubit_pos_ = ";
+  for (uint i=0; i<num_qubits_; i++)
+    std::cout << qubit_pos_[i] << " ";
+  std::cout << std::endl;
+
   switch (gate_type) {
   case cx:
     temp.apply_cnot(swapped);
@@ -726,7 +748,7 @@ uint_t MPS::move_qubits_to_right_end(const reg_t &qubits,
       if (actual_indices[i] == next_right) {
 	for (uint_t j=i; j<right_end-num_moved; j++) {
 	  //swap the qubits until next_right reaches right_end
-	  apply_swap(j, j+1);
+	  apply_swap_internal(j, j+1);
 	  // swap actual_indices to keep track of the new qubit positions
 	  std::swap(actual_indices[j], actual_indices[j+1]);
 	}
@@ -755,7 +777,7 @@ void MPS::move_qubits_back_from_right_end(const reg_t &qubits,
     uint_t final_pos = actual_indices[min_index];
     for (uint_t j=min_index; j>final_pos; j--) {
       //swap the qubits until smallest reaches its original position
-      apply_swap(j, j-1);
+      apply_swap_internal(j, j-1);
       // swap actual_indices to keep track of the new qubit positions
       std::swap(actual_indices[j], actual_indices[j-1]);
     }
@@ -767,11 +789,13 @@ void MPS::change_position(uint_t src, uint_t dst) {
    if(src == dst)
      return;
    else if(src < dst)
-     for(uint_t i = src; i < dst; i++)
-       apply_swap(i,i+1);
+     for(uint_t i = src; i < dst; i++) {
+       apply_swap_internal(i,i+1);
+     }
    else
-     for(uint_t i = src; i > dst; i--)
-       apply_swap(i,i-1);
+     for(uint_t i = src; i > dst; i--) {
+       apply_swap_internal(i,i-1);
+     }
 }
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const

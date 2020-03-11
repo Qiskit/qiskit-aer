@@ -106,6 +106,11 @@ public:
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B);
+
+  // if swap_gate==true, this is an actual swap_gate of the circuit
+  // if swap_gate==false, this is an internal swap, necessary for
+  // some internal algorithm
+  void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
@@ -281,12 +286,12 @@ public:
 
 protected:
 
-  MPS_Tensor get_qubit(uint_t index) {
+  MPS_Tensor& get_qubit(uint_t index) {
     
     return q_reg_[qubit_pos_[index]];
   }
   uint_t get_qubit_index(uint_t index) {
-    std::cout << "get_qubit, index = " << index << ", returning " << qubit_pos_[index] << std::endl;
+    //std::cout << "get_qubit, index = " << index << ", returning " << qubit_pos_[index] << std::endl;
     return qubit_pos_[index];
   }
 
