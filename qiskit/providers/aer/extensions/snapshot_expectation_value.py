@@ -18,6 +18,7 @@ import numpy
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
+from qiskit.qobj import QasmQobjInstruction
 from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.providers.aer.extensions import Snapshot
 
@@ -106,6 +107,14 @@ class SnapshotExpectationValue(Snapshot):
             else:
                 return None
         return pauli_op
+
+    def assemble(self):
+        """Assemble a QasmQobjInstruction for snapshot_expectation_value."""
+        return QasmQobjInstruction(name=self.name,
+                                   params=[x.tolist() for x in self.params],
+                                   snapshot_type=self.snapshot_type,
+                                   qubits=list(range(self.num_qubits)),
+                                   label=self.label)
 
 
 def snapshot_expectation_value(self, label, op, qubits,
