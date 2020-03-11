@@ -29,8 +29,8 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.pulse.commands import SamplePulse, FrameChange
-from qiskit.providers.aer.openpulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.openpulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
 
 USE_CPP_ODE_FUNC = True
 def run_cython_and_cpp_solvers(func):
@@ -752,12 +752,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
         u_channel_lo = []
-        qubit_list = [0]
+        subsystem_list = [0]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
     def _system_model_2Q(self, omega_0, omega_a, omega_i, qubit_dim=2):
@@ -789,12 +789,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
                         [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
-        qubit_list = [0, 1]
+        subsystem_list = [0, 1]
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
-                                qubit_list=qubit_list,
+                                subsystem_list=subsystem_list,
                                 dt=dt)
 
     def _simple_1Q_schedule(self, phi, total_samples, shape="square", gauss_sigma=0):
@@ -935,8 +935,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule += const_pulse(ControlChannel(uchannel)) << schedule.duration  # u chan pulse
 
         acq_cmd = pulse.Acquire(duration=total_samples)
-        schedule |= acq_cmd([AcquireChannel(0), AcquireChannel(1)],
-                            [MemorySlot(0), MemorySlot(1)]) << schedule.duration
+        acq_sched = acq_cmd(AcquireChannel(0), MemorySlot(0))
+        acq_sched += acq_cmd(AcquireChannel(1), MemorySlot(1))
+
+        schedule |= acq_sched << schedule.duration
 
         return schedule
 

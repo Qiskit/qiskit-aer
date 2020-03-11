@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 class QasmSimulator(AerBackend):
     """
-    Noisy quantum circuit simulator backend
+    Noisy quantum circuit simulator backend.
 
     The `QasmSimulator` supports multiple simulation methods and
     configurable options for each simulation method. These options are
@@ -63,11 +63,22 @@ class QasmSimulator(AerBackend):
       measurement outcomes from *ideal* circuits with all measurements at
       end of the circuit. For noisy simulations each shot samples a
       randomly sampled noisy circuit from the noise model.
+      ``"statevector_cpu"`` is an alias of ``"statevector"``.
+
+    * ``"statevector_gpu"``: A dense statevector simulation that provides
+      the same functionalities with ``"statevector"``. GPU performs the computation
+      to calculate probability amplitudes as CPU does. If no GPU is available,
+      a runtime error is raised.
 
     * ``"density_matrix"``: A dense density matrix simulation that may
       sample measurement outcomes from *noisy* circuits with all
       measurements at end of the circuit. It can only simulate half the
       number of qubits as the statevector method.
+
+    * ``"density_matrix_gpu"``: A dense density matrix simulation that provides
+      the same functionalities with ``"density_matrix"``. GPU performs the computation
+      to calculate probability amplitudes as CPU does. If no GPU is available,
+      a runtime error is raised.
 
     * ``"stabilizer"``: An efficient Clifford stabilizer state simulator
       that can simulate noisy Clifford circuits if all errors in the noise model are also
@@ -96,7 +107,7 @@ class QasmSimulator(AerBackend):
 
     * ``"precision"`` (str): Set the floating point precision for
       certain simulation methods to either "single" or "double"
-      precision (default: "Double").
+      precision (default: "double").
 
     * ``"zero_threshold"`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -192,6 +203,17 @@ class QasmSimulator(AerBackend):
       OpenMP parallelization. If parallel circuit or shot execution
       is enabled this will only use unallocated CPU cores up to
       max_parallel_threads (Default: 100).
+
+    These backend options apply in circuit optimization passes:
+
+    * ``"fusion_enable"`` (bool): Enable fusion optimization in circuit
+      optimization passes [Default: True]
+    * ``"fusion_verbose"`` (bool): Output gates generated in fusion optimization
+      into metadata [Default: False]
+    * ``"fusion_max_qubit"`` (int): Maximum number of qubits for a operation generated
+      in a fusion optimization [Default: 5]
+    * ``"fusion_threshold"`` (int): Threshold that number of qubits must be greater
+      than or equal to enable fusion optimization [Default: 20]
     """
 
     MAX_QUBIT_MEMORY = int(
@@ -207,8 +229,8 @@ class QasmSimulator(AerBackend):
         'conditional': True,
         'open_pulse': False,
         'memory': True,
-        'max_shots': 100000,
-        'description': 'A C++ simulator with realistic noise for qobj files',
+        'max_shots': int(1e6),
+        'description': 'A C++ simulator with realistic noise for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',

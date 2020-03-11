@@ -13,13 +13,12 @@
 Quantum error class for Qiskit Aer noise model
 """
 import logging
-import warnings
 import copy
 
 import numpy as np
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators import Kraus, SuperOp, Operator
+from qiskit.quantum_info.operators import Kraus, SuperOp, Choi, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
@@ -27,7 +26,6 @@ from .errorutils import kraus2instructions
 from .errorutils import circuit2superop
 from .errorutils import standard_instruction_channel
 from .errorutils import standard_instruction_operator
-from ...utils.helpers import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -132,14 +130,14 @@ class QuantumError:
                     gate_qubits = max(gate["qubits"]) + 1
                     minimum_qubits = max([minimum_qubits, gate_qubits])
 
-        # Combine any kraus circuits
-        noise_ops = self._combine_kraus(noise_ops)
-
         # Set number of qubits
         if number_of_qubits is None:
             self._number_of_qubits = minimum_qubits
         else:
             self._number_of_qubits = number_of_qubits
+
+        # Combine any kraus circuits
+        noise_ops = self._combine_kraus(noise_ops, self.number_of_qubits)
 
         # Error checking
         if minimum_qubits > self._number_of_qubits:
@@ -155,7 +153,7 @@ class QuantumError:
             raise NoiseError(
                 "Probabilities are not normalized: {} != 1".format(
                     total_probs))
-        if [p for p in self._noise_probabilities if p < 0]:
+        if [p for p in self._noise_probabilities if (isinstance(p, complex) or (p < 0))]:
             raise NoiseError("Probabilities are invalid.")
         # Rescale probabilities if their sum is ok to avoid
         # accumulation of rounding errors
@@ -287,16 +285,6 @@ class QuantumError:
             raise NoiseError("Position {} is greater than the number".format(
                 position) + "of error outcomes {}".format(self.size))
 
-    def as_dict(self):
-        """
-        Return the current error as a dictionary (DEPRECATED).
-
-        DEPRECATED: use :meth:`to_dict`.
-        """
-        deprecation("QuantumError::as_dict() method is deprecated and will be removed after 0.3."
-                    "Use '.to_dict()' instead")
-        return self.to_dict()
-
     def to_dict(self):
         """Return the current error as a dictionary."""
         error = {
@@ -308,13 +296,15 @@ class QuantumError:
         return error
 
     def compose(self, other, front=False):
-        """Return the composition error channel self∘other.
+        """Return the composition error channel other * self.
+
+        Note that for `front=True` this is equivalent to the
+        :meth:`QuantumError.dot` method.
 
         Args:
             other (QuantumError): a quantum error channel.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            front (bool): If True return the reverse order composation
+                          self * other instead [default: False].
 
         Returns:
             QuantumError: The composition error channel.
@@ -323,58 +313,24 @@ class QuantumError:
             NoiseError: if other cannot be converted into a QuantumError,
             or has incompatible dimensions.
         """
-        # Convert other into a quantum error
-        if not isinstance(other, QuantumError):
-            other = QuantumError(other)
-        # Error checking
-        if self.number_of_qubits != other.number_of_qubits:
-            raise NoiseError(
-                "QuantumErrors are not defined on same number of qubits.")
-
-        combined_noise_circuits = []
-        combined_noise_probabilities = []
-
-        # Combine subcircuits and probabilities
         if front:
-            noise_ops0 = list(
-                zip(other._noise_circuits, other._noise_probabilities))
-            noise_ops1 = list(
-                zip(self._noise_circuits, self._noise_probabilities))
-        else:
-            noise_ops0 = list(
-                zip(self._noise_circuits, self._noise_probabilities))
-            noise_ops1 = list(
-                zip(other._noise_circuits, other._noise_probabilities))
+            return self._matmul(other, left_multiply=False)
+        return self._matmul(other, left_multiply=True)
 
-        # Combine subcircuits and probabilities
-        for circuit0, prob0 in noise_ops0:
-            for circuit1, prob1 in noise_ops1:
-                combined_noise_probabilities.append(prob0 * prob1)
-                tmp_combined = circuit0 + circuit1
+    def dot(self, other):
+        """Return the composition error channel self * other.
 
-                # Fuse compatible ops to reduce noise operations:
-                combined_circuit = [tmp_combined[0]]
-                for instr in tmp_combined[1:]:
-                    last_instr = combined_circuit[-1]
-                    last_name = last_instr['name']
-                    name = instr['name']
-                    can_combine = (last_name in ['id', 'kraus', 'unitary'] or
-                                   name in ['id', 'kraus', 'unitary'])
-                    if (can_combine and self._check_instr(last_name) and
-                            self._check_instr(name)):
-                        combined_circuit[-1] = self._compose_instr(
-                            last_instr, instr, self.number_of_qubits)
-                    else:
-                        # If they cannot be combined append the operation
-                        combined_circuit.append(instr)
-                # Check if circuit is empty and add identity
-                if not combined_circuit:
-                    combined_circuit.append({'name': 'id', 'qubits': [0]})
-                # Add circuit
-                combined_noise_circuits.append(combined_circuit)
-        noise_ops = self._combine_kraus(
-            zip(combined_noise_circuits, combined_noise_probabilities))
-        return QuantumError(noise_ops)
+        Args:
+            other (QuantumError): a quantum error channel.
+
+        Returns:
+            QuantumError: The composition error channel.
+
+        Raises:
+            NoiseError: if other cannot be converted into a QuantumError,
+            or has incompatible dimensions.
+        """
+        return self._matmul(other, left_multiply=False)
 
     def power(self, n):
         """Return the compose of a error channel with itself n times.
@@ -423,23 +379,72 @@ class QuantumError:
         """
         return self._tensor_product(other, reverse=True)
 
-    def kron(self, other):
-        """
-        Return the tensor product quantum error channel self ⊗ other (DEPRECATED).
-
-        DEPRECATED: use :meth:`tensor` instead.
+    def _matmul(self, other, left_multiply=False):
+        """Return the composition quantum error.
 
         Args:
-            other (QuantumError): a quantum error or channel.
-
+            other (QuantumError): a quantum error.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
         Returns:
-            QuantumError: the tensor product channel self ⊗ other.
+            QuantumError: The composition quantum error.
+
+        Raises:
+            NoiseError: if other cannot be converted into a QuantumError,
+            or has incompatible dimensions.
         """
-        warnings.warn(
-            'The kron() method is deprecated and will be removed '
-            'in a future release. Use QuantumError.tensor instead.',
-            DeprecationWarning)
-        return self.tensor(other)
+        # Convert other into a quantum error
+        if not isinstance(other, QuantumError):
+            other = QuantumError(other)
+        # Error checking
+        if self.number_of_qubits != other.number_of_qubits:
+            raise NoiseError(
+                "QuantumErrors are not defined on same number of qubits.")
+
+        combined_noise_circuits = []
+        combined_noise_probabilities = []
+
+        # Combine subcircuits and probabilities
+        if left_multiply:
+            noise_ops0 = list(
+                zip(self._noise_circuits, self._noise_probabilities))
+            noise_ops1 = list(
+                zip(other._noise_circuits, other._noise_probabilities))
+        else:
+            noise_ops0 = list(
+                zip(other._noise_circuits, other._noise_probabilities))
+            noise_ops1 = list(
+                zip(self._noise_circuits, self._noise_probabilities))
+        # Combine subcircuits and probabilities
+        for circuit0, prob0 in noise_ops0:
+            for circuit1, prob1 in noise_ops1:
+                combined_noise_probabilities.append(prob0 * prob1)
+                tmp_combined = circuit0 + circuit1
+
+                # Fuse compatible ops to reduce noise operations:
+                combined_circuit = [tmp_combined[0]]
+                for instr in tmp_combined[1:]:
+                    last_instr = combined_circuit[-1]
+                    last_name = last_instr['name']
+                    name = instr['name']
+                    can_combine = (last_name in ['id', 'kraus', 'unitary'] or
+                                   name in ['id', 'kraus', 'unitary'])
+                    if (can_combine and self._check_instr(last_name) and
+                            self._check_instr(name)):
+                        combined_circuit[-1] = self._compose_instr(
+                            last_instr, instr, self.number_of_qubits)
+                    else:
+                        # If they cannot be combined append the operation
+                        combined_circuit.append(instr)
+                # Check if circuit is empty and add identity
+                if not combined_circuit:
+                    combined_circuit.append({'name': 'id', 'qubits': [0]})
+                # Add circuit
+                combined_noise_circuits.append(combined_circuit)
+        noise_ops = self._combine_kraus(
+            zip(combined_noise_circuits, combined_noise_probabilities),
+            self.number_of_qubits)
+        return QuantumError(noise_ops)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product error channel.
@@ -506,11 +511,12 @@ class QuantumError:
                 combined_noise_circuits.append(combined_circuit)
         # Now we combine any error circuits containing only Kraus operations
         noise_ops = self._combine_kraus(
-            zip(combined_noise_circuits, combined_noise_probabilities))
+            zip(combined_noise_circuits, combined_noise_probabilities),
+            self.number_of_qubits + other.number_of_qubits)
         return QuantumError(noise_ops)
 
     @staticmethod
-    def _combine_kraus(noise_ops):
+    def _combine_kraus(noise_ops, num_qubits):
         """Combine any noise circuits containing only Kraus instructions."""
         kraus_instr = []
         kraus_probs = []
@@ -524,24 +530,27 @@ class QuantumError:
             else:
                 new_circuits.append(circuit)
                 new_probs.append(prob)
-        # Recursivly combine matching Kraus instructions
-        while kraus_instr:
-            instr = kraus_instr.pop(0)
-            prob = kraus_probs.pop(0)
-            for i, item in enumerate(kraus_instr):
-                if item['qubits'] == instr['qubits']:
-                    # remove from lists
-                    kraus_instr.pop(i)
-                    prob_i = kraus_probs.pop(i)
-                    sum_prob = prob + prob_i
-                    kraus = (prob / sum_prob) * Kraus(
-                        instr['params']) + (prob_i / sum_prob) * Kraus(item['params'])
-                    # update instruction
-                    instr['param'] = kraus.data
-                    prob = sum_prob
-            # append combined instruction to circuits
-            new_circuits.append([instr])
-            new_probs.append(prob)
+        # Combine matching Kraus instructions via Choi rep
+        if len(kraus_probs) == 1:
+            new_circuits.append([kraus_instr[0]])
+            new_probs.append(kraus_probs[0])
+        elif len(kraus_probs) > 1:
+            dim = 2 ** num_qubits
+            iden = SuperOp(np.eye(dim ** 2))
+            choi_sum = Choi(np.zeros((dim ** 2, dim ** 2)))
+            for prob, instr in zip(kraus_probs, kraus_instr):
+                choi_sum = choi_sum + prob * iden.compose(Kraus(instr['params']),
+                                                          instr['qubits'])
+            # Renormalize the Choi operator to find probability
+            # of Kraus error
+            chan_prob = abs(np.trace(choi_sum.data) / dim)
+            chan_instr = {
+                "name": "kraus",
+                "qubits": list(range(num_qubits)),
+                "params": Kraus(choi_sum / chan_prob).data
+            }
+            new_circuits.append([chan_instr])
+            new_probs.append(chan_prob)
         return list(zip(new_circuits, new_probs))
 
     @staticmethod
@@ -628,3 +637,33 @@ class QuantumError:
         else:
             params = [composed.data]
         return {'name': name, 'qubits': qubits, 'params': params}
+
+    # Overloads
+    def __matmul__(self, other):
+        return self.compose(other)
+
+    def __mul__(self, other):
+        return self.dot(other)
+
+    def __pow__(self, n):
+        return self.power(n)
+
+    def __xor__(self, other):
+        return self.tensor(other)
+
+    def __rmul__(self, other):
+        raise NotImplementedError(
+            "'QuantumError' does not support scalar multiplication.")
+
+    def __truediv__(self, other):
+        raise NotImplementedError("'QuantumError' does not support division.")
+
+    def __add__(self, other):
+        raise NotImplementedError("'QuantumError' does not support addition.")
+
+    def __sub__(self, other):
+        raise NotImplementedError(
+            "'QuantumError' does not support subtraction.")
+
+    def __neg__(self):
+        raise NotImplementedError("'QuantumError' does not support negation.")

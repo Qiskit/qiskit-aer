@@ -258,6 +258,51 @@ class QasmFusionTests:
             ['metadata'],
             msg="fusion must not work by default for satevector")
 
+
+    def test_default_fusion(self):
+        """Test default Fusion option"""
+        default_threshold = 20
+        shots = 100
+        circuit = qft_circuit(default_threshold - 1, measure=True)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+
+        backend_options = self.BACKEND_OPTS.copy()
+        backend_options['fusion_verbose'] = True
+        backend_options['optimize_ideal_threshold'] = 1
+        backend_options['optimize_noise_threshold'] = 1
+
+        result_verbose = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.assertTrue(getattr(result_verbose, 'success', 'False'))
+        self.assertTrue(
+            'results' in result_verbose.to_dict(),
+            msg="results must exist in result")
+        self.assertTrue(
+            'metadata' in result_verbose.to_dict()['results'][0],
+            msg="metadata must not exist in results[0]")
+        self.assertTrue(
+            'fusion_verbose' not in result_verbose.to_dict()['results'][0]
+            ['metadata'],
+            msg="fusion must work for satevector")
+
+        circuit = qft_circuit(default_threshold, measure=True)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        result_verbose = self.SIMULATOR.run(
+            qobj,
+            backend_options=backend_options).result()
+        self.assertTrue(getattr(result_verbose, 'success', 'False'))
+        self.assertTrue(
+            'results' in result_verbose.to_dict(),
+            msg="results must exist in result")
+        self.assertTrue(
+            'metadata' in result_verbose.to_dict()['results'][0],
+            msg="metadata must exist in results[0]")
+        self.assertTrue(
+            'fusion_verbose' in result_verbose.to_dict()['results'][0]
+            ['metadata'],
+            msg="fusion must work for satevector")
+        
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100

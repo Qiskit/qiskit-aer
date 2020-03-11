@@ -1,14 +1,13 @@
-# Qiskit dep has been removed because we want to test against master Qiskit Terra branch
 cmake
 scikit-build
 cython
 asv
-cvxpy>=1.0.0
+cvxpy>=1.0.0,!=1.0.26
 pylint
 pycodestyle
 Sphinx>=1.8.3
 sphinx-rtd-theme>=0.4.0
-sphinx-tabs>=1.1.11 
+sphinx-tabs>=1.1.11
 sphinx-automodapi
 jupyter-sphinx;python_version<'3.8'
 stestr>=2.5.0

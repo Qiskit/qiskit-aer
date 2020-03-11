@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,92 +17,94 @@ import unittest
 from test.terra import common
 import numpy as np
 
-from qiskit.quantum_info.operators.channel.superop import SuperOp
-from qiskit.quantum_info.operators.channel.kraus import Kraus
+from qiskit.quantum_info.operators import SuperOp, Kraus
+from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 
 
 class TestQuantumError(common.QiskitAerTestCase):
     """Testing QuantumError class"""
 
+    def kraus_error(self, param):
+        """Return a Kraus error list"""
+        return [
+            np.array([[1, 0], [0, np.sqrt(1 - param)]], dtype=complex),
+            np.array([[0, 0], [0, np.sqrt(param)]], dtype=complex)
+        ]
+
+    def mixed_unitary_error(self, probs, labels):
+        """Return a mixed unitary error list"""
+        return [np.sqrt(prob) * standard_gate_unitary(label)
+                for prob, label in zip(probs, labels)]
+
+    def depol_error(self, param):
+        """Return depol error unitary list"""
+        return self.mixed_unitary_error(
+            [1 - param * 0.75, param * 0.25, param * 0.25, param * 0.25],
+            ['id', 'x', 'y', 'z'])
+
     def test_standard_gate_unitary(self):
         """Test standard gates are correct"""
+        def norm(op_a, op_b):
+            return round(np.linalg.norm(op_a - op_b), 15)
 
-        def norm(a, b):
-            return round(np.linalg.norm(a - b), 15)
-
-        self.assertEqual(
-            norm(standard_gate_unitary('id'), np.eye(2)),
-            0,
-            msg="identity matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('x'), np.array([[0, 1], [1, 0]])),
-            0,
-            msg="Pauli-X matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('y'), np.array([[0, -1j], [1j, 0]])),
-            0,
-            msg="Pauli-Y matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('z'), np.diag([1, -1])),
-            0,
-            msg="Pauli-Z matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('h'),
-                np.array([[1, 1], [1, -1]]) / np.sqrt(2)),
-            0,
-            msg="Hadamard gate matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('s'), np.diag([1, 1j])),
-            0,
-            msg="Phase gate matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('sdg'), np.diag([1, -1j])),
-            0,
-            msg="Adjoint phase gate matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('t'), np.diag([1,
-                                                     (1 + 1j) / np.sqrt(2)])),
-            0,
-            msg="T gate matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('tdg'),
-                np.diag([1, (1 - 1j) / np.sqrt(2)])),
-            0,
-            msg="Adjoint T gate matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('cx'),
-                np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0],
-                          [0, 1, 0, 0]])),
-            0,
-            msg="Controlled-NOT gate matrix")
-        self.assertEqual(
-            norm(standard_gate_unitary('cz'), np.diag([1, 1, 1, -1])),
-            0,
-            msg="Controlled-Z gate matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('swap'),
-                np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0],
-                          [0, 0, 0, 1]])),
-            0,
-            msg="SWAP matrix")
-        self.assertEqual(
-            norm(
-                standard_gate_unitary('ccx'),
-                np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                          [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0,
-                                                     0]])),
-            0,
-            msg="Toffoli gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('id'), np.eye(2)),
+                         0,
+                         msg="identity matrix")
+        self.assertEqual(norm(standard_gate_unitary('x'),
+                              np.array([[0, 1], [1, 0]])),
+                         0,
+                         msg="Pauli-X matrix")
+        self.assertEqual(norm(standard_gate_unitary('y'),
+                              np.array([[0, -1j], [1j, 0]])),
+                         0,
+                         msg="Pauli-Y matrix")
+        self.assertEqual(norm(standard_gate_unitary('z'), np.diag([1, -1])),
+                         0,
+                         msg="Pauli-Z matrix")
+        self.assertEqual(norm(standard_gate_unitary('h'),
+                              np.array([[1, 1], [1, -1]]) / np.sqrt(2)),
+                         0,
+                         msg="Hadamard gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('s'), np.diag([1, 1j])),
+                         0,
+                         msg="Phase gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('sdg'), np.diag([1, -1j])),
+                         0,
+                         msg="Adjoint phase gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('t'),
+                              np.diag([1, (1 + 1j) / np.sqrt(2)])),
+                         0,
+                         msg="T gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('tdg'),
+                              np.diag([1, (1 - 1j) / np.sqrt(2)])),
+                         0,
+                         msg="Adjoint T gate matrix")
+        self.assertEqual(norm(
+            standard_gate_unitary('cx'),
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0,
+                                                                 0]])),
+                         0,
+                         msg="Controlled-NOT gate matrix")
+        self.assertEqual(norm(standard_gate_unitary('cz'),
+                              np.diag([1, 1, 1, -1])),
+                         0,
+                         msg="Controlled-Z gate matrix")
+        self.assertEqual(norm(
+            standard_gate_unitary('swap'),
+            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0,
+                                                                 1]])),
+                         0,
+                         msg="SWAP matrix")
+        self.assertEqual(norm(
+            standard_gate_unitary('ccx'),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]])),
+                         0,
+                         msg="Toffoli gate matrix")
 
     def test_raise_probabilities_negative(self):
         """Test exception is raised for negative probabilities."""
@@ -128,310 +130,198 @@ class TestQuantumError(common.QiskitAerTestCase):
 
     def test_raise_probabilities_normalized_unitary_kraus(self):
         """Test exception is raised for unitary kraus probs greater than 1."""
-        A0 = np.sqrt(0.9) * np.eye(2)
-        A1 = np.sqrt(0.2) * np.diag([1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
+        a_0 = np.sqrt(0.9) * np.eye(2)
+        a_1 = np.sqrt(0.2) * np.diag([1, -1])
+        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
 
     def test_raise_probabilities_normalized_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
-        A0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]],
-                                     dtype=complex)
-        A1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]],
-                                     dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
+        a_0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]],
+                                      dtype=complex)
+        a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]],
+                                      dtype=complex)
+        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
 
     def test_raise_non_cptp_kraus(self):
         """Test exception is raised for non-CPTP input."""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [np.sqrt(0.3), 0]], dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
-        self.assertRaises(NoiseError, lambda: QuantumError([A0]))
+        a_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        a_1 = np.array([[0, 0], [np.sqrt(0.3), 0]], dtype=complex)
+        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
+        self.assertRaises(NoiseError, lambda: QuantumError([a_0]))
 
     def test_raise_non_multiqubit_kraus(self):
         """Test exception is raised for non-multiqubit input."""
-        A0 = np.sqrt(0.5) * np.diag([1, 1, 1])
-        A1 = np.sqrt(0.5) * np.diag([1, 1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError([A0, A1]))
+        a_0 = np.sqrt(0.5) * np.diag([1, 1, 1])
+        a_1 = np.sqrt(0.5) * np.diag([1, 1, -1])
+        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
 
     def test_pauli_conversion_standard_gates(self):
         """Test conversion of Pauli channel kraus to gates"""
-        Ai = np.sqrt(0.25) * standard_gate_unitary('id')
-        Ax = np.sqrt(0.25) * standard_gate_unitary('x')
-        Ay = np.sqrt(0.25) * standard_gate_unitary('y')
-        Az = np.sqrt(0.25) * standard_gate_unitary('z')
-        error_dict = QuantumError([Ai, Ax, Ay, Az],
-                                  standard_gates=True).to_dict()
-        self.assertEqual(error_dict['type'], 'qerror')
-        self.assertAlmostEqual(
-            np.linalg.norm(
-                np.array(4 * [0.25]) - np.array(error_dict['probabilities'])),
-            0.0)
-        for instr in error_dict['instructions']:
+        error = QuantumError(self.depol_error(1), standard_gates=True)
+        for j in range(4):
+            instr, _ = error.error_term(j)
             self.assertEqual(len(instr), 1)
             self.assertIn(instr[0]['name'], ['x', 'y', 'z', 'id'])
             self.assertEqual(instr[0]['qubits'], [0])
+        target = SuperOp(Kraus(self.depol_error(1)))
+        self.assertEqual(target, SuperOp(error))
 
     def test_pauli_conversion_unitary(self):
         """Test conversion of Pauli channel kraus to unitary qobj"""
-        Ai = np.sqrt(0.25) * standard_gate_unitary('id')
-        Ax = np.sqrt(0.25) * standard_gate_unitary('x')
-        Ay = np.sqrt(0.25) * standard_gate_unitary('y')
-        Az = np.sqrt(0.25) * standard_gate_unitary('z')
-        error_dict = QuantumError([Ai, Ax, Ay, Az],
-                                  standard_gates=False).to_dict()
-        self.assertEqual(error_dict['type'], 'qerror')
-        self.assertAlmostEqual(
-            np.linalg.norm(
-                np.array(4 * [0.25]) - np.array(error_dict['probabilities'])),
-            0.0)
-        for instr in error_dict['instructions']:
+        error = QuantumError(self.depol_error(1), standard_gates=False)
+        for j in range(4):
+            instr, _ = error.error_term(j)
             self.assertEqual(len(instr), 1)
             self.assertIn(instr[0]['name'], ['unitary', 'id'])
             self.assertEqual(instr[0]['qubits'], [0])
+        target = SuperOp(Kraus(self.depol_error(1)))
+        self.assertEqual(target, SuperOp(error))
 
     def test_tensor_both_kraus(self):
         """Test tensor of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        # Use quantum channels for reference
-        target = SuperOp(Kraus([A0, A1]).tensor(Kraus([B0, B1])))
-        error = QuantumError([A0, A1]).tensor(QuantumError([B0, B1]))
-        kraus, p = error.error_term(0)
-        self.assertEqual(p, 1)
+        kraus0 = self.kraus_error(0.3)
+        kraus1 = self.kraus_error(0.5)
+        error = QuantumError(kraus0).tensor(QuantumError(kraus1))
+        target = SuperOp(Kraus(kraus0)).tensor(Kraus(kraus1))
+
+        kraus, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0, 1])
-        error_superop = SuperOp(Kraus(kraus[0]['params']))
-        self.assertEqual(target, error_superop, msg="Incorrect tensor kraus")
+        self.assertEqual(target, SuperOp(error), msg="Incorrect tensor kraus")
 
     def test_tensor_both_unitary_instruction(self):
         """Test tensor of two unitary instruction errors."""
-        unitaries0 = [standard_gate_unitary('z'), standard_gate_unitary('s')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=False)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=False)
-        error = error1.tensor(error0)
-        # Kronecker product unitaries
-        target_unitaries = [
-            np.kron(unitaries1[0], unitaries0[0]),
-            np.kron(unitaries1[0], unitaries0[1]),
-            np.kron(unitaries1[1], unitaries0[0]),
-            np.kron(unitaries1[1], unitaries0[1])
-        ]
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+
+        error0 = QuantumError(unitaries0, standard_gates=False)
+        error1 = QuantumError(unitaries1, standard_gates=False)
+        error = error0.tensor(error1)
+        target = SuperOp(Kraus(unitaries0)).tensor(Kraus(unitaries1))
 
         for j in range(4):
-            circ, p = error.error_term(j)
-            unitary = circ[0]['params'][0]
+            circ, _ = error.error_term(j)
+            self.assertEqual(len(circ), 1)
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(unitary, target_unitaries)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect tensor probabilities")
-        self.assertEqual(
-            target_unitaries, [], msg="Incorrect tensor unitaries")
+        self.assertEqual(SuperOp(error), target)
 
     def test_tensor_both_unitary_standard_gates(self):
         """Test tensor of two unitary standard gate errors"""
-        unitaries0 = [standard_gate_unitary('id'), standard_gate_unitary('z')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=True)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=True)
-        error = error1.tensor(error0)
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
-        # Target circuits
-        target_circs = [[{
-            'name': 'x',
-            'qubits': [1]
-        }], [{
-            'name': 'y',
-            'qubits': [1]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [1]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'y',
-            'qubits': [1]
-        }]]
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+        error0 = QuantumError(unitaries0, standard_gates=True)
+        error1 = QuantumError(unitaries1, standard_gates=True)
+        error = error0.tensor(error1)
+        target = SuperOp(Kraus(unitaries0)).tensor(Kraus(unitaries1))
+
         for j in range(4):
-            circ, p = error.error_term(j)
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect tensor probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect tensor circuits")
+            circ, _ = error.error_term(j)
+            self.assertEqual(len(circ), 2)
+            for instr in circ:
+                self.assertIn(instr['name'], ['s', 'x', 'y', 'z'])
+                self.assertIn(instr['qubits'], [[0], [1]])
+        self.assertEqual(SuperOp(error), target)
+
+    def test_tensor_kraus_and_unitary(self):
+        """Test tensor of a kraus and unitary error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(kraus).tensor(QuantumError(unitaries))
+        target = SuperOp(Kraus(kraus)).tensor(Kraus(unitaries))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0, 1])
+        self.assertEqual(target, SuperOp(error))
+
+    def test_tensor_unitary_and_kraus(self):
+        """Test tensor of a unitary and kraus error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(unitaries).tensor(QuantumError(kraus))
+        target = SuperOp(Kraus(unitaries)).tensor(Kraus(kraus))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0, 1])
+        self.assertEqual(target, SuperOp(error))
 
     def test_expand_both_kraus(self):
         """Test expand of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        # Use quantum channels for reference
-        target = SuperOp(Kraus([A0, A1]).expand(Kraus([B0, B1])))
-        error = QuantumError([A0, A1]).expand(QuantumError([B0, B1]))
-        kraus, p = error.error_term(0)
-        self.assertEqual(p, 1)
-        self.assertEqual(kraus[0]['name'], 'kraus')
-        self.assertEqual(kraus[0]['qubits'], [0, 1])
-        error_superop = SuperOp(Kraus(kraus[0]['params']))
-        self.assertEqual(target, error_superop, msg="Incorrect expand kraus")
+        kraus0 = self.kraus_error(0.3)
+        kraus1 = self.kraus_error(0.5)
+        error = QuantumError(kraus0).expand(QuantumError(kraus1))
+        target = SuperOp(Kraus(kraus0)).expand(Kraus(kraus1))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0, 1])
+        self.assertEqual(target, SuperOp(error))
 
     def test_expand_both_unitary_instruction(self):
         """Test expand of two unitary instruction errors."""
-        unitaries0 = [standard_gate_unitary('z'), standard_gate_unitary('s')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=False)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=False)
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+
+        error0 = QuantumError(unitaries0, standard_gates=False)
+        error1 = QuantumError(unitaries1, standard_gates=False)
         error = error0.expand(error1)
-        # Kronecker product unitaries
-        target_unitaries = [
-            np.kron(unitaries1[0], unitaries0[0]),
-            np.kron(unitaries1[0], unitaries0[1]),
-            np.kron(unitaries1[1], unitaries0[0]),
-            np.kron(unitaries1[1], unitaries0[1])
-        ]
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
+        target = SuperOp(Kraus(unitaries0)).expand(Kraus(unitaries1))
 
         for j in range(4):
-            circ, p = error.error_term(j)
-            unitary = circ[0]['params'][0]
+            circ, _ = error.error_term(j)
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0, 1])
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(unitary, target_unitaries)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect expand probabilities")
-        self.assertEqual(
-            target_unitaries, [], msg="Incorrect expand unitaries")
+        self.assertEqual(SuperOp(error), target)
 
     def test_expand_both_unitary_standard_gates(self):
         """Test expand of two unitary standard gate errors"""
-        unitaries0 = [standard_gate_unitary('id'), standard_gate_unitary('z')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=True)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=True)
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+
+        error0 = QuantumError(unitaries0, standard_gates=True)
+        error1 = QuantumError(unitaries1, standard_gates=True)
         error = error0.expand(error1)
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
-        # Target circuits
-        target_circs = [[{
-            'name': 'x',
-            'qubits': [1]
-        }], [{
-            'name': 'y',
-            'qubits': [1]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [1]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'y',
-            'qubits': [1]
-        }]]
+        target = SuperOp(Kraus(unitaries0)).expand(Kraus(unitaries1))
+
         for j in range(4):
-            circ, p = error.error_term(j)
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect expand probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect expand circuits")
+            circ, _ = error.error_term(j)
+            self.assertEqual(len(circ), 2)
+            for instr in circ:
+                self.assertIn(instr['name'], ['s', 'x', 'y', 'z'])
+                self.assertIn(instr['qubits'], [[0], [1]])
+        self.assertEqual(SuperOp(error), target)
+
+    def test_expand_kraus_and_unitary(self):
+        """Test expand of a kraus and unitary error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(kraus).expand(QuantumError(unitaries))
+        target = SuperOp(Kraus(kraus)).expand(Kraus(unitaries))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0, 1])
+        self.assertEqual(target, SuperOp(error))
+
+    def test_expand_unitary_and_kraus(self):
+        """Test expand of a unitary and kraus error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(unitaries).expand(QuantumError(kraus))
+        target = SuperOp(Kraus(unitaries)).expand(Kraus(kraus))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0, 1])
+        self.assertEqual(target, SuperOp(error))
 
     def test_raise_compose_different_dim(self):
         """Test composing incompatible errors raises exception"""
@@ -442,253 +332,153 @@ class TestQuantumError(common.QiskitAerTestCase):
         self.assertRaises(NoiseError, lambda: error1.compose(error0))
 
     def test_compose_both_kraus(self):
-        """Test composition of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        # Use quantum channels for reference
-        target = SuperOp(Kraus([A0, A1]).compose(Kraus([B0, B1])))
-        error = QuantumError([A0, A1]).compose(QuantumError([B0, B1]))
-        kraus, p = error.error_term(0)
-        self.assertEqual(p, 1)
+        """Test compose of two kraus errors"""
+        kraus0 = self.kraus_error(0.3)
+        kraus1 = self.kraus_error(0.5)
+        error = QuantumError(kraus0).compose(QuantumError(kraus1))
+        target = SuperOp(Kraus(kraus0)).compose(Kraus(kraus1))
+
+        kraus, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0])
-        error_superop = SuperOp(Kraus(kraus[0]['params']))
-        self.assertEqual(target, error_superop, msg="Incorrect compose kraus")
+        self.assertEqual(target, SuperOp(error), msg="Incorrect tensor kraus")
 
-    def test_compose_both_unitary(self):
-        """Test composition of two unitary errors."""
-        unitaries0 = [standard_gate_unitary('z'), standard_gate_unitary('s')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ], standard_gates=False)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ], standard_gates=False)
+    def test_compose_both_unitary_instruction(self):
+        """Test compose of two unitary instruction errors."""
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+
+        error0 = QuantumError(unitaries0, standard_gates=False)
+        error1 = QuantumError(unitaries1, standard_gates=False)
         error = error0.compose(error1)
-        # Kronecker product unitaries
-        target_unitaries = [
-            np.dot(unitaries1[0], unitaries0[0]),
-            np.dot(unitaries1[0], unitaries0[1]),
-            np.dot(unitaries1[1], unitaries0[0]),
-            np.dot(unitaries1[1], unitaries0[1])
-        ]
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
+        target = SuperOp(Kraus(unitaries0)).compose(Kraus(unitaries1))
 
         for j in range(4):
-            circ, p = error.error_term(j)
-            unitary = circ[0]['params'][0]
+            circ, _ = error.error_term(j)
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0])
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(unitary, target_unitaries)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect compose probabilities")
-        self.assertEqual(
-            target_unitaries, [], msg="Incorrect compose unitaries")
+        self.assertEqual(SuperOp(error), target)
 
-    def test_compose_both_qobj(self):
-        """Test composition of two circuit errors"""
-        unitaries0 = [standard_gate_unitary('id'), standard_gate_unitary('z')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ], standard_gates=True)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ], standard_gates=True)
+    def test_compose_both_unitary_standard_gates(self):
+        """Test compose of two unitary standard gate errors"""
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+        error0 = QuantumError(unitaries0, standard_gates=True)
+        error1 = QuantumError(unitaries1, standard_gates=True)
         error = error0.compose(error1)
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
-        # Target circuits
-        target_circs = [[{
-            'name': 'x',
-            'qubits': [0]
-        }], [{
-            'name': 'y',
-            'qubits': [0]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [0]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'y',
-            'qubits': [0]
-        }]]
-        for j in range(4):
-            circ, p = error.error_term(j)
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect compose probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect compose circuits")
+        target = SuperOp(Kraus(unitaries0)).compose(Kraus(unitaries1))
 
-    def test_compose_front_both_kraus(self):
-        """Test front composition of two kraus errors"""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        # Use quantum channels for reference
-        target = SuperOp(Kraus([A0, A1]).compose(Kraus([B0, B1]), front=True))
-        error = QuantumError([A0, A1]).compose(QuantumError([B0, B1]), front=True)
-        kraus, p = error.error_term(0)
-        self.assertEqual(p, 1)
+        for j in range(4):
+            circ, _ = error.error_term(j)
+            self.assertIn(circ[0]['name'], ['s', 'x', 'y', 'z'])
+            self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(SuperOp(error), target)
+
+    def test_compose_kraus_and_unitary(self):
+        """Test compose of a kraus and unitary error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(kraus).compose(QuantumError(unitaries))
+        target = SuperOp(Kraus(kraus)).compose(Kraus(unitaries))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(target, SuperOp(error))
+
+    def test_compose_unitary_and_kraus(self):
+        """Test compose of a unitary and kraus error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(unitaries).compose(QuantumError(kraus))
+        target = SuperOp(Kraus(unitaries)).compose(Kraus(kraus))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(target, SuperOp(error))
+
+    def test_dot_both_kraus(self):
+        """Test dot of two kraus errors"""
+        kraus0 = self.kraus_error(0.3)
+        kraus1 = self.kraus_error(0.5)
+        error = QuantumError(kraus0).dot(QuantumError(kraus1))
+        target = SuperOp(Kraus(kraus0)).dot(Kraus(kraus1))
+
+        kraus, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
         self.assertEqual(kraus[0]['name'], 'kraus')
         self.assertEqual(kraus[0]['qubits'], [0])
-        error_superop = SuperOp(Kraus(kraus[0]['params']))
-        self.assertEqual(target, error_superop, msg="Incorrect front compose kraus")
+        self.assertEqual(target, SuperOp(error), msg="Incorrect dot kraus")
 
-    def test_compose_front_both_unitary(self):
-        """Test front composition of two unitary errors."""
-        unitaries0 = [standard_gate_unitary('z'), standard_gate_unitary('s')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=False)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=False)
-        error = error1.compose(error0, front=True)
-        # Kronecker product unitaries
-        target_unitaries = [
-            np.dot(unitaries1[0], unitaries0[0]),
-            np.dot(unitaries1[0], unitaries0[1]),
-            np.dot(unitaries1[1], unitaries0[0]),
-            np.dot(unitaries1[1], unitaries0[1])
-        ]
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
+    def test_dot_both_unitary_instruction(self):
+        """Test dot of two unitary instruction errors."""
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+
+        error0 = QuantumError(unitaries0, standard_gates=False)
+        error1 = QuantumError(unitaries1, standard_gates=False)
+        error = error0.dot(error1)
+        target = SuperOp(Kraus(unitaries0)).dot(Kraus(unitaries1))
 
         for j in range(4):
-            circ, p = error.error_term(j)
-            unitary = circ[0]['params'][0]
+            circ, _ = error.error_term(j)
             self.assertEqual(circ[0]['name'], 'unitary')
             self.assertEqual(circ[0]['qubits'], [0])
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(unitary, target_unitaries)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect compose probabilities")
-        self.assertEqual(
-            target_unitaries, [], msg="Incorrect compose unitaries")
+        self.assertEqual(SuperOp(error), target)
 
-    def test_compose_front_both_qobj(self):
-        """Test front composition of two circuit errors"""
-        unitaries0 = [standard_gate_unitary('id'), standard_gate_unitary('z')]
-        probs0 = [0.9, 0.1]
-        unitaries1 = [standard_gate_unitary('x'), standard_gate_unitary('y')]
-        probs1 = [0.6, 0.4]
-        error0 = QuantumError([
-            np.sqrt(probs0[0]) * unitaries0[0],
-            np.sqrt(probs0[1]) * unitaries0[1]
-        ],
-                              standard_gates=True)
-        error1 = QuantumError([
-            np.sqrt(probs1[0]) * unitaries1[0],
-            np.sqrt(probs1[1]) * unitaries1[1]
-        ],
-                              standard_gates=True)
-        error = error1.compose(error0, front=True)
-        # Kronecker product probabilities
-        target_probs = [
-            probs1[0] * probs0[0], probs1[0] * probs0[1],
-            probs1[1] * probs0[0], probs1[1] * probs0[1]
-        ]
-        # Target circuits
-        target_circs = [[{
-            'name': 'x',
-            'qubits': [0]
-        }], [ {
-            'name': 'y',
-            'qubits': [0]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [0]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }, {
-            'name': 'y',
-            'qubits': [0]
-        }]]
+    def test_dot_both_unitary_standard_gates(self):
+        """Test dot of two unitary standard gate errors"""
+        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
+        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
+        error0 = QuantumError(unitaries0, standard_gates=True)
+        error1 = QuantumError(unitaries1, standard_gates=True)
+        error = error0.dot(error1)
+        target = SuperOp(Kraus(unitaries0)).dot(Kraus(unitaries1))
+
         for j in range(4):
-            circ, p = error.error_term(j)
-            # Remove prob from target if it is found
-            # later we will check that target_probs is empty so all
-            # the required ones have been removed
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        # Check we had all the correct target probs and unitaries
-        # by seeing if these lists are empty
-        # Note that this doesn't actually check that the correct
-        # prob was assigned to the correct unitary.
-        self.assertEqual(
-            target_probs, [], msg="Incorrect compose probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect compose circuits")
+            circ, _ = error.error_term(j)
+            self.assertIn(circ[0]['name'], ['s', 'x', 'y', 'z'])
+            self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(SuperOp(error), target)
+
+    def test_dot_kraus_and_unitary(self):
+        """Test dot of a kraus and unitary error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(kraus).dot(QuantumError(unitaries))
+        target = SuperOp(Kraus(kraus)).dot(Kraus(unitaries))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(target, SuperOp(error))
+
+    def test_dot_unitary_and_kraus(self):
+        """Test dot of a unitary and kraus error."""
+        kraus = self.kraus_error(0.4)
+        unitaries = self.depol_error(0.1)
+        error = QuantumError(unitaries).dot(QuantumError(kraus))
+        target = SuperOp(Kraus(unitaries)).dot(Kraus(kraus))
+
+        circ, prob = error.error_term(0)
+        self.assertEqual(prob, 1)
+        self.assertEqual(circ[0]['name'], 'kraus')
+        self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(target, SuperOp(error))
 
     def test_to_quantumchannel_kraus(self):
         """Test to_quantumchannel for Kraus inputs."""
-        A0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
-        A1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
-        B0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
-        B1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
-        target = SuperOp(Kraus([A0, A1])).tensor(SuperOp(Kraus([B0, B1])))
-        error = QuantumError([A0, A1]).tensor(QuantumError([B0, B1]))
+        a_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        a_1 = np.array([[0, 0], [0, np.sqrt(0.3)]], dtype=complex)
+        b_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
+        b_1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
+        target = SuperOp(Kraus([a_0, a_1])).tensor(SuperOp(Kraus([b_0, b_1])))
+        error = QuantumError([a_0, a_1]).tensor(QuantumError([b_0, b_1]))
         self.assertEqual(target, error.to_quantumchannel())
 
     def test_to_quantumchannel_circuit(self):
@@ -713,12 +503,12 @@ class TestQuantumError(common.QiskitAerTestCase):
 
     def test_equal(self):
         """Test two quantum errors are equal"""
-        Ai = np.sqrt(0.25) * standard_gate_unitary('id')
-        Ax = np.sqrt(0.25) * standard_gate_unitary('x')
-        Ay = np.sqrt(0.25) * standard_gate_unitary('y')
-        Az = np.sqrt(0.25) * standard_gate_unitary('z')
-        error1 = QuantumError([Ai, Ax, Ay, Az], standard_gates=True)
-        error2 = QuantumError([Ai, Ax, Ay, Az], standard_gates=False)
+        a_i = np.sqrt(0.25) * standard_gate_unitary('id')
+        a_x = np.sqrt(0.25) * standard_gate_unitary('x')
+        a_y = np.sqrt(0.25) * standard_gate_unitary('y')
+        a_z = np.sqrt(0.25) * standard_gate_unitary('z')
+        error1 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=True)
+        error2 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=False)
         self.assertEqual(error1, error2)
 
 

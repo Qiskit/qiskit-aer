@@ -30,21 +30,26 @@ using reg_t = std::vector<uint_t>;
 class Fusion : public CircuitOptimization {
 public:
   // constructor
-  Fusion(uint_t max_qubit = 5, uint_t threshold = 16, double cost_factor = 1.8);
+  Fusion(uint_t max_qubit = 5, uint_t threshold = 20, double cost_factor = 1.8);
 
   /*
    * Fusion optimization uses following configuration options
-   *   - fusion_verbose (bool): if true, output generated gates in metadata (default: false)
-   *   - fusion_enable (bool): if true, activate fusion optimization (default: false)
-   *   - fusion_max_qubit (int): maximum number of qubits for a operation (default: 5)
-   *   - fusion_threshold (int): a threshold to activate fusion optimization when fusion_enable is true (default: 16)
-   *   - fusion_cost_factor (double): a cost function to estimate an aggregate gate (default: 1.8)
-  */
+   * - fusion_enable (bool): Enable fusion optimization in circuit optimization
+   *       passes [Default: True]
+   * - fusion_verbose (bool): Output gates generated in fusion optimization
+   *       into metadata [Default: False]
+   * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
+   *       in a fusion optimization [Default: 5]
+   * - fusion_threshold (int): Threshold that number of qubits must be greater
+   *       than to enable fusion optimization [Default: 20]
+   * - fusion_cost_factor (double): a cost function to estimate an aggregate
+   *       gate [Default: 1.8]
+   */
   void set_config(const json_t &config) override;
 
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
-                        const opset_t &opset,
+                        const opset_t &allowed_opset,
                         ExperimentData &data) const override;
 
 private:
@@ -94,7 +99,7 @@ private:
   uint_t threshold_;
   double cost_factor_;
   bool verbose_ = false;
-  bool active_ = false;
+  bool active_ = true;
 };
 
 const std::vector<std::string> Fusion::supported_gates({
@@ -173,8 +178,10 @@ void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               ExperimentData &data) const {
-
-  if (circ.num_qubits < threshold_ || !active_)
+  // Check if fusion should be skipped
+  if (circ.num_qubits < threshold_
+      || !active_
+      || !allowed_opset.contains(optype_t::matrix))
     return;
 
   bool applied = false;
@@ -230,8 +237,6 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
   if (op.conditional)
     return false;
   switch (op.type) {
-  case optype_t::barrier:
-    return false;
   case optype_t::matrix:
     return op.mats.size() == 1 && op.mats[0].size() <= 4;
   case optype_t::gate:
@@ -242,6 +247,7 @@ bool Fusion::can_apply_fusion(const op_t& op) const {
   case optype_t::roerror:
   case optype_t::snapshot:
   case optype_t::kraus:
+  case optype_t::barrier:
   default:
     return false;
   }
@@ -362,7 +368,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops) co
     U = u_tmp;
   }
 
-  return Operations::make_fusion(sorted_qubits, U, fusioned_ops);
+  return Operations::make_unitary(sorted_qubits, U, std::string("fusion"));
 }
 
 cmatrix_t Fusion::expand_matrix(const reg_t& src_qubits, const reg_t& dst_sorted_qubits, const cmatrix_t& mat) const {

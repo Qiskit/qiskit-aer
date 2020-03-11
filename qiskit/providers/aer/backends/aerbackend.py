@@ -71,7 +71,7 @@ class AerBackend(BaseBackend):
         not available.
 
         Args:
-            controller (function): Aer cython controller to be executed
+            controller (function): Aer controller to be executed
             configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
 
@@ -177,7 +177,6 @@ class AerBackend(BaseBackend):
 
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
-        # Add result metadata
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()
