@@ -71,7 +71,7 @@ class AerBackend(BaseBackend):
         not available.
 
         Args:
-            controller (function): Aer cython controller to be executed
+            controller (function): Aer controller to be executed
             configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
 
