@@ -21,6 +21,10 @@
 #include <cuda_runtime.h>
 #endif
 
+#ifdef AER_MPI
+#include <mpi.h>
+#endif
+
 #include <thrust/for_each.h>
 #include <thrust/complex.h>
 #include <thrust/inner_product.h>
@@ -1117,6 +1121,9 @@ protected:
   template <typename Function>
   double apply_function(Function func,const reg_t &qubits) const;
 
+
+
+
   void set_matrix(const cvector_t<double>& mat) const;
   void set_params(const reg_t& prm) const;
 
@@ -1127,6 +1134,14 @@ protected:
   int m_nDevParallel;
   int m_iPlaceHost;
   int m_nPlaces;
+
+  int myrank_;
+  int nprocs_;
+  reg_t procSGID_;
+  reg_t procEGID_;
+  int procBits_;
+  bool useGDR_;
+  bool isMultiShot_;
 
   mutable std::vector<QubitVectorChunkContainer<data_t>> m_Chunks;
 
@@ -1144,6 +1159,8 @@ protected:
   uint_t GetBaseChunkID(const uint_t gid,const reg_t& qubits,const int chunkBits) const;
 
   void UpdateReferencedValue(void) const;
+
+  int GetProcByGID(uint_t gid) const;
 
 #ifdef AER_TIMING
   mutable uint_t m_gateCounts[QS_NUM_GATES];
@@ -1297,6 +1314,11 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   debug_count = 0;
 #endif
 
+  myrank_ = 0;
+  nprocs_ = 1;
+
+  isMultiShot_ = false;
+
   if(num_qubits != 0){
     set_num_qubits(num_qubits);
   }
@@ -1354,16 +1376,12 @@ std::complex<data_t> &QubitVectorThrust<data_t>::operator[](uint_t element) {
   DebugMsg(" calling ref []");
 #endif
 
-  UpdateReferencedValue();
+  data_[0] = get_state(element);
 
   if(iPlace >= 0){
-    data_[0] = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
     m_refPosition = element;
   }
-  else{
-    data_[0] = 0.0;
-    m_refPosition = data_size_;
-  }
+
 #ifdef AER_DEBUG
   DebugMsg("ref operator[]",(int)element);
   DebugMsg("          ",data_[0]);
@@ -1397,22 +1415,14 @@ std::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) const
     DebugMsg(" calling []");
 #endif
 
-  UpdateReferencedValue();
-
-  if(iPlace >= 0){
-    std::complex<data_t> ret;
-    ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
+  std::complex<data_t> ret = get_state(element);
 
 #ifdef AER_DEBUG
-    DebugMsg("operator[]",(int)element);
-    DebugMsg("          ",ret);
-    DebugDump();
+  DebugMsg("operator[]",(int)element);
+  DebugMsg("          ",ret);
+  DebugDump();
 #endif
-    return ret;
-  }
-  else{
-    return data_[0];
-  }
+  return ret;
 }
 
 template <typename data_t>
@@ -1430,7 +1440,7 @@ template <typename data_t>
 std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
 {
   uint_t lcid,lid;
-  std::complex<data_t> ret = 0.0;;
+  std::complex<data_t> ret = 0.0;
   int iPlace = GlobalToLocal(lcid,lid,pos,m_maxChunkBits);
 
   UpdateReferencedValue();
@@ -1438,6 +1448,14 @@ std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
   if(iPlace >= 0){
     ret = (std::complex<data_t>)m_Chunks[iPlace].GetState(lcid,lid,m_maxChunkBits);
   }
+#ifdef AER_MPI
+  double sum0[2],sum1[2];
+  sum0[0] = std::real(ret);
+  sum0[1] = std::imag(ret);
+  MPI_Allreduce(sum0,sum1,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+  ret = {(data_t)sum1[0],(data_t)sum1[1]};
+#endif
+
   return ret;
 }
 
@@ -1592,6 +1610,18 @@ void QubitVectorThrust<data_t>::zero()
   apply_function(fill_func<data_t>(z), qubits);
 }
 
+template <typename data_t>
+int QubitVectorThrust<data_t>::GetProcByGID(uint_t gid) const
+{
+  int i;
+  for(i=0;i<nprocs_;i++){
+    if(gid >= procSGID_[i] && gid < procEGID_[i]){
+      return i;
+    }
+  }
+  return -1;
+}
+
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
@@ -1601,11 +1631,32 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   data_size_ = 1ull << num_qubits;
   char* str;
   int i;
+  int procPerNode = 1,rankPerNode = 0;
 
 #ifdef AER_TIMING
   TimeReset();
   TimeStart(QS_GATE_INIT);
 #endif
+
+#ifdef AER_MPI
+	MPI_Comm_size(MPI_COMM_WORLD,&nprocs_);
+	MPI_Comm_rank(MPI_COMM_WORLD,&myrank_);
+
+  str = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+  if(str){
+    rankPerNode = atol(str);
+  }
+  str = getenv("OMPI_COMM_WORLD_LOCAL_SIZE");
+  if(str){
+    procPerNode = atol(str);
+  }
+#endif
+  useGDR_ = true;   //using GPU DirectRDMA for default
+  str = getenv("AER_DISABLE_GPU_DIRECT");
+  if(str != NULL){
+    useGDR_ = false;
+  }
+
   if (checkpoint_) {
     free(checkpoint_);
     checkpoint_ = nullptr;
@@ -1630,9 +1681,19 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   cudaGetDeviceCount(&m_nDev);
 #endif
 
+  isMultiShot_ = false;
+
   m_iDev = 0;
   if(nid > 1 && m_nDev > 0){
-    m_iDev = tid % m_nDev;
+    isMultiShot_ = true;
+    if(procPerNode > 1){
+      m_iDev = rankPerNode * m_nDev / procPerNode;
+      m_nDevParallel = ((rankPerNode + 1) * m_nDev / procPerNode) - m_iDev;
+      m_iDev += tid % m_nDevParallel;
+    }
+    else{
+      m_iDev = tid % m_nDev;
+    }
 #ifdef AER_THRUST_CUDA
     cudaSetDevice(m_iDev);
 #endif
@@ -1660,9 +1721,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   if(str){
     m_maxChunkBits = atol(str);
   }
-//  else if(m_nDevParallel <= 1){
-//    m_maxChunkBits = num_qubits_;
-//  }
 
   if(m_maxChunkBits > num_qubits_){
     m_maxChunkBits = num_qubits_;
@@ -1673,11 +1731,36 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     }
   }
 
-  //currently using only one process
   m_globalSize = 1ull << num_qubits_;
-  m_localSize = m_globalSize;
-  m_globalIndex = 0;
-  //--
+
+
+  procSGID_.resize(nprocs_);
+  procEGID_.resize(nprocs_);
+
+  if(isMultiShot_){
+    m_localSize = m_globalSize;
+    m_globalIndex = 0;
+    for(i=0;i<nprocs_;i++){
+      procSGID_[i] = 0;
+      procEGID_[i] = m_globalSize;
+    }
+  }
+  else{
+    uint_t ngc = m_globalSize >> m_maxChunkBits;
+    for(i=0;i<nprocs_;i++){
+      procSGID_[i] = (ngc * i / nprocs_) << m_maxChunkBits;
+      procEGID_[i] = (ngc * (i+1) / nprocs_) << m_maxChunkBits;
+    }
+    m_localSize = procEGID_[myrank_] - procSGID_[myrank_];
+    m_globalIndex = procSGID_[myrank_];
+  }
+
+  procBits_ = 0;
+	i = nprocs_;
+	while(i > 1){
+		i = i >> 1;
+		procBits_++;
+	}
 
   int fitOneGPU = 0;
 
@@ -1703,6 +1786,14 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   omp_set_nested(1);
 #endif
 
+  //modify number of devices if there are multiple ranks per node
+  if(nid == 1 && procPerNode > 1){
+    m_iDev = rankPerNode * m_nDev / procPerNode;
+    if(m_nDevParallel > 1){
+      m_nDevParallel = ((rankPerNode + 1) * m_nDev / procPerNode) - m_iDev;
+    }
+  }
+
   m_Chunks.resize(m_nDevParallel+1);
   m_nPlaces = m_nDevParallel;
   m_iPlaceHost = -1;
@@ -1712,7 +1803,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   if(str != NULL){
     chunksOnDevice = chunksOnDevice/2;
   }
-  else if(fitOneGPU){
+  else if(fitOneGPU && nprocs_ == 1){
     m_maxChunkBits = num_qubits_;
   }
 
@@ -1728,7 +1819,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     ie = is + ((i + 1) * chunksOnDevice / m_nDevParallel) - (i * chunksOnDevice / m_nDevParallel);
 
 #ifdef AER_THRUST_CUDA
-    cudaSetDevice((m_iDev + i) % m_nDev);
+    cudaSetDevice(m_iDev + (i % m_nDevParallel));
 
     //check we can store chunks or not
     size_t freeMem,totalMem;
@@ -1740,30 +1831,36 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
     m_Chunks[i].SetGlobalIndex(m_globalIndex + (is << m_maxChunkBits));
 #ifdef AER_THRUST_CUDA
-    m_Chunks[i].SetDevice((m_iDev + i) % m_nDev);
+    m_Chunks[i].SetDevice(m_iDev + (i % m_nDevParallel));
 #else
     m_Chunks[i].SetDevice(-1);
 #endif
     m_Chunks[i].Allocate((ie - is) << m_maxChunkBits,numBuffers << m_maxChunkBits);
     m_Chunks[i].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
-    m_Chunks[i].SetupP2P(m_nDevParallel);
+    if(m_nDevParallel > 1)
+      m_Chunks[i].SetupP2P(m_nDev);
 
     is = ie;
   }
 
+  m_iPlaceHost = m_nDevParallel;
   if(is < (m_localSize >> m_maxChunkBits)){ //rest of chunks are stored on host memory
-    m_iPlaceHost = m_nDevParallel;
     m_nPlaces = m_nDevParallel + 1;
-
     m_Chunks[m_iPlaceHost].SetGlobalIndex(m_globalIndex + (is << m_maxChunkBits));
-    m_Chunks[m_iPlaceHost].SetDevice(-1);
-    m_Chunks[m_iPlaceHost].Allocate(m_localSize - (is << m_maxChunkBits),numBuffers << m_maxChunkBits);
-    m_Chunks[m_iPlaceHost].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
-    m_Chunks[m_iPlaceHost].SetupP2P(m_nDevParallel);
 
     //Host execution uses nested parallelizm
     omp_set_nested(1);
   }
+
+  m_Chunks[m_iPlaceHost].SetDevice(-1);
+#ifdef AER_MPI
+  m_Chunks[m_iPlaceHost].Allocate(m_localSize - (is << m_maxChunkBits),(numBuffers * (m_nDevParallel + 1)) << m_maxChunkBits);
+#else
+  m_Chunks[m_iPlaceHost].Allocate(m_localSize - (is << m_maxChunkBits),numBuffers << m_maxChunkBits);
+#endif
+  m_Chunks[m_iPlaceHost].AllocateParameters(AER_DEFAULT_MATRIX_BITS);
+  if(m_nDevParallel > 1)
+    m_Chunks[m_iPlaceHost].SetupP2P(m_nDev);
 
 #ifdef AER_TIMING
   TimeEnd(QS_GATE_INIT);
@@ -1792,6 +1889,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     }
     fprintf(debug_fp,"\n");
   }
+
 #endif
 }
 
@@ -1900,6 +1998,12 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
   DebugMsg("inner_product",std::complex<double>(d,0.0));
 #endif
 
+#ifdef AER_MPI
+  double sum;
+  MPI_Allreduce(&d,&sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+  d = sum;
+#endif
+
   return std::complex<double>(d,0.0);
 }
 
@@ -1998,8 +2102,8 @@ int QubitVectorThrust<data_t>::FindPlace(uint_t chunkID,int chunkBits) const
   int i;
   uint_t ids,baseGID,endGID;
 
-  baseGID = m_globalIndex;
-  endGID = m_globalIndex + m_localSize;
+  baseGID = m_globalIndex >> chunkBits;
+  endGID = (m_globalIndex + m_localSize) >> chunkBits;
   if(chunkID < baseGID || chunkID >= endGID){
     return -1;    //not in this process
   }
@@ -2071,8 +2175,8 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
   const size_t N = qubits.size();
   const int numCBits = func.NumControlBits();
   uint_t size,iChunk,nChunk,controlMask,controlFlag;
-  int i,ib,nBuf;
-  int nSmall,nLarge = 0;
+  int i,j,ib,nBuf;
+  int nSmall,nLarge = 0, overProc = 0;
   reg_t large_qubits;
   int chunkBits;
   double ret = 0.0;
@@ -2088,7 +2192,7 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
   chunkBits = m_maxChunkBits - (N - 1);
 
   //If no data exchange required execute along with all the state vectors
-  if(m_nPlaces == 1 || func.IsDiagonal()){    //note: for multi-process m_nPlaces == 1 is not valid
+  if((nprocs_ == 1 && m_nPlaces == 1) || func.IsDiagonal()){
     noDataExchange = 1;
     chunkBits = num_qubits_;
   }
@@ -2096,6 +2200,9 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
   //count number of qubits which is larger than chunk size
   for(ib=numCBits;ib<N;ib++){
     if(qubits[ib] >= chunkBits){
+      if((1ull << qubits[ib]) >= m_localSize){
+        overProc = 1;
+      }
       large_qubits.push_back(qubits[ib]);
       nLarge++;
     }
@@ -2104,7 +2211,9 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 
   if(nLarge == 0){
     noDataExchange = 1;
-    chunkBits = num_qubits_;
+    if(nprocs_ == 1){
+      chunkBits = num_qubits_;
+    }
   }
 
   if(func.IsDiagonal()){
@@ -2171,27 +2280,131 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
       controlFlag = controlMask;
     }
 
+    if(overProc == 0 && ((1ull << procBits_) == nprocs_)){
 #pragma omp parallel if (num_qubits_ > omp_threshold_ && m_nPlaces > 1) private(iChunk,i,ib) num_threads(m_nPlaces)
-    {
-      int iPlace = omp_get_thread_num();
-      int iPlaceSrc;
-      uint_t localMask,baseChunk;
+      {
+        int iPlace = omp_get_thread_num();
+        int iPlaceSrc;
+        uint_t localMask,baseChunk;
+        reg_t offsets(nBuf);
+        reg_t chunkOffsets(nChunk);
+        reg_t chunkIDs(nChunk);
+        std::vector<int> places(nChunk);
+
+        for(iChunk=0;iChunk<m_Chunks[iPlace].NumChunks(chunkBits);iChunk++){
+          baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk,chunkBits),large_qubits,chunkBits);
+          if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk,chunkBits)){  //already calculated
+            continue;
+          }
+
+          //control mask
+          if((baseChunk & controlMask) != controlFlag){
+            continue;
+          }
+
+          for(i=0;i<nChunk;i++){
+            chunkIDs[i] = baseChunk;
+            for(ib=0;ib<nLarge;ib++){
+              if((i >> ib) & 1){
+                chunkIDs[i] += (1ull << (large_qubits[ib] - chunkBits));
+              }
+            }
+            iPlaceSrc = FindPlace(chunkIDs[i],chunkBits);
+            places[i] = iPlaceSrc;
+            if(iPlaceSrc == iPlace){
+              chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
+            }
+            else{
+              m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);  //copy chunk from other place
+              chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits); //offset to buffer
+            }
+          }
+
+          //setting buffers
+          localMask = 0;
+          for(i=0;i<nBuf;i++){
+            offsets[i] = chunkOffsets[buf2chunk[i]] + offsetBase[i];
+            localMask |= (1ull << i); //currently all buffers are local
+          }
+
+          //execute kernel
+          bool enable_omp = (num_qubits_ > omp_threshold_ && omp_threads_ > 1);
+          if(func.Reduction())
+            ret += m_Chunks[iPlace].ExecuteSum(offsets,func,size,(baseChunk << chunkBits),localMask, enable_omp);
+          else
+            m_Chunks[iPlace].Execute(offsets,func,size,(baseChunk << chunkBits),localMask, enable_omp);
+
+          //copy back
+          for(i=0;i<nChunk;i++){
+            if(places[i] != iPlace){
+              m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+            }
+          }
+        }
+      }
+    }
+#ifdef AER_MPI
+    else{
+      uint_t iPair,nPair;
+      uint_t baseChunk,add;
+      reg_t nu(nLarge+1);
+      reg_t ub(nLarge+1);
+      reg_t iu(nLarge+1,0);
+      reg_t chunkIDs(nChunk);
       reg_t offsets(nBuf);
       reg_t chunkOffsets(nChunk);
-      reg_t chunkIDs(nChunk);
+      reg_t procs(nChunk);
+      reg_t procDest(nChunk);
       std::vector<int> places(nChunk);
+      std::vector<int> chunkPerPlace(m_nPlaces);
+      int nLocal,nDestProc;
+      int iPlace,iPlaceSrc;
+      thrust::complex<data_t>* pChunk;
+      uint_t localMask;
+      std::vector<MPI_Request> reqSend(nChunk*nChunk);
+      std::vector<MPI_Request> reqRecv(nChunk);
+      MPI_Status st;
+      auto qubits_sorted = large_qubits;
 
-      for(iChunk=0;iChunk<m_Chunks[iPlace].NumChunks(chunkBits);iChunk++){
-        baseChunk = GetBaseChunkID(m_Chunks[iPlace].ChunkID(iChunk,chunkBits),large_qubits,chunkBits);
-        if(baseChunk != m_Chunks[iPlace].ChunkID(iChunk,chunkBits)){  //already calculated
-          continue;
-        }
+      //prepare for indexing
+      std::sort(qubits_sorted.begin(), qubits_sorted.end());
+      nu[0] = 1ull << (qubits_sorted[0] - chunkBits);
+      ub[0] = 0;
+      for(i=1;i<nLarge;i++){
+        nu[i] = 1ull << (qubits_sorted[i] - qubits_sorted[i-1] - 1);
+        ub[i] = (qubits_sorted[i-1] - chunkBits) + 1;
+      }
+      nu[nLarge] = 1ull << (num_qubits_ - qubits_sorted[nLarge-1] - 1);
+      ub[nLarge] = (qubits_sorted[nLarge-1] - chunkBits) + 1;
+
+      nPair = 1ull << (num_qubits_ - chunkBits - nLarge);	  //number of pairs of chunks
+
+      for(iPair=0;iPair<nPair;iPair++){
+        //calculate index of pair of chunks
+        baseChunk = 0;
+  			add = 1;
+  			for(i=nLarge;i>=0;i--){
+  				baseChunk += (iu[i] << ub[i]);
+  				//update for next
+  				iu[i] += add;
+  				add = 0;
+  				if(iu[i] >= nu[i]){
+  					iu[i] = 0;
+  					add = 1;
+  				}
+  			}
 
         //control mask
         if((baseChunk & controlMask) != controlFlag){
           continue;
         }
 
+        for(i=0;i<m_nPlaces;i++){
+          chunkPerPlace[i] = 0;
+        }
+
+        nDestProc = 0;
+        nLocal = 0;
         for(i=0;i<nChunk;i++){
           chunkIDs[i] = baseChunk;
           for(ib=0;ib<nLarge;ib++){
@@ -2199,13 +2412,75 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
               chunkIDs[i] += (1ull << (large_qubits[ib] - chunkBits));
             }
           }
-          iPlaceSrc = FindPlace(chunkIDs[i],chunkBits);
-          places[i] = iPlaceSrc;
-          if(iPlaceSrc == iPlace){
-            chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
+          procs[i] = GetProcByGID(chunkIDs[i] << chunkBits);
+          if(procs[i] == myrank_){
+            nLocal++;
+            places[i] = FindPlace(chunkIDs[i],chunkBits);
+            chunkPerPlace[places[i]]++;
           }
           else{
-            m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);  //copy chunk from other place
+            bool newDest = true;
+            for(j=0;j<nDestProc;j++){
+              if(procDest[j] == procs[i]){
+                newDest = false;
+                break;
+              }
+            }
+            if(newDest){
+              procDest[nDestProc++] = procs[i];
+            }
+            places[i] = -1;
+          }
+        }
+
+        if(nLocal == 0){  //there is no chunk in this process
+          continue;
+        }
+
+        //set place to execute
+        iPlace = 0;
+        for(i=1;i<m_nPlaces;i++){
+          if(chunkPerPlace[i] > chunkPerPlace[iPlace])
+            iPlace = i;
+        }
+
+        //send/recv chunks
+        for(i=0;i<nChunk;i++){
+          if(procs[i] == myrank_){
+            iPlaceSrc = places[i];
+            if(nLocal < nChunk){
+              if(useGDR_){
+                pChunk = m_Chunks[iPlaceSrc].ChunkPtr(m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),chunkBits);
+              }
+              else{
+                //copy chunk from device to host 
+                m_Chunks[m_iPlaceHost].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+                pChunk = m_Chunks[m_iPlaceHost].BufferPtr(i,chunkBits);
+              }
+
+              for(j=0;j<nDestProc;j++){
+                MPI_Isend(pChunk,(sizeof(thrust::complex<data_t>) << chunkBits),MPI_BYTE,procDest[j],chunkIDs[i],MPI_COMM_WORLD,&reqSend[i*nChunk + j]);
+              }
+            }
+
+            if(iPlace == iPlaceSrc){
+              chunkOffsets[i] = m_Chunks[iPlace].LocalChunkID(chunkIDs[i],chunkBits) << chunkBits;
+            }
+            else{
+              m_Chunks[iPlace].Get(m_Chunks[iPlaceSrc],m_Chunks[iPlaceSrc].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);  //copy chunk from other place
+              chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits); //offset to buffer
+            }
+          }
+          else{
+            places[i] = -1;
+            if(useGDR_){
+              pChunk = m_Chunks[iPlace].BufferPtr(i,chunkBits);
+            }
+            else{
+              pChunk = m_Chunks[m_iPlaceHost].BufferPtr(i,chunkBits);
+            }
+
+            MPI_Irecv(pChunk,(sizeof(thrust::complex<data_t>) << chunkBits),MPI_BYTE,procs[i],chunkIDs[i],MPI_COMM_WORLD,&reqRecv[i]);
             chunkOffsets[i] = m_Chunks[iPlace].Size() + (i << chunkBits); //offset to buffer
           }
         }
@@ -2213,8 +2488,24 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
         //setting buffers
         localMask = 0;
         for(i=0;i<nBuf;i++){
-          offsets[i] = chunkOffsets[buf2chunk[i]] + offsetBase[i];
-          localMask |= (1ull << i); //currently all buffers are local
+          j = buf2chunk[i];
+          offsets[i] = chunkOffsets[j] + offsetBase[i];
+          if(procs[j] == myrank_)
+            localMask |= (1ull << i);
+        }
+
+        for(i=0;i<nChunk;i++){
+          if(procs[i] != myrank_){
+            MPI_Wait(&reqRecv[i],&st);
+            if(!useGDR_){
+              m_Chunks[iPlace].Get(m_Chunks[m_iPlaceHost],m_Chunks[m_iPlaceHost].NumChunks(chunkBits) + i,i,chunkBits);
+            }
+          }
+          else{
+            for(j=0;j<nDestProc;j++){
+              MPI_Wait(&reqSend[i*nChunk+j],&st);
+            }
+          }
         }
 
         //execute kernel
@@ -2226,13 +2517,29 @@ double QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubi
 
         //copy back
         for(i=0;i<nChunk;i++){
-          if(places[i] != iPlace){
-            m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+          if(procs[i] == myrank_){
+            if(places[i] != iPlace){
+              m_Chunks[iPlace].Put(m_Chunks[places[i]],m_Chunks[places[i]].LocalChunkID(chunkIDs[i],chunkBits),i,chunkBits);
+            }
+/*            if(nLocal < nChunk){
+              for(j=0;j<nDestProc;j++){
+                MPI_Wait(&reqSend[i*nChunk+j],&st);
+              }
+            }*/
           }
         }
       }
     }
+#endif  //AER_MPI
   }
+
+#ifdef AER_MPI
+  if(func.Reduction() && isMultiShot_ == false){
+    double sum;
+    MPI_Allreduce(&ret,&sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+    ret = sum;
+  }
+#endif
 
 #ifdef AER_DEBUG
   if(func.Reduction())
@@ -4254,16 +4561,16 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
   globalSum = 0.0;
 #ifdef AER_MPI
-  if(m_nprocs > 1){
-    pProcTotal = new double[m_nprocs];
+  if(nprocs_ > 1 && isMultiShot_ == false){
+    double* pProcTotal = new double[nprocs_];
 
-    for(i=0;i<m_nprocs;i++){
+    for(i=0;i<nprocs_;i++){
       pProcTotal[i] = localSum;
     }
 
     MPI_Alltoall(pProcTotal,1,MPI_DOUBLE_PRECISION,pProcTotal,1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
 
-    for(i=0;i<m_myrank;i++){
+    for(i=0;i<myrank_;i++){
       globalSum += pProcTotal[i];
     }
     delete[] pProcTotal;
@@ -4326,8 +4633,13 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
     }
   }
 
-#ifdef QASM_MPI
-  MPI_Allreduce(&localSamples[0],&samples[0],SHOTS,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+#ifdef AER_MPI
+  if(!isMultiShot_){
+    MPI_Allreduce(&localSamples[0],&samples[0],SHOTS,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+  }
+  else{
+    samples = localSamples;
+  }
 #else
   samples = localSamples;
 #endif

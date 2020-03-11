@@ -344,7 +344,7 @@ public:
 
 	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
   {
-    uint_t i,i0,i1,i2;
+    uint_t i,i0,i1,i2,localMask;
 	thrust::complex<data_t>* pV;
 	uint_t* offsets;
     thrust::complex<data_t> q0,q1,q2,q3;
@@ -354,6 +354,7 @@ public:
 		params = ExtractParamsFromTuple(iter);
 		pV = params.buf_;
 		offsets = params.offsets_;
+    localMask = params.lmask_;
 
     i0 = i & mask0;
     i2 = (i - i0) << 1;
@@ -367,10 +368,14 @@ public:
     q2 = pV[offsets[2]+i0];
     q3 = pV[offsets[3]+i0];
 
-    pV[offsets[0]+i0] = q3;
-    pV[offsets[1]+i0] = q2;
-    pV[offsets[2]+i0] = q1;
-    pV[offsets[3]+i0] = q0;
+    if(localMask & 1)
+      pV[offsets[0]+i0] = q3;
+    if(localMask & 2)
+      pV[offsets[1]+i0] = q2;
+    if(localMask & 4)
+      pV[offsets[2]+i0] = q1;
+    if(localMask & 8)
+      pV[offsets[3]+i0] = q0;
 		return 0.0;
   }
 
@@ -454,84 +459,217 @@ double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const {
 }
 
 template <typename data_t>
-reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const {
+class DensityMatrixThrust_Gather
+{
+protected:
+  uint_t offset;
+  data_t* pVec;
+public:
+  DensityMatrixThrust_Gather(data_t* pVecIn,uint_t offsetIn)
+  {
+    pVec = pVecIn;
+    offset = (offsetIn + 1) * 2;
+  }
 
-  const int_t END = 1LL << num_qubits();
+  __host__ __device__ void operator()(uint_t iter)
+  {
+    uint_t idx;
+    idx = iter * offset;
+    pVec[iter] = pVec[idx];
+  }
+};
+
+
+
+template <typename data_t>
+reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
+{
   const int_t SHOTS = rnds.size();
-  reg_t samples;
+  reg_t samples,localSamples;
+  std::vector<double> placeSum;
+  data_t* pVec;
+  uint_t i;
+  double sum,localSum,globalSum;
+  int iPlace;
+  reg_t diagIdx(BaseVector::m_nPlaces+1);
+
+#ifdef AER_TIMING
+  TimeStart(QS_GATE_MEASURE);
+#endif
+
+  BaseVector::UpdateReferencedValue();
+
   samples.assign(SHOTS, 0);
 
-  const int INDEX_SIZE = BaseVector::sample_measure_index_size_;
-  const int_t INDEX_END = BITS[INDEX_SIZE];
-  // Qubit number is below index size, loop over shots
-  if (END < INDEX_END) {
-    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample;
-        for (sample = 0; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p)
-            break;
-        }
-        samples[i] = sample;
-      }
-    } // end omp parallel
-  }
-  // Qubit number is above index size, loop over index blocks
-  else {
-    // Initialize indexes
-    std::vector<double> idxs;
-    idxs.assign(INDEX_END, 0.0);
-    uint_t loop = (END >> INDEX_SIZE);
-    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < INDEX_END; ++i) {
-        uint_t base = loop * i;
-        double total = .0;
-        double p = .0;
-        for (uint_t j = 0; j < loop; ++j) {
-          uint_t k = base | j;
-          p = probability(k);
-          total += p;
-        }
-        idxs[i] = total;
-      }
-    } // end omp parallel
+  localSamples.assign(SHOTS, 0);
 
-    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample = 0;
-        for (uint_t j = 0; j < idxs.size(); ++j) {
-          if (rnd < (p + idxs[j])) {
-            break;
-          }
-          p += idxs[j];
-          sample += loop;
-        }
+  placeSum.assign(BaseVector::m_nPlaces+1, 0.0);
 
-        for (; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p){
-            break;
-          }
-        }
-        samples[i] = sample;
-      }
-    } // end omp parallel
+  //diagonal indices for each place
+  for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
+    i = BaseVector::m_Chunks[iPlace].GlobalIndex();
+    diagIdx[iPlace] = i >> num_qubits();
+    if(i > (diagIdx[iPlace] << num_qubits())){
+      diagIdx[iPlace]++;
+    }
   }
-#ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::sample_measure",samples);
+  i = BaseVector::m_Chunks[BaseVector::m_nPlaces-1].GlobalIndex() + BaseVector::m_Chunks[BaseVector::m_nPlaces-1].Size();
+  diagIdx[BaseVector::m_nPlaces] = i >> num_qubits();
+
+  //calculate sum of each place
+#pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::m_nPlaces > 1) num_threads(BaseVector::m_nPlaces) private(pVec,iPlace)
+  {
+    int iDev;
+    uint_t nDiag;
+
+    iPlace = omp_get_thread_num();
+    iDev = BaseVector::m_Chunks[iPlace].DeviceID();
+#ifdef AER_THRUST_CUDA
+    if(iDev >= 0){
+      cudaSetDevice(iDev);
+    }
 #endif
-	
+
+    nDiag = diagIdx[iPlace+1]-diagIdx[iPlace];
+    if(nDiag > 0){
+      uint_t pos = diagIdx[iPlace] * ((1ull << num_qubits()) + 1) - BaseVector::m_Chunks[iPlace].GlobalIndex();
+
+      pVec = (data_t*)(BaseVector::m_Chunks[iPlace].ChunkPtr(0,BaseVector::m_maxChunkBits) + pos);
+
+      auto ci = thrust::counting_iterator<uint_t>(0);
+
+      //gather diagonal elements, then inclusive scan them
+      if(iPlace < BaseVector::m_nDevParallel){
+        thrust::for_each_n(thrust::device,ci,nDiag,DensityMatrixThrust_Gather<data_t>(pVec,(1ull << num_qubits())));
+
+        thrust::inclusive_scan(thrust::device,pVec,pVec+nDiag,pVec);
+      }
+      else{
+        auto policy = (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1)
+            ? thrust::omp::par
+            : thrust::seq;
+        thrust::for_each_n(policy,ci,nDiag,DensityMatrixThrust_Gather<data_t>(pVec,(1ull << num_qubits())));
+
+        thrust::inclusive_scan(policy,pVec,pVec+nDiag,pVec);
+      }
+
+      thrust::complex<data_t> v = BaseVector::m_Chunks[iPlace].GetState(pos + (nDiag-1)/2);
+      if((nDiag & 1) == 0)
+        placeSum[iPlace] = v.imag();
+      else
+        placeSum[iPlace] = v.real();
+    }
+    else{
+      placeSum[iPlace] = 0;
+    }
+  }
+
+  localSum = 0.0;
+  for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
+    sum = localSum;
+    localSum += placeSum[iPlace];
+    placeSum[iPlace] = sum;
+  }
+  placeSum[BaseVector::m_nPlaces] = localSum;
+
+  globalSum = 0.0;
+#ifdef AER_MPI
+  if(BaseVector::nprocs_ > 1 && BaseVector::isMultiShot_ == false){
+    double* pProcTotal = new double[BaseVector::nprocs_];
+
+    for(i=0;i<BaseVector::nprocs_;i++){
+      pProcTotal[i] = localSum;
+    }
+
+    MPI_Alltoall(pProcTotal,1,MPI_DOUBLE_PRECISION,pProcTotal,1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
+
+    for(i=0;i<BaseVector::myrank_;i++){
+      globalSum += pProcTotal[i];
+    }
+    delete[] pProcTotal;
+  }
+#endif
+
+
+  //now search for the position
+#pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::m_nPlaces > 1) num_threads(BaseVector::m_nPlaces) private(pVec,iPlace,i)
+  {
+    thrust::host_vector<uint_t> vIdx(SHOTS);
+    thrust::host_vector<double> vRnd(SHOTS);
+    thrust::host_vector<uint_t> vSmp(SHOTS);
+    uint_t nIn;
+    int iDev;
+    uint_t nDiag;
+
+    iPlace = omp_get_thread_num();
+    iDev = BaseVector::m_Chunks[iPlace].DeviceID();
+#ifdef AER_THRUST_CUDA
+    if(iDev >= 0){
+      cudaSetDevice(iDev);
+    }
+#endif
+
+    nDiag = diagIdx[iPlace+1]-diagIdx[iPlace];
+    if(nDiag > 0){
+      uint_t pos = diagIdx[iPlace] * ((1ull << num_qubits()) + 1) - BaseVector::m_Chunks[iPlace].GlobalIndex();
+      pVec = (data_t*)(BaseVector::m_Chunks[iPlace].ChunkPtr(0,BaseVector::m_maxChunkBits) + pos);
+
+      nIn = 0;
+      for(i=0;i<SHOTS;i++){
+        if(rnds[i] >= globalSum + placeSum[iPlace] && rnds[i] < globalSum + placeSum[iPlace+1]){
+          vRnd[nIn] = rnds[i] - (globalSum + placeSum[iPlace]);
+          vIdx[nIn] = i;
+          nIn++;
+        }
+      }
+
+      if(nIn > 0){
+#ifdef AER_THRUST_CUDA
+        if(iPlace < BaseVector::m_nDevParallel){
+          thrust::device_vector<double> vRnd_dev(SHOTS);
+          thrust::device_vector<uint_t> vSmp_dev(SHOTS);
+
+          vRnd_dev = vRnd;
+          thrust::lower_bound(thrust::device, pVec, pVec + nDiag, vRnd_dev.begin(), vRnd_dev.begin() + nIn, vSmp_dev.begin());
+          vSmp = vSmp_dev;
+        }
+        else{
+#endif
+          auto policy = (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1)
+            ? thrust::omp::par
+            : thrust::seq;
+          thrust::lower_bound(policy, pVec, pVec + nDiag, vRnd.begin(), vRnd.begin() + nIn, vSmp.begin());
+#ifdef AER_THRUST_CUDA
+        }
+#endif
+
+        for(i=0;i<nIn;i++){
+          localSamples[vIdx[i]] = diagIdx[iPlace] + vSmp[i];
+        }
+      }
+    }
+  }
+
+#ifdef AER_MPI
+  if(!BaseVector::isMultiShot_){
+    MPI_Allreduce(&localSamples[0],&samples[0],SHOTS,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+  }
+  else{
+    samples = localSamples;
+  }
+#else
+  samples = localSamples;
+#endif
+
+
+#ifdef QASM_TIMING
+  TimeEnd(QS_GATE_MEASURE);
+#endif
+
+#ifdef AER_DEBUG
+  BaseVector::DebugMsg("sample_measure",samples);
+#endif
+
   return samples;
 }
 

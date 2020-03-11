@@ -210,7 +210,7 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
 
   int iPlace;
   uint_t ic, nc;
-  uint_t pos = 0;
+  uint_t pos = BaseVector::m_globalIndex;
   uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
 
@@ -273,7 +273,7 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
 
 	int iPlace;
 	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
+	uint_t pos = BaseVector::m_globalIndex;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
 
@@ -321,6 +321,19 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
     val_im += std::imag(d);
   }
   }
+
+#ifdef AER_MPI
+  if(BaseVector::nprocs_ > 1){
+    double c0[2];
+    double c1[2];
+    c0[0] = val_re;
+    c0[1] = val_im;
+    MPI_Allreduce(c0,c1,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+    val_re = (data_t)c1[0];
+    val_im = (data_t)c1[1];
+  }
+#endif
+
   return std::complex<double>(val_re, val_im);
 }
 
@@ -348,7 +361,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
   double delta = 0.;
 	int iPlace;
 	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
+	uint_t pos = BaseVector::m_globalIndex;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
 
