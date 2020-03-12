@@ -260,12 +260,19 @@ Most of the required dependencies can be installed via *pip*, using the
 
 ### Linux
 
-Qiskit is supported on RedHat (CentOS, Fedora) and Ubuntu based distributions, as long as you can install a GCC version that is C++14 compatible.
+Qiskit is officially supported on Red Hat, CentOS, Fedora and Ubuntu distributions, as long as you can install a GCC version that is C++14 compatible and the few dependencies we need.
 
-Ubuntu prerequisites
+To get most of the necessary compilers and libraries, install the *development environment* tools from your Linux distribution by running
 
-To get most of the necessary compilers
-and libraries, install the *build-essential* package by running
+CentOS/Red Hat
+
+    $ yum groupinstall "Development Tools"
+
+Fedora
+
+    $ dnf install @development-tools
+
+Ubuntu
 
     $ sudo apt install build-essential
 
@@ -273,7 +280,33 @@ Although the *BLAS* and *LAPACK* library implementations included in the
 *build-essential* package are sufficient to build all of the `Aer` simulators, we
 recommend using *OpenBLAS*, which you can install by running
 
+CentOS/Red Hat
+
+    $ yum install openblas-devel
+
+Fedora
+
+    $ dnf install openblas-devel
+
+Ubuntu
+
     $ sudo apt install libopenblas-dev
+
+
+And of course, `git` is required in order to build from repositories
+
+CentOS/Red Hat
+
+    $ yum install git
+
+Fedora
+
+    $ dnf install git
+
+Ubuntu
+
+    $ apt-get install git
+
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
