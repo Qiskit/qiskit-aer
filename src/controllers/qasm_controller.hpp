@@ -16,24 +16,12 @@
 #define _aer_qasm_controller_hpp_
 
 #include "controller.hpp"
-#ifndef AER_DISABLE_DENSITY_MATRIX
 #include "simulators/density_matrix/densitymatrix_state.hpp"
-#endif
-#ifndef AER_DISABLE_EXTENDED_STABILIZER
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
-#endif
-#ifndef AER_DISABLE_MPS
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
-#endif
-#ifndef AER_DISABLE_STABILIZER
 #include "simulators/stabilizer/stabilizer_state.hpp"
-#endif
-#ifndef AER_DISABLE_STATEVECTOR
 #include "simulators/statevector/statevector_state.hpp"
-#endif
-#ifndef AER_DISABLE_SUPEROPERATOR
 #include "simulators/superoperator/superoperator_state.hpp"
-#endif
 #include "transpile/basic_opts.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
@@ -385,22 +373,18 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                            uint_t rng_seed) const {
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
-#ifndef AER_DISABLE_STATEVECTOR
     case Method::statevector:
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
-      } 
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
       }
-#endif
     case Method::statevector_thrust_gpu:
 #ifndef AER_THRUST_CUDA
       throw std::runtime_error(
@@ -413,16 +397,13 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Statevector::State<QV::QubitVectorThrust<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector_thrust_gpu);
-      }
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector_thrust_gpu);
       }
-#endif
 #endif
     case Method::statevector_thrust_cpu:
 #ifndef AER_THRUST_CPU
@@ -436,9 +417,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Statevector::State<QV::QubitVectorThrust<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector_thrust_cpu);
-      } 
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
@@ -446,9 +425,6 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Method::statevector_thrust_cpu);
       }
 #endif
-#endif
-#endif  //AER_DISABLE_STATEVECTOR
-#ifndef AER_DISABLE_DENSITY_MATRIX
     case Method::density_matrix:
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision density matrix simulation
@@ -456,16 +432,13 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             DensityMatrix::State<QV::DensityMatrix<double>>>(
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix);
-      }
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision density matrix simulation
         return run_circuit_helper<
             DensityMatrix::State<QV::DensityMatrix<float>>>(
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix);
       }
-#endif
     case Method::density_matrix_thrust_gpu:
 #ifndef AER_THRUST_CUDA
       throw std::runtime_error(
@@ -478,16 +451,13 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix_thrust_gpu);
-      } 
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision density matrix simulation
         return run_circuit_helper<
             DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix_thrust_gpu);
       }
-#endif
 #endif
     case Method::density_matrix_thrust_cpu:
 #ifndef AER_THRUST_CPU
@@ -501,9 +471,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix_thrust_cpu);
-      }
-#ifndef AER_DISABLE_SINGLE_PRECISION
-      else {
+      } else {
         // Single-precision density matrix simulation
         return run_circuit_helper<
             DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
@@ -511,28 +479,22 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Method::density_matrix_thrust_cpu);
       }
 #endif
-#endif
-#endif  //AER_DISABLE_DENSITY_MATRIX
-#ifndef AER_DISABLE_STABILIZER
     case Method::stabilizer:
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
       return run_circuit_helper<Stabilizer::State>(
           circ, noise, config, shots, rng_seed, Clifford::Clifford(),
           Method::stabilizer);
-#endif
-#ifndef AER_DISABLE_EXTENDED_STABILIZER
     case Method::extended_stabilizer:
       return run_circuit_helper<ExtendedStabilizer::State>(
           circ, noise, config, shots, rng_seed, CHSimulator::Runner(),
           Method::extended_stabilizer);
-#endif
-#ifndef AER_DISABLE_MPS
+
     case Method::matrix_product_state:
       return run_circuit_helper<MatrixProductState::State>(
           circ, noise, config, shots, rng_seed, MatrixProductState::MPS(),
           Method::matrix_product_state);
-#endif
+
     default:
       throw std::runtime_error("QasmController:Invalid simulation method");
   }
@@ -547,14 +509,11 @@ QasmController::Method QasmController::simulation_method(
     bool validate) const {
   // Check simulation method and validate state
   switch (simulation_method_) {
-#ifndef AER_DISABLE_STATEVECTOR
     case Method::statevector: {
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           Statevector::State<QV::QubitVector<float>> state;
           validate_state(state, circ, noise_model, true);
-#endif
         } else {
           Statevector::State<QV::QubitVector<>> state;
           validate_state(state, circ, noise_model, true);
@@ -570,10 +529,8 @@ QasmController::Method QasmController::simulation_method(
 #else
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           Statevector::State<QV::QubitVectorThrust<float>> state;
           validate_state(state, circ, noise_model, true);
-#endif
         } else {
           Statevector::State<QV::QubitVectorThrust<>> state;
           validate_state(state, circ, noise_model, true);
@@ -590,10 +547,8 @@ QasmController::Method QasmController::simulation_method(
 #else
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           Statevector::State<QV::QubitVectorThrust<float>> state;
           validate_state(state, circ, noise_model, true);
-#endif
         } else {
           Statevector::State<QV::QubitVectorThrust<>> state;
           validate_state(state, circ, noise_model, true);
@@ -602,15 +557,11 @@ QasmController::Method QasmController::simulation_method(
       return Method::statevector_thrust_cpu;
 #endif
     }
-#endif  //#ifndef AER_DISABLE_STATEVECTOR
-#ifndef AER_DISABLE_DENSITY_MATRIX
     case Method::density_matrix: {
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           validate_state(DensityMatrix::State<QV::DensityMatrix<float>>(), circ,
                          noise_model, true);
-#endif
         } else {
           validate_state(DensityMatrix::State<QV::DensityMatrix<double>>(),
                          circ, noise_model, true);
@@ -626,10 +577,8 @@ QasmController::Method QasmController::simulation_method(
 #else
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           validate_state(DensityMatrix::State<QV::DensityMatrixThrust<float>>(),
                          circ, noise_model, true);
-#endif
         } else {
           validate_state(
               DensityMatrix::State<QV::DensityMatrixThrust<double>>(), circ,
@@ -647,10 +596,8 @@ QasmController::Method QasmController::simulation_method(
 #else
       if (validate) {
         if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
           validate_state(DensityMatrix::State<QV::DensityMatrixThrust<float>>(),
                          circ, noise_model, true);
-#endif
         } else {
           validate_state(
               DensityMatrix::State<QV::DensityMatrixThrust<double>>(), circ,
@@ -660,41 +607,31 @@ QasmController::Method QasmController::simulation_method(
       return Method::density_matrix_thrust_cpu;
 #endif
     }
-#endif  //#ifndef AER_DISABLE_DENSITY_MATRIX
-#ifndef AER_DISABLE_STABILIZER
     case Method::stabilizer: {
       if (validate)
         validate_state(Stabilizer::State(), circ, noise_model, true);
       return Method::stabilizer;
     }
-#endif
-#ifndef AER_DISABLE_EXTENDED_STABILIZER
     case Method::extended_stabilizer: {
       if (validate)
         validate_state(ExtendedStabilizer::State(), circ, noise_model, true);
       return Method::extended_stabilizer;
     }
-#endif
-#ifndef AER_DISABLE_MPS
     case Method::matrix_product_state: {
       if (validate)
         validate_state(MatrixProductState::State(), circ, noise_model, true);
       return Method::matrix_product_state;
     }
-#endif
     case Method::automatic: {
       // If circuit and noise model are Clifford run on Stabilizer simulator
-#ifndef AER_DISABLE_STABILIZER
       if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
         return Method::stabilizer;
       }
-#endif
       // For noisy simulations we enable the density matrix method if
       // shots > 2 ** num_qubits. This is based on a rough estimate that
       // a single shot of the density matrix simulator is approx 2 ** nq
       // times slow than a single shot of statevector due the increased
       // dimension
-#ifndef AER_DISABLE_DENSITY_MATRIX
       if (noise_model.has_quantum_errors() &&
           circ.shots > (1 << circ.num_qubits) &&
           validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
@@ -702,24 +639,18 @@ QasmController::Method QasmController::simulation_method(
           check_measure_sampling_opt(circ, Method::density_matrix).first) {
         return Method::density_matrix;
       }
-#endif
       // Finally we check the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
       // default to the Statevector method. Otherwise we attempt to use
       // the extended stabilizer simulator.
-      bool enough_memory = false;
-#ifndef AER_DISABLE_STATEVECTOR
+      bool enough_memory = true;
       if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
         Statevector::State<QV::QubitVector<float>> sv_state;
         enough_memory = validate_memory_requirements(sv_state, circ, false);
-#endif
       } else {
         Statevector::State<> sv_state;
         enough_memory = validate_memory_requirements(sv_state, circ, false);
       }
-#endif
-#ifndef AER_DISABLE_EXTENDED_STABILIZER
       if (!enough_memory) {
         if (validate_state(ExtendedStabilizer::State(), circ, noise_model,
                            false)) {
@@ -729,25 +660,20 @@ QasmController::Method QasmController::simulation_method(
               "QasmSimulator: Circuit cannot be run using available methods.");
         }
       }
-#endif
     }
     // If we didn't select extended stabilizer above proceed to the default
     // switch clause
     default: {
       // For default we use statevector followed by density matrix (for the case
       // when the circuit contains invalid instructions for statevector)
-#ifndef AER_DISABLE_STATEVECTOR
       if (validate_state(Statevector::State<>(), circ, noise_model, false)) {
         return Method::statevector;
       }
-#endif
       // If circuit contains invalid instructions for statevector throw a hail
       // mary and try for density matrix.
-#ifndef AER_DISABLE_DENSITY_MATRIX
       if (validate)
         validate_state(DensityMatrix::State<>(), circ, noise_model, true);
       return Method::density_matrix;
-#endif
     }
   }
 }
@@ -766,54 +692,40 @@ void QasmController::initialize_state(const Circuit &circ, State_t &state,
 size_t QasmController::required_memory_mb(
     const Circuit &circ, const Noise::NoiseModel &noise) const {
   switch (simulation_method(circ, noise, false)) {
-#ifndef AER_DISABLE_STATEVECTOR
     case Method::statevector:
     case Method::statevector_thrust_cpu:
     case Method::statevector_thrust_gpu: {
       if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
         Statevector::State<QV::QubitVector<float>> state;
         return state.required_memory_mb(circ.num_qubits, circ.ops);
-#endif
       } else {
         Statevector::State<> state;
         return state.required_memory_mb(circ.num_qubits, circ.ops);
       }
     }
-#endif
-#ifndef AER_DISABLE_DENSITY_MATRIX
     case Method::density_matrix:
     case Method::density_matrix_thrust_cpu:
     case Method::density_matrix_thrust_gpu: {
       if (simulation_precision_ == Precision::single_precision) {
-#ifndef AER_DISABLE_SINGLE_PRECISION
         DensityMatrix::State<QV::DensityMatrix<float>> state;
         return state.required_memory_mb(circ.num_qubits, circ.ops);
-#endif
       } else {
         DensityMatrix::State<> state;
         return state.required_memory_mb(circ.num_qubits, circ.ops);
       }
     }
-#endif
-#ifndef AER_DISABLE_STABILIZER
     case Method::stabilizer: {
       Stabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-#endif
-#ifndef AER_DISABLE_EXTENDED_STABILIZER
     case Method::extended_stabilizer: {
       ExtendedStabilizer::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-#endif
-#ifndef AER_DISABLE_MPS
     case Method::matrix_product_state: {
       MatrixProductState::State state;
       return state.required_memory_mb(circ.num_qubits, circ.ops);
     }
-#endif
     default:
       // We shouldn't get here, so throw an exception if we do
       throw std::runtime_error("QasmController: Invalid simulation method");
@@ -829,7 +741,6 @@ void QasmController::set_parallelization_circuit(
     case Method::statevector_thrust_cpu:
     case Method::stabilizer:
     case Method::matrix_product_state: {
-#ifndef AER_DISABLE_STATEVECTOR
       if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
           check_measure_sampling_opt(circ, Method::statevector).first) {
         parallel_shots_ = 1;
@@ -837,11 +748,9 @@ void QasmController::set_parallelization_circuit(
             std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
         return;
       }
-#endif
       Base::Controller::set_parallelization_circuit(circ, noise_model);
       break;
     }
-#ifndef AER_DISABLE_DENSITY_MATRIX
     case Method::density_matrix:
     case Method::density_matrix_thrust_gpu:
     case Method::density_matrix_thrust_cpu:{
@@ -854,7 +763,6 @@ void QasmController::set_parallelization_circuit(
       Base::Controller::set_parallelization_circuit(circ, noise_model);
       break;
     }
-#endif
     default: {
       Base::Controller::set_parallelization_circuit(circ, noise_model);
     }
