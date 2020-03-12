@@ -67,7 +67,7 @@ stage_linux: &stage_linux
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
-  osx_image: xcode9.2
+  osx_image: xcode9.4
   language: generic
   python: 3.7
   env:
