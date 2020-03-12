@@ -18,6 +18,21 @@ PIP will handle all dependencies automatically for us and you will always instal
 
 To install from source, follow the instructions in the [contribution guidelines](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md).
 
+## Installing GPU support
+
+In order to install and run the GPU supported simulators, you need CUDA&reg; 10.2 previously installed.
+CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA&reg; installation procedure in the NVIDIA&reg; [web](https://www.nvidia.com/drivers).
+
+If you want to install our GPU supported simulators, you have to install this other package:
+
+```bash
+pip install qiskit-aer-gpu
+```
+
+This will overwrite your current `qiskit-aer` package installation giving you
+the same functionality found in the canonical `qiskit-aer` package, plus the
+ability to run the GPU supported simulators: statevector, density matrix, and unitary.
+
 ## Simulating your first quantum program with Qiskit Aer
 Now that you have Qiskit Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
 
