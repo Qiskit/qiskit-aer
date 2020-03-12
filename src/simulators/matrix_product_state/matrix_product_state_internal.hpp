@@ -87,6 +87,10 @@ public:
     return(num_qubits_ == 0);
   }
 
+  /////////////////////////////////////////////////////////////////
+  // API functions
+  /////////////////////////////////////////////////////////////////
+
   //----------------------------------------------------------------
   // Function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes.
@@ -107,16 +111,11 @@ public:
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B);
 
-  // if swap_gate==true, this is an actual swap_gate of the circuit
-  // if swap_gate==false, this is an internal swap, necessary for
-  // some internal algorithm
-  void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
-			  const cmatrix_t &mat);
+
   void apply_ccx(const reg_t &qubits);  
-  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat);
 
@@ -125,20 +124,9 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
-  // apply_matrix for more than 2 qubits
-  void apply_multi_qubit_gate(const reg_t &qubits,
-			      const cmatrix_t &mat);
-
-  // The following two are helper functions for apply_multi_qubit_gate
-  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
-			      const cmatrix_t &mat);
-  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
-				     const cmatrix_t &mat);
-
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -181,31 +169,10 @@ public:
   // Function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------
-  virtual std::ostream&  print(std::ostream& out) const;
+  virtual std::ostream&  print(std::ostream& out);
 
-   //----------------------------------------------------------------
-   // Function name: get_matrices_sizes
-   // Description: returns the size of the inner matrices of the MPS
-   //----------------------------------------------------------------
-  std::vector<reg_t> get_matrices_sizes() const;
-
-  //----------------------------------------------------------------
-  // Function name: state_vec_as_MPS
-  // Description: Computes the state vector of a subset of qubits.
-  // 	The regular use is with for all qubits. in this case the output is
-  //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
-  //  	If not used for all qubits,	the result tensor will contain a
-  //   	2^(distance between edges) vector of matrices of some size. This
-  //	method is used for computing expectation value of a subset of qubits.
-  // Parameters: none.
-  // Returns: none.
-  //----------------------------------------------------------------
-  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
-
-  // This function computes the state vector for all the consecutive qubits 
-  // between first_index and last_index
-  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector(cvector_t &state_vector) const;
+
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   static void set_omp_threads(uint_t threads) {
@@ -243,9 +210,6 @@ public:
     return enable_gate_opt_;
   }
 
-  //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
-  //           cout << " store_measure not supported yet" <<endl;}
-
   double norm(const uint_t qubit, cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
@@ -260,9 +224,6 @@ public:
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
 
-  uint_t apply_measure(uint_t qubit,
-		       RngEngine &rng);
-
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector
   // Description: This function receives as input a state_vector and
@@ -272,32 +233,81 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
-    cmatrix_t statevector_as_matrix(1, state_vector.size());
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
 
-#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
-        for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-	  statevector_as_matrix(0, i) = state_vector[i];
-	}
-    
-    initialize_from_matrix(num_qubits, statevector_as_matrix);
-  }
-  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
-
-protected:
+private:
 
   MPS_Tensor& get_qubit(uint_t index) {
     
     return q_reg_[qubit_pos_[index]];
   }
-  uint_t get_qubit_index(uint_t index) {
+  uint_t get_qubit_index(uint_t index) const {
     //std::cout << "get_qubit, index = " << index << ", returning " << qubit_pos_[index] << std::endl;
     return qubit_pos_[index];
   }
+  reg_t get_internal_qubits(const reg_t &qubits) const;
 
-  //  uint_t get_lambda(uint_t index) {
-  //    return lambda_reg_[qubit_pos_[index]];
-  //  }
+  // The follownig methods are the internalversions of the api functions.
+  // They are each called from the corresponding api function with
+  // the internal ordering of the qubits - using get_internal_qubits
+
+  // if swap_gate==true, this is an actual swap_gate of the circuit
+  // if swap_gate==false, this is an internal swap, necessary for
+  // some internal algorithm
+  void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
+			  Gates gate_type, const cmatrix_t &mat);
+  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
+  void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat);
+  // apply_matrix for more than 2 qubits
+  void apply_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+
+  // The following two are helper functions for apply_multi_qubit_gate
+  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
+				     const cmatrix_t &mat);
+  cmatrix_t density_matrix_internal(const reg_t &qubits) const;
+
+  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+
+  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
+  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const;
+
+   //----------------------------------------------------------------
+   // Function name: get_matrices_sizes
+   // Description: returns the size of the inner matrices of the MPS
+   //----------------------------------------------------------------
+  std::vector<reg_t> get_matrices_sizes() const;
+
+  //----------------------------------------------------------------
+  // Function name: state_vec_as_MPS
+  // Description: Computes the state vector of a subset of qubits.
+  // 	The regular use is with for all qubits. in this case the output is
+  //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
+  //  	If not used for all qubits,	the result tensor will contain a
+  //   	2^(distance between edges) vector of matrices of some size. This
+  //	method is used for computing expectation value of a subset of qubits.
+  // Parameters: none.
+  // Returns: none.
+  //----------------------------------------------------------------
+  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
+
+  // This function computes the state vector for all the consecutive qubits 
+  // between first_index and last_index
+  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
+  void full_state_vector_internal(cvector_t &state_vector, 
+			 const reg_t &qubits) const;
+
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
+
+  reg_t apply_measure_internal(const reg_t &qubits,
+			       RngEngine &rng);
+   uint_t apply_measure(uint_t qubit, 
+			  RngEngine &rng);
+
+  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
   //----------------------------------------------------------------
   // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
@@ -425,7 +435,7 @@ inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
 }
 
 inline std::ostream&
-operator <<(std::ostream& out, const MPS& mps)
+operator <<(std::ostream& out, MPS& mps)
 {
   return mps.print(out);
 }
