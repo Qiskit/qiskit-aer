@@ -283,10 +283,6 @@ void MPS::initialize(uint_t num_qubits)
   qubit_pos_.clear();
   qubit_pos_.resize(num_qubits);
   std::iota(qubit_pos_.begin(), qubit_pos_.end(), 0);
-  std::cout << "in intiatlize, qubit_pos_ = ";
-  for (uint i=0; i<num_qubits; i++)
-    std::cout << qubit_pos_[i] << " ";
-  std::cout << std::endl;
 }
 
 void MPS::initialize(const MPS &other){
@@ -358,10 +354,8 @@ void MPS::apply_swap(uint_t index_A, uint_t index_B) {
 
 void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate)
 {
-  std::cout <<"in apply_swap_internal(" << index_A<<", " << index_B<<")" << std::endl;
   uint_t actual_A = index_A;
   uint_t actual_B = index_B;
-  //  std::cout << "actual_A = " << actual_A << " actual_B = " <<actual_B << std::endl;
   if(actual_A > actual_B) {
     std::swap(actual_A, actual_B);
   }
@@ -400,12 +394,6 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate)
 	
 	if (!swap_gate) {
 	  std::swap(qubit_pos_[index_A], qubit_pos_[index_B]);
-
-	  //std::cout << "qubit_pos_ = ";
-	  //for (uint i=0; i<num_qubits_; i++)
-	  //  std::cout << qubit_pos_[i] << " ";
-	  //std::cout << std::endl;
-
 	}
 }
 
@@ -453,11 +441,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   q_reg_[A+1].mul_Gamma_by_right_Lambda(right_lambda);
   MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
   
-  std::cout << "before gate, qubit_pos_ = ";
-  for (uint i=0; i<num_qubits_; i++)
-    std::cout << qubit_pos_[i] << " ";
-  std::cout << std::endl;
-
   switch (gate_type) {
   case cx:
     temp.apply_cnot(swapped);
@@ -530,10 +513,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+2));
-  std::cout << "before gate ccx, qubit_pos_ = ";
-  for (uint i=0; i<num_qubits_; i++)
-    std::cout << qubit_pos_[i] << " ";
-  std::cout << std::endl;
+
   // apply the gate to sub_tensor
   switch (gate_type) {
   case mcx:
@@ -880,12 +860,12 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 double MPS::expectation_value(const reg_t &qubits, 
 			      const cmatrix_t &M) const {
     reg_t internal_qubits = get_internal_qubits(qubits);
-    return expectation_value_internal(internal_qubits, M);
+   double temp= expectation_value_internal(internal_qubits, M);
+   return temp;
 }
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
 				       const cmatrix_t &M) const {
-  std::cout << "in expval, qubits = " << qubits[0] << " " << qubits[1] << std::endl;
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
@@ -909,12 +889,12 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 
     rho = temp_MPS.density_matrix(target_qubits);
   }
-
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
   for (uint_t i = 0; i < M.GetRows(); i++)
     for (uint_t j = 0; j < M.GetRows(); j++)
       res += M(i,j)*rho(j,i);
+  // Trace(rho*M). not using methods for efficiency
   return real(res);
 }
 
