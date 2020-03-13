@@ -6,6 +6,7 @@ Qiskit Aer documentation
     :maxdepth: 2
 
     API Documentation <apidocs/aer>
+    Release Notes <release_notes>
 
 .. Hiding - Indices and tables
     :ref:`genindex`
