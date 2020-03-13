@@ -229,10 +229,6 @@ the following steps:
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
 
-## Installing Qiskit Terra from source
-Please see the [Installing Qiskit Terra from
-Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source)
-section of the Qiskit documentation.
 
 ## Install from Source
 
@@ -642,18 +638,15 @@ These are the flags:
     Default: No value
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA``
 
-
-
-
 ## Tests
 
-Almost every code contribution should be accompanied by it's corresponding set of tests.
-You won't probably hear complaints if there are too many tests in your PR :), but the other
-way around is unacceptable :(
-We have two types of tests in the codebase: Qiskit Terra integration tests and Standalone integration tests.
+Code contribution are expected to include tests that provide coverage for the
+changes being made.
 
-For Qiskit Terra integration tests, you first need to build and install the Qiskit python extension,
-and then run `unittest` Python framework.
+We have two types of tests in the codebase: Qiskit Terra integration tests and
+Standalone integration tests.
+
+For Qiskit Terra integration tests, you first need to build and install the Qiskit python extension, and then run `unittest` Python framework.
 
 ```
 qiskit-aer$ pip install .
@@ -663,6 +656,13 @@ qiskit-aer$ stestr run
 Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/MANUAL.html#).
 
 The integration tests for Qiskit python extension are included in: `test/terra`.
+
+## Platform support
+
+Bare in mind that every new feature/change needs to be compatible with all our
+supported platforms: Win64, MacOS (API Level >= 19) and Linux-x86_64. The
+Continuous Integration (CI) systems will run builds and pass all the
+corresponding tests to verify this compatibility.
 
 
 ## Debug
