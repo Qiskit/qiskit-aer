@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    This release was the first release where
+    `reno <https://docs.openstack.org/reno/latest/>` was used to write release
+    documentation.

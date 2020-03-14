@@ -52,7 +52,7 @@ public:
   ~MPS() {}
 
   //--------------------------------------------------------------------------
-  // function name: initialize
+  // Function name: initialize
   // Description: Initialize the MPS with some state.
   // 1.	Parameters: none. Initializes all qubits to |0>.
   // 2.	Parameters: const MPS &other - Copy another MPS
@@ -66,7 +66,7 @@ public:
   //void initialize(uint_t num_qubits, const cvector_t &vecState);
 
   //----------------------------------------------------------------
-  // function name: num_qubits
+  // Function name: num_qubits
   // Description: Get the number of qubits in the MPS
   // Parameters: none.
   // Returns: none.
@@ -74,7 +74,7 @@ public:
   uint_t num_qubits() const{return num_qubits_;}
 
   //----------------------------------------------------------------
-  // function name: set_num_qubits
+  // Function name: set_num_qubits
   // Description: Set the number of qubits in the MPS
   // Parameters: size_t num_qubits - number of qubits to set.
   // Returns: none.
@@ -88,7 +88,7 @@ public:
   }
 
   //----------------------------------------------------------------
-  // function name: apply_x,y,z,...
+  // Function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes.
   // Parameters: uint_t index of the qubit/qubits.
   // Returns: none.
@@ -120,6 +120,16 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
+  // apply_matrix for more than 2 qubits
+  void apply_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+
+  // The following two are helper functions for apply_multi_qubit_gate
+  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
+				     const cmatrix_t &mat);
+
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
@@ -146,30 +156,36 @@ public:
   complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
 
   //------------------------------------------------------------------
-  // function name: MPS_with_new_indices
+  // Function name: MPS_with_new_indices
   // Description: Creates a copy of *this where the indices of the
   //   selected qubits have been moved for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: new MPS.
+  // Returns: temp_MPS - the new MPS after reordering the qubits
+  //          sorted_qubits - the qubits, after sorting
+  //          centralized_qubits - the qubits, after sorting and centralizing
+  //          
   //----------------------------------------------------------------
-  void MPS_with_new_indices(const reg_t &qubits, MPS& temp_MPS,
-			    uint_t &front, uint_t &back) const;
+  void MPS_with_new_indices(const reg_t &qubits,
+			    reg_t &sorted_qubits,
+			    reg_t &centralized_qubits,
+			    MPS& temp_MPS) const;
+
 
   //----------------------------------------------------------------
-  // function name: print
+  // Function name: print
   // Description: prints the MPS
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
    //----------------------------------------------------------------
-   // function name: get_matrices_sizes
+   // Function name: get_matrices_sizes
    // Description: returns the size of the inner matrices of the MPS
    //----------------------------------------------------------------
   std::vector<reg_t> get_matrices_sizes() const;
 
   //----------------------------------------------------------------
-  // function name: state_vec_as_MPS
+  // Function name: state_vec_as_MPS
   // Description: Computes the state vector of a subset of qubits.
   // 	The regular use is with for all qubits. in this case the output is
   //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
@@ -187,27 +203,39 @@ public:
   void full_state_vector(cvector_t &state_vector) const;
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
-  //methods from qasm_controller that are not supported yet
-  void set_omp_threads(int threads) {
+  static void set_omp_threads(uint_t threads) {
     if (threads > 0)
       omp_threads_ = threads;
   }
-
-  void set_omp_threshold(int omp_qubit_threshold) {
+  static void set_omp_threshold(uint_t omp_qubit_threshold) {
     if (omp_qubit_threshold > 0)
       omp_threshold_ = omp_qubit_threshold;
   }
-
-  void set_json_chop_threshold(double json_chop_threshold) {
+  static void set_json_chop_threshold(double json_chop_threshold) {
     json_chop_threshold_ = json_chop_threshold;
   }
-
-  void set_sample_measure_index_size(int index_size){
+  static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }
+  static void set_enable_gate_opt(bool enable_gate_opt) {
+    enable_gate_opt_ = enable_gate_opt;
+  }
 
-  void enable_gate_opt() {
-    std::cout << "enable_gate_opt not supported yet" <<std::endl;
+  static uint_t get_omp_threads() {
+    return omp_threads_;
+  }
+  static uint_t get_omp_threshold() {
+    return omp_threshold_;
+  }
+  static double get_json_chop_threshold() {
+    return json_chop_threshold_;
+  }
+  static uint_t get_sample_measure_index_size(){
+    return sample_measure_index_size_;
+  }
+
+  static bool get_enable_gate_opt() {
+    return enable_gate_opt_;
   }
 
   //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
@@ -231,7 +259,7 @@ public:
 		       RngEngine &rng);
 
   //----------------------------------------------------------------
-  // function name: initialize_from_statevector
+  // Function name: initialize_from_statevector
   // Description: This function receives as input a state_vector and
   //      initializes the internal structures of the MPS according to its
   //      state.
@@ -241,17 +269,19 @@ public:
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
     cmatrix_t statevector_as_matrix(1, state_vector.size());
-#pragma omp parallel for
-    for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-      statevector_as_matrix(0, i) = state_vector[i];
-    }
+
+#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+        for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
+	  statevector_as_matrix(0, i) = state_vector[i];
+	}
+    
     initialize_from_matrix(num_qubits, statevector_as_matrix);
   }
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
 protected:
   //----------------------------------------------------------------
-  // function name: centralize_qubits
+  // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
@@ -266,21 +296,71 @@ protected:
 			 reg_t &new_qubits, bool &ordered);
 
   //----------------------------------------------------------------
-  // function name: centralize_and_sort_qubits
+  // Function name: centralize_and_sort_qubits
   // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
   //----------------------------------------------------------------
   void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
-			 reg_t &new_qubits, bool &ordered);
+			 reg_t &centralized_qubits, bool &ordered);
 
   //----------------------------------------------------------------
-  // function name: move_qubits_to_original_location
+  // Function name: find_centralized_indices
+  // Description: Performs the first part of centralize_qubits, i.e., returns the
+  //    new target indices, but does not actually change the MPS structure.
+  //----------------------------------------------------------------
+  void find_centralized_indices(const reg_t &qubits, 
+				reg_t &sorted_indices,
+			        reg_t &centralized_qubits, 
+			        bool & ordered) const;
+
+  //----------------------------------------------------------------
+  // Function name: move_qubits_to_centralized_indices
+  // Description: Performs the second part of centralize_qubits, i.e., moves the
+  // qubits to the centralized indices
+  //----------------------------------------------------------------
+  void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
+					  const reg_t &centralized_qubits);
+
+  //----------------------------------------------------------------
+  // Function name: move_qubits_to_right_end
+  // Description: This function moves qubits from the default (sorted) position 
+  //    to the 'right_end', in the order specified in qubits.
+  //    right_end is defined as the position of the largest qubit i 'qubits',
+  //    because this will ensure we only move qubits to the right 
+  // Example: num_qubits_=8, 'qubits'= [5, 1, 2], then at the end of the function,
+  //          actual_indices=[0, 3, 4, 2, 1, 5, 6, 7], target_qubits=[3, 4, 5]
+  // Parameters: Input: qubits - the qubits we wish to move
+  //                    target_qubits - the new location of qubits
+  //                    actual_indices - the final location of all the qubits in the MPS
+  // Returns: right_end - the rightmost position of 'qubits'.
+  //----------------------------------------------------------------
+  uint_t move_qubits_to_right_end(const reg_t &qubits,
+				 reg_t &target_qubits,
+				 reg_t &actual_indices);
+
+//----------------------------------------------------------------
+  // Function name: move_qubits_back_from_right_end
+  // Description: This function moves qubits back to their original position after
+  //              move_qubits_to_right_end
+  // Parameters: Input/output: qubits - the qubits we wish to move
+  //                    actual_indices - the actual location of qubits, returned from 
+  //                    move_qubits_to_right_end, and updated here.
+  //                    right_end - location of the rightmost qubit out
+  //                                of 'qubits'
+  // Returns: none.
+  //----------------------------------------------------------------
+  void move_qubits_back_from_right_end(const reg_t &qubits,
+				       reg_t &actual_indices,
+				       uint_t right_end);
+
+  //----------------------------------------------------------------
+  // Function name: move_qubits_to_original_location
   // Description: This function reverses the effect of centralize_qubits.
   //      It returns the qubits that were previously centralized, to their original positions.
   // Parameters: Input: first - the index of the first qubit that was moved
   //                    original_qubits - the subset of qubits that were moved
   //                    sorted_qubits - the original_qubits in sorted order
-  //             Returns: the MPS (this) where the qubits have been moved back to their original
-  //                 position.
+  // Effect: the MPS (this) where the qubits have been moved back to their original
+  //         position.
   // Returns: none.
   //----------------------------------------------------------------
   void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
@@ -288,7 +368,7 @@ protected:
 
   //----------------------------------------------------------------
 
-  // function name: change_position
+  // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
   //   for expectation value calculations. Similar to swap, but doesn't
   //   move qubit in dst back to src, therefore being used only on the temp MPS
@@ -305,11 +385,12 @@ protected:
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
-  uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
-  int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
-  double json_chop_threshold_ = 1E-8;  // Threshold for choping small values
+  static uint_t omp_threads_;     // Disable multithreading by default
+  static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
+  static int sample_measure_index_size_; // Sample measure indexing qubit size
+  static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
+  static bool enable_gate_opt_;      // allow optimizations on gates
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
