@@ -507,7 +507,6 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
       expval += coeff * one_expval;
     }
   }
-
   // add to snapshot
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
@@ -537,6 +536,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   ExperimentData &data,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
+  std::cout << "in probs" <<std::endl;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
   bool variance = type == SnapshotDataType::average_var;
@@ -602,7 +602,7 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::swap:
-      qreg_.apply_swap(op.qubits[0], op.qubits[1]);
+      qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
     case Gates::cz:
       qreg_.apply_cz(op.qubits[0], op.qubits[1]);

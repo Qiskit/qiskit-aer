@@ -98,7 +98,15 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
   void apply_h(uint_t index);
-  void apply_x(uint_t index){get_qubit(index).apply_x();}
+  void apply_x(uint_t index){
+  std::cout << "before apply_x, qubit_location_ = ";
+  for (uint_t i=0; i<num_qubits_; i++)
+    std::cout << qubit_location_[i] << " ";
+
+  std::cout << std::endl;
+  std::cout << "apply x to qubit " << get_qubit_index(index);
+  get_qubit(index).apply_x();}
+
   void apply_y(uint_t index){get_qubit(index).apply_y();}
   void apply_z(uint_t index){get_qubit(index).apply_z();}
   void apply_s(uint_t index){get_qubit(index).apply_s();}
@@ -109,7 +117,7 @@ public:
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);
-  void apply_swap(uint_t index_A, uint_t index_B);
+  void apply_swap(uint_t index_A, uint_t index_B, bool swap_gate);
 
 
   void apply_cz(uint_t index_A, uint_t index_B);
@@ -239,15 +247,16 @@ private:
 
   MPS_Tensor& get_qubit(uint_t index) {
     
-    return q_reg_[qubit_pos_[index]];
+    return q_reg_[qubit_location_[index]];
   }
   uint_t get_qubit_index(uint_t index) const {
-    //std::cout << "get_qubit, index = " << index << ", returning " << qubit_pos_[index] << std::endl;
-    return qubit_pos_[index];
+    for (uint_t i=0; i<num_qubits_; i++)
+      if (qubit_order_[i] == index)
+	return i;
   }
   reg_t get_internal_qubits(const reg_t &qubits) const;
 
-  // The follownig methods are the internalversions of the api functions.
+  // The following methods are the internal versions of the api functions.
   // They are each called from the corresponding api function with
   // the internal ordering of the qubits - using get_internal_qubits
 
@@ -410,8 +419,14 @@ private:
   uint_t num_qubits_;
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
-  reg_t qubit_pos_;  // contains a mapping between the qubit index
-                    // and its actual position in q_reg_
+
+  // The following 2 vectors store the current positioning of the qubits,
+  // for example: starting position qubit_order_=qubit_location_=01234
+  // cx(0,3) -> qubit_order_=qubit_location_=31204
+  // cx(0,2) -> qubit_order_=31024, qubit_location_=21304
+  reg_t qubit_order_;  //contains the current ordering of the qubits
+  reg_t qubit_location_; // qubit_location_[i] = the location of 
+                         // qubit i in the vector qubit_pos_;
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
