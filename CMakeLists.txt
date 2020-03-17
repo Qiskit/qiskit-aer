@@ -105,6 +105,8 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 	enable_cxx_compiler_flag_if_supported("-Wshadow")
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+	enable_cxx_compiler_flag_if_supported("-mavx2")
+	enable_cxx_compiler_flag_if_supported("-mfma")
 endif()
 
 if(STATIC_LINKING)

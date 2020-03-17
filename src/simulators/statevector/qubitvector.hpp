@@ -29,6 +29,9 @@
 #include <stdexcept>
 
 #include "framework/json.hpp"
+#ifdef __AVX2__
+#include "qvintrin_avx.hpp"
+#endif
 
 namespace QV {
 
@@ -394,6 +397,10 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
+#ifdef __AVX2__
+  void enable_avx(bool use) { use_avx_ = use;}
+#endif
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -412,6 +419,9 @@ protected:
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
+#ifdef __AVX2__
+  bool use_avx_ = true;
+#endif
 
   //-----------------------------------------------------------------------
   // Error Messages
@@ -797,8 +807,15 @@ void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
   }
 
   // Allocate memory for new vector
-  if (data_ == nullptr)
-    data_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
+  if (data_ == nullptr) {
+#ifndef _WIN64
+    void* data;
+    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size_);
+    data_ = reinterpret_cast<std::complex<data_t>*>(data);
+#else
+    data_ = reinterpret_cast<std::complex<data_t>*>(_aligned_malloc(sizeof(std::complex<data_t>) * data_size_, 64));
+#endif
+  }
 }
 
 template <typename data_t>
@@ -1107,6 +1124,14 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
   check_vector(mat, 2 * N);
   #endif
 
+#ifdef __AVX2__
+  if (use_avx_ &&
+      apply_matrix_avx<data_t>(//
+          data_, data_size_, qubits, (void*) convert(mat).data(), //
+          (num_qubits_ > omp_threshold_ && omp_threads_ > 1)? omp_threads_: 1 )) {
+    return;
+  }
+#endif
   // Static array optimized lambda functions
   switch (N) {
     case 1:
@@ -1139,9 +1164,10 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
           data_[ii] = 0.;
         }
         // update state vector
-        for (size_t i = 0; i < 8; i++)
+        for (size_t i = 0; i < 8; i++) {
           for (size_t j = 0; j < 8; j++)
             data_[inds[i]] += _mat[i + 8 * j] * cache[j];
+        }
       };
       apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), convert(mat));
       return;
@@ -1671,6 +1697,14 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
     apply_lambda(lambda, qubits, convert(mat));
     return;
   }
+#ifdef __AVX2__
+  if (use_avx_ &&
+      apply_matrix_avx<data_t>(//
+          data_, data_size_, qubits, (void*) convert(mat).data(), //
+          (num_qubits_ > omp_threshold_ && omp_threads_ > 1)? omp_threads_: 1 )) {
+    return;
+  }
+#endif
   // Otherwise general single-qubit matrix multiplication
   auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
     const auto cache = data_[inds[0]];
