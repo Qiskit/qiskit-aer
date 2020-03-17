@@ -550,7 +550,21 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
-  return pow(cost_factor_, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+
+  switch (fusion_qubits.size()) {
+  case 1:
+    return cost_factor_;
+  case 2:
+    return cost_factor_;
+  case 3:
+    return cost_factor_ * 1.1;
+  case 4:
+    return cost_factor_ * 3;
+  default:
+    return pow(cost_factor_, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+  }
+
+
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
