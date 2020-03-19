@@ -51,13 +51,15 @@ from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
 def pulse_controller(qobj, system_model, backend_options):
     """Setup and run simulation, then return results
     """
+
     out = PulseSimDescription()
 
     if backend_options is None:
         backend_options = {}
 
     """ Note: the overriding behaviour of backend_options is currently
-    broken. I think this should be handled later."""
+    broken, needs to be fixed. Maybe write a function called backend_options_override
+    that gets called every time a parameter gets set"""
     # override anything in qobj_config that is present in backend_options
     #for key in backend_options.keys():
     #    qobj_config[key] = backend_options[key]
@@ -119,7 +121,6 @@ def pulse_controller(qobj, system_model, backend_options):
     # ### Parse qobj_config settings
     # ###############################
 
-    # This should just depend on the qobj, or at most, also on dt
     digested_qobj = digest_pulse_qobj(qobj, out.channels, out.dt, qubit_list)
 
     # does this even need to be extracted here, or can the relevant info just be passed to the
@@ -137,12 +138,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     out.experiments = digested_qobj.experiments
 
-    # ###############################
-    # ### Handle qubit_lo_freq
-    # ###############################
-
-    # First, get it from the qobj (if it wasn't specified in qobj,
-    # this will be None)
+    # Handle qubit_lo_freq
     qubit_lo_freq = digested_qobj.qubit_lo_freq
 
     # if it wasn't specified in the PulseQobj, draw from system_model

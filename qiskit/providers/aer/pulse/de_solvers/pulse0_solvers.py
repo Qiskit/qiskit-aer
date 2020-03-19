@@ -62,8 +62,7 @@ def unitary_evolution(exp,
 
     num_channels = len(exp['channels'])
 
-    rhs_func = global_data['rhs_func']
-    ODE = ode(rhs_func)
+    ODE = ode(global_data['rhs_func'])
 
     # Don't know how to use OrderedDict type on Cython, so transforming it to dict
     channels = dict(channels)
@@ -110,7 +109,6 @@ def monte_carlo_evolution(seed, exp, op_system):
     global_data = op_system.global_data
     ode_options = op_system.ode_options
 
-    cy_rhs_func = global_data['rhs_func']
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
     snapshots = []
@@ -133,7 +131,7 @@ def monte_carlo_evolution(seed, exp, op_system):
     # first rand is collapse norm, second is which operator
     rand_vals = rng.rand(2)
 
-    ODE = ode(cy_rhs_func)
+    ODE = ode(global_data['rhs_func'])
 
     # Don't know how to use OrderedDict type on Cython, so transforming it to dict
     channels = dict(op_system.channels)
