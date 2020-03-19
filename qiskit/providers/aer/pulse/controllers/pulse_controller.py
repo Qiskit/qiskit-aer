@@ -40,9 +40,8 @@ from qiskit.providers.aer.aererror import AerError
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.pulse0_solvers import unitary_evolution, monte_carlo_evolution
-from ..de_solvers.pulse0_solver_options import OPoptions
+from ..de_solvers.pulse_de_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from ..de_solvers.numeric_integrator_wrapper import td_ode_rhs_static
 
 # remaining pulse0 imports
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
@@ -237,8 +236,6 @@ def run_unitary_experiments(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-    # Load RHS function
-    op_system.global_data['rhs_func'] = td_ode_rhs_static
 
     # setup seeds array
     if op_system.global_data['seed']:
@@ -316,8 +313,6 @@ def run_monte_carlo_experiments(op_system):
 
     # build Hamiltonian data structures
     op_data_config(op_system)
-    # Load RHS function
-    op_system.global_data['rhs_func'] = td_ode_rhs_static
 
     # setup seeds array
     if op_system.global_data['seed']:

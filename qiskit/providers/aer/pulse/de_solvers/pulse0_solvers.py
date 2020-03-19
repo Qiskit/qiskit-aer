@@ -22,8 +22,7 @@ import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from .qiskit_zvode import qiskit_zvode
-from .pulse_de_solver import construct_zvode_solver
+from .pulse_de_solver import construct_pulse_zvode_solver
 
 # These pulse0 imports are only used by the Monte-Carlo solver
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
@@ -48,7 +47,7 @@ def unitary_evolution(exp, op_system):
         Exception: Error in ODE solver.
     """
 
-    ODE = construct_zvode_solver(exp, op_system)
+    ODE = construct_pulse_zvode_solver(exp, op_system)
 
 
     tlist = exp['tlist']
@@ -102,7 +101,7 @@ def monte_carlo_evolution(seed, exp, op_system):
     cinds = np.arange(global_data['c_num'])
     n_dp = np.zeros(global_data['c_num'], dtype=float)
 
-    ODE = construct_zvode_solver(exp, op_system)
+    ODE = construct_pulse_zvode_solver(exp, op_system)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:

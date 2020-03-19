@@ -23,8 +23,9 @@
 import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
+from .numeric_integrator_wrapper import td_ode_rhs_static
 
-def construct_zvode_solver(exp, op_system):
+def construct_pulse_zvode_solver(exp, op_system):
     """
     get ode solver for a given experiment and op_system
     """
@@ -33,13 +34,12 @@ def construct_zvode_solver(exp, op_system):
     global_data = op_system.global_data
     ode_options = op_system.ode_options
     channels = dict(op_system.channels)
-    rhs_func = global_data['rhs_func']
 
     # Init register
     register = np.ones(global_data['n_registers'], dtype=np.uint8)
     num_channels = len(exp['channels'])
 
-    ODE = ode(global_data['rhs_func'])
+    ODE = ode(td_ode_rhs_static)
 
     ODE.set_f_params(global_data, exp, op_system.system, channels, register)
 
