@@ -69,72 +69,6 @@ def unitary_evolution(exp, op_system):
     return psi, ODE.t
 
 
-def unitary_evolution2(exp, op_system):
-    """
-    Calculates evolution when there is no noise,
-    or any measurements that are not at the end
-    of the experiment.
-
-    Args:
-        exp (dict): Dictionary of experimental pulse and fc
-        op_system (OPSystem): Global OpenPulse system settings
-
-    Returns:
-        array: Memory of shots.
-
-    Raises:
-        Exception: Error in ODE solver.
-    """
-
-    global_data = op_system.global_data
-    ode_options = op_system.ode_options
-    channel = dict(op_system.channels)
-
-
-    tlist = exp['tlist']
-
-    # Init register
-    # Not sure how this is being used
-    register = np.ones(global_data['n_registers'], dtype=np.uint8)
-
-    num_channels = len(exp['channels'])
-
-    ODE = ode(global_data['rhs_func'])
-
-    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
-
-    ODE._integrator = qiskit_zvode(method=ode_options.method,
-                                   order=ode_options.order,
-                                   atol=ode_options.atol,
-                                   rtol=ode_options.rtol,
-                                   nsteps=ode_options.nsteps,
-                                   first_step=ode_options.first_step,
-                                   min_step=ode_options.min_step,
-                                   max_step=ode_options.max_step
-                                   )
-
-    if not ODE._y:
-        ODE.t = 0.0
-        ODE._y = np.array([0.0], complex)
-    ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-
-    # Since all experiments are defined to start at zero time.
-    ODE.set_initial_value(global_data['initial_state'], 0)
-    for time in tlist[1:]:
-        ODE.integrate(time, step=0)
-        if ODE.successful():
-            psi = ODE.y / dznrm2(ODE.y)
-        else:
-            err_msg = 'ZVODE exited with status: %s' % ODE.get_return_code()
-            raise Exception(err_msg)
-
-
-    # apply final rotation to come out of rotating frame
-    psi_rot = np.exp(-1j * global_data['h_diag_elems'] * ODE.t)
-    psi *= psi_rot
-
-    return psi, ODE.t
-
 def monte_carlo_evolution(seed, exp, op_system):
     """
     Monte Carlo algorithm returning state-vector or expectation values
@@ -149,8 +83,6 @@ def monte_carlo_evolution(seed, exp, op_system):
     snapshots = []
     # Init memory
     memory = np.zeros((1, global_data['memory_slots']), dtype=np.uint8)
-    # Init register
-    register = np.zeros(global_data['n_registers'], dtype=np.uint8)
 
     # Get number of acquire, snapshots, and conditionals
     num_acq = len(exp['acquire'])
@@ -166,33 +98,11 @@ def monte_carlo_evolution(seed, exp, op_system):
     # first rand is collapse norm, second is which operator
     rand_vals = rng.rand(2)
 
-    ODE = ode(global_data['rhs_func'])
-
-    # Don't know how to use OrderedDict type on Cython, so transforming it to dict
-    channels = dict(op_system.channels)
-    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
-
-    # initialize ODE solver for RHS
-    ODE._integrator = qiskit_zvode(method=ode_options.method,
-                                   order=ode_options.order,
-                                   atol=ode_options.atol,
-                                   rtol=ode_options.rtol,
-                                   nsteps=ode_options.nsteps,
-                                   first_step=ode_options.first_step,
-                                   min_step=ode_options.min_step,
-                                   max_step=ode_options.max_step
-                                   )
-    # Forces complex ODE solving
-    if not any(ODE._y):
-        ODE.t = 0.0
-        ODE._y = np.array([0.0], complex)
-    ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-
-    ODE.set_initial_value(global_data['initial_state'], 0)
-
     # make array for collapse operator inds
     cinds = np.arange(global_data['c_num'])
     n_dp = np.zeros(global_data['c_num'], dtype=float)
+
+    ODE = construct_zvode_solver(exp, op_system)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:
