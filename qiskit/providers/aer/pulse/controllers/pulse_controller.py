@@ -39,8 +39,10 @@ from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from qiskit.providers.aer.aererror import AerError
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.pulse0_solvers import unitary_evolution, monte_carlo_evolution
+from .pulse0_solvers import unitary_evolution, monte_carlo_evolution
 from ..de_solvers.pulse_de_options import OPoptions
+from .unitary_controller import run_unitary_experiments
+from .mc_controller import run_monte_carlo_experiments
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 
 # remaining pulse0 imports
@@ -214,146 +216,14 @@ def pulse_controller(qobj, system_model, backend_options):
             out.can_sample = False
 
 
+    op_data_config(out)
+
     if out.can_sample == True:
         exp_results, exp_times = run_unitary_experiments(out)
     else:
         exp_results, exp_times = run_monte_carlo_experiments(out)
 
     return format_exp_results(exp_results, exp_times, out)
-
-def run_unitary_experiments(op_system):
-    """ Runs unitary experiments
-
-    - sets up everything needed for unitary simulator, which is just a de solver
-    """
-
-    if not op_system.initial_state.isket:
-        raise Exception("Initial state must be a state vector.")
-
-    # set num_cpus to the value given in settings if none in Options
-    if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = CPU_COUNT
-
-    # build Hamiltonian data structures
-    op_data_config(op_system)
-
-    # setup seeds array
-    if op_system.global_data['seed']:
-        prng = np.random.RandomState(op_system.global_data['seed'])
-    else:
-        prng = np.random.RandomState(
-            np.random.randint(np.iinfo(np.int32).max - 1))
-    for exp in op_system.experiments:
-        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
-
-
-    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
-
-
-    # set up full simulation, i.e. combining different (ideally modular) computational
-    # resources into one function
-    def full_simulation(exp, op_system):
-
-        psi, ode_t = unitary_evolution(exp, op_system)
-
-        # ###############
-        # do measurement
-        # ###############
-        rng = np.random.RandomState(exp['seed'])
-
-        shots = op_system.global_data['shots']
-        # Init memory
-        memory = np.zeros((shots, op_system.global_data['memory_slots']),
-                          dtype=np.uint8)
-
-        qubits = []
-        memory_slots = []
-        tlist = exp['tlist']
-        for acq in exp['acquire']:
-            if acq[0] == tlist[-1]:
-                qubits += list(acq[1])
-                memory_slots += list(acq[2])
-        qubits = np.array(qubits, dtype='uint32')
-        memory_slots = np.array(memory_slots, dtype='uint32')
-
-        probs = occ_probabilities(qubits, psi, op_system.global_data['measurement_ops'])
-        rand_vals = rng.rand(memory_slots.shape[0] * shots)
-        write_shots_memory(memory, memory_slots, probs, rand_vals)
-
-        return [memory, psi, ode_t]
-
-    # run simulation on each experiment in parallel
-    start = time.time()
-    exp_results = parallel_map(full_simulation,
-                               op_system.experiments,
-                               task_args=(op_system,),
-                               **map_kwargs
-                               )
-    end = time.time()
-    exp_times = (np.ones(len(op_system.experiments)) *
-                 (end - start) / len(op_system.experiments))
-
-
-    return exp_results, exp_times
-
-
-def run_monte_carlo_experiments(op_system):
-    """ Runs monte carlo experiments
-
-    Initially will have large overlap with run_unitary_experiments, but will refactor them
-    after getting it working
-    """
-
-    if not op_system.initial_state.isket:
-        raise Exception("Initial state must be a state vector.")
-
-    # set num_cpus to the value given in settings if none in Options
-    if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = CPU_COUNT
-
-    # build Hamiltonian data structures
-    op_data_config(op_system)
-
-    # setup seeds array
-    if op_system.global_data['seed']:
-        prng = np.random.RandomState(op_system.global_data['seed'])
-    else:
-        prng = np.random.RandomState(
-            np.random.randint(np.iinfo(np.int32).max - 1))
-    for exp in op_system.experiments:
-        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
-
-
-    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
-
-
-    # extract exactly the data required by the solver
-    #sim_data = sim_required_data(op_system.global_data)
-
-
-    exp_results = []
-    exp_times = []
-    for exp in op_system.experiments:
-        start = time.time()
-        rng = np.random.RandomState(exp['seed'])
-        seeds = rng.randint(np.iinfo(np.int32).max - 1,
-                            size=op_system.global_data['shots'])
-        exp_res = parallel_map(monte_carlo_evolution,
-                               seeds,
-                               task_args=(exp, op_system,),
-                               **map_kwargs)
-
-        # exp_results is a list for each shot
-        # so transform back to an array of shots
-        exp_res2 = []
-        for exp_shot in exp_res:
-            exp_res2.append(exp_shot[0].tolist())
-
-        end = time.time()
-        exp_times.append(end - start)
-        exp_results.append(np.array(exp_res2))
-
-    return exp_results, exp_times
 
 
 def op_data_config(op_system):

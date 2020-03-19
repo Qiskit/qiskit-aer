@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
-from .pulse_de_solver import construct_pulse_zvode_solver
+from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 
 # These pulse0 imports are only used by the Monte-Carlo solver
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
