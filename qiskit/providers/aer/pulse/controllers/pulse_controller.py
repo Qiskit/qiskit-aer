@@ -253,23 +253,11 @@ def run_unitary_experiments(op_system):
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
 
 
-    # extract exactly the data required by the solver
-    unitary_sim_data = sim_required_data(op_system.global_data)
-
     # set up full simulation, i.e. combining different (ideally modular) computational
     # resources into one function
     def full_simulation(exp, op_system):
 
-        # inserting op_system.global data for unitary_sim_data makes it work
-
-        # run DE portion of simulation
-        # would like to use unitary_sim_data here but I run into errors
-        # with the C++/Cython interfaces
-        psi, ode_t = unitary_evolution(exp,
-                                       unitary_sim_data,
-                                       op_system.ode_options,
-                                       system=op_system.system,
-                                       channels=op_system.channels)
+        psi, ode_t = unitary_evolution(exp, op_system)
 
         # ###############
         # do measurement
@@ -371,27 +359,6 @@ def run_monte_carlo_experiments(op_system):
         exp_results.append(np.array(exp_res2))
 
     return exp_results, exp_times
-
-
-def sim_required_data(global_data):
-    """
-    A temporary function to clearly isolate the pieces of global_data
-    potentially required by unitary_evolution
-    """
-
-    # keys required regardless of solver used
-    general_keys = ['string', 'initial_state', 'n_registers',
-                    'rhs_func', 'h_diag_elems']
-
-    # keys required for cpp solver
-    cpp_keys = ['freqs', 'pulse_array', 'pulse_indices',
-                'vars', 'vars_names', 'num_h_terms',
-                'h_ops_data', 'h_ops_ind', 'h_ops_ptr',
-                'h_diag_elems']
-
-    all_keys = general_keys + cpp_keys
-
-    return {key : global_data.get(key) for key in all_keys}
 
 
 def op_data_config(op_system):

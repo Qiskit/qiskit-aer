@@ -23,6 +23,7 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.linalg.blas import get_blas_funcs
 from .qiskit_zvode import qiskit_zvode
+from .pulse_de_solver import construct_zvode_solver
 
 # These pulse0 imports are only used by the Monte-Carlo solver
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
@@ -30,12 +31,7 @@ from ..qutip_extra_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
-
-def unitary_evolution(exp,
-                      sim_data,
-                      ode_options,
-                      system=None,
-                      channels=None):
+def unitary_evolution(exp, op_system):
     """
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
@@ -52,7 +48,48 @@ def unitary_evolution(exp,
         Exception: Error in ODE solver.
     """
 
-    global_data = sim_data
+    ODE = construct_zvode_solver(exp, op_system)
+
+
+    tlist = exp['tlist']
+
+    for time in tlist[1:]:
+        ODE.integrate(time, step=0)
+        if ODE.successful():
+            psi = ODE.y / dznrm2(ODE.y)
+        else:
+            err_msg = 'ZVODE exited with status: %s' % ODE.get_return_code()
+            raise Exception(err_msg)
+
+
+    # apply final rotation to come out of rotating frame
+    psi_rot = np.exp(-1j * op_system.global_data['h_diag_elems'] * ODE.t)
+    psi *= psi_rot
+
+    return psi, ODE.t
+
+
+def unitary_evolution2(exp, op_system):
+    """
+    Calculates evolution when there is no noise,
+    or any measurements that are not at the end
+    of the experiment.
+
+    Args:
+        exp (dict): Dictionary of experimental pulse and fc
+        op_system (OPSystem): Global OpenPulse system settings
+
+    Returns:
+        array: Memory of shots.
+
+    Raises:
+        Exception: Error in ODE solver.
+    """
+
+    global_data = op_system.global_data
+    ode_options = op_system.ode_options
+    channel = dict(op_system.channels)
+
 
     tlist = exp['tlist']
 
@@ -64,19 +101,17 @@ def unitary_evolution(exp,
 
     ODE = ode(global_data['rhs_func'])
 
-    # Don't know how to use OrderedDict type on Cython, so transforming it to dict
-    channels = dict(channels)
-    ODE.set_f_params(global_data, exp, system, channels, register)
+    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
 
-    ODE.set_integrator('zvode',
-                       method=ode_options.method,
-                       order=ode_options.order,
-                       atol=ode_options.atol,
-                       rtol=ode_options.rtol,
-                       nsteps=ode_options.nsteps,
-                       first_step=ode_options.first_step,
-                       min_step=ode_options.min_step,
-                       max_step=ode_options.max_step)
+    ODE._integrator = qiskit_zvode(method=ode_options.method,
+                                   order=ode_options.order,
+                                   atol=ode_options.atol,
+                                   rtol=ode_options.rtol,
+                                   nsteps=ode_options.nsteps,
+                                   first_step=ode_options.first_step,
+                                   min_step=ode_options.min_step,
+                                   max_step=ode_options.max_step
+                                   )
 
     if not ODE._y:
         ODE.t = 0.0
