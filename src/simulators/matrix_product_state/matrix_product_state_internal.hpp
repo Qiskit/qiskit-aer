@@ -255,7 +255,8 @@ private:
 	return i;
   }
   reg_t get_internal_qubits(const reg_t &qubits) const;
-
+  uint_t get_right_qubit_index(uint_t index) const;
+  uint_t get_left_qubit_index(uint_t index) const;
   // The following methods are the internal versions of the api functions.
   // They are each called from the corresponding api function with
   // the internal ordering of the qubits - using get_internal_qubits
@@ -311,8 +312,8 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  reg_t apply_measure_internal(const reg_t &qubits,
-			       RngEngine &rng);
+  void apply_measure_internal(const reg_t &qubits,
+			      RngEngine &rng, reg_t &outcome_vector_internal);
    uint_t apply_measure(uint_t qubit, 
 			  RngEngine &rng);
 

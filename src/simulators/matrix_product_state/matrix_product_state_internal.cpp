@@ -44,7 +44,8 @@ static const cmatrix_t one_measure =
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
-  void print_array(std::string name, const reg_t &array) {
+  template <class T>
+  void print_array(std::string name, const std::vector<T> &array) {
   std::cout <<name << " ";
   for (uint_t i=0; i<array.size(); i++)
     std::cout << array[i] << " ";
@@ -310,6 +311,18 @@ reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
   return internal_qubits;
 }
 
+uint_t MPS::get_right_qubit_index(uint_t index) const {
+  uint_t this_index = get_qubit_index(index);
+  return qubit_order_[this_index+1];
+}
+
+uint_t MPS::get_left_qubit_index(uint_t index) const {
+  uint_t this_index = get_qubit_index(index);
+  return qubit_order_[this_index-1];
+}
+
+
+  
 void MPS::apply_h(uint_t index) 
 {
   cmatrix_t h_matrix = AER::Utils::Matrix::H;
@@ -339,7 +352,7 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
   std::cout << "apply_cnot to " <<get_qubit_index(index_A)<< " and "<< get_qubit_index(index_B) <<std::endl;
   apply_2_qubit_gate(get_qubit_index(index_A), 
 		     get_qubit_index(index_B), cx, cmatrix_t(1));
-  std::cout << "end apply_cnot" <<std::endl;
+  std::cout << "end apply_cnot" <<std::endl<<std::endl;
 }
 
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
@@ -413,18 +426,10 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
 	  std::cout << "actual_A = " << actual_A << std::endl;
 	  std::cout << "actual_B = " << actual_B << std::endl;
 	  //std::cout <<"before: qubit_order["<<index_A<<"]="<<qubit_order_[index_A]<<std::endl;
-	  std::cout <<"before: qubit_location["<<actual_A<<"]="<<qubit_location_[actual_A]<<std::endl;
-std::cout <<"before: qubit_location["<<actual_B<<"]="<<qubit_location_[actual_B]<<std::endl;
-	  print_array("qubit_location_", qubit_location_);
 	  std::cout <<"qubit_order["<<index_B<<"]="<<qubit_order_[index_B]<<std::endl;
 	  std::swap(qubit_order_[index_A], qubit_order_[index_B]);
 
-	  //qubit_location_[get_qubit_index(actual_A)]++;
-	  //qubit_location_[get_qubit_index(actual_B)]--;
-
-//  std::cout <<"after: qubit_pos["<<index_A<<"]="<<qubit_pos_[index_A]<<std::endl;
-//std::cout <<"qubit_pos["<<index_B<<"]="<<qubit_pos_[index_B]<<std::endl;
-   }
+	}
   std::cout << "after swap..., qubit_order_ = ";
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
@@ -446,7 +451,7 @@ std::cout <<"before: qubit_location["<<actual_B<<"]="<<qubit_location_[actual_B]
 //-------------------------------------------------------------------------
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat)
 {
-  std::cout <<"starting cx " << index_A << " " << index_B<< std::endl;
+  std::cout <<"starting 2_qubit_gate " << index_A << " " << index_B<< std::endl;
   // We first move the two qubits to be in consecutive positions
   // If index_B > index_A, we move the qubit at index_B to index_A+1
   // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
@@ -583,8 +588,9 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     q_reg_[first+2].div_Gamma_by_right_Lambda(lambda_reg_[first+2]);
 
   // This is the reverse of centralize_qubits which we did at the beginning
-  if (!ordered)
+  /*  if (!ordered)
     move_qubits_to_original_location(first, qubits, qubits);
+  */
 }
 
 void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) {
@@ -592,20 +598,14 @@ void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) {
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
   std::cout << std::endl;
-  std::cout <<"qubit_location_ =" ;
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " "; 
-  std::cout << std::endl;
+
   reg_t internal_qubits = get_internal_qubits(qubits);
   apply_matrix_internal(internal_qubits, mat);
   std::cout << "after apply_matrix, qubit_order_ = ";
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
   std::cout << std::endl;
-  std::cout <<"qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
-  std::cout << std::endl;
+
 }
 
 void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat) 
@@ -825,10 +825,7 @@ uint_t MPS::move_qubits_to_right_end(const reg_t &qubits,
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
   std::cout << std::endl;
-  std::cout <<"qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
-  std::cout << std::endl;
+
   return right_end;
 }
 
@@ -855,10 +852,6 @@ void MPS::move_qubits_back_from_right_end(const reg_t &qubits,
   std::cout << "after move_back, qubit_order_ = ";
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
-  std::cout << std::endl;
-  std::cout <<"qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
   std::cout << std::endl;
 }
 
@@ -1157,6 +1150,9 @@ MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) const {
   bool ordered = true;
   reg_t new_qubits;
   temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
+  std::cout << "in state_vec_as_MPS" << std::endl;
+  print_array("qubits", qubits);
+  print_array("new_qubits", new_qubits);
   return temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 }
 
@@ -1179,7 +1175,7 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	}
 	// now temp is a tensor of 2^n matrices of size 1X1
 	temp.mul_Gamma_by_right_Lambda(right_lambda);
-
+	temp.print(std::cout);
 	return temp;
 }
 
@@ -1188,10 +1184,7 @@ void MPS::full_state_vector(cvector_t& statevector) const {
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
   std::cout << std::endl;
-  std::cout <<"qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
-  std::cout << std::endl;
+
 
   reg_t qubits(num_qubits_);
   std::iota( std::begin(qubits), std::end(qubits), 0);
@@ -1202,41 +1195,35 @@ void MPS::full_state_vector(cvector_t& statevector) const {
   for (uint_t i=0; i<num_qubits_; i++)
     std::cout << qubit_order_[i] << " ";
   std::cout << std::endl;
-  std::cout <<"qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
-  std::cout << std::endl;
 }
 
 void MPS::full_state_vector_internal(cvector_t& statevector,
 				     const reg_t &qubits) const
 {
+  // mps_vec contains the state vector with the qubits in ascending order
   MPS_Tensor mps_vec = state_vec_as_MPS(qubits);
-  uint_t length = 1ULL << num_qubits_;   // length = pow(2, num_qubits_)
-  statevector.resize(length);
 
+  uint_t num_qubits = qubits.size();
+  uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
+  statevector.resize(length);
+  // statevector is constructed in ascending order
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    statevector[i] = mps_vec.get_data(reverse_bits(i, num_qubits_))(0,0);
+    statevector[i] = mps_vec.get_data(i)(0,0);
   }
+  print_array("statevector", statevector);
+  cvector_t temp_statevector(length);
+  //temp_statevector will contain the statevector in the ordering define in "qubits"
+  reorder_all_qubits(statevector, qubits, temp_statevector);
 
-#ifdef DEBUG
-  std::cout << *this;
-#endif
+  // reverse to be consistent with qasm ordering
+  statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
+
 void MPS::get_probabilities_vector(rvector_t& probvector, 			       const reg_t &qubits) const {
   print_array("qubits", qubits);
   reg_t internal_qubits = get_internal_qubits(qubits);
   print_array("internal_qubits ", internal_qubits);
-  /*reg_t order(qubits.size());
-  for (uint_t i=0; i<qubits.size(); i++) {
-    for (uint_t j=i; j<qubits.size(); j++) {
-      if (qubit_order_[j] == i) {
-	order[i] = j;
-	break;
-      }
-      }
-  print_array("order", order);*/
   get_probabilities_vector_internal(probvector, internal_qubits);
   std::cout <<"end prob"<<std::endl<<std::endl;
 }
@@ -1254,8 +1241,9 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
   // reorder the probabilities according to the specification in 'qubits'
   rvector_t temp_probvector(ordered_probvector.size()); 
-  reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
 
+  reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
+  print_array("temp_probvector", temp_probvector);
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
@@ -1263,18 +1251,25 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  return apply_measure_internal(internal_qubits, rng);
+  std::cout << " starting apply_measure" << std::endl;
+  print_array("internal_qubits ", internal_qubits);
+  reg_t outcome_vector_internal(qubits.size()), outcome_vector(qubits.size());
+  apply_measure_internal(internal_qubits, rng, outcome_vector_internal);
+  print_array("outcome_internal", outcome_vector_internal);
+  for (uint_t i=0; i<qubits.size(); i++) {
+    std::cout << "i = " << i <<"get_qubit_index(i)" <<get_qubit_index(i) << std::endl;
+    outcome_vector[i] = outcome_vector_internal[get_qubit_index(i)];
+  }
+  print_array("outcome", outcome_vector);
+  return outcome_vector;
 }
 
-reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng) {
+void MPS::apply_measure_internal(const reg_t &qubits, 
+				  RngEngine &rng, reg_t &outcome_vector_internal) {
   reg_t qubits_to_update;
-  reg_t outcome_vector;
-  outcome_vector.resize(qubits.size());
   for (uint_t i=0; i<qubits.size(); i++) {
-    outcome_vector[i] = apply_measure(qubits[i], rng);
+    outcome_vector_internal[i] = apply_measure(qubits[i], rng);
   }
-  return outcome_vector;
 }
 
 uint_t MPS::apply_measure(uint_t qubit, 
@@ -1313,7 +1308,7 @@ uint_t MPS::apply_measure(uint_t qubit,
   }
 
   // and propagate the changes to all qubits to the left
-  for (int_t i=qubit; i>0; i--) {
+	 for (int_t i=qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i-1, i, id, cmatrix_t(1));
