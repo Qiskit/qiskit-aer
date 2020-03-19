@@ -79,7 +79,6 @@ cdef void raise_error_CSR(int E, CSR_Matrix * C = NULL):
     else:
         raise Exception('Error in Cython code.')
 
-
 cdef inline int int_min(int a, int b) nogil:
     return b if b < a else a
 
@@ -178,7 +177,6 @@ cdef void free_CSR(CSR_Matrix * mat):
     else:
         raise_error_CSR(-2)
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void shorten_CSR(CSR_Matrix * mat, int N):
@@ -265,4 +263,3 @@ cdef void sort_indices(CSR_Matrix * mat):
         for jj in range(length):
             mat.data[row_start+jj] = pairs[jj].data
             mat.indices[row_start+jj] = pairs[jj].ind
-

@@ -47,4 +47,3 @@ cpdef cy_expect_psi_csr(complex[::1] data,
                         int[::1] ptr,
                         complex[::1] vec,
                         bool isherm)
-

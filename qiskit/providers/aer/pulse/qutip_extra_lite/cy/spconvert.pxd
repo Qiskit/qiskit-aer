@@ -33,15 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-cdef struct _csr_mat:
-    double complex * data
-    int * indices
-    int * indptr
-    int nnz
-    int nrows
-    int ncols
-    int is_set
-    int max_length
-    int numpy_lock
+from .sparse_structs cimport CSR_Matrix
 
-ctypedef _csr_mat CSR_Matrix
+cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out,
+                                unsigned int nrows, unsigned int ncols)

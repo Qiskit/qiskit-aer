@@ -33,15 +33,27 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-cdef struct _csr_mat:
-    double complex * data
-    int * indices
-    int * indptr
-    int nnz
-    int nrows
-    int ncols
-    int is_set
-    int max_length
-    int numpy_lock
+from .sparse_structs cimport CSR_Matrix
 
-ctypedef _csr_mat CSR_Matrix
+cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B,
+                    CSR_Matrix * C, double complex alpha)
+
+cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
+                        double complex * Bdata, int * Bind, int * Bptr,
+                        double complex alpha,
+                        CSR_Matrix * C,
+                        int nrows, int ncols) nogil
+
+cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+
+
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+
+cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
+                          double complex * dataB, int * indsB, int * indptrB,
+                          CSR_Matrix * out,
+                          int rowsA, int rowsB, int colsB) nogil
+
+cdef void _zcsr_transpose(CSR_Matrix * A, CSR_Matrix * B)
+
+cdef void _zcsr_adjoint(CSR_Matrix * A, CSR_Matrix * B)

@@ -46,7 +46,6 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 include "sparse_routines.pxi"
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def zcsr_mult(object A, object B, int sorted = 1):
