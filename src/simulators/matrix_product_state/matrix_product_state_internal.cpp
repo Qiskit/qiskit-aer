@@ -1250,15 +1250,15 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
-  reg_t internal_qubits = get_internal_qubits(qubits);
-  std::cout << " starting apply_measure" << std::endl;
-  print_array("internal_qubits ", internal_qubits);
+  // since input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // to their original location (sorted)
+  move_qubits_to_original_location(qubits[0], qubit_order_, qubits);
+
   reg_t outcome_vector_internal(qubits.size()), outcome_vector(qubits.size());
-  apply_measure_internal(internal_qubits, rng, outcome_vector_internal);
+  apply_measure_internal(qubits, rng, outcome_vector_internal);
   print_array("outcome_internal", outcome_vector_internal);
   for (uint_t i=0; i<qubits.size(); i++) {
-    std::cout << "i = " << i <<"get_qubit_index(i)" <<get_qubit_index(i) << std::endl;
-    outcome_vector[i] = outcome_vector_internal[get_qubit_index(i)];
+    outcome_vector[i] = outcome_vector_internal[i];
   }
   print_array("outcome", outcome_vector);
   return outcome_vector;
