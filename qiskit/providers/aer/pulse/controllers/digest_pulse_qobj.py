@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name, missing-return-type-doc,
+# pylint: disable=invalid-name, import-error
 
 """Interpretation and storage of PulseQobj information for pulse simulation
 """
@@ -65,8 +65,21 @@ class DigestedPulseQobj:
 
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
-    """
-    test
+    """ Given a PulseQobj (and other parameters), returns a DigestedPulseQobj
+    containing relevant extracted information
+
+    Parameters:
+        qobj (qobj): the PulseQobj
+        channels (OrderedDict): channel dictionary
+        dt (float): pulse sample width
+        qubit_list (list): list of qubits to include
+        backend_options (dict): dict with options that can override all other parameters
+
+    Returns:
+        DigestedPulseQobj: digested pulse qobj
+
+    Raises:
+        ValueError: for arguments of invalid type
     """
 
     if backend_options is None:
@@ -76,6 +89,9 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
 
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
+
+    # post warnings for unsupported features
+    _unsupported_warnings(qobj_dict)
 
     # override anything in qobj_config that is present in backend_options
     for key in backend_options.keys():
