@@ -64,7 +64,7 @@ class DigestedPulseQobj:
         # other experiment descriptions, which should be separated
         self.experiments = None
 
-def digest_pulse_qobj(qobj, channels, dt, qubit_list):
+def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     """
     I'm not sure if channels, dt, or qubit_list should be here. This really seems like
     an interpretation of the qobj only, and the augmentation of the qobj output
@@ -73,10 +73,17 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     One option is to have the non-qobj arguments be optional,
     """
 
+    if backend_options is None:
+        backend_options = {}
+
     digested_qobj = DigestedPulseQobj()
 
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
+
+    # override anything in qobj_config that is present in backend_options
+    for key in backend_options.keys():
+        qobj_config[key] = backend_options[key]
 
     if 'memory_slots' not in qobj_config:
         raise ValueError('Number of memory_slots must be specific in Qobj config')
