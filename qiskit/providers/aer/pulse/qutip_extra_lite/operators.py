@@ -53,10 +53,7 @@ of commonly occuring quantum operators.
 """
 
 import numpy as np
-import scipy.sparse as sp
 from .fastsparse import fast_csr_matrix, fast_identity
-
-# pylint: disable=wrong-import-position
 from .qobj import Qobj
 
 

@@ -14,21 +14,17 @@
 # pylint: disable=no-name-in-module, import-error, invalid-name
 
 """
-Solvers from qutip.
+Controller for solving unitary evolution of a state-vector.
 """
 
-from math import log
-import logging
-import numpy as np
 import time
-from scipy.integrate import ode
+import numpy as np
 from scipy.linalg.blas import get_blas_funcs
-from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
+from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 
-# These pulse0 imports are only used by the Monte-Carlo solver
+# Imports from qutip_extra_lite
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
-from ..qutip_extra_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -124,8 +120,8 @@ def unitary_evolution(exp, op_system):
 
     tlist = exp['tlist']
 
-    for time in tlist[1:]:
-        ODE.integrate(time, step=0)
+    for t in tlist[1:]:
+        ODE.integrate(t, step=0)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
         else:

@@ -68,6 +68,9 @@ from .dimensions import type_from_dims
 from .cy.spmath import (zcsr_adjoint, zcsr_isherm)
 from .fastsparse import fast_csr_matrix, fast_identity
 
+# general absolute tolerance
+atol = 1e-12
+
 
 class Qobj():
     """A class for representing quantum objects, such as quantum operators

@@ -23,6 +23,7 @@
 import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
+# pylint: disable=no-name-in-module
 from .numeric_integrator_wrapper import td_ode_rhs_static
 
 

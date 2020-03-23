@@ -50,8 +50,6 @@
 """
 
 import numpy as np
-import scipy.sparse as sp
-
 from .qobj import Qobj
 from .fastsparse import fast_csr_matrix
 

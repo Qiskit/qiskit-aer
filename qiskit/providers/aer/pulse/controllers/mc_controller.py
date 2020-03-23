@@ -18,15 +18,13 @@ Controller for Monte Carlo state-vector solver method.
 """
 
 from math import log
-import logging
-import numpy as np
 import time
-from scipy.integrate import ode
+import numpy as np
 from scipy.linalg.blas import get_blas_funcs
 from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 
-# These pulse0 imports are only used by the Monte-Carlo solver
+# qutip_extra_lite imports
 from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
 from ..qutip_extra_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 
@@ -94,17 +92,18 @@ def monte_carlo_evolution(seed, exp, op_system):
 
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
-    snapshots = []
     # Init memory
     memory = np.zeros((1, global_data['memory_slots']), dtype=np.uint8)
 
     # Get number of acquire, snapshots, and conditionals
     num_acq = len(exp['acquire'])
     acq_idx = 0
-    num_snap = len(exp['snapshot'])
-    snap_idx = 0
-    num_cond = len(exp['cond'])
-    cond_idx = 0
+    # below are currently unused
+    #snapshots = []
+    #num_snap = len(exp['snapshot'])
+    #snap_idx = 0
+    #num_cond = len(exp['cond'])
+    #cond_idx = 0
 
     collapse_times = []
     collapse_operators = []

@@ -15,16 +15,10 @@
 
 """
 Functions for applying scalar functions in __fundict to the operators
-represented in qutip QObj.
+represented in qutip Qobj.
 """
 
-from ...qutip_extra_lite.qobj import Qobj
-
-
-def apply_func(name, qobj):
-    """ Apply function of given name, or do nothing if func not found
-    """
-    return __funcdict.get(name, lambda x: x)(qobj)
+#from ...qutip_extra_lite.qobj import Qobj
 
 
 def sin(val):
@@ -76,6 +70,12 @@ def conj(val):
         return val.conj()
     else:
         return np.conj(val)
+
+
+def apply_func(name, qobj):
+    """ Apply function of given name, or do nothing if func not found
+    """
+    return __funcdict.get(name, lambda x: x)(qobj)
 
 
 __funcdict = {'cos': cos, 'sin': sin, 'exp': exp,

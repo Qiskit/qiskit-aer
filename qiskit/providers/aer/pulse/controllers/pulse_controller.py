@@ -34,18 +34,12 @@ This should:
 
 from warnings import warn
 import numpy as np
-import time
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
-from qiskit.providers.aer.aererror import AerError
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.pulse_de_options import OPoptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
-from qiskit.tools.parallel import parallel_map, CPU_COUNT
-
-# remaining pulse0 imports
-from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
 
 
 def pulse_controller(qobj, system_model, backend_options):
