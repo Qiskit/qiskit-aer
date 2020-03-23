@@ -17,6 +17,7 @@
 
 #include "transpile/circuitopt.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 
 namespace AER {
 namespace Transpile {
@@ -64,15 +65,22 @@ public:
 private:
   bool can_ignore(const op_t& op) const;
 
-  bool can_apply_fusion(const op_t& op) const;
+  bool can_apply_fusion(const op_t& op,
+                        uint_t max_max_fused_qubits,
+                        bool use_superop_method) const;
 
   double get_cost(const op_t& op) const;
 
-  bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
+  bool aggregate_operations(oplist_t& ops,
+                            const int fusion_start,
+                            const int fusion_end,
+                            uint_t max_fused_qubits,
+                            ExperimentData &data) const;
 
   // Aggregate a subcircuit of operations into a single operation
   op_t generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
-                                 const reg_t &num_qubits) const;
+                                 const reg_t &num_qubits,
+                                 bool use_superop_method) const;
 
   bool is_diagonal(const oplist_t& ops,
                    const uint_t from,
@@ -137,23 +145,47 @@ void Fusion::optimize_circuit(Circuit& circ,
                               const opset_t &allowed_opset,
                               ExperimentData &data) const {
   // Check if fusion should be skipped
-  if (!active || circ.num_qubits < threshold
-      || !allowed_opset.contains(optype_t::matrix))
+  if (!active || !allowed_opset.contains(optype_t::matrix))
     return;
 
+  // If we are doing superoperator fusion we have the threshold
+  // for the density matrix simulator
+  bool density_matrix = allowed_opset.contains(optype_t::superop);
+
+  // Check if circuit size is above threshold
+  if (circ.num_qubits < (density_matrix) ? threshold / 2 : threshold) {
+    return;
+  }
+
+  // Check if circuit contains kraus or superop instructions
+  // snd backend allows superop instructions
+  bool use_superop_method = density_matrix && (
+    circ.opset().contains(optype_t::kraus) ||
+    circ.opset().contains(optype_t::superop) ||
+    circ.opset().contains(optype_t::reset));
+  uint_t max_fused_qubits = (use_superop_method) ? max_qubit / 2 : max_qubit;
+
+  json_t metadata;
+  metadata["cost_factor"] = cost_factor;
+  metadata["max_fused_qubits"] = max_fused_qubits;
+  metadata["method"] = (use_superop_method) ? "superop" : "unitary";
+  if (verbose)
+    metadata["input_ops"] = circ.ops;
+
+  // Apply fusion
   bool applied = false;
 
   uint_t fusion_start = 0;
   for (uint_t op_idx = 0; op_idx < circ.ops.size(); ++op_idx) {
     if (can_ignore(circ.ops[op_idx]))
       continue;
-    if (!can_apply_fusion(circ.ops[op_idx])) {
-      applied |= fusion_start != op_idx && aggregate_operations(circ.ops, fusion_start, op_idx);
+    if (!can_apply_fusion(circ.ops[op_idx], max_fused_qubits, use_superop_method)) {
+      applied |= fusion_start != op_idx && aggregate_operations(circ.ops, fusion_start, op_idx, max_fused_qubits, data);
       fusion_start = op_idx + 1;
     }
   }
 
-  if (fusion_start < circ.ops.size() && aggregate_operations(circ.ops, fusion_start, circ.ops.size()))
+  if (fusion_start < circ.ops.size() && aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_fused_qubits, data))
       applied = true;
 
   if (applied) {
@@ -170,9 +202,15 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (idx != circ.ops.size())
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 
-    if (verbose)
-      data.add_metadata("fusion_verbose", circ.ops);
+    metadata["applied"] = true;
+  } else {
+    metadata["applied"] = false;
   }
+  // Final metadata
+  if (verbose) {
+    metadata["output_ops"] = circ.ops;
+  }
+  data.add_metadata("fusion", metadata);
 
 #ifdef DEBUG
   dump(circ.ops);
@@ -190,19 +228,25 @@ bool Fusion::can_ignore(const op_t& op) const {
   }
 }
 
-bool Fusion::can_apply_fusion(const op_t& op) const {
+bool Fusion::can_apply_fusion(const op_t& op, uint_t max_fused_qubits, bool use_superop_method) const {
   if (op.conditional)
     return false;
   switch (op.type) {
   case optype_t::matrix:
-    return op.mats.size() == 1 && op.qubits.size() <= max_qubit;
-  case optype_t::gate: {
-    return (op.qubits.size() <= max_qubit &&
-      QubitUnitary::StateOpSet.contains_gates(op.name));
-  }
+    return op.mats.size() == 1 && op.qubits.size() <= max_fused_qubits;
   case optype_t::kraus:
   case optype_t::reset:
-  case optype_t::superop:
+  case optype_t::superop: {
+    return use_superop_method && op.qubits.size() <= max_fused_qubits;
+  }
+  case optype_t::gate: {
+    if (op.qubits.size() > max_fused_qubits)
+      return false;
+    if (use_superop_method)
+      return QubitSuperoperator::StateOpSet.contains_gates(op.name);
+    else 
+      return QubitUnitary::StateOpSet.contains_gates(op.name);
+  }
   case optype_t::measure:
   case optype_t::bfunc:
   case optype_t::roerror:
@@ -222,21 +266,34 @@ double Fusion::get_cost(const op_t& op) const {
 
 
 op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
-                                       const reg_t &qubits) const {
+                                       const reg_t &qubits,
+                                       bool use_superop_method) const {
   // Run simulation
-  ExperimentData dummy_data;
   RngEngine dummy_rng;
+  ExperimentData dummy_data;
 
-  QubitUnitary::State<> unitary_simulator;
-  unitary_simulator.initialize_qreg(qubits.size());
-  unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-  return Operations::make_unitary(qubits,
-                                  unitary_simulator.qreg().matrix(),
-                                  std::string("fusion"));
+  if (use_superop_method) {
+    QubitSuperoperator::State<> superop_simulator;
+    superop_simulator.initialize_qreg(qubits.size());
+    superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+    return Operations::make_superop(qubits,
+                                    superop_simulator.qreg().matrix());
+  } else {
+    QubitUnitary::State<> unitary_simulator;
+    unitary_simulator.initialize_qreg(qubits.size());
+    unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+    return Operations::make_unitary(qubits,
+                                    unitary_simulator.qreg().matrix(),
+                                    std::string("fusion"));
+  }
 }
 
 
-bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const {
+bool Fusion::aggregate_operations(oplist_t& ops,
+                                  const int fusion_start,
+                                  const int fusion_end,
+                                  uint_t max_fused_qubits,
+                                  ExperimentData &data) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
   std::vector<double> costs;
@@ -254,7 +311,7 @@ bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const i
     fusion_to.push_back(i);
     costs.push_back(costs[i - fusion_start - 1] + get_cost(ops[i]));
 
-    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_qubit); ++num_fusion) {
+    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_fused_qubits); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
       reg_t fusion_qubits;
       add_fusion_qubits(fusion_qubits, ops[i]);
@@ -305,12 +362,16 @@ bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const i
           qubit_mapping[qubits[j]] = j;
         }
         // Remap qubits
+        bool needs_superop = false;
         for (auto & op: fusioned_ops) {
           for (size_t j = 0; j < op.qubits.size(); j++) {
             op.qubits[j] = qubit_mapping[op.qubits[j]];
+            needs_superop |= (op.type == optype_t::kraus ||
+                              op.type == optype_t::superop ||
+                              op.type == optype_t::reset);
           }
         }
-        ops[i] = generate_fusion_operation(fusioned_ops, qubits);
+        ops[i] = generate_fusion_operation(fusioned_ops, qubits, needs_superop);
       }
     }
     i = to - 1;
