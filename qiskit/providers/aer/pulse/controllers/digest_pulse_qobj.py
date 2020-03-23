@@ -251,6 +251,12 @@ def format_pulse_samples(pulse_samples):
 
     This function assumes the input is either an ndarray, a list of numpy complex number types,
     or a list already in the desired format.
+
+    Args:
+        pulse_samples (list): An ndarray of complex numbers or a list
+
+    Returns:
+        list: list of the required format
     """
 
     new_samples = list(pulse_samples)
@@ -259,6 +265,7 @@ def format_pulse_samples(pulse_samples):
         return new_samples
 
     return [[samp.real, samp.imag] for samp in new_samples]
+
 
 def experiment_to_structs(experiment, ham_chans, pulse_inds,
                           pulse_to_int, dt, qubit_list=None):
