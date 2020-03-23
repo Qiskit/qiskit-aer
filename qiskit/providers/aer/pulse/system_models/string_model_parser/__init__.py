@@ -12,7 +12,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Temporary folder for string parsers.
-
-Note: I think apply_str_func_to_qobj (and the call to it in string_model_parser) can be removed
+"""Folder for string model parsers.
 """

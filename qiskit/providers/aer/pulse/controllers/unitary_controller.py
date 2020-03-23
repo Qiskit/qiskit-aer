@@ -30,9 +30,16 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
 def run_unitary_experiments(op_system):
-    """ Runs unitary experiments
+    """ Runs unitary experiments for a given op_system
 
-    - sets up everything needed for unitary simulator, which is just a de solver
+    Parameters:
+        op_system (PulseSimDescription): container for simulation information
+
+    Returns:
+        tuple: two lists with experiment results
+
+    Raises:
+        Exception: if initial state is of incorrect format
     """
 
     if not op_system.initial_state.isket:

@@ -11,25 +11,10 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name, missing-return-type-doc
+# pylint: disable=invalid-name
 
 """
-Initial attempt to clarify simulation flow.
-
-This should:
-    - interpret the qobj (ultimately eliminating full_digest)
-        - For now just call digest_pulse_qobj and accept the current output format
-        - Eventually have internal descriptions of: signals, "events" (e.g. measurements), etc
-    - set up the DE solving portion (either using OPSystem or eliminating OPSystem)
-        - this is a mix of pieces from digest and opsolve
-    - call the DE solver
-        - the DE solver will be pieces of unitary.py, but also the parts of digest that
-          make decisions about things having to do with DE solving
-    - given the output, perform measurement
-        - This is currently also in unitary.py
-        - ultimately measurements should probably consist of calling some Operator functionality
-    - format output
-        - currently in opsolve
+Entry/exit point for pulse simulation specified through PulseSimulator backend
 """
 
 from warnings import warn
@@ -43,7 +28,19 @@ from .mc_controller import run_monte_carlo_experiments
 
 
 def pulse_controller(qobj, system_model, backend_options):
-    """Setup and run simulation, then return results
+    """ Interprets PulseQobj input, runs simulations, and returns results
+
+    Parameters:
+        qobj (qobj): pulse qobj containing a list of pulse schedules
+        system_model (PulseSystemModel): contains system model information
+        backend_options (dict): dict of options, which overrides other parameters
+
+    Returns:
+        list: simulation results
+
+    Raises:
+        ValueError: if input is of incorrect format
+        Exception: for invalid ODE options
     """
 
     out = PulseSimDescription()
@@ -272,7 +269,15 @@ def op_data_config(op_system):
 
 
 def format_exp_results(exp_results, exp_times, op_system):
-    """format results
+    """ format simulation results
+
+    Parameters:
+        exp_results (list): simulation results
+        exp_times (list): simulation times
+        op_system (PulseSimDescription): object containing all simulation information
+
+    Returns:
+        list: formatted simulation results
     """
 
     # format the data into the proper output
@@ -368,7 +373,8 @@ def _unsupported_warnings(noise_model):
 
 
 class PulseSimDescription():
-    """ Place holder for "simulation description"
+    """ Object for holding any/all information required for simulation.
+    Needs to be refactored into different pieces.
     """
     def __init__(self):
         # The system Hamiltonian in numerical format

@@ -28,8 +28,14 @@ from .numeric_integrator_wrapper import td_ode_rhs_static
 
 
 def construct_pulse_zvode_solver(exp, op_system):
-    """
-    get ode solver for a given experiment and op_system
+    """ Constructs a scipy ODE solver for a given exp and op_system
+
+    Parameters:
+        exp (dict): dict containing experimental
+        op_system (PulseSimDescription): container for simulation information
+
+    Returns:
+        ode: scipy ode
     """
 
     # extract relevant data from op_system

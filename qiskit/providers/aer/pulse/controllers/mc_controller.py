@@ -110,15 +110,9 @@ def monte_carlo_evolution(seed, exp, op_system):
     # Init memory
     memory = np.zeros((1, global_data['memory_slots']), dtype=np.uint8)
 
-    # Get number of acquire, snapshots, and conditionals
+    # Get number of acquire
     num_acq = len(exp['acquire'])
     acq_idx = 0
-    # below are currently unused
-    # snapshots = []
-    # num_snap = len(exp['snapshot'])
-    # snap_idx = 0
-    # num_cond = len(exp['cond'])
-    # cond_idx = 0
 
     collapse_times = []
     collapse_operators = []

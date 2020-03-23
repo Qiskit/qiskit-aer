@@ -13,6 +13,4 @@
 # that they have been altered from the originals.
 
 """Temporary folder containing trimmed down qutip objects and functions
-
-Note: many things going on in cy folder, did not try to simplify yet
 """
