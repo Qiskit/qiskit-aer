@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name, missing-return-type-doc,
 
-"""Compartmentalizing the PulseQobj part of digest
+"""Interpretation and storage of PulseQobj information for pulse simulation
 """
 
 from collections import OrderedDict
@@ -24,6 +24,8 @@ from ..qutip_extra_lite.cy.utils import oplist_to_array
 
 
 class DigestedPulseQobj:
+    """Container class for information extracted from PulseQobj
+    """
 
     def __init__(self):
 
@@ -31,7 +33,7 @@ class DigestedPulseQobj:
         # Some "Simulation description"
         # ####################################
 
-        # stuff related to memory/measurements
+        # parameters related to memory/measurements
         self.shots = None
         self.meas_level = None
         self.meas_return = None
@@ -40,12 +42,10 @@ class DigestedPulseQobj:
         self.n_registers = None
 
         # ####################################
-        # Some Signal portion
+        # Signal portion
         # ####################################
 
-        # I think these should ultimately construct and return "Signal" objects
-
-        # specific data struct being used
+        # these contain a particular undocumented data structure
         self.pulse_array = None
         self.pulse_indices = None
         self.pulse_to_int = None
@@ -66,11 +66,7 @@ class DigestedPulseQobj:
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     """
-    I'm not sure if channels, dt, or qubit_list should be here. This really seems like
-    an interpretation of the qobj only, and the augmentation of the qobj output
-    by things that are not strictly qobj-related should maybe be done by the solver
-
-    One option is to have the non-qobj arguments be optional,
+    test
     """
 
     if backend_options is None:

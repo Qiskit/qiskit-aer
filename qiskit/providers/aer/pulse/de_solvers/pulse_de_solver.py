@@ -39,7 +39,6 @@ def construct_pulse_zvode_solver(exp, op_system):
 
     # Init register
     register = np.ones(global_data['n_registers'], dtype=np.uint8)
-    num_channels = len(exp['channels'])
 
     ODE = ode(td_ode_rhs_static)
 

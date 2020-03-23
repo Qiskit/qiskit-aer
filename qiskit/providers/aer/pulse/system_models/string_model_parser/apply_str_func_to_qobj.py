@@ -11,13 +11,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """
 Functions for applying scalar functions in __fundict to the operators
 represented in qutip Qobj.
 """
 
+#from ...qutip_extra_lite.qobj import Qobj
 
 def dag(qobj):
     """ Qiskit wrapper of adjoint
@@ -29,4 +29,5 @@ def apply_func(name, qobj):
     """
     return __funcdict.get(name, lambda x: x)(qobj)
 
-__fundict = {'dag': dag}
+# pylint: disable=invalid-name
+__funcdict = {'dag': dag}
