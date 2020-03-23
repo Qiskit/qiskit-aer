@@ -147,7 +147,6 @@ def pulse_controller(qobj, system_model, backend_options):
     out.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     out.global_data['freqs'] = list(out.freqs.values())
 
-
     # ###############################
     # ### Parse backend_options
     # # solver-specific information should be extracted in the solver
@@ -183,7 +182,6 @@ def pulse_controller(qobj, system_model, backend_options):
     # ########################################
     out.global_data['measurement_ops'] = [None] * n_qubits
 
-
     for exp in out.experiments:
 
         # Add in measurement operators
@@ -207,10 +205,9 @@ def pulse_controller(qobj, system_model, backend_options):
         if not exp['can_sample']:
             out.can_sample = False
 
-
     op_data_config(out)
 
-    if out.can_sample == True:
+    if out.can_sample is True:
         exp_results, exp_times = run_unitary_experiments(out)
     else:
         exp_results, exp_times = run_monte_carlo_experiments(out)
@@ -358,8 +355,6 @@ def format_exp_results(exp_results, exp_times, op_system):
         all_results.append(results)
 
     return all_results
-
-
 
 
 def _unsupported_warnings(noise_model):

@@ -18,6 +18,8 @@ Functions for applying scalar functions in __fundict to the operators
 represented in qutip QObj.
 """
 
+from ...qutip_extra_lite.qobj import Qobj
+
 
 def apply_func(name, qobj):
     """ Apply function of given name, or do nothing if func not found

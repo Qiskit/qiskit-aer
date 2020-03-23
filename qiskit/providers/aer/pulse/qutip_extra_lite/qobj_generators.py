@@ -16,11 +16,6 @@
 """Operators to use in simulator"""
 
 import numpy as np
-#from ..pulse0.qutip_lite import operators as ops
-#from ..pulse0.qutip_lite import states as st
-#from ..pulse0.qutip_lite import tensor as ten
-#from ..pulse0.qutip_lite.qobj import Qobj
-
 from . import operators as ops
 from . import states as st
 from . import tensor as ten

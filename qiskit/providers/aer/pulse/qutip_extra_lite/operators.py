@@ -60,7 +60,6 @@ from .fastsparse import fast_csr_matrix, fast_identity
 from .qobj import Qobj
 
 
-
 # Spin operators
 def jmat(j, *args):
     """Higher-order spin operators:

@@ -18,8 +18,8 @@
 from warnings import warn
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
-from .hamiltonian_model import HamiltonianModel
 from qiskit.providers.aer.aererror import AerError
+from .hamiltonian_model import HamiltonianModel
 
 
 class PulseSystemModel():

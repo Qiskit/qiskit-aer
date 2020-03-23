@@ -52,7 +52,6 @@ class DigestedPulseQobj:
 
         self.qubit_lo_freq = None
 
-
         # #############################################
         # Mix of both signal and simulation description
         # #############################################
@@ -63,6 +62,7 @@ class DigestedPulseQobj:
         # "experiments" contains a combination of signal information and
         # other experiment descriptions, which should be separated
         self.experiments = None
+
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     """
@@ -109,7 +109,6 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     digested_qobj.pulse_indices = pulses_idx
     digested_qobj.pulse_to_int = pulse_dict
 
-
     experiments = []
 
     for exp in qobj_dict['experiments']:
@@ -122,7 +121,6 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
         experiments.append(exp_struct)
 
     digested_qobj.experiments = experiments
-
 
     return digested_qobj
 
@@ -177,6 +175,7 @@ def _contains_pv_instruction(experiments):
             if inst['name'] == 'pv':
                 return True
     return False
+
 
 def build_pulse_arrays(experiments, pulse_library):
     """ Build pulses and pulse_idx arrays, and a pulse_dict

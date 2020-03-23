@@ -14,7 +14,7 @@
 # pylint: disable=no-name-in-module, import-error, invalid-name
 
 """
-Solvers from qutip.
+Controller for Monte Carlo state-vector solver method.
 """
 
 from math import log
@@ -56,13 +56,7 @@ def run_monte_carlo_experiments(op_system):
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
-
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
-
-
-    # extract exactly the data required by the solver
-    #sim_data = sim_required_data(op_system.global_data)
-
 
     exp_results = []
     exp_times = []
@@ -87,6 +81,7 @@ def run_monte_carlo_experiments(op_system):
         exp_results.append(np.array(exp_res2))
 
     return exp_results, exp_times
+
 
 def monte_carlo_evolution(seed, exp, op_system):
     """

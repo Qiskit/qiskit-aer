@@ -671,7 +671,6 @@ class Qobj():
 
         return s
 
-
     # used by states
     def dag(self):
         """Adjoint operator of quantum object.
@@ -712,7 +711,6 @@ class Qobj():
         """
         return self.full()
 
-
     # breaks if removed due to tensor
     @property
     def isherm(self):
@@ -733,7 +731,6 @@ class Qobj():
     @isherm.setter
     def isherm(self, isherm):
         self._isherm = isherm
-
 
     @property
     def type(self):

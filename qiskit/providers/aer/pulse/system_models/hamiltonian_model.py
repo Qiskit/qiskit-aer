@@ -18,8 +18,8 @@
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
-from .string_model_parser.string_model_parser import HamiltonianParser
 from qiskit.providers.aer.aererror import AerError
+from .string_model_parser.string_model_parser import HamiltonianParser
 
 
 class HamiltonianModel():

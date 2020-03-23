@@ -15,8 +15,6 @@
 
 """Module for creating quantum operators."""
 
-import numpy as np
-import scipy.linalg as la
 from ...qutip_extra_lite import qobj_generators
 
 

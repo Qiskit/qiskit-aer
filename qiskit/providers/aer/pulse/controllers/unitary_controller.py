@@ -55,9 +55,7 @@ def run_unitary_experiments(op_system):
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
-
     map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
-
 
     # set up full simulation, i.e. combining different (ideally modular) computational
     # resources into one function
@@ -102,8 +100,8 @@ def run_unitary_experiments(op_system):
     exp_times = (np.ones(len(op_system.experiments)) *
                  (end - start) / len(op_system.experiments))
 
-
     return exp_results, exp_times
+
 
 def unitary_evolution(exp, op_system):
     """
@@ -124,7 +122,6 @@ def unitary_evolution(exp, op_system):
 
     ODE = construct_pulse_zvode_solver(exp, op_system)
 
-
     tlist = exp['tlist']
 
     for time in tlist[1:]:
@@ -134,7 +131,6 @@ def unitary_evolution(exp, op_system):
         else:
             err_msg = 'ZVODE exited with status: %s' % ODE.get_return_code()
             raise Exception(err_msg)
-
 
     # apply final rotation to come out of rotating frame
     psi_rot = np.exp(-1j * op_system.global_data['h_diag_elems'] * ODE.t)
