@@ -233,12 +233,14 @@ def build_pulse_arrays(experiments, pulse_library):
     for _, pulse in enumerate(pulse_library):
         stop = pulses_idx[ind - 1] + len(pulse['samples'])
         pulses_idx[ind] = stop
-        oplist_to_array(list(pulse['samples']), pulses, pulses_idx[ind - 1])
+        print(pulse['samples'])
+        oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
         ind += 1
 
     for pv in pv_pulses:
         stop = pulses_idx[ind - 1] + 1
         pulses_idx[ind] = stop
+        print([pv[0]])
         oplist_to_array([pv[0]], pulses, pulses_idx[ind - 1])
         ind += 1
 
