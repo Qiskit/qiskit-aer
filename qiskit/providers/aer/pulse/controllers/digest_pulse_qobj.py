@@ -233,19 +233,32 @@ def build_pulse_arrays(experiments, pulse_library):
     for _, pulse in enumerate(pulse_library):
         stop = pulses_idx[ind - 1] + len(pulse['samples'])
         pulses_idx[ind] = stop
-        print(pulse['samples'])
-        oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
+        oplist_to_array(format_pulse_samples(pulse['samples']), pulses, pulses_idx[ind - 1])
         ind += 1
 
     for pv in pv_pulses:
         stop = pulses_idx[ind - 1] + 1
         pulses_idx[ind] = stop
-        print([pv[0]])
-        oplist_to_array([pv[0]], pulses, pulses_idx[ind - 1])
+        oplist_to_array(format_pulse_samples([pv[0]]), pulses, pulses_idx[ind - 1])
         ind += 1
 
     return pulses, pulses_idx, pulse_dict
 
+
+def format_pulse_samples(pulse_samples):
+    """Converts input into a list of complex numbers, where each complex numbers is
+    given as a list of length 2. If it is already of this format, it simply returns it.
+
+    This function assumes the input is either an ndarray, a list of numpy complex number types,
+    or a list already in the desired format.
+    """
+
+    new_samples = list(pulse_samples)
+
+    if not np.iscomplexobj(new_samples[0]):
+        return new_samples
+
+    return [[samp.real, samp.imag] for samp in new_samples]
 
 def experiment_to_structs(experiment, ham_chans, pulse_inds,
                           pulse_to_int, dt, qubit_list=None):
