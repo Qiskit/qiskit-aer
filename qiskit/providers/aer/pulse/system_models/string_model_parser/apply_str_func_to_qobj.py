@@ -23,10 +23,12 @@ def dag(qobj):
     """
     return qobj.dag()
 
+
 def apply_func(name, qobj):
     """ Apply function of given name, or do nothing if func not found
     """
     return __funcdict.get(name, lambda x: x)(qobj)
+
 
 # pylint: disable=invalid-name
 __funcdict = {'dag': dag}

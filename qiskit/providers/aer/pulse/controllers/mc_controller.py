@@ -32,10 +32,16 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
 def run_monte_carlo_experiments(op_system):
-    """ Runs monte carlo experiments
+    """ Runs monte carlo experiments for a given op_system
 
-    Initially will have large overlap with run_unitary_experiments, but will refactor them
-    after getting it working
+    Parameters:
+        op_system (PulseSimDescription): container for simulation information
+
+    Returns:
+        tuple: two lists with experiment results
+
+    Raises:
+        Exception: if initial state is of incorrect format
     """
 
     if not op_system.initial_state.isket:
@@ -82,9 +88,18 @@ def run_monte_carlo_experiments(op_system):
 
 
 def monte_carlo_evolution(seed, exp, op_system):
-    """
-    Monte Carlo algorithm returning state-vector or expectation values
-    at times tlist for a single trajectory.
+    """ Performs a single monte carlo run for the given op_system, experiment, and seed
+
+    Parameters:
+        seed (int): seed for random number generation
+        exp (dict): dictionary containing experiment description
+        op_system (PulseSimDescription): container for information required for simulation
+
+    Returns:
+        array: results of experiment
+
+    Raises:
+        Exception: if ODE solving has errors
     """
 
     global_data = op_system.global_data
@@ -99,11 +114,11 @@ def monte_carlo_evolution(seed, exp, op_system):
     num_acq = len(exp['acquire'])
     acq_idx = 0
     # below are currently unused
-    #snapshots = []
-    #num_snap = len(exp['snapshot'])
-    #snap_idx = 0
-    #num_cond = len(exp['cond'])
-    #cond_idx = 0
+    # snapshots = []
+    # num_snap = len(exp['snapshot'])
+    # snap_idx = 0
+    # num_cond = len(exp['cond'])
+    # cond_idx = 0
 
     collapse_times = []
     collapse_operators = []
