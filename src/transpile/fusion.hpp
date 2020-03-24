@@ -171,7 +171,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   metadata["method"] = (use_superop_method) ? "superop" : "unitary";
   if (verbose)
     metadata["input_ops"] = circ.ops;
-
+  }
   // Apply fusion
   bool applied = false;
 
