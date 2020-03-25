@@ -98,6 +98,8 @@ private:
   void dump(const Circuit& circuit) const;
 #endif
 
+private:
+  bool allow_superop_ = true;
 };
 
 
@@ -117,8 +119,11 @@ void Fusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_threshold", config_))
     JSON::get_value(threshold, "fusion_threshold", config_);
 
-  if (JSON::check_key("fusion_cost_factor", config_))
-    JSON::get_value(cost_factor, "fusion_cost_factor", config_);
+  if (JSON::check_key("fusion_cost_factor", config))
+    JSON::get_value(cost_factor, "fusion_cost_factor", config);
+  
+  if (JSON::check_key("fusion_allow_superop", config))
+    JSON::get_value(allow_superop_, "fusion_allow_superop", config);
 }
 
 
@@ -132,16 +137,16 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   // If we are doing superoperator fusion we have the threshold
   // for the density matrix simulator
-  bool density_matrix = allowed_opset.contains(optype_t::superop);
+  bool allow_superop = allow_superop_ && allowed_opset.contains(optype_t::superop);
 
   // Check if circuit size is above threshold
-  if (circ.num_qubits < (density_matrix) ? threshold / 2 : threshold) {
+  if (circ.num_qubits < (allow_superop) ? threshold / 2 : threshold) {
     return;
   }
 
   // Check if circuit contains kraus or superop instructions
   // snd backend allows superop instructions
-  bool use_superop_method = density_matrix && (
+  bool use_superop_method = allow_superop && (
     circ.opset().contains(optype_t::kraus) ||
     circ.opset().contains(optype_t::superop) ||
     circ.opset().contains(optype_t::reset));
@@ -151,7 +156,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   metadata["cost_factor"] = cost_factor;
   metadata["max_fused_qubits"] = max_fused_qubits;
   metadata["method"] = (use_superop_method) ? "superop" : "unitary";
-  if (verbose)
+  if (verbose) {
     metadata["input_ops"] = circ.ops;
   }
 
@@ -424,6 +429,5 @@ void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
 } // end namespace Transpile
 } // end namespace AER
 //-------------------------------------------------------------------------
-
 
 #endif
