@@ -15,6 +15,8 @@
 #ifndef _aer_transpile_fusion_hpp_
 #define _aer_transpile_fusion_hpp_
 
+#include <chrono>
+
 #include "transpile/circuitopt.hpp"
 #include "simulators/unitary/unitary_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
@@ -119,31 +121,11 @@ void Fusion::set_config(const json_t &config) {
     JSON::get_value(cost_factor, "fusion_cost_factor", config_);
 }
 
-#ifdef DEBUG
-void Fusion::dump(const Circuit& circuit) const {
-  int idx = 0;
-  for (const op_t& op : circuit.ops) {
-    std::cout << "  " << idx++ << ":\t" << op.name << " " << op.qubits << std::endl;
-    for (const cmatrix_t&  mat: op.mats) {
-      const uint_t row = mat.GetRows();
-      const uint_t column = mat.GetColumns();
-      for (uint_t i = 0; i < row; ++i) {
-        for (uint_t j = 0; j < column; ++j) {
-          if (j == 0) std::cout << "      ";
-          else std::cout << ", ";
-          std::cout << mat(i, j);
-        }
-        std::cout << std::endl;
-      }
-    }
-  }
-}
-#endif
 
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentData &data) const {
+                              ExperimentData &data) const {                                
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::matrix))
     return;
@@ -172,6 +154,11 @@ void Fusion::optimize_circuit(Circuit& circ,
   if (verbose)
     metadata["input_ops"] = circ.ops;
   }
+
+  // Start timer
+  using clock_t = std::chrono::high_resolution_clock;
+  auto timer_start = clock_t::now();
+
   // Apply fusion
   bool applied = false;
 
@@ -206,15 +193,16 @@ void Fusion::optimize_circuit(Circuit& circ,
   } else {
     metadata["applied"] = false;
   }
+
+  // Stop timer
+  auto timer_stop = clock_t::now();
+  metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
+
   // Final metadata
   if (verbose) {
     metadata["output_ops"] = circ.ops;
   }
   data.add_metadata("fusion", metadata);
-
-#ifdef DEBUG
-  dump(circ.ops);
-#endif
 }
 
 bool Fusion::can_ignore(const op_t& op) const {
