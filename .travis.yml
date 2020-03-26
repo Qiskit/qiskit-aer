@@ -67,7 +67,7 @@ stage_linux: &stage_linux
 stage_osx: &stage_osx
   <<: *stage_generic
   os: osx
-  osx_image: xcode9.2
+  osx_image: xcode9.4
   language: generic
   python: 3.7
   env:
@@ -90,14 +90,11 @@ stage_osx: &stage_osx
           cd ../../..
           python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
         fi
+        sudo pip2 install -U virtualenv pip setuptools
         virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
         source venv/bin/activate
       fi
   before_script:
-    - |
-      if [ ! "$(ls -A .stestr)" ]; then
-        rm -rf .stestr
-      fi
     # Build with Thrust OpenMP CPU backend
     - python setup.py bdist_wheel -- -DAER_THRUST_BACKEND=OMP -- -j4
     - pip install dist/qiskit_aer*whl
