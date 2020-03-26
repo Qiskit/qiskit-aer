@@ -99,7 +99,6 @@ public:
   //----------------------------------------------------------------
   void apply_h(uint_t index);
   void apply_x(uint_t index){ get_qubit(index).apply_x();}
-
   void apply_y(uint_t index){ get_qubit(index).apply_y();}
   void apply_z(uint_t index){ get_qubit(index).apply_z();}
   void apply_s(uint_t index){ get_qubit(index).apply_s();}
@@ -168,9 +167,13 @@ public:
 
   //----------------------------------------------------------------
   // Function name: print
-  // Description: prints the MPS
+  // Description: prints the MPS in the current ordering of the qubits (qubit_order_)
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out);
+
+  //----------------------------------------------------------------
+  // Function name: sort_and_print
+  // Description: Moves the qubits to their sorted positions and then prints the MPS
   virtual std::ostream&  sort_and_print(std::ostream& out);
 
   void full_state_vector(cvector_t &state_vector) const;

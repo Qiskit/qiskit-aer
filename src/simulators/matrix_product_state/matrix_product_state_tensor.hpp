@@ -255,7 +255,6 @@ void MPS_Tensor::apply_pauli(char gate) {
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  std::cout << "apply_x" << std::endl;
   std::swap(data_[0],data_[1]);
 }
   void MPS_Tensor::apply_y()

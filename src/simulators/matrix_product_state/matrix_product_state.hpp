@@ -536,7 +536,6 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   ExperimentData &data,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
-  std::cout << "in probs" <<std::endl;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
   bool variance = type == SnapshotDataType::average_var;
@@ -616,7 +615,6 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   }
-
 }
 
   void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {

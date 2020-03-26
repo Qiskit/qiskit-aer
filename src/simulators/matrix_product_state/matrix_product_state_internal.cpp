@@ -44,7 +44,12 @@ static const cmatrix_t one_measure =
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
-  template <class T>
+//------------------------------------------------------------------------ 
+// Function name: print_array
+// Description: prints out the valus of a vector. For debug purposes.
+// Input: the vector name, and the vector.
+// Returns: void
+template <class T>
   void print_array(std::string name, const std::vector<T> &array) {
   std::cout <<name << " ";
   for (uint_t i=0; i<array.size(); i++)
@@ -697,14 +702,12 @@ void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
   // We wish to minimize the number of swaps. Therefore we center the 
   // new indices around the median
   uint_t mid_index = (centralized_qubits.size()-1)/2;
-  print_array("qubit_order_before_centralize", qubit_order_);
   for(uint_t i = mid_index; i < sorted_indices.size(); i++) {
     change_position(sorted_indices[i], centralized_qubits[i]);
   }
   for(int i = mid_index-1; i >= 0; i--) {
     change_position(sorted_indices[i], centralized_qubits[i]);
   }
- print_array("qubit_order_after_centralize", qubit_order_);
 }
 
 void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_qubits,
@@ -1166,20 +1169,15 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     statevector[i] = mps_vec.get_data(i)(0,0);
   }
-  print_array("statevector", statevector);
   cvector_t temp_statevector(length);
   //temp_statevector will contain the statevector in the ordering define in "qubits"
   reorder_all_qubits(statevector, qubits, temp_statevector);
-  print_array("temp_statevector", temp_statevector);
   // reverse to be consistent with qasm ordering
   statevector = reverse_all_bits(temp_statevector, num_qubits);
-  print_array("final after reverse statevector", statevector);
 }
 
 void MPS::get_probabilities_vector(rvector_t& probvector, 			       const reg_t &qubits) const {
-  print_array("qubits", qubits);
   reg_t internal_qubits = get_internal_qubits(qubits);
-  print_array("internal_qubits ", internal_qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
@@ -1204,6 +1202,7 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
+
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
