@@ -98,21 +98,14 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
   void apply_h(uint_t index);
-  void apply_x(uint_t index){
-  std::cout << "before apply_x, qubit_location_ = ";
-  for (uint_t i=0; i<num_qubits_; i++)
-    std::cout << qubit_location_[i] << " ";
+  void apply_x(uint_t index){ get_qubit(index).apply_x();}
 
-  std::cout << std::endl;
-  std::cout << "apply x to qubit " << get_qubit_index(index);
-  get_qubit(index).apply_x();}
-
-  void apply_y(uint_t index){get_qubit(index).apply_y();}
-  void apply_z(uint_t index){get_qubit(index).apply_z();}
-  void apply_s(uint_t index){get_qubit(index).apply_s();}
-  void apply_sdg(uint_t index){get_qubit(index).apply_sdg();}
-  void apply_t(uint_t index){get_qubit(index).apply_t();}
-  void apply_tdg(uint_t index){get_qubit(index).apply_tdg();}
+  void apply_y(uint_t index){ get_qubit(index).apply_y();}
+  void apply_z(uint_t index){ get_qubit(index).apply_z();}
+  void apply_s(uint_t index){ get_qubit(index).apply_s();}
+  void apply_sdg(uint_t index){ get_qubit(index).apply_sdg();}
+  void apply_t(uint_t index){ get_qubit(index).apply_t();}
+  void apply_tdg(uint_t index){ get_qubit(index).apply_tdg();}
   void apply_u1(uint_t index, double lambda);
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
@@ -178,6 +171,7 @@ public:
   // Description: prints the MPS
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out);
+  virtual std::ostream&  sort_and_print(std::ostream& out);
 
   void full_state_vector(cvector_t &state_vector) const;
 
@@ -247,7 +241,7 @@ private:
 
   MPS_Tensor& get_qubit(uint_t index) {
     
-    return q_reg_[qubit_location_[index]];
+    return q_reg_[get_qubit_index(index)];
   }
   uint_t get_qubit_index(uint_t index) const {
     for (uint_t i=0; i<num_qubits_; i++)
@@ -255,8 +249,7 @@ private:
 	return i;
   }
   reg_t get_internal_qubits(const reg_t &qubits) const;
-  uint_t get_right_qubit_index(uint_t index) const;
-  uint_t get_left_qubit_index(uint_t index) const;
+
   // The following methods are the internal versions of the api functions.
   // They are each called from the corresponding api function with
   // the internal ordering of the qubits - using get_internal_qubits
@@ -405,6 +398,8 @@ private:
 					const reg_t &sorted_qubits);
 
   //----------------------------------------------------------------
+  void move_all_qubits_to_sorted_ordering();
+
 
   // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
@@ -421,13 +416,11 @@ private:
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
 
-  // The following 2 vectors store the current positioning of the qubits,
+  // qubit_order_vectors store the current ordering of the qubits,
   // for example: starting position qubit_order_=qubit_location_=01234
-  // cx(0,3) -> qubit_order_=qubit_location_=31204
-  // cx(0,2) -> qubit_order_=31024, qubit_location_=21304
+  // cx(0,3) -> qubit_order_=03124
   reg_t qubit_order_;  //contains the current ordering of the qubits
-  reg_t qubit_location_; // qubit_location_[i] = the location of 
-                         // qubit i in the vector qubit_pos_;
+
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
