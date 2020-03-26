@@ -771,21 +771,18 @@ void MPS::change_position(uint_t src, uint_t dst) {
      }
 }
 
-cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
+cmatrix_t MPS::density_matrix(const reg_t &qubits) {
   reg_t internal_qubits = get_internal_qubits(qubits);
   return density_matrix_internal(internal_qubits);
 }
 
-cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const
-{
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
+cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) {
   reg_t new_qubits;
   bool ordered = true;
   
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
+  centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  MPS_Tensor psi = state_vec_as_MPS(new_qubits.front(), new_qubits.back());
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
@@ -802,15 +799,13 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const
   return rho;
 }
 
-rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
+rvector_t MPS::trace_of_density_matrix(const reg_t &qubits)
 {
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
   bool ordered = true;
   reg_t new_qubits;
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
+  centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  MPS_Tensor psi = state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
   uint_t size = psi.get_dim();
   rvector_t trace_rho(size);
@@ -823,25 +818,22 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
 
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
 			       reg_t &sorted_qubits,
-			       reg_t &centralized_qubits,
-			       MPS& temp_MPS) const {
-
-  temp_MPS.initialize(*this);
+			       reg_t &centralized_qubits) {
   bool ordered = true;
-  temp_MPS.centralize_and_sort_qubits(qubits, sorted_qubits, 
+  centralize_and_sort_qubits(qubits, sorted_qubits, 
 				      centralized_qubits, ordered);
 
 }
 
 double MPS::expectation_value(const reg_t &qubits, 
-			      const cmatrix_t &M) const {
-    reg_t internal_qubits = get_internal_qubits(qubits);
-   double temp= expectation_value_internal(internal_qubits, M);
-   return temp;
+			      const cmatrix_t &M) {
+   reg_t internal_qubits = get_internal_qubits(qubits);
+   double expval = expectation_value_internal(internal_qubits, M);
+   return expval;
 }
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
-				       const cmatrix_t &M) const {
+				       const cmatrix_t &M) {
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
@@ -857,13 +849,11 @@ double MPS::expectation_value_internal(const reg_t &qubits,
   if (are_qubits_ordered) {
     rho = density_matrix(reversed_qubits);
   } else {
-    MPS temp_MPS;
-    temp_MPS.initialize(*this);
     reg_t actual_indices(num_qubits_);
     std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+    move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
 
-    rho = temp_MPS.density_matrix(target_qubits);
+    rho = density_matrix(target_qubits);
   }
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
@@ -913,13 +903,12 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 //            a2\o--a3--o-- 
 //---------------------------------------------------------------
 
-complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const {
+complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) {
     reg_t internal_qubits = get_internal_qubits(qubits);
     return expectation_value_pauli_internal(internal_qubits, matrices);
 }
 
-complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const {
-  MPS temp_MPS;
+complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) {
   reg_t sorted_qubits = qubits;
   reg_t centralized_qubits = qubits;
 
@@ -927,7 +916,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   // when computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
 
-  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
+  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits);
   uint_t first_index = centralized_qubits.front();
   uint_t last_index = centralized_qubits.back();
 
@@ -941,10 +930,10 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   char gate = sorted_matrices[0];
 
   // Step 1 - multiply tensor of q0 by its left lambda
-  MPS_Tensor left_tensor = temp_MPS.q_reg_[first_index];
+  MPS_Tensor left_tensor = q_reg_[first_index];
 
   if (first_index > 0) {
-    left_tensor.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[first_index-1]);
+    left_tensor.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
   }
 
   // The last gamma must be multiplied also by its right lambda.
@@ -952,7 +941,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   // on a single qubit
   // we need to mul every gamma by its right lambda
   if (first_index==last_index && first_index < num_qubits_-1) {
-    left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
+    left_tensor.mul_Gamma_by_right_Lambda(lambda_reg_[first_index]);
   }
 
 
@@ -971,12 +960,12 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
     // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
     // next gamma has dimensions a0 x a1 x i 
-    MPS_Tensor next_gamma = temp_MPS.q_reg_[qubit_num];
-    next_gamma.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[qubit_num-1]);
+    MPS_Tensor next_gamma = q_reg_[qubit_num];
+    next_gamma.mul_Gamma_by_left_Lambda(lambda_reg_[qubit_num-1]);
 
     // Last qubit must be multiplied by rightmost lambda
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
-      next_gamma.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[qubit_num]);
+      next_gamma.mul_Gamma_by_right_Lambda(lambda_reg_[qubit_num]);
 
     // Step 6 - prepare the dagger of the next gamma (same as Step 2)
     // next_gamma_dagger has dimensions a1' x a0' x i
@@ -1049,13 +1038,11 @@ std::vector<reg_t> MPS::get_matrices_sizes() const
   return result;
 }
 
-MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) const {
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
+MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
   bool ordered = true;
   reg_t new_qubits;
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
-  return temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  centralize_qubits(qubits, new_qubits, ordered);
+  return state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
@@ -1080,7 +1067,7 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	return temp;
 }
 
-void MPS::full_state_vector(cvector_t& statevector) const {
+void MPS::full_state_vector(cvector_t& statevector){
   reg_t qubits(num_qubits_);
   std::iota( std::begin(qubits), std::end(qubits), 0);
   reg_t internal_qubits = get_internal_qubits(qubits);
@@ -1088,8 +1075,7 @@ void MPS::full_state_vector(cvector_t& statevector) const {
 }
 
 void MPS::full_state_vector_internal(cvector_t& statevector,
-				     const reg_t &qubits) const
-{
+				     const reg_t &qubits) {
   // mps_vec contains the state vector with the qubits in ascending order
   MPS_Tensor mps_vec = state_vec_as_MPS(qubits);
 
@@ -1108,13 +1094,13 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_probabilities_vector(rvector_t& probvector, 			       const reg_t &qubits) const {
+void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
 void MPS::get_probabilities_vector_internal(rvector_t& probvector, 
-					    const reg_t &qubits) const
+					    const reg_t &qubits)
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();

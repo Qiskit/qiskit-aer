@@ -210,7 +210,7 @@ protected:
   // Return vector of measure probabilities for specified qubits
   // If a state subclass supports this function, then "measure"
   // must be contained in the set defined by 'allowed_ops'
-  rvector_t measure_probs(const reg_t &qubits) const;
+  rvector_t measure_probs(const reg_t &qubits);
 
   // Sample the measurement outcome for qubits
   // return a pair (m, p) of the outcome m, and its corresponding
@@ -393,12 +393,7 @@ void State::set_config(const json_t &config) {
   int index_size;
   if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
     MPS::set_sample_measure_index_size(index_size);
-  };
-
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
-  //    MPS::set_enable_gate_opt(gate_opt);
+  }
 }
 
 //=========================================================================
@@ -662,7 +657,7 @@ void State::apply_measure(const reg_t &qubits,
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
-rvector_t State::measure_probs(const reg_t &qubits) const {
+rvector_t State::measure_probs(const reg_t &qubits) {
   rvector_t probvector;
   qreg_.get_probabilities_vector(probvector, qubits);
   return probvector;

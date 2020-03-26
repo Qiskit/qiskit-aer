@@ -126,7 +126,7 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  cmatrix_t density_matrix(const reg_t &qubits) const;
+  cmatrix_t density_matrix(const reg_t &qubits);
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -135,7 +135,7 @@ public:
   //             M - the matrix
   // Returns: The expectation value. 
   //------------------------------------------------------------------
-  double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+  double expectation_value(const reg_t &qubits, const cmatrix_t &M);
 
   //---------------------------------------------------------------
   // Function: expectation_value_pauli
@@ -146,24 +146,20 @@ public:
   // Returns: The expectation value in the form of a complex number. The real part is the 
   //          actual expectation value.
   //------------------------------------------------------------------
-  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
+  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices);
 
   //------------------------------------------------------------------
   // Function name: MPS_with_new_indices
-  // Description: Creates a copy of *this where the indices of the
-  //   selected qubits have been moved for more efficient computation
+  // Description: Moves the indices of the selected qubits for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: temp_MPS - the new MPS after reordering the qubits
-  //          sorted_qubits - the qubits, after sorting
+  // Returns: sorted_qubits - the qubits, after sorting
   //          centralized_qubits - the qubits, after sorting and centralizing
   //          
   //----------------------------------------------------------------
   void MPS_with_new_indices(const reg_t &qubits,
 			    reg_t &sorted_qubits,
-			    reg_t &centralized_qubits,
-			    MPS& temp_MPS) const;
-
+			    reg_t &centralized_qubits);
 
   //----------------------------------------------------------------
   // Function name: print
@@ -177,9 +173,9 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  sort_and_print(std::ostream& out);
 
-  void full_state_vector(cvector_t &state_vector) const;
+  void full_state_vector(cvector_t &state_vector);
 
-  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits);
 
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
@@ -216,13 +212,13 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, cvector_t &vmat) const {
+  double norm(const uint_t qubit, cvector_t &vmat) {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
     return expectation_value(qubits, mat);
   }
 
-  double norm(const reg_t &qubits, cvector_t &vmat) const {
+  double norm(const reg_t &qubits, cvector_t &vmat) {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
@@ -275,12 +271,12 @@ private:
 			      const cmatrix_t &mat);
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
-  cmatrix_t density_matrix_internal(const reg_t &qubits) const;
+  cmatrix_t density_matrix_internal(const reg_t &qubits);
 
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+  rvector_t trace_of_density_matrix(const reg_t &qubits);
 
-  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
-  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const;
+  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M);
+  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices);
 
    //----------------------------------------------------------------
    // Function name: get_matrices_sizes
@@ -299,15 +295,14 @@ private:
   // Parameters: none.
   // Returns: none.
   //----------------------------------------------------------------
-  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
+  MPS_Tensor state_vec_as_MPS(const reg_t &qubits);
 
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, 
-			 const reg_t &qubits) const;
+  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits);
 
-  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits);
 
   void apply_measure_internal(const reg_t &qubits,
 			      RngEngine &rng, reg_t &outcome_vector_internal);
