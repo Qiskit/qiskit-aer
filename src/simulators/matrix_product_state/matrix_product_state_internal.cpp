@@ -431,13 +431,11 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   // swap between the qubits
   uint_t A = index_A;
 
-  bool swapped = false, greater = false, smaller = false;
+  bool swapped = false;
 
   if (index_B > index_A+1) {
-    greater = true;
     change_position(index_B, index_A+1);  // Move B to be right after A
   } else if (index_A > 0 && index_B < index_A-1) {
-    smaller = true;
     change_position(index_B, index_A-1);  // Move B to be right before A
   }
   if (index_B < index_A) {
@@ -490,12 +488,6 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   q_reg_[A] = left_gamma;
   lambda_reg_[A] = lambda;
   q_reg_[A+1] = right_gamma;
-
-  /*  if (greater) {
-    change_position(index_A+1, index_B);  // Move B back to its original position
-  } else if (smaller) {
-    change_position(index_A-1, index_B);
-    }*/
 }
 
 void MPS::apply_3_qubit_gate(const reg_t &qubits,
@@ -599,12 +591,10 @@ void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
   reg_t target_qubits(qubits.size());
   // need to move all target qubits to be consecutive at the right end
-  uint_t right_end = move_qubits_to_right_end(qubits, target_qubits, 
-					      actual_indices);
+  move_qubits_to_right_end(qubits, target_qubits, 
+			   actual_indices);
 
   apply_matrix_to_target_qubits(target_qubits, mat);
-
-  // need to move qubits back to original position
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
@@ -710,29 +700,6 @@ void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
   }
 }
 
-void MPS::move_qubits_to_original_location(uint_t first, const reg_t &original_qubits,
-					   const reg_t &sorted_qubits) {
-  uint_t num_qubits = original_qubits.size();
-  uint_t mid_index = (num_qubits-1)/2;
-
-  for(uint_t i = 0; i < mid_index; i++)
-  {
-    change_position(first+i, sorted_qubits[i]);
-  }
-
-  for(uint_t i = num_qubits-1; i > mid_index; i--)
-  {
-    change_position(first+i, sorted_qubits[i]);
-  }
-  // note that the qubit at mid_index does not need to move, because we didn't move it
-  // during centralize_qubits
-
-  // qubit_order_ can simply be initialized
-  /*  qubit_order_.clear();
-  qubit_order_.resize(num_qubits);
-  std::iota(qubit_order_.begin(), qubit_order_.end(), 0);*/
-}
-
 void MPS::move_all_qubits_to_sorted_ordering() {
   // qubit_order_ can simply be initialized
   for (uint_t left_index=0;  left_index<num_qubits_; left_index++) {
@@ -752,7 +719,7 @@ void MPS::move_all_qubits_to_sorted_ordering() {
   }
 }
 
-uint_t MPS::move_qubits_to_right_end(const reg_t &qubits, 
+void MPS::move_qubits_to_right_end(const reg_t &qubits, 
 				     reg_t &target_qubits,
 				     reg_t &actual_indices) {
   // actual_qubits is a temporary structure that stores the current ordering of the 
@@ -789,30 +756,6 @@ uint_t MPS::move_qubits_to_right_end(const reg_t &qubits,
   // the target qubits are simply the rightmost qubits ending at right_end
   std::iota( std::begin(target_qubits), std::end(target_qubits), 
 	     right_end+1-num_target_qubits);
-
-  return right_end;
-}
-
-void MPS::move_qubits_back_from_right_end(const reg_t &qubits, 
-					  reg_t &actual_indices,
-					  uint_t right_end) {
-  for (uint_t left_index=right_end+1-qubits.size();  left_index< actual_indices.size(); left_index++) {
-    // find the qubit with the smallest index
-    uint_t min_index = left_index;
-    for (uint_t i = left_index+1; i < actual_indices.size(); i++) {
-      if (actual_indices[i] < actual_indices[min_index])
-	  min_index = i;
-    }
-    // Move this qubit back to its original position
-    uint_t final_pos = actual_indices[min_index];
-    for (uint_t j=min_index; j>final_pos; j--) {
-      //swap the qubits until smallest reaches its original position
-      apply_swap_internal(j, j-1);
-      // swap actual_indices to keep track of the new qubit positions
-      std::swap(actual_indices[j], actual_indices[j-1]);
-    }
-  break;
-  }
 }
 
 void MPS::change_position(uint_t src, uint_t dst) {
@@ -1067,7 +1010,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   return result;
 }
 
-std::ostream& MPS::print(std::ostream& out) {
+std::ostream& MPS::print(std::ostream& out) const {
   for(uint_t i=0; i<num_qubits_; i++)
     {
       out << "Gamma [" << i << "] :" << std::endl;
@@ -1091,20 +1034,9 @@ std::ostream& MPS::sort_and_print(std::ostream& out) {
   bool ordered = false;
 
   reg_t internal_qubits = get_internal_qubits(qubits);
-
   centralize_and_sort_qubits(qubits, sorted_indices, centralized_qubits, ordered);
-  for(uint_t i=0; i<num_qubits_; i++)
-    {
-      out << "Gamma [" << i << "] :" << std::endl;
-      q_reg_[i].print(out);
-      if(i < num_qubits_- 1)
-	{
-	  out << "Lambda [" << i << "] (size = " << lambda_reg_[i].size() << "):" << std::endl;
-	  out << lambda_reg_[i] << std::endl;
-	}
-    }
-  out << std::endl;
-  return out;
+
+  return print(out);
 }
 
 std::vector<reg_t> MPS::get_matrices_sizes() const

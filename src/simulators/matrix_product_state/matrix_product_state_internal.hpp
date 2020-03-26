@@ -169,11 +169,12 @@ public:
   // Function name: print
   // Description: prints the MPS in the current ordering of the qubits (qubit_order_)
   //----------------------------------------------------------------
-  virtual std::ostream&  print(std::ostream& out);
+  virtual std::ostream&  print(std::ostream& out) const;
 
   //----------------------------------------------------------------
   // Function name: sort_and_print
   // Description: Moves the qubits to their sorted positions and then prints the MPS
+  //----------------------------------------------------------------
   virtual std::ostream&  sort_and_print(std::ostream& out);
 
   void full_state_vector(cvector_t &state_vector) const;
@@ -365,40 +366,11 @@ private:
   // Parameters: Input: qubits - the qubits we wish to move
   //                    target_qubits - the new location of qubits
   //                    actual_indices - the final location of all the qubits in the MPS
-  // Returns: right_end - the rightmost position of 'qubits'.
+  // Returns: none.
   //----------------------------------------------------------------
-  uint_t move_qubits_to_right_end(const reg_t &qubits,
+  void move_qubits_to_right_end(const reg_t &qubits,
 				 reg_t &target_qubits,
 				 reg_t &actual_indices);
-
-//----------------------------------------------------------------
-  // Function name: move_qubits_back_from_right_end
-  // Description: This function moves qubits back to their original position after
-  //              move_qubits_to_right_end
-  // Parameters: Input/output: qubits - the qubits we wish to move
-  //                    actual_indices - the actual location of qubits, returned from 
-  //                    move_qubits_to_right_end, and updated here.
-  //                    right_end - location of the rightmost qubit out
-  //                                of 'qubits'
-  // Returns: none.
-  //----------------------------------------------------------------
-  void move_qubits_back_from_right_end(const reg_t &qubits,
-				       reg_t &actual_indices,
-				       uint_t right_end);
-
-  //----------------------------------------------------------------
-  // Function name: move_qubits_to_original_location
-  // Description: This function reverses the effect of centralize_qubits.
-  //      It returns the qubits that were previously centralized, to their original positions.
-  // Parameters: Input: first - the index of the first qubit that was moved
-  //                    original_qubits - the subset of qubits that were moved
-  //                    sorted_qubits - the original_qubits in sorted order
-  // Effect: the MPS (this) where the qubits have been moved back to their original
-  //         position.
-  // Returns: none.
-  //----------------------------------------------------------------
-  void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
-					const reg_t &sorted_qubits);
 
   //----------------------------------------------------------------
   void move_all_qubits_to_sorted_ordering();
