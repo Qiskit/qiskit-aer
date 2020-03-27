@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "framework/utils.hpp"
+#include "framework/noise_utils.hpp"
 #include "framework/json.hpp"
 #include "simulators/state.hpp"
 #include "qubitvector.hpp"
@@ -39,7 +40,8 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::snapshot, Operations::OpType::barrier,
     Operations::OpType::bfunc, Operations::OpType::roerror,
     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-    Operations::OpType::multiplexer, Operations::OpType::kraus},
+    Operations::OpType::multiplexer, Operations::OpType::kraus,
+    Operations::OpType::superop},
   // Gates
   {"u1",  "u2",  "u3",   "cx",   "cz",   "cy",   "cu1",
     "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
@@ -183,6 +185,11 @@ protected:
   void apply_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &krausops,
                    RngEngine &rng);
+  
+  // Apply a SuperOp error operation
+  void apply_superop(const reg_t &qubits,
+                     const cmatrix_t &superop,
+                     RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -476,6 +483,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
+          break;
+        case Operations::OpType::superop:
+          apply_superop(op.qubits, op.mats[0], rng);
           break;
         default:
           throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
@@ -1011,7 +1021,7 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits, const reg
 
 
 //=========================================================================
-// Implementation: Kraus Noise
+// Implementation: Noise
 //=========================================================================
 template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
@@ -1058,6 +1068,16 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
     complex_t renorm = 1 / std::sqrt(1. - accum);
     apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
   }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_superop(const reg_t &qubits,
+                                      const cmatrix_t &superop,
+                                      RngEngine &rng) {
+  // Convert superoperator to a set of Kraus matrices
+  size_t dim = 1 << qubits.size();
+  std::vector<cmatrix_t> kraus = Utils::superop2kraus(superop, dim);
+  apply_kraus(qubits, kraus, rng);
 }
 
 //-------------------------------------------------------------------------
