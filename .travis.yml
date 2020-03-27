@@ -62,6 +62,7 @@ stage_linux: &stage_linux
     - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
     - pip install dist/qiskit_aer*whl
   script:
+    - pip check
     - stestr run --slowest
 
 stage_osx: &stage_osx
@@ -102,6 +103,7 @@ stage_osx: &stage_osx
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
   script:
+    - pip check
     - stestr run --slowest
   
 ###############################################################################
@@ -167,6 +169,7 @@ jobs:
         - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
+        - aer-test/bin/pip check
     # MacOS Wheel
     - stage: compile
       name: Python Wheel Build MacOS
@@ -185,6 +188,7 @@ jobs:
         - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
+        - aer-test/bin/pip check
     # Linux Standalone
     - stage: compile
       name: Standalone Build Linux
