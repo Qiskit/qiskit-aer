@@ -33,6 +33,16 @@ class State {
 
 public:
   using ignore_argument = void;
+
+  //-----------------------------------------------------------------------
+  // Constructors
+  //
+  // Subclasses should call the virtual method initialize_opset in their
+  // default contructor since this cannot be done in the base class.
+  //
+  //   StateSubclass() {initialize_opset(); }
+  //-----------------------------------------------------------------------
+
   State() = default;
   virtual ~State() = default;
 
@@ -157,7 +167,6 @@ public:
     opset_ = Operations::OpSet(allowed_ops(),
                                allowed_gates(),
                                allowed_snapshots());
-    opset_initialized_ = true;
   }
 
   //=======================================================================
@@ -217,8 +226,6 @@ protected:
 
   // Opset of instructions supported by the state
   Operations::OpSet opset_;
-
-  bool opset_initialized_ = false;
 
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
