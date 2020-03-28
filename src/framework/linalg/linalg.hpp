@@ -24,5 +24,6 @@
 #include "framework/linalg/linops/linops_vector.hpp"
 #include "framework/linalg/linops/linops_generic.hpp"
 #include "framework/linalg/square.hpp"
+#include "framework/linalg/eigen_psd.hpp"
 
 #endif

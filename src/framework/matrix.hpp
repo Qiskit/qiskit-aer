@@ -123,6 +123,54 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
             const std::complex<double> *B, const size_t *ldb,
             const std::complex<double> *beta, std::complex<double> *C,
             size_t *ldc);
+void chetrd_(
+	const char &uplo,		// (input)
+	const int &n,			// (input)
+	std::complex<float> *a,		// a[n][lda] (input/output)
+	const int &lda,			// (input)
+	float *d,			// d[n] (output)
+	float *e,			// e[n-1] (output)
+	std::complex<float> *tau,		// tau[n-1] (output)
+	std::complex<float> *work,		// work[lwork] (workspace/output)
+	const int &lwork,		// (input)
+	int &info			// (output)
+	);
+
+void cpteqr_(
+  const char &compz,              // (input)
+  const int &n,                   // (input)
+  float *d,                       // d[n] (input/output)
+  float *e,                       // e[n-1] (input/output)
+  std::complex<float> *z,              // z[n][ldz] (input/output)
+  const int &ldz,                 // (input)
+  float *work,                    // work[lwork] (workspace)
+  int &info                       // (output)
+  );
+
+void zhetrd_(
+	const char &uplo,		// (input)
+	const int &n,			// (input)
+	std::complex<double> *a,		// a[n][lda] (input/output)
+	const int &lda,			// (input)
+	double *d,			// d[n] (output)
+	double *e,			// e[n-1] (output)
+	std::complex<double> *tau,		// tau[n-1] (output)
+	std::complex<double> *work,		// work[lwork] (workspace/output)
+	const int &lwork,		// (input)
+	int &info			// (output)
+	);
+
+void zpteqr_(
+  const char &compz,              // (input)
+  const int &n,                   // (input)
+  double *d,                      // d[n] (input/output)
+  double *e,                      // e[n-1] (input/output)
+  std::complex<double> *z,             // z[n][ldz] (input/output)
+  const int &ldz,                 // (input)
+  double *work,                   // work[lwork] (workspace)
+  int &info                       // (output)
+  );
+
 #ifdef __cplusplus
 }
 #endif
