@@ -33,8 +33,46 @@ class State {
 
 public:
   using ignore_argument = void;
-  State() = default;
+
+  //-----------------------------------------------------------------------
+  // Constructors
+  //-----------------------------------------------------------------------
+
+  // The constructor arguments are used to initialize the OpSet
+  // for the State class for checking supported simulator Operations
+  //
+  // Standard OpTypes that can be included here are:
+  // - `OpType::gate` if gates are supported
+  // - `OpType::measure` if measure is supported
+  // - `OpType::reset` if reset is supported
+  // - `OpType::snapshot` if any snapshots are supported
+  // - `OpType::barrier` if barrier is supported
+  // - `OpType::matrix` if arbitrary unitary matrices are supported
+  // - `OpType::kraus` if general Kraus noise channels are supported
+  //
+  // For gate ops allowed gates are specified by a set of string names,
+  // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
+  //
+  // For snapshot ops allowed snapshots are specified by a set of string names,
+  // For example this could include {"probabilities", "pauli_observable"}
+
+  State(const Operations::OpSet &opset) : opset_(opset) {}
+
+  State(const Operations::OpSet::optypeset_t &optypes,
+        const stringset_t &gates,
+        const stringset_t &snapshots)
+    : State(Operations::OpSet(optypes, gates, snapshots)) {};
+
   virtual ~State() = default;
+
+  //-----------------------------------------------------------------------
+  // Data accessors
+  //-----------------------------------------------------------------------
+
+  // Returns a const reference to the states data structure
+  const auto &qreg() const {return qreg_;}
+  const auto &creg() const {return creg_;}
+  const auto &opset() const {return opset_;}
 
   //=======================================================================
   // Subclass Override Methods
@@ -54,32 +92,10 @@ public:
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
-  // Return the set of qobj instruction types supported by the State
-  // by the Operations::OpType enum class.
-  // Standard OpTypes that can be included here are:
-  // - `OpType::gate` if gates are supported
-  // - `OpType::measure` if measure is supported
-  // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
-  // - `OpType::barrier` if barrier is supported
-  // - `OpType::matrix` if arbitrary unitary matrices are supported
-  // - `OpType::kraus` if general Kraus noise channels are supported
-  // For the case of gates the specific allowed gates are checked
-  // with the `allowed_gates` function.
-  virtual Operations::OpSet::optypeset_t allowed_ops() const = 0;
-
-  // Return the set of qobj gate instruction names supported by the state class
-  // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  virtual stringset_t allowed_gates() const = 0;
-
-  // Return the set of qobj gate instruction names supported by the state class
-  // For example this could include {"probabilities", "pauli_observable"}
-  virtual stringset_t allowed_snapshots() const = 0;
-
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
   // executed (ie in sequence, or some other execution strategy.)
-  // If this sequence contains operations not in allowed_operations
+  // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
@@ -167,14 +183,6 @@ public:
   // If negative there is no restriction on the backend
   inline void set_parallalization(int n) {threads_ = n;}
 
-  //-----------------------------------------------------------------------
-  // Data accessors
-  //-----------------------------------------------------------------------
-
-  // Returns a const reference to the states data structure
-  inline const state_t &qreg() const {return qreg_;}
-  inline const auto &creg() const {return creg_;}
-
 protected:
 
   // The quantum state data structure
@@ -182,6 +190,9 @@ protected:
 
   // Classical register data
   ClassicalRegister creg_;
+
+  // Opset of instructions supported by the state
+  Operations::OpSet opset_;
 
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden

@@ -402,13 +402,9 @@ bool Controller::validate_state(const state_t &state,
                                 const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
-  // TODO: Add opset to State
-  Operations::OpSet state_opset(state.allowed_ops(),
-                                state.allowed_gates(),
-                                state.allowed_snapshots());
   // First check if a noise model is valid a given state
-  bool noise_valid = noise.is_ideal() || state_opset.contains(noise.opset());
-  bool circ_valid = state_opset.contains(circ.opset());
+  bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
+  bool circ_valid = state.opset().contains(circ.opset());
   if (noise_valid && circ_valid)
   {
     return true;
@@ -424,12 +420,12 @@ bool Controller::validate_state(const state_t &state,
   std::stringstream msg;
   if (!noise_valid) {
     msg << "Noise model contains invalid instructions ";
-    msg << state_opset.difference(noise.opset());
+    msg << state.opset().difference(noise.opset());
     msg << " for \"" << state.name() << "\" method";
   }
   if (!circ_valid) {
     msg << "Circuit contains invalid instructions ";
-    msg << state_opset.difference(circ.opset());
+    msg << state.opset().difference(circ.opset());
     msg << " for \"" << state.name() << "\" method";
   }
   throw std::runtime_error(msg.str());
