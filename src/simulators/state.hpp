@@ -16,7 +16,7 @@
 #define _aer_base_state_hpp_
 
 #include "framework/json.hpp"
-#include "framework/operations.hpp"
+#include "framework/opset.hpp"
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
 #include "framework/results/experiment_data.hpp"

@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "framework/operations.hpp"
+#include "framework/opset.hpp"
 #include "noise/noise_model.hpp"
 
 
