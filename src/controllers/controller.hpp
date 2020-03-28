@@ -485,14 +485,8 @@ void Controller::optimize_circuit(Circuit &circ,
                                   Noise::NoiseModel& noise,
                                   state_t& state,
                                   ExperimentData &data) const {
-
-  Operations::OpSet allowed_opset;
-  allowed_opset.optypes = state.allowed_ops();
-  allowed_opset.gates = state.allowed_gates();
-  allowed_opset.snapshots = state.allowed_snapshots();
-
   for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_) {
-    opt->optimize_circuit(circ, noise, allowed_opset, data);
+    opt->optimize_circuit(circ, noise, state.opset(), data);
   }
 }
 

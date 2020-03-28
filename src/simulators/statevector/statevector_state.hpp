@@ -58,7 +58,7 @@ class State : public Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------

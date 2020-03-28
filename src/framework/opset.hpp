@@ -98,11 +98,6 @@ public:
   // the current OpSet
   bool validate(const OpSet &opset) const;
 
-  // Return true if all instructions are contained in the current OpSet
-  bool validate(const optypeset_t &allowed_ops,
-                const stringset_t &allowed_gates,
-                const stringset_t &allowed_snapshots) const;
-
   // Return True if opset ops are contained in allowed_ops
   bool validate_optypes(const optypeset_t &allowed_ops) const;
 
@@ -250,14 +245,6 @@ bool OpSet::validate(const OpSet &opset) const {
   return validate_optypes(opset.optypes) &&
          validate_gates(opset.gates) &&
          validate_snapshots(opset.snapshots);
-}
-
-bool OpSet::validate(const optypeset_t &allowed_ops,
-                     const stringset_t &allowed_gates,
-                     const stringset_t &allowed_snapshots) const {
-  return validate_optypes(allowed_ops) &&
-         validate_gates(allowed_gates) &&
-         validate_snapshots(allowed_snapshots);
 }
 
 bool OpSet::validate_optypes(const optypeset_t &allowed_ops) const {

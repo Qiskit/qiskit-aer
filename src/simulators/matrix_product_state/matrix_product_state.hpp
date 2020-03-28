@@ -61,7 +61,7 @@ class State : public Base::State<matrixproductstate_t> {
 public:
   using BaseState = Base::State<matrixproductstate_t>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
 
   State(uint_t num_qubits) {
     qreg_.initialize((uint_t)num_qubits);

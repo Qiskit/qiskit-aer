@@ -48,7 +48,7 @@ class State : public Base::State<Clifford::Clifford> {
 public:
   using BaseState = Base::State<Clifford::Clifford>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------

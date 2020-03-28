@@ -47,7 +47,7 @@ class State : public Base::State<data_t> {
 public:
   using BaseState = Base::State<data_t>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------

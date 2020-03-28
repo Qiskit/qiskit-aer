@@ -57,7 +57,7 @@ class State : public Base::State<unitary_matrix_t> {
  public:
   using BaseState = Base::State<unitary_matrix_t>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------

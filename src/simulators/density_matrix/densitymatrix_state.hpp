@@ -56,7 +56,7 @@ class State : public Base::State<densmat_t> {
 public:
   using BaseState = Base::State<densmat_t>;
 
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------

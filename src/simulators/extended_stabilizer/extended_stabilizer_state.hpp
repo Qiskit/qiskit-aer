@@ -50,7 +50,7 @@ class State: public Base::State<chstate_t>
 {
 public:
   using BaseState = Base::State<chstate_t>;
-  State() = default;
+  State() {BaseState::initialize_opset();}
   virtual ~State() = default;
 
   virtual std::string name() const override {return "extended_stabilizer";}
