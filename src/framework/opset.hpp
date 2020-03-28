@@ -40,11 +40,15 @@ public:
   using optypeset_t = std::unordered_set<Operations::OpType, EnumClassHash>;
 
   // Public data members
-  optypeset_t optypes;     // A set of op types
+  optypeset_t optypes;    // A set of op types
   stringset_t gates;      // A set of names for OpType::gates
   stringset_t snapshots;  // set of types for OpType::snapshot
 
   OpSet() = default;
+  OpSet(const optypeset_t & _optypes,
+        const stringset_t &_gates,
+        const stringset_t &_snapshots)
+    : optypes(_optypes), gates(_gates), snapshots(_snapshots) {};
   OpSet(const std::vector<Op> &ops) {insert(ops);}
 
   //-----------------------------------------------------------------------
@@ -64,15 +68,37 @@ public:
   // Check if operations are in the OpSet
   //-----------------------------------------------------------------------
 
-  // Return true if an operation is contained in the current OpSet
-  bool contains(const OpType &optype) const;
+  // Return true if all instructions in an OpSet are contained in
+  // the current OpSet
+  bool contains(const OpSet &opset) const;
+
+  // Return true if all optypes are contained in the current Opset
+  bool contains_optypes(const optypeset_t &_optypes) const;
+
+  // Return true if all gates are contained in the current OpSet
+  bool contains_gates(const stringset_t &_gates) const;
+
+  // Return true if all snapshots are contained in the current OpSet
+  bool contains_snapshots(const stringset_t &_snapshots) const;
+
+  // Return true if an optype is contained in the current OpSet
+  bool contains_optype(const OpType &optype) const;
+
+  // Return true if a gate is contained in the current OpSet
+  bool contains_gate(const std::string &gate) const;
+
+  // Return true if a snapshot is contained in the current OpSet
+  bool contains_snapshot(const std::string &snapshot) const;
 
   //-----------------------------------------------------------------------
   // Validate OpSet against sets of allowed operations
   //-----------------------------------------------------------------------
 
-  // Return True if opset ops, gates and snapshots are contained in
-  // allowed_ops, allowed_gates, allowed_snapshots
+  // Return true if all instructions in an OpSet are contained in
+  // the current OpSet
+  bool validate(const OpSet &opset) const;
+
+  // Return true if all instructions are contained in the current OpSet
   bool validate(const optypeset_t &allowed_ops,
                 const stringset_t &allowed_gates,
                 const stringset_t &allowed_snapshots) const;
@@ -99,6 +125,7 @@ public:
   // Return a set of all invalid circuit op names
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
+
 
 inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
   s << "optypes={";
@@ -132,9 +159,13 @@ inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
   return s;
 }
 
-//------------------------------------------------------------------------------
-// OpSet class methods
-//------------------------------------------------------------------------------
+//=========================================================================
+// Implementations
+//=========================================================================
+
+//-------------------------------------------------------------------------
+// Insertion
+//-------------------------------------------------------------------------
 
 void OpSet::insert(const Op &op) {
   optypes.insert(op.type);
@@ -149,7 +180,6 @@ void OpSet::insert(const std::vector<Op> &ops) {
     insert(op);
 }
 
-
 void OpSet::insert(const OpSet &opset) {
   optypes.insert(opset.optypes.begin(),
                   opset.optypes.end());
@@ -159,10 +189,67 @@ void OpSet::insert(const OpSet &opset) {
                     opset.snapshots.end());
 }
 
-bool OpSet::contains(const OpType &optype) const {
+//-------------------------------------------------------------------------
+// Contains
+//-------------------------------------------------------------------------
+
+bool OpSet::contains(const OpSet &opset) const {
+  return contains_optypes(opset.optypes) &&
+         contains_gates(opset.gates) &&
+         contains_snapshots(opset.snapshots);
+}
+
+bool OpSet::contains_optypes(const optypeset_t &_optypes) const {
+  for (const auto &optype : _optypes) {
+    if (optypes.find(optype) == optypes.end())
+      return false;
+  }
+  return true;
+}
+
+bool OpSet::contains_gates(const stringset_t &_gates) const {
+  for (const auto &gate : _gates) {
+    if (gates.find(gate) == gates.end())
+      return false;
+  }
+  return true;
+}
+
+
+bool OpSet::contains_snapshots(const stringset_t &_snapshots) const {
+  for (const auto &snapshot : _snapshots) {
+    if (snapshots.find(snapshot) == snapshots.end())
+      return false;
+  }
+  return true;
+}
+
+bool OpSet::contains_optype(const OpType &optype) const {
   if (optypes.find(optype) == optypes.end())
     return false;
   return true;
+}
+
+bool OpSet::contains_gate(const std::string &gate) const {
+  if (gates.find(gate) == gates.end())
+    return false;
+  return true;
+}
+
+bool OpSet::contains_snapshot(const std::string &snapshot) const {
+  if (snapshots.find(snapshot) == snapshots.end())
+    return false;
+  return true;
+}
+
+//-------------------------------------------------------------------------
+// Validate
+//-------------------------------------------------------------------------
+
+bool OpSet::validate(const OpSet &opset) const {
+  return validate_optypes(opset.optypes) &&
+         validate_gates(opset.gates) &&
+         validate_snapshots(opset.snapshots);
 }
 
 bool OpSet::validate(const optypeset_t &allowed_ops,

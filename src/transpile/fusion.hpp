@@ -181,7 +181,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   // Check if fusion should be skipped
   if (circ.num_qubits < threshold_
       || !active_
-      || !allowed_opset.contains(optype_t::matrix))
+      || !allowed_opset.contains_optype(optype_t::matrix))
     return;
 
   bool applied = false;
