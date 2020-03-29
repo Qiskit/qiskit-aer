@@ -294,6 +294,10 @@ void MPS::initialize(uint_t num_qubits)
   qubit_order_.clear();
   qubit_order_.resize(num_qubits);
   std::iota(qubit_order_.begin(), qubit_order_.end(), 0);
+
+  qubit_location_.clear();
+  qubit_location_.resize(num_qubits);
+  std::iota(qubit_location_.begin(), qubit_location_.end(), 0);
 }
 
 void MPS::initialize(const MPS &other){
@@ -302,6 +306,7 @@ void MPS::initialize(const MPS &other){
       q_reg_ = other.q_reg_;
       lambda_reg_ = other.lambda_reg_;
       qubit_order_ = other.qubit_order_;
+      qubit_location_ = other.qubit_location_;
     }     
 }
 
@@ -386,29 +391,33 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
   rvector_t left_lambda, right_lambda;
   //There is no lambda in the edges of the MPS
   left_lambda  = (actual_A != 0) 	    ? lambda_reg_[actual_A-1] : rvector_t {1.0};
-	right_lambda = (actual_B != num_qubits_-1) ? lambda_reg_[actual_B  ] : rvector_t {1.0};
+  right_lambda = (actual_B != num_qubits_-1) ? lambda_reg_[actual_B  ] : rvector_t {1.0};
 
-	q_reg_[actual_A].mul_Gamma_by_left_Lambda(left_lambda);
-	q_reg_[actual_B].mul_Gamma_by_right_Lambda(right_lambda);
-	MPS_Tensor temp = MPS_Tensor::contract(q_reg_[actual_A], lambda_reg_[actual_A], q_reg_[actual_B]);
+  q_reg_[actual_A].mul_Gamma_by_left_Lambda(left_lambda);
+  q_reg_[actual_B].mul_Gamma_by_right_Lambda(right_lambda);
+  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[actual_A], lambda_reg_[actual_A], q_reg_[actual_B]);
 
-	temp.apply_swap();
-	MPS_Tensor left_gamma,right_gamma;
-	rvector_t lambda;
-	MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-	left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-	right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-	q_reg_[actual_A] = left_gamma;
-	lambda_reg_[actual_A] = lambda;
-	q_reg_[actual_B] = right_gamma;
-	
-	if (!swap_gate) {
-	  // we are moving the qubit at index_A one position to the right
-	  // and the qubit at index_B or index_A+1 is moved one position 
-	  //to the left
-	  std::swap(qubit_order_[index_A], qubit_order_[index_B]);
-
-	}
+  temp.apply_swap();
+  MPS_Tensor left_gamma,right_gamma;
+  rvector_t lambda;
+  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
+  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
+  q_reg_[actual_A] = left_gamma;
+  lambda_reg_[actual_A] = lambda;
+  q_reg_[actual_B] = right_gamma;
+  
+  if (!swap_gate) {
+    // we are moving the qubit at index_A one position to the right
+    // and the qubit at index_B or index_A+1 is moved one position 
+    //to the left
+    std::swap(qubit_order_[index_A], qubit_order_[index_B]);
+    
+  }
+  // update qubit location after all the swaps
+  if (!swap_gate)
+    for (uint_t i=0; i<num_qubits_; i++)
+      qubit_location_[qubit_order_[i]] = i;
 }
 
 //-------------------------------------------------------------------------
@@ -717,11 +726,11 @@ void MPS::move_all_qubits_to_sorted_ordering() {
       apply_swap_internal(j, j-1);
     }
   }
-}
+}  
 
 void MPS::move_qubits_to_right_end(const reg_t &qubits, 
-				     reg_t &target_qubits,
-				     reg_t &actual_indices) {
+				   reg_t &target_qubits,
+				   reg_t &actual_indices) {
   // actual_qubits is a temporary structure that stores the current ordering of the 
   // qubits in the MPS structure. It is necessary, because when we perform swaps, 
   // the positions of the qubits change. We need to move the qubits from their 
@@ -1204,6 +1213,9 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
   qubit_order_.clear();
   qubit_order_.resize(num_qubits);
   std::iota(qubit_order_.begin(), qubit_order_.end(), 0);
+  qubit_location_.clear();
+  qubit_location_.resize(num_qubits);
+  std::iota(qubit_location_.begin(), qubit_location_.end(), 0);
   num_qubits_ = 0;
 
   // remaining_matrix is the matrix that remains after each iteration

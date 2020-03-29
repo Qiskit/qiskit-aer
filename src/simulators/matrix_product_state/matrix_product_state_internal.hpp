@@ -243,11 +243,11 @@ private:
     
     return q_reg_[get_qubit_index(index)];
   }
+
   uint_t get_qubit_index(uint_t index) const {
-    for (uint_t i=0; i<num_qubits_; i++)
-      if (qubit_order_[i] == index)
-	return i;
+    return qubit_location_[index];
   }
+
   reg_t get_internal_qubits(const reg_t &qubits) const;
 
   // The following methods are the internal versions of the api functions.
@@ -386,10 +386,13 @@ private:
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
 
-  // qubit_order_vectors store the current ordering of the qubits,
+  // qubit_order_ stores the current ordering of the qubits,
+  // qubit_location_ stores the location of each qubit in the vector. It is derived from qubit_order_ 
+  // at the end of every swap operation for performance reasons
   // for example: starting position qubit_order_=qubit_location_=01234
-  // cx(0,3) -> qubit_order_=03124
-  reg_t qubit_order_;  //contains the current ordering of the qubits
+  // ccx(0,4) -> qubit_order_=04123, qubit_location_=02341
+  reg_t qubit_order_;
+  reg_t qubit_location_;
 
   //-----------------------------------------------------------------------
   // Config settings
