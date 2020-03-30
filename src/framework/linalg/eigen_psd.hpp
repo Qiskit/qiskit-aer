@@ -28,7 +28,7 @@
  * @returns: true.
  */
 template <class float_t>
-void eigensystems_psd(const matrix<std::complex<float_t>>& psd_matrix,
+void eigensystem_psd(const matrix<std::complex<float_t>>& psd_matrix,
                /* out */ std::vector<std::complex<float_t>>& eigenvalues,
                /* out */ matrix<std::complex<float_t>>& eigenvectors){
 
