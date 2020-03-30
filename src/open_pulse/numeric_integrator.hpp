@@ -36,7 +36,7 @@ py::array_t<std::complex<double>> td_ode_rhs(double t,
 PYBIND11_MODULE(numeric_integrator_wrapper, m) {
     m.doc() = "pybind11 numeric_integrator"; // optional module docstring
 
-    m.def("td_ode_rhs", &td_ode_rhs, "Compute rhs for ODE");
+    m.def("td_ode_rhs_static", &td_ode_rhs, "Compute rhs for ODE");
 }
 
 #endif // _NUMERIC_INTEGRATOR_HPP

@@ -25,7 +25,7 @@ from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 
 # These pulse0 imports are only used by the Monte-Carlo solver
-from .pulse_utils import cy_expect_psi_csr, occ_probabilities, write_shots_memory, spmv_csr
+from ..de_solvers.pulse_utils import cy_expect_psi_csr, occ_probabilities, write_shots_memory, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
