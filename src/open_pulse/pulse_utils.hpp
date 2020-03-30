@@ -71,9 +71,9 @@ void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx);
 // out : array
 //         Returns dense array.
 //============================================================================
-py::array_t<double> spmv_csr(py::array_t<complex_t> data,
-                             py::array_t<int> ind,
-                             py::array_t<int> ptr,
-                             py::array_t<complex_t> vec);
+py::array_t<complex_t> spmv_csr(py::array_t<complex_t> data,
+                                py::array_t<int> ind,
+                                py::array_t<int> ptr,
+                                py::array_t<complex_t> vec);
 
 #endif //PULSE_UTILS_H
