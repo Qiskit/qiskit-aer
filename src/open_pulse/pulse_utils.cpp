@@ -1,18 +1,17 @@
 #include "pulse_utils.hpp"
-
 #include "zspmv.hpp"
 
-std::complex<double> internal_expect_psi_csr(const py::array_t<std::complex<double>, py::array::c_style>& data,
-        const py::array_t<int, py::array::c_style>& ind,
-        const py::array_t<int, py::array::c_style>& ptr,
-        const py::array_t<std::complex<double>, py::array::c_style>& vec) {
+complex_t internal_expect_psi_csr(const py::array_t<complex_t>& data,
+                                  const py::array_t<int>& ind,
+                                  const py::array_t<int>& ptr,
+                                  const py::array_t<complex_t>& vec) {
     auto data_raw = data.unchecked<1>();
     auto vec_raw = vec.unchecked<1>();
     auto ind_raw = ind.unchecked<1>();
     auto ptr_raw = ptr.unchecked<1>();
 
     int nrows = vec.shape(0);
-    std::complex<double> temp, expt = 0;
+    complex_t temp, expt = 0;
     int row, jj;
 
     for (row = 0; row < nrows; row++) {
@@ -27,26 +26,29 @@ std::complex<double> internal_expect_psi_csr(const py::array_t<std::complex<doub
 }
 
 
-PyObject* expect_psi_csr(const py::array_t<std::complex<double>, py::array::c_style>& data,
-                         const py::array_t<int, py::array::c_style>& ind,
-                         const py::array_t<int, py::array::c_style>& ptr,
-                         const py::array_t<std::complex<double>, py::array::c_style>& vec,
-                         bool isherm) {
-    std::complex<double> expt = internal_expect_psi_csr(data, ind, ptr, vec);
-    if(isherm)
-        return PyFloat_FromDouble(std::real(expt));
-    return PyComplex_FromDoubles(std::real(expt), std::imag(expt));
+py::object expect_psi_csr(py::array_t<complex_t> data,
+                          py::array_t<int> ind,
+                          py::array_t<int> ptr,
+                          py::array_t<complex_t> vec,
+                          bool isherm){
+    complex_t expt = internal_expect_psi_csr(data, ind, ptr, vec);
+    if(isherm){
+        return py::cast(std::real(expt));
+    }
+    return py::cast(expt);
 }
 
 
-py::array_t<double> occ_probabilities(py::array_t<int> qubits, py::array_t<std::complex<double>> state, py::list meas_ops){
+py::array_t<double> occ_probabilities(py::array_t<int> qubits,
+                                      py::array_t<complex_t> state,
+                                      py::list meas_ops){
     auto meas_size = meas_ops.size();
     py::array_t<double> probs(meas_size);
     auto probs_raw = probs.mutable_unchecked<1>();
     for(int i=0; i < meas_size; i++){
-        auto data = meas_ops[i].attr("data").cast<py::array_t<std::complex<double>>>();
-        auto ind = meas_ops[i].attr("indices").cast<py::array_t<int>>();
-        auto ptr = meas_ops[i].attr("indptr").cast<py::array_t<int>>();
+        auto data = meas_ops[i].attr("data").attr("data").cast<py::array_t<complex_t>>();
+        auto ind = meas_ops[i].attr("data").attr("indices").cast<py::array_t<int>>();
+        auto ptr = meas_ops[i].attr("data").attr("indptr").cast<py::array_t<int>>();
 
         probs_raw[i] = std::real(internal_expect_psi_csr(data, ind, ptr, state));
     }
@@ -79,7 +81,7 @@ void write_shots_memory(py::array_t<unsigned char> mem,
     }
 }
 
-void oplist_to_array(py::list A, py::array_t<std::complex<double>> B, int start_idx)
+void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx)
 {
     unsigned int lenA = A.size();
     if((start_idx+lenA) > B.shape(0)) {
@@ -89,44 +91,21 @@ void oplist_to_array(py::list A, py::array_t<std::complex<double>> B, int start_
     auto B_raw = B.mutable_unchecked<1>();
     for(int kk=0; kk < lenA; kk++){
         auto item = A[kk].cast<py::list>();
-        B_raw[start_idx+kk] = std::complex<double>(item[0].cast<double>(), item[1].cast<double>());
+        B_raw[start_idx+kk] = complex_t(item[0].cast<double>(), item[1].cast<double>());
     }
 }
 
 
 template <typename T>
-T * get_raw_data(py::array_t<T, py::array::c_style> array)
+T * get_raw_data(py::array_t<T> array)
 {
     return static_cast<T *>(array.request().ptr);
 }
 
-
-/*
-Sparse matrix, dense vector multiplication.
-Here the vector is assumed to have one-dimension.
-Matrix must be in CSR format and have complex entries.
-
-Parameters
-----------
-data : array
-        Data for sparse matrix.
-idx : array
-        Indices for sparse matrix data.
-ptr : array
-        Pointers for sparse matrix data.
-vec : array
-        Dense vector for multiplication.  Must be one-dimensional.
-
-Returns
--------
-out : array
-        Returns dense array.
-
-*/
-py::array_t<double> spmv_csr(const py::array_t<std::complex<double>, py::array::c_style>& data,
-                             const py::array_t<int, py::array::c_style>& ind,
-                             const py::array_t<int, py::array::c_style>& ptr,
-                             const py::array_t<std::complex<double>, py::array::c_style>& vec)
+py::array_t<double> spmv_csr(py::array_t<complex_t> data,
+                             py::array_t<int> ind,
+                             py::array_t<int> ptr,
+                             py::array_t<complex_t> vec)
 {
     auto data_raw = get_raw_data(data);
     auto ind_raw = get_raw_data(ind);
@@ -135,7 +114,7 @@ py::array_t<double> spmv_csr(const py::array_t<std::complex<double>, py::array::
 
     auto num_rows = vec.shape(0);
 
-    py::array_t<std::complex<double>> out(num_rows);
+    py::array_t<complex_t> out(num_rows);
     auto out_raw = get_raw_data(vec);
     zspmvpy(data_raw, ind_raw, ptr_raw, vec_raw, 1.0, out_raw, num_rows);
 

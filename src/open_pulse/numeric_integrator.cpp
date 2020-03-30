@@ -95,44 +95,17 @@ complex_t chan_value(
     return out;
 }
 
-
-PyArrayObject * create_py_array_from_vector(
-    complex_t * out,
-    int num_rows){
-
-    npy_intp dims = num_rows;
-    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
-    PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
-    #ifdef DEBUG
-    CALLGRIND_STOP_INSTRUMENTATION;
-    CALLGRIND_DUMP_STATS;
-    #endif
-    return array;
-}
-
-//PyArrayObject * td_ode_rhs(
-//    double t,
-//    PyArrayObject * py_vec,
-//    PyObject * py_global_data,
-//    PyObject * py_exp,
-//    PyObject * py_system,
-//    PyObject * py_channels,
-//    PyObject * py_register){
-
-
-py::array_t<std::complex<double>> td_ode_rhs(double t,
-        py::array_t<std::complex<double>> the_vec,
+py::array_t<complex_t> td_ode_rhs(double t,
+        py::array_t<complex_t> the_vec,
         py::object the_global_data,
         py::object the_exp,
         py::object the_system,
         py::object the_channels,
         py::object the_reg)
 {
-#ifdef DEBUG
+    #ifdef DEBUG
     CALLGRIND_START_INSTRUMENTATION;
     #endif
-
-    //import_array();
 
     // I left this commented on porpose so we can use logging eventually
     // This is just a RAII for the logger
@@ -146,16 +119,15 @@ py::array_t<std::complex<double>> td_ode_rhs(double t,
     PyObject * py_global_data = the_global_data.ptr();
     PyObject * py_exp = the_exp.ptr();
     PyObject * py_system = the_system.ptr();
-    PyObject * py_channels = the_channels.ptr();
     PyObject * py_register = the_reg.ptr();
 
-    if(/*py_vec == nullptr ||*/
+    if(py_vec == nullptr ||
        py_global_data == nullptr ||
        py_exp == nullptr ||
        py_system == nullptr ||
        py_register == nullptr){
            std::string msg = "These arguments cannot be null: ";
-           /* msg += (py_vec == nullptr ? "py_vec " : "" ); */
+           msg += (py_vec == nullptr ? "py_vec " : "" );
            msg += (py_global_data == nullptr ? "py_global_data " : "" );
            msg += (py_exp == nullptr ? "py_exp " : "" );
            msg += (py_system == nullptr ? "py_system " : "" );
@@ -235,6 +207,5 @@ py::array_t<std::complex<double>> td_ode_rhs(double t,
         out[i] += complex_t(0.,1.) * energy[i] * vec[i];
     }
 
-    //return create_py_array_from_vector(out, num_rows);
     return py::array(num_rows, out);
 }

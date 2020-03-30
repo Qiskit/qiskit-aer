@@ -22,21 +22,16 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include "types.hpp"
+
 namespace py = pybind11;
 
-py::array_t<std::complex<double>> td_ode_rhs(double t,
-        py::array_t<std::complex<double>> vec,
-        py::object global_data,
-        py::object exp,
-        py::object system,
-        py::object channels,
-        py::object reg);
-
-
-PYBIND11_MODULE(numeric_integrator_wrapper, m) {
-    m.doc() = "pybind11 numeric_integrator"; // optional module docstring
-
-    m.def("td_ode_rhs_static", &td_ode_rhs, "Compute rhs for ODE");
-}
+py::array_t<complex_t> td_ode_rhs(double t,
+                                  py::array_t<complex_t> vec,
+                                  py::object global_data,
+                                  py::object exp,
+                                  py::object system,
+                                  py::object channels,
+                                  py::object reg);
 
 #endif // _NUMERIC_INTEGRATOR_HPP
