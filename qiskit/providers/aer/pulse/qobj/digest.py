@@ -415,7 +415,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 # form inst['name'] + '-' + hash
                 pulse_name = inst['name']
                 for key in pulse_to_int.keys():
-                    if pulse_name in key and key[len(pulse_name)] == '-':
+                    if pulse_name in key:
                         pulse_name = key
                         break
 
