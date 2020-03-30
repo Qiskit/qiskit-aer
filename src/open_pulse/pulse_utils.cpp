@@ -88,7 +88,8 @@ void oplist_to_array(py::list A, py::array_t<std::complex<double>> B, int start_
 
     auto B_raw = B.mutable_unchecked<1>();
     for(int kk=0; kk < lenA; kk++){
-        B_raw[start_idx+kk] = A[kk].cast<std::complex<double>>();
+        auto item = A[kk].cast<py::list>();
+        B_raw[start_idx+kk] = std::complex<double>(item[0].cast<double>(), item[1].cast<double>());
     }
 }
 
