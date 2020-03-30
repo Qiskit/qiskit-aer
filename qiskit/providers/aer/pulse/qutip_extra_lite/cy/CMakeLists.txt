@@ -7,7 +7,4 @@ include(cython_utils)
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/pulse/qutip_extra_lite/cy")
-add_cython_module(spmath src/zspmv.cpp)
-add_cython_module(spmatfuncs src/zspmv.cpp)
-add_cython_module(measure)
-add_cython_module(utils)
+add_cython_module(spmath)

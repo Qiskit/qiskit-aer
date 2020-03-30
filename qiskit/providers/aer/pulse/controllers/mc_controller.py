@@ -24,9 +24,8 @@ from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
 
-# qutip_extra_lite imports
-from ..qutip_extra_lite.cy.measure import occ_probabilities, write_shots_memory
-from ..qutip_extra_lite.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
+# These pulse0 imports are only used by the Monte-Carlo solver
+from ..de_solvers.pulse_utils import cy_expect_psi_csr, occ_probabilities, write_shots_memory, spmv_csr
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -181,7 +180,7 @@ def monte_carlo_evolution(seed, exp, op_system):
                     n_dp[i] = cy_expect_psi_csr(global_data['n_ops_data'][i],
                                                 global_data['n_ops_ind'][i],
                                                 global_data['n_ops_ptr'][i],
-                                                ODE._y, 1)
+                                                ODE._y, True)
 
                 # determine which operator does collapse and store it
                 _p = np.cumsum(n_dp / np.sum(n_dp))
