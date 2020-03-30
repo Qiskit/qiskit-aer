@@ -10,14 +10,13 @@ complex_t internal_expect_psi_csr(const py::array_t<complex_t>& data,
     auto ind_raw = ind.unchecked<1>();
     auto ptr_raw = ptr.unchecked<1>();
 
-    int nrows = vec.shape(0);
+    auto nrows = vec.shape(0);
     complex_t temp, expt = 0;
-    int row, jj;
 
-    for (row = 0; row < nrows; row++) {
+    for (decltype(nrows) row = 0; row < nrows; row++) {
         temp = 0;
         auto vec_conj = std::conj(vec_raw[row]);
-        for (jj = ptr_raw[row]; jj < ptr_raw[row + 1]; jj++) {
+        for (auto jj = ptr_raw[row]; jj < ptr_raw[row + 1]; jj++) {
             temp += data_raw[jj] * vec_raw[ind_raw[jj]];
         }
         expt += vec_conj * temp;
@@ -45,7 +44,7 @@ py::array_t<double> occ_probabilities(py::array_t<int> qubits,
     auto meas_size = meas_ops.size();
     py::array_t<double> probs(meas_size);
     auto probs_raw = probs.mutable_unchecked<1>();
-    for(int i=0; i < meas_size; i++){
+    for(decltype(meas_size) i=0; i < meas_size; i++){
         auto data = meas_ops[i].attr("data").attr("data").cast<py::array_t<complex_t>>();
         auto ind = meas_ops[i].attr("data").attr("indices").cast<py::array_t<int>>();
         auto ptr = meas_ops[i].attr("data").attr("indptr").cast<py::array_t<int>>();
@@ -61,8 +60,8 @@ void write_shots_memory(py::array_t<unsigned char> mem,
                         py::array_t<double> probs,
                         py::array_t<double> rand_vals)
 {
-    unsigned int nrows = mem.shape(0);
-    unsigned int nprobs = probs.shape(0);
+    auto nrows = mem.shape(0);
+    auto nprobs = probs.shape(0);
 
     unsigned char temp;
 
@@ -71,8 +70,8 @@ void write_shots_memory(py::array_t<unsigned char> mem,
     auto probs_raw = probs.unchecked<1>();
     auto rand_vals_raw = rand_vals.unchecked<1>();
 
-    for(std::size_t ii = 0; ii < nrows; ii++){
-        for(std::size_t jj = 0; jj < nprobs; jj++) {
+    for(decltype(nrows) ii = 0; ii < nrows; ii++){
+        for(decltype(nprobs) jj = 0; jj < nprobs; jj++) {
             temp = static_cast<unsigned char>(probs_raw[jj] > rand_vals_raw[nprobs*ii+jj]);
             if(temp) {
                 mem_raw(ii, mem_slots_raw[jj]) = temp;
@@ -83,13 +82,13 @@ void write_shots_memory(py::array_t<unsigned char> mem,
 
 void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx)
 {
-    unsigned int lenA = A.size();
+    auto lenA = A.size();
     if((start_idx+lenA) > B.shape(0)) {
         throw std::runtime_error(std::string("Input list does not fit into array if start_idx is ") + std::to_string(start_idx) + ".");
     }
 
     auto B_raw = B.mutable_unchecked<1>();
-    for(int kk=0; kk < lenA; kk++){
+    for(decltype(lenA) kk=0; kk < lenA; kk++){
         auto item = A[kk].cast<py::list>();
         B_raw[start_idx+kk] = complex_t(item[0].cast<double>(), item[1].cast<double>());
     }
