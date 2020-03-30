@@ -339,18 +339,7 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
             # A standard pulse
             else:
                 start = inst['t0'] * dt
-                # temporary fix: the pulses in pulse_library have added hashes at the end,
-                # whereas corresponding instructions do not.
-                # For now we associate a pulse instruction to the pulse in pulse_library of the
-                # form inst['name'] + '-' + hash
-                pulse_name = inst['name']
-                for key in pulse_to_int.keys():
-                    if pulse_name in key and key[len(pulse_name)] == '-':
-                        pulse_name = key
-                        break
-
-                pulse_int = pulse_to_int[pulse_name]
-
+                pulse_int = pulse_to_int[inst['name']]
                 pulse_width = (pulse_inds[pulse_int + 1] - pulse_inds[pulse_int]) * dt
                 stop = start + pulse_width
                 structs['channels'][chan_name][0].extend([start, stop, pulse_int, cond])
