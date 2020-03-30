@@ -36,6 +36,10 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 
+//#define LAPACK_ROW_MAJOR               101
+//#define LAPACK_COL_MAJOR               102
+#include "lapacke.h"
+
 /*******************************************************************************
  *
  * BLAS headers
@@ -123,6 +127,32 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
             const std::complex<double> *B, const size_t *ldb,
             const std::complex<double> *beta, std::complex<double> *C,
             size_t *ldc);
+
+// Reduces a complex Hermitian matrix A to symmetric tridiagonal form T by a unitary similarity transformation
+// input parameters:
+//   matrix layout: ROW/COL major, uplo: stores upper or lower part (bc symmetric), n: order,
+//   a: the matrix (array), only upper/lower triangle matters, lda: leading dimension of a
+// output parameters:
+//   a: upper/lower triangle is overwritten, d: diagonal elements of T, e: off-diagonal elements of T.
+//   tau: (scalars) elementary reflectors in decomposition of the unitary matrix Q 
+//        in a product of n-1 elementary reflectors (lolwut?)
+void chetrd_(const size_t *matrix_layout, const char *uplo, const size_t *n, 
+             const std::complex<float> *a, const size_t *lda, 
+             const double *d, const double *e, const std::complex<float> *tau );
+void zhetrd_(const size_t *matrix_layout, const char *uplo, const size_t *n, 
+             const std::complex<double> *a, const size_t *lda, 
+             const double *d, const double *e, const std::complex<double> *tau );
+// Calculates the eigenvectors/values of a real symmetric positive-definite tridiagonal matrix T
+// input parameters:
+//   matrix_layout: ROW/COL major, compz: 'N'/'I'/'V', n: order of matrix
+//   d: diagonal elements of T, e: off-diagonal elements of T, z: (if compz = 'V') orthogonal matrix
+//   ldz: leading dim of z
+// output parameters:
+//   d: n eigenvalues (descending order), e: on exit array is overwritten,
+//   z: n-byn matrix the columns of which are orthonormal eigenvectors
+void zpteqr_(const size_t matrix_layout, const char *compz, lapack_int n, float* d, float* e, float* z, lapack_int ldz );
+
+
 #ifdef __cplusplus
 }
 #endif
@@ -262,6 +292,64 @@ protected:
   T *mat_ = nullptr;
   // the ptr to the vector containing the matrix
 };
+
+template <class float_t>
+inline void eig_psd(matrix<std::complex<float_t>>& mat,
+             std::vector<std::complex<float_t>> &evals,
+             matrix<std::complex<float_t>> &evecs) {
+#ifdef DEBUG
+  // mat must be square, output references must be empty
+  if ( mat.getRows() != mat.getCols() || evals.size() || evecs.size() ) {
+    std::cerr
+        << "error: matrix class operator []: Matrix subscript out of bounds"
+        << std::endl;
+    exit(1);
+  }
+#endif
+/* Calculates all eigenvalues and eigenvectors of a Hermitian matrix mat
+**   mat is assumed to be an arbtitrary(?) hermitian matrix (usually representing an...?)
+** Results are placed in evals (eig-values) and evecs (eig-vectors)
+*/
+  // Mat is a hermitian matrix i.e. symmetric about diagonal (equal to transpose) under complex conjugate
+  // First we transform to symmetric tridiagonal form with ?hetrd
+  //   tridiagonal means only the 3 longest diagonals in the matrix are non-zero
+  //   symmetric = the two second-longest diagonals are equivalent 
+  //   using zhetrd_ call
+  // Reduces a complex Hermitian matrix A to symmetric tridiagonal form T by a unitary similarity transformation
+  // input parameters:
+  //   matrix layout: ROW/COL major, uplo: stores upper or lower part (bc symmetric), n: order,
+  //   a: the matrix (array), only upper/lower triangle matters, lda: leading dimension of a
+  // output parameters:
+  //   a: upper/lower triangle is overwritten, d: diagonal elements of T, e: off-diagonal elements of T.
+  //   tau: (scalars) elementary reflectors in decomposition of the unitary matrix Q 
+  //        in a product of n-1 elementary reflectors (lolwut?)
+  auto m_layout = LAPACK_COL_MAJOR;
+  auto uplo = 'U'; //'L';
+  auto n = mat.getLD();
+  auto a = mat.getMat();
+  auto lda = mat.getLD();
+  auto d = ;
+  auto e = ;
+  auto tau = ;
+  zhetrd_(m_layout, uplo, n, a, lda);
+
+  // Then call 
+  // Calculates the eigenvectors/values of a real symmetric positive-definite tridiagonal matrix T
+  // input parameters:
+  //   matrix_layout: ROW/COL major, compz: 'N'/'I'/'V', n: order of matrix
+  //   d: diagonal elements of T, e: off-diagonal elements of T, z: (if compz = 'V') orthogonal matrix
+  //   ldz: leading dim of z
+  // output parameters:
+  //   d: n eigenvalues (descending order), e: on exit array is overwritten,
+  //   z: n-byn matrix the columns of which are orthonormal eigenvectors
+  auto m_layout = LAPACK_COL_MAJOR;
+  auto compz = 'I'; //'V';
+  auto d = ;
+  auto e = ;
+  auto z = ;
+  auto ldz = mat.getLD();
+  zpteqr_(m_layout, const char *compz, lapack_int n, float* d, float* e, float* z, lapack_int ldz );
+}
 
 /*******************************************************************************
  *
