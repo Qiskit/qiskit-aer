@@ -15,12 +15,23 @@
 #ifndef _aer_framework_linalg_eigen_psd_hpp_
 #define _aer_framework_linalg_eigen_psd_hpp_
 
+#include <type_traits>
 #include "framework/matrix.hpp"
 
+/**
+ * Returns the eigenvalues and eigenvectors of a Hermitian
+ * positive semi-definite (PSD) matrix.
+ * @param psd_matrix: The Hermitian PSD matrix.
+ * @param eigenvalues: The eignevalues of the matrix.
+ * @param eigenvectors: The eigenvectors of the matrix.
+ *
+ * @returns: true.
+ */
 template <class float_t>
-void eigen_psd(const matrix<std::complex<float_t>>& psd_matrix,
-               /* out */ std::vector<std::complex<float_t>> &eigen_values,
-               /* out */ matrix<std::complex<float_t>> &eigen_vectors){
+void eigensystems_psd(const matrix<std::complex<float_t>>& psd_matrix,
+               /* out */ std::vector<std::complex<float_t>>& eigenvalues,
+               /* out */ matrix<std::complex<float_t>>& eigenvectors){
+
 
 }
 

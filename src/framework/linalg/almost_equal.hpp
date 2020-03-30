@@ -29,7 +29,7 @@ namespace Linalg {
 // If we have numbers closer to 0, then max_diff can be set to a value
 // way smaller than epsilon. For numbers larger than 1.0, epsilon will
 // scale (the bigger the number, the bigger the epsilon).
-template <typename T, typename = enable_if_numeric_t<T>>
+template <typename T, typename = enable_if_scalar_t<T>>
 bool almost_equal(T f1, T f2,
                   T max_diff = std::numeric_limits<T>::epsilon(),
                   T max_relative_diff = std::numeric_limits<T>::epsilon()) {
@@ -38,6 +38,26 @@ bool almost_equal(T f1, T f2,
   return diff <=
          max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
+
+// Complex numbers are probably not considered scalar, so we need another
+// implementation to deal with them
+template <typename complex_t, typename = enable_if_complex_t<complex_t>>
+bool complex_almost_equal(complex_t f1, complex_t f2,
+                  decltype(f1.real()) max_diff = std::numeric_limits<decltype(f1.real())>::epsilon(),
+                  decltype(f1.real()) max_relative_diff = std::numeric_limits<decltype(f1.real())>::epsilon()) {
+  complex_t real_diff = std::abs(f1.real() - f2.real());
+  complex_t imag_diff = std::abs(f1.imag() - f2.imag());
+  if (real_diff <= max_diff && imag_diff <= max_diff)
+    return true;
+
+  return real_diff <=
+         max_relative_diff * std::max(std::abs(f1.real()), std::abs(f2.real()))
+         &&
+         imag_diff <=
+         max_relative_diff * std::max(std::abs(f1.imag()), std::abs(f2.imag()));
+}
+
+
 
 //------------------------------------------------------------------------------
 }  // namespace Linalg

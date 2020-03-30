@@ -35,6 +35,8 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <iostream>
 #include <vector>
 #include <array>
+#include "framework/linalg/enable_if_numeric.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 /*******************************************************************************
  *
@@ -316,7 +318,7 @@ public:
 
   // Return the size of the underlying array
   size_t size() const { return size_; }
-  
+
   // Return True if size == 0
   bool empty() const { return size_ == 0; }
 
@@ -327,10 +329,10 @@ public:
   void fill(const T& val);
 
   // Resize the matrix and reset to zero if different size
-  void initialize(size_t row, size_t col); 
+  void initialize(size_t row, size_t col);
 
   // Resize the matrix keeping current values
-  void resize(size_t row, size_t col); 
+  void resize(size_t row, size_t col);
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -349,13 +351,15 @@ public:
   size_t GetRows() const;    // gives the number of rows
   size_t GetLD() const;      // gives the leading dimension -- number of rows
 
+  bool AlmostEqual(const matrix<T>& rhs) const;
+
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
   // rows_ and cols_ are the rows and columns of the matrix
   // size_ = rows*colums dimensions of the vector representation
   // LD is the leading dimeonsion and for Column major order is in general eqaul
   // to rows
-  
+
   // the ptr to the vector containing the matrix
   T* data_ = nullptr;
 };
@@ -405,7 +409,7 @@ matrix<T>& matrix<T>::operator=(matrix<T>&& other) noexcept {
 
 template <class T>
 matrix<T> &matrix<T>::operator=(const matrix<T> &other) {
-  if (rows_ != other.rows_ || cols_ != other.cols_) { 
+  if (rows_ != other.rows_ || cols_ != other.cols_) {
     // size delete re-construct
     // the matrix
     free(data_);
@@ -590,6 +594,15 @@ template <class T> inline size_t matrix<T>::GetColumns() const {
 template <class T> inline size_t matrix<T>::GetLD() const {
   // returns the leading dimension
   return LD_;
+}
+
+template<class T>
+bool matrix<T>::AlmostEqual(const matrix<T>& rhs) const {
+  for(auto i = 0; i < rhs.size(); ++i){
+    if(complex_almost_equal<T>(data_[i], rhs[i]) == false)
+      return false;
+  }
+  return true;
 }
 
 template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
