@@ -101,10 +101,10 @@ T * get_raw_data(py::array_t<T> array)
     return static_cast<T *>(array.request().ptr);
 }
 
-py::array_t<double> spmv_csr(py::array_t<complex_t> data,
-                             py::array_t<int> ind,
-                             py::array_t<int> ptr,
-                             py::array_t<complex_t> vec)
+py::array_t<complex_t> spmv_csr(py::array_t<complex_t> data,
+                                py::array_t<int> ind,
+                                py::array_t<int> ptr,
+                                py::array_t<complex_t> vec)
 {
     auto data_raw = get_raw_data(data);
     auto ind_raw = get_raw_data(ind);
@@ -114,7 +114,8 @@ py::array_t<double> spmv_csr(py::array_t<complex_t> data,
     auto num_rows = vec.shape(0);
 
     py::array_t<complex_t> out(num_rows);
-    auto out_raw = get_raw_data(vec);
+    auto out_raw = get_raw_data(out);
+    memset(&out_raw[0], 0, num_rows * sizeof(complex_t));
     zspmvpy(data_raw, ind_raw, ptr_raw, vec_raw, 1.0, out_raw, num_rows);
 
     return out;
