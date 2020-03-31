@@ -36,7 +36,6 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 #include "framework/linalg/enable_if_numeric.hpp"
-#include "framework/linalg/almost_equal.hpp"
 
 /*******************************************************************************
  *
@@ -351,8 +350,6 @@ public:
   size_t GetRows() const;    // gives the number of rows
   size_t GetLD() const;      // gives the leading dimension -- number of rows
 
-  bool AlmostEqual(const matrix<T>& rhs) const;
-
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
   // rows_ and cols_ are the rows and columns of the matrix
@@ -594,15 +591,6 @@ template <class T> inline size_t matrix<T>::GetColumns() const {
 template <class T> inline size_t matrix<T>::GetLD() const {
   // returns the leading dimension
   return LD_;
-}
-
-template<class T>
-bool matrix<T>::AlmostEqual(const matrix<T>& rhs) const {
-  for(auto i = 0; i < rhs.size(); ++i){
-    if(complex_almost_equal<T>(data_[i], rhs[i]) == false)
-      return false;
-  }
-  return true;
 }
 
 template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {

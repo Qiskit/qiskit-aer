@@ -19,27 +19,20 @@
 #include <type_traits>
 
 // Type check template to enable functions if type is a numeric scalar
-// (integer, floating points)
+// (integer, float, or complex float)
 template <class T>
 struct is_numeric_scalar
     : std::integral_constant<
-          bool, std::is_arithmetic<T>::value> {};
-
-// Type check template to enable functions if type is a numeric complex
-template <class float_t>
-struct is_numeric_complex
-    : std::integral_constant<
-          bool, std::is_same<std::complex<float>,
-                    typename std::remove_cv<float_t>::type>::value ||
-                std::is_same<std::complex<double>,
-                    typename std::remove_cv<float_t>::type>::value ||
-                std::is_same<std::complex<long double>,
-                    typename std::remove_cv<float_t>::type>::value> {};
+          bool, std::is_arithmetic<T>::value ||
+                    std::is_same<std::complex<float>,
+                                 typename std::remove_cv<T>::type>::value ||
+                    std::is_same<std::complex<double>,
+                                 typename std::remove_cv<T>::type>::value ||
+                    std::is_same<std::complex<long double>,
+                                 typename std::remove_cv<T>::type>::value> {};
 
 template <class T>
-using enable_if_scalar_t = std::enable_if_t<is_numeric_scalar<T>::value>;
-template <class float_t>
-using enable_if_complex_t = std::enable_if_t<is_numeric_complex<float_t>::value>;
+using enable_if_numeric_t = std::enable_if_t<is_numeric_scalar<T>::value>;
 
 //------------------------------------------------------------------------------
 #endif
