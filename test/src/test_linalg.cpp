@@ -74,14 +74,14 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
         auto expected_eigenvectors = create_expected_eigenvectors<cmatrix_t>();
         std::vector<complex_t> eigenvalues;
         cmatrix_t eigenvectors;
-        eigensystems_psd(psd_matrix_double, eigenvalues, eigenvectors);
+        eigensystem_psd(psd_matrix_double, eigenvalues, eigenvectors);
 
         for(size_t i = 0; i < expected_eigenvalues.size(); ++i){
-            REQUIRE(Linalg::complex_almost_equal<decltype(expected_eigenvalues[i])>(
+            REQUIRE(Linalg::almost_equal(
                 expected_eigenvalues[i], eigenvalues[i]
             ));
         }
-        REQUIRE(expected_eigenvectors.AlmostEqual(eigenvectors));
+        REQUIRE(Linalg::almost_equal(expected_eigenvectors, eigenvectors));
     }
 
     SECTION("the input matrix of complex of floats, is a PSD"){
@@ -89,14 +89,14 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
         auto expected_eigenvectors = create_expected_eigenvectors<cmatrixf_t>();
         std::vector<complexf_t> eigenvalues;
         cmatrixf_t eigenvectors(3,3);
-        eigensystems_psd(psd_matrix_float, eigenvalues, eigenvectors);
+        eigensystem_psd(psd_matrix_float, eigenvalues, eigenvectors);
 
         for(size_t i = 0; i < expected_eigenvalues.size(); ++i){
-            REQUIRE(Linalg::complex_almost_equal<decltype(expected_eigenvalues[i])>(
+            REQUIRE(Linalg::almost_equal(
                 expected_eigenvalues[i], eigenvalues[i]
             ));
         }
-        REQUIRE(expected_eigenvectors.AlmostEqual(eigenvectors));
+        REQUIRE(Linalg::almost_equal(expected_eigenvectors, eigenvectors));
     }
 }
 

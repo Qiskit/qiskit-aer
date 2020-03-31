@@ -19,45 +19,55 @@
 #include <limits>
 #include <type_traits>
 
+#include "framework/matrix.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
 
 namespace AER {
 namespace Linalg {
+
+template<typename T>
+struct epsilon {
+    static constexpr auto value = std::numeric_limits<T>::epsilon();
+};
+
+/**
+ * The epsilon of a complex is the epsilon from the value type of the complex.
+ * eg: std::complex<double> = double
+ *     std::complex<float> = float
+ */
+template<typename T>
+struct epsilon<std::complex<T>> {
+    static constexpr auto value = epsilon<T>::value;
+};
 
 // No silver bullet for floating point comparison techniques.
 // With this function the user can at least specify the precision
 // If we have numbers closer to 0, then max_diff can be set to a value
 // way smaller than epsilon. For numbers larger than 1.0, epsilon will
 // scale (the bigger the number, the bigger the epsilon).
-template <typename T, typename = enable_if_scalar_t<T>>
+template <typename T, typename = enable_if_numeric_t<T>>
 bool almost_equal(T f1, T f2,
-                  T max_diff = std::numeric_limits<T>::epsilon(),
-                  T max_relative_diff = std::numeric_limits<T>::epsilon()) {
+                  T max_diff = epsilon<T>::value,
+                  T max_relative_diff = epsilon<T>::value) {
   T diff = std::abs(f1 - f2);
   if (diff <= max_diff) return true;
   return diff <=
          max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
 
-// Complex numbers are probably not considered scalar, so we need another
-// implementation to deal with them
-template <typename complex_t, typename = enable_if_complex_t<complex_t>>
-bool complex_almost_equal(complex_t f1, complex_t f2,
-                  decltype(f1.real()) max_diff = std::numeric_limits<decltype(f1.real())>::epsilon(),
-                  decltype(f1.real()) max_relative_diff = std::numeric_limits<decltype(f1.real())>::epsilon()) {
-  complex_t real_diff = std::abs(f1.real() - f2.real());
-  complex_t imag_diff = std::abs(f1.imag() - f2.imag());
-  if (real_diff <= max_diff && imag_diff <= max_diff)
-    return true;
+template <typename T, typename = enable_if_numeric_t<T>>
+bool almost_equal(matrix<T> mat1, matrix<T> mat2,
+                  T max_diff = epsilon<T>::value,
+                  T max_relative_diff = epsilon<T>::value) {
+  if(mat1.size() != mat2.size())
+       return false;
 
-  return real_diff <=
-         max_relative_diff * std::max(std::abs(f1.real()), std::abs(f2.real()))
-         &&
-         imag_diff <=
-         max_relative_diff * std::max(std::abs(f1.imag()), std::abs(f2.imag()));
+  for(auto i = 0; i < mat1.size(); ++i){
+    if(almost_equal(mat1[i], mat2[i], max_diff, max_relative_diff) == false)
+      return false;
+  }
+  return true;
 }
-
-
 
 //------------------------------------------------------------------------------
 }  // namespace Linalg

@@ -43,12 +43,9 @@ namespace AER {
   using cvector_t = std::vector<complex_t>;
   using cvectorf_t = std::vector<complexf_t>;
   using cmatrix_t = matrix<complex_t>;
-  using cmatrixf_t = matrix<complex_t>;
+  using cmatrixf_t = matrix<complexf_t>;
   using rvector_t = std::vector<double>;
   using rmatrix_t = matrix<double>;
-  using complexf_t = std::complex<float>;
-  using cvectorf_t = std::vector<complexf_t>;
-  using cmatrixf_t = matrix<complexf_t>;
   using reg_t = std::vector<uint_t>;
   using stringset_t = std::unordered_set<std::string>;
   template <typename T>

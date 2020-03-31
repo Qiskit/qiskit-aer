@@ -36,7 +36,6 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 #include "framework/linalg/enable_if_numeric.hpp"
-#include "framework/linalg/almost_equal.hpp"
 
 /*******************************************************************************
  *
@@ -300,9 +299,6 @@ public:
                                                      // matrix is display by <<
   T *GetMat() const; // gives you the address of element 0 then *(c+i) gives you
                      // the ith element
-
-  bool AlmostEqual(const matrix<T>& rhs) const;
-
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
   // rows_ and cols_ are the rows and columns of the matrix
@@ -565,15 +561,6 @@ template <class T>
 inline void matrix<T>::SetOutputStyle(enum OutputStyle outputstyle) {
   // sets the outputstyle
   outputstyle_ = outputstyle;
-}
-
-template<class T>
-bool matrix<T>::AlmostEqual(const matrix<T>& rhs) const {
-  for(auto i = 0; i < rhs.size(); ++i){
-    if(complex_almost_equal<T>(mat_[i], rhs[i]) == false)
-      return false;
-  }
-  return true;
 }
 
 template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
