@@ -22,13 +22,12 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.special import erf
 
-import qiskit
-import qiskit.pulse as pulse
+from qiskit.providers.aer.backends import PulseSimulator
 
 from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
-from qiskit.pulse.channels import (DriveChannel, ControlChannel, AcquireChannel, MemorySlot)
-from qiskit.pulse.commands import SamplePulse, FrameChange
+from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, DriveChannel,
+                          ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
 
@@ -72,7 +71,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
            self.skipTest("We don't support Python 3.5 for Pulse simulator")
 
         # Get pulse simulator backend
-        self.backend_sim = qiskit.Aer.get_backend('pulse_simulator')
+        self.backend_sim = PulseSimulator()
 
     # ---------------------------------------------------------------------
     # Test single qubit gates (using meas level 2 and square drive)
@@ -708,13 +707,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             gaussian = np.exp(-times**2 / 2 / gauss_sigma**2)
             drive_pulse = SamplePulse(phase * gaussian, name='drive_pulse')
 
-        # set up acquire command
-        acq_cmd = pulse.Acquire(duration=total_samples)
-
         # add commands into a schedule for first qubit
-        schedule = pulse.Schedule(name='drive_pulse')
-        schedule |= drive_pulse(DriveChannel(0))
-        schedule |= acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
+        schedule = Schedule(name='drive_pulse')
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
 
@@ -739,18 +735,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         drive_pulse_2 = SamplePulse(phase * np.ones(dur_drive2),
                                     name='drive_pulse_2')
 
-        # frame change
-        fc_pulse = FrameChange(phase=fc_phi, name='fc')
-
-        # set up acquire command
-        acq_cmd = pulse.Acquire(duration=total_samples)
-
         # add commands to schedule
-        schedule = pulse.Schedule(name='fc_schedule')
-        schedule |= drive_pulse_1(DriveChannel(0))
-        schedule += fc_pulse(DriveChannel(0))
-        schedule += drive_pulse_2(DriveChannel(0))
-        schedule |= acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
+        schedule = Schedule(name='fc_schedule')
+        schedule |= Play(drive_pulse_1, DriveChannel(0))
+        schedule += ShiftPhase(fc_phi, DriveChannel(0))
+        schedule += Play(drive_pulse_2, DriveChannel(0))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
 
@@ -812,21 +802,19 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Returns:
             schedule (pulse schedule): schedule for 2q experiment
         """
+
+        # create acquire schedule
+        acq_sched = Schedule(name='acq_sched')
+        acq_sched |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
+        acq_sched += Acquire(total_samples, AcquireChannel(1), MemorySlot(1))
+
         # set up const pulse
         const_pulse = SamplePulse(np.ones(total_samples), name='const_pulse')
 
-        # set u channel
-        uchannel = 1  # gives omega1-omega0 (we will set equal, so don't need negation)
-
         # add commands to schedule
-        schedule = pulse.Schedule(name='2q_schedule')
-        schedule |= const_pulse(DriveChannel(0))  # pi pulse drive
-        schedule += const_pulse(ControlChannel(uchannel)) << schedule.duration  # u chan pulse
-
-        acq_cmd = pulse.Acquire(duration=total_samples)
-        acq_sched = acq_cmd(AcquireChannel(0), MemorySlot(0))
-        acq_sched += acq_cmd(AcquireChannel(1), MemorySlot(1))
-
+        schedule = Schedule(name='2q_schedule')
+        schedule |= Play(const_pulse, DriveChannel(0))
+        schedule += Play(const_pulse, ControlChannel(1)) << schedule.duration
         schedule |= acq_sched << schedule.duration
 
         return schedule
