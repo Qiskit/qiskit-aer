@@ -138,7 +138,7 @@ stages:
               source activate qiskit-aer-$(Build.BuildNumber)
               conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) osqp
               pip install -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == "master" || $BUILD_SOURCEBRANCH == "master" ]] ; then
+              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"refs/heads/master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
               else
                   pip install qiskit-terra
@@ -149,7 +149,7 @@ stages:
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
               pip install -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == "master" || $BUILD_SOURCEBRANCH == "master" ]] ; then
+              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
               else
                   pip install qiskit-terra
