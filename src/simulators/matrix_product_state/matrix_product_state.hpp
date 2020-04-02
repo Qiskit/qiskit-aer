@@ -43,9 +43,9 @@ namespace MatrixProductState {
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
-  probs, //probs_var,
-  expval_pauli, //expval_pauli_var,
-  expval_matrix//, //expval_matrix_var
+    probs, probs_var,
+    expval_pauli, expval_pauli_var, expval_pauli_shot,
+    expval_matrix, expval_matrix_var, expval_matrix_shot
 };
 
 // Enum class for different types of expectation values
@@ -112,11 +112,11 @@ public:
 
   // Return the set of qobj snapshot types supported by the State
   virtual stringset_t allowed_snapshots() const override {
-	//TODO: Review this
+    //TODO: Review this
     return {"statevector", "memory", "register", "probabilities",
-            "expectation_value_pauli", //"expectation_value_pauli_with_variance",
-            "expectation_value_matrix"//, //"expectation_value_matrix_with_variance"
-            };
+	"expectation_value_pauli", "expectation_value_pauli_with_variance", "expectation_value_pauli_single_shot",
+	"expectation_value_matrix", "expectation_value_matrix_with_variance", "expectation_value_matrix_single_shot"
+	};
   }
 
   // Apply a sequence of operations by looping over list
@@ -245,12 +245,12 @@ protected:
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
                              ExperimentData &data,
-                             bool variance);
+                             SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
                               ExperimentData &data,
-                              bool variance);
+                              SnapshotDataType type);
 
   // Snapshot the state vector
   void snapshot_state(const Operations::Op &op,
@@ -271,7 +271,6 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
@@ -317,9 +316,11 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
-  //{"probabilities_with_variance", Snapshots::probs_var},
-  //{"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
-  //{"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
+  {"probabilities_with_variance", Snapshots::probs_var},
+  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
+  {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
+  {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot},
+  {"expectation_value_matrix_single_shot", Snapshots::expval_matrix_shot},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -334,7 +335,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 //-------------------------------------------------------------------------
 
 void State::initialize_qreg(uint_t num_qubits) {
-  initialize_omp();
   qreg_.initialize((uint_t)num_qubits);
 }
 
@@ -343,8 +343,6 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  initialize_omp();
-  //qreg_.initialize((uint_t)num_qubits, state);
 #ifdef DEBUG
   cout << "initialize with state not supported yet";
 #endif
@@ -355,7 +353,6 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   if (qreg_.num_qubits() != num_qubits) {
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
-  initialize_omp();
 
   // internal bit ordering is the opposite of ordering in Qasm, so must
   // reverse order before starting
@@ -404,9 +401,26 @@ void State::set_config(const json_t &config) {
     MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
   }
 
-  double truncation_threshold = CHOP_THRESHOLD;
-  if (JSON::get_value(truncation_threshold, "matrix_product_state_truncation_threshold", config))
-    MPS_Tensor::set_truncation_threshold(truncation_threshold);
+  // Set threshold for truncating snapshots
+  uint_t json_chop_threshold;
+  if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
+    MPS::set_json_chop_threshold(json_chop_threshold);
+
+  // Set OMP threshold for state update functions
+  uint_t omp_qubit_threshold;
+  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
+    MPS::set_omp_threshold(omp_qubit_threshold);
+
+  // Set the sample measure indexing size
+  int index_size;
+  if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
+    MPS::set_sample_measure_index_size(index_size);
+  };
+
+  // Enable sorted gate optimzations
+  bool gate_opt = false;
+  //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
+  //    MPS::set_enable_gate_opt(gate_opt);
 }
 
 //=========================================================================
@@ -461,7 +475,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
 				  ExperimentData &data,
-				  bool variance){
+				  SnapshotDataType type){
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
@@ -473,15 +487,29 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
     complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
-
     expval += coeff * pauli_expval;
   }
-  data.add_pershot_snapshot("expectation_value", op.string_params[0], expval);
+
+  // add to snapshot
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, true);
+      break;
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      break;
+  }
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
 				   ExperimentData &data,
-				   bool variance){
+				   SnapshotDataType type){
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
@@ -492,12 +520,30 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
     complex_t coeff = param.first;
 
     for (const auto &pair: param.second) {
-      const reg_t &qubits = pair.first;
+      reg_t sub_qubits;
+      for (const auto pos : pair.first) {
+        sub_qubits.push_back(op.qubits[pos]);
+      }
       const cmatrix_t &mat = pair.second;
-      one_expval = qreg_.expectation_value(qubits, mat);
+      one_expval = qreg_.expectation_value(sub_qubits, mat);
       expval += coeff * one_expval;
-      data.add_pershot_snapshot("expectation_value", op.string_params[0], expval);
     }
+  }
+
+  // add to snapshot
+  Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("expectation_value", op.string_params[0],
+                            BaseState::creg_.memory_hex(), expval, true);
+      break;
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      break;
   }
 }
 
@@ -514,7 +560,8 @@ void State::snapshot_probabilities(const Operations::Op &op,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
-  auto probs = Utils::vec2ket(prob_vector, qreg_.get_json_chop_threshold(), 16);
+  auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
+
   bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
@@ -527,7 +574,6 @@ void State::apply_gate(const Operations::Op &op) {
   if (it == gateset_.end())
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
-
   switch (it -> second) {
   case Gates::mcx:
       qreg_.apply_ccx(op.qubits);
@@ -596,19 +642,12 @@ void State::apply_gate(const Operations::Op &op) {
 
 }
 
-void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-  if (!qubits.empty() && qubits.size()==1 && mat.size() == 4) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
+  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+   if (!qubits.empty() && mat.size() > 0) {
+     qreg_.apply_matrix(qubits, mat);
+     return;
+   }
   }
-  if (!qubits.empty() && qubits.size()==2 && mat.size() == 16) {
-    qreg_.apply_matrix(qubits, mat);
-    return;
-  }
-#ifdef DEBUG
-  cout << "Currently only support matrices applied to 1 or 2 qubits";
-#endif
-}
 
   void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
@@ -682,24 +721,44 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
   case Snapshots::statevector: {
       snapshot_state(op, data, "statevector");
       break;
-      }
+  }
+  case Snapshots::cmemory:
+    BaseState::snapshot_creg_memory(op, data);
+    break;
+  case Snapshots::cregister:
+    BaseState::snapshot_creg_register(op, data);
+    break;
   case Snapshots::probs: {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, SnapshotDataType::average);
       break;
-    }
-    case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(op, data, false);
-      break;
-    }
-    case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, data, false);
-      break;
-    }
-    default:
-      // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
-                                  op.name + "\'.");
+  }
+  case Snapshots::expval_pauli: {
+    snapshot_pauli_expval(op, data, SnapshotDataType::average);
+  } break;
+  case Snapshots::expval_matrix: {
+    snapshot_matrix_expval(op, data, SnapshotDataType::average);
+  }  break;
+  case Snapshots::probs_var: {
+    // get probs as hexadecimal
+    snapshot_probabilities(op, data, SnapshotDataType::average_var);
+  } break;
+  case Snapshots::expval_pauli_var: {
+    snapshot_pauli_expval(op, data, SnapshotDataType::average_var);
+  } break;
+  case Snapshots::expval_matrix_var: {
+    snapshot_matrix_expval(op, data, SnapshotDataType::average_var);
+  }  break;
+  case Snapshots::expval_pauli_shot: {
+    snapshot_pauli_expval(op, data, SnapshotDataType::pershot);
+  } break;
+  case Snapshots::expval_matrix_shot: {
+    snapshot_matrix_expval(op, data, SnapshotDataType::pershot);
+  }  break;
+  default:
+    // We shouldn't get here unless there is a bug in the snapshotset
+    throw std::invalid_argument("MatrixProductState::State::invalid snapshot instruction \'" +
+				op.name + "\'.");
   }
 }
 

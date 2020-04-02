@@ -320,7 +320,11 @@ def build_pulse_arrays(experiments, pulse_library):
     for _, pulse in enumerate(pulse_library):
         stop = pulses_idx[ind - 1] + len(pulse['samples'])
         pulses_idx[ind] = stop
-        oplist_to_array(pulse['samples'], pulses, pulses_idx[ind - 1])
+        start = pulses_idx[ind - 1]
+        if isinstance(pulse['samples'], np.ndarray):
+            pulses[start:stop] = pulse['samples']
+        else:
+            oplist_to_array(pulse['samples'], pulses, start)
         ind += 1
 
     for pv in pv_pulses:

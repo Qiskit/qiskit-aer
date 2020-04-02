@@ -35,12 +35,6 @@
 namespace AER {
 namespace MatrixProductState {
 
-// Data types
-using complex_t = std::complex<double>;
-using cvector_t = std::vector<complex_t>;
-using rvector_t = std::vector<double>;
-using cmatrix_t = matrix<complex_t>;
-
 //============================================================================
 // MPS_Tensor class
 //============================================================================
@@ -174,6 +168,7 @@ public:
   static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
 static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
 				  const MPS_Tensor &right_gamma,
+				  uint_t omp_threads,
 				  cmatrix_t &result);
 
 private:
@@ -483,6 +478,7 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
 //---------------------------------------------------------------
 void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma, 
 			               const MPS_Tensor &right_gamma,
+				       uint_t omp_threads,
 				       cmatrix_t &result)
 {
   int_t left_rows = left_gamma.data_[0].GetRows();
@@ -500,30 +496,31 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
     throw std::runtime_error("left_size != right_size");
   result.resize(left_rows, right_columns);
 
-  #ifdef _WIN32
-     #pragma omp parallel for
-  #else
-     #pragma omp parallel for collapse(2)
-  #endif
-  for (int_t l_row=0; l_row<left_rows; l_row++)
-    for (int_t r_col=0; r_col<right_columns; r_col++)
-      result(l_row, r_col) = 0;
-  
-  #ifdef _WIN32
-     #pragma omp parallel for
-  #else
-     #pragma omp parallel for collapse(2)
-  #endif
-  for (int_t l_row=0; l_row<left_rows; l_row++)
-    for (int_t r_col=0; r_col<right_columns; r_col++) {
+  uint_t omp_limit = left_rows*right_columns;
 
-      for (int_t size=0; size<left_size; size++)
-	  for (int_t index=0; index<left_columns ; index++) {
- 	      result(l_row, r_col) += left_gamma.data_[size](l_row, index) *
-		                      right_gamma.data_[size](index, r_col);      
+#ifdef _WIN32
+    #pragma omp parallel for if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+#else
+    #pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+#endif 
+      for (int_t l_row=0; l_row<left_rows; l_row++)
+         for (int_t r_col=0; r_col<right_columns; r_col++)
+           result(l_row, r_col) = 0;
 
-	    }
-	  }
+#ifdef _WIN32
+    #pragma omp parallel for if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+#else
+    #pragma omp parallel for collapse(2) if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+#endif
+      for (int_t l_row=0; l_row<left_rows; l_row++)
+        for (int_t r_col=0; r_col<right_columns; r_col++) {
+
+          for (int_t size=0; size<left_size; size++)
+	      for (int_t index=0; index<left_columns ; index++) {
+		result(l_row, r_col) += left_gamma.data_[size](l_row, index) *
+		  right_gamma.data_[size](index, r_col);      
+	      }
+	}
 }
 //---------------------------------------------------------------
 // function name: Decompose
