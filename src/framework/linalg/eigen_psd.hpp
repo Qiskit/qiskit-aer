@@ -30,7 +30,7 @@
 template <class float_t>
 void eigensystem_psd(const matrix<std::complex<float_t>>& psd_matrix,
                /* out */ std::vector<std::complex<float_t>>& eigenvalues,
-               /* out */ matrix<std::complex<float_t>>& eigenvectors){
+               /* out */ std::vector<std::vector<std::complex<float_t>>>& eigenvectors){
 
 
 }
