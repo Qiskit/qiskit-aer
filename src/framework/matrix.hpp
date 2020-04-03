@@ -36,126 +36,7 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 
-//#define LAPACK_ROW_MAJOR               101
-//#define LAPACK_COL_MAJOR               102
-#include "lapacke.h"
-
-/*******************************************************************************
- *
- * BLAS headers
- *
- ******************************************************************************/
-
-const std::array<char, 3> Trans = {'N', 'T', 'C'};
-/*  Trans (input) CHARACTER*1.
-                On entry, TRANSA specifies the form of op( A ) to be used in the
-   matrix multiplication as follows:
-                        = 'N' no transpose;
-                        = 'T' transpose of A;
-                        = 'C' hermitian conjugate of A.
-*/
-const std::array<char, 2> UpLo = {'U', 'L'};
-/*  UpLo    (input) CHARACTER*1
-                        = 'U':  Upper triangle of A is stored;
-                        = 'L':  Lower triangle of A is stored.
-*/
-const std::array<char, 2> Jobz = {'V', 'N'};
-/*  Jobz    (input) CHARACTER*1
-                        = 'N':  Compute eigenvalues only;
-                        = 'V':  Compute eigenvalues and eigenvectors.
-*/
-const std::array<char, 3> Range = {'A', 'V', 'I'};
-/*  Range   (input) CHARACTER*1
-                                = 'A': all eigenvalues will be found.
-                                = 'V': all eigenvalues in the half-open interval
-   (VL,VU] will be found.
-                                = 'I': the IL-th through IU-th eigenvalues will
-   be found.
-*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//===========================================================================
-// Prototypes for level 3 BLAS
-//===========================================================================
-
-// Single-Precison Real Matrix-Vector Multiplcation
-void sgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const float *alpha, const float *A, const size_t *lda,
-            const float *x, const size_t *incx, const float *beta, float *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void dgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const double *alpha, const double *A, const size_t *lda,
-            const double *x, const size_t *incx, const double *beta, double *y,
-            const size_t *lincy);
-// Single-Precison Complex Matrix-Vector Multiplcation
-void cgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<float> *alpha, const std::complex<float> *A,
-            const size_t *lda, const std::complex<float> *x, const size_t *incx,
-            const std::complex<float> *beta, std::complex<float> *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void zgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<double> *alpha, const std::complex<double> *A,
-            const size_t *lda, const std::complex<double> *x,
-            const size_t *incx, const std::complex<double> *beta,
-            std::complex<double> *y, const size_t *lincy);
-// Single-Precison Real Matrix-Matrix Multiplcation
-void sgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const float *alpha,
-            const float *A, const size_t *lda, const float *B,
-            const size_t *lba, const float *beta, float *C, size_t *ldc);
-// Double-Precison Real Matrix-Matrix Multiplcation
-void dgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const double *alpha,
-            const double *A, const size_t *lda, const double *B,
-            const size_t *lba, const double *beta, double *C, size_t *ldc);
-// Single-Precison Complex Matrix-Matrix Multiplcation
-void cgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<float> *alpha,
-            const std::complex<float> *A, const size_t *lda,
-            const std::complex<float> *B, const size_t *ldb,
-            const std::complex<float> *beta, std::complex<float> *C,
-            size_t *ldc);
-// Double-Precison Complex Matrix-Matrix Multiplcation
-void zgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<double> *alpha,
-            const std::complex<double> *A, const size_t *lda,
-            const std::complex<double> *B, const size_t *ldb,
-            const std::complex<double> *beta, std::complex<double> *C,
-            size_t *ldc);
-
-// Reduces a complex Hermitian matrix A to symmetric tridiagonal form T by a unitary similarity transformation
-// input parameters:
-//   matrix layout: ROW/COL major, uplo: stores upper or lower part (bc symmetric), n: order,
-//   a: the matrix (array), only upper/lower triangle matters, lda: leading dimension of a
-// output parameters:
-//   a: upper/lower triangle is overwritten, d: diagonal elements of T, e: off-diagonal elements of T.
-//   tau: (scalars) elementary reflectors in decomposition of the unitary matrix Q 
-//        in a product of n-1 elementary reflectors (lolwut?)
-void chetrd_(const size_t *matrix_layout, const char *uplo, const size_t *n, 
-             const std::complex<float> *a, const size_t *lda, 
-             const double *d, const double *e, const std::complex<float> *tau );
-void zhetrd_(const size_t *matrix_layout, const char *uplo, const size_t *n, 
-             const std::complex<double> *a, const size_t *lda, 
-             const double *d, const double *e, const std::complex<double> *tau );
-// Calculates the eigenvectors/values of a real symmetric positive-definite tridiagonal matrix T
-// input parameters:
-//   matrix_layout: ROW/COL major, compz: 'N'/'I'/'V', n: order of matrix
-//   d: diagonal elements of T, e: off-diagonal elements of T, z: (if compz = 'V') orthogonal matrix
-//   ldz: leading dim of z
-// output parameters:
-//   d: n eigenvalues (descending order), e: on exit array is overwritten,
-//   z: n-byn matrix the columns of which are orthonormal eigenvectors
-void zpteqr_(const size_t matrix_layout, const char *compz, lapack_int n, float* d, float* e, float* z, lapack_int ldz );
-
-
-#ifdef __cplusplus
-}
-#endif
+#include "framework/blas_protos.hpp"
 
 /*******************************************************************************
  *
@@ -260,6 +141,9 @@ public:
   // Addressing elements by matrix representation
   T &operator()(size_t row, size_t col);
   T operator()(size_t row, size_t col) const;
+  // Addressing elements by row or column
+  std::vector<T> row_index(size_t row) const;
+  std::vector<T> col_index(size_t col) const;
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -293,62 +177,90 @@ protected:
   // the ptr to the vector containing the matrix
 };
 
-template <class float_t>
-inline void eig_psd(matrix<std::complex<float_t>>& mat,
-             std::vector<std::complex<float_t>> &evals,
-             matrix<std::complex<float_t>> &evecs) {
+//template <class float_t>
+inline void eig_psd(matrix<std::complex<float>>& mat,
+             std::vector<float> &evals,
+             matrix<std::complex<float>> &evecs) {
+/* Calculates all eigenvalues and eigenvectors of a Hermitian matrix mat
+* Results are placed in evals (eig-values) and evecs (eig-vectors)
+* We use xxxx amount of memory with an expected/worst-case runtime of xxxx
+* First we call ?hetrd which reduces the complex Hermitian matrix mat to real symmetric tridiagonal form. 
+* Then we use ?pteqr, which computes all eigenvalues and eigenvectors of the symmetric positive definite tridiagonal matrix returned by the first step.
+* 
+*/
 #ifdef DEBUG
-  // mat must be square, output references must be empty
-  if ( mat.getRows() != mat.getCols() || evals.size() || evecs.size() ) {
+  if ( mat.getRows() != mat.getCols() ) {
     std::cerr
-        << "error: matrix class operator []: Matrix subscript out of bounds"
+        << "error: eig_psd initial conditions not satisified" << std::endl
+        << "mat not square : " << mat.getCols() << " x " << mat.getRows() << std::endl
         << std::endl;
     exit(1);
   }
+  if ( mat.size() != evecs.size() ) {
+    std::cerr
+         << "error: eig_psd initial conditions not satisfied :" << std::endl;
+         << "evecs size != mat size (should be a copy)" << std::endl
+         << mat.size() << " != " << evecs.size() << std::endl;
+  }
 #endif
-/* Calculates all eigenvalues and eigenvectors of a Hermitian matrix mat
-**   mat is assumed to be an arbtitrary(?) hermitian matrix (usually representing an...?)
-** Results are placed in evals (eig-values) and evecs (eig-vectors)
-*/
-  // Mat is a hermitian matrix i.e. symmetric about diagonal (equal to transpose) under complex conjugate
-  // First we transform to symmetric tridiagonal form with ?hetrd
-  //   tridiagonal means only the 3 longest diagonals in the matrix are non-zero
-  //   symmetric = the two second-longest diagonals are equivalent 
-  //   using zhetrd_ call
-  // Reduces a complex Hermitian matrix A to symmetric tridiagonal form T by a unitary similarity transformation
-  // input parameters:
-  //   matrix layout: ROW/COL major, uplo: stores upper or lower part (bc symmetric), n: order,
-  //   a: the matrix (array), only upper/lower triangle matters, lda: leading dimension of a
-  // output parameters:
-  //   a: upper/lower triangle is overwritten, d: diagonal elements of T, e: off-diagonal elements of T.
-  //   tau: (scalars) elementary reflectors in decomposition of the unitary matrix Q 
-  //        in a product of n-1 elementary reflectors (lolwut?)
-  auto m_layout = LAPACK_COL_MAJOR;
-  auto uplo = 'U'; //'L';
-  auto n = mat.getLD();
-  auto a = mat.getMat();
-  auto lda = mat.getLD();
-  auto d = ;
-  auto e = ;
-  auto tau = ;
-  zhetrd_(m_layout, uplo, n, a, lda);
+  std::cout << "eig_psd:" << std::endl;
+  std::cout << "mat: " << std::endl
+            << mat << std::endl;
+  std::cout << "evecs" << std::endl
+            << evecs << std::endl;
+  evals = std::vector<float>(mat.GetLD(), 0.0);
+  float *d = evals.data();
+  std::complex<float> *z = evecs.GetMat();
+  
+  const char uplo = 'U'; //'L';
+  size_t n = mat.GetLD();
+  matrix<std::complex<float>> hetrd_copy(mat);
+  std::complex<float>* a = hetrd_copy.GetMat();
+  size_t lda = mat.GetLD();
+  std::vector<float_t> e_vec(n-1, 0.0);
+  float *e = e_vec.data();
+  std::vector<std::complex<float>> tau_vec(n, std::complex<float>{0.0, 0.0});
+  std::complex<float> *tau = tau_vec.data();
+  size_t lwork = n;
+  std::vector<std::complex<float>> hetrd_work_vec(n, std::complex<float>{0.0, 0.0}); 
+  std::complex<float> *hetrd_work = hetrd_work_vec.data(); 
+  int hetrd_info = 0;
 
-  // Then call 
-  // Calculates the eigenvectors/values of a real symmetric positive-definite tridiagonal matrix T
-  // input parameters:
-  //   matrix_layout: ROW/COL major, compz: 'N'/'I'/'V', n: order of matrix
-  //   d: diagonal elements of T, e: off-diagonal elements of T, z: (if compz = 'V') orthogonal matrix
-  //   ldz: leading dim of z
-  // output parameters:
-  //   d: n eigenvalues (descending order), e: on exit array is overwritten,
-  //   z: n-byn matrix the columns of which are orthonormal eigenvectors
-  auto m_layout = LAPACK_COL_MAJOR;
-  auto compz = 'I'; //'V';
-  auto d = ;
-  auto e = ;
-  auto z = ;
-  auto ldz = mat.getLD();
-  zpteqr_(m_layout, const char *compz, lapack_int n, float* d, float* e, float* z, lapack_int ldz );
+  chetrd_(&uplo, &n, a, &lda, d, e, tau, hetrd_work, &lwork, &hetrd_info);
+  std::cout << "chetrd return: " << hetrd_info << std::endl;
+  std::cout << "evals: " << std::endl;
+  for(auto i : evals ) {
+    std::cout << i << ", ";
+  }
+  std::cout << std::endl;
+#ifdef DEBUG
+  // mat must be square, output references must be empty
+  std::cout << "chetrd return: " << hetrd_info << std::endl;
+  if ( hetrd_info != 0 ) {
+    std::cerr << "error: chetrd returned non-zero exit code : " 
+              << chetrd_info << std::endl;
+        exit(1);
+  }
+#endif
+ 
+  // Now call cpteqr
+  const char compz = 'V'; //'N'/'V'/'I'
+  size_t ldz = lda;
+  std::vector<float> pteqr_work_vec(4*n, 0.0); 
+  float *pteqr_work = pteqr_work_vec.data();
+  int pteqr_info = 0;
+  // On exit d contains eigenvalues, z contains eigenvectors
+  // *** on exit e has been destroyed ***
+  cpteqr_(&compz, &n, d, e, z, &ldz, pteqr_work, &pteqr_info);
+  std::cout << "cpteqr return: " << pteqr_info << std::endl;
+#ifdef DEBUG
+  std::cout << "cpteqr return: " << pteqr_info << std::endl;
+  if ( pteqr_info != 0 ) {
+    std::cerr << "error: cpteqr returned non-zero exit code : " 
+              << pteqr_info << std::endl;
+        exit(1);
+  }
+#endif
 }
 
 /*******************************************************************************
@@ -363,11 +275,11 @@ inline matrix<T>::matrix(){}
 template <class T>
 inline matrix<T>::matrix(size_t rows, size_t cols)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      outputstyle_(Column), mat_(new T[size_]) {}
+      outputstyle_(Matrix), mat_(new T[size_]) {}
 // constructs an empty matrix of size rows, cols and sets outputstyle to zero
 template <class T>
 inline matrix<T>::matrix(size_t dim2)
-    : size_(dim2), outputstyle_(Column), mat_(new T[size_]) {
+    : size_(dim2), outputstyle_(Matrix), mat_(new T[size_]) {
   // constructs a square matrix of dims sqrt(size)*sqrt(size)
   // PLEASE DO NOT CHANGE THIS AS IT IS USED BY ODESOLVER
   //  size_t dim2 = rhovec.GetRows();
@@ -572,6 +484,37 @@ template <class T> inline T matrix<T>::operator()(size_t i, size_t j) const {
 #endif
   return mat_[j * rows_ + i];
 }
+// Addressing elements by row or column
+template <class T> inline std::vector<T> matrix<T>::row_index(size_t row) const {
+#ifdef DEBUG
+  if (row >= rows_) {
+    std::cerr << "Error: matrix class operator row_index out of bounds "
+              << row << " >= " << rows_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(cols_);
+  for(size_t i = 0; i < cols_; i++)
+    ret.emplace_back(mat_[i * rows_ + row]);
+  return std::move(ret);
+}
+template <class T> inline std::vector<T> matrix<T>::col_index(size_t col) const {
+#ifdef DEBUG
+  if (col >= cols_) {
+    std::cerr << "Error: matrix class operator col_index out of bounds "
+              << col << " >= " << cols_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(rows_);
+  // we want the elements for all rows i..rows_ and column col
+  for(size_t i = 0; i < rows_; i++)
+    ret.emplace_back(mat_[col * rows_ + i]);
+  return std::move(ret);
+}
+
 template <class T> inline size_t matrix<T>::GetRows() const {
   // returns the rows of the matrix
   return rows_;
