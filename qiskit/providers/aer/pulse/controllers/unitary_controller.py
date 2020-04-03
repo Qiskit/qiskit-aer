@@ -50,11 +50,8 @@ def run_unitary_experiments(op_system):
         op_system.ode_options.num_cpus = CPU_COUNT
 
     # setup seeds array
-    if op_system.global_data['seed']:
-        prng = np.random.RandomState(op_system.global_data['seed'])
-    else:
-        prng = np.random.RandomState(
-            np.random.randint(np.iinfo(np.int32).max - 1))
+    seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
+    prng = np.random.RandomState(seed)
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
