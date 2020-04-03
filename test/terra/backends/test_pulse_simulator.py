@@ -28,8 +28,8 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, DriveChannel,
                           ControlChannel, AcquireChannel, MemorySlot)
-from qiskit.providers.aer.pulse.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
