@@ -139,10 +139,7 @@ def pulse_controller(qobj, system_model, backend_options):
     # ### Parse backend_options
     # # solver-specific information should be extracted in the solver
     # ###############################
-    if 'seed' in backend_options:
-        out.global_data['seed'] = int(backend_options.get('seed'))
-    else:
-        out.global_data['seed'] = None
+    out.global_data['seed'] = int(backend_options['seed']) if 'seed' in backend_options else None
     out.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
 
     # solver options
