@@ -192,10 +192,8 @@ def pulse_controller(qobj, system_model, backend_options):
 
     op_data_config(out)
 
-    if out.can_sample is True:
-        exp_results, exp_times = run_unitary_experiments(out)
-    else:
-        exp_results, exp_times = run_monte_carlo_experiments(out)
+    run_experiments = run_unitary_experiments if out.can_sample else run_monte_carlo_experiments
+    exp_results, exp_times = run_experiments(out)
 
     return format_exp_results(exp_results, exp_times, out)
 
