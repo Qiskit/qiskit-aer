@@ -90,16 +90,13 @@ def pulse_controller(qobj, system_model, backend_options):
     out.dt = system_model.dt
 
     # Parse noise
-    noise_dict = noise_model or {}
-    if noise_dict:
-        noise = NoiseParser(noise_dict=noise_dict, dim_osc=dim_osc, dim_qub=dim_qub)
+    if noise_model:
+        noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
         out.noise = noise.compiled
         if any(out.noise):
             out.can_sample = False
-    else:
-        out.noise = None
 
     # ###############################
     # ### Parse qobj_config settings
