@@ -43,7 +43,7 @@ def pulse_controller(qobj, system_model, backend_options):
         Exception: for invalid ODE options
     """
 
-    out = PulseSimDescription()
+    pulse_sim_desc = PulseSimDescription()
 
     if backend_options is None:
         backend_options = {}
@@ -69,55 +69,59 @@ def pulse_controller(qobj, system_model, backend_options):
     ham_model = system_model.hamiltonian
 
     # For now we dump this into OpSystem, though that should be refactored
-    out.system = ham_model._system
-    out.vars = ham_model._variables
-    out.channels = ham_model._channels
-    out.h_diag = ham_model._h_diag
-    out.evals = ham_model._evals
-    out.estates = ham_model._estates
+    pulse_sim_desc.system = ham_model._system
+    pulse_sim_desc.vars = ham_model._variables
+    pulse_sim_desc.channels = ham_model._channels
+    pulse_sim_desc.h_diag = ham_model._h_diag
+    pulse_sim_desc.evals = ham_model._evals
+    pulse_sim_desc.estates = ham_model._estates
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
     estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
-    out.initial_state = estates[0]
-    out.global_data['vars'] = list(out.vars.values())
+    pulse_sim_desc.initial_state = estates[0]
+    pulse_sim_desc.global_data['vars'] = list(pulse_sim_desc.vars.values())
     # Need this info for evaluating the hamiltonian vars in the c++ solver
-    out.global_data['vars_names'] = list(out.vars.keys())
+    pulse_sim_desc.global_data['vars_names'] = list(pulse_sim_desc.vars.keys())
 
     # Get dt
     if system_model.dt is None:
         raise ValueError('Qobj must have a dt value to simulate.')
-    out.dt = system_model.dt
+    pulse_sim_desc.dt = system_model.dt
 
     # Parse noise
     if noise_model:
         noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
-        out.noise = noise.compiled
-        if any(out.noise):
-            out.can_sample = False
+        pulse_sim_desc.noise = noise.compiled
+        if any(pulse_sim_desc.noise):
+            pulse_sim_desc.can_sample = False
 
     # ###############################
     # ### Parse qobj_config settings
     # ###############################
 
-    digested_qobj = digest_pulse_qobj(qobj, out.channels, out.dt, qubit_list, backend_options)
+    digested_qobj = digest_pulse_qobj(qobj,
+                                      pulse_sim_desc.channels,
+                                      pulse_sim_desc.dt,
+                                      qubit_list,
+                                      backend_options)
 
     # does this even need to be extracted here, or can the relevant info just be passed to the
     # relevant functions?
-    out.global_data['shots'] = digested_qobj.shots
-    out.global_data['meas_level'] = digested_qobj.meas_level
-    out.global_data['meas_return'] = digested_qobj.meas_return
-    out.global_data['memory_slots'] = digested_qobj.memory_slots
-    out.global_data['memory'] = digested_qobj.memory
-    out.global_data['n_registers'] = digested_qobj.n_registers
+    pulse_sim_desc.global_data['shots'] = digested_qobj.shots
+    pulse_sim_desc.global_data['meas_level'] = digested_qobj.meas_level
+    pulse_sim_desc.global_data['meas_return'] = digested_qobj.meas_return
+    pulse_sim_desc.global_data['memory_slots'] = digested_qobj.memory_slots
+    pulse_sim_desc.global_data['memory'] = digested_qobj.memory
+    pulse_sim_desc.global_data['n_registers'] = digested_qobj.n_registers
 
-    out.global_data['pulse_array'] = digested_qobj.pulse_array
-    out.global_data['pulse_indices'] = digested_qobj.pulse_indices
-    out.pulse_to_int = digested_qobj.pulse_to_int
+    pulse_sim_desc.global_data['pulse_array'] = digested_qobj.pulse_array
+    pulse_sim_desc.global_data['pulse_indices'] = digested_qobj.pulse_indices
+    pulse_sim_desc.pulse_to_int = digested_qobj.pulse_to_int
 
-    out.experiments = digested_qobj.experiments
+    pulse_sim_desc.experiments = digested_qobj.experiments
 
     # Handle qubit_lo_freq
     qubit_lo_freq = digested_qobj.qubit_lo_freq
@@ -132,15 +136,16 @@ def pulse_controller(qobj, system_model, backend_options):
         warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, ' +
              'so it is beign automatically determined from the drift Hamiltonian.')
 
-    out.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
-    out.global_data['freqs'] = list(out.freqs.values())
+    pulse_sim_desc.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
+    pulse_sim_desc.global_data['freqs'] = list(pulse_sim_desc.freqs.values())
 
     # ###############################
     # ### Parse backend_options
     # # solver-specific information should be extracted in the solver
     # ###############################
-    out.global_data['seed'] = int(backend_options['seed']) if 'seed' in backend_options else None
-    out.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
+    pulse_sim_desc.global_data['seed'] = (int(backend_options['seed']) if 'seed' in backend_options
+                                          else None)
+    pulse_sim_desc.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
 
     # solver options
     allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
@@ -150,24 +155,24 @@ def pulse_controller(qobj, system_model, backend_options):
     for key in ode_options:
         if key not in allowed_ode_options:
             raise Exception('Invalid ode_option: {}'.format(key))
-    out.ode_options = OPoptions(**ode_options)
+    pulse_sim_desc.ode_options = OPoptions(**ode_options)
 
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
     min_width = np.iinfo(np.int32).max
-    for key, val in out.pulse_to_int.items():
+    for key, val in pulse_sim_desc.pulse_to_int.items():
         if key != 'pv':
-            stop = out.global_data['pulse_indices'][val + 1]
-            start = out.global_data['pulse_indices'][val]
+            stop = pulse_sim_desc.global_data['pulse_indices'][val + 1]
+            start = pulse_sim_desc.global_data['pulse_indices'][val]
             min_width = min(min_width, stop - start)
-    out.ode_options.max_step = min_width / 2 * out.dt
+    pulse_sim_desc.ode_options.max_step = min_width / 2 * pulse_sim_desc.dt
 
     # ########################################
     # Determination of measurement operators.
     # ########################################
-    out.global_data['measurement_ops'] = [None] * n_qubits
+    pulse_sim_desc.global_data['measurement_ops'] = [None] * n_qubits
 
-    for exp in out.experiments:
+    for exp in pulse_sim_desc.experiments:
 
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
@@ -178,24 +183,26 @@ def pulse_controller(qobj, system_model, backend_options):
                 for jj in acq[1]:
                     if jj > qubit_list[-1]:
                         continue
-                    if not out.global_data['measurement_ops'][jj]:
-                        out.global_data['measurement_ops'][jj] = \
+                    if not pulse_sim_desc.global_data['measurement_ops'][jj]:
+                        q_level_meas = pulse_sim_desc.global_data['q_level_meas']
+                        pulse_sim_desc.global_data['measurement_ops'][jj] = \
                             qobj_gen.qubit_occ_oper_dressed(jj,
                                                             estates,
                                                             h_osc=dim_osc,
                                                             h_qub=dim_qub,
-                                                            level=out.global_data['q_level_meas']
+                                                            level=q_level_meas
                                                             )
 
         if not exp['can_sample']:
-            out.can_sample = False
+            pulse_sim_desc.can_sample = False
 
-    op_data_config(out)
+    op_data_config(pulse_sim_desc)
 
-    run_experiments = run_unitary_experiments if out.can_sample else run_monte_carlo_experiments
-    exp_results, exp_times = run_experiments(out)
+    run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
+                       else run_monte_carlo_experiments)
+    exp_results, exp_times = run_experiments(pulse_sim_desc)
 
-    return format_exp_results(exp_results, exp_times, out)
+    return format_exp_results(exp_results, exp_times, pulse_sim_desc)
 
 
 def op_data_config(op_system):

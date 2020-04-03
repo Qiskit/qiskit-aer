@@ -79,7 +79,9 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
         DigestedPulseQobj: digested pulse qobj
 
     Raises:
-        ValueError: for arguments of invalid type
+        ValueError: for missing parameters
+        AerError: for unsupported features or invalid qobj
+        TypeError: for arguments of invalid type
     """
 
     if backend_options is None:
@@ -90,8 +92,8 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
 
-    # post warnings for unsupported features
-    _unsupported_warnings(qobj_dict)
+    # raises errors for unsupported features
+    _unsupported_errors(qobj_dict)
 
     # override anything in qobj_config that is present in backend_options
     for key in backend_options.keys():
@@ -137,8 +139,8 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
     return digested_qobj
 
 
-def _unsupported_warnings(qobj_dict):
-    """ Warns the user about untested/unsupported features.
+def _unsupported_errors(qobj_dict):
+    """ Raises errors for untested/unsupported features.
 
     Parameters:
         qobj_dict (dict): qobj in dictionary form
