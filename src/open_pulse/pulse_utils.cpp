@@ -16,8 +16,8 @@ complex_t internal_expect_psi_csr(const py::array_t<complex_t>& data,
     for (decltype(nrows) row = 0; row < nrows; row++) {
         temp = 0;
         auto vec_conj = std::conj(vec_raw[row]);
-        for (auto jj = ptr_raw[row]; jj < ptr_raw[row + 1]; jj++) {
-            temp += data_raw[jj] * vec_raw[ind_raw[jj]];
+        for (auto j = ptr_raw[row]; j < ptr_raw[row + 1]; j++) {
+            temp += data_raw[j] * vec_raw[ind_raw[j]];
         }
         expt += vec_conj * temp;
     }
@@ -70,11 +70,11 @@ void write_shots_memory(py::array_t<unsigned char> mem,
     auto probs_raw = probs.unchecked<1>();
     auto rand_vals_raw = rand_vals.unchecked<1>();
 
-    for(decltype(nrows) ii = 0; ii < nrows; ii++){
-        for(decltype(nprobs) jj = 0; jj < nprobs; jj++) {
-            temp = static_cast<unsigned char>(probs_raw[jj] > rand_vals_raw[nprobs*ii+jj]);
+    for(decltype(nrows) i = 0; i < nrows; i++){
+        for(decltype(nprobs) j = 0; j < nprobs; j++) {
+            temp = static_cast<unsigned char>(probs_raw[j] > rand_vals_raw[nprobs*i+j]);
             if(temp) {
-                mem_raw(ii, mem_slots_raw[jj]) = temp;
+                mem_raw(i, mem_slots_raw[j]) = temp;
             }
         }
     }
