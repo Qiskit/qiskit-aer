@@ -69,7 +69,8 @@ def snapshot_expval_params(pauli=False):
 def snapshot_expval_circuits(pauli=False,
                              single_shot=False,
                              variance=False,
-                             post_measure=False):
+                             post_measure=False,
+                             skip_measure=False):
     """SnapshotExpectationValue test circuits with deterministic counts"""
 
     circuits = []
@@ -91,7 +92,8 @@ def snapshot_expval_circuits(pauli=False,
                                                single_shot=single_shot,
                                                variance=variance)
     circuit.barrier(qr)
-    circuit.measure(qr, cr)
+    if not skip_measure:
+        circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
         for label, (params,
@@ -116,7 +118,8 @@ def snapshot_expval_circuits(pauli=False,
                                                single_shot=single_shot,
                                                variance=variance)
     circuit.barrier(qr)
-    circuit.measure(qr, cr)
+    if not skip_measure:
+        circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
         for label, (params,
@@ -131,7 +134,7 @@ def snapshot_expval_circuits(pauli=False,
     # State |10> -i|01>
     circuit = QuantumCircuit(*regs)
     circuit.h(0)
-    circuit.s(0)
+    circuit.sdg(0)
     circuit.cx(0, 1)
     circuit.x(1)
     if not post_measure:
@@ -143,7 +146,8 @@ def snapshot_expval_circuits(pauli=False,
                                                single_shot=single_shot,
                                                variance=variance)
     circuit.barrier(qr)
-    circuit.measure(qr, cr)
+    if not skip_measure:
+        circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
         for label, (params,
@@ -218,3 +222,102 @@ def snapshot_expval_post_meas_values():
             values[label] = inner_dict
         targets.append(values)
     return targets
+
+def snapshot_expval_circuit_parameterized(single_shot=False,
+                                          measure=True,
+                                          snapshot=False):
+    """SnapshotExpectationValue test circuits, rewritten as a single parameterized circuit and
+    parameterizations array. """
+
+    num_qubits = 2
+    qr = QuantumRegister(num_qubits)
+    cr = ClassicalRegister(num_qubits)
+    regs = (qr, cr)
+
+    circuit = QuantumCircuit(*regs)
+    circuit.u3(0, 0, 0, qubit=0)
+    circuit.u1(0, qubit=0)
+    circuit.u3(0, 0, 0, qubit=1)
+    circuit.cu3(0, 0, 0, control_qubit=0, target_qubit=1)
+    circuit.u3(0, 0, 0, qubit=1)
+    circuit.id(qubit=0)
+    if snapshot:
+        for label, (params, qubits) in snapshot_expval_params(pauli=True).items():
+            circuit.snapshot_expectation_value(label,
+                                               params,
+                                               qubits,
+                                               single_shot=single_shot)
+    if measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+        circuit.barrier(qr)
+
+    # Parameterizations
+
+    # State |+1>
+    plus_one_params = {
+        # X on 0
+        (0, 0): np.pi,
+        (0, 1): 0,
+        (0, 2): np.pi,
+        # No rZ
+        (1, 0): 0,
+        # H on 1
+        (2, 0): np.pi / 2,
+        (2, 2): np.pi,
+        # No CrX
+        (3, 0): 0,
+        (3, 1): 0,
+        (3, 2): 0,
+        # No X
+        (4, 0): 0,
+        (4, 1): 0,
+        (4, 2): 0,
+    }
+    # State |00> + |11>
+    bell_params = {
+        # H 0
+        (0, 0): np.pi / 2,
+        (0, 1): 0,
+        (0, 2): np.pi,
+        # No rZ
+        (1, 0): 0,
+        # No H
+        (2, 0): 0,
+        (2, 2): 0,
+        # CX from 0 on 1
+        (3, 0): np.pi,
+        (3, 1): 0,
+        (3, 2): np.pi,
+        # No X
+        (4, 0): 0,
+        (4, 1): 0,
+        (4, 2): 0,
+    }
+    # State |10> -i|01>
+    iminus_bell_params = {
+        # H 0
+        (0, 0): np.pi / 2,
+        (0, 1): 0,
+        (0, 2): np.pi,
+        # S 0
+        (1, 0): - np.pi / 2,
+        # No H
+        (2, 0): 0,
+        (2, 2): 0,
+        # CX from 0 on 1
+        (3, 0): np.pi,
+        (3, 1): 0,
+        (3, 2): np.pi,
+        # X 1
+        (4, 0): np.pi,
+        (4, 1): 0,
+        (4, 2): np.pi,
+    }
+    param_mat = np.transpose([list(plus_one_params.values()),
+                              list(bell_params.values()),
+                              list(iminus_bell_params.values())]).tolist()
+    parameterizations = [[list(index), params]
+                         for (index, params) in zip(plus_one_params.keys(), param_mat)]
+
+    return circuit, parameterizations
