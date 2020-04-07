@@ -212,10 +212,10 @@ class QuantumError:
         """Set the class default relative tolerance parameter for float comparisons."""
         if value < 0:
             raise NoiseError(
-                "Invalid atol ({}) must be non-negative.".format(value))
+                "Invalid rtol ({}) must be non-negative.".format(value))
         if value > cls._MAX_TOL:
             raise NoiseError(
-                "Invalid atol ({}) must be less than {}.".format(
+                "Invalid rtol ({}) must be less than {}.".format(
                     value, cls._MAX_TOL))
         cls._RTOL_DEFAULT = value
 
