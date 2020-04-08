@@ -34,28 +34,28 @@ def pauli_gate_error_circuits():
 
     # 100% all-qubit Pauli error on "id" gate
     circuit = QuantumCircuit(qr, cr)
-    circuit.iden(qr)
+    circuit.i(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
 
     # 25% all-qubit Pauli error on "id" gates
     circuit = QuantumCircuit(qr, cr)
-    circuit.iden(qr)
+    circuit.i(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
 
     # 100% Pauli error on "id" gates on qubit-1
     circuit = QuantumCircuit(qr, cr)
-    circuit.iden(qr)
+    circuit.i(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
 
     # 25% all-qubit Pauli error on "id" gates on qubit-0
     circuit = QuantumCircuit(qr, cr)
-    circuit.iden(qr)
+    circuit.i(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
