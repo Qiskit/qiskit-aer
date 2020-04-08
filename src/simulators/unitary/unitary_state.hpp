@@ -69,9 +69,13 @@ class State : public Base::State<unitary_matrix_t> {
 
   // Return the set of qobj instruction types supported by the State
   virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t(
-        {Operations::OpType::gate, Operations::OpType::barrier,
-         Operations::OpType::matrix, Operations::OpType::snapshot});
+    return Operations::OpSet::optypeset_t({
+      Operations::OpType::gate,
+      Operations::OpType::barrier,
+      Operations::OpType::matrix,
+      Operations::OpType::diagonal_matrix,
+      Operations::OpType::snapshot
+    });
   }
 
   // Return the set of qobj gate instruction names supported by the State
@@ -232,6 +236,9 @@ void State<unitary_matrix_t>::apply_ops(
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
         break;
       default:
         throw std::invalid_argument(
