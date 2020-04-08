@@ -28,7 +28,7 @@ def is_method_available(backend, method):
     if isinstance(backend, str):
         backend = AerProvider().get_backend(backend)
     dummy_circ = QuantumCircuit(1)
-    dummy_circ.iden(0)
+    dummy_circ.i(0)
     qobj = assemble(dummy_circ, optimization_level=0)
     backend_options = {"method": method}
     try:
