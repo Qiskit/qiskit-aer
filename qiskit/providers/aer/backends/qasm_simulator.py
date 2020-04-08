@@ -234,9 +234,9 @@ class QasmSimulator(AerBackend):
         'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx', 'unitary', 'initialize', 'cu1', 'cu2',
-            'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcu1', 'mcu2', 'mcu3',
-            'mcswap', 'multiplexer', 'kraus', 'roerror'
+            't', 'tdg', 'swap', 'ccx', 'unitary', 'diagonal', 'initialize',
+            'cu1', 'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
+            'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 'roerror'
         ],
         'gates': [{
             'name': 'u1',
@@ -349,9 +349,16 @@ class QasmSimulator(AerBackend):
             'name': 'unitary',
             'parameters': ['matrix'],
             'conditional': True,
-            'description': 'N-qubit arbitrary unitary gate. '
+            'description': 'N-qubit unitary gate. '
                            'The parameter is the N-qubit matrix to apply.',
             'qasm_def': 'unitary(matrix) q1, q2,...'
+        }, {
+            'name': 'diagonal',
+            'parameters': ['diag_elements'],
+            'conditional': True,
+            'description': 'N-qubit diagonal unitary gate. The parameters are the'
+                           ' diagonal entries of the N-qubit matrix to apply.',
+            'qasm_def': 'TODO'
         }, {
             'name': 'initialize',
             'parameters': ['vector'],
