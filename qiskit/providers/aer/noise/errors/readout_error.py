@@ -30,9 +30,9 @@ class ReadoutError:
     Readout error class for Qiskit Aer noise model.
     """
     # pylint: disable=invalid-name
-    ATOL = ATOL_DEFAULT
-    RTOL = RTOL_DEFAULT
-    MAX_TOL = 1e-4
+    _ATOL_DEFAULT = ATOL_DEFAULT
+    _RTOL_DEFAULT = RTOL_DEFAULT
+    _MAX_TOL = 1e-4
 
     def __init__(self, probabilities, atol=ATOL_DEFAULT):
         """
@@ -112,35 +112,37 @@ class ReadoutError:
 
     @property
     def atol(self):
-        """The absolute tolerance parameter for float comparisons."""
-        return self.ATOL
-
-    @atol.setter
-    def atol(self, atol):
-        """Set the absolute tolerance parameter for float comparisons."""
-        max_tol = self.MAX_TOL
-        if atol < 0:
-            raise NoiseError("Invalid atol: must be non-negative.")
-        if atol > max_tol:
-            raise NoiseError(
-                "Invalid atol: must be less than {}.".format(max_tol))
-        self.ATOL = atol
+        """The default absolute tolerance parameter for float comparisons."""
+        return ReadoutError._ATOL_DEFAULT
 
     @property
     def rtol(self):
         """The relative tolerance parameter for float comparisons."""
-        return self.RTOL
+        return ReadoutError._RTOL_DEFAULT
 
-    @rtol.setter
-    def rtol(self, rtol):
-        """Set the relative tolerance parameter for float comparisons."""
-        max_tol = self.MAX_TOL
-        if rtol < 0:
-            raise NoiseError("Invalid rtol: must be non-negative.")
-        if rtol > max_tol:
+    @classmethod
+    def set_atol(cls, value):
+        """Set the class default absolute tolerance parameter for float comparisons."""
+        if value < 0:
             raise NoiseError(
-                "Invalid rtol: must be less than {}.".format(max_tol))
-        self.RTOL = rtol
+                "Invalid atol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise NoiseError(
+                "Invalid atol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._ATOL_DEFAULT = value
+
+    @classmethod
+    def set_rtol(cls, value):
+        """Set the class default relative tolerance parameter for float comparisons."""
+        if value < 0:
+            raise NoiseError(
+                "Invalid rtol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise NoiseError(
+                "Invalid rtol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._RTOL_DEFAULT = value
 
     def ideal(self):
         """Return True if current error object is an identity"""

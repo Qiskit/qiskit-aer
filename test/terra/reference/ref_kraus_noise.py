@@ -37,7 +37,7 @@ def kraus_gate_error_circuits():
     for _ in range(30):
         # Add noisy identities
         circuit.barrier(qr)
-        circuit.iden(qr)
+        circuit.i(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
