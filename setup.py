@@ -34,7 +34,7 @@ requirements = [
 
 setup_requirements = requirements + [
     'scikit-build',
-    'cmake'
+    'cmake!=3.17,!=3.17.0'
 ]
 
 if not hasattr(setuptools,
