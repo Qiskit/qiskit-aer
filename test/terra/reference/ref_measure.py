@@ -18,6 +18,10 @@ from numpy import array
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 # ==========================================================================
 # Single-qubit measurements with deterministic output
