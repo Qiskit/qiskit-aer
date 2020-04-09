@@ -20,6 +20,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 # ==========================================================================
 # Pauli Gate Errors
