@@ -19,6 +19,7 @@ from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from test.terra.reference import ref_unitary_gate
+from test.terra.reference import ref_diagonal_gate
 
 from qiskit import execute
 from qiskit.providers.aer import UnitarySimulator
@@ -1042,6 +1043,19 @@ class UnitarySimulatorTests:
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
             final_measure=False)
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=1,
+                      backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_unitary(result, circuits, targets)
+
+    def test_diagonal_gate(self):
+        """Test simulation with diagonal gate circuit instructions."""
+        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
+            final_measure=False)
+        targets = ref_diagonal_gate.diagonal_gate_unitary_deterministic()
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
