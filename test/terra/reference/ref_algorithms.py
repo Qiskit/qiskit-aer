@@ -17,6 +17,10 @@ Test circuits and reference outputs for standard algorithms.
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 def grovers_circuit(final_measure=True, allow_sampling=True):
     """Testing a circuit originated in the Grover algorithm"""

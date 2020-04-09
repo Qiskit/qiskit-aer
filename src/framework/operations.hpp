@@ -601,7 +601,7 @@ Op json_to_op(const json_t &js) {
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
-  if (name == "diagonal")
+  if (name == "diagonal" || name == "diag")
     return json_to_op_diagonal(js);
   if (name == "superop")
     return json_to_op_superop(js);

@@ -18,6 +18,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.quantum_info.states import Statevector
 from qiskit.providers.aer.extensions.snapshot_expectation_value import *
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 def snapshot_expval_labels():
     """List of labels for exp val snapshots."""
@@ -223,6 +227,7 @@ def snapshot_expval_post_meas_values():
         targets.append(values)
     return targets
 
+
 def snapshot_expval_circuit_parameterized(single_shot=False,
                                           measure=True,
                                           snapshot=False):
@@ -235,12 +240,12 @@ def snapshot_expval_circuit_parameterized(single_shot=False,
     regs = (qr, cr)
 
     circuit = QuantumCircuit(*regs)
-    circuit.u3(0, 0, 0, qubit=0)
-    circuit.u1(0, qubit=0)
-    circuit.u3(0, 0, 0, qubit=1)
-    circuit.cu3(0, 0, 0, control_qubit=0, target_qubit=1)
-    circuit.u3(0, 0, 0, qubit=1)
-    circuit.id(qubit=0)
+    circuit.u3(0, 0, 0, 0)
+    circuit.u1(0, 0)
+    circuit.u3(0, 0, 0, 1)
+    circuit.cu3(0, 0, 0, 0, 1)
+    circuit.u3(0, 0, 0, 1)
+    circuit.i(0)
     if snapshot:
         for label, (params, qubits) in snapshot_expval_params(pauli=True).items():
             circuit.snapshot_expectation_value(label,

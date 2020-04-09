@@ -24,6 +24,10 @@ from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.aer import UnitarySimulator
 from qiskit.providers.aer import PulseSimulator
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 def assertAlmostEqual(first, second, places=None, msg=None,
                       delta=None):
