@@ -136,6 +136,11 @@ void zpteqr_(const char *compz, const size_t *n,
              double *d, double *e, std::complex<double>* z,
              size_t *ldz, double* work, int *info );
 
+// computes the eigenvalues and, optionally, the left and/or right eigenvectors for HE matrices
+void cheevx(const char* jobz, const char* range, const char* uplo,
+            const size_t* n, std::complex<float>* a, const size_t* lda,
+            const float* vl, const float* vu, const size_t* il, const size_t* iu,
+            const float* abstol, const size_t* m, 
 
 #ifdef __cplusplus
 }
