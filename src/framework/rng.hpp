@@ -40,7 +40,7 @@ public:
   RngEngine() { set_random_seed(); }
 
   // Seeded constructor initialize RNG engine with a fixed seed
-  RngEngine(size_t seed) { set_seed(seed); }
+  explicit RngEngine(size_t seed) { set_seed(seed); }
 
   //-----------------------------------------------------------------------
   // Set fixed or random seed for RNG
