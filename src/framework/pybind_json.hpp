@@ -125,7 +125,7 @@ py::object from_matrix(const matrix<T> &mat);
  * @returns a py::dict
  */
 template<typename T>
-py::dict from_avg_data(const AER::AverageData<T> &avg_data);
+py::object from_avg_data(const AER::AverageData<T> &avg_data);
 
 /**
  * Convert a AverageSnapshot to a python object
@@ -281,14 +281,16 @@ void std::to_json(json_t &js, const py::handle &obj) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
     } else if (py::isinstance<py::array_t<std::complex<double> > >(obj)) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
-    } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>") {
+    } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>" ) {
+               //|| std::string(py::str(obj.get_type())) == "<class \'numpy.complex128\'>") {
         auto tmp = obj.cast<std::complex<double>>();
         js.push_back(tmp.real());
         js.push_back(tmp.imag());
     } else if (obj.is_none()) {
         return;
     } else {
-        throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
+        std::cout << "UH OH IM THROWING UP" << std::endl;
+        throw std::runtime_error("to_json not implemented for this type of object: " + std::string(py::str(obj.get_type())));
     }
 }
 
@@ -354,13 +356,13 @@ py::object AerToPy::from_matrix(const matrix<T> &mat) {
 }
 
 template<typename T> 
-py::dict AerToPy::from_avg_data(const AER::AverageData<T> &avg_data) {
+py::object AerToPy::from_avg_data(const AER::AverageData<T> &avg_data) {
   py::dict d;
   d["value"] = avg_data.mean();
   if (avg_data.has_variance()) {
     d["variance"] = avg_data.variance();
   }
-  return d;
+  return std::move(d);
 }
 
 template<typename T> 
@@ -379,7 +381,7 @@ py::object AerToPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
     }
     d[outer_pair.first.data()] = d1;
   }
-  return d;
+  return std::move(d);
 }
 
 py::object AerToPy::from_exp_data(const AER::ExperimentData &result) {
@@ -478,7 +480,7 @@ py::object AerToPy::from_exp_data(const AER::ExperimentData &result) {
   }
   //for (auto item : pyresult)
   //  py::print("    {}:, {}"_s.format(item.first, item.second));
-  return pyresult;
+  return std::move(pyresult);
 }
 
 py::object AerToPy::from_exp_result(const AER::ExperimentResult &result) {
@@ -511,7 +513,7 @@ py::object AerToPy::from_exp_result(const AER::ExperimentResult &result) {
     from_json(result.metadata, tmp);
     pyresult["metadata"] = tmp;
   }
-  return pyresult;
+  return std::move(pyresult);
 
 }
 
@@ -555,7 +557,7 @@ py::object AerToPy::from_result(const AER::Result &result) {
     case AER::Result::Status::empty:
       pyresult["status"] = std::string("EMPTY");
   }
-  return pyresult;
+  return std::move(pyresult);
 
 }
 
