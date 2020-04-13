@@ -22,7 +22,6 @@
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
-#include "transpile/basic_opts.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
 
@@ -274,7 +273,6 @@ class QasmController : public Base::Controller {
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
-  add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::DelayMeasure());
   add_circuit_optimization(Transpile::Fusion());
 }

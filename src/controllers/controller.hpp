@@ -44,6 +44,7 @@
 #include "framework/results/experiment_data.hpp"
 #include "noise/noise_model.hpp"
 #include "transpile/circuitopt.hpp"
+#include "transpile/basic_opts.hpp"
 #include "transpile/truncate_qubits.hpp"
 
 
@@ -628,16 +629,23 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
+  
+    // Remove barriers from circuit
+    Transpile::ReduceBarrier barrier_pass;
+    barrier_pass.optimize_circuit(circ, noise, circ.opset(), data);
+
     // Truncate unused qubits from circuit and noise model
     if (truncate_qubits_) {
       Transpile::TruncateQubits truncate_pass;
       truncate_pass.set_config(config);
-      truncate_pass.optimize_circuit(circ, noise, Operations::OpSet(), data);
+      truncate_pass.optimize_circuit(circ, noise, circ.opset(), data);
     }
+
     // set parallelization for this circuit
     if (!explicit_parallelization_) {
       set_parallelization_circuit(circ, noise);
     }
+
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       auto tmp_data = run_circuit(circ, noise, config, circ.shots, circ.seed);
