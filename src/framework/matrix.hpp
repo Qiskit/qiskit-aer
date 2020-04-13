@@ -35,128 +35,9 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <iostream>
 #include <vector>
 #include <array>
+
+#include "framework/blas_protos.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
-
-/*******************************************************************************
- *
- * BLAS headers
- *
- ******************************************************************************/
-
-const std::array<char, 3> Trans = {'N', 'T', 'C'};
-/*  Trans (input) CHARACTER*1.
-                On entry, TRANSA specifies the form of op( A ) to be used in the
-   matrix multiplication as follows:
-                        = 'N' no transpose;
-                        = 'T' transpose of A;
-                        = 'C' hermitian conjugate of A.
-*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//===========================================================================
-// Prototypes for level 3 BLAS
-//===========================================================================
-
-// Single-Precison Real Matrix-Vector Multiplcation
-void sgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const float *alpha, const float *A, const size_t *lda,
-            const float *x, const size_t *incx, const float *beta, float *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void dgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const double *alpha, const double *A, const size_t *lda,
-            const double *x, const size_t *incx, const double *beta, double *y,
-            const size_t *lincy);
-// Single-Precison Complex Matrix-Vector Multiplcation
-void cgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<float> *alpha, const std::complex<float> *A,
-            const size_t *lda, const std::complex<float> *x, const size_t *incx,
-            const std::complex<float> *beta, std::complex<float> *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void zgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<double> *alpha, const std::complex<double> *A,
-            const size_t *lda, const std::complex<double> *x,
-            const size_t *incx, const std::complex<double> *beta,
-            std::complex<double> *y, const size_t *lincy);
-// Single-Precison Real Matrix-Matrix Multiplcation
-void sgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const float *alpha,
-            const float *A, const size_t *lda, const float *B,
-            const size_t *lba, const float *beta, float *C, size_t *ldc);
-// Double-Precison Real Matrix-Matrix Multiplcation
-void dgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const double *alpha,
-            const double *A, const size_t *lda, const double *B,
-            const size_t *lba, const double *beta, double *C, size_t *ldc);
-// Single-Precison Complex Matrix-Matrix Multiplcation
-void cgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<float> *alpha,
-            const std::complex<float> *A, const size_t *lda,
-            const std::complex<float> *B, const size_t *ldb,
-            const std::complex<float> *beta, std::complex<float> *C,
-            size_t *ldc);
-// Double-Precison Complex Matrix-Matrix Multiplcation
-void zgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<double> *alpha,
-            const std::complex<double> *A, const size_t *lda,
-            const std::complex<double> *B, const size_t *ldb,
-            const std::complex<double> *beta, std::complex<double> *C,
-            size_t *ldc);
-void chetrd_(
-	const char &uplo,		// (input)
-	const int &n,			// (input)
-	std::complex<float> *a,		// a[n][lda] (input/output)
-	const int &lda,			// (input)
-	float *d,			// d[n] (output)
-	float *e,			// e[n-1] (output)
-	std::complex<float> *tau,		// tau[n-1] (output)
-	std::complex<float> *work,		// work[lwork] (workspace/output)
-	const int &lwork,		// (input)
-	int &info			// (output)
-	);
-
-void cpteqr_(
-  const char &compz,              // (input)
-  const int &n,                   // (input)
-  float *d,                       // d[n] (input/output)
-  float *e,                       // e[n-1] (input/output)
-  std::complex<float> *z,              // z[n][ldz] (input/output)
-  const int &ldz,                 // (input)
-  float *work,                    // work[lwork] (workspace)
-  int &info                       // (output)
-  );
-
-void zhetrd_(
-	const char &uplo,		// (input)
-	const int &n,			// (input)
-	std::complex<double> *a,		// a[n][lda] (input/output)
-	const int &lda,			// (input)
-	double *d,			// d[n] (output)
-	double *e,			// e[n-1] (output)
-	std::complex<double> *tau,		// tau[n-1] (output)
-	std::complex<double> *work,		// work[lwork] (workspace/output)
-	const int &lwork,		// (input)
-	int &info			// (output)
-	);
-
-void zpteqr_(
-  const char &compz,              // (input)
-  const int &n,                   // (input)
-  double *d,                      // d[n] (input/output)
-  double *e,                      // e[n-1] (input/output)
-  std::complex<double> *z,             // z[n][ldz] (input/output)
-  const int &ldz,                 // (input)
-  double *work,                   // work[lwork] (workspace)
-  int &info                       // (output)
-  );
-
-#ifdef __cplusplus
-}
-#endif
 
 /*******************************************************************************
  *
@@ -332,6 +213,9 @@ public:
 
   // Resize the matrix keeping current values
   void resize(size_t row, size_t col);
+  // Addressing elements by row or column
+  std::vector<T> row_index(size_t row) const;
+  std::vector<T> col_index(size_t col) const;
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -578,6 +462,37 @@ void matrix<T>::resize(size_t rows, size_t cols) {
   LD_ = rows_ = rows;
   cols_ = cols;
   data_ = tempmat;
+}
+
+// Addressing elements by row or column
+template <class T> inline std::vector<T> matrix<T>::row_index(size_t row) const {
+#ifdef DEBUG
+  if (row >= rows_) {
+    std::cerr << "Error: matrix class operator row_index out of bounds "
+              << row << " >= " << rows_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(cols_);
+  for(size_t i = 0; i < cols_; i++)
+    ret.emplace_back(data_[i * rows_ + row]);
+  return std::move(ret);
+}
+template <class T> inline std::vector<T> matrix<T>::col_index(size_t col) const {
+#ifdef DEBUG
+  if (col >= cols_) {
+    std::cerr << "Error: matrix class operator col_index out of bounds "
+              << col << " >= " << cols_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(rows_);
+  // we want the elements for all rows i..rows_ and column col
+  for(size_t i = 0; i < rows_; i++)
+    ret.emplace_back(data_[col * rows_ + i]);
+  return std::move(ret);
 }
 
 template <class T> inline size_t matrix<T>::GetRows() const {
