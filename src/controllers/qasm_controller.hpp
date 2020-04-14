@@ -113,7 +113,7 @@ class QasmController : public Base::Controller {
   //-----------------------------------------------------------------------
   // Constructor
   //-----------------------------------------------------------------------
-  QasmController();
+  QasmController() = default;
 
   //-----------------------------------------------------------------------
   // Base class config override
@@ -183,6 +183,12 @@ class QasmController : public Base::Controller {
   virtual void set_parallelization_circuit(
       const Circuit &circ, const Noise::NoiseModel &noise) override;
 
+  // Return a fusion transpilation pass configured for the current
+  // method, circuit and config
+  Transpile::Fusion transpile_fusion(Method method,
+                                     const Circuit &circ,
+                                     const json_t &config) const;
+
   //----------------------------------------------------------------
   // Run circuit helpers
   //----------------------------------------------------------------
@@ -209,19 +215,27 @@ class QasmController : public Base::Controller {
   // a single shot up to the first measurement, then sampling measure
   // outcomes for each shot.
   template <class State_t, class Initstate_t>
-  void run_circuit_without_noise(const Circuit &circ, uint_t shots,
+  void run_circuit_without_noise(const Circuit &circ,
+                                 const json_t &config,
+                                 uint_t shots,
                                  State_t &state,
                                  const Initstate_t &initial_state,
-                                 const Method method, ExperimentData &data,
+                                 const Method method,
+                                 ExperimentData &data,
                                  RngEngine &rng) const;
 
   // Execute n-shots of a circuit with noise by sampling a new noisy
   // instance of the circuit for each shot.
   template <class State_t, class Initstate_t>
   void run_circuit_with_noise(const Circuit &circ,
-                              const Noise::NoiseModel &noise, uint_t shots,
-                              State_t &state, const Initstate_t &initial_state,
-                              ExperimentData &data, RngEngine &rng) const;
+                              const Noise::NoiseModel &noise,
+                              const json_t &config,
+                              uint_t shots,
+                              State_t &state,
+                              const Initstate_t &initial_state,
+                              const Method method,
+                              ExperimentData &data,
+                              RngEngine &rng) const;
 
   //----------------------------------------------------------------
   // Measure sampling optimization
@@ -252,10 +266,6 @@ class QasmController : public Base::Controller {
   // Simulation precision
   Precision simulation_precision_ = Precision::double_precision;
 
-  // Qubit threshold for running circuit optimizations
-  uint_t circuit_opt_ideal_threshold_ = 0;
-  uint_t circuit_opt_noise_threshold_ = 12;
-
   // Initial statevector for Statevector simulation method
   cvector_t initial_statevector_;
 
@@ -268,14 +278,6 @@ class QasmController : public Base::Controller {
 //=========================================================================
 // Implementations
 //=========================================================================
-
-//-------------------------------------------------------------------------
-// Constructor
-//-------------------------------------------------------------------------
-QasmController::QasmController() {
-  add_circuit_optimization(Transpile::DelayMeasure());
-  add_circuit_optimization(Transpile::Fusion());
-}
 
 //-------------------------------------------------------------------------
 // Config
@@ -321,12 +323,6 @@ void QasmController::set_config(const json_t &config) {
       simulation_precision_ = Precision::single_precision;
     }
   }
-
-  // Check for circuit optimization threshold
-  JSON::get_value(circuit_opt_ideal_threshold_, "optimize_ideal_threshold",
-                  config);
-  JSON::get_value(circuit_opt_noise_threshold_, "optimize_noise_threshold",
-                  config);
 
   // Check for extended stabilizer measure sampling
   JSON::get_value(extended_stabilizer_measure_sampling_,
@@ -730,6 +726,28 @@ size_t QasmController::required_memory_mb(
   }
 }
 
+Transpile::Fusion QasmController::transpile_fusion(Method method,
+                                                   const Circuit &circ,
+                                                   const json_t &config) const {
+  Transpile::Fusion fusion_pass;
+  switch (method) {
+    case Method::statevector:
+    case Method::statevector_thrust_gpu:
+    case Method::statevector_thrust_cpu:
+    case Method::density_matrix:
+    case Method::density_matrix_thrust_gpu:
+    case Method::density_matrix_thrust_cpu: {
+      fusion_pass.set_config(config);
+      break;
+    }
+    default: {
+      fusion_pass.active = false;
+      break;
+    }
+  }
+  return fusion_pass;
+}
+
 void QasmController::set_parallelization_circuit(
     const Circuit &circ, const Noise::NoiseModel &noise_model) {
   const auto method = simulation_method(circ, noise_model, false);
@@ -800,8 +818,7 @@ ExperimentData QasmController::run_circuit_helper(
 
   // Choose execution method based on noise and method
   if (noise.is_ideal()) {
-    run_circuit_without_noise(circ, shots, state, initial_state, method, data,
-                              rng);
+    run_circuit_without_noise(circ, config, shots, state, initial_state, method, data, rng);
   } else if ((method == Method::density_matrix ||
               method == Method::density_matrix_thrust_gpu ||
               method == Method::density_matrix_thrust_cpu) &&
@@ -811,17 +828,15 @@ ExperimentData QasmController::run_circuit_helper(
     Noise::NoiseModel noise_cpy = noise;
     noise_cpy.activate_superop_method();
     Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
-    run_circuit_without_noise(noise_circ, shots, state, initial_state, method,
-                              data, rng);
+    run_circuit_without_noise(noise_circ, config, shots, state, initial_state, method, data, rng);
   } else if (noise.has_quantum_errors() == false) {
     // We can insert the readout errors from the noise model and then
     // execute the resulting circuit
     Circuit noise_circ = noise.sample_noise(circ, rng);
-    run_circuit_without_noise(noise_circ, shots, state, initial_state, method,
-                              data, rng);
+    run_circuit_without_noise(noise_circ, config, shots, state, initial_state, method, data, rng);
   } else {
     // Run sampling a noisy instance of the circuit for each shot
-    run_circuit_with_noise(circ, noise, shots, state, initial_state, data, rng);
+    run_circuit_with_noise(circ, noise, config, shots, state, initial_state, method, data, rng);
   }
   return data;
 }
@@ -839,35 +854,56 @@ void QasmController::run_single_shot(const Circuit &circ, State_t &state,
 template <class State_t, class Initstate_t>
 void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             const Noise::NoiseModel &noise,
-                                            uint_t shots, State_t &state,
+                                            const json_t &config, uint_t shots, State_t &state,
                                             const Initstate_t &initial_state,
+                                            const Method method,
                                             ExperimentData &data,
                                             RngEngine &rng) const {
-  // Sample a new noise circuit and optimize for each shot
+  // TODO: add opset to State class
+  Operations::OpSet state_opset;
+  state_opset.optypes = state.allowed_ops();
+  state_opset.gates = state.allowed_gates();
+  state_opset.snapshots = state.allowed_snapshots(); 
+
+  // Initialize fusion transpile pass
+  auto fusion_pass = transpile_fusion(method, circ, config);
+  Noise::NoiseModel dummy_noise;
+
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
-    if (noise_circ.num_qubits > circuit_opt_noise_threshold_) {
-      Noise::NoiseModel dummy;
-      optimize_circuit(noise_circ, dummy, state, data);
-    }
+    fusion_pass.optimize_circuit(noise_circ, dummy_noise, state_opset, data);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }
 }
 
 template <class State_t, class Initstate_t>
 void QasmController::run_circuit_without_noise(const Circuit &circ,
-                                               uint_t shots, State_t &state,
+                                               const json_t &config, uint_t shots, State_t &state,
                                                const Initstate_t &initial_state,
                                                const Method method,
                                                ExperimentData &data,
                                                RngEngine &rng) const {
   // Optimize circuit for state type
   Circuit opt_circ = circ;
-  if (opt_circ.num_qubits > circuit_opt_ideal_threshold_) {
-    Noise::NoiseModel dummy;
-    optimize_circuit(opt_circ, dummy, state, data);
-  }
+
+  // TODO: add opset to State class
+  Operations::OpSet state_opset;
+  state_opset.optypes = state.allowed_ops();
+  state_opset.gates = state.allowed_gates();
+  state_opset.snapshots = state.allowed_snapshots();
+  // Dummy noise model for transpiler passes
+  Noise::NoiseModel dummy_noise;
+
+  // Apply delay measure transpilation pass
+  Transpile::DelayMeasure measure_pass;
+  measure_pass.set_config(config);
+  measure_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
+
+  // Apply fusion transpilation pass
+  auto fusion_pass = transpile_fusion(method, circ, config);
+  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
+
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ, method);
   if (check.first == false) {

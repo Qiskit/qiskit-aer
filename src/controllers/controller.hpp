@@ -43,7 +43,6 @@
 #include "framework/results/result.hpp"
 #include "framework/results/experiment_data.hpp"
 #include "noise/noise_model.hpp"
-#include "transpile/circuitopt.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/truncate_qubits.hpp"
 
@@ -130,13 +129,6 @@ public:
   // Clear the current config
   void virtual clear_config();
 
-  // Add circuit optimization
-  template <typename Type>
-  inline auto add_circuit_optimization(Type&& opt)-> typename std::enable_if_t<std::is_base_of<Transpile::CircuitOptimization, std::remove_const_t<std::remove_reference_t<Type>>>::value >
-  {
-      optimizations_.push_back(std::make_shared<std::remove_const_t<std::remove_reference_t<Type>>>(std::forward<Type>(opt)));
-  }
-
 protected:
 
   //-----------------------------------------------------------------------
@@ -199,8 +191,8 @@ protected:
   // Timer type
   using myclock_t = std::chrono::high_resolution_clock;
 
-  // Circuit optimization
-  std::vector<std::shared_ptr<Transpile::CircuitOptimization>> optimizations_;
+  // Transpile pass override flags
+  bool truncate_qubits_ = true;
 
   // Validation threshold for validating states and operators
   double validation_threshold_ = 1e-8;
@@ -242,9 +234,6 @@ protected:
   int parallel_experiments_;
   int parallel_shots_;
   int parallel_state_update_;
-
-  // Truncate qubits
-  bool truncate_qubits_ = true;
 };
 
 
@@ -260,9 +249,6 @@ void Controller::set_config(const json_t &config) {
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
-
-  // Load qubit truncation
-  JSON::get_value(truncate_qubits_, "truncate_enable", config);
 
   #ifdef _OPENMP
   // Load OpenMP maximum thread settings
@@ -289,9 +275,6 @@ void Controller::set_config(const json_t &config) {
   if (JSON::check_key("max_memory_mb", config)) {
     JSON::get_value(max_memory_mb_, "max_memory_mb", config);
   }
-
-  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_)
-    opt->set_config(config);
 
   // for debugging
   if (JSON::check_key("_parallel_experiments", config)) {
@@ -479,25 +462,6 @@ bool Controller::validate_memory_requirements(const state_t &state,
 }
 
 //-------------------------------------------------------------------------
-// Circuit optimization
-//-------------------------------------------------------------------------
-template <class state_t>
-void Controller::optimize_circuit(Circuit &circ,
-                                  Noise::NoiseModel& noise,
-                                  state_t& state,
-                                  ExperimentData &data) const {
-
-  Operations::OpSet allowed_opset;
-  allowed_opset.optypes = state.allowed_ops();
-  allowed_opset.gates = state.allowed_gates();
-  allowed_opset.snapshots = state.allowed_snapshots();
-
-  for (std::shared_ptr<Transpile::CircuitOptimization> opt: optimizations_) {
-    opt->optimize_circuit(circ, noise, allowed_opset, data);
-  }
-}
-
-//-------------------------------------------------------------------------
 // Qobj execution
 //-------------------------------------------------------------------------
 Result Controller::execute(const json_t &qobj_js) {
@@ -629,7 +593,6 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
-  
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
     barrier_pass.optimize_circuit(circ, noise, circ.opset(), data);
