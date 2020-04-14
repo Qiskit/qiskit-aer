@@ -156,7 +156,10 @@ class PulseSystemModel():
                         q_idx = u_term_dict.get('q')
                         if len(u_string) > 0:
                             u_string += ' + '
-                        u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
+                        if isinstance(scale, complex):
+                            u_string = str(scale) + 'q' + str(q_idx)
+                        else:
+                            u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
                     control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
 
         return cls(hamiltonian=hamiltonian,
