@@ -151,7 +151,7 @@ class PulseSystemModel():
                 if drive_idx is not None:
                     # construct string for u channel
                     u_string = ''
-                    for u_term_dict in u_lo.to_dict():
+                    for u_term_dict in u_lo:
                         scale = getattr(u_term_dict, 'scale', [1.0, 0])
                         q_idx = getattr(u_term_dict, 'q')
                         if len(u_string) > 0:
