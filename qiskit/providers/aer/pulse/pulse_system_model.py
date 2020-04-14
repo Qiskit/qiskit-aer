@@ -152,7 +152,7 @@ class PulseSystemModel():
                     # construct string for u channel
                     u_string = ''
                     for u_term_dict in u_lo.to_dict():
-                        scale = u_term_dict.get('scale', [1.0, 0])
+                        scale = getattr(u_term_dict, 'scale', [1.0, 0])
                         q_idx = u_term_dict.get('q')
                         if len(u_string) > 0:
                             u_string += ' + '
