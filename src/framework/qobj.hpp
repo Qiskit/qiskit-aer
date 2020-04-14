@@ -145,7 +145,7 @@ Qobj::Qobj(const json_t &js) {
   // So that results aren't correlated between experiments
   if (seed >= 0) {
     for (auto& circuit : circuits) {
-      circuit.set_seed(seed + seed_shift);
+      circuit.seed = seed + seed_shift;
       seed_shift += 2113;  // Shift the seed
     }
   }

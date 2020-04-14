@@ -32,17 +32,19 @@ class Circuit {
 public:
   using Op = Operations::Op;
   using OpType = Operations::OpType;
-  std::vector<Op> ops;      // circuit operations
-  uint_t num_qubits = 0;    // maximum number of qubits needed for ops
-  uint_t num_memory = 0;    // maximum number of memory clbits needed for ops
-  uint_t num_registers = 0; // maximum number of registers clbits needed for ops
+
+  // Circuit operations
+  std::vector<Op> ops;
+
+  // Circuit parameters updated by from ops by set_params
+  uint_t num_qubits = 0;        // maximum number of qubits needed for ops
+  uint_t num_memory = 0;        // maximum number of memory clbits needed for ops
+  uint_t num_registers = 0;     // maximum number of registers clbits needed for ops
+  bool has_conditional = false; // True if any ops are conditional
+  
+  // Circuit metadata constructed from json QobjExperiment
   uint_t shots = 1;
   uint_t seed;
-
-  // Measurement sampling
-  bool measure_sampling_flag = false;
-
-  // Optional data members from QOBJ
   json_t header;
 
   // Constructor
@@ -55,35 +57,38 @@ public:
   Circuit(const json_t &circ);
   Circuit(const json_t &circ, const json_t &qobj_config);
 
-  // Automatically set the number of qubits, memory, registers based on ops
-  void set_sizes();
-
-  // Set the circuit rng seed to a fixed value
-  inline void set_seed(uint_t s) {seed = s;}
-
-  // Set the circuit rng seed to random value
-  inline void set_random_seed() {seed = std::random_device()();}
+  //-----------------------------------------------------------------------
+  // Set containers
+  //-----------------------------------------------------------------------
 
   // Return the opset for the circuit
   inline const Operations::OpSet& opset() const {return opset_;}
 
-  // Check if any circuit ops are conditional ops
-  bool has_conditional() const;
+  // Return the used qubits for the circuit
+  inline const std::set<uint_t>& qubits() const {return qubitset_;}
 
-  // Check if circuit contains a specific op
-  bool has_op(std::string name) const;
+  // Return the used qubits for the circuit
+  inline const std::set<uint_t>& memory() const {return memoryset_;}
 
-  // return minimum and maximum op.qubit arguments as pair (min, max)
-  std::pair<uint_t, uint_t> minmax_qubits() const;
+  // Return the used qubits for the circuit
+  inline const std::set<uint_t>& registers() const {return registerset_;}
 
-  // return minimum and maximum op.memory arguments as pair (min, max)
-  std::pair<uint_t, uint_t> minmax_memory() const;
+  //-----------------------------------------------------------------------
+  // Utility methods 
+  //-----------------------------------------------------------------------
+  
+  // Automatically set the number of qubits, memory, registers, and check
+  // for conditionals based on ops
+  void set_params();
 
-  // return minimum and maximum op.registers arguments as pair (min, max)
-  std::pair<uint_t, uint_t> minmax_registers() const;
+  // Set the circuit rng seed to random value
+  inline void set_random_seed() {seed = std::random_device()();}
 
 private:
-  Operations::OpSet opset_;  // Set of operation types contained in circuit
+  Operations::OpSet opset_;      // Set of operation types contained in circuit
+  std::set<uint_t> qubitset_;    // Set of qubits used in the circuit
+  std::set<uint_t> memoryset_;   // Set of memory bits used in the circuit
+  std::set<uint_t> registerset_; // Set of register bits used in the circuit
 };
 
 // Json conversion function
@@ -94,30 +99,35 @@ inline void from_json(const json_t &js, Circuit &circ) {circ = Circuit(js);}
 // Implementation: Circuit methods
 //============================================================================
 
-void Circuit::set_sizes() {
+void Circuit::set_params() {
+
+  // Clear current containers
+  opset_ = Operations::OpSet();
+  qubitset_.clear();
+  memoryset_.clear();
+  registerset_.clear();
+
   // Check maximum qubit, and register size
-  // Memory size is loaded from qobj config
+  // Memory size is loaded from qobj config  
   for (const auto &op: ops) {
-    if (!op.qubits.empty()) {
-      auto max = std::max_element(std::begin(op.qubits), std::end(op.qubits));
-      num_qubits = std::max(num_qubits, 1UL + *max);
-    }
-    if (!op.registers.empty()) {
-      auto max = std::max_element(std::begin(op.registers), std::end(op.registers));
-      num_registers = std::max(num_registers, 1UL + *max);
-    }
-    if (!op.memory.empty()) {
-      auto max = std::max_element(std::begin(op.memory), std::end(op.memory));
-      num_memory = std::max(num_memory, 1UL + *max);
-    }
-    
+    has_conditional |= op.conditional;
+    opset_.insert(op);
+    qubitset_.insert(op.qubits.begin(), op.qubits.end());
+    memoryset_.insert(op.memory.begin(), op.memory.end());
+    registerset_.insert(op.registers.begin(), op.registers.end());
   }
+
+  // Get required number of qubits, memory, registers from set maximums
+  // Since these are std::set containers the largest element is the
+  // Last element of the (non-empty) container. 
+  num_qubits = (qubitset_.empty()) ? 0 : 1 + *qubitset_.rbegin();
+  num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
+  num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
 }
 
 Circuit::Circuit(const std::vector<Op> &_ops) : Circuit() {
   ops = _ops;
-  set_sizes();
-  opset_ = Operations::OpSet(ops);
+  set_params();
 }
 
 Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
@@ -142,11 +152,8 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
     ops.emplace_back(Operations::json_to_op(jop));
   }
 
-  // Set optype information
-  opset_ = Operations::OpSet(ops);
-
-  // Set minimum sizes from operations
-  set_sizes();
+  // Set circuit parameters from ops
+  set_params();
 
   // Load metadata
   JSON::get_value(header, "header", circ);
@@ -171,70 +178,6 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
     num_qubits = n_qubits;
   }
 }
-
-
-bool Circuit::has_conditional() const {
-   for (const auto &op: ops) {
-    if (op.conditional)
-      return true;
-  }
-  return false;
-}
-
-
-bool Circuit::has_op(std::string name) const {
-  for (const auto &op: ops) {
-    if (op.name == name)
-      return true;
-  }
-  return false;
-}
-
-
-std::pair<uint_t, uint_t> Circuit::minmax_qubits() const{
-  uint_t min = 0;
-  uint_t max = 0;
-  for (const auto &op: ops) {
-    if (op.qubits.empty() == false) {
-      auto minmax = std::minmax_element(std::begin(op.qubits),
-                                        std::end(op.qubits));
-      min = std::min(min, *minmax.first);
-      max = std::max(max, *minmax.second);
-    }
-  }
-  return std::make_pair(min, max);
-}
-
-
-std::pair<uint_t, uint_t> Circuit::minmax_memory() const {
-  uint_t min = 0;
-  uint_t max = 0;
-  for (const auto &op: ops) {
-    if (op.memory.empty() == false) {
-      auto minmax = std::minmax_element(std::begin(op.memory),
-                                        std::end(op.memory));
-      min = std::min(min, *minmax.first);
-      max = std::max(max, *minmax.second);
-    }
-  }
-  return std::make_pair(min, max);
-}
-
-
-std::pair<uint_t, uint_t> Circuit::minmax_registers() const {
-  uint_t min = 0;
-  uint_t max = 0;
-  for (const auto &op: ops) {
-    if (op.registers.empty() == false) {
-      auto minmax = std::minmax_element(std::begin(op.registers),
-                                        std::end(op.registers));
-      min = std::min(min, *minmax.first);
-      max = std::max(max, *minmax.second);
-    }
-  }
-  return std::make_pair(min, max);
-}
-
 
 //------------------------------------------------------------------------------
 } // end namespace AER
