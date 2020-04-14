@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    Changes how transpilation passes are handled in the C++ Controller classes
+    so that each pass must be explicitly called. This allows for greater
+    customization on when each pass should be called, and with what parameters.
+    In particular this enables setting different parameters for the gate
+    fusion optimization pass depending on the QasmController simulation method.
+fixes:
+  - |
+    Fixes Controller classes so that the ReduceBarrier transpilation pass is
+    applied first. This prevents barrier instructions from preventing truncation
+    of unused qubits if the only instruction defined on them was a barrier.
+  - |
+    Disables gate fusion for the matrix product state simulation method as this
+    was causing issues with incorrect results being returned in some cases.
