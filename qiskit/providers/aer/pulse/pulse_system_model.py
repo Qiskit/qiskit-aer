@@ -153,7 +153,7 @@ class PulseSystemModel():
                     u_string = ''
                     for u_term_dict in u_lo.to_dict():
                         scale = getattr(u_term_dict, 'scale', [1.0, 0])
-                        q_idx = u_term_dict.get('q')
+                        q_idx = getattr(u_term_dict, 'q')
                         if len(u_string) > 0:
                             u_string += ' + '
                         if isinstance(scale, complex):
