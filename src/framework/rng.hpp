@@ -61,16 +61,14 @@ public:
 
   // Generate a uniformly distributed pseudo random real in the half-open
   // interval [a,b)
-  template <typename FloatType>
-  FloatType rand(FloatType a, FloatType b) {
-    return std::uniform_real_distribution<FloatType>(a, b)(rng);
+  double rand(double a, double b) {
+    return std::uniform_real_distribution<double>(a, b)(rng);
   }
 
   // Generate a uniformly distributed pseudo random real in the half-open
   // interval [0,b)
-  template <typename FloatType>
-  FloatType rand(FloatType b) {
-    return rand(FloatType(0), b);
+  double rand(double b) {
+    return rand(double(0), b);
   };
 
   // Generate a uniformly distributed pseudo random real in the half-open
