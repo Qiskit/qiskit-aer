@@ -94,7 +94,7 @@ public:
   }
 
 private:
-  std::mt19937 rng; // Mersenne twister rng engine
+  std::mt19937_64 rng; // Mersenne twister rng engine
 };
 
 //------------------------------------------------------------------------------
