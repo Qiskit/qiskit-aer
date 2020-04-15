@@ -110,23 +110,23 @@ class PulseSystemModel():
             raise AerError("{} is not a Qiskit backend".format(backend))
 
         # get relevant information from backend
-        defaults = backend.defaults().to_dict()
-        config = backend.configuration().to_dict()
+        defaults = backend.defaults()
+        config = backend.configuration()
 
-        if not config['open_pulse']:
+        if not config.open_pulse:
             raise AerError('{} is not an open pulse backend'.format(backend))
 
         # draw defaults
-        qubit_freq_est = defaults.get('qubit_freq_est', None)
-        meas_freq_est = defaults.get('meas_freq_est', None)
+        qubit_freq_est = getattr(defaults, 'qubit_freq_est', None)
+        meas_freq_est = getattr(defaults, 'meas_freq_est', None)
 
         # draw from configuration
         # if no subsystem_list, use all for device
-        subsystem_list = subsystem_list or list(range(config['n_qubits']))
-        ham_string = config['hamiltonian']
+        subsystem_list = subsystem_list or list(range(config.n_qubits))
+        ham_string = config.hamiltonian
         hamiltonian = HamiltonianModel.from_dict(ham_string, subsystem_list)
-        u_channel_lo = config.get('u_channel_lo', None)
-        dt = config.get('dt', None)
+        u_channel_lo = getattr(config, 'u_channel_lo', None)
+        dt = getattr(config, 'dt', None)
 
         control_channel_labels = [None] * len(u_channel_lo)
         # populate control_channel_dict
@@ -152,11 +152,14 @@ class PulseSystemModel():
                     # construct string for u channel
                     u_string = ''
                     for u_term_dict in u_lo:
-                        scale = u_term_dict.get('scale', [1.0, 0])
-                        q_idx = u_term_dict.get('q')
+                        scale = getattr(u_term_dict, 'scale', [1.0, 0])
+                        q_idx = getattr(u_term_dict, 'q')
                         if len(u_string) > 0:
                             u_string += ' + '
-                        u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
+                        if isinstance(scale, complex):
+                            u_string += str(scale) + 'q' + str(q_idx)
+                        else:
+                            u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
                     control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
 
         return cls(hamiltonian=hamiltonian,

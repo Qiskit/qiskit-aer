@@ -80,6 +80,7 @@ public:
       Operations::OpType::bfunc,
       Operations::OpType::roerror,
       Operations::OpType::matrix,
+      Operations::OpType::diagonal_matrix,
       Operations::OpType::multiplexer,
       Operations::OpType::kraus
     });
@@ -468,6 +469,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::matrix:
           apply_matrix(op);
+          break;
+        case Operations::OpType::diagonal_matrix:
+          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
         case Operations::OpType::multiplexer:
           apply_multiplexer(op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
