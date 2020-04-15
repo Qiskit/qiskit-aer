@@ -77,17 +77,19 @@ public:
 
   // Generate a uniformly distributed pseudo random integer in the closed
   // interval [a,b]
-  template <typename IntType>
-  IntType rand_int(IntType a, IntType b) {
-    return std::uniform_int_distribution<IntType>(a, b)(rng);
+  template <typename Integer,
+            typename = std::enable_if_t<std::is_integral<Integer>::value>>
+  Integer rand_int(Integer a, Integer b) {
+    return std::uniform_int_distribution<Integer>(a, b)(rng);
   }
 
   // Generate a pseudo random integer from a a discrete distribution
   // constructed from an input vector of probabilities for [0,..,n-1]
   // where n is the lenght of the vector. If this vector is not normalized
   // it will be scaled when it is converted to a discrete_distribution
-  template <typename FloatType>
-  size_t rand_int(const std::vector<FloatType> &probs) {
+  template <typename Float,
+            typename = std::enable_if_t<std::is_floating_point<Float>::value>>
+  size_t rand_int(const std::vector<Float> &probs) {
     return std::discrete_distribution<size_t>(probs.begin(), probs.end())(rng);
   }
 
