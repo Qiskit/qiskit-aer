@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Remove "extended_stabilizer" from the automatically selected simulation
+    methods. This is needed as the extended stabilizer method is not exact
+    and may give incorrect results for certain circuits unless the user
+    knows how to optimize its configuration parameters.
+    
+    The automatic method now only selects from "stabilizer", "density_matrix",
+    and "statevector" methods. If a non-Clifford circuit that is too large for
+    the statevector method is executed an exception will be raised suggesting
+    you could try explicitly using the "extended_stabilizer" or
+    "matrix_product_state" methods instead.
