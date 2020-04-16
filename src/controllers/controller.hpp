@@ -173,17 +173,6 @@ protected:
                                     const Circuit &circ,
                                     bool throw_except = false) const;
 
-  //-------------------------------------------------------------------------
-  // Circuit optimization
-  //-------------------------------------------------------------------------
-
-  // Generate an equivalent circuit with input_circ as output_circ.
-  template <class state_t>
-  void optimize_circuit(Circuit &circ,
-                        Noise::NoiseModel& noise,
-                        state_t& state,
-                        ExperimentData &data) const;
-
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------

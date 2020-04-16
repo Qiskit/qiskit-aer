@@ -186,7 +186,6 @@ class QasmController : public Base::Controller {
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
   Transpile::Fusion transpile_fusion(Method method,
-                                     const Circuit &circ,
                                      const json_t &config) const;
 
   //----------------------------------------------------------------
@@ -727,7 +726,6 @@ size_t QasmController::required_memory_mb(
 }
 
 Transpile::Fusion QasmController::transpile_fusion(Method method,
-                                                   const Circuit &circ,
                                                    const json_t &config) const {
   Transpile::Fusion fusion_pass;
   switch (method) {
@@ -866,7 +864,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   state_opset.snapshots = state.allowed_snapshots(); 
 
   // Initialize fusion transpile pass
-  auto fusion_pass = transpile_fusion(method, circ, config);
+  auto fusion_pass = transpile_fusion(method, config);
   Noise::NoiseModel dummy_noise;
 
   while (shots-- > 0) {
@@ -901,7 +899,7 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
 
   // Apply fusion transpilation pass
-  auto fusion_pass = transpile_fusion(method, circ, config);
+  auto fusion_pass = transpile_fusion(method, config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
 
   // Check if measure sampler and optimization are valid
