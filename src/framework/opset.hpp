@@ -45,7 +45,13 @@ public:
   stringset_t snapshots;  // set of types for OpType::snapshot
 
   OpSet() = default;
-  OpSet(const std::vector<Op> &ops) {insert(ops);}
+
+  OpSet(const optypeset_t &_optypes,
+        const stringset_t &_gates,
+        const stringset_t &_snapshots)
+    : optypes(_optypes), gates(_gates), snapshots(_snapshots) {}
+
+  OpSet(const std::vector<Op> &ops) { for (const auto& op : ops) {insert(op);} }
 
   //-----------------------------------------------------------------------
   // Insert operations to the OpSet
@@ -56,9 +62,6 @@ public:
 
   // Add additional op to the opset
   void insert(const Op &op);
-  
-  // Add additional ops to the opset
-  void insert(const std::vector<Op> &ops);
 
   //-----------------------------------------------------------------------
   // Check if operations are in the OpSet
@@ -109,12 +112,6 @@ void OpSet::insert(const Op &op) {
   if (op.type == OpType::snapshot)
     snapshots.insert(op.name);
 }
-
-void OpSet::insert(const std::vector<Op> &ops) {
-  for (const auto &op : ops)
-    insert(op);
-}
-
 
 void OpSet::insert(const OpSet &opset) {
   optypes.insert(opset.optypes.begin(),
