@@ -27,7 +27,7 @@ namespace Stabilizer {
 // Stabilizer state gates
 //============================================================================
 
-enum class Gates {id, x, y, z, h, s, sdg, cx, cz, swap};
+enum class Gates {id, x, y, z, h, s, sdg, cx, cy, cz, swap};
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -73,7 +73,7 @@ public:
 
   // Return the set of qobj gate instruction names supported by the State
   virtual stringset_t allowed_gates() const override {
-    return {"CX", "cx", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"};
+    return {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"};
   }
 
   // Return the set of qobj snapshot types supported by the State
@@ -212,6 +212,7 @@ const stringmap_t<Gates> State::gateset_({
   // Two-qubit gates
   {"CX", Gates::cx},  // Controlled-X gate (CNOT)
   {"cx", Gates::cx},  // Controlled-X gate (CNOT),
+  {"cy", Gates::cy},   // Controlled-Y gate
   {"cz", Gates::cz},   // Controlled-Z gate
   {"swap", Gates::swap} // SWAP gate
 });
@@ -351,6 +352,12 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_h(op.qubits[1]);
       BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
       BaseState::qreg_.append_h(op.qubits[1]);
+      break;
+    case Gates::cy:
+      BaseState::qreg_.append_z(op.qubits[1]);
+      BaseState::qreg_.append_s(op.qubits[1]);
+      BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
+      BaseState::qreg_.append_s(op.qubits[1]);
       break;
     case Gates::swap:
       BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
