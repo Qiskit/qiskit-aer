@@ -28,6 +28,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -61,7 +62,7 @@ class DensityMatrixTests(
         QasmCliffordTestsMinimalBasis, QasmNonCliffordTests,
         QasmNonCliffordTestsWaltzBasis, QasmNonCliffordTestsMinimalBasis,
         QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
-        QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests,
+        QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
         QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,

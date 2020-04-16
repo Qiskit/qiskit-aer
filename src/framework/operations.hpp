@@ -24,6 +24,7 @@
 #include "framework/types.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 namespace AER {
 namespace Operations {
@@ -36,7 +37,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, multiplexer, kraus, superop, roerror, noise_switch, initialize
+  matrix, diagonal_matrix, multiplexer, kraus, superop, roerror, noise_switch, initialize
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -60,7 +61,10 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     stream << "snapshot";
     break;
   case OpType::matrix:
-    stream << "matrix";
+    stream << "unitary";
+    break;
+  case OpType::diagonal_matrix:
+    stream << "diagonal";
     break;
   case OpType::multiplexer:
     stream << "multiplexer";
@@ -561,6 +565,7 @@ Op json_to_op_snapshot_pauli(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
+Op json_to_op_diagonal(const json_t &js);
 Op json_to_op_superop(const json_t &js);
 Op json_to_op_multiplexer(const json_t &js);
 Op json_to_op_kraus(const json_t &js);
@@ -596,6 +601,8 @@ Op json_to_op(const json_t &js) {
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
+  if (name == "diagonal" || name == "diag")
+    return json_to_op_diagonal(js);
   if (name == "superop")
     return json_to_op_superop(js);
   // Snapshot
@@ -856,6 +863,35 @@ Op json_to_op_unitary(const json_t &js) {
       throw std::invalid_argument("\"unitary\" matrix is not unitary.");
     }
   }
+  // Check for a label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  op.string_params.push_back(label);
+
+  // Conditional
+  add_condtional(Allowed::Yes, op, js);
+  return op;
+}
+
+Op json_to_op_diagonal(const json_t &js) {
+  Op op;
+  op.type = OpType::diagonal_matrix;
+  op.name = "diagonal";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.params, "params", js);
+
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  if (op.params.size() != 1ULL << op.qubits.size()) {
+    throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
+  }
+  for (const auto val : op.params) {
+    if (!Linalg::almost_equal(std::abs(val), 1.0)) {
+      throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
+    }
+  }
+
   // Check for a label
   std::string label;
   JSON::get_value(label, "label", js);

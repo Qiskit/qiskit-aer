@@ -22,7 +22,6 @@
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
-#include "transpile/basic_opts.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
 
@@ -274,7 +273,6 @@ class QasmController : public Base::Controller {
 // Constructor
 //-------------------------------------------------------------------------
 QasmController::QasmController() {
-  add_circuit_optimization(Transpile::ReduceBarrier());
   add_circuit_optimization(Transpile::DelayMeasure());
   add_circuit_optimization(Transpile::Fusion());
 }
@@ -641,8 +639,8 @@ QasmController::Method QasmController::simulation_method(
       }
       // Finally we check the statevector memory requirement for the
       // current number of qubits. If it fits in available memory we
-      // default to the Statevector method. Otherwise we attempt to use
-      // the extended stabilizer simulator.
+      // default to the Statevector method. Otherwise we raise an exception
+      // and suggest using one of the other simulation methods.
       bool enough_memory = true;
       if (simulation_precision_ == Precision::single_precision) {
         Statevector::State<QV::QubitVector<float>> sv_state;
@@ -652,13 +650,11 @@ QasmController::Method QasmController::simulation_method(
         enough_memory = validate_memory_requirements(sv_state, circ, false);
       }
       if (!enough_memory) {
-        if (validate_state(ExtendedStabilizer::State(), circ, noise_model,
-                           false)) {
-          return Method::extended_stabilizer;
-        } else {
-          throw std::runtime_error(
-              "QasmSimulator: Circuit cannot be run using available methods.");
-        }
+        throw std::runtime_error(
+          "QasmSimulator: Insufficient memory for " + std::to_string(circ.num_qubits) +  "-qubit"
+          R"( circuit using "statevector" method. You could try using the)"
+          R"( "matrix_product_state" or "extended_stabilizer" method instead.)"
+        );
       }
     }
     // If we didn't select extended stabilizer above proceed to the default
