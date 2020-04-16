@@ -257,10 +257,12 @@ json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
-    auto type_str = std::string(py::str(obj.get_type()));
-    if (py::isinstance<py::bool_>(obj)) {
+    if (py::isinstance<py::float_>(obj)) {
+        js = obj.cast<nl::json::number_float_t>();
+    } else if (py::isinstance<py::bool_>(obj)) {
         js = obj.cast<nl::json::boolean_t>();
-        //js = obj.cast<bool>();
+    } else if (py::isinstance<py::int_>(obj)) {
+        js = obj.cast<nl::json::number_integer_t>();
     } else if (py::isinstance<py::str>(obj)) {
         js = obj.cast<nl::json::string_t>();
     } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
@@ -276,27 +278,28 @@ void std::to_json(json_t &js, const py::handle &obj) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
     } else if (py::isinstance<py::array_t<std::complex<double> > >(obj)) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
-    } else if (py::isinstance<py::float_>(obj)
-               || type_str == "<class \'numpy.float32\'>"
-               || type_str == "<class \'numpy.float64\'>" ) {
-        js = obj.cast<nl::json::number_float_t>();
-    } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>"
-               || type_str == "<class \'numpy.complex64\'>"
-               || type_str == "<class \'numpy.complex128\'>"
-               || type_str == "<class \'numpy.complex_\'>" ) {
-        auto tmp = obj.cast<std::complex<double>>();
-        js.push_back(tmp.real());
-        js.push_back(tmp.imag());
-    } else if (py::isinstance<py::int_>(obj)
-               || type_str == "<class \'numpy.uint32\'>"
-               || type_str == "<class \'numpy.uint64\'>"
-               || type_str == "<class \'numpy.int32\'>"
-               || type_str == "<class \'numpy.int64\'>" ) {
-        js = obj.cast<nl::json::number_integer_t>();
     } else if (obj.is_none()) {
         return;
     } else {
-        throw std::runtime_error("to_json not implemented for this type of object: " + std::string(py::str(obj.get_type())));
+        auto type_str = std::string(py::str(obj.get_type()));
+        if ( type_str == "<class \'complex\'>"
+             || type_str == "<class \'numpy.complex64\'>"
+             || type_str == "<class \'numpy.complex128\'>"
+             || type_str == "<class \'numpy.complex_\'>" ) {
+            auto tmp = obj.cast<std::complex<double>>();
+            js.push_back(tmp.real());
+            js.push_back(tmp.imag());
+        } else if ( type_str == "<class \'numpy.uint32\'>"
+                    || type_str == "<class \'numpy.uint64\'>"
+                    || type_str == "<class \'numpy.int32\'>"
+                    || type_str == "<class \'numpy.int64\'>" ) {
+            js = obj.cast<nl::json::number_integer_t>();
+        } else if ( type_str == "<class \'numpy.float32\'>"
+                    || type_str == "<class \'numpy.float64\'>" ) {
+            js = obj.cast<nl::json::number_float_t>();
+        } else {
+            throw std::runtime_error("to_json not implemented for this type of object: " + std::string(py::str(obj.get_type())));
+        }
     }
 }
 
