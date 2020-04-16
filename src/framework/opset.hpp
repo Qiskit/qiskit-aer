@@ -97,37 +97,6 @@ public:
   stringset_t invalid_snapshots(const stringset_t &allowed_snapshots) const;
 };
 
-inline std::ostream& operator<<(std::ostream& s, const OpSet& opset) {
-  s << "optypes={";
-  bool first = true;
-  for (OpType optype: opset.optypes) {
-    if (first)
-      first = false;
-    else
-      s << ",";
-    s << optype;
-  }
-  s << "}, gates={";
-  first = true;
-  for (const std::string& gate: opset.gates) {
-    if (first)
-      first = false;
-    else
-      s << ",";
-    s << gate;
-  }
-  s << "}, snapshots={";
-  first = true;
-  for (const std::string& snapshot: opset.snapshots) {
-    if (first)
-      first = false;
-    else
-      s << ",";
-    s << snapshot;
-  }
-  s << "}";
-  return s;
-}
 
 //------------------------------------------------------------------------------
 // OpSet class methods
@@ -222,7 +191,36 @@ stringset_t OpSet::invalid_snapshots(const stringset_t &allowed_snapshots) const
 
 //------------------------------------------------------------------------------
 } // end namespace Operations
-//------------------------------------------------------------------------------
 } // end namespace AER
+//------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------
+// Ostream overload for opset
+//-------------------------------------------------------------------------
+
+inline std::ostream& operator<<(std::ostream& out,
+                                const AER::Operations::OpSet& opset) {
+  bool first = true;
+  out << "{";
+  if (!opset.optypes.empty()) {
+    out << "\"optypes\": " << opset.optypes;
+    first = false;
+  }
+  if (!opset.gates.empty()) {
+    if (!first)
+      out << ", ";
+    out << "\"gates\": " << opset.gates;
+    first = false;
+  }
+  if (!opset.snapshots.empty()) {
+    if (!first)
+      out << ", ";
+    out << "\"snapshots\": " << opset.snapshots;
+    first = false;
+  }
+  out << "}";
+  return out;
+}
+
 //------------------------------------------------------------------------------
 #endif
