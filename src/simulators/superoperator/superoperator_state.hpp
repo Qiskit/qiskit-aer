@@ -65,6 +65,7 @@ public:
       Operations::OpType::snapshot,
       Operations::OpType::barrier,
       Operations::OpType::matrix,
+      Operations::OpType::diagonal_matrix,
       Operations::OpType::kraus,
       Operations::OpType::superop
     });
@@ -233,6 +234,9 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
         break;
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats);

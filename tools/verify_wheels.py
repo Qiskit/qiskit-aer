@@ -22,6 +22,10 @@ from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.aer import UnitarySimulator
 from qiskit.providers.aer import PulseSimulator
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
+
 
 def assertAlmostEqual(first, second, places=None, msg=None,
                       delta=None):
@@ -112,7 +116,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
         circuit.measure(qr[1], cr[1])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.iden(qr)
+        circuit.i(qr)
     circuits.append(circuit)
 
     return circuits
