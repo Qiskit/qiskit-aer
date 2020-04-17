@@ -112,7 +112,7 @@ const std::array<uint_t, 64> MASKS {{
 // If the template argument does not have these methods then template
 // specialization must be used to override the default implementations.
 
-template <typename data_t = double>
+template <typename data_t = double, typename Derived = void>
 class QubitVector {
 
 public:
@@ -159,6 +159,9 @@ public:
 
   // Returns required memory
   size_t required_memory_mb(uint_t num_qubits) const;
+
+  // Allocates memory for the underlaying quantum state
+  void allocate_mem(size_t num_qubits);
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
@@ -789,34 +792,39 @@ cvector_t<data_t> QubitVector<data_t>::convert(const cvector_t<double>& v) const
 template <typename data_t>
 void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
 
-  size_t prev_num_qubits = num_qubits_;
-  num_qubits_ = num_qubits;
-  data_size_ = BITS[num_qubits];
+  allocate_mem<data_t>(num_qubits);
 
   if (checkpoint_) {
     free(checkpoint_);
     checkpoint_ = nullptr;
   }
 
+  data_size_ = BITS[num_qubits];
+  num_qubits_ = num_qubits;
+}
+
+template <typename data_t>
+void QubitVector<data_t>::allocate_mem(size_t num_qubits){
   // Free any currently assigned memory
   if (data_) {
-    if (prev_num_qubits != num_qubits_) {
+    if (num_qubits != num_qubits_) {
       free(data_);
       data_ = nullptr;
     }
   }
 
+  auto data_size = BITS[num_qubits];
   // Allocate memory for new vector
   if (data_ == nullptr) {
 #ifndef _WIN64
     void* data;
-    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size_);
+    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
     data_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
-    data_ = reinterpret_cast<std::complex<data_t>*>(_aligned_malloc(sizeof(std::complex<data_t>) * data_size_, 64));
+    data_ = reinterpret_cast<std::complex<data_t>*>(_aligned_malloc(sizeof(std::complex<data_t>) * data_size, 64));
 #endif
-  }
 }
+
 
 template <typename data_t>
 size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
