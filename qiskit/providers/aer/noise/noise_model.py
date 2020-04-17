@@ -289,7 +289,7 @@ class NoiseModel:
             gate_error=gate_error,
             thermal_relaxation=thermal_relaxation,
             gate_lengths=gate_lengths,
-            gate_length_units='ns',
+            gate_length_units=gate_length_units,
             temperature=temperature,
             standard_gates=standard_gates)
         for name, qubits, error in gate_errors:
