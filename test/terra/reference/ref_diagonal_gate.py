@@ -18,6 +18,10 @@ Test circuits and reference outputs for diagonal instruction.
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'diagonal'):
+    QuantumCircuit.diagonal = QuantumCircuit.diag_gate
+
 
 def diagonal_gate_circuits_deterministic(final_measure=True):
     """Diagonal gate test circuits with deterministic count output."""
