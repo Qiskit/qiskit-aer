@@ -13,3 +13,6 @@ fixes:
     thermal relaxation it was being calculated in nanoseconds. This resulted
     in no depolarizing error being applied as the incorrect units would make
     the device seem to be coherence limited.
+  - |
+    Fix bug in incorrect composition of QuantumErrors when the qubits of
+    composed instructions differ.
