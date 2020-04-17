@@ -22,6 +22,25 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 if not hasattr(QuantumCircuit, 'diagonal'):
     QuantumCircuit.diagonal = QuantumCircuit.diag_gate
 
+def diagonal_gate_circuits_deterministic_w(state, final_measure=True):
+    """Diagonal gate test circuits with deterministic count output."""
+
+    qr = QuantumRegister(2, 'qr')
+    if final_measure:
+        cr = ClassicalRegister(2, 'cr')
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # Swap |00> <--> |11> states
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr)
+    circuit.diagonal([1, -1, -1, 1], qr)
+    circuit.h(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    return circuit
 
 def diagonal_gate_circuits_deterministic(final_measure=True):
     """Diagonal gate test circuits with deterministic count output."""
