@@ -397,9 +397,7 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
-#ifdef __AVX2__
-  void enable_avx(bool use) { use_avx_ = use;}
-#endif
+  void enable_avx(bool use) { use_avx_ = use; }
 
 protected:
 
@@ -419,8 +417,11 @@ protected:
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
+
 #ifdef __AVX2__
-  bool use_avx_ = true;
+  bool use_avx_ = is_avx2_supported();
+#else
+  bool use_avx_ = false;
 #endif
 
   //-----------------------------------------------------------------------
@@ -813,7 +814,7 @@ void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
     posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size_);
     data_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
-    data_ = reinterpret_cast<std::complex<data_t>*>(_aligned_malloc(sizeof(std::complex<data_t>) * data_size_, 64));
+    data_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
 #endif
   }
 }
