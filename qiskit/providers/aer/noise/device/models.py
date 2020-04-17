@@ -17,6 +17,7 @@ Simplified noise models for devices backends.
 
 from numpy import inf, exp, allclose
 
+import qiskit.quantum_info as qi
 from .parameters import readout_error_values
 from .parameters import gate_param_values
 from .parameters import thermal_relaxation_values
@@ -121,16 +122,17 @@ def basic_device_gate_errors(properties,
             if filtered:
                 # get first value
                 relax_time = filtered[0]
-        # Get depolarizing error channel
-        if gate_error:
-            depol_error = _device_depolarizing_error(
-                qubits, error_param, relax_time, relax_params,
-                thermal_relaxation, standard_gates)
         # Get relaxation error
         if thermal_relaxation:
             relax_error = _device_thermal_relaxation_error(
                 qubits, relax_time, relax_params, temperature,
                 thermal_relaxation)
+
+        # Get depolarizing error channel
+        if gate_error:
+            depol_error = _device_depolarizing_error(
+                qubits, error_param, relax_error, standard_gates)
+
         # Combine errors
         if depol_error is None and relax_error is None:
             # No error for this gate
@@ -151,9 +153,7 @@ def basic_device_gate_errors(properties,
 
 def _device_depolarizing_error(qubits,
                                error_param,
-                               gate_time,
-                               relax_params,
-                               thermal_relaxation=True,
+                               relax_error=None,
                                standard_gates=True):
     """Construct a depolarizing_error for device"""
 
@@ -165,60 +165,29 @@ def _device_depolarizing_error(qubits,
 
     # For the n-qubit depolarizing channel E_dep = (1-p) * I + p * D, where
     # I is the identity channel and D is the completely depolarizing
-    # channel, the average gate fidelity is given by:
-    # F(E_dep) = (1 - p) * F(I) + p * F(D)
-    #          = (1 - p) * 1 + p * (1 / dim)
-    # where F(I) = 1, F(D) = 1 / dim = 1 - p * (dim - 1) / dim
-    # Hence we have that
-    # p = (1 - F(E_dep)) / ((dim - 1) / dim)
-    #   = dim * (1 - F(E_dep)) / (dim - 1)
-    #   = dim * e / (dim - 1)
-    # therefore p = dim * error_param / (dim - 1)
-    # with dim = 2 ** N for an N-qubit gate error.
+    # channel. To compose the errors we solve for the equation
+    # F = F(E_dep * E_relax)
+    #   = (1 - p) * F(I * E_relax) + p * F(D * E_relax)
+    #   = (1 - p) * F(E_relax) + p * F(D)
+    #   = F(E_relax) - p * (dim * F(E_relax) - 1) / dim
 
-    error = None
-    num_qubits = len(qubits)
-    dim = 2 ** num_qubits
-
-    if not thermal_relaxation:
-        # Model gate error entirely as depolarizing error
-        if error_param is not None and error_param > 0:
-            dim = 2 ** num_qubits
-            depol_param = dim * error_param / (dim - 1)
-        else:
-            depol_param = 0
+    # Hence we have that the depolarizing error probability
+    # for the composed depolarization channel is
+    # p = dim * (F(E_relax) - F) / (dim * F(E_relax) - 1)
+    if relax_error is not None:
+        relax_fid = qi.average_gate_fidelity(relax_error)
+        relax_infid = 1 - relax_fid
     else:
-        # Model gate error as thermal relaxation and depolarizing
-        # error.
-        # Get depolarizing probability
-        if num_qubits == 1:
-            t1, t2, _ = relax_params[qubits[0]]
-            depol_param = _depol_error_value_one_qubit(
-                error_param, gate_time, t1=t1, t2=t2)
-        elif num_qubits == 2:
-            q0_t1, q0_t2, _ = relax_params[qubits[0]]
-            q1_t1, q1_t2, _ = relax_params[qubits[1]]
-            depol_param = _depol_error_value_two_qubit(
-                error_param,
-                gate_time,
-                qubit0_t1=q0_t1,
-                qubit0_t2=q0_t2,
-                qubit1_t1=q1_t1,
-                qubit1_t2=q1_t2)
-        else:
-            raise NoiseError("Device noise model only supports "
-                             "1 and 2-qubit gates when using "
-                             "thermal_relaxation=True.")
-    if depol_param > 0:
-        # If the device reports an error_param greater than the maximum
-        # allowed for a depolarzing error model we will get a non-physical
-        # depolarizing parameter.
-        # In this case we truncate it to 1 so that the error channel is a
-        # completely depolarizing channel E(rho) = id / d
-        depol_param = min(depol_param, 1.0)
-        error = depolarizing_error(
+        relax_fid = 1
+        relax_infid = 0
+    if error_param is not None and error_param > relax_infid:
+        # Model gate error entirely as depolarizing error
+        num_qubits = len(qubits)
+        dim = 2 ** num_qubits
+        depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
+        return depolarizing_error(
             depol_param, num_qubits, standard_gates=standard_gates)
-    return error
+    return None
 
 
 def _device_thermal_relaxation_error(qubits,
@@ -264,100 +233,3 @@ def _excited_population(freq, temperature):
             # negative temperate implies |1> is thermal ground
             population = 1 - population
     return population
-
-
-def _depol_error_value_one_qubit(error_param, gate_time=0, t1=inf, t2=inf):
-    """Return 2-qubit depolarizing channel parameter for device model"""
-    # Check trivial case where there is no gate error
-    if error_param is None:
-        return None
-    if error_param == 0:
-        return 0
-
-    # Check t1 and t2 are valid
-    if t1 <= 0:
-        raise NoiseError("Invalid T_1 relaxation time parameter: T_1 <= 0.")
-    if t2 <= 0:
-        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
-    if t2 - 2 * t1 > 0:
-        raise NoiseError(
-            "Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
-
-    if gate_time is None:
-        gate_time = 0
-    if gate_time == 0 or (t1 == inf and t2 == inf):
-        if error_param is not None and error_param > 0:
-            return 2 * error_param
-        else:
-            return 0
-
-    # Otherwise we calculate the depolarizing error parameter to account
-    # for the difference between the relaxation error and gate error
-    if t1 == inf:
-        par1 = 1
-    else:
-        par1 = exp(-gate_time / t1)
-    if t2 == inf:
-        par2 = 1
-    else:
-        par2 = exp(-gate_time / t2)
-    depol_param = 1 + 3 * (2 * error_param - 1) / (par1 + 2 * par2)
-    return depol_param
-
-
-def _depol_error_value_two_qubit(error_param,
-                                 gate_time=0,
-                                 qubit0_t1=inf,
-                                 qubit0_t2=inf,
-                                 qubit1_t1=inf,
-                                 qubit1_t2=inf):
-    """Return 2-qubit depolarizing channel parameter for device model"""
-    # Check trivial case where there is no gate error
-    if error_param is None:
-        return None
-    if error_param == 0:
-        return 0
-
-    # Check t1 and t2 are valid
-    if qubit0_t1 <= 0 or qubit1_t1 <= 0:
-        raise NoiseError("Invalid T_1 relaxation time parameter: T_1 <= 0.")
-    if qubit0_t2 <= 0 or qubit1_t2 <= 0:
-        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
-    if qubit0_t2 - 2 * qubit0_t1 > 0 or qubit1_t2 - 2 * qubit1_t1 > 0:
-        raise NoiseError(
-            "Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
-
-    if gate_time is None:
-        gate_time = 0
-    if gate_time == 0 or (qubit0_t1 == inf and
-                          qubit0_t2 == inf and
-                          qubit1_t1 == inf and
-                          qubit1_t2 == inf):
-        if error_param is not None and error_param > 0:
-            return 4 * error_param / 3
-        else:
-            return 0
-
-    # Otherwise we calculate the depolarizing error probability to account
-    # for the difference between the relaxation error and gate error
-    if qubit0_t1 == inf:
-        q0_par1 = 1
-    else:
-        q0_par1 = exp(-gate_time / qubit0_t1)
-    if qubit0_t2 == inf:
-        q0_par2 = 1
-    else:
-        q0_par2 = exp(-gate_time / qubit0_t2)
-    if qubit1_t1 == inf:
-        q1_par1 = 1
-    else:
-        q1_par1 = exp(-gate_time / qubit1_t1)
-    if qubit1_t2 == inf:
-        q1_par2 = 1
-    else:
-        q1_par2 = exp(-gate_time / qubit1_t2)
-    denom = (
-        q0_par1 + q1_par1 + q0_par1 * q1_par1 + 4 * q0_par2 * q1_par2 +
-        2 * (q0_par2 + q1_par2) + 2 * (q1_par1 * q0_par2 + q0_par1 * q1_par2))
-    depol_param = 1 + 5 * (4 * error_param - 3) / denom
-    return depol_param
