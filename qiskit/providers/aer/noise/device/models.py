@@ -20,6 +20,7 @@ from numpy import inf, exp, allclose
 from .parameters import readout_error_values
 from .parameters import gate_param_values
 from .parameters import thermal_relaxation_values
+from .parameters import _NANOSECOND_UNITS
 
 from ..noiseerror import NoiseError
 from ..errors.readout_error import ReadoutError
@@ -50,6 +51,7 @@ def basic_device_gate_errors(properties,
                              gate_error=True,
                              thermal_relaxation=True,
                              gate_lengths=None,
+                             gate_length_units='ns',
                              temperature=0,
                              standard_gates=True):
     """
@@ -69,6 +71,8 @@ def basic_device_gate_errors(properties,
         gate_lengths (list): Override device gate times with custom
                              values. If None use gate times from
                              backend properties. (Default: None).
+        gate_length_units (str): Time units for gate length values in gate_lengths.
+                                 Can be 'ns', 'ms', 'us', or 's' (Default: 'ns').
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
         standard_gates (bool): If true return errors as standard
@@ -94,10 +98,12 @@ def basic_device_gate_errors(properties,
         # them in the custom times dict
         if gate_lengths:
             for name, qubits, value in gate_lengths:
+                # Convert all gate lengths to nanosecond units
+                time = value * _NANOSECOND_UNITS[gate_length_units]
                 if name in custom_times:
-                    custom_times[name].append((qubits, value))
+                    custom_times[name].append((qubits, time))
                 else:
-                    custom_times[name] = [(qubits, value)]
+                    custom_times[name] = [(qubits, time)]
     # Get the device gate parameters from properties
     device_gate_params = gate_param_values(properties)
 
@@ -224,8 +230,7 @@ def _device_thermal_relaxation_error(qubits,
     # Check trivial case
     if not thermal_relaxation or gate_time is None or gate_time == 0:
         return None
-    # convert gate time to same units as T1 and T2 (microseconds)
-    gate_time = gate_time / 1000
+
     # Construct a tensor product of single qubit relaxation errors
     # for any multi qubit gates
     first = True
