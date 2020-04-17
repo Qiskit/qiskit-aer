@@ -118,6 +118,7 @@ void QubitVectorAvx<data_t>::apply_matrix(const reg_t &qubits,
     (void*) Base::convert(mat).data(), _calculate_num_threads());
 }
 
+template <typename data_t>
 uint_t QubitVectorAvx<data_t>::_calculate_num_threads(){
   if(Base::num_qubits_ > Base::omp_threshold_ &&  Base::omp_threads_ > 1){
        return omp_threads_;
