@@ -855,12 +855,6 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             const Method method,
                                             ExperimentData &data,
                                             RngEngine &rng) const {
-  // TODO: add opset to State class
-  Operations::OpSet state_opset;
-  state_opset.optypes = state.allowed_ops();
-  state_opset.gates = state.allowed_gates();
-  state_opset.snapshots = state.allowed_snapshots(); 
-
   // Initialize fusion transpile pass
   auto fusion_pass = transpile_fusion(method, config);
   Noise::NoiseModel dummy_noise;
@@ -868,7 +862,7 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
-    fusion_pass.optimize_circuit(noise_circ, dummy_noise, state_opset, data);
+    fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }
 }
@@ -883,22 +877,17 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Optimize circuit for state type
   Circuit opt_circ = circ;
 
-  // TODO: add opset to State class
-  Operations::OpSet state_opset;
-  state_opset.optypes = state.allowed_ops();
-  state_opset.gates = state.allowed_gates();
-  state_opset.snapshots = state.allowed_snapshots();
   // Dummy noise model for transpiler passes
   Noise::NoiseModel dummy_noise;
 
   // Apply delay measure transpilation pass
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
-  measure_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
+  measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
 
   // Apply fusion transpilation pass
   auto fusion_pass = transpile_fusion(method, config);
-  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state_opset, data);
+  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
 
   // Check if measure sampler and optimization are valid
   auto check = check_measure_sampling_opt(opt_circ, method);
