@@ -16,7 +16,7 @@
 #define _aer_base_state_hpp_
 
 #include "framework/json.hpp"
-#include "framework/operations.hpp"
+#include "framework/opset.hpp"
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
 #include "framework/results/experiment_data.hpp"
@@ -33,8 +33,46 @@ class State {
 
 public:
   using ignore_argument = void;
-  State() = default;
+
+  //-----------------------------------------------------------------------
+  // Constructors
+  //-----------------------------------------------------------------------
+
+  // The constructor arguments are used to initialize the OpSet
+  // for the State class for checking supported simulator Operations
+  //
+  // Standard OpTypes that can be included here are:
+  // - `OpType::gate` if gates are supported
+  // - `OpType::measure` if measure is supported
+  // - `OpType::reset` if reset is supported
+  // - `OpType::snapshot` if any snapshots are supported
+  // - `OpType::barrier` if barrier is supported
+  // - `OpType::matrix` if arbitrary unitary matrices are supported
+  // - `OpType::kraus` if general Kraus noise channels are supported
+  //
+  // For gate ops allowed gates are specified by a set of string names,
+  // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
+  //
+  // For snapshot ops allowed snapshots are specified by a set of string names,
+  // For example this could include {"probabilities", "pauli_observable"}
+
+  State(const Operations::OpSet &opset) : opset_(opset) {}
+
+  State(const Operations::OpSet::optypeset_t &optypes,
+        const stringset_t &gates,
+        const stringset_t &snapshots)
+    : State(Operations::OpSet(optypes, gates, snapshots)) {};
+
   virtual ~State() = default;
+
+  //-----------------------------------------------------------------------
+  // Data accessors
+  //-----------------------------------------------------------------------
+
+  // Returns a const reference to the states data structure
+  const auto &qreg() const {return qreg_;}
+  const auto &creg() const {return creg_;}
+  const auto &opset() const {return opset_;}
 
   //=======================================================================
   // Subclass Override Methods
@@ -54,32 +92,10 @@ public:
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
-  // Return the set of qobj instruction types supported by the State
-  // by the Operations::OpType enum class.
-  // Standard OpTypes that can be included here are:
-  // - `OpType::gate` if gates are supported
-  // - `OpType::measure` if measure is supported
-  // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
-  // - `OpType::barrier` if barrier is supported
-  // - `OpType::matrix` if arbitrary unitary matrices are supported
-  // - `OpType::kraus` if general Kraus noise channels are supported
-  // For the case of gates the specific allowed gates are checked
-  // with the `allowed_gates` function.
-  virtual Operations::OpSet::optypeset_t allowed_ops() const = 0;
-
-  // Return the set of qobj gate instruction names supported by the state class
-  // For example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  virtual stringset_t allowed_gates() const = 0;
-
-  // Return the set of qobj gate instruction names supported by the state class
-  // For example this could include {"probabilities", "pauli_observable"}
-  virtual stringset_t allowed_snapshots() const = 0;
-
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
   // executed (ie in sequence, or some other execution strategy.)
-  // If this sequence contains operations not in allowed_operations
+  // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
@@ -119,26 +135,6 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
                                             RngEngine &rng);
-
-  //=======================================================================
-  // Standard Methods
-  //
-  // Typically these methods do not need to be modified for a State
-  // subclass, but can be should it be necessary.
-  //=======================================================================
-
-  //-----------------------------------------------------------------------
-  // OpSet validation
-  //-----------------------------------------------------------------------
-
-  // Return false if an OpSet contains unsupported instruction for
-  // the state class. Otherwise return true.
-  virtual bool validate_opset(const Operations::OpSet& opset) const;
-
-  // Raise an exeption if the OpSet contains unsupported
-  // instructions for the state class. The exception message
-  // contains the name of the unsupported instructions.
-  virtual std::string invalid_opset_message(const Operations::OpSet& opset) const;
 
   //=======================================================================
   // Standard non-virtual methods
@@ -187,14 +183,6 @@ public:
   // If negative there is no restriction on the backend
   inline void set_parallalization(int n) {threads_ = n;}
 
-  //-----------------------------------------------------------------------
-  // Data accessors
-  //-----------------------------------------------------------------------
-
-  // Returns a const reference to the states data structure
-  inline const state_t &qreg() const {return qreg_;}
-  inline const auto &creg() const {return creg_;}
-
 protected:
 
   // The quantum state data structure
@@ -202,6 +190,9 @@ protected:
 
   // Classical register data
   ClassicalRegister creg_;
+
+  // Opset of instructions supported by the state
+  Operations::OpSet opset_;
 
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
@@ -226,39 +217,6 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
   (ignore_argument)qubits;
   (ignore_argument)shots;
   return std::vector<reg_t>();
-}
-
-
-
-template <class state_t>
-bool State<state_t>::validate_opset(const Operations::OpSet &opset) const {
-  return opset.validate(allowed_ops(),
-                        allowed_gates(),
-                        allowed_snapshots());
-}
-
-
-
-template <class state_t>
-std::string State<state_t>::invalid_opset_message(const Operations::OpSet &opset) const {
-  // Check operations are allowed
-  auto invalid_optypes = opset.invalid_optypes(allowed_ops());
-  auto invalid_gates = opset.invalid_gates(allowed_gates());
-  auto invalid_snapshots = opset.invalid_snapshots(allowed_snapshots());
-  bool bad_instr = !invalid_optypes.empty();
-  bool bad_gates = !invalid_gates.empty();
-  bool bad_snaps = !invalid_snapshots.empty();
-  std::stringstream ss;
-  if (bad_gates)
-    ss << " invalid gate instructions: " << invalid_gates;
-  if (bad_snaps)
-    ss << " invalid snapshot instructions: " << invalid_snapshots;
-  // We can't print OpTypes so we add a note if there are invalid
-  // instructions other than gates or snapshots
-  if (bad_instr && (!bad_gates && !bad_snaps))
-    ss << " invalid non gate or snapshot instructions in opset {" << opset << "}";
-  ss << " for " << name() << " method"; 
-  return ss.str();
 }
 
 
