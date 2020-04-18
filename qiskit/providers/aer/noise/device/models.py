@@ -25,7 +25,6 @@ from .parameters import gate_param_values
 from .parameters import thermal_relaxation_values
 from .parameters import _NANOSECOND_UNITS
 
-from ..noiseerror import NoiseError
 from ..errors.readout_error import ReadoutError
 from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
