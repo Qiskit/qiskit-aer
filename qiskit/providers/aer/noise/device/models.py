@@ -15,6 +15,8 @@
 Simplified noise models for devices backends.
 """
 
+import logging
+
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
@@ -27,6 +29,8 @@ from ..noiseerror import NoiseError
 from ..errors.readout_error import ReadoutError
 from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
+
+logger = logging.getLogger(__name__)
 
 
 def basic_device_readout_errors(properties):
@@ -181,10 +185,29 @@ def _device_depolarizing_error(qubits,
         relax_fid = 1
         relax_infid = 0
     if error_param is not None and error_param > relax_infid:
+        num_qubits = len(qubits)
+        dim = 2 ** num_qubits
+        error_max = dim / (dim + 1)
+        # Check if reported error param is un-physical
+        # The minimum average gate fidelity is F_min = 1 / (dim + 1)
+        # So the maximum gate error is 1 - F_min = dim / (dim + 1)
+        if error_param > error_max:
+            logger.warning(
+                'Device reported a gate error parameter greater'
+                ' than maximum allowed value (%f > %f). Truncating to'
+                ' maximum value.', error_param, error_max)
+            error_param = error_max
         # Model gate error entirely as depolarizing error
         num_qubits = len(qubits)
         dim = 2 ** num_qubits
         depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
+        max_param = 4**num_qubits / (4**num_qubits - 1)
+        if depol_param > max_param:
+            logger.warning(
+                'Device model returned a depolarizing error parameter greater'
+                ' than maximum allowed value (%f > %f). Truncating to'
+                ' maximum value.', depol_param, max_param)
+            depol_param = min(depol_param, max_param)
         return depolarizing_error(
             depol_param, num_qubits, standard_gates=standard_gates)
     return None
