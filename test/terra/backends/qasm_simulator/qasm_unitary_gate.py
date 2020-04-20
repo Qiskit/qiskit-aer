@@ -72,17 +72,3 @@ class QasmDiagonalGateTests:
         result = execute(circuits, self.SIMULATOR, shots=shots).result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0)
-
-    def test_diagonal_gate_wrapper(self):
-        """Test simulation with unitary gate circuit instructions."""
-        shots = 100
-        lsts = [
-            [1, -1],
-            [1, -1, -1, 1],
-            [1.0, -1.0, -1.0, 1.0]]
-        circuits = [ ref_diagonal_gate.diagonal_gate_circuits_deterministic_w(state)
-            for state in [ np.array(lst, dtype=t) 
-                for t in (None, float, np.float32, complex, np.complex64)
-                    for lst in lsts  ] ]
-        result = execute(circuits, self.SIMULATOR, shots=shots).result()
-        self.assertTrue(getattr(result, 'success', False))
