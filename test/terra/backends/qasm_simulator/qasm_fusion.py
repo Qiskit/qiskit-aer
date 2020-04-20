@@ -69,8 +69,6 @@ class QasmFusionTests:
             backend_options['fusion_verbose'] = verbose
         if threshold is not None:
             backend_options['fusion_threshold'] = threshold
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
         return backend_options
 
     def fusion_metadata(self, result):
