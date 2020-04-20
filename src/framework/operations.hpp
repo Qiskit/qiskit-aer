@@ -887,7 +887,7 @@ Op json_to_op_diagonal(const json_t &js) {
     throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
   }
   for (const auto val : op.params) {
-    if (!Linalg::almost_equal(std::abs(val), 1.0)) {
+    if (!Linalg::almost_equal(std::abs(val), 1.0, 1e-7)) {
       throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
     }
   }
