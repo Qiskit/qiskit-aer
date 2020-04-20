@@ -21,6 +21,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
+#include "framework/opset.hpp"
 #include "simulators/state.hpp"
 #include "densitymatrix.hpp"
 #ifdef AER_THRUST_SUPPORTED
@@ -198,6 +199,10 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
+  // Snapshot reduced density matrix
+  void snapshot_density_matrix(const Operations::Op &op,
+                               ExperimentData &data);
+                          
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentData &data,
@@ -437,11 +442,7 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::densitymatrix:
-      data.add_average_snapshot("density_matrix",
-                                op.string_params[0],
-                                BaseState::creg_.memory_hex(),
-                                BaseState::qreg_.matrix(),
-                                false);
+      snapshot_density_matrix(op, data);
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -516,6 +517,54 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             expval, variance);
+}
+
+
+template <class densmat_t>
+void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
+                                               ExperimentData &data) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.trace();
+  } else {
+    const size_t N = op.qubits.size();
+    const size_t DIM = 1ULL << N;
+    reduced_state = cmatrix_t(DIM, DIM);
+    auto qubits_sorted = op.qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+    // Return full density matrix
+    if ((N == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
+      reduced_state = BaseState::qreg_.matrix();
+    } else {
+      // Get superoperator qubits
+      const reg_t squbits = BaseState::qreg_.superop_qubits(op.qubits);
+      const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+      // Return density matrix
+      const size_t VDIM = 1ULL << (2 * N);
+      const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
+      const size_t SHIFT = END + 1;
+
+      // This is inefficient but we need to copy data to vector
+      // So we don't get errors with the Thrust / GPU backend
+      auto vmat = BaseState::qreg_.vector();
+      for (size_t k = 0; k < END; k++) {
+        const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+        for (int_t i = 0; i < VDIM; ++i) {
+          reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
+        }
+      }
+    }
+  }
+  data.add_average_snapshot("density_matrix",
+                            op.string_params[0],
+                            BaseState::creg_.memory_hex(),
+                            std::move(reduced_state),
+                            false);
 }
 
 //=========================================================================
