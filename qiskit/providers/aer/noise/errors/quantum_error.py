@@ -631,7 +631,7 @@ class QuantumError:
                 composed = SuperOp(np.eye(4 ** num_qubits))
             else:
                 composed = Operator(np.eye(2 ** num_qubits))
-            composed.compose(op0, qargs=qubits0).compose(op1, qargs=qubits1)
+            composed = composed.compose(op0, qargs=qubits0).compose(op1, qargs=qubits1)
             qubits = list(range(num_qubits))
         # Get instruction params
         if name == 'kraus':
