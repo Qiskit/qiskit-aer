@@ -29,9 +29,6 @@
 #include <stdexcept>
 
 #include "framework/json.hpp"
-#ifdef __AVX2__
-#include "qvintrin_avx.hpp"
-#endif
 
 namespace QV {
 
@@ -412,19 +409,12 @@ protected:
 
   //-----------------------------------------------------------------------
   // Config settings
-  //----------------------------------------------------------------------- 
+  //-----------------------------------------------------------------------
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
-
-#ifdef __AVX2__
-  bool use_avx_ = is_avx2_supported();
-#else
-  bool use_avx_ = false;
-#endif
-
   //-----------------------------------------------------------------------
   // Error Messages
   //-----------------------------------------------------------------------
@@ -1132,14 +1122,6 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
   check_vector(mat, 2 * N);
   #endif
 
-#ifdef __AVX2__
-  if (use_avx_ &&
-      apply_matrix_avx<data_t>(//
-          data_, data_size_, qubits, (void*) convert(mat).data(), //
-          (num_qubits_ > omp_threshold_ && omp_threads_ > 1)? omp_threads_: 1 )) {
-    return;
-  }
-#endif
   // Static array optimized lambda functions
   switch (N) {
     case 1:
@@ -1705,14 +1687,6 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
     apply_lambda(lambda, qubits, convert(mat));
     return;
   }
-#ifdef __AVX2__
-  if (use_avx_ &&
-      apply_matrix_avx<data_t>(//
-          data_, data_size_, qubits, (void*) convert(mat).data(), //
-          (num_qubits_ > omp_threshold_ && omp_threads_ > 1)? omp_threads_: 1 )) {
-    return;
-  }
-#endif
   // Otherwise general single-qubit matrix multiplication
   auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
     const auto cache = data_[inds[0]];
@@ -1753,7 +1727,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       };
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
-    } 
+    }
     if (diag[0] == 0.0) {
       // [[1, 0], [0, 0]]
       auto lambda = [&](const areg_t<2> &inds,
@@ -1762,7 +1736,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       };
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
-    } 
+    }
     // general [[1, 0], [0, z]]
     auto lambda = [&](const areg_t<2> &inds,
                       const cvector_t<data_t> &_mat)->void {
@@ -1784,7 +1758,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       };
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
-    } 
+    }
     if (diag[0] == std::complex<double>(0., 1.)) {
       // [[i, 0], [0, 1]]
       auto lambda = [&](const areg_t<2> &inds,
@@ -1796,7 +1770,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       };
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
-    } 
+    }
     if (diag[0] == 0.0) {
       // [[0, 0], [0, 1]]
       auto lambda = [&](const areg_t<2> &inds,
@@ -1805,7 +1779,7 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       };
       apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
       return;
-    } 
+    }
     // general [[z, 0], [0, 1]]
     auto lambda = [&](const areg_t<2> &inds,
                       const cvector_t<data_t> &_mat)->void {
@@ -2092,7 +2066,6 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
       probs[m] += probs_private[m];
     }
   }
-  
   return probs;
 }
 

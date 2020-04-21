@@ -44,11 +44,11 @@ template <size_t N> using areg_t = std::array<uint_t, N>;
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
 
 //============================================================================
-// QubitVectorAvx class
+// QubitVectorAvx2 class
 //============================================================================
 
 template <typename data_t = double>
-class QubitVectorAvx : public QubitVector<data_t, QubitVectorAvx> {
+class QubitVectorAvx2 : public QubitVector<data_t, QubitVectorAvx> {
 
   // We need this to access the base class members
   using Base = QubitVector<data_t, QubitVectorAvx>;
@@ -59,11 +59,11 @@ public:
   // Constructors and Destructor
   //-----------------------------------------------------------------------
 
-  QubitVectorAvx();
-  explicit QubitVectorAvx(size_t num_qubits);
-  virtual ~QubitVectorAvx();
-  QubitVectorAvx(const QubitVectorAvx& obj) = delete;
-  QubitVectorAvx &operator=(const QubitVectorAvx& obj) = delete;
+  QubitVectorAvx2();
+  explicit QubitVectorAvx2(size_t num_qubits);
+  virtual ~QubitVectorAvx2();
+  QubitVectorAvx2(const QubitVectorAvx2& obj) = delete;
+  QubitVectorAvx2 &operator=(const QubitVectorAvx2& obj) = delete;
 
   // Apply a 1-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
@@ -82,7 +82,7 @@ public:
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 template <typename data_t>
-QubitVectorAvx<data_t>::QubitVectorAvx(size_t num_qubits) :
+QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits) :
   Base::num_qubits_(0),
   Base::data_(nullptr),
   Base::checkpoint_(0)
@@ -91,10 +91,10 @@ QubitVectorAvx<data_t>::QubitVectorAvx(size_t num_qubits) :
 }
 
 template <typename data_t>
-QubitVectorAvx<data_t>::QubitVectorAvx() : QubitVectorAvx(0) {}
+QubitVectorAvx2<data_t>::QubitVectorAvx2() : QubitVectorAvx2(0) {}
 
 template <typename data_t>
-void QubitVectorAvx<data_t>::apply_matrix(const uint_t qubit,
+void QubitVectorAvx2<data_t>::apply_matrix(const uint_t qubit,
                                           const cvector_t<double>& mat) {
 
   // Check if matrix is diagonal and if so use optimized lambda OR
@@ -112,18 +112,35 @@ void QubitVectorAvx<data_t>::apply_matrix(const uint_t qubit,
 }
 
 template <typename data_t>
-void QubitVectorAvx<data_t>::apply_matrix(const reg_t &qubits,
+void QubitVectorAvx2<data_t>::apply_matrix(const reg_t &qubits,
                                           const cvector_t<double> &mat) {
   apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
     (void*) Base::convert(mat).data(), _calculate_num_threads());
 }
 
 template <typename data_t>
-uint_t QubitVectorAvx<data_t>::_calculate_num_threads(){
+uint_t QubitVectorAvx2<data_t>::_calculate_num_threads(){
   if(Base::num_qubits_ > Base::omp_threshold_ &&  Base::omp_threads_ > 1){
        return omp_threads_;
   }
   return 1;
+}
+
+// ostream overload for templated qubitvector
+template <typename data_t>
+inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorAvx2<data_t>&qv) {
+
+  out << "[";
+  size_t last = qv.size() - 1;
+  for (size_t i = 0; i < qv.size(); ++i) {
+    out << qv[i];
+    if (i != last)
+      out << ", ";
+  }
+  out << "]";
+  return out;
+}
+
 }
 //------------------------------------------------------------------------------
 #endif // end module
