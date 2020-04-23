@@ -20,7 +20,7 @@ if(APPLE OR UNIX)
     set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
 endif()
 
-basic_pybind11_add_module(controller_wrappers ${SIMD_SOURCE_FILE})
+basic_pybind11_add_module(controller_wrappers bindings.cc ${SIMD_SOURCE_FILE})
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})
