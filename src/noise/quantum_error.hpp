@@ -15,6 +15,7 @@
 #ifndef _aer_noise_quantum_error_hpp_
 #define _aer_noise_quantum_error_hpp_
 
+#include "framework/opset.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
 namespace AER {

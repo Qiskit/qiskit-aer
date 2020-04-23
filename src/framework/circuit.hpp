@@ -18,6 +18,7 @@
 #include <random>
 
 #include "framework/operations.hpp"
+#include "framework/opset.hpp"
 #include "framework/json.hpp"
 
 namespace AER {
