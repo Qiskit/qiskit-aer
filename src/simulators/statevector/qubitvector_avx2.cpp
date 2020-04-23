@@ -18,6 +18,7 @@
  * runtime, only machines with AVX2 support will/could run this code */
 
 #include "qubitvector_avx2.hpp"
+#include "qubitvector.hpp"
 
 using namespace QV;
 
@@ -25,12 +26,12 @@ using namespace QV;
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 template <typename data_t>
-QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits) :
-  Base::num_qubits_(0),
-  Base::data_(nullptr),
-  Base::checkpoint_(0)
+QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits)
   {
-    Base::set_num_qubits(num_qubits);
+      Base::num_qubits_ = 0;
+      Base::data_ = nullptr;
+      Base::checkpoint_ = 0;
+      Base::set_num_qubits(num_qubits);
 }
 
 template <typename data_t>
@@ -69,8 +70,8 @@ uint_t QubitVectorAvx2<data_t>::_calculate_num_threads(){
   return 1;
 }
 
-
-
+template class QV::QubitVectorAvx2<double>;
+template class QV::QubitVectorAvx2<float>;
 
 
 

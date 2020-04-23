@@ -30,7 +30,6 @@
 
 #include "qvintrin_avx.hpp"
 
-
 namespace QV {
 
 // Type aliases
@@ -62,7 +61,7 @@ public:
 
   QubitVectorAvx2();
   explicit QubitVectorAvx2(size_t num_qubits);
-  virtual ~QubitVectorAvx2();
+  virtual ~QubitVectorAvx2(){};
   QubitVectorAvx2(const QubitVectorAvx2& obj) = delete;
   QubitVectorAvx2 &operator=(const QubitVectorAvx2& obj) = delete;
 
