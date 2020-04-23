@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_controller_avx_detect_hpp_
-#define _aer_controller_avx_detect_hpp_
+#ifndef _aer_controller_avx2_detect_hpp_
+#define _aer_controller_avx2_detect_hpp_
 
 #ifdef _WIN64
 #include <intrin.h>

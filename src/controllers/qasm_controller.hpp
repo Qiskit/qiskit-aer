@@ -24,7 +24,7 @@
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
-#include "avx_detect.hpp"
+#include "avx2_detect.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -372,7 +372,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                            uint_t rng_seed) const {
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
-    case Method::statevector:
+    case Method::statevector: {
       bool avx2_enabled = is_avx2_supported();
 
       if (simulation_precision_ == Precision::double_precision) {
@@ -397,7 +397,8 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
       }
-    case Method::statevector_thrust_gpu:
+    }
+    case Method::statevector_thrust_gpu: {
 #ifndef AER_THRUST_CUDA
       throw std::runtime_error(
           "QasmController: method statevector_gpu is not supported on this "
@@ -417,7 +418,8 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Method::statevector_thrust_gpu);
       }
 #endif
-    case Method::statevector_thrust_cpu:
+    }
+    case Method::statevector_thrust_cpu: {
 #ifndef AER_THRUST_CPU
       throw std::runtime_error(
           "QasmController: method statevector_thrust is not supported on this "
@@ -437,7 +439,8 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Method::statevector_thrust_cpu);
       }
 #endif
-    case Method::density_matrix:
+    }
+    case Method::density_matrix: {
       if (simulation_precision_ == Precision::double_precision) {
         // Double-precision density matrix simulation
         return run_circuit_helper<
@@ -451,7 +454,8 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             circ, noise, config, shots, rng_seed, cvector_t(),
             Method::density_matrix);
       }
-    case Method::density_matrix_thrust_gpu:
+    }
+    case Method::density_matrix_thrust_gpu: {
 #ifndef AER_THRUST_CUDA
       throw std::runtime_error(
           "QasmController: method density_matrix_gpu is not supported on this "
@@ -491,24 +495,27 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
             Method::density_matrix_thrust_cpu);
       }
 #endif
-    case Method::stabilizer:
+    }
+    case Method::stabilizer: {
       // Stabilizer simulation
       // TODO: Stabilizer doesn't yet support custom state initialization
       return run_circuit_helper<Stabilizer::State>(
           circ, noise, config, shots, rng_seed, Clifford::Clifford(),
           Method::stabilizer);
-    case Method::extended_stabilizer:
+    }
+    case Method::extended_stabilizer: {
       return run_circuit_helper<ExtendedStabilizer::State>(
           circ, noise, config, shots, rng_seed, CHSimulator::Runner(),
           Method::extended_stabilizer);
-
-    case Method::matrix_product_state:
+    }
+    case Method::matrix_product_state: {
       return run_circuit_helper<MatrixProductState::State>(
           circ, noise, config, shots, rng_seed, MatrixProductState::MPS(),
           Method::matrix_product_state);
-
-    default:
+    }
+    default: {
       throw std::runtime_error("QasmController:Invalid simulation method");
+    }
   }
 }
 

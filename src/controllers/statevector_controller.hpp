@@ -200,7 +200,7 @@ ExperimentData StatevectorController::run_circuit(
       bool avx2_enabled = is_avx2_supported();
       if (precision_ == Precision::double_precision) {
         if(avx2_enabled){
-          return un_circuit_helper<Statevector::State<QV::QubitVectorAvx2<double>>>(
+          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<double>>>(
             circ, noise, config, shots, rng_seed);
         }
         // Double-precision Statevector simulation
