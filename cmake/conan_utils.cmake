@@ -19,9 +19,8 @@ macro(setup_conan)
 
     if(NOT AER_THRUST_BACKEND STREQUAL "CUDA")
         set(REQUIREMENTS ${REQUIREMENTS} thrust/1.9.5)
-        if(AER_THRUST_BACKEND STREQUAL "TBB")
-            set(REQUIREMENTS ${REQUIREMENTS} tbb/2020.1)
-        endif()
+        string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
+        set(CONAN_OPTIONS ${CONAN_OPTIONS} "thrust:device_system=${THRUST_BACKEND}")
     endif()
 
     if(NOT BLAS_LIB_PATH)
