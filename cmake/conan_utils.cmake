@@ -20,7 +20,7 @@ macro(setup_conan)
     if(NOT AER_THRUST_BACKEND STREQUAL "CUDA")
         set(REQUIREMENTS ${REQUIREMENTS} thrust/1.9.5)
         if(AER_THRUST_BACKEND STREQUAL "TBB")
-            set(REQUIREMENTS ${REQUIREMENTS} tbb/2020.0)
+            set(REQUIREMENTS ${REQUIREMENTS} tbb/2020.1)
         endif()
     endif()
 
