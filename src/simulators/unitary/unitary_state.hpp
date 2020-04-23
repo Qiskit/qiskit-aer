@@ -30,6 +30,21 @@
 namespace AER {
 namespace QubitUnitary {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  // Op types
+  {Operations::OpType::gate, Operations::OpType::barrier,
+    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+    Operations::OpType::snapshot},
+  // Gates
+  {"u1",  "u2",  "u3",   "cx",   "cz",   "cy",   "cu1",
+    "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
+    "h",   "s",   "sdg",  "t",    "tdg",  "ccx",  "cswap",
+    "mcx", "mcy", "mcz",  "mcu1", "mcu2", "mcu3", "mcswap"},
+  // Snapshots
+  {"unitary"}
+);
+
 // Allowed gates enum class
 enum class Gates {
   id,
@@ -57,7 +72,7 @@ class State : public Base::State<unitary_matrix_t> {
  public:
   using BaseState = Base::State<unitary_matrix_t>;
 
-  State() = default;
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -66,28 +81,6 @@ class State : public Base::State<unitary_matrix_t> {
 
   // Return the string name of the State class
   virtual std::string name() const override { return "unitary"; }
-
-  // Return the set of qobj instruction types supported by the State
-  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t({
-      Operations::OpType::gate,
-      Operations::OpType::barrier,
-      Operations::OpType::matrix,
-      Operations::OpType::diagonal_matrix,
-      Operations::OpType::snapshot
-    });
-  }
-
-  // Return the set of qobj gate instruction names supported by the State
-  virtual stringset_t allowed_gates() const override {
-    return {"u1",  "u2",  "u3",   "cx",   "cz",   "cy",   "cu1",
-            "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
-            "h",   "s",   "sdg",  "t",    "tdg",  "ccx",  "cswap",
-            "mcx", "mcy", "mcz",  "mcu1", "mcu2", "mcu3", "mcswap"};
-  }
-
-  // Return the set of qobj snapshot types supported by the State
-  virtual stringset_t allowed_snapshots() const override { return {"unitary"}; }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
