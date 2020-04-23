@@ -19,16 +19,19 @@
 #include <vector>
 #include <complex>
 #include <map>
-#include <Python.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
-PyArrayObject * td_ode_rhs(
-     double ,
-     PyArrayObject * ,
-     PyObject * ,
-     PyObject * ,
-     PyObject * ,
-     PyObject * ,
-     PyObject *
-);
+#include "types.hpp"
+
+namespace py = pybind11;
+
+py::array_t<complex_t> td_ode_rhs(double t,
+                                  py::array_t<complex_t> vec,
+                                  py::object global_data,
+                                  py::object exp,
+                                  py::object system,
+                                  py::object channels,
+                                  py::object reg);
 
 #endif // _NUMERIC_INTEGRATOR_HPP

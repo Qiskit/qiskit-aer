@@ -283,10 +283,15 @@ NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
 Circuit NoiseModel::sample_noise(const Circuit &circ,
                                  RngEngine &rng) const {
     bool noise_active = true; // set noise active to on-state
-    Circuit noisy_circ = circ; // copy input circuit
-    noisy_circ.measure_sampling_flag = false; // disable measurement opt flag
-    noisy_circ.ops.clear(); // delete ops
-    noisy_circ.ops.reserve(2 * circ.ops.size()); // just to be safe?
+    Circuit noisy_circ;
+    // Copy metadata
+    noisy_circ.seed = circ.seed;
+    noisy_circ.shots = circ.shots;
+    noisy_circ.header = circ.header;
+
+    // Reserve double length of ops just to be safe
+    noisy_circ.ops.reserve(2 * circ.ops.size());
+
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
       switch (op.type) {
@@ -321,6 +326,8 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
           break;
       }
     }
+    // Update circuit parameters
+    noisy_circ.set_params();
     return noisy_circ;
 }
 

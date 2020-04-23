@@ -83,7 +83,7 @@ class AerBackend(BaseBackend):
         self._controller = controller
 
     # pylint: disable=arguments-differ
-    def run(self, qobj, backend_options=None, noise_model=None, validate=True):
+    def run(self, qobj, backend_options=None, noise_model=None, validate=False):
         """Run a qobj on the backend.
 
         Args:

@@ -103,7 +103,7 @@ stage_osx: &stage_osx
     - pip install dist/qiskit_aer*whl
   script:
     - stestr run --slowest
-  
+
 ###############################################################################
 # Stage-related definitions
 ###############################################################################

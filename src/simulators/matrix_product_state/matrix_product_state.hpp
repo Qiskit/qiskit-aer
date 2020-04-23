@@ -40,6 +40,24 @@
 namespace AER {
 namespace MatrixProductState {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  {Operations::OpType::gate, Operations::OpType::measure,
+  Operations::OpType::reset, Operations::OpType::initialize,
+  Operations::OpType::snapshot, Operations::OpType::barrier,
+  Operations::OpType::bfunc, Operations::OpType::roerror,
+  Operations::OpType::matrix},
+  // Gates
+  {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
+    "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
+  // Snapshots
+  {"statevector", "memory", "register", "probabilities",
+    "expectation_value_pauli", "expectation_value_pauli_with_variance",
+    "expectation_value_pauli_single_shot", "expectation_value_matrix",
+    "expectation_value_matrix_with_variance",
+    "expectation_value_matrix_single_shot"}
+);
+
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
@@ -62,11 +80,8 @@ class State : public Base::State<matrixproductstate_t> {
 public:
   using BaseState = Base::State<matrixproductstate_t>;
 
-  State() = default;
-
-  State(uint_t num_qubits) {
-    qreg_.initialize((uint_t)num_qubits);
-  }
+  State() : BaseState(StateOpSet) {}
+  State(uint_t num_qubits) : State() {qreg_.initialize((uint_t)num_qubits);}
   virtual ~State() = default;
 
 
@@ -81,42 +96,6 @@ public:
 
   bool empty() const {
     return qreg_.empty();
-  }
-
-  // Return the set of qobj instruction types supported by the State
-  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-  	return Operations::OpSet::optypeset_t({
-
-	  //TODO: Review these operations
-      Operations::OpType::gate,
-      Operations::OpType::measure,
-      Operations::OpType::reset,
-      Operations::OpType::initialize,
-      Operations::OpType::snapshot,
-      Operations::OpType::barrier,
-      Operations::OpType::bfunc,
-      Operations::OpType::roerror,
-      Operations::OpType::matrix
-      //Operations::OpType::kraus  // TODO
-    });
-  }
-
-  // Return the set of qobj gate instruction names supported by the State
-  virtual stringset_t allowed_gates() const override {
-	stringset_t allowed_gates;
-    for(auto& gate: gateset_){
-      allowed_gates.insert(gate.first);
-    }
-    return allowed_gates;
-  }
-
-  // Return the set of qobj snapshot types supported by the State
-  virtual stringset_t allowed_snapshots() const override {
-    //TODO: Review this
-    return {"statevector", "memory", "register", "probabilities",
-	"expectation_value_pauli", "expectation_value_pauli_with_variance", "expectation_value_pauli_single_shot",
-	"expectation_value_matrix", "expectation_value_matrix_with_variance", "expectation_value_matrix_single_shot"
-	};
   }
 
   // Apply a sequence of operations by looping over list

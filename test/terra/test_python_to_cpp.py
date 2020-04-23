@@ -13,8 +13,9 @@
 import sys
 import unittest
 import numpy as np
-from qiskit.providers.aer.pulse.qutip_lite.qobj import Qobj
-from qiskit.providers.aer.pulse.cy.test_python_to_cpp import \
+from qiskit.providers.aer.pulse.qutip_extra_lite.qobj import Qobj
+#from qiskit.providers.aer.pulse.cy.test_python_to_cpp import \
+from qiskit.providers.aer.pulse.de_solvers.test_python_to_cpp import \
     test_py_list_to_cpp_vec, test_py_list_of_lists_to_cpp_vector_of_vectors,\
     test_py_dict_string_numeric_to_cpp_map_string_numeric,\
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
@@ -60,4 +61,3 @@ class TestPythonToCpp(unittest.TestCase):
         # Since Python 3.6 dict insertion order is guaranted
         arg = {"D0": 1, "U0": 2, "D1": 3, "U1": 4}
         self.assertTrue(test_py_ordered_map(arg))
-
