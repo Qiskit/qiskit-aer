@@ -26,8 +26,7 @@ using namespace QV;
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 template <typename data_t>
-QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits)
-  {
+QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits){
       Base::num_qubits_ = 0;
       Base::data_ = nullptr;
       Base::checkpoint_ = 0;
