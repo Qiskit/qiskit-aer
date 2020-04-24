@@ -52,6 +52,13 @@ public:
                         const opset_t &allowed_opset,
                         ExperimentData &data) const override;
 
+  // Qubit threshold for activating fusion pass
+  uint_t threshold;
+  uint_t max_qubit;
+  double cost_factor;
+  bool verbose = false;
+  bool active = true;
+
 private:
   bool can_ignore(const op_t& op) const;
 
@@ -93,13 +100,6 @@ private:
 #endif
 
   const static std::vector<std::string> supported_gates;
-
-private:
-  uint_t max_qubit_;
-  uint_t threshold_;
-  double cost_factor_;
-  bool verbose_ = false;
-  bool active_ = true;
 };
 
 const std::vector<std::string> Fusion::supported_gates({
@@ -128,8 +128,8 @@ const std::vector<std::string> Fusion::supported_gates({
   //"ccx"   // Controlled-CX gate (Toffoli): TODO
 });
 
-Fusion::Fusion(uint_t max_qubit, uint_t threshold, double cost_factor):
-    max_qubit_(max_qubit), threshold_(threshold), cost_factor_(cost_factor) {
+Fusion::Fusion(uint_t _max_qubit, uint_t _threshold, double _cost_factor):
+    threshold(_threshold), max_qubit(_max_qubit), cost_factor(_cost_factor) {
 }
 
 void Fusion::set_config(const json_t &config) {
@@ -137,19 +137,19 @@ void Fusion::set_config(const json_t &config) {
   CircuitOptimization::set_config(config);
 
   if (JSON::check_key("fusion_verbose", config_))
-    JSON::get_value(verbose_, "fusion_verbose", config_);
+    JSON::get_value(verbose, "fusion_verbose", config_);
 
   if (JSON::check_key("fusion_enable", config_))
-    JSON::get_value(active_, "fusion_enable", config_);
+    JSON::get_value(active, "fusion_enable", config_);
 
   if (JSON::check_key("fusion_max_qubit", config_))
-    JSON::get_value(max_qubit_, "fusion_max_qubit", config_);
+    JSON::get_value(max_qubit, "fusion_max_qubit", config_);
 
   if (JSON::check_key("fusion_threshold", config_))
-    JSON::get_value(threshold_, "fusion_threshold", config_);
+    JSON::get_value(threshold, "fusion_threshold", config_);
 
   if (JSON::check_key("fusion_cost_factor", config_))
-    JSON::get_value(cost_factor_, "fusion_cost_factor", config_);
+    JSON::get_value(cost_factor, "fusion_cost_factor", config_);
 }
 
 
@@ -179,8 +179,7 @@ void Fusion::optimize_circuit(Circuit& circ,
                               const opset_t &allowed_opset,
                               ExperimentData &data) const {
   // Check if fusion should be skipped
-  if (circ.num_qubits < threshold_
-      || !active_
+  if (!active || circ.num_qubits < threshold
       || !allowed_opset.contains(optype_t::matrix))
     return;
 
@@ -213,7 +212,7 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (idx != circ.ops.size())
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
 
-    if (verbose_)
+    if (verbose)
       data.add_metadata("fusion_verbose", circ.ops);
   }
 
@@ -257,7 +256,7 @@ double Fusion::get_cost(const op_t& op) const {
   if (can_ignore(op))
     return .0;
   else
-    return cost_factor_;
+    return cost_factor;
 }
 
 bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const {
@@ -278,7 +277,7 @@ bool Fusion::aggregate_operations(oplist_t& ops, const int fusion_start, const i
     fusion_to.push_back(i);
     costs.push_back(costs[i - fusion_start - 1] + get_cost(ops[i]));
 
-    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_qubit_); ++num_fusion) {
+    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_qubit); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
       reg_t fusion_qubits;
       add_fusion_qubits(fusion_qubits, ops[i]);
@@ -545,12 +544,12 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
   if (is_diagonal(ops, from, until))
-    return cost_factor_;
+    return cost_factor;
 
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
-  return pow(cost_factor_, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+  return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
