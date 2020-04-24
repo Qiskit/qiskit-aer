@@ -178,6 +178,7 @@ class NoiseModel:
                      thermal_relaxation=True,
                      temperature=0,
                      gate_lengths=None,
+                     gate_length_units='ns',
                      standard_gates=True):
         """Return a noise model derived from a devices backend properties.
 
@@ -252,6 +253,9 @@ class NoiseModel:
             gate_lengths (list): Custom gate times for thermal relaxation errors.
                                   Used to extend or override the gate times in
                                   the backend properties (Default: None))
+            gate_length_units (str): Time units for gate length values in
+                                     gate_lengths. Can be 'ns', 'ms', 'us',
+                                     or 's' (Default: 'ns').
             standard_gates (bool): If true return errors as standard
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: True)
@@ -285,6 +289,7 @@ class NoiseModel:
             gate_error=gate_error,
             thermal_relaxation=thermal_relaxation,
             gate_lengths=gate_lengths,
+            gate_length_units=gate_length_units,
             temperature=temperature,
             standard_gates=standard_gates)
         for name, qubits, error in gate_errors:

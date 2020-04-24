@@ -27,6 +27,22 @@ namespace Stabilizer {
 // Stabilizer state gates
 //============================================================================
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  // Op types
+  {Operations::OpType::gate, Operations::OpType::measure,
+    Operations::OpType::reset, Operations::OpType::snapshot,
+    Operations::OpType::barrier, Operations::OpType::bfunc,
+    Operations::OpType::roerror},
+  // Gates
+  {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"},
+  // Snapshots
+  {"stabilizer", "memory", "register", "probabilities",
+    "probabilities_with_variance", "expectation_value_pauli",
+    "expectation_value_pauli_with_variance",
+    "expectation_value_pauli_single_shot"}
+);
+
 enum class Gates {id, x, y, z, h, s, sdg, cx, cy, cz, swap};
 
 // Allowed snapshots enum class
@@ -48,7 +64,8 @@ class State : public Base::State<Clifford::Clifford> {
 public:
   using BaseState = Base::State<Clifford::Clifford>;
 
-  State() = default;
+  State() : BaseState(StateOpSet) {}
+
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -57,34 +74,6 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {return "stabilizer";}
-
-  // Return the set of qobj instruction types supported by the State
-  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t({
-      Operations::OpType::gate,
-      Operations::OpType::measure,
-      Operations::OpType::reset,
-      Operations::OpType::snapshot,
-      Operations::OpType::barrier,
-      Operations::OpType::bfunc,
-      Operations::OpType::roerror
-    });
-  }
-
-  // Return the set of qobj gate instruction names supported by the State
-  virtual stringset_t allowed_gates() const override {
-    return {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"};
-  }
-
-  // Return the set of qobj snapshot types supported by the State
-  virtual stringset_t allowed_snapshots() const override {
-    return {"stabilizer", "memory", "register", 
-	"probabilities", "probabilities_with_variance",
-	"expectation_value_pauli",
-	"expectation_value_pauli_with_variance",
-	"expectation_value_pauli_single_shot"
-	};
-  }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
