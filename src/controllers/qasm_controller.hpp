@@ -76,11 +76,11 @@ namespace Simulator {
  *or shot execution is enabled this will only use unallocated CPU cores up to
  *max_parallel_threads. [Default: 100]
  *
-* From MatrixProductState::State class
-*  - "matrix_product_state_bond_truncation_threshold (double): Set the cutoff value
- *      for the Schmidt coefficients. Numbers smaller than 
- *      the threshold x the max coeffient will be discarded.
- *      [Default: 1e-16]
+ * From MatrixProductState::State class
+ *  - "matrix_product_state_bond_truncation_threshold" (double): 
+ *     Discard the smallest coefficients for which the sum of
+ *     their squares is smaller than this threshold.
+ *     [Default: 1e-16]
  *
  * - "matrix_product_state_max_bond_dimension" (uint): Set the cutoff value for the number of
  *      Schmidt coefficients. If there are more than this number of coefficient, 
