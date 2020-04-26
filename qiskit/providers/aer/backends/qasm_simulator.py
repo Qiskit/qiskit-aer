@@ -224,8 +224,8 @@ class QasmSimulator(AerBackend):
       (Default: None, i.e., no limit on the bond dimension).
 
     * ``"matrix_product_state_truncation_threshold"`` (double):
-      Discard all coefficients that are smaller than
-      this threshold x the maximum coefficient.
+      Discard the smallest coefficients for which the sum of
+      their squares is smaller than this threshold.
       (Default: 1e-16).
 
     """

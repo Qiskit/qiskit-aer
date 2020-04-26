@@ -1168,7 +1168,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
     csvd_wrapper(reshaped_matrix, U, S, V);
-    reduce_zeros(U, S, V, MPS_Tensor::get_approximation_type(),
+    reduce_zeros(U, S, V, 
 		 MPS_Tensor::get_max_bond_dimension(), 
 		 MPS_Tensor::get_truncation_threshold() );
 

@@ -106,10 +106,6 @@ public:
     chop_threshold_ = chop_threshold;
   }
 
-  static void set_approx_type(AER::approx_type type) {
-    approximation_type_ = type;
-  }
-
   static void set_max_bond_dimension(uint_t max_bond_dimension) {
     max_bond_dimension_ = max_bond_dimension;
   }
@@ -120,10 +116,6 @@ public:
 
   static double get_chop_threshold() {
     return chop_threshold_;
-  }
-
-  static AER::approx_type get_approximation_type() {
-    return approximation_type_;
   }
 
   static uint_t get_max_bond_dimension() {
@@ -179,7 +171,6 @@ private:
   std::vector<cmatrix_t> data_;
 
   static double chop_threshold_;
-  static approx_type approximation_type_;
   static uint_t max_bond_dimension_;
   static double truncation_threshold_;
 };
@@ -190,7 +181,6 @@ private:
 double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
 uint_t MPS_Tensor::max_bond_dimension_ = UINT64_MAX;
 double MPS_Tensor::truncation_threshold_ = 1e-16;
-approx_type MPS_Tensor::approximation_type_ = approx_type::NO_APPROX; 
 
 //---------------------------------------------------------------
 // function name: print
@@ -543,7 +533,7 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
 #endif
 
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V, approximation_type_, 
+  reduce_zeros(U, S, V,
 	       max_bond_dimension_, truncation_threshold_);
 
 #ifdef DEBUG

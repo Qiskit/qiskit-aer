@@ -359,23 +359,11 @@ size_t State::required_memory_mb(uint_t num_qubits,
 
 void State::set_config(const json_t &config) {
   // Set threshold for truncating Schmidt coefficients
-  double threshold = CHOP_THRESHOLD;
-  if (JSON::get_value(threshold, "chop_threshold", config))
-    MPS_Tensor::set_chop_threshold(threshold);
+  double threshold;
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+    MPS_Tensor::set_truncation_threshold(threshold);
 
-  // default approximation type is NO_APPROX
-  std::string approximation_type;
-  if (JSON::get_value(approximation_type, "approximation_type", config)) {
-    if (approximation_type == "ABSOLUTE") {
-      MPS_Tensor::set_approx_type(ABSOLUTE_APPROX);
-    } else if (approximation_type == "RELATIVE") {
-      MPS_Tensor::set_approx_type(RELATIVE_APPROX);
-    } else {
-      MPS_Tensor::set_approx_type(NO_APPROX);
-    }
-  }
-  
-  uint_t max_bond_dimension = UINT64_MAX;
+  uint_t max_bond_dimension;
   if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
     MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
   }
