@@ -118,6 +118,7 @@ endif()
 #
 # Looking for external libraries
 #
+
 setup_conan()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
@@ -189,7 +190,7 @@ if(AER_THRUST_SUPPORTED)
 		#TODO: To target!!!
 		include_directories(SYSTEM ${CONAN_INCLUDE_DIRS_THRUST})
 		set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB AER_THRUST_CPU=TRUE)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
 		if(NOT OPENMP_FOUND)
@@ -197,7 +198,7 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		#TODO: To target!!!
 		include_directories(SYSTEM ${CONAN_INCLUDE_DIRS_THRUST})
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDANT_LIBS "")
 	else()
@@ -223,6 +224,7 @@ set(AER_LIBRARIES
 	${DL_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
+set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
