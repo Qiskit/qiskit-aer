@@ -403,7 +403,7 @@ py::object AerToPy::from_exp_data(const AER::ExperimentData &result) {
     pyresult[pair.first.data()] = pair.second;
   }
   for (const auto &pair : result.additional_cmatrix_data_) {
-    pyresult[pair.first.data()] = AerToPy::from_matrix(pair.second);    
+    pyresult[pair.first.data()] = pair.second;
   }
 
   // Snapshot data

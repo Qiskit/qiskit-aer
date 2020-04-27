@@ -20,8 +20,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
                 py::format_descriptor<std::complex<double>>::format(),
                 2,
                 { mat.GetRows(), mat.GetColumns() },
-                { sizeof(std::complex<double>) * mat.GetColumns(),
-                  sizeof(std::complex<double>) }
+                { sizeof(std::complex<double>),
+                  sizeof(std::complex<double>) * mat.GetRows() }
         );
     });
     py::class_<matrix<double>>(m, "Matrix_d", py::buffer_protocol())
@@ -32,8 +32,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
                 py::format_descriptor<double>::format(),
                 2,
                 { mat.GetRows(), mat.GetColumns() },
-                { sizeof(double) * mat.GetColumns(),
-                  sizeof(double) }
+                { sizeof(double),
+                  sizeof(double) * mat.GetRows() }
         );
     });
 

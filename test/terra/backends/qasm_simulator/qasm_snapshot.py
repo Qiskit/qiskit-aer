@@ -362,7 +362,7 @@ class QasmSnapshotDensityMatrixTests:
         for snap_dict in snaps:
             memory = snap_dict['memory']
             mat = np.array(snap_dict['value'])
-            output[memory] = mat[:, :, 0] + 1j * mat[:, :, 1]
+            output[memory] = mat
         return output
 
     def test_snapshot_density_matrix_pre_measure_det(self):
