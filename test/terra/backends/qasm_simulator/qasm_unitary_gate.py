@@ -19,6 +19,7 @@ from test.terra.reference import ref_unitary_gate, ref_diagonal_gate
 from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 
+import numpy as np
 
 class QasmUnitaryGateTests:
     """QasmSimulator additional tests."""

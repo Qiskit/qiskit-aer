@@ -32,6 +32,29 @@
 namespace AER {
 namespace Statevector {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  // Op types
+  {Operations::OpType::gate, Operations::OpType::measure,
+    Operations::OpType::reset, Operations::OpType::initialize,
+    Operations::OpType::snapshot, Operations::OpType::barrier,
+    Operations::OpType::bfunc, Operations::OpType::roerror,
+    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+    Operations::OpType::multiplexer, Operations::OpType::kraus},
+  // Gates
+  {"u1",  "u2",  "u3",   "cx",   "cz",   "cy",   "cu1",
+    "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
+    "h",   "s",   "sdg",  "t",    "tdg",  "ccx",  "cswap",
+    "mcx", "mcy", "mcz",  "mcu1", "mcu2", "mcu3", "mcswap"},
+  // Snapshots
+  {"statevector", "memory", "register", "probabilities",
+    "probabilities_with_variance", "expectation_value_pauli",
+    "expectation_value_pauli_with_variance",
+    "expectation_value_matrix_single_shot", "expectation_value_matrix",
+    "expectation_value_matrix_with_variance",
+    "expectation_value_pauli_single_shot"}
+);
+
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, // single qubit
@@ -59,7 +82,7 @@ class State : public Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;
 
-  State() = default;
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -68,44 +91,6 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {return statevec_t::name();}
-
-  // Return the set of qobj instruction types supported by the State
-  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t({
-      Operations::OpType::gate,
-      Operations::OpType::measure,
-      Operations::OpType::reset,
-      Operations::OpType::initialize,
-      Operations::OpType::snapshot,
-      Operations::OpType::barrier,
-      Operations::OpType::bfunc,
-      Operations::OpType::roerror,
-      Operations::OpType::matrix,
-      Operations::OpType::diagonal_matrix,
-      Operations::OpType::multiplexer,
-      Operations::OpType::kraus
-    });
-  }
-
-  // Return the set of qobj gate instruction names supported by the State
-  virtual stringset_t allowed_gates() const override {
-    return {"u1", "u2", "u3", "cx", "cz", "cy", "cu1", "cu2", "cu3", "swap", 
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx", "cswap",
-            "mcx", "mcy", "mcz", "mcu1", "mcu2", "mcu3", "mcswap"};
-  }
-
-  // Return the set of qobj snapshot types supported by the State
-  virtual stringset_t allowed_snapshots() const override {
-    return {"statevector", "memory", "register",
-            "probabilities", "probabilities_with_variance",
-            "expectation_value_pauli",
-            "expectation_value_pauli_with_variance",
-            "expectation_value_matrix_single_shot",
-            "expectation_value_matrix",
-            "expectation_value_matrix_with_variance",
-            "expectation_value_pauli_single_shot"
-            };
-  }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
