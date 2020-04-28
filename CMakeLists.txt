@@ -107,40 +107,6 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 endif()
 
-if(APPLE)
-	execute_process(
-		COMMAND bash "-c" "sysctl -a | grep machdep.cpu.feature;"
-		OUTPUT_VARIABLE SYSCTL_OUT)
-		
-	if (SYSCTL_OUT MATCHES "FMA")
-		execute_process(
-			COMMAND bash "-c" "sysctl -a | grep machdep.cpu.leaf7_features;"
-			OUTPUT_VARIABLE SYSCTL_OUT)
-		if (SYSCTL_OUT MATCHES "AVX2")
-			enable_cxx_compiler_flag_if_supported("-mavx2")
-			enable_cxx_compiler_flag_if_supported("-mfma")
-			message("-- fma and avx2 are available on this MAC")
-		else()
-			message("-- avx2 is not available on this MAC")
-		endif()
-	else()
-		message("-- fma is not available on this MAC")
-	endif()
-elseif(MSVC)
-		message("-- SIMD optimiation is not yet enabled on Windows.")
-else()
-	if(EXISTS  "/proc/cpuinfo")
-		file(STRINGS "/proc/cpuinfo" CPUINFO REGEX flags LIMIT_COUNT 1)
-		if (CPUINFO MATCHES "avx2" AND CPUINFO MATCHES "fma")
-			enable_cxx_compiler_flag_if_supported("-mavx2")
-			enable_cxx_compiler_flag_if_supported("-mfma")
-			message("-- fma and avx2 are available on this Linux")
-		else()
-			message("-- fma and avx2 are not available on this Linux")
-		endif()
-	endif()
-endif()
-
 if(STATIC_LINKING)
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     if(WIN32)
@@ -299,6 +265,7 @@ set(AER_LIBRARIES
 	${DL_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
+
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	add_muparserx_lib()
@@ -307,12 +274,20 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
+
+	# We build SIMD filed separately, because they will be reached only if the
+	# machine running the code has SIMD support
+	if(APPLE OR UNIX)
+		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qubitvector_avx2.cpp")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+	endif()
+
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
 		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES

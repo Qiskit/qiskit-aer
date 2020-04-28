@@ -197,12 +197,21 @@ ExperimentData StatevectorController::run_circuit(
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
+      bool avx2_enabled = is_avx2_supported();
       if (precision_ == Precision::double_precision) {
+        if(avx2_enabled){
+          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<double>>>(
+            circ, noise, config, shots, rng_seed);
+        }
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
             circ, noise, config, shots, rng_seed);
       } else {
         // Single-precision Statevector simulation
+        if(avx2_enabled){
+          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<float>>>(
+            circ, noise, config, shots, rng_seed);
+        }
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed);
       }

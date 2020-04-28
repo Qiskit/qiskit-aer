@@ -22,12 +22,6 @@
 #include <vector>
 #include <memory>
 
-#ifdef _WIN64
-#include <intrin.h>
-#elif defined(__GNUC__)
-#include <cpuid.h>
-#endif
-
 namespace QV {
 
 using reg_t = std::vector<uint64_t>;
@@ -913,33 +907,6 @@ inline bool apply_matrix_avx( //
   default:
     return false;
   }
-}
-
-#ifdef __GNUC__
-static void get_cpuid(void* p) {
-  int* a = (int*) p;
-  __cpuid(1, a[0], a[1], a[2], a[3]);
-}
-static void get_cpuid_count(void* p) {
-  int* a = (int*) p;
-  __cpuid_count(0x00000007, 0, a[0], a[1], a[2], a[3]);
-}
-#endif
-
-inline bool is_avx2_supported() {
-#if defined(__GNUC__)
-  int info[4] = {0};
-  get_cpuid(info);
-  bool fma = (info[2] >> 12 & 1);
-  bool avx = (info[2] >> 28 & 1);
-  if (!fma || !avx)
-    return false;
-  get_cpuid_count(info);
-  bool avx2 = (info[1] >> 5 & 1);
-  return avx2;
-#else
-  return false;
-#endif
 }
 
 } // namespace QV
