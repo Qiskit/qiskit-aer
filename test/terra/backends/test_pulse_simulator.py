@@ -653,13 +653,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                              omega_i_swap,
                                              subsystem_list=subsystem_list)
 
+        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
         schedule = self._schedule_2Q_interaction(total_samples, drive_idx=0, target_idx=2, U_idx=1)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[subsystem_list],
-                        qubit_lo_freq=[omega_d0 / (2 * np.pi), omega_d1 / (2 * np.pi)],
+                        qubit_lo_freq=qubit_lo_freq,
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed': 12387}
@@ -727,14 +728,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                              omega_a_pi_swap,
                                              omega_i_swap,
                                              subsystem_list=subsystem_list)
-
+        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
         schedule = self._schedule_2Q_interaction(total_samples, drive_idx=1, target_idx=2, U_idx=2)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[subsystem_list],
-                        qubit_lo_freq=[omega_d0 / (2 * np.pi), omega_d0 / (2 * np.pi)],
+                        qubit_lo_freq=qubit_lo_freq,
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed': 12387}

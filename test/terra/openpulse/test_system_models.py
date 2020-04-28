@@ -209,6 +209,10 @@ class TestHamiltonianModel(QiskitAerTestCase):
             self.assertTrue(key in channel_labels0)
         self.assertEqual(len(channel_labels0), 2)
 
+        qubit_lo_freq0 = ham_model0.get_qubit_lo_from_drift()
+        expected_freq0 = np.array([(np.pi*(2*v0-alpha0) + np.pi*alpha0) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq0 - expected_freq0), 0)
+
         # restrict to qubit 1 and verify some properties
         ham_model1 = HamiltonianModel.from_dict(hamiltonian, subsystem_list=[1])
         evals_expected1 = np.array([0,
@@ -221,6 +225,10 @@ class TestHamiltonianModel(QiskitAerTestCase):
         for key in ['D1', 'U0']:
             self.assertTrue(key in channel_labels1)
         self.assertEqual(len(channel_labels1), 2)
+
+        qubit_lo_freq1 = ham_model1.get_qubit_lo_from_drift()
+        expected_freq1 = np.array([0, (np.pi*(2*v1-alpha1) + np.pi*alpha1) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq1 - expected_freq1), 0)
 
     def test_eigen_sorting(self):
         """Test estate mappings"""
