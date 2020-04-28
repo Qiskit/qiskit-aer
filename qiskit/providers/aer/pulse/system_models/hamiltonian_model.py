@@ -92,9 +92,15 @@ class HamiltonianModel():
             if subsystem_list is None:
                 subsystem_list = [int(qubit) for qubit in hamiltonian['qub']]
 
-            subsystem_dims = {
+            # force keys in hamiltonian['qub'] to be ints
+            qub_dict = {
                 int(key): val
                 for key, val in hamiltonian['qub'].items()
+            }
+
+            subsystem_dims = {
+                int(qubit) : qub_dict[int(qubit)]
+                for qubit in subsystem_list
             }
         else:
             subsystem_dims = {}
