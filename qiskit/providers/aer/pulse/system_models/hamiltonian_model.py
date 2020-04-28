@@ -103,7 +103,7 @@ class HamiltonianModel():
             }
 
             subsystem_dims = {
-                int(qubit) : qub_dict[int(qubit)]
+                int(qubit): qub_dict[int(qubit)]
                 for qubit in subsystem_list
             }
         else:
