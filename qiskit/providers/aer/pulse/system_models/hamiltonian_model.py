@@ -91,6 +91,10 @@ class HamiltonianModel():
         if 'qub' in hamiltonian:
             if subsystem_list is None:
                 subsystem_list = [int(qubit) for qubit in hamiltonian['qub']]
+            else:
+                # if user supplied, make a copy and sort it
+                subsystem_list = subsystem_list.copy()
+                subsystem_list.sort()
 
             # force keys in hamiltonian['qub'] to be ints
             qub_dict = {

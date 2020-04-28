@@ -647,14 +647,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a_pi_swap = np.pi / total_samples
 
 
-        system_model = self._system_model_3Q(omega_0, omega_a_pi_swap, omega_i_swap, subsystem_list=[0, 2])
+        subsystem_list = [0, 2]
+        system_model = self._system_model_3Q(omega_0, omega_a_pi_swap, omega_i_swap, subsystem_list=subsystem_list)
 
         schedule = self._schedule_2Q_interaction(total_samples, drive_idx=0, target_idx=2, U_idx=1)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
-                        meas_map=[[0, 2]],
+                        meas_map=[subsystem_list],
                         qubit_lo_freq=[omega_d0 / (2 * np.pi), omega_d1 / (2 * np.pi)],
                         memory_slots=2,
                         shots=shots)
@@ -664,7 +665,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         counts_pi_swap = result_pi_swap.get_counts()
 
         exp_counts_pi_swap = {
-            '10': shots
+            '100': shots
         }  # reverse bit order (qiskit convention)
         self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
 
@@ -673,7 +674,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Q0 drive amp -> pi/2 pulse
         omega_a_pi2_swap = np.pi / 2 / total_samples
 
-        system_model = self._system_model_2Q(omega_0, omega_a_pi2_swap, omega_i_swap)
+        system_model = self._system_model_3Q(omega_0, omega_a_pi2_swap, omega_i_swap, subsystem_list=subsystem_list)
 
         result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi2_swap = result_pi2_swap.get_counts()
@@ -683,7 +684,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for key in counts_pi2_swap.keys():
             prop_pi2_swap[key] = counts_pi2_swap[key] / shots
 
-        exp_prop_pi2_swap = {'00': 0.5, '10': 0.5}  # reverse bit order
+        exp_prop_pi2_swap = {'000': 0.5, '100': 0.5}  # reverse bit order
 
         self.assertDictAlmostEqual(prop_pi2_swap,
                                    exp_prop_pi2_swap,
@@ -694,13 +695,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # Q0 drive amp -> pi pulse
         omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_2Q(omega_0, omega_a_no_swap, omega_i_no_swap)
+        system_model = self._system_model_3Q(omega_0, omega_a_no_swap, omega_i_no_swap, subsystem_list=subsystem_list)
 
         result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_no_swap = result_no_swap.get_counts()
 
         exp_counts_no_swap = {
-            '01': shots
+            '001': shots
         }  # non-swapped state (reverse bit order)
         self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
@@ -805,7 +806,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 2, 'scale': [1.0, 0.0]}],
                         [{'q': 1, 'scale': [-1.0, 0.0]}, {'q': 2, 'scale': [1.0, 0.0]}]]
         dt = 1.
-        
+
         return PulseSystemModel(hamiltonian=ham_model,
                                 u_channel_lo=u_channel_lo,
                                 subsystem_list=subsystem_list,
