@@ -163,19 +163,6 @@ class QasmFusionTests:
             self.assertNotIn('input_ops', meta)
             self.assertNotIn('output_ops', meta)
 
-    def test_stabilizer_fusion_disabled(self):
-        """Test fusion is disabled with stabilizer method."""
-        shots = 100
-        circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
-            final_measure=True)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        backend_options = self.fusion_options()
-        result = self.SIMULATOR.run(qobj,
-                                    backend_options=backend_options).result()
-
-        self.assertTrue(getattr(result, 'success', False))
-        self.assertEqual(self.fusion_metadata(result), {})
-
     def test_noise_fusion(self):
         """Test Fusion with noise model option"""
         shots = 100
