@@ -648,7 +648,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
 
         subsystem_list = [0, 2]
-        system_model = self._system_model_3Q(omega_0, omega_a_pi_swap, omega_i_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_pi_swap,
+                                             omega_i_swap,
+                                             subsystem_list=subsystem_list)
 
         schedule = self._schedule_2Q_interaction(total_samples, drive_idx=0, target_idx=2, U_idx=1)
         qobj = assemble([schedule],
@@ -674,7 +677,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Q0 drive amp -> pi/2 pulse
         omega_a_pi2_swap = np.pi / 2 / total_samples
 
-        system_model = self._system_model_3Q(omega_0, omega_a_pi2_swap, omega_i_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_pi2_swap,
+                                             omega_i_swap,
+                                             subsystem_list=subsystem_list)
 
         result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi2_swap = result_pi2_swap.get_counts()
@@ -695,7 +701,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # Q0 drive amp -> pi pulse
         omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_3Q(omega_0, omega_a_no_swap, omega_i_no_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_no_swap,
+                                             omega_i_no_swap,
+                                             subsystem_list=subsystem_list)
 
         result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_no_swap = result_no_swap.get_counts()
@@ -714,7 +723,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         omega_a_pi_swap = np.pi / total_samples
 
         subsystem_list = [1, 2]
-        system_model = self._system_model_3Q(omega_0, omega_a_pi_swap, omega_i_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_pi_swap,
+                                             omega_i_swap,
+                                             subsystem_list=subsystem_list)
 
         schedule = self._schedule_2Q_interaction(total_samples, drive_idx=1, target_idx=2, U_idx=2)
         qobj = assemble([schedule],
@@ -726,7 +738,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         memory_slots=2,
                         shots=shots)
         backend_options = {'seed': 12387}
-
         result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi_swap = result_pi_swap.get_counts()
 
@@ -740,7 +751,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Q0 drive amp -> pi/2 pulse
         omega_a_pi2_swap = np.pi / 2 / total_samples
 
-        system_model = self._system_model_3Q(omega_0, omega_a_pi2_swap, omega_i_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_pi2_swap,
+                                             omega_i_swap,
+                                             subsystem_list=subsystem_list)
 
         result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_pi2_swap = result_pi2_swap.get_counts()
@@ -761,7 +775,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # Q0 drive amp -> pi pulse
         omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_3Q(omega_0, omega_a_no_swap, omega_i_no_swap, subsystem_list=subsystem_list)
+        system_model = self._system_model_3Q(omega_0,
+                                             omega_a_no_swap,
+                                             omega_i_no_swap,
+                                             subsystem_list=subsystem_list)
 
         result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts_no_swap = result_no_swap.get_counts()
