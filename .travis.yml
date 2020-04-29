@@ -194,7 +194,8 @@ jobs:
       name: Standalone Build Linux
       <<: *stage_linux
       language: cpp
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..
@@ -337,7 +338,8 @@ jobs:
       name: Standalone Build Linux (Power)
       arch: ppc64le
       <<: *stage_linux
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..
