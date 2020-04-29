@@ -40,25 +40,26 @@ template <typename data_t>
 void QubitVectorAvx2<data_t>::apply_matrix(const uint_t qubit,
                                           const cvector_t<double>& mat) {
 
-  // Check if matrix is diagonal and if so use optimized lambda OR
-  // Check if anti-diagonal matrix and if so use optimized lambda
-  if((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0))
-  {
-      // These cases are treated in the Base class
-      Base::apply_matrix(qubit, mat);
-      return;
+  if ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0)) {
+    Base::apply_matrix(qubit, mat);
+    return;
   }
+
   // Convert qubit to array register for lambda functions
   areg_t<1> qubits = {{qubit}};
-  apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-    (void*) Base::convert(mat).data(), _calculate_num_threads());
+  if(!apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
+      (void*) Base::convert(mat).data(), _calculate_num_threads())){
+    Base::apply_matrix(qubit, mat);
+  }
 }
 
 template <typename data_t>
 void QubitVectorAvx2<data_t>::apply_matrix(const reg_t &qubits,
                                           const cvector_t<double> &mat) {
-  apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-    (void*) Base::convert(mat).data(), _calculate_num_threads());
+  if(!apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
+        (void*) Base::convert(mat).data(), _calculate_num_threads())){
+      Base::apply_matrix(qubits, mat);
+    }
 }
 
 template <typename data_t>

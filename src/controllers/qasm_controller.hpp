@@ -24,7 +24,7 @@
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
-#include "avx2_detect.hpp"
+#include "framework/avx2_detect.hpp"
 
 namespace AER {
 namespace Simulator {

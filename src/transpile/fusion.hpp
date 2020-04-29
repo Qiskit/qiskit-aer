@@ -16,6 +16,7 @@
 #define _aer_transpile_fusion_hpp_
 
 #include "transpile/circuitopt.hpp"
+#include "framework/avx2_detect.hpp"
 
 namespace AER {
 namespace Transpile {
@@ -550,22 +551,21 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
 
-#ifdef __AVX2__
-  switch (fusion_qubits.size()) {
-  case 1:
-    return cost_factor;
-  case 2:
-    return cost_factor;
-  case 3:
-    return cost_factor * 1.1;
-  case 4:
-    return cost_factor * 3;
-  default:
-    return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+  if(is_avx2_supported()){
+    switch (fusion_qubits.size()) {
+      case 1:
+        // [[ falling through :) ]]
+      case 2:
+        return cost_factor;
+      case 3:
+        return cost_factor * 1.1;
+      case 4:
+        return cost_factor * 3;
+      default:
+        return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+    }
   }
-#else
   return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
-#endif
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {

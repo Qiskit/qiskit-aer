@@ -35,15 +35,25 @@ static void get_cpuid_count(void* p) {
 #endif
 
 inline bool is_avx2_supported() {
+  static bool cached = false;
+  static bool is_supported = false;
+  if(cached)
+    return is_supported;
+
 #if defined(__GNUC__)
   int info[4] = {0};
   get_cpuid(info);
   bool fma = (info[2] >> 12 & 1);
   bool avx = (info[2] >> 28 & 1);
-  if (!fma || !avx)
+  if (!fma || !avx){
+    cached = true;
+    is_supported = false;
     return false;
+  }
   get_cpuid_count(info);
   bool avx2 = (info[1] >> 5 & 1);
+  cached = true;
+  is_supported = avx2;
   return avx2;
 #else
   return false;
