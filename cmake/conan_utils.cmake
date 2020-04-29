@@ -21,7 +21,9 @@ macro(setup_conan)
 
     if(SKBUILD)
         set(REQUIREMENTS ${REQUIREMENTS} muparserx/4.0.8)
-        set(CONAN_OPTIONS ${CONAN_OPTIONS} "muparserx:fPIC=True")
+        if(NOT MSVC)
+            set(CONAN_OPTIONS ${CONAN_OPTIONS} "muparserx:fPIC=True")
+        endif()
     endif()
 
     if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
