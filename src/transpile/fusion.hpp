@@ -147,7 +147,7 @@ void Fusion::set_config(const json_t &config) {
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentData &data) const {                            
+                              ExperimentData &data) const {
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::matrix))
     return;
@@ -235,12 +235,12 @@ void Fusion::optimize_circuit(Circuit& circ,
 
 bool Fusion::can_ignore(const op_t& op) const {
   switch (op.type) {
-  case optype_t::barrier:
-    return true;
-  case optype_t::gate:
-    return op.name == "id" || op.name == "u0";
-  default:
-    return false;
+    case optype_t::barrier:
+      return true;
+    case optype_t::gate:
+      return op.name == "id" || op.name == "u0";
+    default:
+      return false;
   }
 }
 
@@ -248,28 +248,28 @@ bool Fusion::can_apply_fusion(const op_t& op, uint_t max_fused_qubits, Method me
   if (op.conditional)
     return false;
   switch (op.type) {
-  case optype_t::matrix:
-    return op.mats.size() == 1 && op.qubits.size() <= max_fused_qubits;
-  case optype_t::kraus:
-  case optype_t::reset:
-  case optype_t::superop: {
-    // TODO: Add support for Method::kraus
-    return method == Method::superop && op.qubits.size() <= max_fused_qubits;
-  }
-  case optype_t::gate: {
-    if (op.qubits.size() > max_fused_qubits)
+    case optype_t::matrix:
+      return op.mats.size() == 1 && op.qubits.size() <= max_fused_qubits;
+    case optype_t::kraus:
+    case optype_t::reset:
+    case optype_t::superop: {
+      // TODO: Add support for Method::kraus
+      return method == Method::superop && op.qubits.size() <= max_fused_qubits;
+    }
+    case optype_t::gate: {
+      if (op.qubits.size() > max_fused_qubits)
+        return false;
+      return (method == Method::unitary)
+        ? QubitUnitary::StateOpSet.contains_gates(op.name)
+        : QubitSuperoperator::StateOpSet.contains_gates(op.name);
+    }
+    case optype_t::measure:
+    case optype_t::bfunc:
+    case optype_t::roerror:
+    case optype_t::snapshot:
+    case optype_t::barrier:
+    default:
       return false;
-    return (method == Method::unitary)
-      ? QubitUnitary::StateOpSet.contains_gates(op.name)
-      : QubitSuperoperator::StateOpSet.contains_gates(op.name);
-  }
-  case optype_t::measure:
-  case optype_t::bfunc:
-  case optype_t::roerror:
-  case optype_t::snapshot:
-  case optype_t::barrier:
-  default:
-    return false;
   }
 }
 
@@ -373,8 +373,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
       std::set<uint_t> fusioned_qubits;
       for (int j = to; j <= i; ++j) {
         fusioned_ops.push_back(ops[j]);
-        std::copy(ops[j].qubits.cbegin(), ops[j].qubits.cend(),
-                  std::inserter(fusioned_qubits, fusioned_qubits.end()));
+        fusioned_qubits.insert(ops[j].qubits.cbegin(), ops[j].qubits.cend());
         ops[j].name = "nop";
       }
       if (!fusioned_ops.empty()) {
