@@ -30,6 +30,20 @@
 namespace AER{
 namespace ExtendedStabilizer {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  // Op types
+  {Operations::OpType::gate, Operations::OpType::measure,
+    Operations::OpType::reset, Operations::OpType::barrier,
+    Operations::OpType::roerror, Operations::OpType::bfunc,
+    Operations::OpType::snapshot},
+  // Gates
+  {"CX", "u0", "u1", "cx", "cz", "swap", "id", "x", "y", "z", "h",
+    "s", "sdg", "t", "tdg", "ccx", "ccz"},
+  // Snapshots
+  {"statevector", "probabilities", "memory", "register"}
+);
+
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
 using Gates = CHSimulator::Gates;
@@ -50,32 +64,12 @@ class State: public Base::State<chstate_t>
 {
 public:
   using BaseState = Base::State<chstate_t>;
-  State() = default;
+  
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   virtual std::string name() const override {return "extended_stabilizer";}
 
-  inline virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t({
-      Operations::OpType::gate,
-      Operations::OpType::measure,
-      Operations::OpType::reset,
-      Operations::OpType::barrier,
-      Operations::OpType::roerror,
-      Operations::OpType::bfunc,
-      Operations::OpType::snapshot
-    });
-  }
-
-  inline virtual stringset_t allowed_gates() const override {
-    return {"CX", "u0", "u1", "cx", "cz", "swap", "id",
-            "x", "y", "z", "h", "s", "sdg", "t", "tdg", 
-            "ccx", "ccz"};
-  }
-
-  inline virtual stringset_t allowed_snapshots() const override {
-    return {"statevector", "probabilities", "memory", "register"};//, "state"};
-  }
   //Apply a sequence of operations to the cicuit. For each operation,
   //we loop over the terms in the decomposition in parallel
   virtual void apply_ops(const std::vector<Operations::Op> &ops,

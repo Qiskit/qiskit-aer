@@ -17,6 +17,63 @@ Test circuits and reference outputs for initialize instruction.
 from numpy import array, sqrt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+def initialize_circuits_w_1(init_state, final_measure=True):
+    """Initialize test circuits"""
+
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # Start with |+++> state
+    # Initialize qr[i] to |1> for i=0,1,2
+    for qubit in range(3):
+        circuit = QuantumCircuit(*regs)
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.h(qr[2])
+        circuit.initialize(init_state, [qr[qubit]])
+
+        if final_measure:
+            circuit.barrier(qr)
+            circuit.measure(qr, cr)
+        circuits.append(circuit)
+
+    return circuits
+
+def initialize_circuits_w_2(init_state, final_measure=True):
+    """Initialize test circuits"""
+
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+    
+    # Start with |+++> state
+    # Initialize qr[i] to |1> and qr[j] to |0>
+    # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
+    for qubit_i in range(3):
+        for qubit_j in range(3):
+            if (qubit_i != qubit_j):
+                circuit = QuantumCircuit(*regs)
+                circuit.h(qr[0])
+                circuit.h(qr[1])
+                circuit.h(qr[2])
+                circuit.initialize(init_state, [qr[qubit_i], qr[qubit_j]])
+
+                if final_measure:
+                    circuit.barrier(qr)
+                    circuit.measure(qr, cr)
+                circuits.append(circuit)
+
+    return circuits
+
 
 def initialize_circuits_1(final_measure=True):
     """Initialize test circuits"""

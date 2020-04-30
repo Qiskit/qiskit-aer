@@ -268,38 +268,49 @@ json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
-    if (py::isinstance<py::bool_>(obj)) {
+    if (py::isinstance<py::float_>(obj)) {
+        js = obj.cast<nl::json::number_float_t>();
+    } else if (py::isinstance<py::bool_>(obj)) {
         js = obj.cast<nl::json::boolean_t>();
-        //js = obj.cast<bool>();
     } else if (py::isinstance<py::int_>(obj)) {
         js = obj.cast<nl::json::number_integer_t>();
-    } else if (py::isinstance<py::float_>(obj)) {
-        js = obj.cast<nl::json::number_float_t>();
     } else if (py::isinstance<py::str>(obj)) {
         js = obj.cast<nl::json::string_t>();
     } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
         js = nl::json::array();
-        for (py::handle value: obj)
-        {
+        for (py::handle value: obj) {
             js.push_back(value);
         }
     } else if (py::isinstance<py::dict>(obj)) {
-        for (auto item : py::cast<py::dict>(obj))
-        {
+        for (auto item : py::cast<py::dict>(obj)) {
             js[item.first.cast<nl::json::string_t>()] = item.second;
         }
     } else if (py::isinstance<py::array_t<double> >(obj)) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<double, py::array::c_style> >());
     } else if (py::isinstance<py::array_t<std::complex<double> > >(obj)) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
-    } else if (std::string(py::str(obj.get_type())) == "<class \'complex\'>") {
-        auto tmp = obj.cast<std::complex<double>>();
-        js.push_back(tmp.real());
-        js.push_back(tmp.imag());
     } else if (obj.is_none()) {
         return;
     } else {
-        throw std::runtime_error("to_json not implemented for this type of object: " + obj.cast<std::string>());
+        auto type_str = std::string(py::str(obj.get_type()));
+        if ( type_str == "<class \'complex\'>"
+             || type_str == "<class \'numpy.complex64\'>"
+             || type_str == "<class \'numpy.complex128\'>"
+             || type_str == "<class \'numpy.complex_\'>" ) {
+            auto tmp = obj.cast<std::complex<double>>();
+            js.push_back(tmp.real());
+            js.push_back(tmp.imag());
+        } else if ( type_str == "<class \'numpy.uint32\'>"
+                    || type_str == "<class \'numpy.uint64\'>"
+                    || type_str == "<class \'numpy.int32\'>"
+                    || type_str == "<class \'numpy.int64\'>" ) {
+            js = obj.cast<nl::json::number_integer_t>();
+        } else if ( type_str == "<class \'numpy.float32\'>"
+                    || type_str == "<class \'numpy.float64\'>" ) {
+            js = obj.cast<nl::json::number_float_t>();
+        } else {
+            throw std::runtime_error("to_json not implemented for this type of object: " + std::string(py::str(obj.get_type())));
+        }
     }
 }
 
@@ -359,13 +370,13 @@ py::object AerToPy::array_from_matrix(const matrix<T> &src) {
 }
 
 template<typename T> 
-py::dict AerToPy::from_avg_data(const AER::AverageData<T> &avg_data) {
+py::object AerToPy::from_avg_data(const AER::AverageData<T> &avg_data) {
   py::dict d;
   d["value"] = avg_data.mean();
   if (avg_data.has_variance()) {
     d["variance"] = avg_data.variance();
   }
-  return d;
+  return std::move(d);
 }
 
 template<typename T> 
@@ -396,7 +407,7 @@ py::object AerToPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
     }
     d[outer_pair.first.data()] = d1;
   }
-  return d;
+  return std::move(d);
 }
 
 py::object AerToPy::from_data(const AER::ExperimentData &result) {
@@ -537,7 +548,6 @@ py::object AerToPy::from_experiment(const AER::ExperimentResult &result) {
     pyexperiment["metadata"] = tmp;
   }
   return pyexperiment;
-
 }
 
 py::object AerToPy::from_result(const AER::Result &result) {
@@ -580,7 +590,7 @@ py::object AerToPy::from_result(const AER::Result &result) {
     case AER::Result::Status::empty:
       pyresult["status"] = std::string("EMPTY");
   }
-  return pyresult;
+  return std::move(pyresult);
 
 }
 
