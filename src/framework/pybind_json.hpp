@@ -67,7 +67,7 @@ py::object array_from_matrix(const matrix<T> &mat);
  * @returns a py::dict
  */
 template<typename T>
-py::dict from_avg_data(const AER::AverageData<T> &avg_data);
+py::object from_avg_data(const AER::AverageData<T> &avg_data);
 
 /**
  * Convert a AverageData to a python object
@@ -75,7 +75,7 @@ py::dict from_avg_data(const AER::AverageData<T> &avg_data);
  * @returns a py::dict
  */
 template<typename T>
-py::dict from_avg_data(const AER::AverageData<matrix<T>> &avg_data);
+py::object from_avg_data(const AER::AverageData<matrix<T>> &avg_data);
 
 
 /**
@@ -378,7 +378,7 @@ py::object AerToPy::from_avg_data(const AER::AverageData<T> &avg_data) {
 }
 
 template<typename T> 
-py::dict AerToPy::from_avg_data(const AER::AverageData<matrix<T>> &avg_data) {
+py::object AerToPy::from_avg_data(const AER::AverageData<matrix<T>> &avg_data) {
   py::dict d;
   d["value"] = AerToPy::array_from_matrix(avg_data.mean());
   if (avg_data.has_variance()) {
