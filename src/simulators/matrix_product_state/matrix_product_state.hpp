@@ -124,6 +124,8 @@ public:
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
 
+  virtual void add_metadata(ExperimentData &data, const json_t &config) const override;
+
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
@@ -389,6 +391,17 @@ void State::set_config(const json_t &config) {
   //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
   //    MPS::set_enable_gate_opt(gate_opt);
 }
+
+void State::add_metadata(ExperimentData &data, const json_t &config) const {
+  double threshold;
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+    data.add_metadata("matrix_product_state_truncation_threshold", threshold);
+
+  uint_t max_bond_dimension;
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
+    data.add_metadata("matrix_product_state_max_bond_dimension", max_bond_dimension);
+  }
+} 
 
 //=========================================================================
 // Implementation: apply operations

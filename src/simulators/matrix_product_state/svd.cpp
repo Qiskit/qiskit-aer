@@ -99,7 +99,7 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
-
+  //  std::cout << "SV num = " << SV_num <<std::endl;
   new_SV_num = SV_num;
 
   if (max_bond_dimension < SV_num) {
@@ -107,7 +107,8 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     // values in S, and discard all the rest
     new_SV_num = max_bond_dimension;
   } 
-
+  //  if (new_SV_num < SV_num)
+    //    std::cout << "Reduced1: after approx 1, new SV num = " << new_SV_num <<std::endl;
   // Remove the lowest Schmidt coefficients such that the sum of 
   // their squares is less than trunction_threshold
   double sum_squares = 0;
@@ -119,7 +120,8 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
       break;
     }
   }
-    
+  //    if (new_SV_num < SV_num)
+      //      std::cout << "Reduced2: after approx 2, new SV num = " << new_SV_num <<std::endl;
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);

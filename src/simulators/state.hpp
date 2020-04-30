@@ -121,6 +121,14 @@ public:
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config);
 
+    //-----------------------------------------------------------------------
+  // Optional: Add information to metadata 
+  //-----------------------------------------------------------------------
+
+  // Every state can add information to the metadata structure
+  virtual void add_metadata(ExperimentData &data, const json_t &config) const {
+  }
+
   //-----------------------------------------------------------------------
   // Optional: measurement sampling
   //
