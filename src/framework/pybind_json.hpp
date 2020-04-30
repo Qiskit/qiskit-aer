@@ -28,8 +28,6 @@
 #include <map>
 #include <vector>
 
-#include <Python.h>
-#include <numpy/ndarrayobject.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
