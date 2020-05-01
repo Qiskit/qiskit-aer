@@ -52,7 +52,7 @@ public:
     : max_qubit(_max_qubit), threshold(_threshold), cost_factor(_cost_factor) {}
   
   // Allowed fusion methods:
-  // - Unitary: only fuse gates into untiary instructions
+  // - Unitary: only fuse gates into unitary instructions
   // - SuperOp: fuse gates, reset, kraus, and superops into kraus instuctions
   // - Kraus: fuse gates, reset, kraus, and superops into kraus instuctions
   enum class Method {unitary, kraus, superop};
