@@ -54,6 +54,15 @@ using json_t = nlohmann::json;
 namespace AerToPy {
 
 /**
+ * Convert a std::vector into a numpy array
+ * @param src is a vector
+ * @returns a python object (py::array_t<T>)
+ */
+template<typename T>
+py::object array_from_vector(const std::vector<T> &src);
+
+
+/**
  * Convert a Matrix into a numpy array
  * @param mat is a Matrix
  * @returns a python object (py::array_t<T>)
@@ -77,6 +86,13 @@ py::object from_avg_data(const AER::AverageData<T> &avg_data);
 template<typename T>
 py::object from_avg_data(const AER::AverageData<matrix<T>> &avg_data);
 
+/**
+ * Convert a AverageData to a python object
+ * @param avg_data is an AverageData
+ * @returns a py::dict
+ */
+template<typename T>
+py::object from_avg_data(const AER::AverageData<std::vector<T>> &avg_data);
 
 /**
  * Convert a AverageSnapshot to a python object
@@ -355,6 +371,18 @@ void std::from_json(const json_t &js, py::object &o) {
 //============================================================================
 // Pybind Conversion for Simulator types
 //============================================================================
+
+template<typename T>
+py::object AerToPy::array_from_vector(const std::vector<T> &src) {
+    std::array<py::ssize_t, 1> shape { static_cast<py::ssize_t>(src.size()) };
+    auto tbr = py::array_t<T, py::array::f_style>(shape);
+    auto buf = tbr.template mutable_unchecked<1>();
+    for (size_t i = 0; i < src.size(); i++) {
+        buf(i) = src[i];
+    }
+    return std::move(tbr);
+}
+
 template<typename T>
 py::object AerToPy::array_from_matrix(const matrix<T> &src) {
     std::array<py::ssize_t, 2> shape { static_cast<py::ssize_t>(src.GetRows()), static_cast<py::ssize_t>(src.GetColumns()) };
@@ -386,7 +414,16 @@ py::object AerToPy::from_avg_data(const AER::AverageData<matrix<T>> &avg_data) {
   }
   return d;
 }
- 
+
+template<typename T> 
+py::object AerToPy::from_avg_data(const AER::AverageData<std::vector<T>> &avg_data) {
+  py::dict d;
+  d["value"] = AerToPy::array_from_vector(avg_data.mean());
+  if (avg_data.has_variance()) {
+    d["variance"] = AerToPy::array_from_vector(avg_data.variance());
+  }
+  return d;
+}
 template<typename T> 
 py::object AerToPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
   py::dict d;
@@ -408,80 +445,84 @@ py::object AerToPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
   return std::move(d);
 }
 
-py::object AerToPy::from_data(const AER::ExperimentData &result) {
+py::object AerToPy::from_data(const AER::ExperimentData &datum) {
   py::dict pydata;
 
   // Measure data
-  if (result.return_counts_ && ! result.counts_.empty()) {
-    pydata["counts"] = result.counts_;
+  if (datum.return_counts_ && ! datum.counts_.empty()) {
+    pydata["counts"] = datum.counts_;
   }
-  if (result.return_memory_ && ! result.memory_.empty()) {
-    pydata["memory"] = result.memory_;
+  if (datum.return_memory_ && ! datum.memory_.empty()) {
+    pydata["memory"] = datum.memory_;
   }
-  if (result.return_register_ && ! result.register_.empty()) {
-    pydata["register"] = result.register_;
+  if (datum.return_register_ && ! datum.register_.empty()) {
+    pydata["register"] = datum.register_;
   }
 
   // Add additional data
-  for (const auto &pair : result.additional_json_data_) {
+  for (const auto &pair : datum.additional_json_data_) {
     py::object tmp;
     from_json(pair.second, tmp);
     pydata[pair.first.data()] = tmp;
   }
-  for (const auto &pair : result.additional_cvector_data_) {
-    pydata[pair.first.data()] = pair.second;
+  for (const auto &pair : datum.additional_cvector_data_) {
+    pydata[pair.first.data()] = AerToPy::array_from_vector(pair.second);
   }
-  for (const auto &pair : result.additional_cmatrix_data_) {
+  for (const auto &pair : datum.additional_cmatrix_data_) {
     pydata[pair.first.data()] = AerToPy::array_from_matrix(pair.second);
   }
 
   // Snapshot data
-  if (result.return_snapshots_) {
+  if (datum.return_snapshots_) {
     py::dict snapshots;
     // Average snapshots
-    for (const auto &pair : result.average_json_snapshots_) {
+    for (const auto &pair : datum.average_json_snapshots_) {
       py::object tmp;
       from_json(pair.second, tmp);
       snapshots[pair.first.data()] = tmp;
     }
-    for (auto &pair : result.average_complex_snapshots_) {
+    for (auto &pair : datum.average_complex_snapshots_) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : result.average_cvector_snapshots_) {
+    for (auto &pair : datum.average_cvector_snapshots_) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : result.average_cmatrix_snapshots_) {
+    for (auto &pair : datum.average_cmatrix_snapshots_) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : result.average_cmap_snapshots_) {
+    for (auto &pair : datum.average_cmap_snapshots_) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : result.average_rmap_snapshots_) {
+    for (auto &pair : datum.average_rmap_snapshots_) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
     // Singleshot snapshot data
     // Note these will override the average snapshots
     // if they share the same type string
-    for (const auto &pair : result.pershot_json_snapshots_) {
+    for (const auto &pair : datum.pershot_json_snapshots_) {
       py::object tmp;
       from_json(pair.second, tmp);
       snapshots[pair.first.data()] = tmp;
     }
-    for (auto &pair : result.pershot_complex_snapshots_) {
+    for (auto &pair : datum.pershot_complex_snapshots_) {
       py::dict d;
       // string PershotData
       for (auto &per_pair : pair.second.data())
         d[per_pair.first.data()] = per_pair.second.data();
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : result.pershot_cvector_snapshots_) {
+    for (auto &pair : datum.pershot_cvector_snapshots_) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data())
-        d[per_pair.first.data()] = per_pair.second.data();
+      for (auto &per_pair : pair.second.data()) {
+        py::list l;
+        for (auto &matr : per_pair.second.data())
+          l.append(AerToPy::array_from_vector(matr));
+        d[per_pair.first.data()] = l;
+      }
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : result.pershot_cmatrix_snapshots_) {
+    for (auto &pair : datum.pershot_cmatrix_snapshots_) {
       py::dict d;
       // string PershotData
       for (auto &per_pair : pair.second.data()) {
@@ -492,14 +533,14 @@ py::object AerToPy::from_data(const AER::ExperimentData &result) {
       }
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : result.pershot_cmap_snapshots_) {
+    for (auto &pair : datum.pershot_cmap_snapshots_) {
       py::dict d;
       // string PershotData
       for (auto &per_pair : pair.second.data())
         d[per_pair.first.data()] = per_pair.second.data();
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : result.pershot_rmap_snapshots_) {
+    for (auto &pair : datum.pershot_rmap_snapshots_) {
       py::dict d;
       // string PershotData
       for (auto &per_pair : pair.second.data())
@@ -510,7 +551,7 @@ py::object AerToPy::from_data(const AER::ExperimentData &result) {
     if ( py::len(snapshots) != 0 )
         pydata["snapshots"] = snapshots;
   }
-  //for (auto item : pyresult)
+  //for (auto item : pydatum)
   //  py::print("    {}:, {}"_s.format(item.first, item.second));
   return pydata;
 }

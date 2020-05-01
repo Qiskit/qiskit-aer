@@ -49,13 +49,14 @@ class QasmSnapshotStatevectorTests:
     ]
     BACKEND_OPTS = {}
 
-    @staticmethod
-    def statevector_snapshots(data, label):
+    #@staticmethod
+    def statevector_snapshots(self, data, label):
         """Format snapshots as list of Numpy arrays"""
         snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
         statevecs = []
         for snap in snaps:
-            statevecs.append(np.array(snap))
+            self.assertIsInstance(snap, np.ndarray)
+            statevecs.append(snap)
         return statevecs
 
     def test_snapshot_statevector_pre_measure_det(self):
@@ -351,8 +352,7 @@ class QasmSnapshotDensityMatrixTests:
     ]
     BACKEND_OPTS = {}
 
-    @staticmethod
-    def density_snapshots(data, label):
+    def density_snapshots(self, data, label):
         """Format snapshots as list of Numpy arrays"""
         # Check snapshot entry exists in data
         snaps = data.get("snapshots", {}).get("density_matrix",
@@ -361,8 +361,8 @@ class QasmSnapshotDensityMatrixTests:
         output = {}
         for snap_dict in snaps:
             memory = snap_dict['memory']
-            mat = np.array(snap_dict['value'])
-            output[memory] = mat
+            self.assertIsInstance(snap_dict['value'], np.ndarray)
+            output[memory] = snap_dict['value']
         return output
 
     def test_snapshot_density_matrix_pre_measure_det(self):
