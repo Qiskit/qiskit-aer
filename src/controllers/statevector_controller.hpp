@@ -137,6 +137,10 @@ void StatevectorController::set_config(const json_t& config) {
   // Set base controller config
   Base::Controller::set_config(config);
 
+  // Override max parallel shots to be 1 since this should only be used
+  // for single shot simulations
+  Base::Controller::max_parallel_shots_ = 1;
+
   // Add custom initial state
   if (JSON::get_value(initial_state_, "initial_statevector", config)) {
     // Check initial state is normalized
