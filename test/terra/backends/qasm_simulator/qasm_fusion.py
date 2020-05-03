@@ -301,8 +301,8 @@ class QasmFusionTests:
         self.assertTrue(
             'fusion_verbose' in result_verbose.to_dict()['results'][0]
             ['metadata'],
-            msg="fusion must work for satevector")
-        
+            msg="fusion must work for statevector")
+
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100

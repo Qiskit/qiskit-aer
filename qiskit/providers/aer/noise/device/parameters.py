@@ -17,7 +17,6 @@ Functions to extract device error parameters from backend properties.
 from numpy import inf
 
 # Time and frequency unit conversions
-_MICROSECOND_UNITS = {'s': 1e6, 'ms': 1e3, 'µs': 1, 'us': 1, 'ns': 1e-3}
 _NANOSECOND_UNITS = {'s': 1e9, 'ms': 1e6, 'µs': 1e3, 'us': 1e3, 'ns': 1}
 _GHZ_UNITS = {'Hz': 1e-9, 'KHz': 1e-6, 'MHz': 1e-3, 'GHz': 1, 'THz': 1e3}
 
@@ -168,13 +167,13 @@ def thermal_relaxation_values(properties):
         if hasattr(t1_params, 'value'):
             t1 = t1_params.value
             if hasattr(t1_params, 'unit'):
-                # Convert to micro seconds
-                t1 *= _MICROSECOND_UNITS.get(t1_params.unit, 1)
+                # Convert to nanoseconds
+                t1 *= _NANOSECOND_UNITS.get(t1_params.unit, 1)
         if hasattr(t2_params, 'value'):
             t2 = t2_params.value
             if hasattr(t2_params, 'unit'):
-                # Convert to micro seconds
-                t2 *= _MICROSECOND_UNITS.get(t2_params.unit, 1)
+                # Convert to nanoseconds
+                t2 *= _NANOSECOND_UNITS.get(t2_params.unit, 1)
         if hasattr(t2_params, 'value'):
             freq = freq_params.value
             if hasattr(freq_params, 'unit'):

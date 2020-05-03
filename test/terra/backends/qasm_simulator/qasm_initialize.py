@@ -17,12 +17,53 @@ from test.terra.reference import ref_initialize
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
+import numpy as np
 
 class QasmInitializeTests:
     """QasmSimulator initialize tests."""
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
+
+    # ---------------------------------------------------------------------
+    # Test initialize instr make it through the wrapper
+    # ---------------------------------------------------------------------
+    def test_initialize_wrapper_1(self):
+        """Test QasmSimulator initialize"""
+        shots = 100
+        lst = [0, 1]
+        init_states = [
+            np.array(lst),
+            np.array(lst, dtype=float),
+            np.array(lst, dtype=np.float32),
+            np.array(lst, dtype=complex),
+            np.array(lst, dtype=np.complex64) ]
+        circuits = []
+        [ circuits.extend(ref_initialize.initialize_circuits_w_1(init_state)) for init_state in init_states ]
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.assertTrue(getattr(result, 'success', False))
+ 
+    # ---------------------------------------------------------------------
+    # Test initialize instr make it through the wrapper
+    # ---------------------------------------------------------------------
+    def test_initialize_wrapper_2(self):
+        """Test QasmSimulator initialize"""
+        shots = 100
+        lst = [0, 1, 0, 0]
+        init_states = [
+            np.array(lst),
+            np.array(lst, dtype=float),
+            np.array(lst, dtype=np.float32),
+            np.array(lst, dtype=complex),
+            np.array(lst, dtype=np.complex64) ]
+        circuits = []
+        [ circuits.extend(ref_initialize.initialize_circuits_w_2(init_state)) for init_state in init_states ]
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.assertTrue(getattr(result, 'success', False))
 
     # ---------------------------------------------------------------------
     # Test initialize
