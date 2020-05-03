@@ -149,6 +149,8 @@ public:
   {
     m_size = size;
   }
+  virtual ~QubitVectorBuffer(){};
+
   uint_t Size(void)
   {
     return m_size;
