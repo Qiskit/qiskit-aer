@@ -827,9 +827,11 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits)
 
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
 			       reg_t &sorted_qubits,
-			       reg_t &centralized_qubits) {
+			       reg_t &centralized_qubits,
+			       MPS& temp_MPS) const {
+  temp_MPS.initialize(*this);
   bool ordered = true;
-  centralize_and_sort_qubits(qubits, sorted_qubits, 
+  temp_MPS.centralize_and_sort_qubits(qubits, sorted_qubits, 
 				      centralized_qubits, ordered);
 
 }
@@ -860,9 +862,11 @@ double MPS::expectation_value_internal(const reg_t &qubits,
   } else {
     reg_t actual_indices(num_qubits_);
     std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-    move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+    MPS temp_MPS;
+    temp_MPS.initialize(*this);
+    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
 
-    rho = density_matrix(target_qubits);
+    rho = temp_MPS.density_matrix(target_qubits);
   }
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
@@ -924,8 +928,8 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   // if the qubits are not ordered, we can sort them, because the order doesn't matter
   // when computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
-
-  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits);
+  MPS temp_MPS;
+  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
   uint_t first_index = centralized_qubits.front();
   uint_t last_index = centralized_qubits.back();
 
@@ -942,7 +946,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   MPS_Tensor left_tensor = q_reg_[first_index];
 
   if (first_index > 0) {
-    left_tensor.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
+    left_tensor.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[first_index-1]);
   }
 
   // The last gamma must be multiplied also by its right lambda.
@@ -950,7 +954,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   // on a single qubit
   // we need to mul every gamma by its right lambda
   if (first_index==last_index && first_index < num_qubits_-1) {
-    left_tensor.mul_Gamma_by_right_Lambda(lambda_reg_[first_index]);
+    left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
   }
 
 
@@ -969,12 +973,12 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
     // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
     // next gamma has dimensions a0 x a1 x i 
-    MPS_Tensor next_gamma = q_reg_[qubit_num];
-    next_gamma.mul_Gamma_by_left_Lambda(lambda_reg_[qubit_num-1]);
+    MPS_Tensor next_gamma = temp_MPS.q_reg_[qubit_num];
+    next_gamma.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[qubit_num-1]);
 
     // Last qubit must be multiplied by rightmost lambda
     if (qubit_num==last_index && qubit_num < num_qubits_-1)
-      next_gamma.mul_Gamma_by_right_Lambda(lambda_reg_[qubit_num]);
+      next_gamma.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[qubit_num]);
 
     // Step 6 - prepare the dagger of the next gamma (same as Step 2)
     // next_gamma_dagger has dimensions a1' x a0' x i

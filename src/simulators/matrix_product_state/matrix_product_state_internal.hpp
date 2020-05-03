@@ -159,7 +159,8 @@ public:
   //----------------------------------------------------------------
   void MPS_with_new_indices(const reg_t &qubits,
 			    reg_t &sorted_qubits,
-			    reg_t &centralized_qubits);
+			    reg_t &centralized_qubits,
+			    MPS& temp_MPS) const;
 
   //----------------------------------------------------------------
   // Function name: print
