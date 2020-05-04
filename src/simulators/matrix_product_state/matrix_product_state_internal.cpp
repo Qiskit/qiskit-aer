@@ -780,18 +780,20 @@ void MPS::change_position(uint_t src, uint_t dst) {
      }
 }
 
-cmatrix_t MPS::density_matrix(const reg_t &qubits) {
+cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   return density_matrix_internal(internal_qubits);
 }
 
-cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) {
+cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   reg_t new_qubits;
   bool ordered = true;
   
-  centralize_qubits(qubits, new_qubits, ordered);
+  MPS temp_MPS;
+  temp_MPS.initialize(*this);
+  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
@@ -808,13 +810,16 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) {
   return rho;
 }
 
-rvector_t MPS::trace_of_density_matrix(const reg_t &qubits)
+rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
 {
   bool ordered = true;
   reg_t new_qubits;
-  centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  MPS temp_MPS;
+  temp_MPS.initialize(*this);
+  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
+
+  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
   uint_t size = psi.get_dim();
   rvector_t trace_rho(size);
@@ -837,14 +842,14 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 }
 
 double MPS::expectation_value(const reg_t &qubits, 
-			      const cmatrix_t &M) {
+			      const cmatrix_t &M) const {
    reg_t internal_qubits = get_internal_qubits(qubits);
    double expval = expectation_value_internal(internal_qubits, M);
    return expval;
 }
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
-				       const cmatrix_t &M) {
+				       const cmatrix_t &M) const {
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
@@ -916,12 +921,12 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 //            a2\o--a3--o-- 
 //---------------------------------------------------------------
 
-complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) {
+complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const {
     reg_t internal_qubits = get_internal_qubits(qubits);
     return expectation_value_pauli_internal(internal_qubits, matrices);
 }
 
-complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) {
+complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const {
   reg_t sorted_qubits = qubits;
   reg_t centralized_qubits = qubits;
 
@@ -943,7 +948,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::
   char gate = sorted_matrices[0];
 
   // Step 1 - multiply tensor of q0 by its left lambda
-  MPS_Tensor left_tensor = q_reg_[first_index];
+  MPS_Tensor left_tensor = temp_MPS.q_reg_[first_index];
 
   if (first_index > 0) {
     left_tensor.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[first_index-1]);

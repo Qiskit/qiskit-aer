@@ -126,7 +126,7 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  cmatrix_t density_matrix(const reg_t &qubits);
+  cmatrix_t density_matrix(const reg_t &qubits) const;
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -135,7 +135,7 @@ public:
   //             M - the matrix
   // Returns: The expectation value. 
   //------------------------------------------------------------------
-  double expectation_value(const reg_t &qubits, const cmatrix_t &M);
+  double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
 
   //---------------------------------------------------------------
   // Function: expectation_value_pauli
@@ -146,7 +146,7 @@ public:
   // Returns: The expectation value in the form of a complex number. The real part is the 
   //          actual expectation value.
   //------------------------------------------------------------------
-  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices);
+  complex_t expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const;
 
   //------------------------------------------------------------------
   // Function name: MPS_with_new_indices
@@ -272,12 +272,12 @@ private:
 			      const cmatrix_t &mat);
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
-  cmatrix_t density_matrix_internal(const reg_t &qubits);
+  cmatrix_t density_matrix_internal(const reg_t &qubits) const;
 
-  rvector_t trace_of_density_matrix(const reg_t &qubits);
+  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
-  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M);
-  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices);
+  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
+  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const;
 
    //----------------------------------------------------------------
    // Function name: get_matrices_sizes
