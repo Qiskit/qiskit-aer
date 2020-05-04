@@ -21,57 +21,80 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <type_traits>
 
-namespace QV {
 
-using reg_t = std::vector<uint64_t>;
-template<size_t N> using areg_t = std::array<uint64_t, N>;
-using indexes_t = std::unique_ptr<uint64_t[]>;
+namespace {
 
-#define _mm_complex_multiply_pd(real_ret, imag_ret, real_left, imag_left, real_right, imag_right)\
-{\
-  real_ret = _mm256_mul_pd(real_left, real_right);\
-  imag_ret = _mm256_mul_pd(real_left, imag_right);\
-  real_ret = _mm256_fnmadd_pd(imag_left, imag_right, real_ret);\
-  imag_ret = _mm256_fmadd_pd(imag_left, real_right, imag_ret);\
-}
+  template<typename FloatPoint>
+  using m256_t = std::conditional<std::is_same<FloatPoint, double>::value, __m256d, __m256>::type;
 
-#define _mm_complex_multiply_add_pd(real_ret, imag_ret, real_left, imag_left, real_right, imag_right)\
-{\
-  real_ret = _mm256_fmadd_pd(real_left, real_right, real_ret);\
-  imag_ret = _mm256_fmadd_pd(real_left, imag_right, imag_ret);\
-  real_ret = _mm256_fnmadd_pd(imag_left, imag_right, real_ret);\
-  imag_ret = _mm256_fmadd_pd(imag_left, real_right, imag_ret);\
-}
+  auto _mm256_mul(const m256_t<double> left, const m256_t<double> right){
+    return _mm256_mul_pd(left, right);
+  }
 
-#define _mm_complex_inner_product_pd(\
-    dim, vreals, vimags, cmplxs, vret_real, vret_imag, vtmp_0, vtmp_1)\
-{\
-  vtmp_0 = _mm256_set1_pd(cmplxs[0]);\
-  vtmp_1 = _mm256_set1_pd(cmplxs[1]);\
-  _mm_complex_multiply_pd(vret_real, vret_imag, vreals[0], vimags[0], vtmp_0, vtmp_1);\
-  for (unsigned ____i = 1; ____i < dim; ++____i) {\
-    vtmp_0 = _mm256_set1_pd(cmplxs[____i * 2]);\
-    vtmp_1 = _mm256_set1_pd(cmplxs[____i * 2 + 1]);\
-    _mm_complex_multiply_add_pd(vret_real, vret_imag, vreals[____i], vimags[____i], vtmp_0, vtmp_1);\
-  }\
-}
+  auto _mm256_mul(const m256_t<float> left, const m256_t<float> right){
+    return _mm256_mul_ps(left, right);
+  }
 
-#define _mm_complex_multiply_ps(real_ret, imag_ret, real_left, imag_left, real_right, imag_right)\
-{\
-  real_ret = _mm256_mul_ps(real_left, real_right);\
-  imag_ret = _mm256_mul_ps(real_left, imag_right);\
-  real_ret = _mm256_fnmadd_ps(imag_left, imag_right, real_ret);\
-  imag_ret = _mm256_fmadd_ps(imag_left, real_right, imag_ret);\
-}
+  auto _mm256_fnmadd(const m256_t<double> left, const m256_t<double> right, const m256_t<double> ret){
+    return _mm256_fnmadd_pd(left, right, ret);
+  }
 
-#define _mm_complex_multiply_add_ps(real_ret, imag_ret, real_left, imag_left, real_right, imag_right)\
-{\
-  real_ret = _mm256_fmadd_ps(real_left, real_right, real_ret);\
-  imag_ret = _mm256_fmadd_ps(real_left, imag_right, imag_ret);\
-  real_ret = _mm256_fnmadd_ps(imag_left, imag_right, real_ret);\
-  imag_ret = _mm256_fmadd_ps(imag_left, real_right, imag_ret);\
-}
+  auto _mm256_fnmadd(const m256_t<float> left, const m256_t<float> right, const m256_t<float> ret){
+    return _mm256_fnmadd_ps(left, right, ret);
+  }
+
+  auto _mm256_fmadd(const m256_t<double> left, const m256_t<double> right, const m256_t<double> ret){
+    return _mm256_fmadd_pd(left, right, ret);
+  }
+
+  auto _mm256_fmadd(const m256_t<float>& left, const m256_t<float>& right, const m256_t<float>& ret){
+    return _mm256_fmadd_ps(left, right, ret);
+  }
+
+  auto _mm256_set1(double d){
+    return _mm256_set1_pd(d);
+  }
+
+  auto _mm256_set1(float d){
+    return _mm256_set1_ps(d);
+  }
+
+  template<typename FloatType>
+  inline void _mm_complex_multiply(m256_t<FloatType>& real_ret, m256_t<FloatType>& imag_ret, m256_t<FloatType>& real_left,
+    m256_t<FloatType>& imag_left, const m256_t<FloatType> real_right, const m256_t<FloatType> imag_right){
+      real_ret = _mm256_mul(real_left, real_right);
+      imag_ret = _mm256_mul(real_left, imag_right);
+      real_ret = _mm256_fnmadd(imag_left, imag_right, real_ret);
+      imag_ret = _mm256_fmadd(imag_left, real_right, imag_ret);
+  }
+
+  template<typename FloatType>
+  inline void _mm_complex_multiply_add(m256_t<FloatType>& real_ret, m256_t<FloatType>& imag_ret, m256_t<FloatType>& real_left,
+    m256_t<FloatType>& imag_left, const m256_t<FloatType> real_right, const m256_t<FloatType> imag_right){
+      real_ret = _mm256_fmadd(real_left, real_right, real_ret);
+      imag_ret = _mm256_fmadd(real_left, imag_right, imag_ret);
+      real_ret = _mm256_fnmadd(imag_left, imag_right, real_ret);
+      imag_ret = _mm256_fmadd(imag_left, real_right, imag_ret);
+  }
+
+  template<typename FloatType>
+  inline void _mm_complex_inner_product(size_t dim, m256_t<FloatType>& vreals, m256_t<FloatType>& vimags, double * cmplxs,
+    m256_t<FloatType>& vret_real, m256_t<FloatType>& vret_imag, m256_t<FloatType>& vtmp_0, m256_t<FloatType>& vtmp_1){
+      vtmp_0 = _mm256_set1(cmplxs[0]);
+      vtmp_1 = _mm256_set1(cmplxs[1]);
+      _mm_complex_multiply(vret_real, vret_imag, vreals[0], vimags[0], vtmp_0, vtmp_1);
+      for (size_t i = 1; i < dim; ++i){
+        vtmp_0 = _mm256_set1(cmplxs[i * 2]);
+        vtmp_1 = _mm256_set1(cmplxs[i * 2 + 1]);
+        _mm_complex_multiply_add(vret_real, vret_imag, vreals[i], vimags[i], vtmp_0, vtmp_1);
+      }
+  }
+
+
+
+} // End anonymous namespace
 
 #define _mm_complex_inner_product_ps(\
     dim, vreals, vimags, cmplxs, vret_real, vret_imag, vtmp_0, vtmp_1)\
@@ -163,6 +186,18 @@ using indexes_t = std::unique_ptr<uint64_t[]>;
 #define perm_d_q0q1_2   0 * 64 + 2 * 16 + 1 * 4 + 3 * 1
 #define perm_d_q0       2 * 64 + 3 * 16 + 0 * 4 + 1 * 1
 #define perm_d_q1       1 * 64 + 0 * 16 + 3 * 4 + 2 * 1
+
+
+}
+
+namespace QV {
+
+using reg_t = std::vector<uint64_t>;
+template<size_t N> using areg_t = std::array<uint64_t, N>;
+using indexes_t = std::unique_ptr<uint64_t[]>;
+
+
+
 
 template<size_t N>
 inline void _apply_matrix_float_avx_q0q1q2(  //
