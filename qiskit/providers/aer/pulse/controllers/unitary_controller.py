@@ -29,10 +29,11 @@ from ..de_solvers.pulse_utils import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-# set up full simulation, i.e. combining different (ideally modular) computational
-# resources into one function
-def full_simulation(exp, op_system):
-
+def _full_simulation(exp, op_system):
+    """
+    Set up full simulation, i.e. combining different (ideally modular) computational
+    resources into one function.
+    """
     psi, ode_t = unitary_evolution(exp, op_system)
 
     # ###############
@@ -92,9 +93,9 @@ def run_unitary_experiments(op_system):
 
     # run simulation on each experiment in parallel
     start = time.time()
-    exp_results = parallel_map(full_simulation,
+    exp_results = parallel_map(_full_simulation,
                                op_system.experiments,
-                               task_args=[op_system,],
+                               task_args=[op_system, ],
                                **map_kwargs
                                )
     end = time.time()
