@@ -95,7 +95,7 @@ def run_unitary_experiments(op_system):
     start = time.time()
     exp_results = parallel_map(_full_simulation,
                                op_system.experiments,
-                               task_args=[op_system, ],
+                               task_args=(op_system, ),
                                **map_kwargs
                                )
     end = time.time()
