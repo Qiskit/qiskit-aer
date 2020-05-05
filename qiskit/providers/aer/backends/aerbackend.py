@@ -29,7 +29,6 @@ from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
-from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
