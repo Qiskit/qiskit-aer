@@ -358,6 +358,18 @@ public:
   double norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const;
 
   //-----------------------------------------------------------------------
+  // Expectation Value
+  //-----------------------------------------------------------------------
+
+  // These functions return the expectation value <psi|A|psi> for a matrix A.
+  // If A is hermitian these will return real values, if A is non-Hermitian
+  // they in general will return complex values.
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+
+  //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------
 
@@ -2133,6 +2145,98 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
     } // end omp parallel
   }
   return samples;
+}
+
+/*******************************************************************************
+ *
+ * EXPECTATION VALUES
+ *
+ ******************************************************************************/
+
+template <typename data_t>
+double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
+                                         const std::string &pauli) const {
+  // Break string up into Z and X
+  // With Y being both Z and X (plus a phase)
+  const size_t N = qubits.size();
+  size_t num_x = 0;
+  size_t num_y = 0;
+  size_t num_z = 0;
+  uint_t x_indices = 0;
+  uint_t z_indices = 0;
+  for (size_t i = 0; i < N; ++i) {
+    const auto bit = BITS[qubits[i]];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_indices += bit;
+        num_x++;
+        break;
+      }
+      case 'Z': {
+        z_indices += bit;
+        num_z++;
+        break;
+      }
+      case 'Y': {
+        x_indices += bit;
+        z_indices += bit;
+        num_y++;
+        break;
+      }
+    }
+  }
+
+  // Special case for only Z & I Paulis
+  if (num_x + num_y == 0) {
+    // All I Paulis returns the norm of the state
+    if (num_z == 0)
+      return norm();
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      const auto val = std::real(data_[i] * std::conj(data_[i]));
+      val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val: val;
+    };
+    return std::real(apply_reduction_lambda(lambda));
+  }
+
+  // Special case for only X & I Paulis
+  if (num_z + num_y == 0) {
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      val_re += std::real(data_[i ^ x_indices] * std::conj(data_[i]));
+    };
+    return std::real(apply_reduction_lambda(lambda));
+  }
+
+  // General case
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms
+  std::complex<data_t> phase(1, 0);
+  switch (num_y % 4) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      phase = std::complex<data_t>(0, -1);
+      break;
+    case 2:
+      // phase = -1
+      phase = std::complex<data_t>(-1, 0);
+      break;
+    case 3:
+      // phase = 1j
+      phase = std::complex<data_t>(0, 1);
+      break;
+  }
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    const auto val = std::real(data_[i ^ x_indices] * phase * std::conj(data_[i]));
+    val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val : val;
+  };
+  return std::real(apply_reduction_lambda(lambda));
 }
 
 //------------------------------------------------------------------------------
