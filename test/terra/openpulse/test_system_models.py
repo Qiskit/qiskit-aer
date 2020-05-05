@@ -15,7 +15,7 @@ Tests for PulseSystemModel and HamiltonianModel functionality
 
 import unittest
 import warnings
-from numpy import array
+import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
 import qiskit
@@ -167,12 +167,75 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
 class TestHamiltonianModel(QiskitAerTestCase):
     """Tests for HamiltonianModel"""
 
+    def test_subsystem_list_from_dict(self):
+        """Test correct restriction of a Hamiltonian dict to a subset of systems"""
+
+        # construct 2 duffing oscillator hamiltonian
+        v0=5.0
+        v1=5.1
+        j=0.01
+        r=0.02
+        alpha0=-0.33
+        alpha1=-0.33
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['np.pi*(2*v0-alpha0)*O0',
+                              'np.pi*alpha0*O0*O0',
+                              '2*np.pi*r*X0||D0',
+                              '2*np.pi*r*X0||U1',
+                              '2*np.pi*r*X1||U0',
+                              'np.pi*(2*v1-alpha1)*O1',
+                              'np.pi*alpha1*O1*O1',
+                              '2*np.pi*r*X1||D1',
+                              '2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)']
+        hamiltonian['qub'] = {'0' : 3, '1' : 3}
+        hamiltonian['vars'] = {'v0': v0,
+                               'v1': v1,
+                               'j': j,
+                               'r': r,
+                               'alpha0': alpha0,
+                               'alpha1': alpha1}
+
+        # restrict to qubit 0 and verify some properties
+        ham_model0 = HamiltonianModel.from_dict(hamiltonian, subsystem_list=[0])
+        evals_expected0 = np.array([0,
+                                    np.pi*(2*v0-alpha0) + np.pi*alpha0,
+                                    (2 * np.pi*(2*v0-alpha0)) + (4 * np.pi*alpha0)])
+        eval_diff = norm(evals_expected0 - ham_model0._evals)
+        self.assertAlmostEqual(eval_diff, 0)
+
+        channel_labels0 = ham_model0._channels.keys()
+        for key in ['D0', 'U1']:
+            self.assertTrue(key in channel_labels0)
+        self.assertEqual(len(channel_labels0), 2)
+
+        qubit_lo_freq0 = ham_model0.get_qubit_lo_from_drift()
+        expected_freq0 = np.array([(np.pi*(2*v0-alpha0) + np.pi*alpha0) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq0 - expected_freq0), 0)
+
+        # restrict to qubit 1 and verify some properties
+        ham_model1 = HamiltonianModel.from_dict(hamiltonian, subsystem_list=[1])
+        evals_expected1 = np.array([0,
+                                    np.pi*(2*v1-alpha1) + np.pi*alpha1,
+                                    (2 * np.pi*(2*v1-alpha1)) + (4 * np.pi*alpha1)])
+        eval_diff = norm(evals_expected1 - ham_model1._evals)
+        self.assertAlmostEqual(eval_diff, 0)
+
+        channel_labels1 = ham_model1._channels.keys()
+        for key in ['D1', 'U0']:
+            self.assertTrue(key in channel_labels1)
+        self.assertEqual(len(channel_labels1), 2)
+
+        qubit_lo_freq1 = ham_model1.get_qubit_lo_from_drift()
+        expected_freq1 = np.array([0, (np.pi*(2*v1-alpha1) + np.pi*alpha1) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq1 - expected_freq1), 0)
+
     def test_eigen_sorting(self):
         """Test estate mappings"""
 
-        X = array([[0,1],[1,0]])
-        Y = array([[0,-1j], [1j, 0]])
-        Z = array([[1,0], [0, -1]])
+        X = np.array([[0,1],[1,0]])
+        Y = np.array([[0,-1j], [1j, 0]])
+        Z = np.array([[1,0], [0, -1]])
 
         simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
                       'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},

@@ -116,7 +116,6 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_sim_desc.global_data['memory_slots'] = digested_qobj.memory_slots
     pulse_sim_desc.global_data['memory'] = digested_qobj.memory
     pulse_sim_desc.global_data['n_registers'] = digested_qobj.n_registers
-
     pulse_sim_desc.global_data['pulse_array'] = digested_qobj.pulse_array
     pulse_sim_desc.global_data['pulse_indices'] = digested_qobj.pulse_indices
     pulse_sim_desc.pulse_to_int = digested_qobj.pulse_to_int
@@ -183,9 +182,9 @@ def pulse_controller(qobj, system_model, backend_options):
                 for jj in acq[1]:
                     if jj > qubit_list[-1]:
                         continue
-                    if not pulse_sim_desc.global_data['measurement_ops'][jj]:
+                    if not pulse_sim_desc.global_data['measurement_ops'][qubit_list.index(jj)]:
                         q_level_meas = pulse_sim_desc.global_data['q_level_meas']
-                        pulse_sim_desc.global_data['measurement_ops'][jj] = \
+                        pulse_sim_desc.global_data['measurement_ops'][qubit_list.index(jj)] = \
                             qobj_gen.qubit_occ_oper_dressed(jj,
                                                             estates,
                                                             h_osc=dim_osc,
@@ -309,7 +308,6 @@ def format_exp_results(exp_results, exp_times, op_system):
 
         # meas_level 2 return the shots
         if m_lev == 2:
-
             # convert the memory **array** into a n
             # integer
             # e.g. [1,0] -> 2
@@ -327,7 +325,6 @@ def format_exp_results(exp_results, exp_times, op_system):
             for kk in range(unique[0].shape[0]):
                 key = hex(unique[0][kk])
                 hex_dict[key] = unique[1][kk]
-
             results['data']['counts'] = hex_dict
 
         # meas_level 1 returns the <n>
