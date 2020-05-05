@@ -53,9 +53,3 @@ add_custom_target(build_tests
     test_snapshot
     test_snapshot_bdd
     test_utils)
-
-
-add_custom_target(build_tests
-    test_snapshot
-    test_snapshot_bdd
-    test_utils)
