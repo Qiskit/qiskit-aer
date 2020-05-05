@@ -91,10 +91,20 @@ class HamiltonianModel():
         if 'qub' in hamiltonian:
             if subsystem_list is None:
                 subsystem_list = [int(qubit) for qubit in hamiltonian['qub']]
+            else:
+                # if user supplied, make a copy and sort it
+                subsystem_list = subsystem_list.copy()
+                subsystem_list.sort()
 
-            subsystem_dims = {
+            # force keys in hamiltonian['qub'] to be ints
+            qub_dict = {
                 int(key): val
                 for key, val in hamiltonian['qub'].items()
+            }
+
+            subsystem_dims = {
+                int(qubit): qub_dict[int(qubit)]
+                for qubit in subsystem_list
             }
         else:
             subsystem_dims = {}
@@ -121,15 +131,19 @@ class HamiltonianModel():
         """ Computes a list of qubit frequencies corresponding to the exact energy
         gap between the ground and first excited states of each qubit.
 
+        If the keys in self._subsystem_dims skips over a qubit, it will default to outputting
+        a 0 frequency for that qubit.
+
         Returns:
             qubit_lo_freq (list): the list of frequencies
         """
-        qubit_lo_freq = [0] * len(self._subsystem_dims)
+        # need to specify frequencies up to max qubit index
+        qubit_lo_freq = [0] * (max(self._subsystem_dims.keys()) + 1)
 
         # compute difference between first excited state of each qubit and
         # the ground energy
         min_eval = np.min(self._evals)
-        for q_idx in range(len(self._subsystem_dims)):
+        for q_idx in self._subsystem_dims.keys():
             single_excite = _first_excited_state(q_idx, self._subsystem_dims)
             dressed_eval = _eval_for_max_espace_overlap(
                 single_excite, self._evals, self._estates)
@@ -240,10 +254,6 @@ def _first_excited_state(qubit_idx, subsystem_dims):
     """
     Returns the vector corresponding to all qubits in the 0 state, except for
     qubit_idx in the 1 state.
-
-    Assumption: the keys in dim_qub consist exactly of the str version of the int
-                in range(len(dim_qub)). They don't need to be in order, but they
-                need to be of this format
 
     Parameters:
         qubit_idx (int): the qubit to be in the 1 state
