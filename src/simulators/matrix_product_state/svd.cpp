@@ -481,7 +481,6 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	for( k = n-1 -1; k >= 0; k--)
 	{
 		k1 = k + 1;
-		//if (c[k1] != 0.0)
 		if ( !Linalg::almost_equal(static_cast<long double>(c[k1]), 
 					   static_cast<long double>(0.0) ))
 		{
