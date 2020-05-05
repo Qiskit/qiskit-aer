@@ -483,15 +483,17 @@ protected:
   //-----------------------------------------------------------------------
   // State reduction with Lambda functions
   //-----------------------------------------------------------------------
-  // Apply a complex reduction lambda function to all entries of the
-  // statevector and return the complex result.
-  // The function signature should be:
+  // Apply a complex reduction lambda function over the specified entries
+  // of the state vector given by start, stop.
   //
   // [&](const int_t k, double &val_re, double &val_im)->void
   //
   // where k is the index of the vector, val_re and val_im are the doubles
   // to store the reduction.
   // Returns std::complex<double>(val_re, val_im)
+  template <typename Lambda>
+  std::complex<double> apply_reduction_lambda(Lambda&& func, size_t start, size_t stop) const;
+
   template <typename Lambda>
   std::complex<double> apply_reduction_lambda(Lambda&& func) const;
 
@@ -1020,22 +1022,27 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
 
 template <typename data_t>
 template<typename Lambda>
-std::complex<double> QubitVector<data_t>::apply_reduction_lambda(Lambda &&func) const {
+std::complex<double>
+QubitVector<data_t>::apply_reduction_lambda(Lambda &&func, size_t start, size_t stop) const {
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-  const int_t END = data_size_;
 #pragma omp parallel reduction(+:val_re, val_im) if (num_qubits_ > omp_threshold_ && omp_threads_ > 1)         \
                                                num_threads(omp_threads_)
   {
 #pragma omp for
-    for (int_t k = 0; k < END; k++) {
+    for (int_t k = int_t(start); k < int_t(stop); k++) {
         std::forward<Lambda>(func)(k, val_re, val_im);
       }
   } // end omp parallel
   return std::complex<double>(val_re, val_im);
 }
 
+template <typename data_t>
+template<typename Lambda>
+std::complex<double> QubitVector<data_t>::apply_reduction_lambda(Lambda &&func) const {
+  return apply_reduction_lambda(std::move(func), size_t(0), data_size_);
+}
 
 template <typename data_t>
 template<typename Lambda, typename list_t>

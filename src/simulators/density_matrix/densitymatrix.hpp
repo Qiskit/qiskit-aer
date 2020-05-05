@@ -120,6 +120,18 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+  //-----------------------------------------------------------------------
+  // Expectation Value
+  //-----------------------------------------------------------------------
+
+  // These functions return the expectation value <psi|A|psi> for a matrix A.
+  // If A is hermitian these will return real values, if A is non-Hermitian
+  // they in general will return complex values.
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+
 protected:
 
   // Convert qubit indicies to vectorized-density matrix qubitvector indices
@@ -348,6 +360,102 @@ template <typename data_t>
 double DensityMatrix<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
   return std::real(BaseVector::data_[outcome * shift]);
+}
+
+//-----------------------------------------------------------------------
+// Pauli expectation value
+//-----------------------------------------------------------------------
+
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
+                                           const std::string &pauli) const {
+
+  // Break string up into Z and X
+  // With Y being both Z and X (plus a phase)
+  const size_t N = qubits.size();
+  size_t num_x = 0;
+  size_t num_y = 0;
+  size_t num_z = 0;
+  uint_t x_indices = 0;
+  uint_t z_indices = 0;
+  for (size_t i = 0; i < N; ++i) {
+    const auto bit = BITS[qubits[i]];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_indices += bit;
+        num_x++;
+        break;
+      }
+      case 'Z': {
+        z_indices += bit;
+        num_z++;
+        break;
+      }
+      case 'Y': {
+        x_indices += bit;
+        z_indices += bit;
+        num_y++;
+        break;
+      }
+    }
+  }
+
+  // The shift for density matrix indices in the vectorized vector
+  const size_t start = 0;
+  const size_t stop = BITS[num_qubits()];
+
+  // Special case for only Z & I Paulis
+  if (num_x + num_y == 0) {
+    // All I Paulis returns the trace of the density matrix
+    if (num_z == 0)
+      return std::real(BaseMatrix::trace());
+    const auto shift = stop + 1;
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      const auto val = std::real(BaseVector::data_[shift * i]);
+      val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val: val;
+    };
+    return std::real(BaseVector::apply_reduction_lambda(lambda, start, stop));
+  }
+
+  // Special case for only X & I Paulis
+  if (num_z + num_y == 0) {
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      val_re += std::real(BaseVector::data_[i ^ x_indices + stop * i]);
+    };
+    return std::real(BaseVector::apply_reduction_lambda(lambda, start, stop));
+  }
+
+  // General case
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms
+  std::complex<data_t> phase(1, 0);
+  switch (num_y % 4) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      phase = std::complex<data_t>(0, -1);
+      break;
+    case 2:
+      // phase = -1
+      phase = std::complex<data_t>(-1, 0);
+      break;
+    case 3:
+      // phase = 1j
+      phase = std::complex<data_t>(0, 1);
+      break;
+  }
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    const auto val = std::real(phase * BaseVector::data_[i ^ x_indices + stop * i]);
+    val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val : val;
+  };
+  return std::real(BaseVector::apply_reduction_lambda(lambda, start, stop));
 }
 
 //------------------------------------------------------------------------------
