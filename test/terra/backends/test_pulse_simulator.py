@@ -62,6 +62,45 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
 
+
+    def test_unitary_parallel(self):
+        """
+        Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but
+        runs it twice to trigger parallel execution.
+        """
+        # setup system model
+        total_samples = 100
+        omega_0 = 2 * np.pi
+        omega_d0 = omega_0
+        omega_a = np.pi / total_samples
+        system_model = self._system_model_1Q(omega_0, omega_a)
+
+        # set up schedule and qobj
+        # run schedule twice to trigger parallel execution
+        schedule = self._simple_1Q_schedule(0, total_samples)
+        qobj = assemble([schedule, schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        memory_slots=2,
+                        shots=256)
+
+        # set backend backend_options
+        backend_options = {'seed' : 9000}
+
+        # run simulation
+        result = self.backend_sim.run(qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+
+        # test results, checking both runs in parallel
+        counts = result.get_counts()
+        exp_counts = {'1': 256}
+        self.assertDictAlmostEqual(counts[0], exp_counts)
+        self.assertDictAlmostEqual(counts[1], exp_counts)
+
+
     def test_x_gate(self):
         """
         Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
