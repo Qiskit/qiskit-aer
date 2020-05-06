@@ -129,6 +129,18 @@ public:
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
+  //-----------------------------------------------------------------------
+  // Expectation Value
+  //-----------------------------------------------------------------------
+
+  // These functions return the expectation value <psi|A|psi> for a matrix A.
+  // If A is hermitian these will return real values, if A is non-Hermitian
+  // they in general will return complex values.
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+
 protected:
 
   // Convert qubit indicies to vectorized-density matrix qubitvector indices
@@ -533,6 +545,20 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 #endif
 	
   return samples;
+}
+
+//-----------------------------------------------------------------------
+// Pauli expectation value
+//-----------------------------------------------------------------------
+
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
+                                           const std::string &pauli) const {
+  // TODO!
+  throw std::runtime_error(
+    "Pauli expectation value is not implemented for GPU density matrix."
+  );
+  return 0;
 }
 
 //------------------------------------------------------------------------------
