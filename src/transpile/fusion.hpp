@@ -208,7 +208,6 @@ void Fusion::optimize_circuit(Circuit& circ,
     applied = true;
 
   if (applied) {
-
     size_t idx = 0;
     for (size_t i = 0; i < circ.ops.size(); ++i) {
       if (circ.ops[i].name != "nop") {
@@ -221,10 +220,13 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (idx != circ.ops.size())
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
     metadata["applied"] = true;
+
+    // Update circuit params for fused circuit
+    circ.set_params();
   }
 
   // Final metadata
-  if (verbose) {
+  if (verbose && applied) {
     metadata["input_ops"] = circ.ops;
     metadata["output_ops"] = circ.ops;
   }
