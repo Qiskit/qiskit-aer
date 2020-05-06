@@ -4527,8 +4527,8 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
  ******************************************************************************/
 
 template <typename data_t>
-double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
-                                         const std::string &pauli) const {
+double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
+                                               const std::string &pauli) const {
   // TODO!
   throw std::runtime_error(
     "Pauli expectation value is not implemented for GPU statevector."

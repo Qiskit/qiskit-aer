@@ -552,8 +552,8 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 //-----------------------------------------------------------------------
 
 template <typename data_t>
-double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
-                                           const std::string &pauli) const {
+double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
+                                                 const std::string &pauli) const {
   // TODO!
   throw std::runtime_error(
     "Pauli expectation value is not implemented for GPU density matrix."
