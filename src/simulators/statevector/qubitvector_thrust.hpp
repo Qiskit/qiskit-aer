@@ -1048,6 +1048,18 @@ public:
   double norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const;
 
   //-----------------------------------------------------------------------
+  // Expectation Value
+  //-----------------------------------------------------------------------
+
+  // These functions return the expectation value <psi|A|psi> for a matrix A.
+  // If A is hermitian these will return real values, if A is non-Hermitian
+  // they in general will return complex values.
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+
+  //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------
 
@@ -4508,6 +4520,21 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
 
 #endif
 
+/*******************************************************************************
+ *
+ * EXPECTATION VALUES
+ *
+ ******************************************************************************/
+
+template <typename data_t>
+double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
+                                         const std::string &pauli) const {
+  // TODO!
+  throw std::runtime_error(
+    "Pauli expectation value is not implemented for GPU statevector."
+  );
+  return 0;
+}                                       
 //------------------------------------------------------------------------------
 } // end namespace QV
 //------------------------------------------------------------------------------
