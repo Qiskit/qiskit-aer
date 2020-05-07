@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix issue where the "diagonal" gate is checked to be unitary with too
+    high a tolerance. This was causing diagonals generated from Numpy functions
+    to often fail the test.

@@ -95,35 +95,17 @@ complex_t chan_value(
     return out;
 }
 
-
-PyArrayObject * create_py_array_from_vector(
-    complex_t * out,
-    int num_rows){
-
-    npy_intp dims = num_rows;
-    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, &dims, NPY_COMPLEX128, out));
-    PyArray_ENABLEFLAGS(array, NPY_OWNDATA);
-    #ifdef DEBUG
-    CALLGRIND_STOP_INSTRUMENTATION;
-    CALLGRIND_DUMP_STATS;
-    #endif
-    return array;
-}
-
-PyArrayObject * td_ode_rhs(
-    double t,
-    PyArrayObject * py_vec,
-    PyObject * py_global_data,
-    PyObject * py_exp,
-    PyObject * py_system,
-    PyObject * py_channels,
-    PyObject * py_register){
-
+py::array_t<complex_t> td_ode_rhs(double t,
+        py::array_t<complex_t> the_vec,
+        py::object the_global_data,
+        py::object the_exp,
+        py::object the_system,
+        py::object the_channels,
+        py::object the_reg)
+{
     #ifdef DEBUG
     CALLGRIND_START_INSTRUMENTATION;
     #endif
-
-    import_array();
 
     // I left this commented on porpose so we can use logging eventually
     // This is just a RAII for the logger
@@ -132,6 +114,12 @@ PyArrayObject * td_ode_rhs(
     //spdlog::set_default_logger(file_logger);
     //spdlog::set_level(spdlog::level::debug); // Set global log level to debug
     //spdlog::flush_on(spdlog::level::debug);
+
+    PyArrayObject * py_vec = reinterpret_cast<PyArrayObject *>(the_vec.ptr());
+    PyObject * py_global_data = the_global_data.ptr();
+    PyObject * py_exp = the_exp.ptr();
+    PyObject * py_system = the_system.ptr();
+    PyObject * py_register = the_reg.ptr();
 
     if(py_vec == nullptr ||
        py_global_data == nullptr ||
@@ -183,17 +171,13 @@ PyArrayObject * td_ode_rhs(
     auto idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
     auto ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
     auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
-    for(const auto& idx_sys : enumerate(systems)){
-        auto sys_index = idx_sys.first;
-        auto sys = idx_sys.second;
-
+    for(int h_idx = 0; h_idx < num_h_terms; h_idx++){
         // TODO: Refactor
         std::string term;
-        if(sys_index == systems.size() && num_h_terms > systems.size()){
+        if(h_idx == systems.size() && num_h_terms > systems.size()){
             term = "1.0";
-        }else if(sys_index < systems.size()){
-            //term = sys.second;
-            term = sys.term;
+        }else if(h_idx < systems.size()){
+            term = systems[h_idx].term;
         }else{
             continue;
         }
@@ -202,16 +186,16 @@ PyArrayObject * td_ode_rhs(
         if(std::abs(td) > 1e-15){
             for(auto i=0; i<num_rows; i++){
                 complex_t dot = {0., 0.};
-                auto row_start = ptrs[sys_index][i];
-                auto row_end = ptrs[sys_index][i+1];
+                auto row_start = ptrs[h_idx][i];
+                auto row_end = ptrs[h_idx][i+1];
                 for(auto j = row_start; j<row_end; ++j){
-                    auto tmp_idx = idxs[sys_index][j];
+                    auto tmp_idx = idxs[h_idx][j];
                     auto osc_term =
                         std::exp(
                             complex_t(0.,1.) * (energy[i] - energy[tmp_idx]) * t
                         );
                     complex_t coef = (i < tmp_idx ? std::conj(td) : td);
-                    dot += coef * osc_term * datas[sys_index][j] * vec[tmp_idx];
+                    dot += coef * osc_term * datas[h_idx][j] * vec[tmp_idx];
 
                 }
                 out[i] += dot;
@@ -223,5 +207,5 @@ PyArrayObject * td_ode_rhs(
         out[i] += complex_t(0.,1.) * energy[i] * vec[i];
     }
 
-    return create_py_array_from_vector(out, num_rows);
+    return py::array(num_rows, out);
 }

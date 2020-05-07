@@ -9,17 +9,20 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 QasmSimulator Integration Tests
 """
+# pylint: disable=no-member
+
 from test.terra.reference import ref_2q_clifford
+from test.benchmark.tools import quantum_volume_circuit, qft_circuit
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
-from test.benchmark.tools import quantum_volume_circuit, qft_circuit
+
 
 class QasmFusionTests:
     """QasmSimulator fusion tests."""
@@ -57,252 +60,168 @@ class QasmFusionTests:
                 depolarizing_error(gate_error, num_qubits), gate)
             return noise
 
-    def check_mat_exist(self, result):
-        fusion_gates = result.to_dict(
-        )['results'][0]['metadata']['fusion_verbose']
-        for gate in fusion_gates:
-            print(gate)
-
-    def test_clifford_no_fusion(self):
-        """Test Fusion with clifford simulator"""
-        shots = 100
-        circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
-            final_measure=True)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-
+    def fusion_options(self, enabled=None, threshold=None, verbose=None):
+        """Return default backend_options dict."""
         backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_verbose'] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        if enabled is not None:
+            backend_options['fusion_enable'] = enabled
+        if verbose is not None:
+            backend_options['fusion_verbose'] = verbose
+        if threshold is not None:
+            backend_options['fusion_threshold'] = threshold
+        return backend_options
 
-        result = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+    def fusion_metadata(self, result):
+        """Return fusion metadata dict"""
+        metadata = result.results[0].metadata
+        return metadata.get('fusion', {})
 
-        self.assertTrue(
-            'results' in result.to_dict(), msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result.to_dict()['results'][0]['metadata'],
-            msg="fusion must not work for clifford")
-
-    def test_noise_fusion(self):
-        """Test Fusion with noise model option"""
-        circuit = self.create_statevector_circuit()
-
+    def test_fusion_theshold(self):
+        """Test fusion threhsold"""
         shots = 100
-        noise_model = self.noise_model()
-        circuit = transpile([circuit],
-                            backend=self.SIMULATOR,
-                            basis_gates=noise_model.basis_gates)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        threshold = 10
+        backend_options = self.fusion_options(enabled=True, threshold=threshold)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        with self.subTest(msg='below fusion threshold'):
+            circuit = qft_circuit(threshold - 1, measure=True)
+            qobj = assemble([circuit],
+                            self.SIMULATOR,
+                            shots=shots)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
-        result = self.SIMULATOR.run(
-            qobj,
-            noise_model=noise_model,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertFalse(meta.get('applied', False))
 
-        self.assertTrue(
-            'results' in result.to_dict(), msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' in result.to_dict()['results'][0]['metadata'],
-            msg="verbose must work with noise")
+        with self.subTest(msg='at fusion threshold'):
+            circuit = qft_circuit(threshold, measure=True)
+            qobj = assemble([circuit],
+                            self.SIMULATOR,
+                            shots=shots)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
+
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
+
+        with self.subTest(msg='above fusion threshold'):
+            circuit = qft_circuit(threshold + 1, measure=True)
+            qobj = assemble([circuit],
+                            self.SIMULATOR,
+                            shots=shots)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
+
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
 
     def test_fusion_verbose(self):
         """Test Fusion with verbose option"""
         circuit = self.create_statevector_circuit()
-
         shots = 100
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        qobj = assemble([circuit], self.SIMULATOR, shots=shots)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
-    
-        result_verbose = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_verbose, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_verbose.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_verbose.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' in result_verbose.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must work for satevector")
+        with self.subTest(msg='verbose enabled'):
+            backend_options = self.fusion_options(enabled=True, verbose=True, threshold=1)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = False
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+            # Assert fusion applied succesfully
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
+            # Assert verbose meta data in output
+            self.assertIn('input_ops', meta)
+            self.assertIn('output_ops', meta)
 
-        result_nonverbose = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_nonverbose, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_nonverbose.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_nonverbose.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result_nonverbose.to_dict()['results'][0]
-            ['metadata'],
-            msg="verbose must not work if fusion_verbose is False")
+        with self.subTest(msg='verbose disabled'):
+            backend_options = self.fusion_options(enabled=True, verbose=False, threshold=1)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+            # Assert fusion applied succesfully
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
+            # Assert verbose meta data not in output
+            self.assertNotIn('input_ops', meta)
+            self.assertNotIn('output_ops', meta)
 
-        result_default = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
-        self.assertTrue(getattr(result_default, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_default.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_default.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result_default.to_dict()['results'][0]
-            ['metadata'],
-            msg="verbose must not work if fusion_verbose is False")
+        with self.subTest(msg='verbose default'):
+            backend_options = self.fusion_options(enabled=True, threshold=1)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
+
+            # Assert fusion applied succesfully
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
+            # Assert verbose meta data not in output
+            self.assertNotIn('input_ops', meta)
+            self.assertNotIn('output_ops', meta)
+
+    def test_noise_fusion(self):
+        """Test Fusion with noise model option"""
+        shots = 100
+        circuit = self.create_statevector_circuit()
+        noise_model = self.noise_model()
+        circuit = transpile([circuit],
+                            backend=self.SIMULATOR,
+                            basis_gates=noise_model.basis_gates)
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        result = self.SIMULATOR.run(qobj,
+                                    noise_model=noise_model,
+                                    backend_options=backend_options).result()
+        meta = self.fusion_metadata(result)
+
+        self.assertTrue(getattr(result, 'success', False))
+        self.assertTrue(meta.get('applied', False),
+                        msg='fusion should have been applied.')
 
     def test_control_fusion(self):
         """Test Fusion enable/disable option"""
         shots = 100
         circuit = self.create_statevector_circuit()
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        with self.subTest(msg='fusion enabled'):
+            backend_options = self.fusion_options(enabled=True, threshold=1)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
-        result_verbose = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_verbose, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_verbose.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_verbose.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' in result_verbose.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must work for satevector")
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertTrue(meta.get('applied', False))
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = False
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        with self.subTest(msg='fusion disabled'):
+            backend_options = backend_options = self.fusion_options(enabled=False, threshold=1)
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
-        result_disabled = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_disabled, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_disabled.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_disabled.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result_disabled.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must not work with fusion_enable is False")
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertFalse(meta.get('applied', False))
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_verbose'] = True
+        with self.subTest(msg='fusion default'):
+            backend_options = self.fusion_options()
 
-        result_default = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
-        self.assertTrue(getattr(result_default, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_default.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_default.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result_default.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must not work by default for satevector")
+            result = self.SIMULATOR.run(
+                qobj, backend_options=backend_options).result()
+            meta = self.fusion_metadata(result)
 
+            self.assertTrue(getattr(result, 'success', False))
+            self.assertFalse(meta.get('applied', False))
 
-    def test_default_fusion(self):
-        """Test default Fusion option"""
-        default_threshold = 20
-        shots = 100
-        circuit = qft_circuit(default_threshold - 1, measure=True)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
-
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_verbose'] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
-
-        result_verbose = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_verbose, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_verbose.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_verbose.to_dict()['results'][0],
-            msg="metadata must not exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' not in result_verbose.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must work for satevector")
-
-        circuit = qft_circuit(default_threshold, measure=True)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
-        result_verbose = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_verbose, 'success', 'False'))
-        self.assertTrue(
-            'results' in result_verbose.to_dict(),
-            msg="results must exist in result")
-        self.assertTrue(
-            'metadata' in result_verbose.to_dict()['results'][0],
-            msg="metadata must exist in results[0]")
-        self.assertTrue(
-            'fusion_verbose' in result_verbose.to_dict()['results'][0]
-            ['metadata'],
-            msg="fusion must work for satevector")
-        
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100
@@ -360,109 +279,84 @@ class QasmFusionTests:
 
         circuit.measure(qr, cr)
 
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        backend_options = self.fusion_options(enabled=False, threshold=1)
+        result_disabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_disabled = self.fusion_metadata(result_disabled)
 
-        result_fusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_fusion, 'success', 'False'))
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        result_enabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_enabled = self.fusion_metadata(result_enabled)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = False
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
-
-        result_nonfusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_nonfusion, 'success', 'False'))
-
-        self.assertDictAlmostEqual(
-            result_fusion.get_counts(circuit),
-            result_nonfusion.get_counts(circuit),
-            delta=0.0,
-            msg="fusion x-x-x was failed")
-
+        self.assertTrue(getattr(result_disabled, 'success', 'False'))
+        self.assertTrue(getattr(result_enabled, 'success', 'False'))
+        self.assertEqual(meta_disabled, {})
+        self.assertTrue(meta_enabled.get('applied', False))
+        self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
+                                   result_disabled.get_counts(circuit),
+                                   delta=0.0,
+                                   msg="fusion for qft was failed")
 
     def test_fusion_qv(self):
         """Test Fusion with quantum volume"""
         shots = 100
-        
-        circuit = quantum_volume_circuit(10, 1, measure=True, seed=0)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
-        
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
 
-        result_fusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_fusion, 'success', 'False'))
+        circuit = quantum_volume_circuit(10, 2, measure=True, seed=0)
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = False
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        backend_options = self.fusion_options(enabled=False, threshold=1)
+        result_disabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_disabled = self.fusion_metadata(result_disabled)
 
-        result_nonfusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_nonfusion, 'success', 'False'))
-        
-        self.assertDictAlmostEqual(
-            result_fusion.get_counts(circuit),
-            result_nonfusion.get_counts(circuit),
-            delta=0.0,
-            msg="fusion for qv was failed")
-        
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        result_enabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_enabled = self.fusion_metadata(result_enabled)
+
+        self.assertTrue(getattr(result_disabled, 'success', 'False'))
+        self.assertTrue(getattr(result_enabled, 'success', 'False'))
+        self.assertEqual(meta_disabled, {})
+        self.assertTrue(meta_enabled.get('applied', False))
+        self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
+                                   result_disabled.get_counts(circuit),
+                                   delta=0.0,
+                                   msg="fusion for qft was failed")
+
     def test_fusion_qft(self):
         """Test Fusion with qft"""
         shots = 100
-        
+
         circuit = qft_circuit(10, measure=True)
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots, seed_simulator=1)
-        
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = True
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
 
-        result_fusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_fusion, 'success', 'False'))
+        backend_options = self.fusion_options(enabled=False, threshold=1)
+        result_disabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_disabled = self.fusion_metadata(result_disabled)
 
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options['fusion_enable'] = False
-        backend_options['fusion_verbose'] = True
-        backend_options['fusion_threshold'] = 1
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        result_enabled = self.SIMULATOR.run(
+            qobj, backend_options=backend_options).result()
+        meta_enabled = self.fusion_metadata(result_enabled)
 
-        result_nonfusion = self.SIMULATOR.run(
-            qobj,
-            backend_options=backend_options).result()
-        self.assertTrue(getattr(result_nonfusion, 'success', 'False'))
-        
-        self.assertDictAlmostEqual(
-            result_fusion.get_counts(circuit),
-            result_nonfusion.get_counts(circuit),
-            delta=0.0,
-            msg="fusion for qft was failed")
+        self.assertTrue(getattr(result_disabled, 'success', 'False'))
+        self.assertTrue(getattr(result_enabled, 'success', 'False'))
+        self.assertEqual(meta_disabled, {})
+        self.assertTrue(meta_enabled.get('applied', False))
+        self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
+                                   result_disabled.get_counts(circuit),
+                                   delta=0.0,
+                                   msg="fusion for qft was failed")

@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Adds an OpSet object to the base simulator State class to allow easier
+    validation of instructions, gates, and snapshots supported by simulators.
+  - |
+    Refactor OpSet class. Moved OpSet to separate header file and add
+    ``contains`` and ``diference`` methods based on ``std::set::contains``
+    and ``std::algorithm::set_difference``. These replace the removed invalid
+    and validate instructions from OpSet, but with the order reversed. It
+    returns a list of other ops not in current opset rather than opset
+    instructions not in the other.

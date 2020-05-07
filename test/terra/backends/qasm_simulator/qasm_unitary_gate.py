@@ -13,11 +13,13 @@
 QasmSimulator Integration Tests
 """
 
+
+from test.terra.reference import ref_unitary_gate, ref_diagonal_gate
+
 from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 
-from test.terra.reference import ref_unitary_gate
-
+import numpy as np
 
 class QasmUnitaryGateTests:
     """QasmSimulator additional tests."""
@@ -44,7 +46,29 @@ class QasmUnitaryGateTests:
         """Test simulation with random unitary gate circuit instructions."""
         shots = 2000
         circuits = ref_unitary_gate.unitary_random_gate_circuits_nondeterministic(final_measure=True)
-        targets = ref_unitary_gate.unitary_random_gate_counts_nondeterministic()
+        targets = ref_unitary_gate.unitary_random_gate_counts_nondeterministic(shots)
         result = execute(circuits, self.SIMULATOR, shots=shots).result()
         self.assertTrue(getattr(result, 'success', False))
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+
+class QasmDiagonalGateTests:
+    """QasmSimulator additional tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    # ---------------------------------------------------------------------
+    # Test unitary gate qobj instruction
+    # ---------------------------------------------------------------------
+
+    def test_diagonal_gate(self):
+        """Test simulation with unitary gate circuit instructions."""
+        shots = 100
+        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_diagonal_gate.diagonal_gate_counts_deterministic(
+            shots)
+        result = execute(circuits, self.SIMULATOR, shots=shots).result()
+        self.assertTrue(getattr(result, 'success', False))
+        self.compare_counts(result, circuits, targets, delta=0)
