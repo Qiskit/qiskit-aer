@@ -210,7 +210,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   if (applied) {
     size_t idx = 0;
     for (size_t i = 0; i < circ.ops.size(); ++i) {
-      if (circ.ops[i].name != "nop") {
+      if (circ.ops[i].type != optype_t::nop) {
         if (i != idx)
           circ.ops[idx] = circ.ops[i];
         ++idx;
@@ -376,7 +376,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
       for (int j = to; j <= i; ++j) {
         fusioned_ops.push_back(ops[j]);
         fusioned_qubits.insert(ops[j].qubits.cbegin(), ops[j].qubits.cend());
-        ops[j].name = "nop";
+        ops[j].type = optype_t::nop;
       }
       if (!fusioned_ops.empty()) {
         // We need to remap qubits in fusion subcircuits for simulation
