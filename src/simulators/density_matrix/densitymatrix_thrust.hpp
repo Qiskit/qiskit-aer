@@ -552,13 +552,159 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 //-----------------------------------------------------------------------
 
 template <typename data_t>
+class density_expval_pauli_func : public GateFuncBase
+{
+protected:
+  int num_qubits_;
+  uint_t x_mask_;
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+public:
+  density_expval_pauli_func(int nq,uint_t x,uint_t z,thrust::complex<data_t> p)
+  {
+    num_qubits_ = nq;
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+  }
+
+  bool IsDiagonal(void)
+  {
+    return true;
+  }
+  bool Reduction(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,gid;
+    thrust::complex<data_t>* pV;
+    thrust::complex<data_t> q0;
+    double ret;
+    struct GateParams<data_t> params;
+
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    i = ExtractIndexFromTuple(iter);
+    gid = params.gid_ + i;
+
+    //because matrix is distributed in chunks, we have to decode address
+    uint_t i_row,i_col;
+    i_row = gid >> num_qubits_;
+    i_col = gid - (i_row << num_qubits_);
+    if(x_mask_ == 0){
+      if(i_row != i_col)
+        return 0.0;
+    }
+    else{
+      if(i_col != (i_row ^ x_mask_))
+        return 0.0;
+    }
+
+    ret = 0.0;
+
+    q0 = pV[i];
+    q0 = q0 * phase_;
+
+    ret = q0.real();
+
+    if(z_mask_ != 0){
+      uint_t count;
+      //count bits (__builtin_popcountll can not be used on GPU)
+      count = i & z_mask_;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >>16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >>32) & 0x00000000ffffffff);
+      if(count & 1)
+        ret = -ret;
+    }
+    return ret;
+  }
+};
+
+
+template <typename data_t>
 double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
-                                                 const std::string &pauli) const {
-  // TODO!
-  throw std::runtime_error(
-    "Pauli expectation value is not implemented for GPU density matrix."
-  );
-  return 0;
+                                                 const std::string &pauli) const 
+{
+  // Break string up into Z and X
+  // With Y being both Z and X (plus a phase)
+  const size_t N = qubits.size();
+  size_t num_x = 0;
+  size_t num_y = 0;
+  size_t num_z = 0;
+  uint_t x_indices = 0;
+  uint_t z_indices = 0;
+  for (size_t i = 0; i < N; ++i) {
+    const auto bit = 1ull << qubits[i];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_indices += bit;
+        num_x++;
+        break;
+      }
+      case 'Z': {
+        z_indices += bit;
+        num_z++;
+        break;
+      }
+      case 'Y': {
+        x_indices += bit;
+        z_indices += bit;
+        num_y++;
+        break;
+      }
+    }
+  }
+
+  thrust::complex<data_t> phase(1,0);
+  double ret;
+
+  // Special case for only Z & I Paulis
+  if (num_x + num_y == 0) {
+    // All I Paulis returns the trace of the density matrix
+    if (num_z == 0)
+      ret = BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),0,0,phase),qubits);
+    else
+      ret = BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),0,z_indices,phase),qubits);
+    return ret;
+  }
+
+  // Special case for only X & I Paulis
+  if (num_z + num_y == 0) {
+    ret = BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),x_indices,0,phase),qubits);
+    return ret;
+  }
+
+  // General case
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms
+  switch (num_y % 4) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      phase = thrust::complex<data_t>(0, -1);
+      break;
+    case 2:
+      // phase = -1
+      phase = thrust::complex<data_t>(-1, 0);
+      break;
+    case 3:
+      // phase = 1j
+      phase = thrust::complex<data_t>(0, 1);
+      break;
+  }
+  ret = BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),x_indices,z_indices,phase),qubits);
+  return ret;
 }
 
 //------------------------------------------------------------------------------
