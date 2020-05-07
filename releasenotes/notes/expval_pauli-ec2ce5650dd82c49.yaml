@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds Pauli expectation value snapshot support to the density matrix
+    simulation method.
+upgrade:
+  - |
+    Greatly improves performance of the Pauli expectation value snapshot for
+    the statevector qasm simulation method.
