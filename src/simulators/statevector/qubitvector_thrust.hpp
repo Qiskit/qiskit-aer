@@ -4627,28 +4627,15 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
     }
   }
 
-  thrust::complex<data_t> phase(1,0);
-  double ret;
-
-  // Special case for only Z & I Paulis
-  if (num_x + num_y == 0) {
-    // All I Paulis returns the norm of the state
-    if (num_z == 0)
-      return norm();
-
-    ret = apply_function(expval_pauli_func<data_t>(0,z_indices,phase),qubits);
-    return ret;
-  }
-
-  // Special case for only X & I Paulis
-  if (num_z + num_y == 0) {
-    ret = apply_function(expval_pauli_func<data_t>(x_indices,0,phase),qubits);
-    return ret;
+  // Special case for all identity
+  if (num_x + num_y + num_z == 0) {
+    return norm();
   }
 
   // General case
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms
+  thrust::complex<data_t> phase(1,0);
   switch (num_y % 4) {
     case 0:
       // phase = 1
@@ -4666,8 +4653,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
       phase = thrust::complex<data_t>(0, 1);
       break;
   }
-  ret = apply_function(expval_pauli_func<data_t>(x_indices,z_indices,phase),qubits);
-  return ret;
+  return apply_function(expval_pauli_func<data_t>(x_indices, z_indices, phase),qubits);
 }
 
 //------------------------------------------------------------------------------
