@@ -90,7 +90,7 @@ def unitary_instr(mat, qubits, label=None):
     Args:
         mat (matrix_like): an n-qubit unitary matrix
         qubits (list[int]): qubits to apply the matrix to.
-        label (str): optional string label for the untiary matrix
+        label (str): optional string label for the unitary matrix
 
     Returns:
         QasmQobjInstruction: The qobj item for the unitary instruction.
