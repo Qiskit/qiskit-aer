@@ -926,8 +926,8 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 
 bool QasmController::check_measure_sampling_opt(
     const Circuit &circ, const Method method) const {
-  // Check if circuit contains no measurements, or has sampling flag disabled
-  if (circ.can_sample == false || !circ.opset().contains(Operations::OpType::measure)) {
+  // Check if circuit has sampling flag disabled
+  if (circ.can_sample == false) {
     return false;
   }
 
