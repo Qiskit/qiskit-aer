@@ -1,5 +1,3 @@
-find_package(Catch2 REQUIRED)
-
 add_executable(test_snapshot "src/test_snapshot.cpp")
 set_target_properties(test_snapshot PROPERTIES
 										LINKER_LANGUAGE CXX
