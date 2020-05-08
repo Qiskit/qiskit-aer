@@ -4576,8 +4576,8 @@ public:
       count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
       count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
       count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-      count = (count & 0x0000ffff0000ffff) + ((count >>16) & 0x0000ffff0000ffff);
-      count = (count & 0x00000000ffffffff) + ((count >>32) & 0x00000000ffffffff);
+      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
       if(count & 1)
         ret = -ret;
     }
@@ -4596,24 +4596,20 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   // Break string up into Z and X
   // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
-  size_t num_x = 0;
-  size_t num_y = 0;
-  size_t num_z = 0;
   uint_t x_mask = 0;
   uint_t z_mask = 0;
+  uint_t num_y = 0;
   for (size_t i = 0; i < N; ++i) {
-    const auto bit = 1ull << qubits[i];
+    const auto bit = BITS[qubits[i]];
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
       case 'X': {
         x_mask += bit;
-        num_x++;
         break;
       }
       case 'Z': {
         z_mask += bit;
-        num_z++;
         break;
       }
       case 'Y': {
@@ -4622,19 +4618,20 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
         num_y++;
         break;
       }
+      default:
+        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
     }
   }
 
-  // Special case for all identity
-  if (num_x + num_y + num_z == 0) {
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
     return norm();
   }
 
-  // General case
   // Compute the overall phase of the operator.
-  // This is (-1j) ** number of Y terms
+  // This is (-1j) ** number of Y terms modulo 4
   thrust::complex<data_t> phase(1,0);
-  switch (num_y % 4) {
+  switch (num_y & 3) {
     case 0:
       // phase = 1
       break;
