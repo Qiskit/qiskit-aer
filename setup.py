@@ -22,7 +22,6 @@ except ImportError:
 import setuptools
 
 requirements = [
-    'conan',
     'qiskit-terra>=0.12.0',
     'numpy>=1.16.3;python_version>"3.5"',
     'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
