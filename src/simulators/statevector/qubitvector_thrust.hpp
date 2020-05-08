@@ -4556,14 +4556,12 @@ public:
     thrust::complex<data_t>* pV;
     thrust::complex<data_t> q0;
     thrust::complex<data_t> q1;
-    double ret;
+    double ret = 0.0;
     struct GateParams<data_t> params;
 
     i = ExtractIndexFromTuple(iter);
     params = ExtractParamsFromTuple(iter);
     pV = params.buf_;
-
-    ret = 0.0;
 
     q0 = pV[i];
     q1 = pV[i ^ x_mask_];
@@ -4601,26 +4599,26 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   size_t num_x = 0;
   size_t num_y = 0;
   size_t num_z = 0;
-  uint_t x_indices = 0;
-  uint_t z_indices = 0;
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
   for (size_t i = 0; i < N; ++i) {
     const auto bit = 1ull << qubits[i];
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
       case 'X': {
-        x_indices += bit;
+        x_mask += bit;
         num_x++;
         break;
       }
       case 'Z': {
-        z_indices += bit;
+        z_mask += bit;
         num_z++;
         break;
       }
       case 'Y': {
-        x_indices += bit;
-        z_indices += bit;
+        x_mask += bit;
+        z_mask += bit;
         num_y++;
         break;
       }
@@ -4653,7 +4651,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
       phase = thrust::complex<data_t>(0, 1);
       break;
   }
-  return apply_function(expval_pauli_func<data_t>(x_indices, z_indices, phase),qubits);
+  return apply_function(expval_pauli_func<data_t>(x_mask, z_mask, phase),qubits);
 }
 
 //------------------------------------------------------------------------------

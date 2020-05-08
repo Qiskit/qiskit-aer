@@ -2169,55 +2169,37 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
   size_t num_x = 0;
   size_t num_y = 0;
   size_t num_z = 0;
-  uint_t x_indices = 0;
-  uint_t z_indices = 0;
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
   for (size_t i = 0; i < N; ++i) {
     const auto bit = BITS[qubits[i]];
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
       case 'X': {
-        x_indices += bit;
+        x_mask += bit;
         num_x++;
         break;
       }
       case 'Z': {
-        z_indices += bit;
+        z_mask += bit;
         num_z++;
         break;
       }
       case 'Y': {
-        x_indices += bit;
-        z_indices += bit;
+        x_mask += bit;
+        z_mask += bit;
         num_y++;
         break;
       }
     }
   }
 
-  // Special case for only Z & I Paulis
-  if (num_x + num_y == 0) {
-    // All I Paulis returns the norm of the state
-    if (num_z == 0)
-      return norm();
-    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
-      (void)val_im; // unused
-      const auto val = std::real(data_[i] * std::conj(data_[i]));
-      val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val: val;
-    };
-    return std::real(apply_reduction_lambda(lambda));
+  // Special case for all I Paulis
+  if (num_x + num_y + num_z == 0) {
+    return norm();
   }
 
-  // Special case for only X & I Paulis
-  if (num_z + num_y == 0) {
-    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
-      (void)val_im; // unused
-      val_re += std::real(data_[i ^ x_indices] * std::conj(data_[i]));
-    };
-    return std::real(apply_reduction_lambda(lambda));
-  }
-
-  // General case
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms
   std::complex<data_t> phase(1, 0);
@@ -2238,10 +2220,24 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
       phase = std::complex<data_t>(0, 1);
       break;
   }
+
   auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
     (void)val_im; // unused
-    const auto val = std::real(data_[i ^ x_indices] * phase * std::conj(data_[i]));
-    val_re += (__builtin_popcountll(i & z_indices) % 2) ? -val : val;
+    auto val = std::real(phase * data_[i ^ x_mask] * std::conj(data_[i]));
+    if (z_mask) {
+      // Portable implementation of __builtin_popcountll
+      auto count = i & z_mask;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >>16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >>32) & 0x00000000ffffffff);
+      if (count & 1) {
+        val = -val;
+      }
+    }
+    val_re += val;
   };
   return std::real(apply_reduction_lambda(lambda));
 }

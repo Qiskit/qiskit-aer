@@ -631,26 +631,26 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
   size_t num_x = 0;
   size_t num_y = 0;
   size_t num_z = 0;
-  uint_t x_indices = 0;
-  uint_t z_indices = 0;
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
   for (size_t i = 0; i < N; ++i) {
     const auto bit = 1ull << qubits[i];
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
       case 'X': {
-        x_indices += bit;
+        x_mask += bit;
         num_x++;
         break;
       }
       case 'Z': {
-        z_indices += bit;
+        z_mask += bit;
         num_z++;
         break;
       }
       case 'Y': {
-        x_indices += bit;
-        z_indices += bit;
+        x_mask += bit;
+        z_mask += bit;
         num_y++;
         break;
       }
@@ -683,7 +683,7 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
       phase = thrust::complex<data_t>(0, 1);
       break;
   }
-  return BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),x_indices,z_indices,phase),qubits);
+  return BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),qubits);
 }
 
 //------------------------------------------------------------------------------
