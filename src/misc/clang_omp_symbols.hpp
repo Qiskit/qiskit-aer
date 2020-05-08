@@ -324,11 +324,11 @@ void populate_hooks(void * handle){
     _hook_omp_get_max_threads = reinterpret_cast<decltype(&omp_get_max_threads)>(dlsym(handle, "omp_get_max_threads"));
     _hook_omp_get_num_threads = reinterpret_cast<decltype(&omp_get_num_threads)>(dlsym(handle, "omp_get_num_threads"));
     _hook_omp_get_thread_num = reinterpret_cast<decltype(&omp_get_thread_num)>(dlsym(handle, "omp_get_thread_num"));
-#if KMP_VERSION_MAJOR && KMP_VERSION_MAJOR<5
+//#if KMP_VERSION_MAJOR && KMP_VERSION_MAJOR<5
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
-#else
-    _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_max_active_levels"));
-#endif
+//#else
+//    _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_max_active_levels"));
+//#endif
     _hook_omp_get_num_procs = reinterpret_cast<decltype(&omp_get_num_procs)>(dlsym(handle, "omp_get_num_procs"));
 }
 
