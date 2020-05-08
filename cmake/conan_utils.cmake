@@ -13,7 +13,7 @@ macro(setup_conan)
 
     set(REQUIREMENTS nlohmann_json/3.7.3 spdlog/1.5.0)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/8.0.1)
+        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/9.0.1)
         if(SKBUILD)
             set(CONAN_OPTIONS ${CONAN_OPTIONS} "llvm-openmp:shared=True")
         endif()
