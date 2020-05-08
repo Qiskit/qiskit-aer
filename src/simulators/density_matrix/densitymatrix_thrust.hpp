@@ -603,9 +603,8 @@ public:
     ret = q0.real();
 
     if(z_mask_ != 0){
-      uint_t count;
       //count bits (__builtin_popcountll can not be used on GPU)
-      count = i_row & z_mask_;
+      uint_t count = i_row & z_mask_;
       count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
       count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
       count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
@@ -663,7 +662,7 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
   thrust::complex<data_t> phase(1, 0);
-  switch ((x_mask & z_mask) & 3) {
+  switch (num_y & 3) {
     case 0:
       // phase = 1
       break;
