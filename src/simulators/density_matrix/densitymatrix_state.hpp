@@ -30,7 +30,24 @@
 
 namespace AER {
 namespace DensityMatrix {
-  
+
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+  // Op types
+  {Operations::OpType::gate, Operations::OpType::measure,
+    Operations::OpType::reset, Operations::OpType::snapshot,
+    Operations::OpType::barrier, Operations::OpType::bfunc,
+    Operations::OpType::roerror, Operations::OpType::matrix,
+    Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
+    Operations::OpType::superop},
+  // Gates
+  {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap", "id", "x", "y",
+    "z", "h", "s", "sdg", "t", "tdg", "ccx"},
+  // Snapshots
+  {"density_matrix", "memory", "register", "probabilities",
+    "probabilities_with_variance"}
+);
+
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
@@ -56,7 +73,7 @@ class State : public Base::State<densmat_t> {
 public:
   using BaseState = Base::State<densmat_t>;
 
-  State() = default;
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -65,34 +82,6 @@ public:
 
   // Return the string name of the State class
   virtual std::string name() const override {return densmat_t::name();}
-
-  // Return the set of qobj instruction types supported by the State
-  virtual Operations::OpSet::optypeset_t allowed_ops() const override {
-    return Operations::OpSet::optypeset_t({
-      Operations::OpType::gate,
-      Operations::OpType::measure,
-      Operations::OpType::reset,
-      Operations::OpType::snapshot,
-      Operations::OpType::barrier,
-      Operations::OpType::bfunc,
-      Operations::OpType::roerror,
-      Operations::OpType::matrix,
-      Operations::OpType::kraus,
-      Operations::OpType::superop
-    });
-  }
-
-  // Return the set of qobj gate instruction names supported by the State
-  virtual stringset_t allowed_gates() const override {
-    return {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap",
-            "id", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "ccx"};
-  }
-
-  // Return the set of qobj snapshot types supported by the State
-  virtual stringset_t allowed_snapshots() const override {
-    return {"density_matrix", "memory", "register",
-            "probabilities", "probabilities_with_variance"};
-  }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
@@ -416,6 +405,9 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
         break;
       case Operations::OpType::superop:
         BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));

@@ -14,15 +14,17 @@ from qiskit import execute
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 
-from qiskit.providers.aer.pulse.duffing_model_generators import duffing_system_model
-from qiskit.pulse import Schedule, Acquire
-from qiskit.pulse.channels import (DriveChannel, AcquireChannel, MemorySlot)
-from qiskit.pulse.commands.parametric_pulses import Gaussian
+from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
+from qiskit.pulse import Schedule, Play, Acquire, Gaussian, DriveChannel, AcquireChannel, MemorySlot
 
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.aer import UnitarySimulator
 from qiskit.providers.aer import PulseSimulator
+
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, 'i'):
+    QuantumCircuit.i = QuantumCircuit.iden
 
 
 def assertAlmostEqual(first, second, places=None, msg=None,
@@ -114,7 +116,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
         circuit.measure(qr[1], cr[1])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.iden(qr)
+        circuit.i(qr)
     circuits.append(circuit)
 
     return circuits
@@ -419,17 +421,15 @@ def model_and_pi_schedule():
                                  coupling_dict={},
                                  dt=1.0)
 
-    # construct Schedule
-    schedule = Schedule(name='test_sched')
-
     # note: parameters set so that area under curve is 1/4
     gauss_pulse = Gaussian(duration=10,
                 amp=(1.0/4)/2.506627719963857,
                 sigma=1)
+
+    # construct schedule
     schedule = Schedule(name='test_sched')
-    schedule |= gauss_pulse(DriveChannel(0))
-    acq_cmd = Acquire(duration=10)
-    schedule += acq_cmd(AcquireChannel(0), MemorySlot(0)) << schedule.duration
+    schedule |= Play(gauss_pulse, DriveChannel(0))
+    schedule += Acquire(10, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
     return model, schedule
 
