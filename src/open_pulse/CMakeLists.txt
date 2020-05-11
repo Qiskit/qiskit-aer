@@ -1,5 +1,9 @@
-find_package(Python REQUIRED COMPONENTS NumPy)
 find_package(Pybind11 REQUIRED)
+find_package(Python COMPONENTS NumPy)
+if(NOT Python_NumPy_FOUND)
+    find_package(NumPy)
+    set(Python_NumPy_INCLUDE_DIRS ${NumPy_INCLUDE_DIRS})
+endif()
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
 # dependencies we can, so some of these dependencies are linked statically into our
