@@ -17,9 +17,9 @@
 
 from warnings import warn
 from collections.abc import Iterable
+from qiskit.providers.models.backendconfiguration import UchannelLO
 from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
-from qiskit.providers.models.backendconfiguration import UchannelLO
 
 
 def duffing_system_model(dim_oscillators,
@@ -274,7 +274,7 @@ def _cr_lo_list(cr_idx_dict):
     # populate list of u channel lo for cr gates
     lo_list = [0] * len(cr_idx_dict)
     for system_pair, u_idx in cr_idx_dict.items():
-        lo_list[u_idx] = [UchannelLO(system_pair[1], 1.0+0.0j)]
+        lo_list[u_idx] = [UchannelLO(system_pair[1], 1.0 + 0.0j)]
 
     return lo_list
 
