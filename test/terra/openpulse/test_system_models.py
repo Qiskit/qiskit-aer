@@ -35,11 +35,8 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
     def setUp(self):
         self._default_qubit_lo_freq = [4.9, 5.0]
         self._u_channel_lo = []
-        self._u_channel_lo.append([UchannelLO.from_dict(x) for x in [
-                                   {'q': 0, 'scale': 1.0+0.0j}]])
-        self._u_channel_lo.append([UchannelLO.from_dict(x) for x in [
-                                   {'q': 0, 'scale': -1.0+0.0j},
-                                   {'q': 1, 'scale': 1.0+0.0j}]])
+        self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])
+        self._u_channel_lo.append([UchannelLO(0, -1.0+0.0j), UchannelLO(1, 1.0+0.0j)])
 
     def _simple_system_model(self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33):
         hamiltonian = {}

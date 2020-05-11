@@ -928,13 +928,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         ham_model = HamiltonianModel.from_dict(hamiltonian, subsystem_list)
 
 
-        u_channel_lo = [[UchannelLO.from_dict({'q': 0, 'scale': [1.0, 0.0]})]]
-        u_channel_lo.append([UchannelLO.from_dict(x) for x in [
-                             {'q': 0, 'scale': -1.0+0.0j},
-                             {'q': 2, 'scale': 1.0+0.0j}]])
-        u_channel_lo.append([UchannelLO.from_dict(x) for x in [
-                            {'q': 1, 'scale': -1.0+0.0j},
-                            {'q': 2, 'scale': 1.0+0.0j}]])
+        u_channel_lo = [[UchannelLO(0, 1.0+0.0j)]]
+        u_channel_lo.append([UchannelLO(0, -1.0+0.0j), UchannelLO(2, 1.0+0.0j)])
+        u_channel_lo.append([UchannelLO(1, -1.0+0.0j), UchannelLO(2, 1.0+0.0j)])
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
