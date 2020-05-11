@@ -124,7 +124,6 @@ def duffing_system_model(dim_oscillators,
     anharm_symbol = 'alpha'
     drive_symbol = 'r'
     coupling_symbol = 'j'
-
     coupling_edges = coupling_dict.keys()
 
     # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
@@ -143,8 +142,13 @@ def duffing_system_model(dim_oscillators,
     sorted_coupling_edges = coupling_graph.sorted_graph
     # populate coupling strengths in sorted order (vertex indices are now also sorted within edges,
     # so this needs to be accounted for when retrieving weights from coupling_dict)
-    coupling_strengths = [coupling_dict.get(edge) or coupling_dict.get((edge[1], edge[0])) for
-                          edge in sorted_coupling_edges]
+    coupling_strengths = []
+    for edge in sorted_coupling_edges:
+        edge_strength = coupling_dict.get(edge)
+        if edge_strength is None:
+            edge_strength = coupling_dict.get((edge[1], edge[0]))
+        coupling_strengths.append(edge_strength)
+
     coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 

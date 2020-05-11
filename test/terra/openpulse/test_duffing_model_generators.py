@@ -405,6 +405,28 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         self.assertEqual(output['qub'], expected['qub'])
 
 
+    def test_calculate_channel_frequencies(self):
+        """test calculate_channel_frequencies of resulting PulseSystemModel objects"""
+
+        dim_oscillators = 2
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.0}
+        dt = 1.3
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+
+        channel_freqs = system_model.calculate_channel_frequencies([5.0, 5.1])
+        expected = {'D0' : 5.0, 'D1' : 5.1, 'U0' : 5.1, 'U1': 5.0}
+        self.assertEqual(dict(channel_freqs), expected)
+
+
 
     def test_cr_lo_list(self):
         """Test _cr_lo_list"""
