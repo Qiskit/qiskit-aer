@@ -168,15 +168,11 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-  //----------------------------------------------------------------
-  // Function name: sort_and_print
-  // Description: Moves the qubits to their sorted positions and then prints the MPS
-  //----------------------------------------------------------------
-  virtual std::ostream&  sort_and_print(std::ostream& out);
+  void sort_qubits();
 
   void full_state_vector(cvector_t &state_vector);
 
-  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits);
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
@@ -303,7 +299,7 @@ private:
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits);
 
-  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits);
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
   void apply_measure_internal(const reg_t &qubits,
 			      RngEngine &rng, reg_t &outcome_vector_internal);

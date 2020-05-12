@@ -44,18 +44,7 @@ static const cmatrix_t one_measure =
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
-//------------------------------------------------------------------------ 
-// Function name: print_array
-// Description: prints out the valus of a vector. For debug purposes.
-// Input: the vector name, and the vector.
-// Returns: void
-template <class T>
-  void print_array(std::string name, const std::vector<T> &array) {
-  std::cout <<name << " ";
-  for (uint_t i=0; i<array.size(); i++)
-    std::cout << array[i] << " ";
-  std::cout << std::endl;
-}
+
 //------------------------------------------------------------------------
 // Function name: squeeze_qubits
 // Description: Takes a list of qubits, and squeezes them into a list of the same size,
@@ -220,9 +209,9 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat,
   uint_t num_rows = mat.GetRows(), num_cols = mat.GetColumns();
 
 #ifdef _WIN32
-#pragma omp parallel for if (num_rows*num_cols > MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for if (num_rows*num_cols > MPS_Tensor::MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
 #else
-#pragma omp parallel for collapse(2) if (num_rows*num_cols > MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for collapse(2) if (num_rows*num_cols > MPS_Tensor::MATRIX_OMP_THRESHOLD && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
 #endif
   for(int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
     for(int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
@@ -1032,7 +1021,7 @@ std::ostream& MPS::print(std::ostream& out) const {
   return out;
 }
 
-std::ostream& MPS::sort_and_print(std::ostream& out) {
+void MPS::sort_qubits() {
 
   reg_t qubits(num_qubits_);
   std::iota(qubits.begin(), qubits.end(), 0);  
@@ -1040,10 +1029,8 @@ std::ostream& MPS::sort_and_print(std::ostream& out) {
   reg_t centralized_qubits(num_qubits_);
   bool ordered = false;
 
-  reg_t internal_qubits = get_internal_qubits(qubits);
+  //reg_t internal_qubits = get_internal_qubits(qubits);
   centralize_and_sort_qubits(qubits, sorted_indices, centralized_qubits, ordered);
-
-  return print(out);
 }
 
 std::vector<reg_t> MPS::get_matrices_sizes() const
@@ -1112,13 +1099,13 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
+void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
 void MPS::get_probabilities_vector_internal(rvector_t& probvector, 
-					    const reg_t &qubits)
+					    const reg_t &qubits) const
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
