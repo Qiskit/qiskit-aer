@@ -40,7 +40,6 @@ struct epsilon<std::complex<T>> {
     static constexpr auto value = epsilon<T>::value;
 };
 
-
 /*
  * We use function overloads to dispatch to the correct library functions 
  *   wherever necessary - mainly for container types (vector, matrix) and/or
@@ -58,56 +57,64 @@ std::false_type is_tt_impl(...);
 template <template <class...> class TT, class T>
 using is_tt = decltype(is_tt_impl<TT>(std::declval<typename std::decay<T>::type>()));
 
-template <class T>
-typename std::enable_if<is_tt<std::complex, T>::value>::type print(T t) {
-    std::cout << "(" << t.real() << "," << t.imag() << ")" << std::endl;
-}
-
-template <class T>
-typename std::enable_if<!is_tt<std::complex, T>::value>::type print(T t) {
-    std::cout << t << std::endl;
-}
-
-template <typename T> //, typename = enable_if_numeric_t<T>>
-bool almost_equal(std::complex<T> f1, std::complex<T> f2,
-                  T max_diff = epsilon<T>::value,
-                  T max_relative_diff = epsilon<T>::value) {
-  return almost_equal<T>(f1.real(), f2.real(), max_diff, max_relative_diff)
-         && almost_equal<T>(f1.imag(), f2.imag(), max_diff, max_relative_diff);
-}
-
-
-
-template <typename T> //, typename = enable_if_numeric_t<T>>
-bool almost_equal(matrix<T> mat1, matrix<T> mat2,
-                  T max_diff = epsilon<T>::value,
-                  T max_relative_diff = epsilon<T>::value) {
-  if(mat1.size() != mat2.size())
-       return false;
-
-  for(auto i = 0; i < mat1.size(); ++i){
-    if(almost_equal<T>(mat1[i], mat2[i], max_diff, max_relative_diff) == false)
-      return false;
-  }
-  return true;
-}
-
-
-// No silver bullet for floating point comparison techniques.
-// With this function the user can at least specify the precision
-// If we have numbers closer to 0, then max_diff can be set to a value
-// way smaller than epsilon. For numbers larger than 1.0, epsilon will
-// scale (the bigger the number, the bigger the epsilon).
-template <typename T> //, typename = enable_if_numeric_t<T>>
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type >
 bool almost_equal(T f1, T f2,
                   T max_diff = epsilon<T>::value,
-                  T max_relative_diff = epsilon<T>::value) {
+                  T max_relative_diff = epsilon<T>::value);
+
+template <typename T>
+bool almost_equal(std::complex<T> mat1, std::complex<T> mat2);
+ 
+template <typename T>
+bool almost_equal(matrix<T> mat1, matrix<T> mat2);
+
+template <typename T>
+bool almost_equal(std::vector<T> mat1, std::vector<T> mat2);
+ 
+template <typename T, typename >
+bool almost_equal(T f1, T f2,
+                  T max_diff,
+                  T max_relative_diff) {
   T diff = std::abs(f1 - f2);
   if (diff <= max_diff) return true;
   return diff <=
          max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
 
+template <typename T>
+bool almost_equal(std::complex<T> f1, std::complex<T> f2) {
+    return almost_equal(f1.real(), f2.real()) //, max_diff, max_relative_diff)
+         && almost_equal<T>(f1.imag(), f2.imag()); //, max_diff, max_relative_diff);
+}
+
+template <typename T>
+bool almost_equal(matrix<T> mat1, matrix<T> mat2) {
+  if(mat1.size() != mat2.size()) {
+       std::cout << "Matrix sizes not equal : " << mat1.size() << " != " << mat2.size() << std::endl;
+       return false;
+  }
+
+  for(auto i = 0; i < mat1.size(); ++i){
+    if( ! almost_equal(mat1[i], mat2[i])) {
+      std::cout << "matrix element " << i << "not equal : " << mat1[i] << " != " << mat2[i] << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
+bool almost_equal(std::vector<T> vec1, std::vector<T> vec2) {
+  if (vec1.size() != vec2.size())
+    return false;
+
+  for(auto i = 0; i < vec1.size(); ++i){
+    if( ! almost_equal(vec1[i], vec2[i]))
+      return false;
+  }
+  return true;
+}
+ 
 //------------------------------------------------------------------------------
 }  // namespace Linalg
 //------------------------------------------------------------------------------

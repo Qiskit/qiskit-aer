@@ -22,7 +22,6 @@ target_link_libraries(test_snapshot_bdd
                         PRIVATE CONAN_PKG::catch2
                         PRIVATE ${AER_LIBRARIES})
 add_test(test_snapshot_bdd test_snapshot_bdd)
-
 add_executable(test_utils "src/test_utils.cpp")
 set_target_properties(test_utils PROPERTIES
 								LINKER_LANGUAGE CXX

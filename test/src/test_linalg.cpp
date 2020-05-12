@@ -7,9 +7,37 @@
 
 #include "utils.hpp"
 
+static std::random_device rd;
+static std::default_random_engine rng(rd());
+
 #define CATCH_CONFIG_MAIN
 
 #include <catch.hpp>
+
+template <typename T>
+T rand_f(T min = 0.0, T max = 1.0) {
+    std::uniform_real_distribution<T> distr(min, max) ;
+    return distr(rng);
+}
+
+template<typename T>
+std::complex<T> rand_z(T min = 0.0, T max = 1.0) {
+    std::uniform_real_distribution<T> distr(min, max) ;
+    return { distr(rng), distr(rng) };
+}
+
+template<typename T>
+matrix<std::complex<T>> rand_hermitian_mat(size_t n, size_t a) {
+    // we construct a random N * a matrix
+    matrix<std::complex<T>> mat(n, a);
+    for(int r=0; r<n; r++) {
+        for(size_t c=0; c<a; c++)
+            mat(r, c) = rand_z<T>();
+    }
+    // then we multiply it by it's conj. transpose
+    //   to get a random hermitian matrix
+    return mat * AER::Utils::dagger(mat);
+}
 
 template<typename T>
 matrix<std::complex<T>> create_psd_matrix(){
@@ -53,31 +81,41 @@ std::vector<T> create_expected_eigenvalues(){
 }
 
 TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
+    
+    SECTION("random hermitian matrix (double)") {
+        auto rand_psd_mat = rand_hermitian_mat<double>(5, 5);
+        std::vector<double> eigenvalues;
+        matrix<std::complex<double>> eigenvectors = rand_psd_mat;
 
+        eigensystem_psd_hetrd(rand_psd_mat, eigenvalues, eigenvectors);
+        std::cout << "eigen-values/vectors:" << std::endl;
+        std::cout << eigenvalues << std::endl;
+ 
+        std::cout << eigenvectors << std::endl;
+        matrix<std::complex<double>> value(rand_psd_mat.size());
+
+        for (size_t j=0; j < eigenvalues.size(); j++) {
+            value += eigenvalues[j] * AER::Utils::projector(eigenvectors.row_index(j));
+        }
+        std::cout << "expected:" << std::endl;
+        std::cout << value << std::endl;
+        REQUIRE(AER::Linalg::almost_equal(rand_psd_mat, value));
+    }
+/*
     SECTION("the input matrix of complex of doubles, is a PSD"){
         auto psd_matrix_double = create_psd_matrix<double>();
 
         auto expected_eigenvalues = create_expected_eigenvalues<double>();
         auto expected_eigenvectors = create_expected_eigenvectors<double>();
         std::vector<double> eigenvalues;
-        matrix<std::complex<double>> eigenvectors;
+        matrix<std::complex<double>> eigenvectors = psd_matrix_double;
         eigensystem_psd(psd_matrix_double, eigenvalues, eigenvectors);
 
-        for(size_t i = 0; i < expected_eigenvalues.size(); ++i){
-            REQUIRE(AER::Linalg::almost_equal(
-                expected_eigenvalues[i], eigenvalues[i]
-            ));
-        }
+        std::cout << expected_eigenvectors << std::endl;
+        std::cout << eigenvectors << std::endl;
         REQUIRE(AER::Linalg::almost_equal(expected_eigenvectors, eigenvectors));
-        //for(size_t i = 0; i < expected_eigenvectors.size(); ++i){
-        //    for(size_t j = 0; i < expected_eigenvectors.size(); ++j){
-        //        REQUIRE(Linalg::almost_equal(
-        //            expected_eigenvectors[i][j], eigenvectors[i][j]
-        //        ));
-        //    }
-        //}
     }
-}
+*/
 /*
     SECTION("the input matrix of complex of floats, is a PSD"){
         auto psd_matrix_float = create_psd_matrix<complexf_t>();
@@ -120,8 +158,9 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
                 expected_eigenvalues[i], eigenvalues[i]
             ));
         }
-    }
-}*/
+    }*/
+}
+
 
 TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
     SECTION( "The maximum difference between two scalars over 1.0 is greater than epsilon, so they are amlmost equal" ) {
@@ -139,8 +178,8 @@ TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
 
     SECTION( "The maximum difference between two complex of doubles over 1.0 is greater than epsilon, so they are amlmost equal" ) {
         std::complex<double> first = {
-            1.0 + std::numeric_limits<double>::epsilon(),
-            1.0 + std::numeric_limits<double>::epsilon()
+            std::numeric_limits<double>::epsilon() + double(1.0),
+            std::numeric_limits<double>::epsilon() + double(1.0)
         };
         std::complex<double> actual {1.0, 1.0};
         // Because the max_diff param is bigger than epsilon, this should be almost equal
