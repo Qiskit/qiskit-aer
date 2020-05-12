@@ -54,10 +54,12 @@ void QubitVectorAvx2<data_t>::apply_matrix(const uint_t qubit,
 }
 
 template <typename data_t>
-void QubitVectorAvx2<data_t>::apply_matrix(const reg_t &qubits,
-                                          const cvector_t<double> &mat) {
+void QubitVectorAvx2<data_t>::apply_matrix(
+  const reg_t &qubits,
+  const cvector_t<double> &mat
+){
   if(!apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-        Base::convert(mat).data(), _calculate_num_threads())){
+        Base::convert(mat), _calculate_num_threads())){
       Base::apply_matrix(qubits, mat);
     }
 }
