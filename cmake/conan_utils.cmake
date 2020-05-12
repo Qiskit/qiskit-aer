@@ -1,19 +1,13 @@
+include(conan)
 
 macro(setup_conan)
-    if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-        message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-        file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.15/conan.cmake"
-                "${CMAKE_BINARY_DIR}/conan.cmake")
-    endif()
-
-    include(${CMAKE_BINARY_DIR}/conan.cmake)
 
     # Right now every dependency shall be static
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "*:shared=False")
 
     set(REQUIREMENTS nlohmann_json/3.7.3 spdlog/1.5.0)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/9.0.1)
+        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/8.0.1)
         if(SKBUILD)
             set(CONAN_OPTIONS ${CONAN_OPTIONS} "llvm-openmp:shared=True")
         endif()
