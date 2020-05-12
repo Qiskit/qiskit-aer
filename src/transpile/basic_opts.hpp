@@ -46,7 +46,6 @@ void ReduceBarrier::optimize_circuit(Circuit& circ,
     if (circ.ops[i].type != optype_t::barrier) {
       if (idx != i) {
         circ.ops[idx] = circ.ops[i];
-        
       }
       ++idx;
     } else if (i < circ.first_measure_pos) {

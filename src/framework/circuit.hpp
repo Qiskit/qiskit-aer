@@ -135,9 +135,9 @@ void Circuit::set_params() {
         } else {
           first_measure_pos++;
         }
-      } else if((op.type == OpType::barrier ||
-                 op.type == OpType::measure ||
-                 op.type == OpType::roerror) == false) {
+      } else if(!(op.type == OpType::barrier ||
+                  op.type == OpType::measure ||
+                  op.type == OpType::roerror)) {
         can_sample = false;
       }
     }

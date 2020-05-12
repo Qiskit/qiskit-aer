@@ -753,8 +753,7 @@ void QasmController::set_parallelization_circuit(
     case Method::statevector_thrust_cpu:
     case Method::stabilizer:
     case Method::matrix_product_state: {
-      if (circ.shots == 1 || (
-          noise_model.has_quantum_errors() == false &&
+      if (circ.shots == 1 || ( !noise_model.has_quantum_errors() &&
           check_measure_sampling_opt(circ, Method::statevector))){
         parallel_shots_ = 1;
         parallel_state_update_ =
