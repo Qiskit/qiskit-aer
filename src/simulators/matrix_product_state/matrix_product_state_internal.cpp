@@ -280,13 +280,13 @@ void MPS::initialize(uint_t num_qubits)
   // need to add one more Gamma tensor, because above loop only initialized up to n-1 
   q_reg_.push_back(MPS_Tensor(alpha,beta));
 
-  qubit_order_.clear();
-  qubit_order_.resize(num_qubits);
-  std::iota(qubit_order_.begin(), qubit_order_.end(), 0);
+  qubit_ordering_.order_.clear();
+  qubit_ordering_.order_.resize(num_qubits);
+  std::iota(qubit_ordering_.order_.begin(), qubit_ordering_.order_.end(), 0);
 
-  qubit_location_.clear();
-  qubit_location_.resize(num_qubits);
-  std::iota(qubit_location_.begin(), qubit_location_.end(), 0);
+  qubit_ordering_.location_.clear();
+  qubit_ordering_.location_.resize(num_qubits);
+  std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
 }
 
 void MPS::initialize(const MPS &other){
@@ -294,8 +294,8 @@ void MPS::initialize(const MPS &other){
       num_qubits_ = other.num_qubits_;
       q_reg_ = other.q_reg_;
       lambda_reg_ = other.lambda_reg_;
-      qubit_order_ = other.qubit_order_;
-      qubit_location_ = other.qubit_location_;
+      qubit_ordering_.order_ = other.qubit_ordering_.order_;
+      qubit_ordering_.location_ = other.qubit_ordering_.location_;
     }     
 }
 
@@ -400,13 +400,13 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // we are moving the qubit at index_A one position to the right
     // and the qubit at index_B or index_A+1 is moved one position 
     //to the left
-    std::swap(qubit_order_[index_A], qubit_order_[index_B]);
+    std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
     
   }
   // update qubit location after all the swaps
   if (!swap_gate)
     for (uint_t i=0; i<num_qubits_; i++)
-      qubit_location_[qubit_order_[i]] = i;
+      qubit_ordering_.location_[qubit_ordering_.order_[i]] = i;
 }
 
 //-------------------------------------------------------------------------
@@ -699,12 +699,12 @@ void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 }
 
 void MPS::move_all_qubits_to_sorted_ordering() {
-  // qubit_order_ can simply be initialized
+  // qubit_ordering_.order_ can simply be initialized
   for (uint_t left_index=0;  left_index<num_qubits_; left_index++) {
     // find the qubit with the smallest index
     uint_t min_index = left_index;
     for (uint_t i = left_index+1; i<num_qubits_ ; i++) {
-      if (qubit_order_[i] == min_index) {
+      if (qubit_ordering_.order_[i] == min_index) {
 	  min_index = i;
 	  break;
       }
@@ -1072,7 +1072,7 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	return temp;
 }
 
-void MPS::full_state_vector(cvector_t& statevector){
+void MPS::full_state_vector(cvector_t& statevector) {
   reg_t qubits(num_qubits_);
   std::iota( std::begin(qubits), std::end(qubits), 0);
   reg_t internal_qubits = get_internal_qubits(qubits);
@@ -1093,7 +1093,7 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
     statevector[i] = mps_vec.get_data(i)(0,0);
   }
   cvector_t temp_statevector(length);
-  //temp_statevector will contain the statevector in the ordering define in "qubits"
+  //temp_statevector will contain the statevector in the ordering defined in "qubits"
   reorder_all_qubits(statevector, qubits, temp_statevector);
   // reverse to be consistent with qasm ordering
   statevector = reverse_all_bits(temp_statevector, num_qubits);
@@ -1182,7 +1182,7 @@ uint_t MPS::apply_measure(uint_t qubit,
   }
 
   // and propagate the changes to all qubits to the left
-	 for (int_t i=qubit; i>0; i--) {
+  for (int_t i=qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i-1, i, id, cmatrix_t(1));
@@ -1206,12 +1206,12 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     q_reg_.clear();
   if (!lambda_reg_.empty())
     lambda_reg_.clear();
-  qubit_order_.clear();
-  qubit_order_.resize(num_qubits);
-  std::iota(qubit_order_.begin(), qubit_order_.end(), 0);
-  qubit_location_.clear();
-  qubit_location_.resize(num_qubits);
-  std::iota(qubit_location_.begin(), qubit_location_.end(), 0);
+  qubit_ordering_.order_.clear();
+  qubit_ordering_.order_.resize(num_qubits);
+  std::iota(qubit_ordering_.order_.begin(), qubit_ordering_.order_.end(), 0);
+  qubit_ordering_.location_.clear();
+  qubit_ordering_.location_.resize(num_qubits);
+  std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
   num_qubits_ = 0;
 
   // remaining_matrix is the matrix that remains after each iteration

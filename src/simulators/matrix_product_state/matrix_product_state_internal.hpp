@@ -209,13 +209,13 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, cvector_t &vmat) {
+  double norm(const uint_t qubit, cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
     return expectation_value(qubits, mat);
   }
 
-  double norm(const reg_t &qubits, cvector_t &vmat) {
+  double norm(const reg_t &qubits, cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
@@ -242,7 +242,7 @@ private:
   }
 
   uint_t get_qubit_index(uint_t index) const {
-    return qubit_location_[index];
+    return qubit_ordering_.location_[index];
   }
 
   reg_t get_internal_qubits(const reg_t &qubits) const;
@@ -383,13 +383,15 @@ private:
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
 
-  // qubit_order_ stores the current ordering of the qubits,
-  // qubit_location_ stores the location of each qubit in the vector. It is derived from qubit_order_ 
-  // at the end of every swap operation for performance reasons
-  // for example: starting position qubit_order_=qubit_location_=01234
-  // ccx(0,4) -> qubit_order_=04123, qubit_location_=02341
-  reg_t qubit_order_;
-  reg_t qubit_location_;
+  struct ordering {
+    // order_ stores the current ordering of the qubits,
+    // location_ stores the location of each qubit in the vector. It is derived from order_ 
+    // at the end of every swap operation for performance reasons
+    // for example: starting position order_ = location_ = 01234
+    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    reg_t order_;
+    reg_t location_;
+  } qubit_ordering_;
 
   //-----------------------------------------------------------------------
   // Config settings
