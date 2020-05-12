@@ -138,7 +138,8 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 {
   const int_t nrows = rows_;
   int iPlace;
-  uint_t i, irow, icol, ic, nc;
+  int_t i;
+  uint_t irow, icol, ic, nc;
   uint_t pos = 0;
   uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
@@ -272,7 +273,8 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
   }
 
 	int iPlace;
-	uint_t i,irow,icol,ic,nc;
+  int_t i;
+	uint_t irow,icol,ic,nc;
 	uint_t pos = 0;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
@@ -316,7 +318,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
   {
 #pragma omp for
   for (int_t k = 0; k < NROWS; ++k) {
-  	d = BaseVector::get_state(k * DIAG,BaseVector::m_maxChunkBits);
+  	d = BaseVector::get_state(k * DIAG);
     val_re += std::real(d);
     val_im += std::imag(d);
   }
