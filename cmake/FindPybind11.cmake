@@ -49,7 +49,8 @@ function(basic_pybind11_add_module target_name)
     # This sets various properties (python include dirs) and links to python libs
     if(MSVC)
         # pybind11/cast.h has issue when compiling with MSVC, so referring to the fixed version
-        target_include_directories(${target_name} PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/pybind/include)
+        target_include_directories(${target_name} PRIVATE 
+                    ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers/pybind/include)
     else()
         target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
     endif()
