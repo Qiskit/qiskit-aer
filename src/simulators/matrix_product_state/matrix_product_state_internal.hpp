@@ -207,13 +207,13 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, cvector_t &vmat) const {
+  double norm(const uint_t qubit, const cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
     return expectation_value(qubits, mat);
   }
 
-  double norm(const reg_t &qubits, cvector_t &vmat) const {
+  double norm(const reg_t &qubits, const cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
@@ -295,7 +295,7 @@ private:
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits);
+  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
