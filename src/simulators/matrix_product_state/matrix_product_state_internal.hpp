@@ -168,8 +168,6 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-  void sort_qubits();
-
   void full_state_vector(cvector_t &state_vector);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;

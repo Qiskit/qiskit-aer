@@ -1021,18 +1021,6 @@ std::ostream& MPS::print(std::ostream& out) const {
   return out;
 }
 
-void MPS::sort_qubits() {
-
-  reg_t qubits(num_qubits_);
-  std::iota(qubits.begin(), qubits.end(), 0);  
-  reg_t sorted_indices(num_qubits_);
-  reg_t centralized_qubits(num_qubits_);
-  bool ordered = false;
-
-  //reg_t internal_qubits = get_internal_qubits(qubits);
-  centralize_and_sort_qubits(qubits, sorted_indices, centralized_qubits, ordered);
-}
-
 std::vector<reg_t> MPS::get_matrices_sizes() const
 {
   std::vector<reg_t> result;
@@ -1125,7 +1113,6 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
-
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
