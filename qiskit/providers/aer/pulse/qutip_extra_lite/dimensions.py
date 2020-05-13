@@ -56,7 +56,7 @@ __all__ = []
 import numpy as np
 
 
-def flatten(l):
+def flatten(the_list):
     """Flattens a list of lists to the first level.
 
     Given a list containing a mix of scalars and lists,
@@ -64,16 +64,16 @@ def flatten(l):
     list.
 
     Args:
-        l (list): Input list
+        the_list (list): Input list
 
     Returns:
         list: Flattened list.
 
     """
-    if not isinstance(l, list):
-        return [l]
+    if not isinstance(the_list, list):
+        return [the_list]
     else:
-        return sum(map(flatten, l), [])
+        return sum(map(flatten, the_list), [])
 
 
 def is_scalar(dims):
