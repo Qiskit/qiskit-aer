@@ -56,26 +56,19 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
                                     Noise::NoiseModel& noise,
                                     const Operations::OpSet &allowed_opset,
                                     ExperimentData &data) const {
-  // Pass if we have quantum errors in the noise model
-  if (active_ == false || circ.shots <= 1 || noise.has_quantum_errors())
-    return; 
-
-  // Get position of first measure / readout error in circ
-  auto it = circ.ops.begin();
-  while (it != circ.ops.end()) {
-    const auto type = it->type;
-    if (type == Operations::OpType::measure ||
-        type == Operations::OpType::roerror)
-      break;
-    ++it;
-  }
-  // If there are no measure instructions we don't need to optimize
-  if (it == circ.ops.end())
+  // If there are no measure instructions or circuit already has
+  // no instructions after measurement, or there is quantum noise
+  // we don't need to optimize
+  if (active_ == false || circ.can_sample ||
+      !circ.opset().contains(Operations::OpType::measure) ||
+      noise.has_quantum_errors())
     return;
+
+  // Get position of first measurement
+  size_t pos = circ.first_measure_pos;
 
   // Store measure and non measure instructions in the tail
   // for possible later remapping
-  size_t pos = std::distance(circ.ops.begin(), it);
   std::vector<Operations::Op> meas_ops;
   meas_ops.reserve(circ.ops.size() - pos);
   std::vector<Operations::Op> non_meas_ops;
@@ -83,8 +76,9 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
 
   // Scan circuit to find position of first measure for all qubits;
   std::unordered_set<uint_t> meas_qubits;
+  auto it = circ.ops.begin() + pos;
   while (it != circ.ops.end()) {
-    // If any operations are conditional we abort
+    // If any tail operations are conditional we abort
     if (it->conditional)
       return;
     const auto type = it->type;
@@ -118,6 +112,10 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
   // after non meas instructions
   circ.ops.erase(circ.ops.begin() + pos, circ.ops.end());
   circ.ops.insert(circ.ops.end(), non_meas_ops.begin(), non_meas_ops.end());
+
+  // Update position of first measurement
+  circ.first_measure_pos = circ.ops.size();
+  circ.can_sample = true;
   circ.ops.insert(circ.ops.end(), meas_ops.begin(), meas_ops.end());
   
   if (verbose_)
