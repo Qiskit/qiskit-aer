@@ -14,10 +14,12 @@ QasmSimulator Integration Tests for Snapshot instructions
 """
 
 import logging
+import itertools as it
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.quantum_info.operators import Pauli
+from qiskit.quantum_info import DensityMatrix, Pauli, Operator
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
 
@@ -600,6 +602,7 @@ class QasmSnapshotExpValPauliTests:
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
         'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+        'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
         'matrix_product_state', 'stabilizer'
     ]
     BACKEND_OPTS = {}
@@ -687,6 +690,74 @@ class QasmSnapshotExpValPauliTests:
                         target = value_targets[j].get(label,
                                                       {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
+
+
+class QasmSnapshotExpvalPauliNCTests:
+    """QasmSimulator snapshot pauli expectation value tests on random states."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+        'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+        'matrix_product_state',
+    ]
+    BACKEND_OPTS = {}
+
+    def general_test(self, pauli, num_qubits=None, seed=None):
+        """General test case"""
+        pauli_qubits = list(range(len(pauli)))
+        if num_qubits is None:
+            num_qubits = len(pauli_qubits)
+
+        # Prepare random N-qubit product input state
+        # from seed
+        rng = np.random.default_rng(seed)
+        params = rng.uniform(-1, 1, size=(num_qubits, 3))
+        init_circ = QuantumCircuit(num_qubits)
+        for i, par in enumerate(params):
+            init_circ.u3(*par, i)
+
+        # Compute the target expectation value
+        rho = DensityMatrix.from_instruction(init_circ)
+        op = Operator.from_label(pauli)
+        target = np.trace(Operator(rho).compose(op, pauli_qubits).data)
+
+        # Simulate expectation value
+        qc = init_circ.copy()
+        qc.snapshot_expectation_value('final', [(1, pauli)], pauli_qubits)
+        qobj = assemble(qc)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.assertTrue(getattr(result, 'success', False))
+        snapshots = result.data(0).get('snapshots', {})
+        self.assertIn('expectation_value', snapshots)
+        self.assertIn('final', snapshots['expectation_value'])
+        expval = snapshots.get('expectation_value', {})['final'][0]['value']
+        self.assertAlmostEqual(expval, target)
+
+    def test_pauli1(self):
+        """Test all 1-qubit Pauli snapshots."""
+        seed = 100
+        for tup in ['I', 'X', 'Y', 'Z']:
+            pauli = ''.join(reversed(tup))
+            with self.subTest(msg='Pauli {}'.format(pauli)):
+                self.general_test(pauli, num_qubits=3, seed=seed)
+
+    def test_pauli2(self):
+        """Test all 2-qubit Pauli snapshots."""
+        seed = 100
+        for tup in it.product(['I', 'X', 'Y', 'Z'], repeat=2):
+            pauli = ''.join(reversed(tup))
+            with self.subTest(msg='Pauli {}'.format(pauli)):
+                self.general_test(pauli, num_qubits=3, seed=seed)
+
+    def test_pauli3(self):
+        """Test all 3-qubit Pauli snapshots."""
+        seed = 100
+        for tup in it.product(['I', 'X', 'Y', 'Z'], repeat=3):
+            pauli = ''.join(reversed(tup))
+            with self.subTest(msg='Pauli {}'.format(pauli)):
+                self.general_test(pauli, num_qubits=3, seed=seed)
 
 
 class QasmSnapshotExpValMatrixTests:
