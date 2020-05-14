@@ -152,9 +152,6 @@ private:
 //=========================================================================
 // Implementation
 //=========================================================================
-  const double MPS_Tensor::SQR_HALF = sqrt(0.5);
-  const uint_t MPS_Tensor::NUMBER_OF_PRINTED_DIGITS = 3;
-  const uint_t MPS_Tensor:: MATRIX_OMP_THRESHOLD = 8;
 
 //---------------------------------------------------------------
 // function name: print
