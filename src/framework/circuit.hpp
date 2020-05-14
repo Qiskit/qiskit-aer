@@ -41,12 +41,17 @@ public:
   uint_t num_qubits = 0;        // maximum number of qubits needed for ops
   uint_t num_memory = 0;        // maximum number of memory clbits needed for ops
   uint_t num_registers = 0;     // maximum number of registers clbits needed for ops
-  bool has_conditional = false; // True if any ops are conditional
   
+  // Measurement params
+  bool has_conditional = false; // True if any ops are conditional
+  bool can_sample = true;       // True if circuit tail contains measure, roerror, barrier.
+  size_t first_measure_pos = 0; // Position of first measure instruction
+
   // Circuit metadata constructed from json QobjExperiment
   uint_t shots = 1;
   uint_t seed;
   json_t header;
+  
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
@@ -107,15 +112,35 @@ void Circuit::set_params() {
   qubitset_.clear();
   memoryset_.clear();
   registerset_.clear();
+  can_sample = true;
+  first_measure_pos = 0;
 
   // Check maximum qubit, and register size
-  // Memory size is loaded from qobj config  
-  for (const auto &op: ops) {
+  // Memory size is loaded from qobj config
+  // Also check if measure sampling is in principle possible
+  bool first_measure = true;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto& op = ops[i];
     has_conditional |= op.conditional;
     opset_.insert(op);
     qubitset_.insert(op.qubits.begin(), op.qubits.end());
     memoryset_.insert(op.memory.begin(), op.memory.end());
     registerset_.insert(op.registers.begin(), op.registers.end());
+
+    // Compute measure sampling check
+    if (can_sample) {
+      if (first_measure) {
+        if (op.type == OpType::measure || op.type == OpType::roerror) {
+          first_measure = false;
+        } else {
+          first_measure_pos++;
+        }
+      } else if(!(op.type == OpType::barrier ||
+                  op.type == OpType::measure ||
+                  op.type == OpType::roerror)) {
+        can_sample = false;
+      }
+    }
   }
 
   // Get required number of qubits, memory, registers from set maximums

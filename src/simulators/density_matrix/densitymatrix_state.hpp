@@ -45,7 +45,8 @@ const Operations::OpSet StateOpSet(
     "z", "h", "s", "sdg", "t", "tdg", "ccx"},
   // Snapshots
   {"density_matrix", "memory", "register", "probabilities",
-    "probabilities_with_variance"}
+    "probabilities_with_variance", "expectation_value_pauli",
+    "expectation_value_pauli_with_variance"}
 );
 
 // Allowed gates enum class
@@ -58,10 +59,10 @@ enum class Gates {
 // Allowed snapshots enum class
 enum class Snapshots {
   cmemory, cregister, densitymatrix,
-  probs, probs_var
+  probs, probs_var,
+  expval_pauli, expval_pauli_var
   /* TODO: The following expectation value snapshots still need to be implemented */
-  //,expval_pauli, expval_pauli_var,
-  //expval_matrix, expval_matrix_var
+  //,expval_matrix, expval_matrix_var
 };
 
 //=========================================================================
@@ -281,7 +282,9 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_({
   {"probabilities", Snapshots::probs},
   {"probabilities_with_variance", Snapshots::probs_var},
   {"memory", Snapshots::cmemory},
-  {"register", Snapshots::cregister}
+  {"register", Snapshots::cregister},
+  {"expectation_value_pauli", Snapshots::expval_pauli},
+  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var}
 });
 
 
@@ -458,17 +461,16 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
       // get probs as hexadecimal
       snapshot_probabilities(op, data, true);
       break;
-    /* TODO
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, false);
     } break;
-    case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, data, false);
-    }  break;
-    
     case Snapshots::expval_pauli_var: {
       snapshot_pauli_expval(op, data, true);
     } break;
+    /* TODO
+    case Snapshots::expval_matrix: {
+      snapshot_matrix_expval(op, data, false);
+    }  break;
     case Snapshots::expval_matrix_var: {
       snapshot_matrix_expval(op, data, true);
     }  break;
@@ -482,8 +484,8 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
-                                               ExperimentData &data,
-                                               bool variance) {
+                                              ExperimentData &data,
+                                              bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
@@ -494,6 +496,31 @@ void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
                             variance);
 }
 
+
+template <class densmat_t>
+void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
+                                             ExperimentData &data,
+                                             bool variance) {
+  // Check empty edge case
+  if (op.params_expval_pauli.empty()) {
+    throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
+  }
+
+  // Accumulate expval components
+  complex_t expval(0., 0.);
+  for (const auto &param : op.params_expval_pauli) {
+    const auto& coeff = param.first;
+    const auto& pauli = param.second;
+    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
+  }
+
+  // Add to snapshot
+  Utils::chop_inplace(expval, json_chop_threshold_);
+  data.add_average_snapshot("expectation_value",
+                            op.string_params[0],
+                            BaseState::creg_.memory_hex(),
+                            expval, variance);
+}
 
 //=========================================================================
 // Implementation: Matrix multiplication
