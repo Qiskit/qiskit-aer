@@ -358,21 +358,21 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
     MPS::set_json_chop_threshold(json_chop_threshold);
 
-  // Set OMP threshold for state update functions
+  // Set OMP num threshold
   uint_t omp_qubit_threshold;
   if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
     MPS::set_omp_threshold(omp_qubit_threshold);
+
+  // Set OMP threads
+  uint_t omp_threads;
+  if (JSON::get_value(omp_threads, "mps_omp_threads", config))
+    MPS::set_omp_threads(omp_threads);
 
   // Set the sample measure indexing size
   int index_size;
   if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
     MPS::set_sample_measure_index_size(index_size);
-  };
-
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
-  //    MPS::set_enable_gate_opt(gate_opt);
+  }
 }
 
 //=========================================================================
@@ -481,7 +481,6 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
       expval += coeff * one_expval;
     }
   }
-
   // add to snapshot
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
@@ -576,7 +575,7 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::swap:
-      qreg_.apply_swap(op.qubits[0], op.qubits[1]);
+      qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
     case Gates::cz:
       qreg_.apply_cz(op.qubits[0], op.qubits[1]);
@@ -590,7 +589,6 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   }
-
 }
 
   void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
@@ -638,7 +636,7 @@ void State::apply_measure(const reg_t &qubits,
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
-rvector_t State::measure_probs(const reg_t &qubits) const {
+rvector_t State::measure_probs(const reg_t &qubits) const{
   rvector_t probvector;
   qreg_.get_probabilities_vector(probvector, qubits);
   return probvector;
