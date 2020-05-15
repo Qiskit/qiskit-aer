@@ -145,10 +145,9 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              virtualenv test-sdist
-              test-sdist/Scripts/pip install dist/*tar.gz
-              test-sdist/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
-              test-wheel/Scripts/python tools/verify_wheels.py
+              pip install dist/*tar.gz
+              pip install git+https://github.com/Qiskit/qiskit-terra
+              python tools/verify_wheels.py
           env:
             CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
             displayName: Install from sdist and verify
