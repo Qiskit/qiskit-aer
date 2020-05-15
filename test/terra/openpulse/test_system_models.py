@@ -25,6 +25,8 @@ from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit.test.mock import FakeArmonk
+from qiskit.providers.models.backendconfiguration import UchannelLO
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
@@ -32,8 +34,9 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
 
     def setUp(self):
         self._default_qubit_lo_freq = [4.9, 5.0]
-        self._u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
-                             [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
+        self._u_channel_lo = []
+        self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])
+        self._u_channel_lo.append([UchannelLO(0, -1.0+0.0j), UchannelLO(1, 1.0+0.0j)])
 
     def _simple_system_model(self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33):
         hamiltonian = {}
@@ -150,6 +153,13 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U0'], 5.101980390271)
         self.assertAlmostEqual(freqs['U1'], -0.203960780543)
 
+    def test_qubit_lo_from_configurable_backend(self):
+        backend = FakeArmonk()
+        test_model = PulseSystemModel.from_backend(backend)
+        qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
+        freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
+        self.assertAlmostEqual(freqs['D0'], 4.974286046328553)
+
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """
         Given qubit_lo_freq, return the computed u_channel_lo.
@@ -158,8 +168,8 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         for scales in self._u_channel_lo:
             u_lo_freq = 0
             for u_lo_idx in scales:
-                qfreq = qubit_lo_freq[u_lo_idx['q']]
-                qscale = u_lo_idx['scale'][0]
+                qfreq = qubit_lo_freq[u_lo_idx.q]
+                qscale = u_lo_idx.scale.real
                 u_lo_freq += qfreq * qscale
             u_lo_freqs.append(u_lo_freq)
         return u_lo_freqs
