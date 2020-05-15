@@ -137,7 +137,7 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  cmatrix_t &result);
 
   // public static class members
-static constexpr double SQR_HALF = sqrt(0.5);
+static const double SQR_HALF;
 static constexpr uint_t NUMBER_OF_PRINTED_DIGITS = 3;
 static constexpr uint_t MATRIX_OMP_THRESHOLD = 8;
 
@@ -152,6 +152,8 @@ private:
 //=========================================================================
 // Implementation
 //=========================================================================
+
+const double MPS_Tensor::SQR_HALF = sqrt(0.5);
 
 //---------------------------------------------------------------
 // function name: print
