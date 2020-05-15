@@ -148,8 +148,8 @@ stages:
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
-          env:
-            CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+            env:
+              CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
