@@ -30,6 +30,7 @@ from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, Driv
                           ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit.providers.models.backendconfiguration import UchannelLO
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -882,8 +883,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
 
-        u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
-                        [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
+        u_channel_lo = [
+            [UchannelLO(0, 1.0+0.0j)],
+            [UchannelLO(0, -1.0+0.0j),
+             UchannelLO(1, 1.0+0.0j)]]
         subsystem_list = [0, 1]
         dt = 1.
 
@@ -925,9 +928,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         ham_model = HamiltonianModel.from_dict(hamiltonian, subsystem_list)
 
 
-        u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
-                        [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 2, 'scale': [1.0, 0.0]}],
-                        [{'q': 1, 'scale': [-1.0, 0.0]}, {'q': 2, 'scale': [1.0, 0.0]}]]
+        u_channel_lo = [[UchannelLO(0, 1.0+0.0j)]]
+        u_channel_lo.append([UchannelLO(0, -1.0+0.0j), UchannelLO(2, 1.0+0.0j)])
+        u_channel_lo.append([UchannelLO(1, -1.0+0.0j), UchannelLO(2, 1.0+0.0j)])
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,

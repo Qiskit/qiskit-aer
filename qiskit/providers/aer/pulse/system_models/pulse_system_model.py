@@ -217,9 +217,9 @@ class PulseSystemModel():
             elif key[0] == 'U':
                 freqs[key] = 0
                 for u_lo_idx in self.u_channel_lo[chidx]:
-                    if u_lo_idx['q'] < len(qubit_lo_freq):
-                        qfreq = qubit_lo_freq[u_lo_idx['q']]
-                        qscale = u_lo_idx['scale'][0]
+                    if u_lo_idx.q < len(qubit_lo_freq):
+                        qfreq = qubit_lo_freq[u_lo_idx.q]
+                        qscale = u_lo_idx.scale.real
                         freqs[key] += qfreq * qscale
             else:
                 raise ValueError("Channel is not D or U")
