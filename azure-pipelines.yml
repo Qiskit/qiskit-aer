@@ -65,8 +65,121 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
 
+  - stage: 'Compile'
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    jobs:
+      - job: 'Windows_Wheel_Builds'
+        pool: {vmImage: 'vs2017-win2016'}
+        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+        strategy:
+          maxParallel: 2
+          matrix:
+            Python35:
+              python.version: '3.5'
+            Python36:
+              python.version: '3.6'
+            Python37:
+              python.version: '3.7'
+            Python38:
+              python.version: '3.8'
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - bash: |
+              set -x
+              set -e
+              conda create --yes --quiet --name qiskit-aer python=$(python.version)
+              source activate qiskit-aer
+              conda update --yes -n base conda
+              conda config --add channels conda-forge
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+            displayName: Create Anaconda environments
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+            displayName: Build wheels
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              virtualenv test-wheel
+              test-wheel/Scripts/pip install dist/*whl
+              test-wheel/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
+              test-wheel/Scripts/python tools/verify_wheels.py
+            displayName: Verify wheels
+      - job: 'Windows_sdist_Builds'
+        pool: {vmImage: 'vs2017-win2016'}
+        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+        strategy:
+          maxParallel: 1
+          matrix:
+            Python37:
+              python.version: '3.7'
+            Python38:
+              python.version: '3.8'
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - bash: |
+              set -x
+              set -e
+              conda create --yes --quiet --name qiskit-aer python=$(python.version)
+              source activate qiskit-aer
+              conda update --yes -n base conda
+              conda config --add channels conda-forge
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+            displayName: Create Anaconda environments
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              python setup.py sdist -- -G "Visual Studio 15 2017 Win64"
+            displayName: Build sdist
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              pip install dist/*tar.gz
+              pip install git+https://github.com/Qiskit/qiskit-terra
+              python tools/verify_wheels.py
+            env:
+              CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+            displayName: Install from sdist and verify
+      - job: 'Standalone'
+        pool: {vmImage: 'vs2017-win2016'}
+        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - bash: |
+              set -x
+              set -e
+              conda create --yes --quiet --name qiskit-aer
+              source activate qiskit-aer
+              conda update --yes -n base conda
+              conda config --add channels conda-forge
+              conda install --yes --quiet --name qiskit-aer numpy cmake
+            displayName: Create Anaconda environments
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              mkdir out
+              cd out
+              cmake .. -G "Visual Studio 15 2017 Win64"
+              cmake --build . --config Release
+
   - stage: 'Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    dependsOn: 'Compile'
     jobs:
       - job: 'Docs'
         condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
@@ -107,6 +220,7 @@ stages:
         condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
+          maxParallel: 3
           matrix:
             Python35:
               python.version: '3.5'
