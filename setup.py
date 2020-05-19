@@ -10,6 +10,12 @@ import sys
 import inspect
 
 try:
+    from conans import client
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+    from conans import client
+
+try:
     from skbuild import setup
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])

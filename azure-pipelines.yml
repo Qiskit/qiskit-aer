@@ -166,7 +166,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer numpy cmake
+              conda install --yes --quiet --name qiskit-aer conan numpy cmake
             displayName: Create Anaconda environments
           - bash: |
               set -x
