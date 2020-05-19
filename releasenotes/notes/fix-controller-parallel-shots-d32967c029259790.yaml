@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed bug with statevector and unitary simulators running a number of (parallel)
+    shots equal to the number of CPU threads instead of only running a single shot.
