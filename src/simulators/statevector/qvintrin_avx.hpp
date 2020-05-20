@@ -29,37 +29,61 @@ namespace {
 template<typename FloatType>
 using m256_t = typename std::conditional<std::is_same<FloatType, double>::value, __m256d, __m256>::type;
 
-// These Views are helpers for encapsulate QubitVector data_ type access.
-// As the data_ variable is allocated dynamically and of the type:
-// std::complex<double/float>*
+// These Views are helpers for encapsulate QubitVector::data_ access, specifically
+// for SIMD vectorization.
+// The data_ variable is allocated dynamically and of the type:
+// std::complex<double/float>*, and SIMD operations requires getting
+// a number of continuous values to vectorice the operation.
+// As we are dealing with memory layout of the form:
+//  [real|imag|real|imag|real|imag|...]
+// we require special indexing to the elements.
 template<typename FloatType>
-struct RealView {
-  RealView() = delete;
+struct RealVectorView {
+  RealVectorView() = delete;
   // Unfortunately, shared_ptr implies allocations and we cannot afford
   // them in this piece of code, so this is the reason to use raw pointers.
-  RealView(std::complex<FloatType>* data) : data(data){}
+  RealVectorView(std::complex<FloatType>* data) : data(data){}
   inline FloatType* operator[](size_t i){
-    return &reinterpret_cast<FloatType*>(data)[2* i];
+    return &reinterpret_cast<FloatType*>(data)[2 * i];
   }
   inline const FloatType* operator[](size_t i) const {
-    return &reinterpret_cast<const FloatType*>(data)[2* i];
+    return &reinterpret_cast<const FloatType*>(data)[2 * i];
   }
   std::complex<FloatType>* data = nullptr;
 };
 
 template<typename FloatType>
-struct ImaginaryView {
-  ImaginaryView() = delete;
-  ImaginaryView(std::complex<FloatType>* data) : data(data){}
-  inline FloatType* operator[](size_t i){
-    return &reinterpret_cast<FloatType*>(data)[2 * i + 1];
+struct ImaginaryVectorView : std::false_type {};
+
+template<>
+struct ImaginaryVectorView<double> {
+  ImaginaryVectorView() = delete;
+  ImaginaryVectorView(std::complex<double>* data) : data(data){}
+  // SIMD vectorization takes n bytes depending on the underlaying type, so
+  // for doubles, SIMD loads 4 consecutive values (4 * sizeof(double) = 32 bytes)
+  inline double* operator[](size_t i){
+    return &reinterpret_cast<double*>(data)[2 * i + 4];
   }
-  inline const FloatType* operator[](size_t i) const {
-    return &reinterpret_cast<const FloatType*>(data)[2 * i + 1];
+  inline const double* operator[](size_t i) const {
+    return &reinterpret_cast<const double*>(data)[2 * i + 4];
   }
-  std::complex<FloatType>* data = nullptr;
+  std::complex<double>* data = nullptr;
 };
 
+template<>
+struct ImaginaryVectorView<float> {
+  ImaginaryVectorView() = delete;
+  ImaginaryVectorView(std::complex<float>* data) : data(data){}
+  // SIMD vectorization takes n bytes depending on the underlaying type, so
+  // for floats, SIMD loads 8 consecutive (8 * sizeof(float) = 32 bytes)
+  inline float* operator[](size_t i){
+    return &reinterpret_cast<float*>(data)[2 * i + 8];
+  }
+  inline const float* operator[](size_t i) const {
+    return &reinterpret_cast<const float*>(data)[2 * i + 8];
+  }
+  std::complex<float>* data = nullptr;
+};
 
 auto _mm256_mul(const m256_t<double> left, const m256_t<double> right){
   return _mm256_mul_pd(left, right);
@@ -145,12 +169,36 @@ inline void _mm_complex_inner_product(size_t dim, m256_t<FloatType> vreals[], m2
     }
 }
 
-template<typename FloatType>
-inline void _mm_load_twoarray_complex(const FloatType * real_addr_0, const FloatType * imag_addr_1,
-  m256_t<FloatType>& real_ret, m256_t<FloatType>& imag_ret){
+inline void _mm_load_twoarray_complex(const double * real_addr_0, const double * imag_addr_1,
+  m256_t<double>& real_ret, m256_t<double>& imag_ret){
     real_ret = _mm256_load(real_addr_0);
     imag_ret = _mm256_load(imag_addr_1);
+    auto tmp0 = _mm256_permute4x64_pd(real_ret, 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1);
+    auto tmp1 = _mm256_permute4x64_pd(imag_ret, 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1);
+    real_ret = _mm256_blend_pd(real_ret, tmp1, 0b1010);
+    imag_ret = _mm256_blend_pd(tmp0, imag_ret, 0b1010);
+    real_ret = _mm256_permute4x64_pd(real_ret, 3 * 64 + 1 * 16 + 2 * 4 + 0 * 1);
+    imag_ret = _mm256_permute4x64_pd(imag_ret, 3 * 64 + 1 * 16 + 2 * 4 + 0 * 1);
 }
+
+inline void _mm_load_twoarray_complex(const float * real_addr_0, const float * imag_addr_1,
+  m256_t<float>& real_ret, m256_t<float>& imag_ret){
+    real_ret = _mm256_load(real_addr_0);
+    imag_ret = _mm256_load(imag_addr_1);
+    auto tmp0 = _mm256_permutevar8x32_ps(real_ret, _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1));
+    auto tmp1 = _mm256_permutevar8x32_ps(imag_ret, _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1));
+    real_ret = _mm256_blend_ps(real_ret, tmp1, 0b10101010);
+    imag_ret = _mm256_blend_ps(tmp0, imag_ret, 0b10101010);
+    real_ret = _mm256_permutevar8x32_ps(real_ret, _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0));
+    imag_ret = _mm256_permutevar8x32_ps(imag_ret, _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0));
+}
+
+// template<typename FloatType>
+// inline void _mm_load_twoarray_complex(const FloatType * real_addr_0, const FloatType * imag_addr_1,
+//   m256_t<FloatType>& real_ret, m256_t<FloatType>& imag_ret){
+//     real_ret = _mm256_load(real_addr_0);
+//     imag_ret = _mm256_load(imag_addr_1);
+// }
 
 template<typename FloatType>
 inline void _mm_store_twoarray_complex(const m256_t<FloatType>& real_ret, const m256_t<FloatType>& imag_ret,
@@ -188,9 +236,9 @@ inline void reorder(QV::areg_t<N>& qregs, QV::cvector_t<FloatType>& mat) {
 
   QV::cvector_t<FloatType> mat_orig;
   mat_orig.reserve(mat.size());
-  std::copy_n(mat.begin(), dim * dim * 2, std::back_inserter(mat_orig));
+  std::copy(mat.begin(),mat.end(), std::back_inserter(mat_orig));
 
-  // TODO Using standard interface for transposing instead of mmemory indexing
+  // TODO Using standard interface for transposing instead of memory indexing
   for(size_t i = 0; i < dim; ++i) {
     for(size_t j = 0; j < dim; ++j) {
       size_t oldidx = i * dim + j;
@@ -214,8 +262,8 @@ namespace QV {
 
 template<size_t N>
 inline void _apply_matrix_float_avx_q0q1q2(
-    RealView<float>& reals,
-    ImaginaryView<float>& imags,
+    RealVectorView<float>& reals,
+    ImaginaryVectorView<float>& imags,
     const std::complex<float>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -237,7 +285,7 @@ inline void _apply_matrix_float_avx_q0q1q2(
 
   for(unsigned i = 0; i < (1ULL << N); i += 8){
     auto idx = inds[i];
-    _mm_load_twoarray_complex<float>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
 
     for (unsigned j = 1; j < 8; ++j) {
       vreals[i + j] = _mm256_permutevar8x32_ps(vreals[i], _MASKS[j - 1]);
@@ -296,8 +344,8 @@ inline void _apply_matrix_float_avx_q0q1q2(
 
 template<size_t N>
 inline void _apply_matrix_float_avx_qLqL(
-    RealView<float>& reals,
-    ImaginaryView<float>& imags,
+    RealVectorView<float>& reals,
+    ImaginaryVectorView<float>& imags,
     const std::complex<float>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -324,7 +372,7 @@ inline void _apply_matrix_float_avx_qLqL(
 
   for (size_t i = 0; i < (1ULL << N); i += 4) {
     auto idx = inds[i];
-    _mm_load_twoarray_complex<float>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
 
     for (size_t j = 0; j < 3; ++j) {
       vreals[i + j + 1] = _mm256_permutevar8x32_ps(vreals[i], masks[j]);
@@ -378,8 +426,8 @@ inline void _apply_matrix_float_avx_qLqL(
 
 template<size_t N>
 inline void _apply_matrix_float_avx_qL(
-    RealView<float>& reals,
-    ImaginaryView<float>& imags,
+    RealVectorView<float>& reals,
+    ImaginaryVectorView<float>& imags,
     const std::complex<float>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -400,7 +448,7 @@ inline void _apply_matrix_float_avx_qL(
 
   for (unsigned i = 0; i < (1ULL << N); i += 2){
     auto idx = inds[i];
-    _mm_load_twoarray_complex<float>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
 
     vreals[i + 1] = _mm256_permutevar8x32_ps(vreals[i], mask);
     vimags[i + 1] = _mm256_permutevar8x32_ps(vimags[i], mask);
@@ -431,8 +479,8 @@ inline void _apply_matrix_float_avx_qL(
 
 template<size_t N>
 inline void _apply_matrix_float_avx(
-    RealView<float>& reals,
-    ImaginaryView<float>& imags,
+    RealVectorView<float>& reals,
+    ImaginaryVectorView<float>& imags,
     const std::complex<float>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -444,7 +492,7 @@ inline void _apply_matrix_float_avx(
 
   for(unsigned i = 0; i < (1ULL << N); ++i){
     auto idx = inds[i];
-    _mm_load_twoarray_complex<float>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
   }
 
   unsigned midx = 0;
@@ -458,8 +506,8 @@ inline void _apply_matrix_float_avx(
 
 template<size_t N>
 inline void _apply_matrix_double_avx_q0q1(
-    RealView<double>& reals,
-    ImaginaryView<double>& imags,
+    RealVectorView<double>& reals,
+    ImaginaryVectorView<double>& imags,
     const std::complex<double>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -477,7 +525,7 @@ inline void _apply_matrix_double_avx_q0q1(
 
   for(size_t i = 0; i < (1ULL << N); i += 4) {
     auto idx = inds[i];
-    _mm_load_twoarray_complex<double>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
     for (size_t j = 1; j < 4; ++j) {
       switch (j) {
       case 1:
@@ -531,8 +579,8 @@ inline void _apply_matrix_double_avx_q0q1(
 
 template<size_t N>
 inline void _apply_matrix_double_avx_qL(
-    RealView<double>& reals,
-    ImaginaryView<double>& imags,
+    RealVectorView<double>& reals,
+    ImaginaryVectorView<double>& imags,
     const std::complex<double>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -547,7 +595,7 @@ inline void _apply_matrix_double_avx_qL(
 
   for(unsigned i = 0; i < (1ULL << N); i += 2){
     auto idx = inds[i];
-    _mm_load_twoarray_complex<double>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
     if (qregs[0] == 0) {
       vreals[i + 1] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0);
       vimags[i + 1] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0);
@@ -583,8 +631,8 @@ inline void _apply_matrix_double_avx_qL(
 
 template<size_t N>
 inline void _apply_matrix_double_avx(
-    RealView<double>& reals,
-    ImaginaryView<double>& imags,
+    RealVectorView<double>& reals,
+    ImaginaryVectorView<double>& imags,
     const std::complex<double>* mat,
     const areg_t<1ULL << N> &inds,
     const areg_t<N> qregs
@@ -596,7 +644,7 @@ inline void _apply_matrix_double_avx(
 
   for(unsigned i = 0; i < (1ULL << N); ++i){
     auto idx = inds[i];
-    _mm_load_twoarray_complex<double>(reals[idx], imags[idx], vreals[i], vimags[i]);
+    _mm_load_twoarray_complex(reals[idx], imags[idx], vreals[i], vimags[i]);
   }
 
   unsigned midx = 0;
@@ -696,8 +744,8 @@ inline bool _apply_avx_kernel(
   uint_t omp_threads
 ){
 
-  RealView<float> real = {data};
-  ImaginaryView<float> img = {data};
+  RealVectorView<float> real = {data};
+  ImaginaryVectorView<float> img = {data};
 
   if(qregs.size() > 2 && qregs[2] == 2){
     auto lambda = [&](const areg_t<(1 << N)> &inds, const std::complex<float>* fmat)->void {
@@ -740,8 +788,8 @@ inline bool _apply_avx_kernel(
   uint_t omp_threads
 ){
 
-  RealView<double> real = {data};
-  ImaginaryView<double> img = {data};
+  RealVectorView<double> real = {data};
+  ImaginaryVectorView<double> img = {data};
 
   if (qregs.size() > 1 && qregs[1] == 1) {
     auto lambda = [&](const areg_t<(1 << N)>& inds, const std::complex<double>* dmat) -> void {
@@ -771,7 +819,7 @@ inline bool _apply_avx_kernel(
 
 template<typename FloatType>
 typename std::enable_if<std::is_same<FloatType, double>::value, bool>::type
-simd_not_applies(uint64_t data_size){
+is_simd_applicable(uint64_t data_size){
   if (data_size <= 4)
     return false;
   return true;
@@ -779,7 +827,7 @@ simd_not_applies(uint64_t data_size){
 
 template<typename FloatType>
 typename std::enable_if<std::is_same<FloatType, float>::value, bool>::type
-simd_not_applies(uint64_t data_size){
+is_simd_applicable(uint64_t data_size){
   if (data_size <= 8)
     return false;
   return true;
@@ -794,7 +842,7 @@ inline bool apply_matrix_avx(
     uint_t omp_threads
 ){
 
-  if (simd_not_applies<FloatType>(data_size))
+  if (!is_simd_applicable<FloatType>(data_size))
     return false;
 
   auto transpose = [](const cvector_t<FloatType>& matrix) -> cvector_t<FloatType> {
