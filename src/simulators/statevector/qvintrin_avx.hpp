@@ -155,14 +155,10 @@ template<typename FloatType>
 inline void _mm_complex_inner_product(size_t dim, m256_t<FloatType> vreals[], m256_t<FloatType> vimags[],
   const std::complex<FloatType>* cmplxs, m256_t<FloatType>& vret_real, m256_t<FloatType>& vret_imag,
   m256_t<FloatType>& vtmp_0, m256_t<FloatType>& vtmp_1){
-    //vtmp_0 = _mm256_set1(cmplxs[0]);
-    //vtmp_1 = _mm256_set1(cmplxs[1]);
     vtmp_0 = _mm256_set1(cmplxs[0].real());
     vtmp_1 = _mm256_set1(cmplxs[0].imag());
     _mm_complex_multiply<FloatType>(vret_real, vret_imag, vreals[0], vimags[0], vtmp_0, vtmp_1);
     for (size_t i = 1; i < dim; ++i){
-      //vtmp_0 = _mm256_set1(cmplxs[i * 2]);
-      //vtmp_1 = _mm256_set1(cmplxs[i * 2 + 1]);
       vtmp_0 = _mm256_set1(cmplxs[i].real());
       vtmp_1 = _mm256_set1(cmplxs[i].imag());
       _mm_complex_multiply_add<FloatType>(vret_real, vret_imag, vreals[i], vimags[i], vtmp_0, vtmp_1);
@@ -193,13 +189,6 @@ inline void _mm_load_twoarray_complex(const float * real_addr_0, const float * i
     imag_ret = _mm256_permutevar8x32_ps(imag_ret, _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0));
 }
 
-// template<typename FloatType>
-// inline void _mm_load_twoarray_complex(const FloatType * real_addr_0, const FloatType * imag_addr_1,
-//   m256_t<FloatType>& real_ret, m256_t<FloatType>& imag_ret){
-//     real_ret = _mm256_load(real_addr_0);
-//     imag_ret = _mm256_load(imag_addr_1);
-// }
-
 template<typename FloatType>
 inline void _mm_store_twoarray_complex(const m256_t<FloatType>& real_ret, const m256_t<FloatType>& imag_ret,
   FloatType * cmplx_addr_0, FloatType * cmplx_addr_1){
@@ -214,7 +203,7 @@ inline void reorder(QV::areg_t<N>& qregs, QV::cvector_t<FloatType>& mat) {
 
   auto dim = (1UL << N);
   auto qreg_orig = qregs;
-  // TODO Haven't we already ordered
+  // TODO Haven't we already ordered?
   std::sort(qregs.begin(), qregs.end());
 
   size_t masks[N];
@@ -337,7 +326,6 @@ inline void _apply_matrix_float_avx_q0q1q2(
         break;
       }
     }
-
     _mm_store_twoarray_complex<float>(real_ret, imag_ret, reals[idx], imags[idx]);
   }
 }
@@ -735,8 +723,13 @@ void _apply_lambda(uint64_t data_size, const uint64_t skip, Lambda&& func, const
   }
 }
 
+enum class Avx {
+  NotApplied,
+  Applied
+};
+
 template<size_t N>
-inline bool _apply_avx_kernel(
+inline Avx _apply_avx_kernel(
   const areg_t<N>& qregs,
   std::complex<float>* data,
   uint64_t data_size,
@@ -776,11 +769,11 @@ inline bool _apply_avx_kernel(
     _apply_lambda(data_size, 8, lambda, qregs, omp_threads, mat);
 
   }
-  return true;
+  return Avx::Applied;
 }
 
 template<size_t N>
-inline bool _apply_avx_kernel(
+inline Avx _apply_avx_kernel(
   const areg_t<N>& qregs,
   std::complex<double>* data,
   uint64_t data_size,
@@ -813,7 +806,7 @@ inline bool _apply_avx_kernel(
     _apply_lambda(data_size, 4, lambda, qregs, omp_threads, mat);
 
   }
-  return true;
+  return Avx::Applied;
 }
 
 
@@ -834,7 +827,7 @@ is_simd_applicable(uint64_t data_size){
 }
 
 template<typename FloatType, size_t N>
-inline bool apply_matrix_avx(
+inline Avx apply_matrix_avx(
     std::complex<FloatType>* data,
     uint64_t data_size,
     const areg_t<N> qregs,
@@ -843,12 +836,12 @@ inline bool apply_matrix_avx(
 ){
 
   if (!is_simd_applicable<FloatType>(data_size))
-    return false;
+    return Avx::NotApplied;
 
   auto transpose = [](const cvector_t<FloatType>& matrix) -> cvector_t<FloatType> {
       cvector_t<FloatType> transposed(matrix.size());
       // We deal with MxM matrices, so let's take rows for example
-      auto rows = log2(matrix.size());
+      auto rows = matrix.size();
       for(size_t i = 0; i < rows; ++i){
           for(size_t j = 0; j < rows; ++j){
               transposed[ i * rows + j] = matrix[ j * rows + i ];
@@ -858,16 +851,13 @@ inline bool apply_matrix_avx(
   };
 
   auto transposed_mat = transpose(mat);
-
   auto ordered_qregs = qregs;
   reorder(ordered_qregs, transposed_mat);
-
   return _apply_avx_kernel<N>(ordered_qregs, data, data_size, transposed_mat.data(), omp_threads);
 }
 
-
 template<typename FloatType>
-inline bool apply_matrix_avx(
+inline Avx apply_matrix_avx(
   std::complex<FloatType>* qv_data,
   uint64_t data_size,
   const reg_t& qregs,
@@ -890,7 +880,7 @@ inline bool apply_matrix_avx(
     return apply_matrix_avx(qv_data, data_size, to_array<6>(qregs), mat, omp_threads);
   default:
   // TODO: Return Enum
-    return false;
+    return Avx::NotApplied;
   }
 }
 
