@@ -316,7 +316,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
   {
 #pragma omp for
   for (int_t k = 0; k < NROWS; ++k) {
-  	d = BaseVector::get_state(k * DIAG,BaseVector::m_maxChunkBits);
+  	d = BaseVector::get_state(k * DIAG);
     val_re += std::real(d);
     val_im += std::imag(d);
   }

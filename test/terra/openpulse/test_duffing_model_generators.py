@@ -20,6 +20,7 @@ from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSys
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.aer.pulse.system_models import duffing_model_generators as model_gen
 from qiskit.providers.aer.pulse.qutip_extra_lite.qobj_generators import get_oper
+from qiskit.providers.models.backendconfiguration import UchannelLO
 
 class TestDuffingModelGenerators(QiskitAerTestCase):
     """Tests for functions in duffing_model_generators.py"""
@@ -55,13 +56,13 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
-                         [[{'scale': [1.0, 0.0], 'q' : 1}], [{'scale': [1.0, 0.0], 'q' : 0}]])
+                         [[UchannelLO(1, 1.0+0.0j)], [UchannelLO(0, 1.0+0.0j)]])
 
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
             self.assertEqual(system_model.u_channel_lo[idx],
-                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+                             [UchannelLO(q_pair[1], 1.0+0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -136,16 +137,16 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
-                         [[{'scale': [1.0, 0.0], 'q' : 1}],
-                          [{'scale': [1.0, 0.0], 'q' : 0}],
-                          [{'scale': [1.0, 0.0], 'q' : 2}],
-                          [{'scale': [1.0, 0.0], 'q' : 1}]])
+                         [[UchannelLO(1, 1.0+0.0j)],
+                          [UchannelLO(0, 1.0+0.0j)],
+                          [UchannelLO(2, 1.0+0.0j)],
+                          [UchannelLO(1, 1.0+0.0j)]])
 
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
             self.assertEqual(system_model.u_channel_lo[idx],
-                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+                             [UchannelLO(q_pair[1], 1.0+0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -234,17 +235,17 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
         # check u_channel_lo is correct
         self.assertEqual(system_model.u_channel_lo,
-                         [[{'scale': [1.0, 0.0], 'q' : 1}], [{'scale': [1.0, 0.0], 'q' : 0}],
-                          [{'scale': [1.0, 0.0], 'q' : 2}], [{'scale': [1.0, 0.0], 'q' : 0}],
-                          [{'scale': [1.0, 0.0], 'q' : 3}], [{'scale': [1.0, 0.0], 'q' : 0}],
-                          [{'scale': [1.0, 0.0], 'q' : 2}], [{'scale': [1.0, 0.0], 'q' : 1}],
-                          [{'scale': [1.0, 0.0], 'q' : 3}], [{'scale': [1.0, 0.0], 'q' : 1}]])
+                         [[UchannelLO(1, 1.0+0.0j)], [UchannelLO(0, 1.0+0.0j)],
+                          [UchannelLO(2, 1.0+0.0j)], [UchannelLO(0, 1.0+0.0j)],
+                          [UchannelLO(3, 1.0+0.0j)], [UchannelLO(0, 1.0+0.0j)],
+                          [UchannelLO(2, 1.0+0.0j)], [UchannelLO(1, 1.0+0.0j)],
+                          [UchannelLO(3, 1.0+0.0j)], [UchannelLO(1, 1.0+0.0j)]])
 
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
             self.assertEqual(system_model.u_channel_lo[idx],
-                             [{'scale': [1.0, 0.0], 'q' : q_pair[1]}])
+                             [UchannelLO(q_pair[1], 1.0+0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -404,20 +405,42 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         self.assertEqual(output['qub'], expected['qub'])
 
 
+    def test_calculate_channel_frequencies(self):
+        """test calculate_channel_frequencies of resulting PulseSystemModel objects"""
+
+        dim_oscillators = 2
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.0}
+        dt = 1.3
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+
+        channel_freqs = system_model.calculate_channel_frequencies([5.0, 5.1])
+        expected = {'D0' : 5.0, 'D1' : 5.1, 'U0' : 5.1, 'U1': 5.0}
+        self.assertEqual(dict(channel_freqs), expected)
+
+
 
     def test_cr_lo_list(self):
         """Test _cr_lo_list"""
 
         cr_dict = {(0,1): 0, (1,0) : 1, (3,4) : 2}
-        expected = [[{'scale' : [1.0, 0], 'q' : 1}],
-                    [{'scale' : [1.0, 0], 'q' : 0}],
-                    [{'scale' : [1.0, 0], 'q' : 4}]]
+        expected = [[UchannelLO(1, 1.0+0.0j)],
+                    [UchannelLO(0, 1.0+0.0j)],
+                    [UchannelLO(4, 1.0+0.0j)]]
         self.assertEqual(model_gen._cr_lo_list(cr_dict), expected)
 
         cr_dict = {(0,1): 0, (3,4) : 2, (1,0) : 1}
-        expected = [[{'scale' : [1.0, 0], 'q' : 1}],
-                    [{'scale' : [1.0, 0], 'q' : 0}],
-                    [{'scale' : [1.0, 0], 'q' : 4}]]
+        expected = [[UchannelLO(1, 1.0+0.0j)],
+                    [UchannelLO(0, 1.0+0.0j)],
+                    [UchannelLO(4, 1.0+0.0j)]]
         self.assertEqual(model_gen._cr_lo_list(cr_dict), expected)
 
     def test_single_term_generators(self):

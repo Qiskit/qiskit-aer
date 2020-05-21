@@ -87,6 +87,10 @@ public:
     return(num_qubits_ == 0);
   }
 
+  /////////////////////////////////////////////////////////////////
+  // API functions
+  /////////////////////////////////////////////////////////////////
+
   //----------------------------------------------------------------
   // Function name: apply_x,y,z,...
   // Description: Apply a gate on some qubits by their indexes.
@@ -94,24 +98,24 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
   void apply_h(uint_t index);
-  void apply_x(uint_t index){q_reg_[index].apply_x();}
-  void apply_y(uint_t index){q_reg_[index].apply_y();}
-  void apply_z(uint_t index){q_reg_[index].apply_z();}
-  void apply_s(uint_t index){q_reg_[index].apply_s();}
-  void apply_sdg(uint_t index){q_reg_[index].apply_sdg();}
-  void apply_t(uint_t index){q_reg_[index].apply_t();}
-  void apply_tdg(uint_t index){q_reg_[index].apply_tdg();}
+  void apply_x(uint_t index){ get_qubit(index).apply_x();}
+  void apply_y(uint_t index){ get_qubit(index).apply_y();}
+  void apply_z(uint_t index){ get_qubit(index).apply_z();}
+  void apply_s(uint_t index){ get_qubit(index).apply_s();}
+  void apply_sdg(uint_t index){ get_qubit(index).apply_sdg();}
+  void apply_t(uint_t index){ get_qubit(index).apply_t();}
+  void apply_tdg(uint_t index){ get_qubit(index).apply_tdg();}
   void apply_u1(uint_t index, double lambda);
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);
-  void apply_swap(uint_t index_A, uint_t index_B);
+  void apply_swap(uint_t index_A, uint_t index_B, bool swap_gate);
+
+
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
-  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, 
-			  const cmatrix_t &mat);
+
   void apply_ccx(const reg_t &qubits);  
-  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat);
 
@@ -120,20 +124,9 @@ public:
     apply_diagonal_matrix(qubits, vmat);
   }
 
-  // apply_matrix for more than 2 qubits
-  void apply_multi_qubit_gate(const reg_t &qubits,
-			      const cmatrix_t &mat);
-
-  // The following two are helper functions for apply_multi_qubit_gate
-  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
-			      const cmatrix_t &mat);
-  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
-				     const cmatrix_t &mat);
-
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -157,12 +150,10 @@ public:
 
   //------------------------------------------------------------------
   // Function name: MPS_with_new_indices
-  // Description: Creates a copy of *this where the indices of the
-  //   selected qubits have been moved for more efficient computation
+  // Description: Moves the indices of the selected qubits for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: temp_MPS - the new MPS after reordering the qubits
-  //          sorted_qubits - the qubits, after sorting
+  // Returns: sorted_qubits - the qubits, after sorting
   //          centralized_qubits - the qubits, after sorting and centralizing
   //          
   //----------------------------------------------------------------
@@ -171,36 +162,14 @@ public:
 			    reg_t &centralized_qubits,
 			    MPS& temp_MPS) const;
 
-
   //----------------------------------------------------------------
   // Function name: print
-  // Description: prints the MPS
+  // Description: prints the MPS in the current ordering of the qubits (qubit_order_)
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-   //----------------------------------------------------------------
-   // Function name: get_matrices_sizes
-   // Description: returns the size of the inner matrices of the MPS
-   //----------------------------------------------------------------
-  std::vector<reg_t> get_matrices_sizes() const;
+  void full_state_vector(cvector_t &state_vector);
 
-  //----------------------------------------------------------------
-  // Function name: state_vec_as_MPS
-  // Description: Computes the state vector of a subset of qubits.
-  // 	The regular use is with for all qubits. in this case the output is
-  //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
-  //  	If not used for all qubits,	the result tensor will contain a
-  //   	2^(distance between edges) vector of matrices of some size. This
-  //	method is used for computing expectation value of a subset of qubits.
-  // Parameters: none.
-  // Returns: none.
-  //----------------------------------------------------------------
-  MPS_Tensor state_vec_as_MPS(const reg_t &qubits) const;
-
-  // This function computes the state vector for all the consecutive qubits 
-  // between first_index and last_index
-  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector(cvector_t &state_vector) const;
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   static void set_omp_threads(uint_t threads) {
@@ -238,25 +207,19 @@ public:
     return enable_gate_opt_;
   }
 
-  //  void store_measure(const AER::reg_t outcome, const AER::reg_t &cmemory, const AER::reg_t &cregister) const{
-  //           cout << " store_measure not supported yet" <<endl;}
-
-  double norm(const uint_t qubit, cvector_t &vmat) const {
+  double norm(const uint_t qubit, const cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
     return expectation_value(qubits, mat);
   }
 
-  double norm(const reg_t &qubits, cvector_t &vmat) const {
+  double norm(const reg_t &qubits, const cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
-
-  uint_t apply_measure(uint_t qubit,
-		       RngEngine &rng);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector
@@ -267,19 +230,81 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
-    cmatrix_t statevector_as_matrix(1, state_vector.size());
+  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
 
-#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
-        for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-	  statevector_as_matrix(0, i) = state_vector[i];
-	}
+private:
+
+  MPS_Tensor& get_qubit(uint_t index) {
     
-    initialize_from_matrix(num_qubits, statevector_as_matrix);
+    return q_reg_[get_qubit_index(index)];
   }
-  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
-protected:
+  uint_t get_qubit_index(uint_t index) const {
+    return qubit_ordering_.location_[index];
+  }
+
+  reg_t get_internal_qubits(const reg_t &qubits) const;
+
+  // The following methods are the internal versions of the api functions.
+  // They are each called from the corresponding api function with
+  // the internal ordering of the qubits - using get_internal_qubits
+
+  // if swap_gate==true, this is an actual swap_gate of the circuit
+  // if swap_gate==false, this is an internal swap, necessary for
+  // some internal algorithm
+  void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+  void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
+			  Gates gate_type, const cmatrix_t &mat);
+  void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
+  void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat);
+  // apply_matrix for more than 2 qubits
+  void apply_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+
+  // The following two are helper functions for apply_multi_qubit_gate
+  void apply_unordered_multi_qubit_gate(const reg_t &qubits,
+			      const cmatrix_t &mat);
+  void apply_matrix_to_target_qubits(const reg_t &target_qubits,
+				     const cmatrix_t &mat);
+  cmatrix_t density_matrix_internal(const reg_t &qubits) const;
+
+  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+
+  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
+  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const;
+
+   //----------------------------------------------------------------
+   // Function name: get_matrices_sizes
+   // Description: returns the size of the inner matrices of the MPS
+   //----------------------------------------------------------------
+  std::vector<reg_t> get_matrices_sizes() const;
+
+  //----------------------------------------------------------------
+  // Function name: state_vec_as_MPS
+  // Description: Computes the state vector of a subset of qubits.
+  // 	The regular use is with for all qubits. in this case the output is
+  //  	MPS_Tensor with a 2^n vector of 1X1 matrices.
+  //  	If not used for all qubits,	the result tensor will contain a
+  //   	2^(distance between edges) vector of matrices of some size. This
+  //	method is used for computing expectation value of a subset of qubits.
+  // Parameters: none.
+  // Returns: none.
+  //----------------------------------------------------------------
+  MPS_Tensor state_vec_as_MPS(const reg_t &qubits);
+
+  // This function computes the state vector for all the consecutive qubits 
+  // between first_index and last_index
+  MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
+  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
+
+  void apply_measure_internal(const reg_t &qubits,
+			      RngEngine &rng, reg_t &outcome_vector_internal);
+   uint_t apply_measure(uint_t qubit, 
+			  RngEngine &rng);
+
+  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
   //----------------------------------------------------------------
   // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
@@ -331,42 +356,15 @@ protected:
   // Parameters: Input: qubits - the qubits we wish to move
   //                    target_qubits - the new location of qubits
   //                    actual_indices - the final location of all the qubits in the MPS
-  // Returns: right_end - the rightmost position of 'qubits'.
+  // Returns: none.
   //----------------------------------------------------------------
-  uint_t move_qubits_to_right_end(const reg_t &qubits,
+  void move_qubits_to_right_end(const reg_t &qubits,
 				 reg_t &target_qubits,
 				 reg_t &actual_indices);
 
-//----------------------------------------------------------------
-  // Function name: move_qubits_back_from_right_end
-  // Description: This function moves qubits back to their original position after
-  //              move_qubits_to_right_end
-  // Parameters: Input/output: qubits - the qubits we wish to move
-  //                    actual_indices - the actual location of qubits, returned from 
-  //                    move_qubits_to_right_end, and updated here.
-  //                    right_end - location of the rightmost qubit out
-  //                                of 'qubits'
-  // Returns: none.
   //----------------------------------------------------------------
-  void move_qubits_back_from_right_end(const reg_t &qubits,
-				       reg_t &actual_indices,
-				       uint_t right_end);
+  void move_all_qubits_to_sorted_ordering();
 
-  //----------------------------------------------------------------
-  // Function name: move_qubits_to_original_location
-  // Description: This function reverses the effect of centralize_qubits.
-  //      It returns the qubits that were previously centralized, to their original positions.
-  // Parameters: Input: first - the index of the first qubit that was moved
-  //                    original_qubits - the subset of qubits that were moved
-  //                    sorted_qubits - the original_qubits in sorted order
-  // Effect: the MPS (this) where the qubits have been moved back to their original
-  //         position.
-  // Returns: none.
-  //----------------------------------------------------------------
-  void move_qubits_to_original_location(uint_t first, const reg_t &original_qubits, 
-					const reg_t &sorted_qubits);
-
-  //----------------------------------------------------------------
 
   // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
@@ -382,6 +380,17 @@ protected:
   uint_t num_qubits_;
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
+
+  struct ordering {
+    // order_ stores the current ordering of the qubits,
+    // location_ stores the location of each qubit in the vector. It is derived from order_ 
+    // at the end of every swap operation for performance reasons
+    // for example: starting position order_ = location_ = 01234
+    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    reg_t order_;
+    reg_t location_;
+  } qubit_ordering_;
+
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
@@ -405,7 +414,7 @@ inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
 }
 
 inline std::ostream&
-operator <<(std::ostream& out, const MPS& mps)
+operator <<(std::ostream& out, MPS& mps)
 {
   return mps.print(out);
 }

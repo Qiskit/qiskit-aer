@@ -39,7 +39,7 @@ class TestNoiseInserter(unittest.TestCase):
 
         self.assertEqual(target_circuit, result_circuit)
 
-    def test_simple_noise(self):
+    def test_all_qubit_quantum_errors(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.x(qr[0])
@@ -58,6 +58,49 @@ class TestNoiseInserter(unittest.TestCase):
         target_circuit.y(qr[1])
         target_circuit.append(error_y.to_instruction(), [qr[1]])
         target_circuit.z(qr[2])
+
+        result_circuit = insert_noise(circuit, noise_model)
+
+        self.assertEqual(target_circuit, result_circuit)
+
+    def test_local_quantum_errors(self):
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.x(qr[1])
+        circuit.y(qr[2])
+
+        error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
+        error_y = pauli_error([('X', 0.35), ('Z', 0.65)])
+        noise_model = NoiseModel()
+        noise_model.add_quantum_error(error_x, 'x', [0])
+        noise_model.add_quantum_error(error_y, 'y', [2])
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.append(error_x.to_instruction(), [qr[0]])
+        target_circuit.x(qr[1])
+        target_circuit.y(qr[2])
+        target_circuit.append(error_y.to_instruction(), [qr[2]])
+
+        result_circuit = insert_noise(circuit, noise_model)
+
+        self.assertEqual(target_circuit, result_circuit)
+
+    def test_nonlocal_quantum_errors(self):
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.x(qr[0])
+        circuit.x(qr[2])
+
+        error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
+        noise_model = NoiseModel()
+        noise_model.add_nonlocal_quantum_error(error_x, 'x', [0], [1])
+
+        target_circuit = QuantumCircuit(qr)
+        target_circuit.x(qr[0])
+        target_circuit.append(error_x.to_instruction(), [qr[1]])
+        target_circuit.x(qr[2])
 
         result_circuit = insert_noise(circuit, noise_model)
 
