@@ -268,6 +268,18 @@ stages:
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
+              pip install numpy<1.19.0
+              pip install -r requirements-dev.txt
+              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
+                  pip install git+https://github.com/Qiskit/qiskit-terra.git
+              else
+                  pip install qiskit-terra
+              fi
+              displayName: "Install dependencies"
+              condition: eq(variables['python.version'], '3.5')
+          - bash: |
+              set -e
+              source activate qiskit-aer-$(Build.BuildNumber)
               pip install -r requirements-dev.txt
               if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
@@ -275,7 +287,7 @@ stages:
                   pip install qiskit-terra
               fi
             displayName: "Install dependencies"
-            condition: ne(variables['python.version'], '3.8')
+            condition: and(ne(variables['python.version'], '3.5'), ne(variables['python.version'], '3.8'))
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
