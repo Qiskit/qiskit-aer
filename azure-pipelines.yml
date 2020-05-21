@@ -275,8 +275,8 @@ stages:
               else
                   pip install qiskit-terra
               fi
-              displayName: "Install dependencies"
-              condition: eq(variables['python.version'], '3.5')
+            displayName: "Install dependencies"
+            condition: eq(variables['python.version'], '3.5')
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
