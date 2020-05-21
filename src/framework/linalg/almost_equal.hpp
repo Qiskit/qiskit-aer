@@ -22,6 +22,9 @@
 #include "framework/matrix.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
 
+#define MAXDIFF 5.0*epsilon<T>::value
+#define MAXRELATIVEDIFF 5.0*epsilon<T>::value
+
 namespace AER {
 namespace Linalg {
 
@@ -59,17 +62,19 @@ using is_tt = decltype(is_tt_impl<TT>(std::declval<typename std::decay<T>::type>
 
 template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type >
 bool almost_equal(T f1, T f2,
-                  T max_diff = epsilon<T>::value,
-                  T max_relative_diff = epsilon<T>::value);
+                  T max_diff = MAXDIFF,
+                  T max_relative_diff = MAXRELATIVEDIFF);
 
 template <typename T>
-bool almost_equal(std::complex<T> mat1, std::complex<T> mat2);
+bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
+                  T max_diff = MAXDIFF,
+                  T max_relative_diff = MAXRELATIVEDIFF);
  
 template <typename T>
-bool almost_equal(matrix<T> mat1, matrix<T> mat2);
+bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2);
 
 template <typename T>
-bool almost_equal(std::vector<T> mat1, std::vector<T> mat2);
+bool almost_equal(const std::vector<T>& mat1, const std::vector<T>& mat2);
  
 template <typename T, typename >
 bool almost_equal(T f1, T f2,
@@ -77,40 +82,62 @@ bool almost_equal(T f1, T f2,
                   T max_relative_diff) {
   T diff = std::abs(f1 - f2);
   if (diff <= max_diff) return true;
+  std::cout << diff << std::endl;
   return diff <=
          max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
 
 template <typename T>
-bool almost_equal(std::complex<T> f1, std::complex<T> f2) {
-    return almost_equal(f1.real(), f2.real()) //, max_diff, max_relative_diff)
-         && almost_equal<T>(f1.imag(), f2.imag()); //, max_diff, max_relative_diff);
+bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
+                  T max_diff,
+                  T max_relative_diff) {
+    return almost_equal<T>(f1.real(), f2.real(), max_diff, max_relative_diff)
+         && almost_equal<T>(f1.imag(), f2.imag(), max_diff, max_relative_diff);
 }
 
 template <typename T>
-bool almost_equal(matrix<T> mat1, matrix<T> mat2) {
+bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2) {
   if(mat1.size() != mat2.size()) {
        std::cout << "Matrix sizes not equal : " << mat1.size() << " != " << mat2.size() << std::endl;
        return false;
   }
-
+  bool equal{true};
+  matrix<T> diff;
+  diff.initialize(mat1.GetRows(), mat1.GetColumns());
+  auto average_diff = std::abs(diff(0,0));
+  auto max_diff = std::abs(diff(0,0));
+  size_t diff_cnt{0};
   for(auto i = 0; i < mat1.size(); ++i){
     if( ! almost_equal(mat1[i], mat2[i])) {
-      std::cout << "matrix element " << i << "not equal : " << mat1[i] << " != " << mat2[i] << std::endl;
-      return false;
+      auto d = std::abs(mat1[i] - mat2[i]);
+      max_diff = std::max(max_diff, d);
+      average_diff += d;
+      diff[i] = T(d);
+      diff_cnt++;
+      equal = false;
     }
   }
-  return true;
+  if ( equal ) {
+    return true;
+  } else { 
+    std::cout << "matrices not exactly equal : " << std::endl << diff << std::endl;
+    average_diff = average_diff / diff_cnt;
+    std::cout << "average diff: " << average_diff << std::endl;
+  }
+ 
+  return equal;
 }
 
 template <typename T>
-bool almost_equal(std::vector<T> vec1, std::vector<T> vec2) {
-  if (vec1.size() != vec2.size())
+bool almost_equal(const std::vector<T>& vec1, const std::vector<T>& vec2) {
+  if (vec1.size() != vec2.size()) {
     return false;
+  }
 
   for(auto i = 0; i < vec1.size(); ++i){
-    if( ! almost_equal(vec1[i], vec2[i]))
+    if( ! almost_equal(vec1[i], vec2[i])) {
       return false;
+    }
   }
   return true;
 }

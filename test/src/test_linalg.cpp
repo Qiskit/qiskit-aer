@@ -27,16 +27,73 @@ std::complex<T> rand_z(T min = 0.0, T max = 1.0) {
 }
 
 template<typename T>
-matrix<std::complex<T>> rand_hermitian_mat(size_t n, size_t a) {
+matrix<std::complex<T>> rand_hermitian_mat(size_t n, T range) {
     // we construct a random N * a matrix
-    matrix<std::complex<T>> mat(n, a);
-    for(int r=0; r<n; r++) {
-        for(size_t c=0; c<a; c++)
-            mat(r, c) = rand_z<T>();
+    matrix<std::complex<T>> mat(n, n);
+    for(size_t r=0; r<n; r++) {
+        for(size_t c=r; c<n; c++) {
+            if (r == c) { 
+                mat(r, c) = std::complex<T>(
+                                rand_f<T>(-1.0 * std::abs(range), std::abs(range)),
+                                0.0); 
+            } else {
+                auto random_z = rand_z<T>(-1.0 * std::abs(range), std::abs(range));
+                mat(r, c) = random_z;
+                mat(c, r) = std::complex<T>(random_z.real(), -1 * random_z.imag());
+            }
+        }
     }
-    // then we multiply it by it's conj. transpose
-    //   to get a random hermitian matrix
-    return mat * AER::Utils::dagger(mat);
+    return mat; //* AER::Utils::dagger(mat);
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d_1() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    mat(0,0) = std::complex<T>(1.0,0.0);
+    mat(0,1) = std::complex<T>(1.0, -2.0);
+    mat(1,0) = std::complex<T>(1.0, 2.0);
+    mat(1,1) = std::complex<T>(2.0, 0.0);
+    return mat;
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d_eigenvectors_1() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    mat(0,0) = std::complex<T>(-(std::sqrt(21.0)/10.0) - (1.0/10.0), (1.0/5.0) + (std::sqrt(21.0)/5.0));
+    mat(1,0) = std::complex<T>(1.0, 0.0);
+    mat(0,1) = std::complex<T>((std::sqrt(21.0)/10.0)-(1.0/10.0), (1.0/5.0) - (std::sqrt(21.0)/5.0));
+    mat(1,1) = std::complex<T>(1.0, 0.0);
+    return mat;
+}
+
+template<typename T>
+std::vector<T> herm_mat_2d_eigenvalues_1(){
+    return { 3.0/2.0 - std::sqrt(21.0)/2.0, 3.0/2.0 + std::sqrt(21.0)/2.0 };
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d_2() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    mat(0,0) = std::complex<T>(1.0,0.0);
+    mat(0,1) = std::complex<T>(1.0, 2.0);
+    mat(1,0) = std::complex<T>(1.0, -2.0);
+    mat(1,1) = std::complex<T>(0.5, 0.0);
+    return mat;
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d_eigenvectors_2() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    mat(0,0) = std::complex<T>(0.5, -1.0);
+    mat(1,0) = std::complex<T>(1.0, 0.0);
+    mat(0,1) = std::complex<T>(-0.4, 0.8);
+    mat(1,1) = std::complex<T>(1.0, 0.0);
+    return mat;
+}
+
+template<typename T>
+std::vector<T> herm_mat_2d_eigenvalues_2(){
+    return { -(3.0/2.0), 3.0 };
 }
 
 template<typename T>
@@ -80,27 +137,97 @@ std::vector<T> create_expected_eigenvalues(){
     return { 6.31205, -3.16513, 2.85308 };
 }
 
+TEST_CASE("Basic Matrix Ops", "[matrix]") {
+    auto mat = matrix<std::complex<double>>(2,2);
+    mat(0,0) = std::complex<double>(1.0, 0.0);
+    mat(0,1) = std::complex<double>(1.0, -2.0);
+    mat(1,0) = std::complex<double>(1.0, 2.0);
+    mat(1,1) = std::complex<double>(0.5, 0.0);
+
+    SECTION("matrix - col_index") {
+        std::vector<std::complex<double>> col0{ {1.0, 0.0}, {1.0, 2.0} };
+        std::vector<std::complex<double>> col1{ {1.0, -2.0}, {0.5, 0.0} };
+
+        REQUIRE(AER::Linalg::almost_equal(col0, mat.col_index(0)));
+        REQUIRE(AER::Linalg::almost_equal(col1, mat.col_index(1)));
+    }
+
+    SECTION("matrix - col_index") {
+        std::vector<std::complex<double>> row0{ {1.0, 0.0}, {1.0, -2.0} };
+        std::vector<std::complex<double>> row1{ {1.0, 2.0}, {0.5, 0.0} };
+
+        REQUIRE(AER::Linalg::almost_equal(row0, mat.row_index(0)));
+        REQUIRE(AER::Linalg::almost_equal(row1, mat.row_index(1)));
+    }
+
+    std::cout << "row/col_index working as expected" << std::endl;
+}
+ 
 TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
-    
-    SECTION("random hermitian matrix (double)") {
+    SECTION("zheevx - deterministic hermitian matrix - 2") {
+        auto herm_mat = herm_mat_2d_2<double>();
+        auto expected_eigenvalues = herm_mat_2d_eigenvalues_2<double>();
+        auto expected_eigenvectors = herm_mat_2d_eigenvectors_2<double>();
+
+        SECTION("sanity check - eigenvals/vecs should recreate original") {
+            // sanity check
+            matrix<std::complex<double>> sanity_value(herm_mat.size());
+            for (size_t j=0; j < expected_eigenvalues.size(); j++) {
+                sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
+            }
+            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value));
+        }
+        SECTION("actual check - heevx returns correctly") {
+            std::vector<double> eigenvalues;
+            matrix<std::complex<double>> eigenvectors{herm_mat};
+            eigensystem_psd_heevx(herm_mat, eigenvalues, eigenvectors);
+
+            // test equality
+            REQUIRE(AER::Linalg::almost_equal(expected_eigenvectors, eigenvectors));
+            REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
+
+            // test reconstruction
+            matrix<std::complex<double>> value(herm_mat.size());
+            for (size_t j=0; j < eigenvalues.size(); j++) {
+                value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
+            }
+            REQUIRE(AER::Linalg::almost_equal(herm_mat, value));
+        }
+    }
+
+    SECTION("zheevx - random hermitian matrix") {
+        auto rand_herm_mat = rand_hermitian_mat<double>(3, 10.0);
+        //std::cout << "random hermitian matrix:" << std::endl;
+        //std::cout << rand_herm_mat << std::endl;
+        std::vector<double> eigenvalues;
+        matrix<std::complex<double>> eigenvectors = rand_herm_mat;
+
+        eigensystem_psd_heevx(rand_herm_mat, eigenvalues, eigenvectors);
+ 
+        matrix<std::complex<double>> value(rand_herm_mat.size());
+
+        for (size_t j=0; j < eigenvalues.size(); j++) {
+            value += eigenvalues[j] * AER::Utils::projector(eigenvectors.col_index(j));
+        }
+        REQUIRE(AER::Linalg::almost_equal(rand_herm_mat, value));
+    }
+
+/*
+    SECTION("zhetrd - random hermitian matrix") {
         auto rand_psd_mat = rand_hermitian_mat<double>(5, 5);
         std::vector<double> eigenvalues;
         matrix<std::complex<double>> eigenvectors = rand_psd_mat;
 
         eigensystem_psd_hetrd(rand_psd_mat, eigenvalues, eigenvectors);
-        std::cout << "eigen-values/vectors:" << std::endl;
-        std::cout << eigenvalues << std::endl;
  
-        std::cout << eigenvectors << std::endl;
         matrix<std::complex<double>> value(rand_psd_mat.size());
 
         for (size_t j=0; j < eigenvalues.size(); j++) {
             value += eigenvalues[j] * AER::Utils::projector(eigenvectors.row_index(j));
         }
-        std::cout << "expected:" << std::endl;
-        std::cout << value << std::endl;
         REQUIRE(AER::Linalg::almost_equal(rand_psd_mat, value));
     }
+*/
 /*
     SECTION("the input matrix of complex of doubles, is a PSD"){
         auto psd_matrix_double = create_psd_matrix<double>();

@@ -135,21 +135,25 @@ void cpteqr_(const char *compz, const size_t *n,
 void zpteqr_(const char *compz, const size_t *n,
              double *d, double *e, std::complex<double>* z,
              size_t *ldz, double* work, int *info );
-
 // computes the eigenvalues and, optionally, the left and/or right eigenvectors for HE matrices
-void cheevx(const char* jobz, const char* range, const char* uplo,
+void cheevx_(const char* jobz, const char* range, const char* uplo,
             const size_t* n, std::complex<float>* a, const size_t* lda,
             const float* vl, const float* vu, const size_t* il, const size_t* iu,
             const float* abstol, const size_t* m, const float* w, std::complex<float>* z,
             const size_t* ldz, std::complex<float>* work, const size_t* lwork,
             float* rwork, size_t* iwork, size_t* ifail, size_t* info);
-void zheevx(const char* jobz, const char* range, const char* uplo,
+void zheevx_(const char* jobz, const char* range, const char* uplo,
             const size_t* n, std::complex<double>* a, const size_t* lda,
             const double* vl, const double* vu, const size_t* il, const size_t* iu,
             const double* abstol, const size_t* m, const double* w, std::complex<double>* z,
             const size_t* ldz, std::complex<double>* work, const size_t* lwork,
             double* rwork, size_t* iwork, size_t* ifail, size_t* info);
 
+// Machine query
+float slamch_(const char* cmach);
+
+// Machine query
+double dlamch_(const char* cmach);
 
 #ifdef __cplusplus
 }
