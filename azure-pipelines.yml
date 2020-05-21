@@ -268,7 +268,7 @@ stages:
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
-              pip install numpy<1.19.0
+              pip install 'numpy<1.19.0'
               pip install -r requirements-dev.txt
               if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
