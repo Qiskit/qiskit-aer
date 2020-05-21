@@ -27,14 +27,16 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <string>
+#include <iostream>
+#include <type_traits>
+
 
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
 #include <pybind11/complex.h>
 #include <pybind11/numpy.h>
-#include <iostream>
-#include <type_traits>
 
 #include <nlohmann_json.hpp>
 #include "framework/json.hpp"
@@ -567,13 +569,13 @@ py::object AerToPy::from_experiment(const AER::ExperimentResult &result) {
   pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);
   switch (result.status) {
     case AER::ExperimentResult::Status::completed:
-      pyexperiment["status"] = std::string("DONE");
+      pyexperiment["status"] = "DONE";
       break;
     case AER::ExperimentResult::Status::error:
       pyexperiment["status"] = std::string("ERROR: ") + result.message;
       break;
     case AER::ExperimentResult::Status::empty:
-      pyexperiment["status"] = std::string("EMPTY");
+      pyexperiment["status"] = "EMPTY";
   }
   pyexperiment["time_taken"] = result.time_taken;
   if (result.header.empty() == false) {
@@ -618,16 +620,16 @@ py::object AerToPy::from_result(const AER::Result &result) {
   pyresult["success"] = (result.status == AER::Result::Status::completed);
   switch (result.status) {
     case AER::Result::Status::completed:
-      pyresult["status"] = std::string("COMPLETED");
+      pyresult["status"] = "COMPLETED";
       break;
     case AER::Result::Status::partial_completed:
-      pyresult["status"] = std::string("PARTIAL COMPLETED");
+      pyresult["status"] = "PARTIAL COMPLETED";
       break;
     case AER::Result::Status::error:
       pyresult["status"] = std::string("ERROR: ") + result.message;
       break;
     case AER::Result::Status::empty:
-      pyresult["status"] = std::string("EMPTY");
+      pyresult["status"] = "EMPTY";
   }
   return std::move(pyresult);
 
