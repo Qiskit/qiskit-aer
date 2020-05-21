@@ -49,7 +49,6 @@ class QasmSnapshotStatevectorTests:
     ]
     BACKEND_OPTS = {}
 
-    #@staticmethod
     def statevector_snapshots(self, data, label):
         """Format snapshots as list of Numpy arrays"""
         snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])

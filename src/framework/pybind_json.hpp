@@ -412,7 +412,7 @@ py::object AerToPy::from_avg_data(const AER::AverageData<matrix<T>> &avg_data) {
   if (avg_data.has_variance()) {
     d["variance"] = AerToPy::array_from_matrix(avg_data.variance());
   }
-  return d;
+  return std::move(d);
 }
 
 template<typename T> 
@@ -422,7 +422,7 @@ py::object AerToPy::from_avg_data(const AER::AverageData<std::vector<T>> &avg_da
   if (avg_data.has_variance()) {
     d["variance"] = AerToPy::array_from_vector(avg_data.variance());
   }
-  return d;
+  return std::move(d);
 }
 template<typename T> 
 py::object AerToPy::from_avg_snap(const AER::AverageSnapshot<T> &avg_snap) {
@@ -553,7 +553,7 @@ py::object AerToPy::from_data(const AER::ExperimentData &datum) {
   }
   //for (auto item : pydatum)
   //  py::print("    {}:, {}"_s.format(item.first, item.second));
-  return pydata;
+  return std::move(pydata);
 }
 
 py::object AerToPy::from_experiment(const AER::ExperimentResult &result) {
@@ -586,7 +586,7 @@ py::object AerToPy::from_experiment(const AER::ExperimentResult &result) {
     from_json(result.metadata, tmp);
     pyexperiment["metadata"] = tmp;
   }
-  return pyexperiment;
+  return std::move(pyexperiment);
 }
 
 py::object AerToPy::from_result(const AER::Result &result) {
