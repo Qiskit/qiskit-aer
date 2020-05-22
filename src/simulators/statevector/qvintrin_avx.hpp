@@ -217,6 +217,8 @@ inline void reorder(QV::areg_t<N>& qregs, QV::cvector_t<FloatType>& mat) {
   for(size_t i = 0; i < dim; ++i) {
     size_t index = 0U;
     for(size_t j = 0; j < N; ++j) {
+
+
       if(i & (1U << j))
         index |= masks[j];
     }
@@ -841,7 +843,7 @@ inline Avx apply_matrix_avx(
   auto transpose = [](const cvector_t<FloatType>& matrix) -> cvector_t<FloatType> {
       cvector_t<FloatType> transposed(matrix.size());
       // We deal with MxM matrices, so let's take rows for example
-      auto rows = matrix.size();
+      auto rows = log2(matrix.size());
       for(size_t i = 0; i < rows; ++i){
           for(size_t j = 0; j < rows; ++j){
               transposed[ i * rows + j] = matrix[ j * rows + i ];
@@ -879,7 +881,6 @@ inline Avx apply_matrix_avx(
   case 6:
     return apply_matrix_avx(qv_data, data_size, to_array<6>(qregs), mat, omp_threads);
   default:
-  // TODO: Return Enum
     return Avx::NotApplied;
   }
 }
