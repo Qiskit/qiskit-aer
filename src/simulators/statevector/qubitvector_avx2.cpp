@@ -47,17 +47,19 @@ void QubitVectorAvx2<data_t>::apply_matrix(const uint_t qubit,
 
   // Convert qubit to array register for lambda functions
   areg_t<1> qubits = {{qubit}};
-  if(!apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-      (void*) Base::convert(mat).data(), _calculate_num_threads())){
+  if(apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
+      Base::convert(mat), _calculate_num_threads()) == Avx::NotApplied){
     Base::apply_matrix(qubit, mat);
   }
 }
 
 template <typename data_t>
-void QubitVectorAvx2<data_t>::apply_matrix(const reg_t &qubits,
-                                          const cvector_t<double> &mat) {
-  if(!apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-        (void*) Base::convert(mat).data(), _calculate_num_threads())){
+void QubitVectorAvx2<data_t>::apply_matrix(
+  const reg_t &qubits,
+  const cvector_t<double> &mat
+){
+  if(apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
+        Base::convert(mat), _calculate_num_threads()) == Avx::NotApplied){
       Base::apply_matrix(qubits, mat);
     }
 }
