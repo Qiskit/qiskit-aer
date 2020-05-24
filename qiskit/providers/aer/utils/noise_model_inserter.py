@@ -38,7 +38,9 @@ def insert_noise(circuits, noise_model, transpile=False):
     is_circuits_list = isinstance(circuits, (list, tuple))
     circuits = circuits if is_circuits_list else [circuits]
     result_circuits = []
-    errors = noise_model._default_quantum_errors
+    nonlocal_errors = noise_model._nonlocal_quantum_errors
+    local_errors = noise_model._local_quantum_errors
+    default_errors = noise_model._default_quantum_errors
     for circuit in circuits:
         if transpile:
             transpiled_circuit = qiskit.compiler.transpile(circuit,
@@ -49,8 +51,19 @@ def insert_noise(circuits, noise_model, transpile=False):
         result_circuit.data = []
         for inst, qargs, cargs in transpiled_circuit.data:
             result_circuit.data.append((inst, qargs, cargs))
-            if inst.name in errors.keys():
-                error = errors[inst.name]
+            qubits_string = ",".join([str(q.index) for q in qargs])
+            # Priority for error model used:
+            # nonlocal error > local error > default error
+            if inst.name in nonlocal_errors and qubits_string in nonlocal_errors[inst.name]:
+                for noise_qubits in nonlocal_errors[inst.name][qubits_string].keys():
+                    error = nonlocal_errors[inst.name][qubits_string][noise_qubits]
+                    noise_qargs = noise_model._str2qubits(noise_qubits)
+                    result_circuit.append(error.to_instruction(), noise_qargs)
+            elif inst.name in local_errors and qubits_string in local_errors[inst.name]:
+                error = local_errors[inst.name][qubits_string]
+                result_circuit.append(error.to_instruction(), qargs)
+            elif inst.name in default_errors.keys():
+                error = default_errors[inst.name]
                 result_circuit.append(error.to_instruction(), qargs)
         result_circuits.append(result_circuit)
     return result_circuits if is_circuits_list else result_circuits[0]

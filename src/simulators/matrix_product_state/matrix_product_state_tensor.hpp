@@ -16,9 +16,6 @@
 #ifndef _tensor_tensor_hpp_
 #define _tensor_tensor_hpp_
 
-#define SQR_HALF sqrt(0.5)
-#define NUMBER_OF_PRINTED_DIGITS 3
-
 #include <cstdio>
 #include <iostream>
 #include <complex>
@@ -163,6 +160,11 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  uint_t omp_threads,
 				  cmatrix_t &result);
 
+  // public static class members
+static const double SQR_HALF;
+static constexpr uint_t NUMBER_OF_PRINTED_DIGITS = 3;
+static constexpr uint_t MATRIX_OMP_THRESHOLD = 8;
+
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
@@ -181,6 +183,8 @@ private:
 double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
 uint_t MPS_Tensor::max_bond_dimension_ = UINT64_MAX;
 double MPS_Tensor::truncation_threshold_ = 1e-16;
+
+const double MPS_Tensor::SQR_HALF = sqrt(0.5);
 
 //---------------------------------------------------------------
 // function name: print
@@ -489,18 +493,18 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   uint_t omp_limit = left_rows*right_columns;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #endif 
       for (int_t l_row=0; l_row<left_rows; l_row++)
          for (int_t r_col=0; r_col<right_columns; r_col++)
            result(l_row, r_col) = 0;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #endif
       for (int_t l_row=0; l_row<left_rows; l_row++)
         for (int_t r_col=0; r_col<right_columns; r_col++) {

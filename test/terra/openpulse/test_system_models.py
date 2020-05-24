@@ -15,7 +15,7 @@ Tests for PulseSystemModel and HamiltonianModel functionality
 
 import unittest
 import warnings
-from numpy import array
+import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
 import qiskit
@@ -25,6 +25,8 @@ from qiskit.pulse import pulse_lib
 from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit.test.mock import FakeArmonk
+from qiskit.providers.models.backendconfiguration import UchannelLO
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
@@ -32,8 +34,9 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
 
     def setUp(self):
         self._default_qubit_lo_freq = [4.9, 5.0]
-        self._u_channel_lo = [[{'q': 0, 'scale': [1.0, 0.0]}],
-                             [{'q': 0, 'scale': [-1.0, 0.0]}, {'q': 1, 'scale': [1.0, 0.0]}]]
+        self._u_channel_lo = []
+        self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])
+        self._u_channel_lo.append([UchannelLO(0, -1.0+0.0j), UchannelLO(1, 1.0+0.0j)])
 
     def _simple_system_model(self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33):
         hamiltonian = {}
@@ -150,6 +153,13 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U0'], 5.101980390271)
         self.assertAlmostEqual(freqs['U1'], -0.203960780543)
 
+    def test_qubit_lo_from_configurable_backend(self):
+        backend = FakeArmonk()
+        test_model = PulseSystemModel.from_backend(backend)
+        qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
+        freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
+        self.assertAlmostEqual(freqs['D0'], 4.974286046328553)
+
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """
         Given qubit_lo_freq, return the computed u_channel_lo.
@@ -158,8 +168,8 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         for scales in self._u_channel_lo:
             u_lo_freq = 0
             for u_lo_idx in scales:
-                qfreq = qubit_lo_freq[u_lo_idx['q']]
-                qscale = u_lo_idx['scale'][0]
+                qfreq = qubit_lo_freq[u_lo_idx.q]
+                qscale = u_lo_idx.scale.real
                 u_lo_freq += qfreq * qscale
             u_lo_freqs.append(u_lo_freq)
         return u_lo_freqs
@@ -167,12 +177,75 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
 class TestHamiltonianModel(QiskitAerTestCase):
     """Tests for HamiltonianModel"""
 
+    def test_subsystem_list_from_dict(self):
+        """Test correct restriction of a Hamiltonian dict to a subset of systems"""
+
+        # construct 2 duffing oscillator hamiltonian
+        v0=5.0
+        v1=5.1
+        j=0.01
+        r=0.02
+        alpha0=-0.33
+        alpha1=-0.33
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['np.pi*(2*v0-alpha0)*O0',
+                              'np.pi*alpha0*O0*O0',
+                              '2*np.pi*r*X0||D0',
+                              '2*np.pi*r*X0||U1',
+                              '2*np.pi*r*X1||U0',
+                              'np.pi*(2*v1-alpha1)*O1',
+                              'np.pi*alpha1*O1*O1',
+                              '2*np.pi*r*X1||D1',
+                              '2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)']
+        hamiltonian['qub'] = {'0' : 3, '1' : 3}
+        hamiltonian['vars'] = {'v0': v0,
+                               'v1': v1,
+                               'j': j,
+                               'r': r,
+                               'alpha0': alpha0,
+                               'alpha1': alpha1}
+
+        # restrict to qubit 0 and verify some properties
+        ham_model0 = HamiltonianModel.from_dict(hamiltonian, subsystem_list=[0])
+        evals_expected0 = np.array([0,
+                                    np.pi*(2*v0-alpha0) + np.pi*alpha0,
+                                    (2 * np.pi*(2*v0-alpha0)) + (4 * np.pi*alpha0)])
+        eval_diff = norm(evals_expected0 - ham_model0._evals)
+        self.assertAlmostEqual(eval_diff, 0)
+
+        channel_labels0 = ham_model0._channels.keys()
+        for key in ['D0', 'U1']:
+            self.assertTrue(key in channel_labels0)
+        self.assertEqual(len(channel_labels0), 2)
+
+        qubit_lo_freq0 = ham_model0.get_qubit_lo_from_drift()
+        expected_freq0 = np.array([(np.pi*(2*v0-alpha0) + np.pi*alpha0) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq0 - expected_freq0), 0)
+
+        # restrict to qubit 1 and verify some properties
+        ham_model1 = HamiltonianModel.from_dict(hamiltonian, subsystem_list=[1])
+        evals_expected1 = np.array([0,
+                                    np.pi*(2*v1-alpha1) + np.pi*alpha1,
+                                    (2 * np.pi*(2*v1-alpha1)) + (4 * np.pi*alpha1)])
+        eval_diff = norm(evals_expected1 - ham_model1._evals)
+        self.assertAlmostEqual(eval_diff, 0)
+
+        channel_labels1 = ham_model1._channels.keys()
+        for key in ['D1', 'U0']:
+            self.assertTrue(key in channel_labels1)
+        self.assertEqual(len(channel_labels1), 2)
+
+        qubit_lo_freq1 = ham_model1.get_qubit_lo_from_drift()
+        expected_freq1 = np.array([0, (np.pi*(2*v1-alpha1) + np.pi*alpha1) / (2 * np.pi)])
+        self.assertAlmostEqual(norm(qubit_lo_freq1 - expected_freq1), 0)
+
     def test_eigen_sorting(self):
         """Test estate mappings"""
 
-        X = array([[0,1],[1,0]])
-        Y = array([[0,-1j], [1j, 0]])
-        Z = array([[1,0], [0, -1]])
+        X = np.array([[0,1],[1,0]])
+        Y = np.array([[0,-1j], [1j, 0]])
+        Z = np.array([[1,0], [0, -1]])
 
         simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
                       'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},

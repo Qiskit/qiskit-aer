@@ -26,6 +26,7 @@
 #include <cassert>
 #include "svd.hpp"
 #include "framework/utils.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 // default values
 #define mul_factor 1e2
@@ -174,7 +175,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			z = std::sqrt( z );
 			b[k] = z;
 			w = std::abs( A(k,k) );
-			if ( w == 0.0 ) {
+			if (Linalg::almost_equal(static_cast<long double>(w), 
+						 static_cast<long double>(0.0) )) {
 				q = complex_t( 1.0, 0.0 );
 			}
 			else {
@@ -222,7 +224,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			c[k1] = z;
 			w = std::abs( A(k,k1) );
 
-			if ( w == 0.0 ){
+			if (Linalg::almost_equal(static_cast<long double>(w), 
+						 static_cast<long double>(0.0) )){
 				q = complex_t( 1.0, 0.0 );
 			}
 			else{
@@ -356,7 +359,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				h = sn * g;
 				g = cs * g;
 				w = std::sqrt( h * h + f * f );
-				if (w == 0) {
+				if (Linalg::almost_equal(static_cast<long double>(w), 
+							 static_cast<long double>(0.0) )) {
 #ifdef DEBUG
 				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << std::endl;
 				  std::cout << " w = " << w << std::endl;
@@ -368,7 +372,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				f = x * cs + g * sn; // might be 0
 
 				long double large_f = 0;
-				if (f==0) {
+				if (Linalg::almost_equal(static_cast<long double>(f), 
+							 static_cast<long double>(0.0) )) {
 #ifdef DEBUG
 				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<std::endl;
 #endif
@@ -401,14 +406,16 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 #ifdef DEBUG
 				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << std::endl;
 #endif
-				if (std::abs(h)  < 1e-13 && std::abs(f) < 1e-13 && large_f != 0) {
+				if (std::abs(h) < 1e-13 && std::abs(f) < 1e-13 && 
+				    !Linalg::almost_equal(large_f, 
+							  static_cast<long double>(0.0))) {
 				  tiny_w = true;
-				}
-				else {
+				} else {
 				  w = std::sqrt( h * h + f * f );
 				}
 				w = std::sqrt( h * h + f * f );
-				if (w == 0 && !tiny_w) {
+				if (Linalg::almost_equal(static_cast<long double>(w), 
+							 static_cast<long double>(0.0)) && !tiny_w) {
 
 #ifdef DEBUG
 				  std::cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << std::endl;
@@ -490,7 +497,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 
     for( k = n-1 ; k >= 0; k--)
 	{
-		if ( b[k] != 0.0 )
+	  if (!Linalg::almost_equal(static_cast<long double>(b[k]), 
+				    static_cast<long double>(0.0)) )
 		{
 			q = -A(k,k) / std::abs( A(k,k) );
 			for( j = 0; j < m; j++){
@@ -513,7 +521,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	for( k = n-1 -1; k >= 0; k--)
 	{
 		k1 = k + 1;
-		if ( c[k1] != 0.0 )
+		if ( !Linalg::almost_equal(static_cast<long double>(c[k1]), 
+					   static_cast<long double>(0.0) ))
 		{
 			q = -std::conj( A(k,k1) ) / std::abs( A(k,k1) );
 
@@ -543,9 +552,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	const auto ncols = temp_A.GetColumns();
 	bool equal = true;
 
-	for (i=0; i < nrows; i++)
-	    for (j=0; j < ncols; j++)
-	      if (std::real(std::abs(temp_A(i, j) - temp(i, j))) > THRESHOLD)
+	for (uint_t ii=0; ii < nrows; ii++)
+	    for (uint_t jj=0; jj < ncols; jj++)
+	      if (std::real(std::abs(temp_A(ii, jj) - temp(ii, jj))) > THRESHOLD)
 	      {
 	    	  equal = false;
 	      }
@@ -595,7 +604,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   }
 
   //Divide by mul_factor every singular value after we multiplied matrix a
-  for(int k = 0; k < S.size(); k++)
+  for(uint_t k = 0; k < S.size(); k++)
     S[k] /= pow(mul_factor, times);
 
 }
