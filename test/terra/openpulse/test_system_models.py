@@ -247,8 +247,8 @@ class TestHamiltonianModel(QiskitAerTestCase):
         Y = np.array([[0,-1j], [1j, 0]])
         Z = np.array([[1,0], [0, -1]])
 
-        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
-                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0', 'd*X0||D0'],
+                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1, 'd': 0.},
                       'qub': {'0': 2}}
 
         ham_model = HamiltonianModel.from_dict(simple_ham)
@@ -264,8 +264,8 @@ class TestHamiltonianModel(QiskitAerTestCase):
             self.assertAlmostEqual(norm(diff), 0)
 
         # Same test but with strongly off-diagonal hamiltonian, which should raise warning
-        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
-                      'vars': {'a': 100, 'b': 32.1, 'c' : 0.12},
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0', 'd*X0||D0'],
+                      'vars': {'a': 100, 'b': 32.1, 'c' : 0.12, 'd': 0.},
                       'qub': {'0': 2}}
 
         ham_model = HamiltonianModel.from_dict(simple_ham)

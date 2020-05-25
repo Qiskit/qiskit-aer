@@ -37,7 +37,7 @@ class HamiltonianModel():
             subsystem_dims (dict): dict of subsystem dimensions.
 
         Raises:
-            ValueError: if arguments are invalid.
+            AerError: if arguments are invalid.
         """
 
         # Initialize internal variables
@@ -255,7 +255,7 @@ def _hamiltonian_pre_parse_exceptions(hamiltonian):
     """
 
     ham_str = hamiltonian.get('h_str', [])
-    if (ham_str == []) or (ham_str == ['']):
+    if ham_str in ([], ['']):
         raise AerError("Hamiltonian dict requires a non-empty 'h_str' entry.")
 
     if hamiltonian.get('qub', {}) == {}:
