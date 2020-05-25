@@ -85,7 +85,9 @@ class HamiltonianModel():
         _hamiltonian_parse_exceptions(hamiltonian)
 
         # get variables
-        variables = OrderedDict(hamiltonian['vars'])
+        variables = OrderedDict({})
+        if 'vars' in hamiltonian:
+            variables = OrderedDict(hamiltonian['vars'])
 
         # Get qubit subspace dimensions
         if 'qub' in hamiltonian:
@@ -208,7 +210,9 @@ class HamiltonianModel():
         for var in self._variables:
             exec('%s=%f' % (var, self._variables[var]))
 
-        ham_full = np.zeros(np.shape(self._system[0][0].full()), dtype=complex)
+        full_dim = np.prod(list(self._subsystem_dims.values()))
+
+        ham_full = np.zeros((full_dim, full_dim), dtype=complex)
         for ham_part in self._system:
             ham_full += ham_part[0].full() * eval(ham_part[1])
         # Remap eigenvalues and eigenstates
@@ -246,6 +250,7 @@ def _hamiltonian_parse_exceptions(hamiltonian):
     Raises:
         AerError: if some part of the hamiltonian dictionary is unsupported
     """
+
     if hamiltonian.get('osc', {}) != {}:
         raise AerError('Oscillator-type systems are not supported.')
 
