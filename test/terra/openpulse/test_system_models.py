@@ -280,5 +280,61 @@ class TestHamiltonianModel(QiskitAerTestCase):
             diff = mat @ ham_model._estates[:, idx] - eval * ham_model._estates[:, idx]
             self.assertAlmostEqual(norm(diff), 0)
 
+    def test_no_variables(self):
+        """Test successful construction of Hamiltonian without variables"""
+
+        # fully specified hamiltonian without variables
+        ham_dict = {'h_str': ['2*np.pi*O0', '2*np.pi*X0||D0'], 'qub': {'0': 2}}
+        ham_model = HamiltonianModel.from_dict(ham_dict)
+
+        qubit_lo = ham_model.get_qubit_lo_from_drift()
+        self.assertAlmostEqual(norm(qubit_lo - np.array([1.])), 0)
+
+    def test_empty_hamiltonian_string_exception(self):
+        """Test exception raising for empty hamiltonian string"""
+
+        message = "Hamiltonian dict requires a non-empty 'h_str' entry."
+
+        ham_dict = {}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        ham_dict = {'h_str': ['']}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+
+    def test_empty_qub_exception(self):
+        """Test exception raising for empty qub"""
+
+        message = "Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions."
+
+        ham_dict = {'h_str': 'X0'}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        ham_dict = {'h_str': 'X0', 'qub': {}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+    def test_no_channels_exception(self):
+        """Test exception raising for a hamiltonian with no channels"""
+
+        message = 'HamiltonianModel must contain channels to simulate.'
+
+        # hamiltonian with no channels at all
+        ham_dict = {'h_str': ['X0'], 'qub': {'0': 2}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        # hamiltonian with channels that get removed by parsing
+        ham_dict = {'h_str': ['X1||D1'], 'qub': {'0': 2}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+
+    def assert_hamiltonian_parse_exception(self, ham_dict, message):
+        """Test that an attempt to parse a given ham_dict results in an exception with
+        the given message.
+        """
+        try:
+            ham_model = HamiltonianModel.from_dict(ham_dict)
+        except Exception as exception:
+            self.assertEqual(exception.message, message)
+
 if __name__ == '__main__':
     unittest.main()

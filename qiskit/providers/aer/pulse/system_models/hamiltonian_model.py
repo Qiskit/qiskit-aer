@@ -64,6 +64,9 @@ class HamiltonianModel():
         # populate self._channels
         self._calculate_hamiltonian_channels()
 
+        if len(self._channels) == 0:
+            raise AerError('HamiltonianModel must contain channels to simulate.')
+
         # populate self._h_diag, self._evals, self._estates
         self._compute_drift_data()
 
@@ -82,10 +85,10 @@ class HamiltonianModel():
             ValueError: if arguments are invalid.
         """
 
-        _hamiltonian_parse_exceptions(hamiltonian)
+        _hamiltonian_pre_parse_exceptions(hamiltonian)
 
         # get variables
-        variables = OrderedDict({})
+        variables = OrderedDict()
         if 'vars' in hamiltonian:
             variables = OrderedDict(hamiltonian['vars'])
 
@@ -241,7 +244,7 @@ class HamiltonianModel():
         self._h_diag = np.ascontiguousarray(np.diag(ham_full).real)
 
 
-def _hamiltonian_parse_exceptions(hamiltonian):
+def _hamiltonian_pre_parse_exceptions(hamiltonian):
     """Raises exceptions for hamiltonian specification.
 
     Parameters:
@@ -250,6 +253,13 @@ def _hamiltonian_parse_exceptions(hamiltonian):
     Raises:
         AerError: if some part of the hamiltonian dictionary is unsupported
     """
+
+    ham_str = hamiltonian.get('h_str', [])
+    if (ham_str == []) or (ham_str == ['']):
+        raise AerError("Hamiltonian dict requires a non-empty 'h_str' entry.")
+
+    if hamiltonian.get('qub', {}) == {}:
+        raise AerError("Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions.")
 
     if hamiltonian.get('osc', {}) != {}:
         raise AerError('Oscillator-type systems are not supported.')
