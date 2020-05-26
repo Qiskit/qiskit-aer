@@ -249,10 +249,10 @@ class QasmController : public Base::Controller {
                        RngEngine &rng) const;
 
   // Check if measure sampling optimization is valid for the input circuit
-  // if so return a pair {true, pos} where pos is the position of the
-  // first measurement operation in the input circuit
-  std::pair<bool, size_t> check_measure_sampling_opt(const Circuit &circ,
-                                                     const Method method) const;
+  // for the given method. This checks if operation types before
+  // the first measurement in the circuit prevent sampling
+  bool check_measure_sampling_opt(const Circuit &circ,
+                                  const Method method) const;
 
   //-----------------------------------------------------------------------
   // Config
@@ -650,7 +650,7 @@ QasmController::Method QasmController::simulation_method(
           circ.shots > (1 << circ.num_qubits) &&
           validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
           validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
-          check_measure_sampling_opt(circ, Method::density_matrix).first) {
+          check_measure_sampling_opt(circ, Method::density_matrix)) {
         return Method::density_matrix;
       }
       // Finally we check the statevector memory requirement for the
@@ -774,8 +774,8 @@ void QasmController::set_parallelization_circuit(
     case Method::statevector_thrust_cpu:
     case Method::stabilizer:
     case Method::matrix_product_state: {
-      if ((noise_model.is_ideal() || !noise_model.has_quantum_errors()) &&
-          check_measure_sampling_opt(circ, Method::statevector).first) {
+      if (circ.shots == 1 || ( !noise_model.has_quantum_errors() &&
+          check_measure_sampling_opt(circ, Method::statevector))){
         parallel_shots_ = 1;
         parallel_state_update_ =
             std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
@@ -787,7 +787,7 @@ void QasmController::set_parallelization_circuit(
     case Method::density_matrix:
     case Method::density_matrix_thrust_gpu:
     case Method::density_matrix_thrust_cpu:{
-      if (check_measure_sampling_opt(circ, Method::density_matrix).first) {
+      if (circ.shots == 1 || check_measure_sampling_opt(circ, Method::density_matrix)) {
         parallel_shots_ = 1;
         parallel_state_update_ =
             std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
@@ -876,14 +876,17 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
                                             const Method method,
                                             ExperimentData &data,
                                             RngEngine &rng) const {
-  // Initialize fusion transpile pass
+  // Transpile passes
   auto fusion_pass = transpile_fusion(method, config);
+  Transpile::DelayMeasure measure_pass;
+  measure_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
 
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }
 }
@@ -901,26 +904,19 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Dummy noise model for transpiler passes
   Noise::NoiseModel dummy_noise;
 
+  // Apply fusion transpilation pass
+  auto fusion_pass = transpile_fusion(method, config);
+  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+
   // Apply delay measure transpilation pass
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
 
-  // Apply fusion transpilation pass
-  auto fusion_pass = transpile_fusion(method, config);
-  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
-
   // Check if measure sampler and optimization are valid
-  auto check = check_measure_sampling_opt(opt_circ, method);
-  if (check.first == false) {
-    // Perform standard execution if we cannot apply the
-    // measurement sampling optimization
-    while (shots-- > 0) {
-      run_single_shot(opt_circ, state, initial_state, data, rng);
-    }
-  } else {
+  if (check_measure_sampling_opt(opt_circ, method)) {
     // Implement measure sampler
-    auto pos = check.second;  // Position of first measurement op
+    auto pos = opt_circ.first_measure_pos;  // Position of first measurement op
 
     // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(opt_circ.ops.begin(),
@@ -932,8 +928,15 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
     ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos,
                                       opt_circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
+
     // Add measure sampling metadata
     data.add_metadata("measure_sampling", true);
+  } else {
+    // Perform standard execution if we cannot apply the
+    // measurement sampling optimization
+    while (shots-- > 0) {
+      run_single_shot(opt_circ, state, initial_state, data, rng);
+    }
   }
 }
 
@@ -941,47 +944,37 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
 // Measure sampling optimization
 //-------------------------------------------------------------------------
 
-std::pair<bool, size_t> QasmController::check_measure_sampling_opt(
+bool QasmController::check_measure_sampling_opt(
     const Circuit &circ, const Method method) const {
-  // Find first instance of a measurement and check there
-  // are no reset or initialize operations before the measurement
+  // Check if circuit has sampling flag disabled
+  if (circ.can_sample == false) {
+    return false;
+  }
+
+  // Check if stabilizer measure sampling has been disabled
   if (method == Method::extended_stabilizer &&
       !extended_stabilizer_measure_sampling_) {
-    return std::make_pair(false, 0);
+    return false;
   }
-  auto start = circ.ops.begin();
-  while (start != circ.ops.end()) {
-    const auto type = start->type;
-    if (method != Method::density_matrix &&
-        method != Method::density_matrix_thrust_gpu &&
-        method != Method::density_matrix_thrust_cpu) {
-      if (type == Operations::OpType::reset ||
-          type == Operations::OpType::initialize ||
-          type == Operations::OpType::kraus ||
-          type == Operations::OpType::superop) {
-        return std::make_pair(false, 0);
-      }
-    }
-    if (type == Operations::OpType::measure ||
-        type == Operations::OpType::roerror)
-      break;
-    ++start;
+
+  // Check if non-density matrix simulation and circuit contains
+  // a stochastic instruction before measurement
+  // ie. initialize, reset, kraus, superop, conditional
+  // TODO:
+  // * If initialize should be allowed if applied to product states (ie start of circuit)
+  // * Resets should be allowed if applied to |0> state (no gates before).
+  bool density_mat = (method == Method::density_matrix ||
+                      method == Method::density_matrix_thrust_gpu ||
+                      method == Method::density_matrix_thrust_cpu);
+  if (!density_mat && (
+      circ.opset().contains(Operations::OpType::reset) ||
+      circ.opset().contains(Operations::OpType::initialize) ||
+      circ.opset().contains(Operations::OpType::kraus) ||
+      circ.opset().contains(Operations::OpType::superop))) {
+    return false;
   }
-  // Record position for if optimization passes
-  auto start_meas = start;
-  // Check all remaining operations are measurements
-  while (start != circ.ops.end()) {
-    if ((start->type != Operations::OpType::measure &&
-         start->type != Operations::OpType::roerror) ||
-        start->conditional) {
-      return std::make_pair(false, 0);
-    }
-    ++start;
-  }
-  // If we made it this far we can apply the optimization
-  // size_t meas_pos = start_meas - circ.ops.begin();
-  size_t meas_pos = std::distance(circ.ops.begin(), start_meas);
-  return std::make_pair(true, meas_pos);
+  // Otherwise true
+  return true;
 }
 
 template <class State_t>

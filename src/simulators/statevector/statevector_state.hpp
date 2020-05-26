@@ -552,50 +552,15 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
 
-  // Cache the current quantum state
-  BaseState::qreg_.checkpoint();
-  bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-
-  // Compute expval components
+  // Accumulate expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
-    // Revert the quantum state to cached checkpoint
-    if (first)
-      first = false;
-    else
-      BaseState::qreg_.revert(true);
-    // Apply each pauli operator as a gate to the corresponding qubit
-    // qubits are stored as a list where position is qubit number:
-    // eq op.qubits = [a, b, c], a is qubit-0, b is qubit-1, c is qubit-2
-    // Pauli string labels are stored in little-endian ordering:
-    // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-    for (uint_t pos=0; pos < op.qubits.size(); ++pos) {
-      switch (pauli[pauli.size() - 1 - pos]) {
-        case 'I':
-          break;
-        case 'X':
-          BaseState::qreg_.apply_mcx({op.qubits[pos]});
-          break;
-        case 'Y':
-          BaseState::qreg_.apply_mcy({op.qubits[pos]});
-          break;
-        case 'Z':
-          BaseState::qreg_.apply_mcphase({op.qubits[pos]}, -1);
-          break;
-        default: {
-          std::stringstream msg;
-          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos] << "\'.";
-          throw std::invalid_argument(msg.str());
-        }
-      }
-    }
-    // Pauli expecation values should always be real for a valid state
-    // so we truncate the imaginary part
-    expval += coeff * std::real(BaseState::qreg_.inner_product());
+    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
   }
-  // add to snapshot
+
+  // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
     case SnapshotDataType::average:
@@ -610,8 +575,6 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
       data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
-  // Revert to original state
-  BaseState::qreg_.revert(false);
 }
 
 template <class statevec_t>
