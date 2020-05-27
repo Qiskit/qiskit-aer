@@ -85,6 +85,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
@@ -132,6 +134,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
@@ -173,6 +177,8 @@ stages:
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
@@ -214,6 +220,8 @@ stages:
           matrix:
             Python37:
               python.version: '3.7'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
          - checkout: self
            submodules: true
@@ -264,6 +272,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
