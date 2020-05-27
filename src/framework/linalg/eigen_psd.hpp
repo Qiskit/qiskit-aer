@@ -48,7 +48,12 @@ void eigensystem_psd_heevx(const matrix<std::complex<T>>& psd_matrix,
                /* out */ std::vector<T>& eigenvalues,
                /* out */ matrix<std::complex<T>>& eigenvectors);
 
-
+/**
+ * We define general templates for these functions as no-ops
+ *   and use specialization for types which we have ops defined for
+ * ** definitely not optimal, I'd rather a compiler error
+ *    if someone tried to use this over e.g. int but so it goes **
+ */
 template <class T>
 void eigensystem_psd_hetrd(const matrix<std::complex<T>>& psd_matrix,
                /* out */ std::vector<T>& eigenvalues,
@@ -59,7 +64,9 @@ void eigensystem_psd_heevx(const matrix<std::complex<T>>& psd_matrix,
                /* out */ std::vector<T>& eigenvalues,
                /* out */ matrix<std::complex<T>>& eigenvectors) {}
 
-
+/**
+ * eigensystem specializations for floats/doubles
+ */
 template <>
 void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
                /* out */ std::vector<double>& eigenvalues,
@@ -80,31 +87,27 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
     exit(1);
   }
 #endif
-  //eigenvalues.resize(psd_matrix.GetLD(), 0.0);
-  double *d { new double[psd_matrix.GetLD()]{} }; // = eigenvalues.data();
-  std::complex<double> *z = eigenvectors.GetMat(); 
-  const char uplo = 'U'; //'L';
   size_t n = psd_matrix.GetLD();
-  matrix<std::complex<double>> hetrd_copy(psd_matrix);
-  std::complex<double>* a = hetrd_copy.GetMat();
-  size_t lda = psd_matrix.GetLD();
-  //std::vector<double_t> e_vec(n-1, 0.0);
-  double *e{ new double[n-1]{0.0} }; //  = e_vec.data();
-  //std::vector<std::complex<double>> tau_vec(n, std::complex<double>{0.0, 0.0});
-  std::complex<double> *tau{ new std::complex<double>[n]{std::complex<double>{0.0, 0.0} } }; //= tau_vec.data();
-  size_t lwork = n;
-  //std::vector<std::complex<double>> hetrd_work_vec(n, std::complex<double>{0.0, 0.0}); 
-  std::complex<double> *hetrd_work { new std::complex<double>[n]{std::complex<double>{0.0, 0.0} } }; //= hetrd_work_vec.data(); 
-  int hetrd_info = 0;
- 
+  const char uplo = 'U'; //'L';
   const char compz = 'V'; //'N'/'V'/'I'
+  size_t lwork = 18 * psd_matrix.GetRows();
+  int info = 0; 
+  size_t lda = n;
   size_t ldz = lda;
-  //std::vector<double> pteqr_work_vec(4*n, 0.0); 
-  double *pteqr_work{ new double[4*n]{0.0 } }; // = pteqr_work_vec.data();
-  int pteqr_info = 0;
 
+  // no allocation here, we return by reference i.e. this space was already allocated
+  std::complex<double> *z = eigenvectors.GetMat(); 
+  // allocation here because hetrd needs 2 copies
+  matrix<std::complex<double>> hetrd_copy(psd_matrix);
+  // memory pointed to (owned) by a will be deallocated by matrix destructor
+  std::complex<double> *a { hetrd_copy.GetMat() };
+  double               *e { new double[n-1]{0.0} }; 
+  double               *d { new double[n  ]{0.0} };
 
-  zhetrd_(&uplo, &n, a, &lda, d, e, tau, hetrd_work, &lwork, &hetrd_info);
+  std::complex<double> *tau   { new std::complex<double>[n]{std::complex<double>{0.0, 0.0} } };
+  std::complex<double> *work1 { new std::complex<double>[lwork]{std::complex<double>{0.0, 0.0} } };
+
+  zhetrd_(&uplo, &n, a, &lda, d, e, tau, work1, &lwork, &info);
 
 #ifdef DEBUG
   std::cout << "diag_elems: ";
@@ -112,18 +115,23 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
     std::cout << v << ", ";
   std::cout << std::endl;
   // mat must be square, output references must be empty
-  std::cout << "zhetrd return: " << hetrd_info << std::endl;
-  if ( hetrd_info != 0 ) {
+  std::cout << "zhetrd return: " << info << std::endl;
+  if ( info != 0 ) {
     std::cerr << "error: zhetrd returned non-zero exit code : " 
-              << hetrd_info << std::endl;
-        exit(1);
+              << info << std::endl;
+    info = 0;
   }
 #endif
- 
+
+  // we don't allocate all at once to keep peak memory down
+  delete[] work1;
+  work1 = nullptr;
+  double               *work2 { new double[4*n]{0.0 } };
+
   // Now call cpteqr
   // On exit d contains eigenvalues, z contains eigenvectors
   // *** on exit e has been destroyed ***
-  zpteqr_(&compz, &n, d, e, z, &ldz, pteqr_work, &pteqr_info);
+  zpteqr_(&compz, &n, d, e, z, &ldz, work2, &info);
 
 #ifdef DEBUG
   std::cout << "eigenvalues: ";
@@ -131,11 +139,11 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
     std::cout << v << ", ";
   std::cout << std::endl;
  
-  std::cout << "zpteqr return: " << pteqr_info << std::endl;
-  if ( pteqr_info != 0 ) {
+  std::cout << "zpteqr return: " << info << std::endl;
+  if ( info != 0 ) {
     std::cerr << "error: zpteqr returned non-zero exit code : " 
-              << pteqr_info << std::endl;
-        exit(1);
+              << info << std::endl;
+    info = 0;
   }
 #endif
 
@@ -147,10 +155,10 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
   d = nullptr;
   delete[] tau;
   tau = nullptr;
-  delete[] hetrd_work;
-  hetrd_work = nullptr;
-  delete[] pteqr_work;
-  pteqr_work = nullptr;
+  delete[] work2;
+  work2 = nullptr;
+  // e was deallocated by pteqr
+  e = nullptr;
 }
 
 template <>
@@ -173,31 +181,27 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
     exit(1);
   }
 #endif
-  //eigenvalues.resize(psd_matrix.GetLD(), 0.0);
-  float *d { new float[psd_matrix.GetLD()]{} }; // = eigenvalues.data();
-  std::complex<float> *z = eigenvectors.GetMat();
- 
-  const char uplo = 'U'; //'L';
   size_t n = psd_matrix.GetLD();
-  matrix<std::complex<float>> hetrd_copy(psd_matrix);
-  std::complex<float>* a = hetrd_copy.GetMat();
-  size_t lda = psd_matrix.GetLD();
-  //std::vector<float_t> e_vec(n-1, 0.0);
-  float *e{ new float[n-1]{0.0} }; //  = e_vec.data();
-  //std::vector<std::complex<float>> tau_vec(n, std::complex<float>{0.0, 0.0});
-  std::complex<float> *tau{ new std::complex<float>[n]{std::complex<float>{0.0, 0.0} } }; //= tau_vec.data();
-  size_t lwork = n;
-  //std::vector<std::complex<float>> hetrd_work_vec(n, std::complex<float>{0.0, 0.0}); 
-  std::complex<float> *hetrd_work { new std::complex<float>[n]{std::complex<float>{0.0, 0.0} } }; //= hetrd_work_vec.data(); 
-  int hetrd_info = 0;
-
+  const char uplo = 'U'; //'L';
   const char compz = 'V'; //'N'/'V'/'I'
+  size_t lwork = 18 * psd_matrix.GetRows();
+  int info = 0; 
+  size_t lda = n;
   size_t ldz = lda;
-  //std::vector<float> pteqr_work_vec(4*n, 0.0); 
-  float *pteqr_work{ new float[4*n]{0.0 } }; // = pteqr_work_vec.data();
-  int pteqr_info = 0;
 
-  chetrd_(&uplo, &n, a, &lda, d, e, tau, hetrd_work, &lwork, &hetrd_info);
+  // no allocation here, we return by reference i.e. this space was already allocated
+  std::complex<float> *z = eigenvectors.GetMat(); 
+  // allocation here because hetrd needs 2 copies
+  matrix<std::complex<float>> hetrd_copy(psd_matrix);
+  // memory pointed to (owned) by a will be deallocated by matrix destructor
+  std::complex<float> *a { hetrd_copy.GetMat() };
+  float               *e { new float[n-1]{0.0} }; 
+  float               *d { new float[n  ]{0.0} };
+
+  std::complex<float> *tau   { new std::complex<float>[n]{std::complex<float>{0.0, 0.0} } };
+  std::complex<float> *work1 { new std::complex<float>[lwork]{std::complex<float>{0.0, 0.0} } };
+
+  chetrd_(&uplo, &n, a, &lda, d, e, tau, work1, &lwork, &info);
 
 #ifdef DEBUG
   std::cout << "diag_elems: ";
@@ -205,18 +209,23 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
     std::cout << v << ", ";
   std::cout << std::endl;
   // mat must be square, output references must be empty
-  std::cout << "zhetrd return: " << hetrd_info << std::endl;
-  if ( hetrd_info != 0 ) {
-    std::cerr << "error: zhetrd returned non-zero exit code : " 
-              << hetrd_info << std::endl;
-        exit(1);
+  std::cout << "chetrd return: " << info << std::endl;
+  if ( info != 0 ) {
+    std::cerr << "error: chetrd returned non-zero exit code : " 
+              << info << std::endl;
+    info = 0;
   }
 #endif
- 
+
+  // we don't allocate all at once to keep peak memory down
+  delete[] work1;
+  work1 = nullptr;
+  float               *work2 { new float[4*n]{0.0 } };
+
   // Now call cpteqr
   // On exit d contains eigenvalues, z contains eigenvectors
   // *** on exit e has been destroyed ***
-  cpteqr_(&compz, &n, d, e, z, &ldz, pteqr_work, &pteqr_info);
+  cpteqr_(&compz, &n, d, e, z, &ldz, work2, &info);
 
 #ifdef DEBUG
   std::cout << "eigenvalues: ";
@@ -224,14 +233,14 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
     std::cout << v << ", ";
   std::cout << std::endl;
  
-  std::cout << "zpteqr return: " << pteqr_info << std::endl;
-  if ( pteqr_info != 0 ) {
-    std::cerr << "error: zpteqr returned non-zero exit code : " 
-              << pteqr_info << std::endl;
-        exit(1);
+  std::cout << "cpteqr return: " << info << std::endl;
+  if ( info != 0 ) {
+    std::cerr << "error: cpteqr returned non-zero exit code : " 
+              << info << std::endl;
+    info = 0;
   }
 #endif
- 
+
   // copy d into eigenvalues
   eigenvalues.clear();
   std::copy(&d[0], &d[n], std::back_inserter(eigenvalues));
@@ -240,10 +249,10 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
   d = nullptr;
   delete[] tau;
   tau = nullptr;
-  delete[] hetrd_work;
-  hetrd_work = nullptr;
-  delete[] pteqr_work;
-  pteqr_work = nullptr;
+  delete[] work2;
+  work2 = nullptr;
+  // e was deallocated by pteqr
+  e = nullptr;
 }
 
 template <>
@@ -269,36 +278,32 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   //JOBZ is CHARACTER*1
   //  = 'N':  Compute eigenvalues only;
   //  = 'V':  Compute eigenvalues and eigenvectors.
-  const char jobz = 'V';
   //RANGE is CHARACTER*1
   //  = 'A': all eigenvalues will be found.
   //  = 'V': all eigenvalues in the half-open interval (VL,VU]
   //         will be found.
   //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  const char range = 'A';
-  const char uplo = 'U';
-  const size_t n = psd_matrix.GetLD();
-  const size_t ldz{ n };
-  // z is the matrix of eigenvectors to be returned
-  //std::complex<double> *z{new std::complex<double>[ldz*n]{0.0, 0.0}};
-  eigenvectors.resize(ldz, n);
-  std::complex<double> *z{ eigenvectors.GetMat() };
-  matrix<std::complex<double>> heevx_copy(psd_matrix);
-  std::complex<double>* a = heevx_copy.GetMat();
-  const size_t lda = n;
-  const double vl{0.0}, vu{0.0}; // not referenced if range='A'
+  const char jobz{'V'}, range{'A'}, uplo{'U'};
+  const size_t n{psd_matrix.GetLD()};
+  const size_t ldz{n}, lda{n}, lwork{2*n};
   const size_t il{0}, iu{0}; // not referenced if range='A'
-  const char cmach = 'S';
-  const double abstol{2.0 * dlamch_(&cmach)};
+  const double vl{0.0}, vu{0.0}; // not referenced if range='A'
+  const char cmach{'S'};
+  const double abstol{2.0*dlamch_(&cmach)};
   size_t m{0}; // number of eigenvalues found
-  const double *w{ new double[n]{0.0} };
-  const size_t lwork{2*n};
-  std::complex<double> *work{new std::complex<double>[lwork]{0.0, 0.0}};
-  double *rwork{new double[7*n]{0.0}};
-  size_t *iwork{new size_t[5*n]{0}};
-  size_t *ifail{new size_t[n]{0}};
   size_t info{0};
 
+  // z is the matrix of eigenvectors to be returned
+  eigenvectors.resize(ldz, n);
+  matrix<std::complex<double>> heevx_copy{psd_matrix};
+  std::complex<double>  *z{eigenvectors.GetMat()};
+  std::complex<double>  *a{heevx_copy.GetMat()};
+  std::complex<double>  *work{new std::complex<double>[lwork]{0.0, 0.0}};
+  double                *rwork{new double[7*n]{0.0}};
+  size_t                *iwork{new size_t[5*n]{0}};
+  size_t                *ifail{new size_t[n]{0}};
+  double                *w{new double[n]{0.0}};
+ 
   zheevx_(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
          &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork,
          ifail, &info);
@@ -355,44 +360,40 @@ void eigensystem_psd_heevx(const matrix<std::complex<float>>& psd_matrix,
   //JOBZ is CHARACTER*1
   //  = 'N':  Compute eigenvalues only;
   //  = 'V':  Compute eigenvalues and eigenvectors.
-  const char jobz = 'V';
   //RANGE is CHARACTER*1
   //  = 'A': all eigenvalues will be found.
   //  = 'V': all eigenvalues in the half-open interval (VL,VU]
   //         will be found.
   //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  const char range = 'A';
-  const char uplo = 'U';
-  const size_t n = psd_matrix.GetLD();
-  const size_t ldz{ n };
-  // z is the matrix of eigenvectors to be returned
-  //std::complex<float> *z{new std::complex<float>[ldz*n]{0.0, 0.0}};
-  eigenvectors.resize(ldz, n);
-  std::complex<float> *z{ eigenvectors.GetMat() };
-  matrix<std::complex<float>> heevx_copy(psd_matrix);
-  std::complex<float>* a = heevx_copy.GetMat();
-  const size_t lda = n;
-  const float vl{0.0}, vu{0.0}; // not referenced if range='A'
+  const char jobz{'V'}, range{'A'}, uplo{'U'};
+  const size_t n{psd_matrix.GetLD()};
+  const size_t ldz{n}, lda{n}, lwork{2*n};
   const size_t il{0}, iu{0}; // not referenced if range='A'
-  const char cmach = 'S';
-  const float abstol{float(2.0) * slamch_(&cmach)};
+  const float vl{0.0}, vu{0.0}; // not referenced if range='A'
+  const char cmach{'S'};
+  const float abstol{2.0*dlamch_(&cmach)};
   size_t m{0}; // number of eigenvalues found
-  const float *w{ new float[n]{0.0} };
-  const size_t lwork{2*n};
-  std::complex<float> *work{new std::complex<float>[lwork]{0.0, 0.0}};
-  float *rwork{new float[7*n]{0.0}};
-  size_t *iwork{new size_t[5*n]{0}};
-  size_t *ifail{new size_t[n]{0}};
   size_t info{0};
 
+  // z is the matrix of eigenvectors to be returned
+  eigenvectors.resize(ldz, n);
+  matrix<std::complex<float>> heevx_copy{psd_matrix};
+  std::complex<float>  *z{eigenvectors.GetMat()};
+  std::complex<float>  *a{heevx_copy.GetMat()};
+  std::complex<float>  *work{new std::complex<float>[lwork]{0.0, 0.0}};
+  float                *rwork{new float[7*n]{0.0}};
+  size_t               *iwork{new size_t[5*n]{0}};
+  size_t               *ifail{new size_t[n]{0}};
+  float                *w{new float[n]{0.0}};
+ 
   cheevx_(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
          &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork,
          ifail, &info);
 
 #ifdef DEBUG
-  std::cout << "cheevx return: " << info << std::endl;
+  std::cout << "zheevx return: " << info << std::endl;
   if ( info != 0 ) {
-    std::cerr << "error: cheevx returned non-zero exit code : "
+    std::cerr << "error: zheevx returned non-zero exit code : "
               << info << std::endl;
         exit(1);
   }
