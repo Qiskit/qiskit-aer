@@ -66,11 +66,10 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
 
   - stage: 'Compile'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    dependsOn: []
     jobs:
       - job: 'Windows_Wheel_Builds'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         strategy:
           maxParallel: 2
           matrix:
@@ -87,6 +86,24 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - task: Cache@2
+            inputs:
+              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                conda | "$(Agent.OS)" | "$(python.version)"
+                conda | "$(Agent.OS)"
+                conda
+              path: $(HOMEPATH)\Anaconda3\pkgs
+            displayName: Cache conda
           - bash: |
               set -x
               set -e
@@ -113,7 +130,6 @@ stages:
             displayName: Verify wheels
       - job: 'Windows_sdist_Builds'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         strategy:
           maxParallel: 1
           matrix:
@@ -126,6 +142,23 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - task: Cache@2
+            inputs:
+              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                conda | "$(Agent.OS)" | "$(python.version)"
+                conda | "$(Agent.OS)"
+                conda
+              path: $(HOMEPATH)\Anaconda3\pkgs
           - bash: |
               set -x
               set -e
@@ -153,12 +186,28 @@ stages:
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         steps:
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - task: Cache@2
+            inputs:
+              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                conda | "$(Agent.OS)" | "$(python.version)"
+                conda | "$(Agent.OS)"
+                conda
+              path: $(HOMEPATH)\Anaconda3\pkgs
           - bash: |
               set -x
               set -e
@@ -178,11 +227,9 @@ stages:
               cmake --build . --config Release
 
   - stage: 'Tests'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
-    dependsOn: 'Compile'
+    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
       - job: 'Docs'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'ubuntu-16.04'}
         strategy:
           matrix:
@@ -195,6 +242,15 @@ stages:
            inputs:
              versionSpec: '$(python.version)'
            displayName: 'Use Python $(python.version)'
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
          - bash: |
              set -e
              python -m pip install --upgrade pip virtualenv
@@ -217,7 +273,6 @@ stages:
              pathtoPublish: '$(Build.ArtifactStagingDirectory)'
              artifactName: 'html_docs'
       - job: 'Windows'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
           maxParallel: 3
@@ -235,6 +290,23 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - task: Cache@2
+            inputs:
+              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                conda | "$(Agent.OS)" | "$(python.version)"
+                conda | "$(Agent.OS)"
+                conda
+              path: $(HOMEPATH)\Anaconda3\pkgs
           - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
             displayName: Create Anaconda environment
           - bash: |
