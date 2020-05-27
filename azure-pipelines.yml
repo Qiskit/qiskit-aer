@@ -106,7 +106,7 @@ stages:
                 conda | "$(Agent.OS)" | "$(python.version)"
                 conda | "$(Agent.OS)"
                 conda
-              path: $(HOMEPATH)/Anaconda3/pkgs
+              path: $(HOMEPATH)/.conda/pkgs
             displayName: Cache conda
           - bash: |
               set -x
@@ -115,7 +115,6 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda info
               conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
             displayName: Create Anaconda environments
           - bash: |
@@ -163,7 +162,7 @@ stages:
                 conda | "$(Agent.OS)" | "$(python.version)"
                 conda | "$(Agent.OS)"
                 conda
-              path: $(HOMEPATH)\Anaconda3\pkgs
+              path: $(HOMEPATH)/.conda/pkgs
           - bash: |
               set -x
               set -e
@@ -212,7 +211,7 @@ stages:
                 conda | "$(Agent.OS)" | "$(python.version)"
                 conda | "$(Agent.OS)"
                 conda
-              path: $(HOMEPATH)\Anaconda3\pkgs
+              path: $(HOMEPATH)/.conda/pkgs
           - bash: |
               set -x
               set -e
@@ -311,7 +310,7 @@ stages:
                 conda | "$(Agent.OS)" | "$(python.version)"
                 conda | "$(Agent.OS)"
                 conda
-              path: $(HOMEPATH)\Anaconda3\pkgs
+              path: $(HOMEPATH)/.conda/pkgs
           - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
             displayName: Create Anaconda environment
           - bash: |
