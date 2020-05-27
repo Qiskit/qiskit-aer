@@ -61,7 +61,7 @@ class QasmMeasureTests:
 
     def test_measure_nondeterministic_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts with sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.measure_counts_nondeterministic(shots)
@@ -77,7 +77,7 @@ class QasmMeasureTests:
 
     def test_measure_nondeterministic_without_sampling(self):
         """Test QasmSimulator measure with nin-deterministic counts without sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
@@ -172,7 +172,7 @@ class QasmMultiQubitMeasureTests:
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
@@ -185,7 +185,7 @@ class QasmMultiQubitMeasureTests:
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
