@@ -829,6 +829,48 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         }  # non-swapped state (reverse bit order)
         self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
+    def test_simulation_without_variables(self):
+        r"""Test behavior of subsystem_list subsystem restriction.
+        Same setup as test_x_gate, but with explicit Hamiltonian construction without
+        variables
+        """
+
+        ham_dict = {'h_str': ['-np.pi*Z0', '0.01*np.pi*X0||D0'], 'qub': {'0': 2}}
+        ham_model = HamiltonianModel.from_dict(ham_dict)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
+
+        # set up schedule and qobj
+        total_samples = 50
+        schedule = self._simple_1Q_schedule(0, total_samples)
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[1.],
+                        memory_slots=2,
+                        shots=256)
+
+        # set backend backend_options
+        backend_options = {'seed' : 9000}
+
+        # run simulation
+        result = self.backend_sim.run(qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+
+        # test results
+        counts = result.get_counts()
+        exp_counts = {'1': 256}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
 
     def _system_model_1Q(self, omega_0, omega_a, qubit_dim=2):
         """Constructs a simple 1 qubit system model.

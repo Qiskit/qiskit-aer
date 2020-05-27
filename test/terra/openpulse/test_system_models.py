@@ -247,8 +247,8 @@ class TestHamiltonianModel(QiskitAerTestCase):
         Y = np.array([[0,-1j], [1j, 0]])
         Z = np.array([[1,0], [0, -1]])
 
-        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
-                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1},
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0', 'd*X0||D0'],
+                      'vars': {'a': 0.1, 'b': 0.1, 'c' : 1, 'd': 0.},
                       'qub': {'0': 2}}
 
         ham_model = HamiltonianModel.from_dict(simple_ham)
@@ -264,8 +264,8 @@ class TestHamiltonianModel(QiskitAerTestCase):
             self.assertAlmostEqual(norm(diff), 0)
 
         # Same test but with strongly off-diagonal hamiltonian, which should raise warning
-        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0'],
-                      'vars': {'a': 100, 'b': 32.1, 'c' : 0.12},
+        simple_ham = {'h_str': ['a*X0','b*Y0', 'c*Z0', 'd*X0||D0'],
+                      'vars': {'a': 100, 'b': 32.1, 'c' : 0.12, 'd': 0.},
                       'qub': {'0': 2}}
 
         ham_model = HamiltonianModel.from_dict(simple_ham)
@@ -279,6 +279,62 @@ class TestHamiltonianModel(QiskitAerTestCase):
         for idx, eval in enumerate(ham_model._evals):
             diff = mat @ ham_model._estates[:, idx] - eval * ham_model._estates[:, idx]
             self.assertAlmostEqual(norm(diff), 0)
+
+    def test_no_variables(self):
+        """Test successful construction of Hamiltonian without variables"""
+
+        # fully specified hamiltonian without variables
+        ham_dict = {'h_str': ['2*np.pi*O0', '2*np.pi*X0||D0'], 'qub': {'0': 2}}
+        ham_model = HamiltonianModel.from_dict(ham_dict)
+
+        qubit_lo = ham_model.get_qubit_lo_from_drift()
+        self.assertAlmostEqual(norm(qubit_lo - np.array([1.])), 0)
+
+    def test_empty_hamiltonian_string_exception(self):
+        """Test exception raising for empty hamiltonian string"""
+
+        message = "Hamiltonian dict requires a non-empty 'h_str' entry."
+
+        ham_dict = {}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        ham_dict = {'h_str': ['']}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+
+    def test_empty_qub_exception(self):
+        """Test exception raising for empty qub"""
+
+        message = "Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions."
+
+        ham_dict = {'h_str': 'X0'}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        ham_dict = {'h_str': 'X0', 'qub': {}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+    def test_no_channels_exception(self):
+        """Test exception raising for a hamiltonian with no channels"""
+
+        message = 'HamiltonianModel must contain channels to simulate.'
+
+        # hamiltonian with no channels at all
+        ham_dict = {'h_str': ['X0'], 'qub': {'0': 2}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+        # hamiltonian with channels that get removed by parsing
+        ham_dict = {'h_str': ['X1||D1'], 'qub': {'0': 2}}
+        self.assert_hamiltonian_parse_exception(ham_dict, message)
+
+
+    def assert_hamiltonian_parse_exception(self, ham_dict, message):
+        """Test that an attempt to parse a given ham_dict results in an exception with
+        the given message.
+        """
+        try:
+            ham_model = HamiltonianModel.from_dict(ham_dict)
+        except Exception as exception:
+            self.assertEqual(exception.message, message)
 
 if __name__ == '__main__':
     unittest.main()
