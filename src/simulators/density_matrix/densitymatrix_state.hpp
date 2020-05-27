@@ -444,7 +444,7 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
       data.add_average_snapshot("density_matrix",
                                 op.string_params[0],
                                 BaseState::creg_.memory_hex(),
-                                BaseState::qreg_,
+                                BaseState::qreg_.matrix(),
                                 false);
       break;
     case Snapshots::cmemory:
