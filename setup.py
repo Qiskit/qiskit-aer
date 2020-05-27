@@ -23,7 +23,8 @@ import setuptools
 
 requirements = [
     'qiskit-terra>=0.12.0',
-    'numpy>=1.16.3',
+    'numpy>=1.16.3;python_version>"3.5"',
+    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
     'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
