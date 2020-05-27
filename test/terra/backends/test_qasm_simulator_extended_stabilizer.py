@@ -64,7 +64,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         """Test ExtendedStabilizer reset with for circuits with non-deterministic counts"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 2000
+        shots = 4000
         circuits = ref_reset.reset_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -103,7 +103,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_with_sampling(self):
         """Test CHimulator measure with non-deterministic counts with sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -115,7 +115,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_without_sampling(self):
         """Test CHimulator measure with non-deterministic counts without sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -154,7 +154,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test CHimulator reset with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
@@ -166,7 +166,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test CHimulator reset with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
@@ -220,7 +220,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_h_gate_nondeterministic_default_basis_gates(self):
         """Test h-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -292,7 +292,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_s_gate_nondeterministic_default_basis_gates(self):
         """Test s-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -318,7 +318,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_sdg_gate_nondeterministic_default_basis_gates(self):
-        shots = 2000
+        shots = 4000
         """Test sdg-gate circuits compiling to backend default basis_gates."""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
@@ -346,7 +346,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_cx_gate_nondeterministic_default_basis_gates(self):
         """Test cx-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -373,7 +373,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_cz_gate_nondeterministic_default_basis_gates(self):
         """Test cz-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
@@ -400,7 +400,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
 
     def test_swap_gate_nondeterministic_default_basis_gates(self):
         """Test swap-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
