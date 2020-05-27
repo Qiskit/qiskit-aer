@@ -52,7 +52,6 @@ stage_linux: &stage_linux
   before_install:
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
-    - sudo apt-get -y install libopenblas-dev
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
@@ -148,7 +147,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
         - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
@@ -166,7 +165,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
@@ -185,7 +184,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
@@ -194,7 +193,8 @@ jobs:
       name: Standalone Build Linux
       <<: *stage_linux
       language: cpp
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..
@@ -277,7 +277,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
         - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
@@ -313,10 +313,6 @@ jobs:
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
-      addons:
-        homebrew:
-          packages:
-          - openblas
       script:
         - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
@@ -337,7 +333,8 @@ jobs:
       name: Standalone Build Linux (Power)
       arch: ppc64le
       <<: *stage_linux
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..

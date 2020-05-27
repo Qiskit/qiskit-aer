@@ -10,6 +10,12 @@ import sys
 import inspect
 
 try:
+    from conans import client
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+    from conans import client
+
+try:
     from skbuild import setup
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
@@ -35,7 +41,8 @@ requirements = [
 
 setup_requirements = requirements + [
     'scikit-build',
-    'cmake!=3.17,!=3.17.0'
+    'cmake!=3.17,!=3.17.0',
+    'conan>=1.22.2'
 ]
 
 if not hasattr(setuptools,

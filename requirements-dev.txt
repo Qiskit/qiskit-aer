@@ -1,4 +1,5 @@
 cmake!=3.17.1,!=3.17.0
+conan>=1.22.2
 scikit-build
 cython
 asv

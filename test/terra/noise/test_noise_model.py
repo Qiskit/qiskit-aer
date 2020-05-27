@@ -45,7 +45,7 @@ class TestNoise(common.QiskitAerTestCase):
             circuit.i(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
-        shots = 2000
+        shots = 4000
         backend = QasmSimulator()
         # test noise model
         error = amplitude_damping_error(0.75, 0.25)

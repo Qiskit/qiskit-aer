@@ -45,7 +45,7 @@ stages:
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake openblas virtualenv pip setuptools pybind11 cython
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
                 test-$version/Scripts/pip install dist/*whl
@@ -116,7 +116,7 @@ stages:
               conda update --yes -n base conda
               conda config --add channels conda-forge
               conda info
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -171,7 +171,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -220,7 +220,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer numpy cmake
+              conda install --yes --quiet --name qiskit-aer conan numpy cmake
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -261,7 +261,7 @@ stages:
              python -m pip install --upgrade pip virtualenv
              pip install -U tox
              sudo apt-get update
-             sudo apt-get install -y build-essential libopenblas-dev
+             sudo apt-get install -y build-essential
            displayName: 'Install dependencies'
          - bash: |
              tox -edocs
@@ -327,7 +327,7 @@ stages:
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
               conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) mkl
-              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) openblas pip setuptools
+              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) pip setuptools
             displayName: Install Anaconda packages
             condition: or(eq(variables['python.version'], '3.5'), eq(variables['python.version'], '3.8'))
           - bash: |

@@ -29,7 +29,7 @@ class QasmAlgorithmTests:
     # ---------------------------------------------------------------------
     def test_grovers_default_basis_gates(self):
         """Test grovers circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -40,7 +40,7 @@ class QasmAlgorithmTests:
 
     def test_teleport_default_basis_gates(self):
         """Test teleport circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots)
@@ -60,7 +60,7 @@ class QasmAlgorithmTestsWaltzBasis:
     # ---------------------------------------------------------------------
     def test_grovers_waltz_basis_gates(self):
         """Test grovers gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -76,7 +76,7 @@ class QasmAlgorithmTestsWaltzBasis:
 
     def test_teleport_waltz_basis_gates(self):
         """Test teleport gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(
@@ -100,7 +100,7 @@ class QasmAlgorithmTestsMinimalBasis:
     # ---------------------------------------------------------------------
     def test_grovers_minimal_basis_gates(self):
         """Test grovers circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.grovers_circuit(
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
@@ -112,7 +112,7 @@ class QasmAlgorithmTestsMinimalBasis:
 
     def test_teleport_minimal_basis_gates(self):
         """Test teleport gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(
