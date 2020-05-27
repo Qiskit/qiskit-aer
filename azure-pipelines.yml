@@ -99,15 +99,6 @@ stages:
                 pip
               path: $(PIP_CACHE_DIR)
             displayName: Cache pip
-          - task: Cache@2
-            inputs:
-              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                conda | "$(Agent.OS)" | "$(python.version)"
-                conda | "$(Agent.OS)"
-                conda
-              path: $(HOMEPATH)/.conda/pkgs
-            displayName: Cache conda
           - bash: |
               set -x
               set -e
@@ -155,14 +146,6 @@ stages:
                 pip
               path: $(PIP_CACHE_DIR)
             displayName: Cache pip
-          - task: Cache@2
-            inputs:
-              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                conda | "$(Agent.OS)" | "$(python.version)"
-                conda | "$(Agent.OS)"
-                conda
-              path: $(HOMEPATH)/.conda/pkgs
           - bash: |
               set -x
               set -e
@@ -204,14 +187,6 @@ stages:
                 pip
               path: $(PIP_CACHE_DIR)
             displayName: Cache pip
-          - task: Cache@2
-            inputs:
-              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                conda | "$(Agent.OS)" | "$(python.version)"
-                conda | "$(Agent.OS)"
-                conda
-              path: $(HOMEPATH)/.conda/pkgs
           - bash: |
               set -x
               set -e
@@ -303,14 +278,6 @@ stages:
                 pip
               path: $(PIP_CACHE_DIR)
             displayName: Cache pip
-          - task: Cache@2
-            inputs:
-              key: 'conda | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                conda | "$(Agent.OS)" | "$(python.version)"
-                conda | "$(Agent.OS)"
-                conda
-              path: $(HOMEPATH)/.conda/pkgs
           - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
             displayName: Create Anaconda environment
           - bash: |
