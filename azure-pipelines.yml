@@ -177,22 +177,11 @@ stages:
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
-        variables:
-          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
