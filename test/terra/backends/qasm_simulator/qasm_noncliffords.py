@@ -40,7 +40,7 @@ class QasmNonCliffordTests:
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
         """Test t-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
@@ -65,7 +65,7 @@ class QasmNonCliffordTests:
 
     def test_tdg_gate_nondeterministic_default_basis_gates(self):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
@@ -90,7 +90,7 @@ class QasmNonCliffordTests:
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
@@ -113,7 +113,7 @@ class QasmNonCliffordTests:
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cswap_gate_nondeterministic_default_basis_gates(self):
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
@@ -127,7 +127,7 @@ class QasmNonCliffordTests:
     # ---------------------------------------------------------------------
     def test_cu1_gate_nondeterministic_default_basis_gates(self):
         """Test cu1-gate gate circuits compiling to default basis."""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
@@ -176,7 +176,7 @@ class QasmNonCliffordTestsWaltzBasis:
 
     def test_t_gate_nondeterministic_waltz_basis_gates(self):
         """Test t-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
@@ -207,7 +207,7 @@ class QasmNonCliffordTestsWaltzBasis:
 
     def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
         """Test tdg-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
@@ -238,7 +238,7 @@ class QasmNonCliffordTestsWaltzBasis:
 
     def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
         """Test ccx-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
@@ -269,7 +269,7 @@ class QasmNonCliffordTestsWaltzBasis:
 
     def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
         """Test cswap-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
@@ -286,7 +286,7 @@ class QasmNonCliffordTestsWaltzBasis:
     # ---------------------------------------------------------------------
     def test_cu1_gate_nondeterministic_waltz_basis_gates(self):
         """Test cu1-gate gate circuits compiling to u1,u2,u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
@@ -341,7 +341,7 @@ class QasmNonCliffordTestsMinimalBasis:
 
     def test_t_gate_nondeterministic_minimal_basis_gates(self):
         """Test t-gate gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
@@ -372,7 +372,7 @@ class QasmNonCliffordTestsMinimalBasis:
 
     def test_tdg_gate_nondeterministic_minimal_basis_gates(self):
         """Test tdg-gate gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
@@ -403,7 +403,7 @@ class QasmNonCliffordTestsMinimalBasis:
 
     def test_ccx_gate_nondeterministic_minimal_basis_gates(self):
         """Test ccx-gate gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
@@ -420,7 +420,7 @@ class QasmNonCliffordTestsMinimalBasis:
     # ---------------------------------------------------------------------
     def test_cu1_gate_nondeterministic_minimal_basis_gates(self):
         """Test cu1-gate gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cu1_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
@@ -449,7 +449,7 @@ class QasmNonCliffordTestsMinimalBasis:
 
     def test_multiplexer_cxx_gate_nondeterministic_default_basis_gates(self):
         """Test ccx-gate gate circuits """
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.multiplexer_ccx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.multiplexer_ccx_gate_counts_nondeterministic(
@@ -478,7 +478,7 @@ class QasmNonCliffordTestsMinimalBasis:
 
     def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
         """Test cswap-gate gate circuits compiling to u3,cx"""
-        shots = 2000
+        shots = 4000
         circuits = ref_non_clifford.cswap_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)

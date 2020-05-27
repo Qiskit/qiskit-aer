@@ -20,5 +20,5 @@ install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/bac
 
 # Install redistributable dependencies
 if(APPLE)
-    install(FILES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
+    install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
 endif()

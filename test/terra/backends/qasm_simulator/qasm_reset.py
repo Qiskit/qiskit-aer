@@ -44,7 +44,7 @@ class QasmResetTests:
         """Test QasmSimulator reset with for circuits with non-deterministic counts"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 2000
+        shots = 4000
         circuits = ref_reset.reset_circuits_nondeterministic(
             final_measure=True)
         targets = ref_reset.reset_counts_nondeterministic(shots)
@@ -56,7 +56,7 @@ class QasmResetTests:
 
     def test_reset_sampling_opt(self):
         """Test sampling optimization"""
-        shots = 2000
+        shots = 4000
         circuits = ref_reset.reset_circuits_sampling_optimization()
         targets = ref_reset.reset_counts_sampling_optimization(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)

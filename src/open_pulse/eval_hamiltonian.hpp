@@ -20,7 +20,7 @@
 #include <complex>
 #include <string>
 #include <numpy/arrayobject.h>
-#include <muparserx/parser/mpParser.h>
+#include <muparserx/mpParser.h>
 
 struct ParserValues {
     ParserValues(std::unique_ptr<mup::ParserX> parser, const std::string& expr):

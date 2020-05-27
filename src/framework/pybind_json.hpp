@@ -38,7 +38,7 @@
 #include <pybind11/complex.h>
 #include <pybind11/numpy.h>
 
-#include <nlohmann_json.hpp>
+#include <nlohmann/json.hpp>
 #include "framework/json.hpp"
 
 namespace py = pybind11;

@@ -72,7 +72,7 @@ class QasmInitializeTests:
         """Test QasmSimulator initialize"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 2000
+        shots = 4000
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
@@ -85,7 +85,7 @@ class QasmInitializeTests:
         """Test QasmSimulator initializes"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 2000
+        shots = 4000
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
@@ -96,7 +96,7 @@ class QasmInitializeTests:
 
     def test_initialize_sampling_opt(self):
         """Test sampling optimization"""
-        shots = 2000
+        shots = 4000
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
