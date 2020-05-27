@@ -166,7 +166,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
@@ -185,7 +185,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
