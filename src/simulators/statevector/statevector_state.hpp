@@ -31,10 +31,6 @@
 namespace AER {
 namespace Statevector {
 
-template <typename data_t>
-class QubitVectorAvx2;
-
-
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
   // Op types

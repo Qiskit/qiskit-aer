@@ -22,6 +22,7 @@
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
+#include "simulators/statevector/qubitvector_avx2.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
@@ -30,10 +31,6 @@
 
 namespace AER {
 namespace Simulator {
-
-template <typename data_t>
-class QubitVectorAvx2;
-
 
 //=========================================================================
 // QasmController class
@@ -378,7 +375,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
 
       if (simulation_precision_ == Precision::double_precision) {
         if(avx2_enabled){
-          return run_circuit_helper<Statevector::State<QubitVectorAvx2<double>>>(
+          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
         }
@@ -389,7 +386,7 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
       } else {
         if(avx2_enabled){
           // Single-precision Statevector simulation
-          return run_circuit_helper<Statevector::State<QubitVectorAvx2<float>>>(
+          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector);
         }

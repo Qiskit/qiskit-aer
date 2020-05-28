@@ -19,6 +19,7 @@
 
 #include "qubitvector_avx2.hpp"
 #include "qubitvector.hpp"
+#include "qvintrin_avx.hpp"
 
 using namespace QV;
 

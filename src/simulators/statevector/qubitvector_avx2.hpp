@@ -27,8 +27,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
-#include "qvintrin_avx.hpp"
+#include <memory>
 
 namespace QV {
 
