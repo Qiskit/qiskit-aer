@@ -277,9 +277,11 @@ else() # Standalone build
 
 	# We build SIMD filed separately, because they will be reached only if the
 	# machine running the code has SIMD support
+	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qubitvector_avx2.cpp")
 	if(APPLE OR UNIX)
-		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qubitvector_avx2.cpp")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+	elseif(MSVC)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
 	endif()
 
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)

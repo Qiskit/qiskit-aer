@@ -23,7 +23,6 @@
 #include "framework/json.hpp"
 #include "simulators/state.hpp"
 #include "qubitvector.hpp"
-#include "qubitvector_avx2.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "qubitvector_thrust.hpp"
 #endif
@@ -31,6 +30,10 @@
 
 namespace AER {
 namespace Statevector {
+
+template <typename data_t>
+class QubitVectorAvx2;
+
 
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(

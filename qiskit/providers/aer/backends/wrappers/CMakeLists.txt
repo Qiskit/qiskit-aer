@@ -15,12 +15,14 @@ endif()
 
 # We build SIMD filed separately, because they will be reached only if the
 # machine running the code has SIMD support
+set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qubitvector_avx2.cpp")
 if(APPLE OR UNIX)
-    set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qubitvector_avx2.cpp")
     set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+elseif(MSVC)
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
 endif()
 
-basic_pybind11_add_module(controller_wrappers bindings.cc ${SIMD_SOURCE_FILE})
+basic_pybind11_add_module(controller_wrappers ${SIMD_SOURCE_FILE} bindings.cc)
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})

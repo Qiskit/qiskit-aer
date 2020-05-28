@@ -217,8 +217,6 @@ inline void reorder(QV::areg_t<N>& qregs, QV::cvector_t<FloatType>& mat) {
   for(size_t i = 0; i < dim; ++i) {
     size_t index = 0U;
     for(size_t j = 0; j < N; ++j) {
-
-
       if(i & (1U << j))
         index |= masks[j];
     }
@@ -719,7 +717,7 @@ void _apply_lambda(uint64_t data_size, const uint64_t skip, Lambda&& func, const
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (uint64_t k = 0; k < END; k += skip) {
+  for (int64_t k = 0; k < END; k += skip) {
     const auto inds = _indexes(qubits, qubits_sorted, k);
     std::forward < Lambda > (func)(inds, params);
   }
