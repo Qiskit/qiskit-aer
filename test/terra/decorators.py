@@ -38,9 +38,9 @@ def is_method_available(backend, method):
     try:
         job = backend.run(qobj, backend_options=backend_options)
         result = job.result()
-        if not result.success and 'PARTIAL COMPLETED' in result.status:
-            if 'not supported on this system' in result.results[0].status:
-                return False
+        error_msg = 'not supported on this system'
+        if not result.success and error_msg in result.results[0].status:
+            return False
         return True
     except AerError:
         return True
