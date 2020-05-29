@@ -24,7 +24,9 @@ from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasur
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTests
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCGates
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
@@ -64,7 +66,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmCliffordTests,
         QasmCliffordTestsWaltzBasis,
         QasmCliffordTestsMinimalBasis,
-        QasmNonCliffordTests,
+        QasmNonCliffordTestsTGate,
+        QasmNonCliffordTestsCCXGate,
         QasmNonCliffordTestsWaltzBasis,
         QasmNonCliffordTestsMinimalBasis,
         QasmAlgorithmTests,
