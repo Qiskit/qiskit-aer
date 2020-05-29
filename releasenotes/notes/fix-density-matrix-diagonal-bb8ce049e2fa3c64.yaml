@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the "diagonal" qobj gate instructions being applied incorrectly
+    in the density matrix Qasm Simulator method.
