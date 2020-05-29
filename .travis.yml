@@ -36,11 +36,10 @@ stage_generic: &stage_generic
       else
           pip install -U -c constraints.txt qiskit-terra
       fi
-    # Installing qiskit-ibmq-provider stable branch
-    # This is only needed to suppress warnings when importing Qiskit
-    - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
     # Installing qiskit-aer...
     - pip install -U -c constraints.txt -r requirements-dev.txt
+  env:
+    - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
 stage_linux: &stage_linux
   <<: *stage_generic
