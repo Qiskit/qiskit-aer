@@ -70,6 +70,7 @@ stage_osx: &stage_osx
   language: generic
   python: 3.7
   env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
   cache:
@@ -235,6 +236,7 @@ jobs:
       <<: *stage_osx
       python: 3.8
       env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - PYTHON_VERSION=3.8.1
 
     # MacOS, Python 3.7 (via pyenv)
@@ -245,6 +247,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
     # MacOS, Python 3.6 (via pyenv)
     - stage: test
@@ -255,6 +258,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.6.5
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
     # MacOS, Python 3.5 (via pyenv)
     - stage: test
@@ -265,6 +269,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
     # "deploy" stage
     ##########################################################################
     #
