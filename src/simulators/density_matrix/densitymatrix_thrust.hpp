@@ -302,19 +302,14 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-
-  vec[3] = -1.;
-  vec[7] = -1.;
-  vec[11] = -1.;
-  vec[12] = -1.;
-  vec[13] = -1.;
-  vec[14] = -1.;
+  cvector_t<double> diag({1., 1., 1., -1.,
+                          1., 1., 1., -1.,
+                          1., 1., 1., -1.,
+                          -1., -1., -1., 1.});
 
   const auto nq =  num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_diagonal_matrix(qubits, diag);
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cz",qubits);
 #endif
@@ -420,16 +415,10 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-  vec[0 * 4 + 0] = 1.;
-  vec[1 * 4 + 1] = -1.;
-  vec[2 * 4 + 2] = -1.;
-  vec[3 * 4 + 3] = 1.;
-
+  cvector_t<double> diag({1., -1., -1., 1.});
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_diagonal_matrix(qubits, diag);
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_z",qubits);
