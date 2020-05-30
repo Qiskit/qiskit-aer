@@ -1,11 +1,7 @@
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
-find_package(Python COMPONENTS NumPy)
-if(NOT Python_NumPy_FOUND)
-    find_package(NumPy)
-    set(Python_NumPy_INCLUDE_DIRS ${NumPy_INCLUDE_DIRS})
-endif()
+find_package(NumPy REQUIRED)
 
 # Variables for input user data:
 #
@@ -66,7 +62,7 @@ function(add_cython_module module)
     target_include_directories(${module} PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR})
     target_include_directories(${module} PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
     target_include_directories(${module} PRIVATE ${PYTHON_INCLUDE_DIRS})
-    target_include_directories(${module} PRIVATE ${Python_NumPy_INCLUDE_DIRS})
+    target_include_directories(${module} PRIVATE ${NumPy_INCLUDE_DIRS})
     target_include_directories(${module} PRIVATE ${CYTHON_USER_INCLUDE_DIRS})
 
     target_link_libraries(${module} ${AER_LIBRARIES} ${CYTHON_USER_LIB_DIRS})
