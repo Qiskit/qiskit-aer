@@ -387,7 +387,6 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-
 	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
 
 #ifdef AER_DEBUG
@@ -397,16 +396,65 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
 }
 
 template <typename data_t>
+class DensityY : public GateFuncBase
+{
+protected:
+  uint_t mask0;
+  uint_t mask1;
+
+public:
+  DensityY(int q0,int q1)
+  {
+  	if(q0 < q1){
+      mask0 = (1ull << q0) - 1;
+      mask1 = (1ull << q1) - 1;
+  	}
+  	else{
+      mask0 = (1ull << q1) - 1;
+      mask1 = (1ull << q0) - 1;
+  	}
+
+  }
+
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,i0,i1,i2;
+	thrust::complex<data_t>* pV;
+	uint_t* offsets;
+    thrust::complex<data_t> q0,q1,q2,q3;
+		struct GateParams<data_t> params;
+
+  	i = ExtractIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+
+    i0 = i & mask0;
+    i2 = (i - i0) << 1;
+    i1 = i2 & mask1;
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = pV[offsets[0]+i0];
+    q1 = pV[offsets[1]+i0];
+    q2 = pV[offsets[2]+i0];
+    q3 = pV[offsets[3]+i0];
+
+    pV[offsets[0]+i0] = q3;
+    pV[offsets[1]+i0] = -q2;
+    pV[offsets[2]+i0] = -q1;
+    pV[offsets[3]+i0] = q0;
+		return 0.0;
+  }
+
+};
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-  vec[0 * 4 + 3] = 1.;
-  vec[1 * 4 + 2] = -1.;
-  vec[2 * 4 + 1] = -1.;
-  vec[3 * 4 + 0] = 1.;
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_function(DensityY<data_t>(qubits[0], qubits[1]), qubits);
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_y",qubits);
