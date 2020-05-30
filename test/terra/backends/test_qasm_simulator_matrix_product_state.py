@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 QasmSimulator matrix product state method integration tests
 """
@@ -26,15 +25,13 @@ from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsW
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCGates
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
-from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+# from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
 # Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
@@ -43,7 +40,6 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
-from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
@@ -51,13 +47,10 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
-# Other tests
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
-        #QasmMethodTests,  # FAILING: Not implemented yet
         QasmMeasureTests,
         QasmMultiQubitMeasureTests,
         QasmResetTests,
@@ -74,7 +67,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis,
         QasmUnitaryGateTests,
-        #QasmInitializeTests,  # THROWS: uncaught exception
+        # QasmInitializeTests,  # THROWS: partial initialize not supported
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
@@ -84,7 +77,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpvalPauliNCTests,
         QasmSnapshotExpValMatrixTests,
-        ):
+):
     """QasmSimulator matrix product state method tests."""
 
     BACKEND_OPTS = {
