@@ -303,12 +303,7 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
   cvector_t<double> vec;
-  vec.resize(16, 0.);
-
-  vec[0] = 1.0;
-  vec[5] = 1.0;
-  vec[10] = 1.0;
-  vec[15] = 1.0;
+  vec.resize(16, 1.0);
 
   vec[3] = -1.;
   vec[7] = -1.;
@@ -319,7 +314,8 @@ void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
 
   const auto nq =  num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_diagonal_matrix(qubits, vec);
+
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cz",qubits);
 #endif
