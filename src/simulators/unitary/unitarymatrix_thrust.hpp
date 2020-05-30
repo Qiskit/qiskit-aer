@@ -138,7 +138,8 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 {
   const int_t nrows = rows_;
   int iPlace;
-  uint_t i, irow, icol, ic, nc;
+  int_t i;
+  uint_t irow, icol, ic, nc;
   uint_t pos = 0;
   uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
@@ -272,7 +273,8 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
   }
 
 	int iPlace;
-	uint_t i,irow,icol,ic,nc;
+  int_t i;
+	uint_t irow,icol,ic,nc;
 	uint_t pos = 0;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
@@ -347,7 +349,8 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
   // Check conditions 2 and 3
   double delta = 0.;
 	int iPlace;
-	uint_t i,irow,icol,ic,nc;
+  int_t i;
+	uint_t irow,icol,ic,nc;
 	uint_t pos = 0;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
