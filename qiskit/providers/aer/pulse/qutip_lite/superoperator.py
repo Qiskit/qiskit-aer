@@ -228,13 +228,13 @@ def vec2mat(vec):
     return vec.reshape((n, n)).T
 
 
-def vec2mat_index(N, I):
+def vec2mat_index(N, idx):
     """
     Convert a vector index to a matrix index pair that is compatible with the
     vector to matrix rearrangement done by the vec2mat function.
     """
-    j = int(I / N)
-    i = I - N * j
+    j = int(idx / N)
+    i = idx - N * j
     return i, j
 
 
