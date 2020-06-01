@@ -294,6 +294,27 @@ jobs:
         - pip install cibuildwheel==1.1.0
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
+    - name: Release Linux GPU Wheel Builds and Upload
+      stage: lint
+      language: python
+      python: 3.7
+      os: linux
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && sudo yum-config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel6/x86_64/cuda-rhel6.repo && sudo yum clean all && sudo yum -y install cuda"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
+        - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
+          CIBW_ENVIRONMENT="QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=cuda"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
+        - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      script:
+        - pip install -U pip virtualenv twine
+        - pip install cibuildwheel==1.1.0
+        - cibuildwheel --output-dir wheelhouse
+#        - twine upload wheelhouse/*
     - name: sdist Build and Upload
       stage: deploy
       if: tag IS present
