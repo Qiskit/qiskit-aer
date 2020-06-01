@@ -752,7 +752,7 @@ class NoiseTransformer:
         h = numpy.array(h_data).astype(float)
         x = cvxpy.Variable(n)
         prob = cvxpy.Problem(
-            cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T@x),
-            [G@x <= h])
+            cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T @ x),
+            [G @ x <= h])
         prob.solve()
         return x.value

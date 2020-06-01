@@ -36,11 +36,10 @@ stage_generic: &stage_generic
       else
           pip install -U -c constraints.txt qiskit-terra
       fi
-    # Installing qiskit-ibmq-provider stable branch
-    # This is only needed to suppress warnings when importing Qiskit
-    - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
     # Installing qiskit-aer...
     - pip install -U -c constraints.txt -r requirements-dev.txt
+  env:
+    - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -62,6 +61,7 @@ stage_linux: &stage_linux
     - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
     - pip install dist/qiskit_aer*whl
   script:
+    - pip check
     - stestr run --slowest
 
 stage_osx: &stage_osx
@@ -71,6 +71,7 @@ stage_osx: &stage_osx
   language: generic
   python: 3.7
   env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
   cache:
@@ -102,6 +103,7 @@ stage_osx: &stage_osx
     - python setup.py bdist_wheel -- -- -j4
     - pip install dist/qiskit_aer*whl
   script:
+    - pip check
     - stestr run --slowest
   
 ###############################################################################
@@ -167,6 +169,7 @@ jobs:
         - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
+        - aer-test/bin/pip check
     # MacOS Wheel
     - stage: compile
       name: Python Wheel Build MacOS
@@ -185,6 +188,7 @@ jobs:
         - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
+        - aer-test/bin/pip check
     # Linux Standalone
     - stage: compile
       name: Standalone Build Linux
@@ -232,6 +236,7 @@ jobs:
       <<: *stage_osx
       python: 3.8
       env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - PYTHON_VERSION=3.8.1
 
     # MacOS, Python 3.7 (via pyenv)
@@ -242,6 +247,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
     # MacOS, Python 3.6 (via pyenv)
     - stage: test
@@ -252,6 +258,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.6.5
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
     # MacOS, Python 3.5 (via pyenv)
     - stage: test
@@ -262,6 +269,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
     # "deploy" stage
     ##########################################################################
     #

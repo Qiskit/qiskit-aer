@@ -56,7 +56,7 @@ __all__ = []
 import numpy as np
 
 
-def flatten(l):
+def flatten(lst):
     """Flattens a list of lists to the first level.
 
     Given a list containing a mix of scalars and lists,
@@ -64,16 +64,16 @@ def flatten(l):
     list.
 
     Args:
-        l (list): Input list
+        lst (list): Input list
 
     Returns:
         list: Flattened list.
 
     """
-    if not isinstance(l, list):
-        return [l]
+    if not isinstance(lst, list):
+        return [lst]
     else:
-        return sum(map(flatten, l), [])
+        return sum(map(flatten, lst), [])
 
 
 def is_scalar(dims):
@@ -134,8 +134,8 @@ def type_from_dims(dims, enforce_square=True):
     return 'other'
 
 
-def _enumerate_flat(l, idx=0):
-    if not isinstance(l, list):
+def _enumerate_flat(lst, idx=0):
+    if not isinstance(lst, list):
         # Found a scalar, so return and increment.
         return idx, idx + 1
     else:
@@ -143,7 +143,7 @@ def _enumerate_flat(l, idx=0):
         # from it and recurse to keep the increment
         # correct.
         acc = []
-        for elem in l:
+        for elem in lst:
             labels, idx = _enumerate_flat(elem, idx)
             acc.append(labels)
         return acc, idx
@@ -191,7 +191,7 @@ def collapse_dims_super(dims):
     return _collapse_dims_to_level(dims, 2)
 
 
-def enumerate_flat(l):
+def enumerate_flat(lst):
     """Labels the indices at which scalars occur in a flattened list.
 
     Given a list containing a mix of scalars and lists,
@@ -205,4 +205,4 @@ def enumerate_flat(l):
     [[[0], [1, 2]], 3]
 
     """
-    return _enumerate_flat(l)[0]
+    return _enumerate_flat(lst)[0]

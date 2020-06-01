@@ -92,10 +92,16 @@ stages:
          - bash: |
              tox -edocs
            displayName: 'Run Docs build'
+         - task: ArchiveFiles@2
+           inputs:
+             rootFolderOrFile: 'docs/_build/html'
+             archiveType: tar
+             archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
+             verbose: true
          - task: PublishBuildArtifacts@1
            displayName: 'Publish docs'
            inputs:
-             pathtoPublish: 'docs/_build/html'
+             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
              artifactName: 'html_docs'
       - job: 'Windows'
         condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
@@ -148,6 +154,7 @@ stages:
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
+              pip install 'numpy<1.19.0'
               pip install -r requirements-dev.txt
               if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
@@ -155,7 +162,18 @@ stages:
                   pip install qiskit-terra
               fi
             displayName: "Install dependencies"
-            condition: ne(variables['python.version'], '3.8')
+            condition: eq(variables['python.version'], '3.5')
+          - bash: |
+              set -e
+              source activate qiskit-aer-$(Build.BuildNumber)
+              pip install -r requirements-dev.txt
+              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
+                  pip install git+https://github.com/Qiskit/qiskit-terra.git
+              else
+                  pip install qiskit-terra
+              fi
+            displayName: "Install dependencies"
+            condition: and(ne(variables['python.version'], '3.5'), ne(variables['python.version'], '3.8'))
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
