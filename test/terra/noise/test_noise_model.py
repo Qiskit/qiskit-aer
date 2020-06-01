@@ -56,7 +56,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
         qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     def test_noise_model_basis_gates(self):

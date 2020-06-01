@@ -88,6 +88,16 @@ class QiskitAerTestCase(unittest.TestCase):
         # pylint: disable=invalid-name
         return _AssertNoLogsContext(self, logger, level)
 
+    def assertSuccess(self, result):
+        """Assert that simulation executed without errors"""
+        success = getattr(result, 'success', False)
+        msg = result.status
+        if not success:
+            for i, res in enumerate(getattr(result, 'results', [])):
+                if res.status != 'DONE':
+                    msg += ', (Circuit {}) {}'.format(i, res.status)
+        self.assertTrue(success, msg=msg)
+
     def check_position(self, obj, items, precision=15):
         """Return position of numeric object in a list."""
         for pos, item in enumerate(items):
