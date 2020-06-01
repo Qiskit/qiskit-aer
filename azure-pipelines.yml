@@ -285,7 +285,7 @@ stages:
               pip install -v dist/qiskit_aer*.whl
               stestr run --slowest
             displayName: 'Install Aer and Run Tests'
-  - stage: "Wheel builds"
+  - stage: "Wheel_build_tests"
     condition: and(succeeded('Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Wheel_Builds'
