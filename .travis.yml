@@ -312,7 +312,7 @@ jobs:
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       script:
         - pip install -U pip virtualenv twine
-        - pip install cibuildwheel==1.1.0
+        - pip install cibuildwheel==1.4.2
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
     - name: sdist Build and Upload
