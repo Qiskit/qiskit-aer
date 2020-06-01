@@ -727,7 +727,7 @@ class QasmSnapshotExpvalPauliNCTests:
         qobj = assemble(qc)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         snapshots = result.data(0).get('snapshots', {})
         self.assertIn('expectation_value', snapshots)
         self.assertIn('final', snapshots['expectation_value'])

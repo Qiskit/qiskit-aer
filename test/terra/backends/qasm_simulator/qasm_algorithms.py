@@ -36,7 +36,7 @@ class QasmAlgorithmTests:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_default_basis_gates(self):
@@ -47,7 +47,7 @@ class QasmAlgorithmTests:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -74,7 +74,7 @@ class QasmAlgorithmTestsWaltzBasis:
             basis_gates=['u1', 'u2', 'u3', 'cx'],
             backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_waltz_basis_gates(self):
@@ -89,7 +89,7 @@ class QasmAlgorithmTestsWaltzBasis:
             basis_gates=['u1', 'u2', 'u3', 'cx'],
             backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -112,7 +112,7 @@ class QasmAlgorithmTestsMinimalBasis:
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'],
             backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_teleport_minimal_basis_gates(self):
@@ -124,5 +124,5 @@ class QasmAlgorithmTestsMinimalBasis:
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'],
             backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

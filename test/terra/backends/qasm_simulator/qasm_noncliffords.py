@@ -36,12 +36,7 @@ class QasmNonCliffordTestsTGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
@@ -53,12 +48,7 @@ class QasmNonCliffordTestsTGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -73,12 +63,7 @@ class QasmNonCliffordTestsTGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_tdg_gate_nondeterministic_default_basis_gates(self):
@@ -90,12 +75,7 @@ class QasmNonCliffordTestsTGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -116,12 +96,7 @@ class QasmNonCliffordTestsCCXGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
@@ -133,12 +108,7 @@ class QasmNonCliffordTestsCCXGate:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 
@@ -158,12 +128,7 @@ class QasmNonCliffordTestsCGates:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cswap_gate_nondeterministic_default_basis_gates(self):
@@ -174,12 +139,7 @@ class QasmNonCliffordTestsCGates:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -194,12 +154,7 @@ class QasmNonCliffordTestsCGates:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -214,12 +169,7 @@ class QasmNonCliffordTestsCGates:
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
 
@@ -244,12 +194,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_t_gate_nondeterministic_waltz_basis_gates(self):
@@ -264,12 +209,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -287,12 +227,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
@@ -307,12 +242,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -330,12 +260,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
@@ -350,12 +275,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -373,12 +293,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
@@ -393,12 +308,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -416,12 +326,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -439,12 +344,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
 
@@ -468,12 +368,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       shots=shots,
                       basis_gates=['u3', 'cx'])
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_t_gate_nondeterministic_minimal_basis_gates(self):
@@ -488,12 +383,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -511,12 +401,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_tdg_gate_nondeterministic_minimal_basis_gates(self):
@@ -531,12 +416,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
@@ -554,12 +434,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_ccx_gate_nondeterministic_minimal_basis_gates(self):
@@ -574,12 +449,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     # ---------------------------------------------------------------------
@@ -597,12 +467,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     # ---------------------------------------------------------------------
@@ -620,12 +485,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
@@ -640,12 +500,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     # ---------------------------------------------------------------------
@@ -663,10 +518,5 @@ class QasmNonCliffordTestsMinimalBasis:
                       basis_gates=['u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        success = getattr(result, 'success', False)
-        msg = result.status
-        if not success:
-            for res in result.results:
-                msg += res.status
-        self.assertTrue(success, msg=msg)
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
