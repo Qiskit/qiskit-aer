@@ -443,9 +443,8 @@ bool Controller::validate_memory_requirements(const state_t &state,
     if(throw_except) {
       std::string name = "";
       JSON::get_value(name, "name", circ.header);
-      throw std::runtime_error("AER::Base::Controller: State " + state.name() +
-                               " has insufficient memory to run the circuit " +
-                               name);
+      throw std::runtime_error("Insufficient memory to run circuit \"" + name +
+                               "\" using the " + state.name() + " simulator.");
     }
     return false;
   }
