@@ -11,7 +11,11 @@ trigger:
   tags:
     include:
       - '*'
-
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - '*'
 stages:
   - stage: 'Wheel_Builds'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -41,7 +45,7 @@ stages:
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake openblas virtualenv pip setuptools pybind11 cython
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
                 test-$version/Scripts/pip install dist/*whl
@@ -66,11 +70,10 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
 
   - stage: 'Compile'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    dependsOn: []
     jobs:
       - job: 'Windows_Wheel_Builds'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         strategy:
           maxParallel: 2
           matrix:
@@ -82,11 +85,22 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -94,7 +108,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -113,7 +127,6 @@ stages:
             displayName: Verify wheels
       - job: 'Windows_sdist_Builds'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         strategy:
           maxParallel: 1
           matrix:
@@ -121,11 +134,22 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -133,7 +157,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake openblas virtualenv pip setuptools pybind11 cython
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -153,7 +177,6 @@ stages:
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         steps:
           - checkout: self
             submodules: true
@@ -166,7 +189,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer numpy cmake
+              conda install --yes --quiet --name qiskit-aer conan numpy cmake
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -178,16 +201,16 @@ stages:
               cmake --build . --config Release
 
   - stage: 'Tests'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
-    dependsOn: 'Compile'
+    condition: and(succeeded('Compile'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
       - job: 'Docs'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'ubuntu-16.04'}
         strategy:
           matrix:
             Python37:
               python.version: '3.7'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
          - checkout: self
            submodules: true
@@ -195,12 +218,21 @@ stages:
            inputs:
              versionSpec: '$(python.version)'
            displayName: 'Use Python $(python.version)'
+         - task: Cache@2
+           inputs:
+             key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+             restoreKeys: |
+               pip | "$(Agent.OS)" | "$(python.version)"
+               pip | "$(Agent.OS)"
+               pip
+             path: $(PIP_CACHE_DIR)
+           displayName: Cache pip
          - bash: |
              set -e
              python -m pip install --upgrade pip virtualenv
              pip install -U tox
              sudo apt-get update
-             sudo apt-get install -y build-essential libopenblas-dev
+             sudo apt-get install -y build-essential
            displayName: 'Install dependencies'
          - bash: |
              tox -edocs
@@ -217,7 +249,6 @@ stages:
              pathtoPublish: '$(Build.ArtifactStagingDirectory)'
              artifactName: 'html_docs'
       - job: 'Windows'
-        condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
           maxParallel: 3
@@ -230,11 +261,22 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
           - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
             displayName: Create Anaconda environment
           - bash: |
@@ -250,7 +292,7 @@ stages:
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
               conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) mkl
-              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) openblas pip setuptools
+              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) pip setuptools
             displayName: Install Anaconda packages
             condition: or(eq(variables['python.version'], '3.5'), eq(variables['python.version'], '3.8'))
           - bash: |

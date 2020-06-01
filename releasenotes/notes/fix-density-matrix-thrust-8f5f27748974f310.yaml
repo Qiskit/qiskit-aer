@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix bug in CZ gate and Z gate for "density_matrix_gpu" and
+    "density_matrix_thrust" QasmSimulator methods.

@@ -392,8 +392,6 @@ template <class statevec_t>
 size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
                                              const std::vector<Operations::Op> &ops)
                                              const {
-  // An n-qubit state vector as 2^n complex doubles
-  // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
   return BaseState::qreg_.required_memory_mb(num_qubits);
 }

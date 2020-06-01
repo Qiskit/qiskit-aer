@@ -352,12 +352,8 @@ template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(uint_t num_qubits,
                                             const std::vector<Operations::Op> &ops)
                                             const {
-  // An n-qubit state vector as 2^n complex doubles
-  // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
-  size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
-  size_t mem_mb = 1ULL << shift_mb;
-  return mem_mb;
+  return BaseState::qreg_.required_memory_mb(2 * num_qubits);
 }
 
 template <class densmat_t>
@@ -383,44 +379,44 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
   // Simple loop over vector of input operations
   for (const auto op: ops) {
     // If conditional op check conditional
-    if (BaseState::creg_.check_conditional(op) == false)
-      return;
-    switch (op.type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits);
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::gate:
-        apply_gate(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
-        break;
-      case Operations::OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
-        break;
-      case Operations::OpType::diagonal_matrix:
-        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
-        break;
-      case Operations::OpType::superop:
-        BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
-        break;
-      case Operations::OpType::kraus:
-        apply_kraus(op.qubits, op.mats);
-        break;
-      default:
-        throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
-                                    op.name + "\'.");
+    if (BaseState::creg_.check_conditional(op)) {
+      switch (op.type) {
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits);
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::gate:
+          apply_gate(op);
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, data);
+          break;
+        case Operations::OpType::matrix:
+          apply_matrix(op.qubits, op.mats[0]);
+          break;
+        case Operations::OpType::diagonal_matrix:
+          BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
+          break;
+        case Operations::OpType::superop:
+          BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+          break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats);
+          break;
+        default:
+          throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
+                                      op.name + "\'.");
+      }
     }
   }
 }
@@ -444,7 +440,7 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
       data.add_average_snapshot("density_matrix",
                                 op.string_params[0],
                                 BaseState::creg_.memory_hex(),
-                                BaseState::qreg_,
+                                BaseState::qreg_.matrix(),
                                 false);
       break;
     case Snapshots::cmemory:
