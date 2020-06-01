@@ -1,6 +1,0 @@
-[submodule "src/third-party/headers/muparserx"]
-	path = src/third-party/headers/muparserx
-	url = https://github.com/beltoforion/muparserx
-[submodule "src/third-party/headers/thrust"]
-	path = src/third-party/headers/thrust
-	url = https://github.com/thrust/thrust.git

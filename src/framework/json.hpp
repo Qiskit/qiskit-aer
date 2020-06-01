@@ -25,7 +25,7 @@
 #include <iostream>
 #include <type_traits>
 
-#include <nlohmann_json.hpp>
+#include <nlohmann/json.hpp>
 #include "framework/matrix.hpp"
 
 namespace nl = nlohmann;

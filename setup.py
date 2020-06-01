@@ -10,6 +10,12 @@ import sys
 import inspect
 
 try:
+    from conans import client
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+    from conans import client
+
+try:
     from skbuild import setup
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
@@ -23,7 +29,8 @@ import setuptools
 
 requirements = [
     'qiskit-terra>=0.12.0',
-    'numpy>=1.16.3',
+    'numpy>=1.16.3;python_version>"3.5"',
+    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
     'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
@@ -34,7 +41,8 @@ requirements = [
 
 setup_requirements = requirements + [
     'scikit-build',
-    'cmake!=3.17,!=3.17.0'
+    'cmake!=3.17,!=3.17.0',
+    'conan>=1.22.2'
 ]
 
 if not hasattr(setuptools,

@@ -18,9 +18,9 @@ from test.terra import common
 from test.terra.decorators import requires_method
 # Basic circuit instruction tests
 from test.terra.backends.unitary_simulator.unitary_basics import UnitarySimulatorTests
+from test.terra.backends.unitary_simulator.unitary_snapshot import UnitarySnapshotTests
 
-
-class TestUnitarySimulator(common.QiskitAerTestCase, UnitarySimulatorTests):
+class TestUnitarySimulator(common.QiskitAerTestCase, UnitarySimulatorTests, UnitarySnapshotTests):
     """UnitarySimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113}
