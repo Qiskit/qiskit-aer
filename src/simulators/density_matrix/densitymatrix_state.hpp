@@ -361,12 +361,8 @@ template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(uint_t num_qubits,
                                             const std::vector<Operations::Op> &ops)
                                             const {
-  // An n-qubit state vector as 2^n complex doubles
-  // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
-  size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
-  size_t mem_mb = 1ULL << shift_mb;
-  return mem_mb;
+  return BaseState::qreg_.required_memory_mb(2 * num_qubits);
 }
 
 template <class densmat_t>
