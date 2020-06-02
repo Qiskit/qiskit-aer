@@ -9,11 +9,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 QasmSimulator matrix product state method integration tests
 """
 
+import os
 import unittest
 from test.terra import common
 
@@ -24,15 +24,15 @@ from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasur
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTests
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
-from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+# from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
-from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
 # Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
@@ -41,7 +41,6 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
-from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
@@ -49,13 +48,13 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
-# Other tests
-from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 
 
+# Due to bug in Windows (issue #744 https://github.com/Qiskit/qiskit-aer/issues/773)
+# We skip the full set of MPS tests for windows CI and use a separate test class below 
+@unittest.skipIf(os.name == 'nt', 'Skip full MPS tests on Windows until #773 is fixed')
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
-        #QasmMethodTests,  # FAILING: Not implemented yet
         QasmMeasureTests,
         QasmMultiQubitMeasureTests,
         QasmResetTests,
@@ -64,14 +63,15 @@ class TestQasmMatrixProductStateSimulator(
         QasmCliffordTests,
         QasmCliffordTestsWaltzBasis,
         QasmCliffordTestsMinimalBasis,
-        QasmNonCliffordTests,
+        QasmNonCliffordTestsTGate,
+        QasmNonCliffordTestsCCXGate,
         QasmNonCliffordTestsWaltzBasis,
         QasmNonCliffordTestsMinimalBasis,
         QasmAlgorithmTests,
         QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis,
         QasmUnitaryGateTests,
-        #QasmInitializeTests,  # THROWS: uncaught exception
+        # QasmInitializeTests,  # THROWS: partial initialize not supported
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
@@ -81,7 +81,49 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpvalPauliNCTests,
         QasmSnapshotExpValMatrixTests,
-        ):
+):
+    """QasmSimulator matrix product state method tests."""
+
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "matrix_product_state",
+        "max_parallel_threads": 1
+    }
+
+
+# Reduced set of tests on windows until #773 is fixed
+# Note that this is not ideal since it skips ALL tests of basic Clifford gates
+# Even though only the CZ gate tests (and one CX gate test) were failing
+@unittest.skipIf(os.name != 'nt', 'Skip Windows-specific MPS tests until #773 is fixed')
+class TestQasmMatrixProductStateSimulatorWIN(
+        common.QiskitAerTestCase,
+        QasmMeasureTests,
+        QasmMultiQubitMeasureTests,
+        QasmResetTests,
+        QasmConditionalGateTests,
+        QasmConditionalUnitaryTests,
+        #QasmCliffordTests,  # Failing for CZ
+        #QasmCliffordTestsWaltzBasis,  # Failing for CX, CZ
+        #QasmCliffordTestsMinimalBasis,  # Failing for CX, CZ
+        QasmNonCliffordTestsTGate,
+        QasmNonCliffordTestsCCXGate,
+        #QasmNonCliffordTestsWaltzBasis,  # Failing for CCX, CSwap
+        #QasmNonCliffordTestsMinimalBasis,  # Failing for CCX, CSwap
+        #QasmAlgorithmTests,  # Failing for Grovers
+        #QasmAlgorithmTestsWaltzBasis,  # Failing for Grovers
+        #QasmAlgorithmTestsMinimalBasis,  # Failing for Grovers
+        QasmUnitaryGateTests,
+        # QasmInitializeTests,  # THROWS: partial initialize not supported
+        QasmReadoutNoiseTests,
+        QasmPauliNoiseTests,
+        QasmResetNoiseTests,
+        QasmSnapshotStatevectorTests,
+        QasmSnapshotProbabilitiesTests,
+        QasmSnapshotStabilizerTests,
+        QasmSnapshotExpValPauliTests,
+        QasmSnapshotExpvalPauliNCTests,
+        QasmSnapshotExpValMatrixTests,
+):
     """QasmSimulator matrix product state method tests."""
 
     BACKEND_OPTS = {

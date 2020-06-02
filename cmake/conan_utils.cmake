@@ -5,7 +5,7 @@ macro(setup_conan)
     # Right now every dependency shall be static
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "*:shared=False")
 
-    set(REQUIREMENTS nlohmann_json/3.7.3 spdlog/1.5.0)
+    set(REQUIREMENTS nlohmann_json/3.1.1 spdlog/1.5.0)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/8.0.1)
         if(SKBUILD)

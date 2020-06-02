@@ -91,7 +91,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertFalse(meta.get('applied', False))
 
         with self.subTest(msg='at fusion threshold'):
@@ -103,7 +103,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
 
         with self.subTest(msg='above fusion threshold'):
@@ -115,7 +115,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
 
     def test_fusion_verbose(self):
@@ -131,7 +131,7 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
 
             # Assert fusion applied succesfully
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data in output
             self.assertIn('input_ops', meta)
@@ -144,7 +144,7 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
 
             # Assert fusion applied succesfully
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
             self.assertNotIn('input_ops', meta)
@@ -157,7 +157,7 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
 
             # Assert fusion applied succesfully
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
             self.assertNotIn('input_ops', meta)
@@ -181,7 +181,7 @@ class QasmFusionTests:
                                     backend_options=backend_options).result()
         meta = self.fusion_metadata(result)
 
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.assertTrue(meta.get('applied', False),
                         msg='fusion should have been applied.')
 
@@ -200,7 +200,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertTrue(meta.get('applied', False))
 
         with self.subTest(msg='fusion disabled'):
@@ -209,7 +209,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertFalse(meta.get('applied', False))
 
         with self.subTest(msg='fusion default'):
@@ -219,7 +219,7 @@ class QasmFusionTests:
                 qobj, backend_options=backend_options).result()
             meta = self.fusion_metadata(result)
 
-            self.assertTrue(getattr(result, 'success', False))
+            self.assertSuccess(result)
             self.assertFalse(meta.get('applied', False))
 
     def test_fusion_operations(self):
