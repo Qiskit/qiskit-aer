@@ -34,5 +34,11 @@ macro(setup_conan)
         set(REQUIREMENTS ${REQUIREMENTS} catch2/2.12.1)
     endif()
 
-    conan_cmake_run(REQUIRES ${REQUIREMENTS} OPTIONS ${CONAN_OPTIONS} BASIC_SETUP CMAKE_TARGETS KEEP_RPATHS BUILD missing)
+    conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                    OPTIONS ${CONAN_OPTIONS}
+                    ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                    BASIC_SETUP
+                    CMAKE_TARGETS
+                    KEEP_RPATHS
+                    BUILD missing)
 endmacro()
