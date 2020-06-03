@@ -371,7 +371,7 @@ void eigensystem_psd_heevx(const matrix<std::complex<float>>& psd_matrix,
   const size_t il{0}, iu{0}; // not referenced if range='A'
   const float vl{0.0}, vu{0.0}; // not referenced if range='A'
   const char cmach{'S'};
-  const float abstol{2.0*dlamch_(&cmach)};
+  const float abstol{static_cast<float>(slamch_(&cmach) * 2.0)};
   size_t m{0}; // number of eigenvalues found
   size_t info{0};
 
