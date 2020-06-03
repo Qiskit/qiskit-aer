@@ -10,6 +10,12 @@ import sys
 import inspect
 
 try:
+    from conans import client
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+    from conans import client
+
+try:
     from skbuild import setup
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
@@ -23,8 +29,10 @@ import setuptools
 
 requirements = [
     'qiskit-terra>=0.12.0',
-    'numpy>=1.16.3',
-    'scipy>=1.0',
+    'numpy>=1.16.3;python_version>"3.5"',
+    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
+    'scipy>=1.0;python_version>"3.5"',
+    'scipy>=1.0,<1.5.0;python_version<"3.6"',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
@@ -34,7 +42,8 @@ requirements = [
 
 setup_requirements = requirements + [
     'scikit-build',
-    'cmake!=3.17,!=3.17.0'
+    'cmake!=3.17,!=3.17.0',
+    'conan>=1.22.2'
 ]
 
 if not hasattr(setuptools,
@@ -50,6 +59,10 @@ VERSION_PATH = os.path.join(os.path.dirname(__file__),
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'README.md')
+with open(README_PATH) as readme_file:
+    README = readme_file.read()
 
 setup(
     name='qiskit-aer',
@@ -57,6 +70,8 @@ setup(
     packages=setuptools.find_namespace_packages(include=['qiskit.*']),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
+    long_description=README,
+    long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",

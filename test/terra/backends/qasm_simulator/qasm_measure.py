@@ -39,7 +39,7 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
@@ -54,21 +54,21 @@ class QasmMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     def test_measure_nondeterministic_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts with sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         # Test sampling was enabled
         for res in result.results:
@@ -77,14 +77,14 @@ class QasmMeasureTests:
 
     def test_measure_nondeterministic_without_sampling(self):
         """Test QasmSimulator measure with nin-deterministic counts without sampling"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
@@ -104,7 +104,7 @@ class QasmMeasureTests:
         result = self.SIMULATOR.run(
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_sampling_with_quantum_noise(self):
@@ -127,7 +127,7 @@ class QasmMeasureTests:
         result = self.SIMULATOR.run(
             qobj, noise_model=noise_model,
             backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         sampling = (self.BACKEND_OPTS.get("method", "automatic").startswith("density_matrix"))
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
@@ -151,7 +151,7 @@ class QasmMultiQubitMeasureTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots, memory=True)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, target_counts, delta=0)
         self.compare_memory(result, circuits, target_memory)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
@@ -172,26 +172,26 @@ class QasmMultiQubitMeasureTests:
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
         """Test QasmSimulator measure with non-deterministic counts"""
-        shots = 2000
+        shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
