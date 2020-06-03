@@ -17,6 +17,7 @@
 
 #include "controller.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/qubitvector_avx2.hpp"
 
 namespace AER {
 namespace Simulator {

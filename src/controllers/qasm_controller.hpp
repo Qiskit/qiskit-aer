@@ -21,10 +21,13 @@
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/qubitvector.hpp"
+#include "simulators/statevector/qubitvector_avx2.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
 #include "framework/avx2_detect.hpp"
+
 
 namespace AER {
 namespace Simulator {
