@@ -442,10 +442,10 @@ public:
     q2 = pV[offsets[2]+i0];
     q3 = pV[offsets[3]+i0];
 
-    pV[offsets[0]+i0] = q0;
+    pV[offsets[0]+i0] = q3;
     pV[offsets[1]+i0] = -q2;
     pV[offsets[2]+i0] = -q1;
-    pV[offsets[3]+i0] = q3;
+    pV[offsets[3]+i0] = q0;
 		return 0.0;
   }
 

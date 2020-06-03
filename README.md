@@ -20,7 +20,7 @@ To install from source, follow the instructions in the [contribution guidelines]
 
 ## Installing GPU support
 
-In order to install and run the GPU supported simulators, you need CUDA&reg; 10.2 previously installed.
+In order to install and run the GPU supported simulators, you need CUDA&reg; 10.1 or newer previously installed.
 CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA&reg; installation procedure in the NVIDIA&reg; [web](https://www.nvidia.com/drivers).
 
 If you want to install our GPU supported simulators, you have to install this other package:
