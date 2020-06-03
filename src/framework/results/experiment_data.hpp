@@ -179,6 +179,29 @@ public:
   stringmap_t<json_t> metadata_;
 
   //----------------------------------------------------------------
+  // Access Templated DataContainers
+  //----------------------------------------------------------------
+
+  template <typename T>
+  stringmap_t<T>& additional_data();
+
+  template <typename T>
+  const stringmap_t<T>& additional_data() const;
+
+  template <typename T>
+  stringmap_t<PershotSnapshot<T>>& pershot_snapshots();
+
+  template <typename T>
+  const stringmap_t<PershotSnapshot<T>>& pershot_snapshots() const;
+
+  template <typename T>
+  stringmap_t<AverageSnapshot<T>>& average_snapshots();
+
+  template <typename T>
+  const stringmap_t<AverageSnapshot<T>>& average_snapshots() const;
+
+
+  //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
 
@@ -314,6 +337,39 @@ template <>
 void ExperimentData::add_metadata(const std::string &key, json_t &data) {
   const json_t &const_data = data;
   add_metadata(key, const_data);
+}
+
+//------------------------------------------------------------------
+// Access Data
+//------------------------------------------------------------------
+template <typename T>
+stringmap_t<T>& ExperimentData::additional_data() {
+  return DataContainer<T>::additional_data_;
+}
+
+template <typename T>
+const stringmap_t<T>& ExperimentData::additional_data() const {
+  return DataContainer<T>::additional_data_;
+}
+
+template <typename T>
+stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() {
+  return DataContainer<T>::pershot_snapshots_;
+}
+
+template <typename T>
+const stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() const {
+  return DataContainer<T>::pershot_snapshots_;
+}
+
+template <typename T>
+stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() {
+  return DataContainer<T>::average_snapshots_;
+}
+
+template <typename T>
+const stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() const {
+  return DataContainer<T>::average_snapshots_;
 }
 
 //------------------------------------------------------------------
