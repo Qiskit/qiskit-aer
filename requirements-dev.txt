@@ -2,7 +2,7 @@ cmake!=3.17.1,!=3.17.0
 scikit-build
 cython
 asv
-cvxpy>=1.0.0,!=1.0.26
+cvxpy>=1.0.0,!=1.0.26,<1.1.0
 pylint
 pycodestyle
 Sphinx>=1.8.3
