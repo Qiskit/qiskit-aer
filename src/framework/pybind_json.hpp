@@ -462,24 +462,24 @@ py::object AerToPy::from_data(const AER::ExperimentData &datum) {
   }
 
   // Add additional data
-  for (auto &pair : datum.additional_data<json_t>()) {
+  for (const auto &pair : datum.additional_data<json_t>()) {
     py::object tmp;
     from_json(pair.second, tmp);
     pydata[pair.first.data()] = tmp;
   }
-  for (auto &pair : datum.additional_data<std::complex<double>>()) {
+  for (const auto &pair : datum.additional_data<std::complex<double>>()) {
     pydata[pair.first.data()] = pair.second;
   }
-  for (auto &pair : datum.additional_data<std::vector<std::complex<double>>>()) {
+  for (const auto &pair : datum.additional_data<std::vector<std::complex<double>>>()) {
     pydata[pair.first.data()] = pair.second;
   }
-  for (auto &pair : datum.additional_data<matrix<std::complex<double>>>()) {
+  for (const auto &pair : datum.additional_data<matrix<std::complex<double>>>()) {
     pydata[pair.first.data()] = AerToPy::array_from_matrix(pair.second);    
   }
-  for (auto &pair : datum.additional_data<std::map<std::string, std::complex<double>>>()) {
+  for (const auto &pair : datum.additional_data<std::map<std::string, std::complex<double>>>()) {
     pydata[pair.first.data()] = pair.second;
   }
-  for (auto &pair : datum.additional_data<std::map<std::string, double>>()) {
+  for (const auto &pair : datum.additional_data<std::map<std::string, double>>()) {
     pydata[pair.first.data()] = pair.second;
   }
 
@@ -489,74 +489,74 @@ py::object AerToPy::from_data(const AER::ExperimentData &datum) {
   
     // Average snapshots
     //for (const auto &pair : reinterpret_cast<*AER::DataContainer<json_t>>(&datum)-> average_snapshots_) {
-    for (auto &pair : datum.average_snapshots<json_t>()) {
+    for (const auto &pair : datum.average_snapshots<json_t>()) {
       py::object tmp;
       from_json(pair.second, tmp);
       snapshots[pair.first.data()] = tmp;
     }
-    for (auto &pair : datum.average_snapshots<std::complex<double>>()) {
+    for (const auto &pair : datum.average_snapshots<std::complex<double>>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : datum.average_snapshots<std::vector<std::complex<double>>>()) {
+    for (const auto &pair : datum.average_snapshots<std::vector<std::complex<double>>>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : datum.average_snapshots<matrix<std::complex<double>>>()) {
+    for (const auto &pair : datum.average_snapshots<matrix<std::complex<double>>>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : datum.average_snapshots<std::map<std::string, std::complex<double>>>()) {
+    for (const auto &pair : datum.average_snapshots<std::map<std::string, std::complex<double>>>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
-    for (auto &pair : datum.average_snapshots<std::map<std::string, double>>()) {
+    for (const auto &pair : datum.average_snapshots<std::map<std::string, double>>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
     }
     // Singleshot snapshot data
     // Note these will override the average snapshots
     // if they share the same type string
-    for (auto &pair : datum.pershot_snapshots<json_t>()) {
+    for (const auto &pair : datum.pershot_snapshots<json_t>()) {
       py::object tmp;
       from_json(pair.second, tmp);
       snapshots[pair.first.data()] = tmp;
     }
-    for (auto &pair : datum.pershot_snapshots<std::complex<double>>()) {
+    for (const auto &pair : datum.pershot_snapshots<std::complex<double>>()) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data())
+      for (const auto &per_pair : pair.second.data())
         d[per_pair.first.data()] = per_pair.second.data();
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : datum.pershot_snapshots<std::vector<std::complex<double>>>()) {
+    for (const auto &pair : datum.pershot_snapshots<std::vector<std::complex<double>>>()) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data()) {
+      for (const auto &per_pair : pair.second.data()) {
         py::list l;
-        for (auto &matr : per_pair.second.data())
+        for (const auto &matr : per_pair.second.data())
           l.append(AerToPy::array_from_vector(matr));
         d[per_pair.first.data()] = l;
       }
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : datum.pershot_snapshots<matrix<std::complex<double>>>()) {
+    for (const auto &pair : datum.pershot_snapshots<matrix<std::complex<double>>>()) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data()) {
+      for (const auto &per_pair : pair.second.data()) {
         py::list l;
-        for (auto &matr : per_pair.second.data())
+        for (const auto &matr : per_pair.second.data())
           l.append(AerToPy::array_from_matrix(matr));
         d[per_pair.first.data()] = l;
       }
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : datum.pershot_snapshots<std::map<std::string, std::complex<double>>>()) {
+    for (const auto &pair : datum.pershot_snapshots<std::map<std::string, std::complex<double>>>()) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data())
+      for (const auto &per_pair : pair.second.data())
         d[per_pair.first.data()] = per_pair.second.data();
       snapshots[pair.first.data()] = d;
     }
-    for (auto &pair : datum.pershot_snapshots<std::map<std::string, double>>()) {
+    for (const auto &pair : datum.pershot_snapshots<std::map<std::string, double>>()) {
       py::dict d;
       // string PershotData
-      for (auto &per_pair : pair.second.data())
+      for (const auto &per_pair : pair.second.data())
         d[per_pair.first.data()] = per_pair.second.data();
       snapshots[pair.first.data()] = d;
     }

@@ -463,12 +463,12 @@ json_t ExperimentData::json() const {
   json_t js;
 
   // Add all container data
-  to_json(js, static_cast<DataContainer<json_t>>(*this));
-  to_json(js, static_cast<DataContainer<complex_t>>(*this));
-  to_json(js, static_cast<DataContainer<cvector_t>>(*this));
-  to_json(js, static_cast<DataContainer<cmatrix_t>>(*this));
-  to_json(js, static_cast<DataContainer<std::map<std::string, complex_t>>>(*this));
-  to_json(js, static_cast<DataContainer<std::map<std::string, double>>>(*this));
+  to_json(js, static_cast<const DataContainer<json_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<complex_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<cvector_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<cmatrix_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::map<std::string, complex_t>>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::map<std::string, double>>&>(*this));
 
   // Measure data
   if (return_counts_ && counts_.empty() == false) js["counts"] = counts_;
