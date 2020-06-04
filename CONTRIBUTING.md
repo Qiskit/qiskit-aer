@@ -657,8 +657,8 @@ These are the flags:
 
     This option allows us we can specify the CUDA architecture instead of letting the build systemm auto detect it.
     
-    Values: Valid CUDA architecture(s). Single value or list separated by ";"
-    Default: No value
+    Values:  Auto | Common | All | List of valid CUDA architecture(s).
+    Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUDA_ARCH="5.2; 5.3"``
 
 ## Tests
