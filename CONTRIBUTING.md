@@ -572,6 +572,13 @@ For example,
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
 
+If we want to specify the CUDA® architecture instead of letting the build system 
+auto detect it, we can use the CUDA_ARCH option. For example:
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUDA_ARCH="5.2"
+
+This will reduce the amount of compilation time when, for example, the architecture auto detection
+fails and the build system compiles all common architectures.
 
 Few notes on GPU builds:
 1. Building takes considerable more time than non-GPU build, so be patient :)
@@ -645,6 +652,14 @@ These are the flags:
     Values: CUDA|OMP|TBB
     Default: No value
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA``
+
+* CUDA_ARCH
+
+    This option allows us we can specify the CUDA architecture instead of letting the build systemm auto detect it.
+    
+    Values: Valid CUDA architecture(s). Single value or list separated by ";"
+    Default: No value
+    Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUDA_ARCH="5.2; 5.3"``
 
 ## Tests
 
