@@ -46,9 +46,14 @@ def construct_pulse_zvode_solver(exp, op_system):
     # Init register
     register = np.ones(global_data['n_registers'], dtype=np.uint8)
 
-    ODE = ode(td_ode_rhs_static)
+    rhs = lambda t, y: td_ode_rhs_static(t, y,
+                                         global_data,
+                                         exp,
+                                         op_system.system,
+                                         channels,
+                                         register)
 
-    ODE.set_f_params(global_data, exp, op_system.system, channels, register)
+    ODE = ode(rhs)
 
     ODE._integrator = qiskit_zvode(method=ode_options.method,
                                    order=ode_options.order,
