@@ -15,8 +15,11 @@
 """DE methods."""
 
 from abc import ABC, abstractmethod
+import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import solve_ivp
+from scipy.integrate import ode
+from scipy.integrate._ode import zvode
 from .type_utils import StateTypeConverter
 
 
@@ -47,6 +50,9 @@ class ODE_Method(ABC):
         self._t = t0
         self.set_y(y0, reset=False)
         self.set_rhs(rhs)
+
+        # default to True, only to be changed to false if a failure occurs
+        self.successful = True
 
     def integrate_over_interval(self, y0, interval, rhs=None):
         """Integrate over an interval, with additional options to reset the rhs functions.
@@ -182,6 +188,145 @@ class ScipyODE(ODE_Method):
         self._scipy_method = solver_options.get('method')
 
         self._scipy_options = solver_options.get('scipy_options', {})
+
+
+class QiskitZVODE(ODE_Method):
+    """Method wrapper for zvode solver available through Scipy."""
+
+    method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
+
+    def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
+        """This method requires t0, y0, and rhs to specified on instantiation, as these are
+        necessary to properly instantiate the underlying solver object
+        """
+
+        # Add check for t0 and y0
+
+        self._ODE = None
+
+        super().__init__(t0, y0, rhs, solver_options)
+
+        # remove after
+        # set_options should be first as options may influence the behaviour of other functions
+        self.set_options(solver_options)
+
+        self._t = t0
+        self.set_y(y0, reset=False)
+        self.set_rhs(rhs)
+
+    @property
+    def t(self):
+        return self._t
+
+    @t.setter
+    def t(self, new_t):
+        self._t = new_t
+        self._ODE.t = new_t
+        self._reset_method()
+
+    def set_y(self, new_y, reset=True):
+        """Method for logic of setting internal state of solver with more control
+        """
+        type_spec = self.method_spec.get('inner_state_spec')
+        self._state_type_converter = \
+                        StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+
+        self._y = self._state_type_converter.outer_to_inner(new_y)
+
+        if self._ODE is not None:
+            self._ODE._y = self._y
+
+        self._reset_method(reset)
+
+
+    def set_rhs(self, rhs=None, reset=True):
+        """Set rhs functions. rhs may either be a dict specifying multiple functions related
+        to the rhs, (e.g. {'rhs': f, 'rhs_jac': g}), or a callable, in which case it will be
+        assumed to be the standard rhs function.
+        """
+
+        if rhs is None:
+            rhs = {'rhs': None}
+
+        if callable(rhs):
+            rhs = {'rhs': rhs}
+
+        if 'rhs' not in rhs:
+            raise Exception('ODE_Method requires at minimum a specification of an rhs function.')
+
+        self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
+
+        self._ODE = ode(self.rhs['rhs'])
+
+        """
+        self._ODE._integrator = qiskit_zvode(method=ode_options.method,
+                                             order=ode_options.order,
+                                             atol=ode_options.atol,
+                                             rtol=ode_options.rtol,
+                                             nsteps=ode_options.nsteps,
+                                             first_step=ode_options.first_step,
+                                             min_step=ode_options.min_step,
+                                             max_step=ode_options.max_step
+                                             )
+        """
+        self._ODE._integrator = qiskit_zvode(method=self.solver_options.get('method', 'adams'),
+                                             order=self.solver_options.get('order', 12),
+                                             atol=self.solver_options.get('atol', 10**-8),
+                                             rtol=self.solver_options.get('rtol', 10**-6),
+                                             nsteps=self.solver_options.get('nsteps', 50000),
+                                             first_step=self.solver_options.get('first_step', 0),
+                                             min_step=self.solver_options.get('min_step', 0),
+                                             max_step=self.solver_options.get('max_step', 0)
+                                             )
+
+        # Forces complex ODE solving
+        if not self._ODE._y:
+            self._ODE.t = 0.0
+            self._ODE._y = np.array([0.0], complex)
+        self._ODE._integrator.reset(len(self._ODE._y), self._ODE.jac is not None)
+
+        self._ODE.set_initial_value(self._y, self._t)
+
+        self._reset_method(reset)
+
+
+    def integrate(self, tf, step=False):
+        """Integrate up to a time tf.
+
+        Args:
+            tf (float): time to integrate up to
+            step (bool): if False, integrates up to tf, if True, only implements a single step
+        """
+        self._ODE.integrate(tf, step=step)
+        self._y = self._ODE.y
+        self.successful = self._ODE.successful()
+
+    def _reset_method(self, reset=True):
+        """Reset any parameters of internal numerical solving method, e.g. delete persistent memory
+        for multi-step methods.
+
+        Args:
+            reset (bool): Whether or not to reset method
+        """
+        if reset:
+            self._ODE._integrator.call_args[3] = 1
+
+    def set_options(self, solver_options):
+        self.solver_options = solver_options
+
+
+class qiskit_zvode(zvode):
+    """Customized ZVODE with modified stepper so that
+    it always stops at a given time in tlist;
+    by default, it over shoots the time.
+    """
+    def step(self, *args):
+        itask = self.call_args[2]
+        self.rwork[0] = args[4]
+        self.call_args[2] = 5
+        r = self.run(*args)
+        self.call_args[2] = itask
+        return r
 
 
 class RK4(ODE_Method):
