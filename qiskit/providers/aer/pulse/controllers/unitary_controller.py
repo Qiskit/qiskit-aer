@@ -21,10 +21,10 @@ import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from ..de_solvers.pulse_de_solver import construct_pulse_zvode_solver
+from ..de.pulse_de_solver import construct_pulse_zvode_solver
 
 # Imports from qutip_extra_lite
-from ..de_solvers.pulse_utils import occ_probabilities, write_shots_memory
+from ..de.pulse_utils import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 

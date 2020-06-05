@@ -5,7 +5,7 @@ import numpy as np
 
 import sys
 sys.path.insert(1, '../../de/')
-from type_utils import convert_state, type_spec_from_instance, StateTypeConverter
+from qiskit.providers.aer.pulse.de.type_utils import convert_state, type_spec_from_instance, StateTypeConverter
 
 class TestTypeUtils(unittest.TestCase):
 
@@ -54,18 +54,6 @@ class TestTypeUtils(unittest.TestCase):
 
         def rhs(t, y):
             return t * y
-
-        def generator(t):
-            return t * np.array([[0, 1], [0, 0]])
-
-        rhs_funcs = {'rhs': rhs, 'generator': generator}
-        converted_rhs_funcs = converter.transform_rhs_funcs(rhs_funcs)
-
-        expected_rhs = converter.outer_to_inner(rhs(3.14, y_out))
-        self.assertAlmostEqual(converted_rhs_funcs['rhs'](3.14, y_in), expected_rhs)
-
-        expected_gen = np.kron(generator(3.14), np.eye(2))
-        self.assertAlmostEqual(converted_rhs_funcs['generator'](3.14), expected_gen)
 
     def test_from_instances(self):
         """Test from_instances constructor"""
