@@ -156,32 +156,6 @@ class StateTypeConverter:
         if rhs_jac is not None:
             pass
 
-        # transform generator
-        generator = rhs_funcs.get('generator')
-
-        if generator is not None:
-            # With the above assumptions, returns a new generator function G' so that, for a
-            # generator G and state y of outer_shape,
-            # (Gy).reshape(inner_shape) = G' y.reshape(inner_shape)
-            if self.inner_type_spec == self.outer_type_spec:
-                new_rhs_funcs['generator'] = generator
-            else:
-
-                # raise exceptions based on assumptions
-                if (self.inner_type_spec['type'] != 'array') or (self.outer_type_spec['type'] != 'array'):
-                    raise Exception("""RHS generator transformation only valid for state types
-                                       np.array.""")
-                if len(self.inner_type_spec['shape']) != 1:
-                    raise Exception("""RHS generator transformation only valid if inner_type is
-                                       1d.""")
-
-                def new_generator(t):
-                    # create identity of size the second dimension fo the outer type
-                    ident = np.eye(self.outer_type_spec['shape'][1])
-                    return np.kron(generator(t), ident)
-
-                new_rhs_funcs['generator'] = new_generator
-
         return new_rhs_funcs
 
 def convert_state(y, type_spec):
