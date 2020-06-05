@@ -23,6 +23,7 @@
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 DISABLE_WARNING_POP
 
 #include "types.hpp"
@@ -38,6 +39,13 @@ py::array_t<complex_t> td_ode_rhs(double t,
                                   py::object system,
                                   py::object channels,
                                   py::object reg);
+
+void td_ode_rhs_vec(double t, const std::vector<complex_t>& y, std::vector<complex_t>& y_dot,
+                    py::object the_global_data,
+                    py::object the_exp,
+                    py::object the_system,
+                    py::object the_channels,
+                    py::object the_reg);
 
 class RhsFunctor {
 public:

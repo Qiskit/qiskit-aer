@@ -278,7 +278,8 @@ set(AER_LIBRARIES
 	Threads::Threads
 	CONAN_PKG::spdlog
 	${DL_LIB}
-	${THRUST_DEPENDANT_LIBS})
+	${THRUST_DEPENDANT_LIBS}
+	CONAN_PKG::sundials)
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.

@@ -15,6 +15,14 @@ endmacro()
 
 add_test_executable(test_linalg "src/test_linalg.cpp")
 
+
+find_package(Pybind11 REQUIRED)
+add_test_executable(test_sundials_vector "src/ode/test_sundials_vector.cpp")
+
+add_test_executable(test_sundials_cvode "src/ode/test_sundials_cvode.cpp")
+
 # Don't forget to add your test target here
 add_custom_target(build_tests
-		test_linalg)
+		test_linalg
+    	test_sundials_vector
+    	test_sundials_cvode)
