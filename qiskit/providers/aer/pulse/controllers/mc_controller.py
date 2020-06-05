@@ -134,6 +134,7 @@ def monte_carlo_evolution(seed, exp, op_system):
                 raise Exception("ZVODE step failed!")
             norm2_psi = dznrm2(ODE.y) ** 2
             if norm2_psi <= rand_vals[0]:
+                print(ODE.t)
                 # collapse has occured:
                 # find collapse time to within specified tolerance
                 # ------------------------------------------------
@@ -150,7 +151,7 @@ def monte_carlo_evolution(seed, exp, op_system):
                     if not ODE.successful():
                         raise Exception(
                             "ZVODE failed after adjusting step size!")
-                    norm2_guess = dznrm2(ODE._y)**2
+                    norm2_guess = dznrm2(ODE.y)**2
                     if (abs(rand_vals[0] - norm2_guess) <
                             ode_options.norm_tol * rand_vals[0]):
                         break
@@ -185,7 +186,7 @@ def monte_carlo_evolution(seed, exp, op_system):
                 state = spmv_csr(global_data['c_ops_data'][j],
                                  global_data['c_ops_ind'][j],
                                  global_data['c_ops_ptr'][j],
-                                 ODE._y)
+                                 ODE.y)
 
                 state /= dznrm2(state)
                 ODE.y = state
