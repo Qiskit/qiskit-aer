@@ -15,11 +15,6 @@
 #ifndef _aer_controller_avx2_detect_hpp_
 #define _aer_controller_avx2_detect_hpp_
 
-#ifdef _MSC_VER
-#include <intrin.h>
-#elif defined(__GNUC__)
-#include <cpuid.h>
-#endif
 #include <array>
 #include <vector>
 #include <bitset>
