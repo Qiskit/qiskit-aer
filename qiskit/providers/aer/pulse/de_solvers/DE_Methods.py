@@ -41,7 +41,7 @@ class ODE_Method(ABC):
 
     def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
 
-        # set_options should be first as it can influence the behaviour of other functions
+        # set_options should be first as options may influence the behaviour of other functions
         self.set_options(solver_options)
 
         self._t = t0
