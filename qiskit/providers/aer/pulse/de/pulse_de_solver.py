@@ -25,6 +25,7 @@ from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 # pylint: disable=no-name-in-module
 from .pulse_utils import td_ode_rhs_static
+from .DE_Methods import QiskitZVODE
 
 
 def construct_pulse_zvode_solver(exp, op_system):
@@ -53,6 +54,18 @@ def construct_pulse_zvode_solver(exp, op_system):
                                          channels,
                                          register)
 
+    option_dict = {'method': ode_options.method,
+                   'order': ode_options.order,
+                   'atol': ode_options.atol,
+                   'rtol': ode_options.rtol,
+                   'nsteps': ode_options.nsteps,
+                   'first_step': ode_options.first_step,
+                   'min_step': ode_options.min_step,
+                   'max_step': ode_options.max_step}
+
+    qiskit_zvode = QiskitZVODE(0.0, global_data['initial_state'], rhs)
+    return qiskit_zvode
+    """
     ODE = ode(rhs)
 
     ODE._integrator = qiskit_zvode(method=ode_options.method,
@@ -74,6 +87,7 @@ def construct_pulse_zvode_solver(exp, op_system):
     ODE.set_initial_value(global_data['initial_state'], 0)
 
     return ODE
+    """
 
 
 class qiskit_zvode(zvode):

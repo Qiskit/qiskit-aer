@@ -127,12 +127,12 @@ def monte_carlo_evolution(seed, exp, op_system):
         while ODE.t < stop_time:
             t_prev = ODE.t
             y_prev = ODE.y
-            norm2_prev = dznrm2(ODE._y) ** 2
+            norm2_prev = dznrm2(ODE.y) ** 2
             # integrate up to stop_time, one step at a time.
             ODE.integrate(stop_time, step=1)
             if not ODE.successful():
                 raise Exception("ZVODE step failed!")
-            norm2_psi = dznrm2(ODE._y) ** 2
+            norm2_psi = dznrm2(ODE.y) ** 2
             if norm2_psi <= rand_vals[0]:
                 # collapse has occured:
                 # find collapse time to within specified tolerance
@@ -144,9 +144,8 @@ def monte_carlo_evolution(seed, exp, op_system):
                     t_guess = t_prev + \
                         log(norm2_prev / rand_vals[0]) / \
                         log(norm2_prev / norm2_psi) * (t_final - t_prev)
-                    ODE._y = y_prev
+                    ODE.y = y_prev
                     ODE.t = t_prev
-                    ODE._integrator.call_args[3] = 1
                     ODE.integrate(t_guess, step=0)
                     if not ODE.successful():
                         raise Exception(
@@ -176,7 +175,7 @@ def monte_carlo_evolution(seed, exp, op_system):
                     n_dp[i] = cy_expect_psi_csr(global_data['n_ops_data'][i],
                                                 global_data['n_ops_ind'][i],
                                                 global_data['n_ops_ptr'][i],
-                                                ODE._y, True)
+                                                ODE.y, True)
 
                 # determine which operator does collapse and store it
                 _p = np.cumsum(n_dp / np.sum(n_dp))
@@ -189,13 +188,12 @@ def monte_carlo_evolution(seed, exp, op_system):
                                  ODE._y)
 
                 state /= dznrm2(state)
-                ODE._y = state
-                ODE._integrator.call_args[3] = 1
+                ODE.y = state
                 rand_vals = rng.rand(2)
 
         # after while loop (Do measurement or conditional)
         # ------------------------------------------------
-        out_psi = ODE._y / dznrm2(ODE._y)
+        out_psi = ODE.y / dznrm2(ODE.y)
         for aind in range(acq_idx, num_acq):
             if exp['acquire'][aind][0] == stop_time:
                 current_acq = exp['acquire'][aind]

@@ -52,7 +52,7 @@ class ODE_Method(ABC):
         self.set_rhs(rhs)
 
         # default to True, only to be changed to false if a failure occurs
-        self.successful = True
+        self._successful = True
 
     def integrate_over_interval(self, y0, interval, rhs=None):
         """Integrate over an interval, with additional options to reset the rhs functions.
@@ -127,6 +127,9 @@ class ODE_Method(ABC):
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
 
         self._reset_method(reset)
+
+    def successful(self):
+        return self._successful
 
 
     """
@@ -299,15 +302,10 @@ class QiskitZVODE(ODE_Method):
         """
         self._ODE.integrate(tf, step=step)
         self._y = self._ODE.y
-        self.successful = self._ODE.successful()
+        self.t = self._ODE.t
+        self._successful = self._ODE.successful()
 
     def _reset_method(self, reset=True):
-        """Reset any parameters of internal numerical solving method, e.g. delete persistent memory
-        for multi-step methods.
-
-        Args:
-            reset (bool): Whether or not to reset method
-        """
         if reset:
             self._ODE._integrator.call_args[3] = 1
 
