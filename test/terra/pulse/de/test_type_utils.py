@@ -2,10 +2,9 @@
 
 import unittest
 import numpy as np
-
-import sys
-sys.path.insert(1, '../../de/')
-from qiskit.providers.aer.pulse.de.type_utils import convert_state, type_spec_from_instance, StateTypeConverter
+from qiskit.providers.aer.pulse.de.type_utils import (convert_state,
+                                                      type_spec_from_instance,
+                                                      StateTypeConverter)
 
 class TestTypeUtils(unittest.TestCase):
 

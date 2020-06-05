@@ -3,10 +3,10 @@
 import unittest
 import numpy as np
 from scipy.linalg import expm
-
-import sys
-sys.path.insert(1, '../../de/')
-from DE_Methods import ODE_Method, BMDE_Method, RK4, Expm, ScipyODE, method_from_string
+from qiskit.providers.aer.pulse.de.DE_Methods import (ODE_Method,
+                                                      RK4,
+                                                      ScipyODE,
+                                                      method_from_string)
 
 class TestDE_Methods(unittest.TestCase):
 
@@ -25,7 +25,7 @@ class TestDE_Methods(unittest.TestCase):
         def rhs(t, y):
             return generator(t) @ y
 
-        self.rhs = {'rhs': rhs, 'generator': generator}
+        self.rhs = {'rhs': rhs}
 
     def test_method_from_string(self):
         """Test method_from_string"""
@@ -34,11 +34,6 @@ class TestDE_Methods(unittest.TestCase):
         method, options = method_from_string('scipy-RK45')
         self.assertTrue(method == ScipyODE)
         self.assertTrue(options == {'method': 'RK45'})
-
-        # test for Expm
-        method, options = method_from_string('Expm')
-        self.assertTrue(method == Expm)
-        self.assertTrue(options == {})
 
     def test_ScipyODE(self):
         """Test ScipyODE method"""
@@ -62,18 +57,6 @@ class TestDE_Methods(unittest.TestCase):
         scipy_solver.integrate(1.)
         expected = 1./3
         self.assertAlmostEqual(scipy_solver.y, expected, tol=10**-9)
-
-    def test_Expm(self):
-        """Test Expm method"""
-
-        # test with the default problem
-        solver_options = {'max_dt': 0.01}
-
-        expm_solver = Expm(t0=self.t0, y0=self.y0, rhs=self.rhs, solver_options=solver_options)
-        expm_solver.integrate(1.)
-
-        expected = expm(-1j * np.pi * self.X)
-        self.assertAlmostEqual(expm_solver.y, expected, tol=10**-9)
 
     def assertAlmostEqual(self, A, B, tol=10**-15):
         self.assertTrue(np.abs(A - B).max() < tol)

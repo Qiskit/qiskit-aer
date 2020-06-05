@@ -17,7 +17,7 @@
 from abc import ABC, abstractmethod
 from scipy.linalg import expm
 from scipy.integrate import solve_ivp
-from type_utils import StateTypeConverter
+from .type_utils import StateTypeConverter
 
 
 class ODE_Method(ABC):
