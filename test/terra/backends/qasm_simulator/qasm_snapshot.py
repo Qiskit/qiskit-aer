@@ -348,7 +348,12 @@ class QasmSnapshotDensityMatrixTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'density_matrix', 'density_matrix_gpu',
+        'automatic',
+        'statevector',
+        'statevector_gpu',
+        'statevector_thrust',
+        'density_matrix',
+        'density_matrix_gpu',
         'density_matrix_thrust'
     ]
     BACKEND_OPTS = {}
