@@ -39,7 +39,8 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  int MPS::sample_measure_index_size_ = 10; 
+  uint_t MPS::sample_measure_index_size_ = 24; 
+  uint_t MPS::sample_measure_shots_thresh_ = 100; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations

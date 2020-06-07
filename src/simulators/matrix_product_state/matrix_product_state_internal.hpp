@@ -186,6 +186,9 @@ public:
   static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }
+  static void set_sample_measure_shots_thresh(uint_t index_size){
+    sample_measure_shots_thresh_ = index_size;
+  }
   static void set_enable_gate_opt(bool enable_gate_opt) {
     enable_gate_opt_ = enable_gate_opt;
   }
@@ -199,8 +202,11 @@ public:
   static double get_json_chop_threshold() {
     return json_chop_threshold_;
   }
-  static uint_t get_sample_measure_index_size(){
+  static uint_t get_sample_measure_index_size() {
     return sample_measure_index_size_;
+  }
+  static uint_t get_sample_measure_shots_thresh() {
+    return sample_measure_shots_thresh_;
   }
 
   static bool get_enable_gate_opt() {
@@ -396,7 +402,8 @@ private:
   //-----------------------------------------------------------------------
   static uint_t omp_threads_;     // Disable multithreading by default
   static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
-  static int sample_measure_index_size_; // Sample measure indexing qubit size
+  static uint_t sample_measure_index_size_; // Qubit threshold for computing sample_measure using probabilities
+  static uint_t sample_measure_shots_thresh_; // Shots threshold for computing sample_measure using probablities
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates

@@ -33,8 +33,10 @@
 
 #include "framework/json.hpp"
 #include "simulators/state.hpp"
+#include "simulators/statevector/qubitvector.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
+#include <sys/time.h>
 
 
 namespace AER {
@@ -128,7 +130,14 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
-
+  std::vector<reg_t> 
+  sample_measure_using_probabilities(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng);
+  std::vector<reg_t> 
+  sample_measure_using_apply_measure(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng) const;
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -368,10 +377,14 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(omp_threads, "mps_omp_threads", config))
     MPS::set_omp_threads(omp_threads);
 
-  // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
+  uint_t index_size;
+  if (JSON::get_value(index_size, "mps_sample_measure_qubits_opt", config)) {  // Set the sample measure qubit size
     MPS::set_sample_measure_index_size(index_size);
+  }
+
+  uint_t shots_num;
+  if (JSON::get_value(shots_num, "mps_sample_measure_shots_opt", config)) {
+    MPS::set_sample_measure_shots_thresh(shots_num);
   }
 }
 
@@ -645,7 +658,53 @@ rvector_t State::measure_probs(const reg_t &qubits) const{
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
+  double start = clock();
+  if (qubits.size() <= MPS::get_sample_measure_index_size() && 
+      shots > MPS::get_sample_measure_shots_thresh())
+    return sample_measure_using_probabilities(qubits, shots, rng);
+  else
+      return sample_measure_using_apply_measure(qubits, shots, rng);
+  double end = clock();
+  std::cout << "time for sample_measure = " << end - start << std::endl;
+}
 
+std::vector<reg_t> State::
+sample_measure_using_probabilities(const reg_t &qubits,
+				   uint_t shots,
+				   RngEngine &rng) {
+  std::cout << "using qubit_vector, qubits = " << qubits.size() << ", shots = " << shots << std::endl;
+    cvector_t statevector;
+    qreg_.full_state_vector(statevector);
+    QV::QubitVector<double> qubit_vec(qreg_.num_qubits());
+    qubit_vec.initialize_from_vector(statevector);
+
+  // Generate flat register for storing
+  std::vector<double> rnds;
+  rnds.reserve(shots);
+  for (uint_t i = 0; i < shots; ++i)
+    rnds.push_back(rng.rand(0, 1));
+
+  auto allbit_samples = qubit_vec.sample_measure(rnds);
+
+  // Convert to reg_t format
+  std::vector<reg_t> all_samples;
+  all_samples.reserve(shots);
+  for (int_t val : allbit_samples) {
+    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits) {
+      sample.push_back(allbit_sample[qubit]);
+    }
+    all_samples.push_back(sample);
+  }
+  return all_samples;
+}
+
+std::vector<reg_t> State::
+  sample_measure_using_apply_measure(const reg_t &qubits, 
+				     uint_t shots, 
+				     RngEngine &rng) const {
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
