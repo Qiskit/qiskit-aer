@@ -24,22 +24,22 @@ from .type_utils import StateTypeConverter
 
 
 class ODE_Method(ABC):
-    """Abstract wrapper class for an ODE solving method.
+    """Abstract wrapper class for an ODE solving method, providing an expected interface
+    for integrating a new method/solver.
 
     Class Attributes:
-        - method_type_spec: dict specifying expected input type of the underlying method to
-                            to facilitate automatic conversions (e.g. if the underlying method
-                            requires 1d arrays, or only works with real arrays). Currently, only
-                            conversion from 2d to 1d arrays is supported.
+        method_spec (dict): Container of general information about the method. Currently
+                            supports key 'inner_state_spec', containing a description of
+                            of the data type that the underlying method requires. Must be
+                            understandable by StateTypeConverter, which will automatically
+                            handle conversions of the state and rhs functions.
 
     Instance attributes:
-        - _t, t: private and public time variable
-        - _y, y: private and public state variable
-        - rhs: dict with rhs-related functions.
+        _t, t (float): private and public time variable
+        _y, y (array): private and public state variable
+        rhs (dict): rhs-related functions as values
     """
 
-    # Class attribute specifying if the method requires the state of the DE to be a vector
-    # In the future this can be generalized for more involved type handling (e.g. complex to real)
     method_spec = {'inner_state_spec': {'type': 'array'}}
 
     def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
@@ -110,9 +110,12 @@ class ODE_Method(ABC):
 
 
     def set_rhs(self, rhs=None, reset=True):
-        """Set rhs functions. rhs may either be a dict specifying multiple functions related
-        to the rhs, (e.g. {'rhs': f, 'rhs_jac': g}), or a callable, in which case it will be
-        assumed to be the standard rhs function.
+        """Set rhs functions.
+
+        Args:
+            rhs (dict or callable): Either a dict with callable values,
+                                    e.g. {'rhs': f, 'rhs_jac': g}, or a callable f, which
+                                    produces equivalent behaviour as the input {'rhs', f}
         """
 
         if rhs is None:
@@ -194,7 +197,7 @@ class ScipyODE(ODE_Method):
 
 
 class QiskitZVODE(ODE_Method):
-    """Method wrapper for zvode solver available through Scipy."""
+    """Wrapper for zvode solver available through Scipy."""
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
 

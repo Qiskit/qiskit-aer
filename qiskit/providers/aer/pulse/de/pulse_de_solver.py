@@ -18,11 +18,9 @@
 #    All rights reserved.
 # pylint: disable=no-value-for-parameter, invalid-name, import-error
 
-"""Pulse DE solver for problems in qutip format."""
+"""Set up DE solver for problems in qutip format."""
 
 import numpy as np
-from scipy.integrate import ode
-from scipy.integrate._ode import zvode
 # pylint: disable=no-name-in-module
 from .pulse_utils import td_ode_rhs_static
 from .DE_Methods import QiskitZVODE
@@ -88,17 +86,3 @@ def construct_pulse_zvode_solver(exp, op_system):
 
     return ODE
     """
-
-
-class qiskit_zvode(zvode):
-    """Modifies the stepper for ZVODE so that
-    it always stops at a given time in tlist;
-    by default, it over shoots the time.
-    """
-    def step(self, *args):
-        itask = self.call_args[2]
-        self.rwork[0] = args[4]
-        self.call_args[2] = 5
-        r = self.run(*args)
-        self.call_args[2] = itask
-        return r
