@@ -21,6 +21,7 @@ from math import log
 import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
+from ..de.pulse_de_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..de.pulse_de_solver import construct_pulse_zvode_solver
 from ..de.pulse_utils import (cy_expect_psi_csr, occ_probabilities,
@@ -29,7 +30,7 @@ from ..de.pulse_utils import (cy_expect_psi_csr, occ_probabilities,
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def run_monte_carlo_experiments(op_system):
+def run_monte_carlo_experiments(op_system, ode_options=OPoptions()):
     """ Runs monte carlo experiments for a given op_system
 
     Parameters:
@@ -46,8 +47,8 @@ def run_monte_carlo_experiments(op_system):
         raise Exception("Initial state must be a state vector.")
 
     # set num_cpus to the value given in settings if none in Options
-    if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = CPU_COUNT
+    if not ode_options.num_cpus:
+        ode_options.num_cpus = CPU_COUNT
 
     # setup seeds array
     seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
@@ -55,7 +56,7 @@ def run_monte_carlo_experiments(op_system):
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
-    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
+    map_kwargs = {'num_processes': ode_options.num_cpus}
 
     exp_results = []
     exp_times = []
@@ -82,7 +83,7 @@ def run_monte_carlo_experiments(op_system):
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(seed, exp, op_system):
+def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
@@ -98,7 +99,6 @@ def monte_carlo_evolution(seed, exp, op_system):
     """
 
     global_data = op_system.global_data
-    ode_options = op_system.ode_options
 
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
@@ -120,7 +120,7 @@ def monte_carlo_evolution(seed, exp, op_system):
     n_dp = np.zeros(global_data['c_num'], dtype=float)
 
     y0 = op_system.global_data['initial_state']
-    ODE = construct_pulse_zvode_solver(exp, y0, op_system, op_system.ode_options)
+    ODE = construct_pulse_zvode_solver(exp, y0, op_system, ode_options)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:

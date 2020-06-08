@@ -155,7 +155,7 @@ def pulse_controller(qobj, system_model, backend_options):
     for key in ode_options:
         if key not in allowed_ode_options:
             raise Exception('Invalid ode_option: {}'.format(key))
-    pulse_sim_desc.ode_options = OPoptions(**ode_options)
+    ode_options = OPoptions(**ode_options)
 
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
@@ -165,7 +165,7 @@ def pulse_controller(qobj, system_model, backend_options):
             stop = pulse_sim_desc.global_data['pulse_indices'][val + 1]
             start = pulse_sim_desc.global_data['pulse_indices'][val]
             min_width = min(min_width, stop - start)
-    pulse_sim_desc.ode_options.max_step = min_width / 2 * pulse_sim_desc.dt
+    ode_options.max_step = min_width / 2 * pulse_sim_desc.dt
 
     # ########################################
     # Determination of measurement operators.
@@ -200,7 +200,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
-    exp_results, exp_times = run_experiments(pulse_sim_desc)
+    exp_results, exp_times = run_experiments(pulse_sim_desc, ode_options)
 
     return format_exp_results(exp_results, exp_times, pulse_sim_desc)
 
@@ -386,8 +386,6 @@ class PulseSimDescription():
         # these tell the order in which the channels
         # are evaluated in the RHS solver.
         self.channels = None
-        # options of the ODE solver
-        self.ode_options = None
         # time between pulse sample points.
         self.dt = None
         # Array containing all pulse samples

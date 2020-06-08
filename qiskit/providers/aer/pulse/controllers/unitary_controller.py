@@ -20,6 +20,7 @@ Controller for solving unitary evolution of a state-vector.
 import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
+from ..de.pulse_de_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from ..de.pulse_de_solver import construct_pulse_zvode_solver
 
@@ -29,12 +30,12 @@ from ..de.pulse_utils import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def _full_simulation(exp, op_system):
+def _full_simulation(exp, op_system, ode_options=OPoptions()):
     """
     Set up full simulation, i.e. combining different (ideally modular) computational
     resources into one function.
     """
-    psi, ode_t = unitary_evolution(exp, op_system)
+    psi, ode_t = unitary_evolution(exp, op_system, ode_options)
 
     # ###############
     # do measurement
@@ -63,7 +64,7 @@ def _full_simulation(exp, op_system):
     return [memory, psi, ode_t]
 
 
-def run_unitary_experiments(op_system):
+def run_unitary_experiments(op_system, ode_options=OPoptions()):
     """ Runs unitary experiments for a given op_system
 
     Parameters:
@@ -80,8 +81,8 @@ def run_unitary_experiments(op_system):
         raise Exception("Initial state must be a state vector.")
 
     # set num_cpus to the value given in settings if none in Options
-    if not op_system.ode_options.num_cpus:
-        op_system.ode_options.num_cpus = CPU_COUNT
+    if not ode_options.num_cpus:
+        ode_options.num_cpus = CPU_COUNT
 
     # setup seeds array
     seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
@@ -89,13 +90,13 @@ def run_unitary_experiments(op_system):
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
-    map_kwargs = {'num_processes': op_system.ode_options.num_cpus}
+    map_kwargs = {'num_processes': ode_options.num_cpus}
 
     # run simulation on each experiment in parallel
     start = time.time()
     exp_results = parallel_map(_full_simulation,
                                op_system.experiments,
-                               task_args=(op_system, ),
+                               task_args=(op_system, ode_options, ),
                                **map_kwargs
                                )
     end = time.time()
@@ -105,7 +106,7 @@ def run_unitary_experiments(op_system):
     return exp_results, exp_times
 
 
-def unitary_evolution(exp, op_system):
+def unitary_evolution(exp, op_system, ode_options=OPoptions()):
     """
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
@@ -123,7 +124,7 @@ def unitary_evolution(exp, op_system):
     """
 
     y0 = op_system.global_data['initial_state']
-    ODE = construct_pulse_zvode_solver(exp, y0, op_system, op_system.ode_options)
+    ODE = construct_pulse_zvode_solver(exp, y0, op_system, ode_options)
 
     tlist = exp['tlist']
 
