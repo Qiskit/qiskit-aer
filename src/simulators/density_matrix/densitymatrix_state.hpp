@@ -218,6 +218,11 @@ protected:
                               ExperimentData &data,
                               bool variance);
 
+  // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, const reg_t& qubits_sorted);
+  cmatrix_t reduced_density_matrix_cpu(const reg_t &qubits, const reg_t& qubits_sorted);
+  cmatrix_t reduced_density_matrix_thrust(const reg_t &qubits, const reg_t& qubits_sorted);
+
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -530,41 +535,100 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     reduced_state = cmatrix_t(1, 1);
     reduced_state[0] = BaseState::qreg_.trace();
   } else {
-    const size_t N = op.qubits.size();
-    const size_t DIM = 1ULL << N;
-    reduced_state = cmatrix_t(DIM, DIM);
+
     auto qubits_sorted = op.qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-    // Return full density matrix
-    if ((N == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      reduced_state = BaseState::qreg_.matrix();
+    if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
+      reduced_state = std::move(BaseState::qreg_.matrix());
     } else {
-      // Get superoperator qubits
-      const reg_t squbits = BaseState::qreg_.superop_qubits(op.qubits);
-      const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
-
-      // Return density matrix
-      const size_t VDIM = 1ULL << (2 * N);
-      const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
-      const size_t SHIFT = END + 1;
-
-      // This is inefficient but we need to copy data to vector
-      // So we don't get errors with the Thrust / GPU backend
-      auto vmat = BaseState::qreg_.vector();
-      for (size_t k = 0; k < END; k++) {
-        const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
-        for (int_t i = 0; i < VDIM; ++i) {
-          reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
-        }
-      }
+      reduced_state = std::move(reduced_density_matrix(op.qubits, qubits_sorted));
     }
   }
+
   data.add_average_snapshot("density_matrix",
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(reduced_state),
                             false);
+}
+
+// Default value that copies using QubitVector.vector method.
+// This is required for Thrust backends which must copy the vector
+// from device memory to host memory
+template <class statevec_t>
+cmatrix_t State<statevec_t>::reduced_density_matrix(const reg_t &qubits,
+                                                    const reg_t &qubits_sorted) {
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
+}
+
+// Overloads for CPU version that can access array data directly
+// without requiring a temporary copy
+template <>
+cmatrix_t State<QV::DensityMatrix<double>>::reduced_density_matrix(const reg_t &qubits,
+                                                                   const reg_t &qubits_sorted) {
+  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+}
+template <>
+cmatrix_t State<QV::DensityMatrix<float>>::reduced_density_matrix(const reg_t &qubits,
+                                                                  const reg_t &qubits_sorted) {
+  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+}
+
+
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, const reg_t& qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const size_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
+  const size_t SHIFT = END + 1;
+
+  // TODO: If we are not going to apply any additional instructions after
+  //       this function we could move the memory when constructing rather
+  //       than copying
+  auto vmat = BaseState::qreg_.data();
+  cmatrix_t reduced_state(DIM, DIM);
+  for (size_t k = 0; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(vmat[inds[i]]);
+    }
+  }
+  return reduced_state;
+}
+  
+
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix_thrust(const reg_t& qubits, const reg_t& qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const size_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
+  const size_t SHIFT = END + 1;
+
+  // Copy vector to host memory
+  auto vmat = BaseState::qreg_.vector();
+  cmatrix_t reduced_state(DIM, DIM);
+  for (size_t k = 0; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
+    }
+  }
+  return reduced_state;
 }
 
 //=========================================================================

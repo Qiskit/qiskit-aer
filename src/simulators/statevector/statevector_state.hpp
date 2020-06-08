@@ -244,6 +244,13 @@ protected:
   void snapshot_density_matrix(const Operations::Op &op,
                                ExperimentData &data,
                                SnapshotDataType type);
+  
+  // Return the reduced density matrix for the simulator
+  cmatrix_t density_matrix(const reg_t &qubits);
+
+  // Helper function to convert a vector to a reduced density matrix
+  template <class T>
+  cmatrix_t vec2density(const reg_t &qubits, T&& vec);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -648,7 +655,6 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   BaseState::qreg_.revert(false);
 }
 
-
 template <class statevec_t>
 void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
                                                 ExperimentData &data,
@@ -660,33 +666,7 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
     reduced_state = cmatrix_t(1, 1);
     reduced_state[0] = BaseState::qreg_.norm();
   } else {
-    const size_t N = op.qubits.size();
-    const size_t DIM = 1ULL << N;
-    reduced_state = cmatrix_t(DIM, DIM);
-    auto qubits_sorted = op.qubits;
-    std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-    // This is inefficient but we need to copy data to vector
-    // So we don't get errors with the Thrust / GPU backend
-    auto vec = BaseState::qreg_.vector();
-
-    // Return full density matrix
-    if ((N == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      for (size_t row = 0; row < DIM; ++row)
-        for (size_t col = 0; col < DIM; ++col) {
-          reduced_state(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
-      }
-    } else {
-      const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
-      for (size_t k = 0; k < END; k++) {
-        // store entries touched by U
-        const auto inds = QV::indexes(op.qubits, qubits_sorted, k);
-        for (size_t row = 0; row < DIM; ++row)
-          for (size_t col = 0; col < DIM; ++col) {
-            reduced_state(row, col) += complex_t(vec[inds[row]]) * complex_t(std::conj(vec[inds[col]]));
-        }
-      }
-    }
+    reduced_state = std::move(density_matrix(op.qubits));
   }
 
   // Add density matrix to result data
@@ -703,6 +683,55 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
       data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
       break;
   }
+}
+
+// Default value that copies using QubitVector.vector method.
+// This is required for Thrust backends which must copy the vector
+// from device memory to host memory
+template <class statevec_t>
+cmatrix_t State<statevec_t>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, std::move(BaseState::qreg_.vector()));
+}
+
+// Overloads for CPU version that can access array data directly
+// without requiring a temporary copy
+template <>
+cmatrix_t State<QV::QubitVector<double>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.data());
+}
+template <>
+cmatrix_t State<QV::QubitVector<float>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.data());
+}
+
+template <class statevec_t>
+template <class T>
+cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, T &&vec) {
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+  // Return full density matrix
+  cmatrix_t densmat(DIM, DIM);
+  if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
+    
+    for (size_t row = 0; row < DIM; ++row)
+      for (size_t col = 0; col < DIM; ++col) {
+        densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
+      }
+  } else {
+    const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
+    for (size_t k = 0; k < END; k++) {
+      // store entries touched by U
+      const auto inds = QV::indexes(qubits, qubits_sorted, k);
+      for (size_t row = 0; row < DIM; ++row)
+        for (size_t col = 0; col < DIM; ++col) {
+          densmat(row, col) += complex_t(vec[inds[row]]) * complex_t(std::conj(vec[inds[col]]));
+      }
+    }
+  }
+  return densmat;
 }
 
 //=========================================================================
