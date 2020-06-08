@@ -134,7 +134,6 @@ def monte_carlo_evolution(seed, exp, op_system):
                 raise Exception("ZVODE step failed!")
             norm2_psi = dznrm2(ODE.y) ** 2
             if norm2_psi <= rand_vals[0]:
-                print(ODE.t)
                 # collapse has occured:
                 # find collapse time to within specified tolerance
                 # ------------------------------------------------

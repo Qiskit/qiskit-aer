@@ -302,7 +302,7 @@ class QiskitZVODE(ODE_Method):
         """
         self._ODE.integrate(tf, step=step)
         self._y = self._ODE.y
-        self.t = self._ODE.t
+        self._t = self._ODE.t
         self._successful = self._ODE.successful()
 
     def _reset_method(self, reset=True):
