@@ -72,12 +72,12 @@ stages:
   - stage: 'Compile'
     dependsOn: []
     jobs:
-      - job: "GPU_Wheel"
+      - job: "GPU_Wheel_35_36"
         pool: {vmImage: 'Ubuntu-16.04'}
         variables:
           python.version: '3.7'
           CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11 && yum install -y yum-utils && yum-config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel6/x86_64/cuda-rhel6.repo && yum clean all && yum -y install cuda"
-          CIBW_SKIP: "cp27-* cp34-* *-manylinux_i686 pp*"
+          CIBW_SKIP: "cp27-* cp34-* cp37-* cp38-* *-manylinux_i686 pp*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=CUDA AER_CUDA_ARCH="6.0;6.1;7.0;7.5"
@@ -93,6 +93,28 @@ stages:
           - task: PublishBuildArtifacts@1
             inputs: {pathtoPublish: 'wheelhouse'}
             condition: succeededOrFailed()
+      - job: "GPU_Wheel_37_38"
+        pool: {vmImage: 'Ubuntu-16.04'}
+        variables:
+          python.version: '3.7'
+          CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11 && yum install -y yum-utils && yum-config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel6/x86_64/cuda-rhel6.repo && yum clean all && yum -y install cuda"
+          CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-* *-manylinux_i686 pp*"
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
+          CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
+          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=CUDA AER_CUDA_ARCH="6.0;6.1;7.0;7.5"
+          CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
+          CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+        steps:
+          - task: UsePythonVersion@0
+          - bash: |
+              set -e
+              pip install -U pip virtualenv twine
+              pip install cibuildwheel==1.4.2
+              cibuildwheel --output-dir wheelhouse
+          - task: PublishBuildArtifacts@1
+            inputs: {pathtoPublish: 'wheelhouse'}
+            condition: succeededOrFailed()
+
       - job: 'Windows_Wheel_Builds'
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
