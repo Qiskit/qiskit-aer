@@ -21,12 +21,10 @@
 """Set up DE solver for problems in qutip format."""
 
 import numpy as np
-# pylint: disable=no-name-in-module
-from .pulse_utils import td_ode_rhs_static
 from .DE_Methods import QiskitZVODE
 
 
-def construct_pulse_zvode_solver(exp, op_system):
+def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
     """ Constructs a scipy ODE solver for a given exp and op_system
 
     Parameters:
@@ -37,20 +35,7 @@ def construct_pulse_zvode_solver(exp, op_system):
         ode: scipy ode
     """
 
-    # extract relevant data from op_system
-    global_data = op_system.global_data
-    ode_options = op_system.ode_options
-    channels = dict(op_system.channels)
-
-    # Init register
-    register = np.ones(global_data['n_registers'], dtype=np.uint8)
-
-    rhs = lambda t, y: td_ode_rhs_static(t, y,
-                                         global_data,
-                                         exp,
-                                         op_system.system,
-                                         channels,
-                                         register)
+    rhs = op_system.get_rhs(exp)
 
     option_dict = {'method': ode_options.method,
                    'order': ode_options.order,
@@ -61,9 +46,10 @@ def construct_pulse_zvode_solver(exp, op_system):
                    'min_step': ode_options.min_step,
                    'max_step': ode_options.max_step}
 
-    qiskit_zvode = QiskitZVODE(0.0, global_data['initial_state'], rhs)
+    qiskit_zvode = QiskitZVODE(0.0, y0, rhs)
     return qiskit_zvode
     """
+    # Old code to be removed
     ODE = ode(rhs)
 
     ODE._integrator = qiskit_zvode(method=ode_options.method,

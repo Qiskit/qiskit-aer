@@ -122,7 +122,8 @@ def unitary_evolution(exp, op_system):
         Exception: Error in ODE solver.
     """
 
-    ODE = construct_pulse_zvode_solver(exp, op_system)
+    y0 = op_system.global_data['initial_state']
+    ODE = construct_pulse_zvode_solver(exp, y0, op_system, op_system.ode_options)
 
     tlist = exp['tlist']
 

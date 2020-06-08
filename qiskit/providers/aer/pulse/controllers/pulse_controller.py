@@ -25,6 +25,7 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from ..de.pulse_de_options import OPoptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
+from ..de.pulse_utils import td_ode_rhs_static
 
 
 def pulse_controller(qobj, system_model, backend_options):
@@ -409,3 +410,21 @@ class PulseSimDescription():
         self.evals = None
         # eigenstates of the time-independent hamiltonian
         self.estates = None
+
+    def get_rhs(self, exp):
+        """Set up and return rhs function corresponding to this PulseSimDescription for a given
+        experiment exp
+        """
+        global_data = self.global_data
+        channels = dict(self.channels)
+
+        # Init register
+        register = np.ones(global_data['n_registers'], dtype=np.uint8)
+
+        rhs = lambda t, y: td_ode_rhs_static(t, y,
+                                             global_data,
+                                             exp,
+                                             self.system,
+                                             channels,
+                                             register)
+        return rhs

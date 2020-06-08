@@ -119,7 +119,8 @@ def monte_carlo_evolution(seed, exp, op_system):
     cinds = np.arange(global_data['c_num'])
     n_dp = np.zeros(global_data['c_num'], dtype=float)
 
-    ODE = construct_pulse_zvode_solver(exp, op_system)
+    y0 = op_system.global_data['initial_state']
+    ODE = construct_pulse_zvode_solver(exp, y0, op_system, op_system.ode_options)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:
