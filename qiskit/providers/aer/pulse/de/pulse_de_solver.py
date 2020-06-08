@@ -20,7 +20,6 @@
 
 """Set up DE solver for problems in qutip format."""
 
-import numpy as np
 from .DE_Methods import QiskitZVODE
 
 
@@ -48,27 +47,3 @@ def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
 
     qiskit_zvode = QiskitZVODE(0.0, y0, rhs)
     return qiskit_zvode
-    """
-    # Old code to be removed
-    ODE = ode(rhs)
-
-    ODE._integrator = qiskit_zvode(method=ode_options.method,
-                                   order=ode_options.order,
-                                   atol=ode_options.atol,
-                                   rtol=ode_options.rtol,
-                                   nsteps=ode_options.nsteps,
-                                   first_step=ode_options.first_step,
-                                   min_step=ode_options.min_step,
-                                   max_step=ode_options.max_step
-                                   )
-    # Forces complex ODE solving
-    if not ODE._y:
-        ODE.t = 0.0
-        ODE._y = np.array([0.0], complex)
-    ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-
-    # Since all experiments are defined to start at zero time.
-    ODE.set_initial_value(global_data['initial_state'], 0)
-
-    return ODE
-    """

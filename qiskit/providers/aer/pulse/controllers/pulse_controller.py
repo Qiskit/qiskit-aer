@@ -88,7 +88,6 @@ def pulse_controller(qobj, system_model, backend_options):
     # Get dt
     if system_model.dt is None:
         raise ValueError('Qobj must have a dt value to simulate.')
-    pulse_sim_desc.dt = system_model.dt
 
     # Parse noise
     if noise_model:
@@ -105,7 +104,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     digested_qobj = digest_pulse_qobj(qobj,
                                       pulse_sim_desc.channels,
-                                      pulse_sim_desc.dt,
+                                      system_model.dt,
                                       qubit_list,
                                       backend_options)
 
@@ -165,7 +164,7 @@ def pulse_controller(qobj, system_model, backend_options):
             stop = pulse_sim_desc.global_data['pulse_indices'][val + 1]
             start = pulse_sim_desc.global_data['pulse_indices'][val]
             min_width = min(min_width, stop - start)
-    ode_options.max_step = min_width / 2 * pulse_sim_desc.dt
+    ode_options.max_step = min_width / 2 * system_model.dt
 
     # ########################################
     # Determination of measurement operators.
@@ -176,8 +175,8 @@ def pulse_controller(qobj, system_model, backend_options):
 
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
-        # Note: the extraction of multiple measurements works, but the simulator itself
-        # implicitly assumes there is only one measurement at the end
+        # Note: the extraction of multiple measurements works, but the simulation routines
+        # themselves implicitly assume there is only one measurement at the end
         if any(exp['acquire']):
             for acq in exp['acquire']:
                 for jj in acq[1]:
@@ -386,8 +385,6 @@ class PulseSimDescription():
         # these tell the order in which the channels
         # are evaluated in the RHS solver.
         self.channels = None
-        # time between pulse sample points.
-        self.dt = None
         # Array containing all pulse samples
         self.pulse_array = None
         # Array of indices indicating where a pulse starts in the self.pulse_array
@@ -419,8 +416,20 @@ class PulseSimDescription():
         # Init register
         register = np.ones(global_data['n_registers'], dtype=np.uint8)
 
+        rhs_data_dict = {}
+        rhs_data_dict['freqs'] = global_data['freqs']
+        rhs_data_dict['pulse_array'] = global_data['pulse_array']
+        rhs_data_dict['pulse_indices'] = global_data['pulse_indices']
+        rhs_data_dict['vars'] = global_data['vars']
+        rhs_data_dict['vars_names'] = global_data['vars_names']
+        rhs_data_dict['num_h_terms'] = global_data['num_h_terms']
+        rhs_data_dict['h_ops_data'] = global_data['h_ops_data']
+        rhs_data_dict['h_ops_ind'] = global_data['h_ops_ind']
+        rhs_data_dict['h_ops_ptr'] = global_data['h_ops_ptr']
+        rhs_data_dict['h_diag_elems'] = global_data['h_diag_elems']
+
         rhs = lambda t, y: td_ode_rhs_static(t, y,
-                                             global_data,
+                                             rhs_data_dict,
                                              exp,
                                              self.system,
                                              channels,
