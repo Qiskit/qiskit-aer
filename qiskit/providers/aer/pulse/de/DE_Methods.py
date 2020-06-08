@@ -12,6 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
+# pylint: disable=no-value-for-parameter, invalid-name, import-error
+
 """DE methods."""
 
 from abc import ABC, abstractmethod
@@ -19,7 +25,7 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import solve_ivp
 from scipy.integrate import ode
-from .qiskit_zvode import qiskit_zvode
+from scipy.integrate._ode import zvode
 from .type_utils import StateTypeConverter
 
 
@@ -306,6 +312,19 @@ class QiskitZVODE(ODE_Method):
 
     def set_options(self, solver_options):
         self.solver_options = solver_options
+
+class qiskit_zvode(zvode):
+    """Customized ZVODE with modified stepper so that
+    it always stops at a given time in tlist;
+    by default, it over shoots the time.
+    """
+    def step(self, *args):
+        itask = self.call_args[2]
+        self.rwork[0] = args[4]
+        self.call_args[2] = 5
+        r = self.run(*args)
+        self.call_args[2] = itask
+        return r
 
 class RK4(ODE_Method):
     """
