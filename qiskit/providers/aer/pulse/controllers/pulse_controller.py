@@ -406,7 +406,7 @@ class PulseSimDescription():
         # eigenstates of the time-independent hamiltonian
         self.estates = None
 
-    def get_rhs(self, exp):
+    def init_rhs(self, exp):
         """Set up and return rhs function corresponding to this PulseSimDescription for a given
         experiment exp
         """

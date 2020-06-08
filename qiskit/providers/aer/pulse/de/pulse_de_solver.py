@@ -34,7 +34,7 @@ def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
         ode: scipy ode
     """
 
-    rhs = op_system.get_rhs(exp)
+    rhs = op_system.init_rhs(exp)
 
     option_dict = {'method': ode_options.method,
                    'order': ode_options.order,

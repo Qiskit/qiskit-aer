@@ -19,7 +19,7 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import solve_ivp
 from scipy.integrate import ode
-from scipy.integrate._ode import zvode
+from .qiskit_zvode import qiskit_zvode
 from .type_utils import StateTypeConverter
 
 
@@ -212,14 +212,6 @@ class QiskitZVODE(ODE_Method):
 
         super().__init__(t0, y0, rhs, solver_options)
 
-        # remove after
-        # set_options should be first as options may influence the behaviour of other functions
-        self.set_options(solver_options)
-
-        self._t = t0
-        self.set_y(y0, reset=False)
-        self.set_rhs(rhs)
-
     @property
     def t(self):
         return self._t
@@ -314,21 +306,6 @@ class QiskitZVODE(ODE_Method):
 
     def set_options(self, solver_options):
         self.solver_options = solver_options
-
-
-class qiskit_zvode(zvode):
-    """Customized ZVODE with modified stepper so that
-    it always stops at a given time in tlist;
-    by default, it over shoots the time.
-    """
-    def step(self, *args):
-        itask = self.call_args[2]
-        self.rwork[0] = args[4]
-        self.call_args[2] = 5
-        r = self.run(*args)
-        self.call_args[2] = itask
-        return r
-
 
 class RK4(ODE_Method):
     """
