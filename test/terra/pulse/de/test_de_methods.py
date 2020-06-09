@@ -7,6 +7,7 @@ from qiskit.providers.aer.pulse.de.DE_Methods import (ODE_Method,
                                                       RK4,
                                                       ScipyODE,
                                                       method_from_string)
+from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 
 class TestDE_Methods(unittest.TestCase):
 
@@ -39,8 +40,7 @@ class TestDE_Methods(unittest.TestCase):
         """Test ScipyODE method"""
 
         # test with the default problem
-        scipy_options = {'atol': 10**-10, 'rtol': 10**-10}
-        options = {'method': 'RK45', 'scipy_options': scipy_options}
+        options = DE_Options(method='RK45', atol=10**-10, rtol=10**-10)
 
         scipy_solver = ScipyODE(t0=self.t0, y0=self.y0, rhs=self.rhs, options=options)
         scipy_solver.integrate(1.)

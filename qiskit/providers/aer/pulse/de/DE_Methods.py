@@ -24,6 +24,7 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
+from .DE_Options import DE_Options
 from .type_utils import StateTypeConverter
 
 
@@ -46,7 +47,7 @@ class ODE_Method(ABC):
 
     method_spec = {'inner_state_spec': {'type': 'array'}}
 
-    def __init__(self, t0=None, y0=None, rhs=None, options={}):
+    def __init__(self, t0=None, y0=None, rhs=None, options=None):
 
         # set_options is first as options may influence the behaviour of other functions
         self.set_options(options)
@@ -190,12 +191,23 @@ class ScipyODE(ODE_Method):
         self._t = results.t[-1]
 
     def set_options(self, options):
-        if 'method' not in options:
-            raise Exception("""ScipyODE requires a 'method' key in options with value a
-                            method string acceptable by scipy.integrate.solve_ivp.""")
-        self._scipy_method = options.get('method')
+        self._scipy_method = None
 
-        self._scipy_options = options.get('scipy_options', {})
+        # establish method
+        if options is None:
+            # if no options default to RK45
+            options = DE_Options()
+            self._scipy_method = options.get('RK45')
+        else:
+            if 'scipy-' in options.method:
+                self._scipy_method = options.method[6:]
+            else:
+                self._scipy_method = options.method
+
+        self._scipy_options = {'atol': options.atol,
+                               'rtol': options.rtol,
+                               'max_step': options.max_step,
+                               'first_step': options.first_step}
 
 
 class QiskitZVODE(ODE_Method):
@@ -203,7 +215,7 @@ class QiskitZVODE(ODE_Method):
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
 
-    def __init__(self, t0=None, y0=None, rhs=None, options={}):
+    def __init__(self, t0=None, y0=None, rhs=None, options=None):
         """This method requires t0, y0, and rhs to specified on instantiation, as these are
         necessary to properly instantiate the underlying solver object
         """
@@ -258,25 +270,14 @@ class QiskitZVODE(ODE_Method):
 
         self._ODE = ode(self.rhs['rhs'])
 
-        """
-        self._ODE._integrator = qiskit_zvode(method=ode_options.method,
-                                             order=ode_options.order,
-                                             atol=ode_options.atol,
-                                             rtol=ode_options.rtol,
-                                             nsteps=ode_options.nsteps,
-                                             first_step=ode_options.first_step,
-                                             min_step=ode_options.min_step,
-                                             max_step=ode_options.max_step
-                                             )
-        """
-        self._ODE._integrator = qiskit_zvode(method=self.options.get('method', 'adams'),
-                                             order=self.options.get('order', 12),
-                                             atol=self.options.get('atol', 10**-8),
-                                             rtol=self.options.get('rtol', 10**-6),
-                                             nsteps=self.options.get('nsteps', 50000),
-                                             first_step=self.options.get('first_step', 0),
-                                             min_step=self.options.get('min_step', 0),
-                                             max_step=self.options.get('max_step', 0)
+        self._ODE._integrator = qiskit_zvode(method=self._method,
+                                             order=self.options.order,
+                                             atol=self.options.atol,
+                                             rtol=self.options.rtol,
+                                             nsteps=self.options.nsteps,
+                                             first_step=self.options.first_step,
+                                             min_step=self.options.min_step,
+                                             max_step=self.options.max_step
                                              )
 
         # Forces complex ODE solving
@@ -307,7 +308,18 @@ class QiskitZVODE(ODE_Method):
             self._ODE._integrator.call_args[3] = 1
 
     def set_options(self, options):
-        self.options = options
+        self._method = None
+
+        # establish method
+        if options is None:
+            self._method = 'adams'
+            self.options = DE_Options()
+        else:
+            self.options = DE_Options()
+            if 'zvode-' in options.method:
+                self._method = options.method[6:]
+            else:
+                self._method = options.method
 
 class qiskit_zvode(zvode):
     """Customized ZVODE with modified stepper so that
@@ -356,31 +368,27 @@ class RK4(ODE_Method):
     def set_options(self, options):
         """Only option is max step size
         """
-        if 'max_dt' not in options:
-            raise Exception('RK4 method requires max_dt setting.')
-        self._max_dt = options['max_dt']
+        self._max_dt = options.max_dt
 
 
 def method_from_string(method_str):
-    """Factory function that returns a method specified by a string, along with any additional
-    required options.
+    """Factory function that returns a method specified by a string.
 
     Args:
         method_str (str): string specifying method
 
     Returns:
-        (method, additional_options): method is the ODE_Method object, and additional_options
-                                      is a dict containing any necessary options for that solver
+        method: instance of an ODE_Method object
     """
 
     if 'scipy-' in method_str:
-        return ScipyODE, {'method': method_str[6:]}
+        return ScipyODE
 
     if 'zvode-' in method_str:
-        return QiskitZVODE, {'method': method_str[6:]}
+        return QiskitZVODE
 
     method_dict = {'RK4': RK4,
+                   'scipy': ScipyODE,
                    'zvode': QiskitZVODE}
 
-    if method_str in method_dict:
-        return method_dict.get(method_str), {}
+    return method_dict.get(method_str)

@@ -21,6 +21,7 @@
 """Set up DE solver for problems in qutip format."""
 
 from .DE_Methods import QiskitZVODE
+from .DE_Options import DE_Options
 
 
 def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
@@ -45,5 +46,8 @@ def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
                    'min_step': ode_options.min_step,
                    'max_step': ode_options.max_step}
 
-    qiskit_zvode = QiskitZVODE(0.0, y0, rhs)
+    # remove above this
+    options = DE_Options()
+
+    qiskit_zvode = QiskitZVODE(0.0, y0, rhs)#, options)
     return qiskit_zvode

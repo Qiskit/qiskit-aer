@@ -14,6 +14,7 @@
 
 """Options for DE_Methods"""
 
+import numpy as np
 
 class DE_Options:
     """

@@ -23,6 +23,7 @@ from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from ..de.pulse_de_options import OPoptions
+from ..de.DE_Options import DE_Options
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
 from ..de.pulse_utils import td_ode_rhs_static

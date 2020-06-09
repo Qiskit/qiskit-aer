@@ -42,6 +42,8 @@ class OPoptions():
         norm_tol (float, 1e-3): Tolerance used when finding wavefunction norm.
         norm_steps (int, 5): Max. number of steps used to find wavefunction norm
                             to within norm_tol
+        rhs_reuse (bool, False): Reuse RHS compiled function.
+        rhs_filename (str): Name of compiled Cython module.
         seeds (ndarray, None): Array containing random number seeds for
                                 repeatible shots.
         reuse_seeds (bool, False): Reuse seeds, if already generated.
@@ -52,7 +54,8 @@ class OPoptions():
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=50000, first_step=0, max_step=0, min_step=0,
                  num_cpus=0, norm_tol=1e-3, norm_steps=5,
-                 progress_bar=True,
+                 progress_bar=True, rhs_reuse=False,
+                 rhs_filename=None,
                  store_final_state=False, seeds=None,
                  reuse_seeds=False):
 
@@ -72,12 +75,19 @@ class OPoptions():
         self.max_step = max_step
         # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order = order
+        # Number of shots to run (default=500)
+        self.shots = shots
         # Holds seeds for rand num gen
         self.seeds = seeds
         # reuse seeds
         self.reuse_seeds = reuse_seeds
+        # Use preexisting RHS function for time-dependent solvers
+        self.rhs_reuse = rhs_reuse
         # Track progress
         self.progress_bar = progress_bar
+        # Use filename for preexisting RHS function (will default to last
+        # compiled function if None & rhs_exists=True)
+        self.rhs_filename = rhs_filename
         # Number of processors to use
         if num_cpus:
             self.num_cpus = num_cpus
