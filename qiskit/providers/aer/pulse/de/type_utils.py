@@ -54,7 +54,7 @@ class StateTypeConverter:
         type_spec_from_instance. If outer_y is None the outer type is set to the inner type
 
         Args:
-            inner_y: concerete representative of inner type
+            inner_y: concrete representative of inner type
             outer_y: concrete representative of outer type
         """
         inner_type_spec = type_spec_from_instance(inner_y)
@@ -68,7 +68,7 @@ class StateTypeConverter:
     @classmethod
     def from_outer_instance_inner_type_spec(cls, outer_y, inner_type_spec=None):
         """Instantiate from concrete instance of the outer type, and an inner type-spec.
-        The inner type spec can be a fully specified on, or more general, to facilitate the
+        The inner type spec can be a fully specified one, or more general, to facilitate the
         situation in which a solver needs a 1d array.
 
         Accepted general data types:

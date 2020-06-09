@@ -16,7 +16,6 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
-# pylint: disable=no-value-for-parameter, invalid-name, import-error
 
 """DE methods."""
 
@@ -377,7 +376,8 @@ def method_from_string(method_str):
                                       is a dict containing any necessary options for that solver
     """
 
-    method_dict = {'RK4': RK4}
+    method_dict = {'RK4': RK4,
+                   'zvode': QiskitZVODE}
 
     if method_str in method_dict:
         return method_dict.get(method_str), {}
