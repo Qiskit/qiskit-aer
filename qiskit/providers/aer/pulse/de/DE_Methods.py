@@ -22,8 +22,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from scipy.linalg import expm
-from scipy.integrate import solve_ivp
-from scipy.integrate import ode
+from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
 from .type_utils import StateTypeConverter
 
@@ -49,7 +48,7 @@ class ODE_Method(ABC):
 
     def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
 
-        # set_options should be first as options may influence the behaviour of other functions
+        # set_options is first as options may influence the behaviour of other functions
         self.set_options(solver_options)
 
         self._t = t0
@@ -360,7 +359,7 @@ class RK4(ODE_Method):
         """Only option is max step size
         """
         if 'max_dt' not in solver_options:
-            raise Exception('Solver requires max_dt setting')
+            raise Exception('RK4 method requires max_dt setting.')
         self._max_dt = solver_options['max_dt']
 
 
@@ -376,11 +375,14 @@ def method_from_string(method_str):
                                       is a dict containing any necessary options for that solver
     """
 
+    if 'scipy-' in method_str:
+        return ScipyODE, {'method': method_str[6:]}
+
+    if `zvode-` in method_str:
+        return QiskitZVODE, {'method': method_str[6:]}
+
     method_dict = {'RK4': RK4,
                    'zvode': QiskitZVODE}
 
     if method_str in method_dict:
         return method_dict.get(method_str), {}
-
-    if 'scipy-' in method_str:
-        return ScipyODE, {'method': method_str[6:]}
