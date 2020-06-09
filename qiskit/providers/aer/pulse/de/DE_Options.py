@@ -55,40 +55,25 @@ class DE_Options:
                  min_step=0,
                  max_dt=10**-3):
 
+        # Integration method (default = 'zvode-adams')
+        self.method = method
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
         self.rtol = rtol
-        # Integration method (default = 'adams', for stiff 'bdf')
-        self.method = method
+        # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
+        self.order = order
         # Max. number of internal steps/call
         self.nsteps = nsteps
         # Size of initial step (0 = determined by solver)
         self.first_step = first_step
-        # Minimal step size (0 = determined by solver)
-        self.min_step = min_step
         # Max step size (0 = determined by solver)
         self.max_step = max_step
-        # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
-        self.order = order
-        # Holds seeds for rand num gen
-        self.seeds = seeds
-        # reuse seeds
-        self.reuse_seeds = reuse_seeds
-        # Track progress
-        self.progress_bar = progress_bar
-        # Number of processors to use
-        if num_cpus:
-            self.num_cpus = num_cpus
-        else:
-            self.num_cpus = 0
-        # Tolerance for wavefunction norm (mcsolve only)
-        self.norm_tol = norm_tol
-        # Max. number of steps taken to find wavefunction norm to within
-        # norm_tol (mcsolve only)
-        self.norm_steps = norm_steps
-        # store final state?
-        self.store_final_state = store_final_state
+        # Minimal step size (0 = determined by solver)
+        self.min_step = min_step
+
+        # max step size for fixed step-size solvers
+        self.max_dt = max_dt
 
     def __str__(self):
         return str(vars(self))

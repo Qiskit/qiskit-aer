@@ -40,9 +40,9 @@ class TestDE_Methods(unittest.TestCase):
 
         # test with the default problem
         scipy_options = {'atol': 10**-10, 'rtol': 10**-10}
-        solver_options = {'method': 'RK45', 'scipy_options': scipy_options}
+        options = {'method': 'RK45', 'scipy_options': scipy_options}
 
-        scipy_solver = ScipyODE(t0=self.t0, y0=self.y0, rhs=self.rhs, solver_options=solver_options)
+        scipy_solver = ScipyODE(t0=self.t0, y0=self.y0, rhs=self.rhs, options=options)
         scipy_solver.integrate(1.)
 
         expected = expm(-1j * np.pi * self.X)
@@ -52,7 +52,7 @@ class TestDE_Methods(unittest.TestCase):
         def rhs(t, y):
             return np.array([t**2])
 
-        scipy_solver = ScipyODE(t0=0., y0=np.array(0.), rhs={'rhs': rhs}, solver_options=solver_options)
+        scipy_solver = ScipyODE(t0=0., y0=np.array(0.), rhs={'rhs': rhs}, options=options)
 
         scipy_solver.integrate(1.)
         expected = 1./3

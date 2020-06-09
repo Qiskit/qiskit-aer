@@ -46,10 +46,10 @@ class ODE_Method(ABC):
 
     method_spec = {'inner_state_spec': {'type': 'array'}}
 
-    def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
+    def __init__(self, t0=None, y0=None, rhs=None, options={}):
 
         # set_options is first as options may influence the behaviour of other functions
-        self.set_options(solver_options)
+        self.set_options(options)
 
         self._t = t0
         self.set_y(y0, reset=False)
@@ -161,7 +161,7 @@ class ODE_Method(ABC):
         """
         pass
 
-    def set_options(self, solver_options):
+    def set_options(self, options):
         pass
 
 
@@ -169,10 +169,10 @@ class ScipyODE(ODE_Method):
     """Method wrapper for scipy.integrate.solve_ivp
 
     To use:
-        - Specify a method acceptable by scipy.integrate.solve_ivp in solver_options using key
+        - Specify a method acceptable by scipy.integrate.solve_ivp in options using key
           'method'
         - Options for solve_ivp in the form of Keyword arguments may also be passed as a dict
-          with key 'scipy_options' in solver_options
+          with key 'scipy_options' in options
     """
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
@@ -189,15 +189,13 @@ class ScipyODE(ODE_Method):
         self._y = results.y[:, -1]
         self._t = results.t[-1]
 
-    def set_options(self, solver_options):
-        """Only option is max step size
-        """
-        if 'method' not in solver_options:
-            raise Exception("""ScipyODE requires a 'method' key in solver_options with value a
+    def set_options(self, options):
+        if 'method' not in options:
+            raise Exception("""ScipyODE requires a 'method' key in options with value a
                             method string acceptable by scipy.integrate.solve_ivp.""")
-        self._scipy_method = solver_options.get('method')
+        self._scipy_method = options.get('method')
 
-        self._scipy_options = solver_options.get('scipy_options', {})
+        self._scipy_options = options.get('scipy_options', {})
 
 
 class QiskitZVODE(ODE_Method):
@@ -205,7 +203,7 @@ class QiskitZVODE(ODE_Method):
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
 
-    def __init__(self, t0=None, y0=None, rhs=None, solver_options={}):
+    def __init__(self, t0=None, y0=None, rhs=None, options={}):
         """This method requires t0, y0, and rhs to specified on instantiation, as these are
         necessary to properly instantiate the underlying solver object
         """
@@ -214,7 +212,7 @@ class QiskitZVODE(ODE_Method):
 
         self._ODE = None
 
-        super().__init__(t0, y0, rhs, solver_options)
+        super().__init__(t0, y0, rhs, options)
 
     @property
     def t(self):
@@ -271,14 +269,14 @@ class QiskitZVODE(ODE_Method):
                                              max_step=ode_options.max_step
                                              )
         """
-        self._ODE._integrator = qiskit_zvode(method=self.solver_options.get('method', 'adams'),
-                                             order=self.solver_options.get('order', 12),
-                                             atol=self.solver_options.get('atol', 10**-8),
-                                             rtol=self.solver_options.get('rtol', 10**-6),
-                                             nsteps=self.solver_options.get('nsteps', 50000),
-                                             first_step=self.solver_options.get('first_step', 0),
-                                             min_step=self.solver_options.get('min_step', 0),
-                                             max_step=self.solver_options.get('max_step', 0)
+        self._ODE._integrator = qiskit_zvode(method=self.options.get('method', 'adams'),
+                                             order=self.options.get('order', 12),
+                                             atol=self.options.get('atol', 10**-8),
+                                             rtol=self.options.get('rtol', 10**-6),
+                                             nsteps=self.options.get('nsteps', 50000),
+                                             first_step=self.options.get('first_step', 0),
+                                             min_step=self.options.get('min_step', 0),
+                                             max_step=self.options.get('max_step', 0)
                                              )
 
         # Forces complex ODE solving
@@ -308,8 +306,8 @@ class QiskitZVODE(ODE_Method):
         if reset:
             self._ODE._integrator.call_args[3] = 1
 
-    def set_options(self, solver_options):
-        self.solver_options = solver_options
+    def set_options(self, options):
+        self.options = options
 
 class qiskit_zvode(zvode):
     """Customized ZVODE with modified stepper so that
@@ -355,12 +353,12 @@ class RK4(ODE_Method):
         self._y = y0 + (1. / 6) * h * (k1 + (2 * k2) + (2 * k3) + k4)
         self._t = t_end
 
-    def set_options(self, solver_options):
+    def set_options(self, options):
         """Only option is max step size
         """
-        if 'max_dt' not in solver_options:
+        if 'max_dt' not in options:
             raise Exception('RK4 method requires max_dt setting.')
-        self._max_dt = solver_options['max_dt']
+        self._max_dt = options['max_dt']
 
 
 def method_from_string(method_str):
@@ -378,7 +376,7 @@ def method_from_string(method_str):
     if 'scipy-' in method_str:
         return ScipyODE, {'method': method_str[6:]}
 
-    if `zvode-` in method_str:
+    if 'zvode-' in method_str:
         return QiskitZVODE, {'method': method_str[6:]}
 
     method_dict = {'RK4': RK4,
