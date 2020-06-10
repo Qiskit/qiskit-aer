@@ -124,7 +124,7 @@ public:
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
 
-  virtual void add_metadata(ExperimentData &data, const json_t &config) const override;
+  virtual void add_metadata(ExperimentData &data) const override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -362,8 +362,9 @@ size_t State::required_memory_mb(uint_t num_qubits,
 void State::set_config(const json_t &config) {
   // Set threshold for truncating Schmidt coefficients
   double threshold;
-  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config)) {
     MPS_Tensor::set_truncation_threshold(threshold);
+  }
 
   uint_t max_bond_dimension;
   if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
@@ -372,18 +373,21 @@ void State::set_config(const json_t &config) {
 
   // Set threshold for truncating snapshots
   uint_t json_chop_threshold;
-  if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
+  if (JSON::get_value(json_chop_threshold, "chop_threshold", config)) {
     MPS::set_json_chop_threshold(json_chop_threshold);
+  }
 
   // Set OMP num threshold
   uint_t omp_qubit_threshold;
-  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
+  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config)) {
     MPS::set_omp_threshold(omp_qubit_threshold);
+  }
 
   // Set OMP threads
   uint_t omp_threads;
-  if (JSON::get_value(omp_threads, "mps_omp_threads", config))
+  if (JSON::get_value(omp_threads, "mps_omp_threads", config)) {
     MPS::set_omp_threads(omp_threads);
+  }
 
   // Set the sample measure indexing size
   int index_size;
@@ -392,15 +396,12 @@ void State::set_config(const json_t &config) {
   }
 }
 
-void State::add_metadata(ExperimentData &data, const json_t &config) const {
-  double threshold;
-  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
-    data.add_metadata("matrix_product_state_truncation_threshold", threshold);
+void State::add_metadata(ExperimentData &data) const {
+  data.add_metadata("matrix_product_state_truncation_threshold", 
+		    MPS_Tensor::get_truncation_threshold());
 
-  uint_t max_bond_dimension;
-  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
-    data.add_metadata("matrix_product_state_max_bond_dimension", max_bond_dimension);
-  }
+  data.add_metadata("matrix_product_state_max_bond_dimension", 
+		    MPS_Tensor::get_max_bond_dimension());
 } 
 
 //=========================================================================

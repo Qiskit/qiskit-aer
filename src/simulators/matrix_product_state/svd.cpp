@@ -28,13 +28,13 @@
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
 
-// default values
-#define mul_factor 1e2
-#define tiny_factor 1e30
-#define THRESHOLD 1e-9 // threshold for re-normalization after approximation
-#define NUM_SVD_TRIES 15
-
 namespace AER {
+
+// default values
+static const double mul_factor = 1e2;
+static const long double tiny_factor = 1e30;
+static const double THRESHOLD = 1e-9; // threshold for re-normalization after approximation
+static const int_t NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
 
@@ -91,8 +91,6 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	  if(std::norm(S[i]) > threshold)
 		sum++;
 	}
-	if (sum == 0)
-	  std::cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
 
@@ -100,7 +98,6 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
-  //  std::cout << "SV num = " << SV_num <<std::endl;
   new_SV_num = SV_num;
 
   if (max_bond_dimension < SV_num) {
@@ -108,21 +105,18 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     // values in S, and discard all the rest
     new_SV_num = max_bond_dimension;
   } 
-  //  if (new_SV_num < SV_num)
-    //    std::cout << "Reduced1: after approx 1, new SV num = " << new_SV_num <<std::endl;
+
   // Remove the lowest Schmidt coefficients such that the sum of 
   // their squares is less than trunction_threshold
   double sum_squares = 0;
   for (int_t i=new_SV_num-1; i>0; i--) {
-    if (sum_squares + std::norm(S[i]) < truncation_threshold)
+    if (sum_squares + std::norm(S[i]) < truncation_threshold) {
       sum_squares +=std::norm(S[i]);
-    else {
+    } else {
       new_SV_num = i+1;
       break;
     }
   }
-  //    if (new_SV_num < SV_num)
-      //      std::cout << "Reduced2: after approx 2, new SV num = " << new_SV_num <<std::endl;
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
@@ -558,12 +552,11 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	      {
 	    	  equal = false;
 	      }
-	if( ! equal )
-	{
+	if( ! equal ) {
 	  std::stringstream ss;
 	  ss << "error: wrong SVD calc: A != USV*";
 	  throw std::runtime_error(ss.str());
-	  }
+	}
 
 	// Transpose again if m < n
 	if(transposed)

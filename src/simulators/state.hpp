@@ -126,7 +126,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentData &data, const json_t &config) const {
+  virtual void add_metadata(ExperimentData &data) const {
   }
 
   //-----------------------------------------------------------------------

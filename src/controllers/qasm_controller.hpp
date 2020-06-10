@@ -840,7 +840,7 @@ ExperimentData QasmController::run_circuit_helper(
   ExperimentData data;
   data.set_config(config);
   data.add_metadata("method", state.name());
-  state.add_metadata(data, config);
+  state.add_metadata(data);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
