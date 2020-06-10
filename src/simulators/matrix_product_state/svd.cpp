@@ -129,8 +129,8 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     }
     if (1-sum > THRESHOLD) {
       for (uint_t i=0; i<S.size(); i++) {
-	double square_i = std::norm(S[0])/sum;
-	S[i] = sqrt(square_i);
+	  double square_i = std::norm(S[0])/sum;
+	  S[i] = sqrt(square_i);
       }
     }
   }
