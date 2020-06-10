@@ -121,8 +121,8 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
-  QubitVector(const QubitVector& obj) = delete;
-  QubitVector &operator=(const QubitVector& obj) = delete;
+  QubitVector(const QubitVector& obj) {};
+  QubitVector &operator=(const QubitVector& obj) {};
 
   //-----------------------------------------------------------------------
   // Data access
@@ -210,6 +210,21 @@ public:
   // assuming the qubits being initialized have already been reset to the zero state
   // (using apply_reset)
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
+
+  //setup chunk
+  void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+
+  //cache control for chunks on host
+  void fetch_chunk(void) const
+  {
+  }
+  void release_chunk(bool write_back = true) const
+  {
+  }
+
+  //prepare buffer for MPI send/recv
+  void* send_buffer(uint_t& size_in_byte);
+  void* recv_buffer(uint_t& size_in_byte);
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -303,6 +318,9 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  //swap between chunk
+  void apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &chunk, bool write_back = true);
+  void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -415,6 +433,9 @@ protected:
   size_t data_size_;
   std::complex<data_t>* data_;
   std::complex<data_t>* checkpoint_;
+
+  uint_t chunk_index_;      //global chunk index
+  cvector_t<data_t> recv_buffer_;   //receive buffer for MPI
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -874,6 +895,31 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
   return apply_reduction_lambda(lambda);
 }
 
+//setup chunk
+template <typename data_t>
+void QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+{
+  chunk_index_ = chunk_index;
+}
+
+//prepare buffer for MPI send/recv
+template <typename data_t>
+void* QubitVector<data_t>::send_buffer(uint_t& size_in_byte)
+{
+  size_in_byte = sizeof(std::complex<data_t>) * data_size_;
+  return data_;
+}
+
+template <typename data_t>
+void* QubitVector<data_t>::recv_buffer(uint_t& size_in_byte)
+{
+  size_in_byte = sizeof(std::complex<data_t>) * data_size_;
+  if(recv_buffer_.size() < data_size_){
+    recv_buffer_.resize(data_size_);
+  }
+  return &recv_buffer_[0];
+}
+
 //------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
@@ -1250,12 +1296,14 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
     return;
   }
 
+  int_t base_ind = chunk_index_ << num_qubits_;
+
   auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_diag)->void {
     for (int_t i = 0; i < 2; ++i) {
       const int_t k = inds[i];
       int_t iv = 0;
       for (int_t j = 0; j < qubits.size(); j++)
-        if ((k & (1ULL << qubits[j])) != 0)
+        if (((k + base_ind) & (1ULL << qubits[j])) != 0)
           iv += (1 << j);
       if (_diag[iv] != (data_t) 1.0)
         data_[k] *= _diag[iv];
@@ -1801,6 +1849,87 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
       data_[k1] *= _mat[1];
     };
     apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &src, bool write_back)
+{
+  int q0,q1,t;
+
+  q0 = qubits[qubits.size() - 2];
+  q1 = qubits[qubits.size() - 1];
+
+  if(q0 > q1){
+    t = q0;
+    q0 = q1;
+    q1 = t;
+  }
+
+  if(q0 >= num_qubits_){  //exchange whole of chunk each other
+    if(write_back){
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+      for (int_t k = 0; k < data_size_; ++k) {
+        std::swap(data_[k],src.data_[k]);
+      }
+    }
+    else{
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+      for (int_t k = 0; k < data_size_; ++k) {
+        data_[k] = src.data_[k];
+      }
+    }
+  }
+  else{
+    if(chunk_index_ < src.chunk_index_){
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        std::swap(data_[inds[1]], src.data_[inds[0]]);
+      };
+      apply_lambda(lambda, areg_t<1>({{q0}}));
+    }
+    else{
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        std::swap(data_[inds[0]], src.data_[inds[1]]);
+      };
+      apply_lambda(lambda, areg_t<1>({{q0}}));
+    }
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index)
+{
+  int q0,q1,t;
+
+
+  q0 = qubits[qubits.size() - 2];
+  q1 = qubits[qubits.size() - 1];
+
+  if(q0 > q1){
+    t = q0;
+    q0 = q1;
+    q1 = t;
+  }
+
+  if(q0 >= num_qubits_){  //exchange whole of chunk each other
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t k = 0; k < data_size_; ++k) {
+      data_[k] = recv_buffer_[k];
+    }
+  }
+  else{
+    if(chunk_index_ < remote_chunk_index){
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[1]] = recv_buffer_[inds[0]];
+      };
+      apply_lambda(lambda, areg_t<1>({{q0}}));
+    }
+    else{
+      auto lambda = [&](const areg_t<2> &inds)->void {
+        data_[inds[0]] = recv_buffer_[inds[1]];
+      };
+      apply_lambda(lambda, areg_t<1>({{q0}}));
+    }
   }
 }
 

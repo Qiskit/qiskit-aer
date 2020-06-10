@@ -17,13 +17,16 @@
 
 #include "controller.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
+#include "simulators/density_matrix/densitymatrix_state_chunk.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/statevector_state_chunk.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
+#include "transpile/cacheblocking.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -272,6 +275,12 @@ class QasmController : public Base::Controller {
 
   // Controller-level parameter for CH method
   bool extended_stabilizer_measure_sampling_ = false;
+
+  //using multiple chunks
+  bool multiple_qregs_ = false;
+
+  //apply cache block before fusion
+  bool cache_block_before_fusion_ = false;
 };
 
 //=========================================================================
@@ -348,6 +357,13 @@ void QasmController::set_config(const json_t &config) {
           "QasmController: initial_statevector is not a unit vector");
     }
   }
+
+  //enable multiple qregs if cache blocking is enabled
+  if (JSON::check_key("blocking_qubits", config))
+    multiple_qregs_ = true;
+
+  JSON::get_value(cache_block_before_fusion_,
+                  "cache_block_before_fusion", config);
 }
 
 void QasmController::clear_config() {
@@ -364,19 +380,39 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
                                            const Noise::NoiseModel &noise,
                                            const json_t &config, uint_t shots,
                                            uint_t rng_seed) const {
+#ifdef AER_THRUST_CUDA
+  size_t freeMem,totalMem;
+  cudaSetDevice(0);
+  cudaMemGetInfo(&freeMem,&totalMem);
+#endif
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector:
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector);
+        }
       }
     case Method::statevector_thrust_gpu:
 #ifndef AER_THRUST_CUDA
@@ -384,18 +420,36 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
           "QasmController: method statevector_gpu is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu);
+      //check if statevector can be stored in one GPU or not
+      if(multiple_qregs_ || required_memory_mb(circ,noise) > (freeMem >> 20)){   //need multiple GPUs
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu);
+        }
+      }
+      else{ 
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu);
+        }
       }
 #endif
     case Method::statevector_thrust_cpu:
@@ -404,33 +458,67 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
           "QasmController: method statevector_thrust is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu);
+        }
       }
 #endif
     case Method::density_matrix:
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix);
-      } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix);
+        }
       }
     case Method::density_matrix_thrust_gpu:
 #ifndef AER_THRUST_CUDA
@@ -438,18 +526,36 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
           "QasmController: method density_matrix_gpu is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_gpu);
-      } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_gpu);
+      //check if statevector can be stored in one GPU or not
+      if(multiple_qregs_ || required_memory_mb(circ,noise) > (freeMem >> 20)){   //need multiple GPUs
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu);
+        }
       }
 #endif
     case Method::density_matrix_thrust_cpu:
@@ -458,18 +564,35 @@ ExperimentData QasmController::run_circuit(const Circuit &circ,
           "QasmController: method density_matrix_thrust is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_cpu);
-      } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_cpu);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu);
+        }
       }
 #endif
     case Method::stabilizer:
@@ -780,6 +903,18 @@ void QasmController::set_parallelization_circuit(
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
+      if(method == Method::statevector_thrust_gpu){
+        if(parallel_shots_ > 1){
+          int ndev = 1;
+#ifdef AER_THRUST_CUDA
+          cudaGetDeviceCount(&ndev);
+#endif
+          parallel_shots_ = ndev;
+          parallel_state_update_ = (parallel_shots_ > 1)
+              ? std::max<int>({1, max_parallel_threads_ / parallel_shots_})
+              : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
+        }
+      }
       break;
     }
     case Method::density_matrix:
@@ -792,6 +927,18 @@ void QasmController::set_parallelization_circuit(
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
+      if(method == Method::density_matrix_thrust_gpu){
+        if(parallel_shots_ > 1){
+          int ndev = 1;
+#ifdef AER_THRUST_CUDA
+          cudaGetDeviceCount(&ndev);
+#endif
+          parallel_shots_ = ndev;
+          parallel_state_update_ = (parallel_shots_ > 1)
+              ? std::max<int>({1, max_parallel_threads_ / parallel_shots_})
+              : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
+        }
+      }
       break;
     }
     default: {
@@ -877,13 +1024,21 @@ void QasmController::run_circuit_with_noise(const Circuit &circ,
   // Transpile passes
   auto fusion_pass = transpile_fusion(method, config);
   Transpile::DelayMeasure measure_pass;
+  Transpile::CacheBlocking cache_block_pass;
   measure_pass.set_config(config);
+  cache_block_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
 
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
+    if(cache_block_before_fusion_){
+      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    }
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    if(!cache_block_before_fusion_){
+      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    }
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
     run_single_shot(noise_circ, state, initial_state, data, rng);
   }
@@ -902,9 +1057,20 @@ void QasmController::run_circuit_without_noise(const Circuit &circ,
   // Dummy noise model for transpiler passes
   Noise::NoiseModel dummy_noise;
 
+  //Apply cache blocking
+  Transpile::CacheBlocking cache_block_pass;
+  cache_block_pass.set_config(config);
+  if(cache_block_before_fusion_){
+    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+  }
+
   // Apply fusion transpilation pass
   auto fusion_pass = transpile_fusion(method, config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+
+  if(!cache_block_before_fusion_){
+    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+  }
 
   // Apply delay measure transpilation pass
   Transpile::DelayMeasure measure_pass;

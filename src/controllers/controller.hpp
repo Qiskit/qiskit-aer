@@ -390,7 +390,18 @@ size_t Controller::get_system_memory_mb(){
    GlobalMemoryStatusEx(&status);
    total_physical_memory = status.ullTotalPhys;
 #endif
-   return total_physical_memory >> 20;
+
+#ifdef AER_THRUST_CUDA
+  int iDev,nDev;
+  cudaGetDeviceCount(&nDev);
+  for(iDev=0;iDev<nDev;iDev++){
+    size_t freeMem,totalMem;
+    cudaSetDevice(iDev);
+    cudaMemGetInfo(&freeMem,&totalMem);
+    total_physical_memory += totalMem;
+  }
+#endif
+  return total_physical_memory >> 20;
 }
 
 //-------------------------------------------------------------------------

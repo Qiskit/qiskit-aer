@@ -138,48 +138,35 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 {
   const int_t nrows = rows_;
   int iPlace;
-  int_t i;
-  uint_t irow, icol, ic, nc;
-  uint_t pos = 0;
-  uint_t csize = 1ull << BaseVector::m_maxChunkBits;
+  int_t i, irow, icol;
+  uint_t csize = BaseVector::data_size_;
   cvector_t<data_t> tmp(csize);
 
   const json_t ZERO = std::complex < data_t > (0.0, 0.0);
   json_t js = json_t(nrows, json_t(nrows, ZERO));
 
-  BaseVector::UpdateReferencedValue();
-
-  for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
-    nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
-
-    for (ic = 0; ic < nc; ic++) {
-      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic,BaseVector::m_maxChunkBits);
-
 #pragma omp parallel private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-      {
-        if (BaseVector::json_chop_threshold_ > 0) {
+  {
+    if (BaseVector::json_chop_threshold_ > 0) {
 #pragma omp for
-          for (i = 0; i < csize; i++) {
-            irow = ((pos + i) >> num_qubits_);
-            icol = (pos + i) - (irow << num_qubits_);
+      for (i = 0; i < csize; i++) {
+        irow = (i >> num_qubits_);
+        icol = i - (irow << num_qubits_);
 
-            if (std::abs(tmp[i].real()) > BaseVector::json_chop_threshold_)
-              js[icol][irow][0] = tmp[i].real();
-            if (std::abs(tmp[i].imag()) > BaseVector::json_chop_threshold_)
-              js[icol][irow][1] = tmp[i].imag();
-          }
-        } else {
-#pragma omp for
-          for (i = 0; i < csize; i++) {
-            irow = ((pos + i) >> num_qubits_);
-            icol = (pos + i) - (irow << num_qubits_);
-
-            js[icol][irow][0] = tmp[i].real();
-            js[icol][irow][1] = tmp[i].imag();
-          }
-        }
+        if (std::abs(tmp[i].real()) > BaseVector::json_chop_threshold_)
+          js[icol][irow][0] = tmp[i].real();
+        if (std::abs(tmp[i].imag()) > BaseVector::json_chop_threshold_)
+          js[icol][irow][1] = tmp[i].imag();
       }
-      pos += csize;
+    } else {
+#pragma omp for
+      for (i = 0; i < csize; i++) {
+        irow = (i >> num_qubits_);
+        icol = i - (irow << num_qubits_);
+
+        js[icol][irow][0] = tmp[i].real();
+        js[icol][irow][1] = tmp[i].imag();
+      }
     }
   }
 
@@ -207,32 +194,18 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
 {
   const int_t nrows = rows_;
   AER::cmatrix_t ret(nrows, nrows);
+  uint_t csize = BaseVector::data_size_;
+
   cvector_t<data_t> qreg = BaseVector::vector();
 
-  int iPlace;
-  uint_t ic, nc;
-  uint_t pos = 0;
-  uint_t csize = 1ull << BaseVector::m_maxChunkBits;
-  cvector_t<data_t> tmp(csize);
-
-	BaseVector::UpdateReferencedValue();
-
-  for (iPlace = 0; iPlace < BaseVector::m_nPlaces; iPlace++) {
-    nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
-
-    for (ic = 0; ic < nc; ic++) {
-      BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*) &tmp[0], 0, ic,BaseVector::m_maxChunkBits);
-
-      int_t i, irow, icol;
+  int_t i;
+  uint_t irow, icol;
 #pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-      for (i = 0; i < csize; i++) {
-        irow = ((pos + i) >> num_qubits_);
-        icol = (pos + i) - (irow << num_qubits_);
+  for (i = 0; i < csize; i++) {
+    irow = (i >> num_qubits_);
+    icol = i - (irow << num_qubits_);
 
-        ret(icol, irow) = tmp[i];
-      }
-      pos += csize;
-    }
+    ret(icol, irow) = qreg[i];
   }
 	return ret;
 }
@@ -244,14 +217,23 @@ AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const
 template <class data_t>
 void UnitaryMatrixThrust<data_t>::initialize() 
 {
+  const int_t nrows = rows_;
 	std::complex<data_t> one = 1.0;
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
-  const int_t nrows = rows_;    // end for k loop
- #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  for (int_t k = 0; k < nrows; ++k) {
-  	BaseVector::set_state(k * (nrows + 1),one);
+
+  uint_t is,ie,idx;
+  int_t i;
+
+  is = BaseVector::chunk_index_ << BaseVector::num_qubits_;
+  ie = is + (1ull << BaseVector::num_qubits_);
+#pragma omp parallel private(idx) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  for(i=0;i<nrows;i++){
+    idx = i * (nrows + 1);
+    if(idx >= is && idx < ie){
+      BaseVector::set_state(idx-is,one);
+    }
   }
 }
 
@@ -272,29 +254,23 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
     );
   }
 
-	int iPlace;
-  int_t i;
-	uint_t irow,icol,ic,nc;
-	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
-	cvector_t<data_t> tmp(csize);
+  cvector_t<data_t> tmp(BaseVector::data_size_);
+  uint_t n_chunks_in_row = mat.GetRows() >> num_qubits_;
+  uint_t base_row = (BaseVector::chunk_index_ / n_chunks_in_row) << num_qubits_;
+  uint_t base_col = (BaseVector::chunk_index_ % n_chunks_in_row) << num_qubits_;
 
-	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
-
-		for(ic=0;ic<nc;ic++){
+  int_t i,irow,icol;
 #pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-			for(i=0;i<csize;i++){
-				irow = ((pos+i) >> num_qubits_);
-				icol = (pos+i) - (irow << num_qubits_);
+  for(i=0;i<BaseVector::data_size_;i++){
+    std::complex<double> t;
+    irow = (i >> num_qubits_);
+    icol = i - (irow << num_qubits_);
 
-				tmp[i] = mat(irow,icol);
-			}
-
-			BaseVector::m_Chunks[iPlace].CopyIn((thrust::complex<data_t>*)&tmp[0],0,ic,BaseVector::m_maxChunkBits);
-			pos += csize;
-		}
+    t = mat(base_row + irow,base_col + icol);
+    tmp[i] = t;
 	}
+
+  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);
 }
 
 template <class data_t>
@@ -306,24 +282,61 @@ void UnitaryMatrixThrust<data_t>::set_num_qubits(size_t num_qubits) {
   BaseVector::set_num_qubits(2 * num_qubits);
 }
 
-template <class data_t>
-std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
-  const int_t NROWS = rows_;
-  const int_t DIAG = NROWS + 1;
-  double val_re = 0.;
-  double val_im = 0.;
-	std::complex<data_t> d;
-
-#pragma omp parallel private(d) reduction(+:val_re, val_im) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+template <typename data_t>
+class UnitaryTrace : public GateFuncBase<data_t>
+{
+protected:
+  uint_t rows_;
+public:
+  UnitaryTrace(uint_t nr)
   {
-#pragma omp for
-  for (int_t k = 0; k < NROWS; ++k) {
-  	d = BaseVector::get_state(k * DIAG);
-    val_re += std::real(d);
-    val_im += std::imag(d);
+    rows_ = nr;
   }
+
+  bool IsDiagonal(void)
+  {
+    return true;
   }
-  return std::complex<double>(val_re, val_im);
+
+  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const
+  {
+    uint_t idx;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double> q;
+
+    idx = i * (rows_ + 1);
+    vec = this->data_;
+
+    q = vec[idx];
+
+    return q;
+  }
+
+  uint_t size(int num_qubits,int n)
+  {
+    (void)num_qubits;
+    (void)n;
+    return rows_;
+  }
+  const char* name(void)
+  {
+    return "UnitaryTrace";
+  }
+};
+
+template <class data_t>
+std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
+{
+  reg_t dummy(1,0);
+  std::complex<double> sum;
+
+  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_),dummy);
+
+#ifdef AER_DEBUG
+  BaseVector::DebugMsg("trace",sum);
+#endif
+
+  return sum;
 }
 
 
@@ -349,42 +362,32 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
   // Check conditions 2 and 3
   double delta = 0.;
 	int iPlace;
-  int_t i;
-	uint_t irow,icol,ic,nc;
+	uint_t i,irow,icol,ic,nc;
 	uint_t pos = 0;
-	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
+	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 
-	BaseVector::UpdateReferencedValue();
+  BaseVector::chunk_->CopyOut((thrust::complex<data_t>*)&tmp[0]);
 
-	for(iPlace=0;iPlace<BaseVector::m_nPlaces;iPlace++){
-		nc = BaseVector::m_Chunks[iPlace].NumChunks(BaseVector::m_maxChunkBits);
-
-		for(ic=0;ic<nc;ic++){
-			BaseVector::m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&tmp[0],0,ic,BaseVector::m_maxChunkBits);
-
-			uint_t err_count = 0;
+  uint_t offset = BaseVector::chunk_index_ << BaseVector::num_qubits_;
+  uint_t err_count = 0;
 #pragma omp parallel for private(i,irow,icol) reduction(+:delta,err_count) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-			for(i=0;i<csize;i++){
-				irow = ((pos+i) >> num_qubits_);
-				icol = (pos+i) - (irow << num_qubits_);
+  for(i=0;i<csize;i++){
+    irow = ((i + offset) >> num_qubits_);
+    icol = (i + offset) - (irow << num_qubits_);
 
-				auto val = (irow==icol) ? std::norm(tmp[i] - u00)
-										: std::norm(tmp[i]);
-				if (val > identity_threshold_) {
-					err_count++;
-				}
-				else{
-					delta += val; // accumulate difference
-				}
-			}
-			if(err_count > 0){
-				return failed;
-			}
-
-			pos += csize;
-		}
-	}
+    auto val = (irow==icol) ? std::norm(tmp[i] - u00)
+                            : std::norm(tmp[i]);
+    if (val > identity_threshold_) {
+      err_count++;
+    }
+    else{
+      delta += val; // accumulate difference
+    }
+  }
+  if(err_count > 0){
+    return failed;
+  }
 
   // Check small errors didn't accumulate
   if (delta > identity_threshold_) {

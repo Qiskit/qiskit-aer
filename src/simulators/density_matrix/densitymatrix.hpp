@@ -45,8 +45,8 @@ public:
 
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
-  DensityMatrix(const DensityMatrix& obj) = delete;
-  DensityMatrix &operator=(const DensityMatrix& obj) = delete;
+  DensityMatrix(const DensityMatrix& obj) {};
+  DensityMatrix &operator=(const DensityMatrix& obj) {};
 
   //-----------------------------------------------------------------------
   // Utility functions
