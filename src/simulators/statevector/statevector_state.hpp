@@ -250,7 +250,7 @@ protected:
 
   // Helper function to convert a vector to a reduced density matrix
   template <class T>
-  cmatrix_t vec2density(const reg_t &qubits, T&& vec);
+  cmatrix_t vec2density(const reg_t &qubits, const T& vec);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -666,7 +666,7 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
     reduced_state = cmatrix_t(1, 1);
     reduced_state[0] = BaseState::qreg_.norm();
   } else {
-    reduced_state = std::move(density_matrix(op.qubits));
+    reduced_state = density_matrix(op.qubits);
   }
 
   // Add density matrix to result data
@@ -685,28 +685,26 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
   }
 }
 
-// Default value that copies using QubitVector.vector method.
-// This is required for Thrust backends which must copy the vector
-// from device memory to host memory
 template <class statevec_t>
 cmatrix_t State<statevec_t>::density_matrix(const reg_t &qubits) {
-  return vec2density(qubits, std::move(BaseState::qreg_.vector()));
+  return vec2density(qubits, BaseState::qreg_.data());
 }
 
-// Overloads for CPU version that can access array data directly
-// without requiring a temporary copy
+#ifdef AER_THRUST_SUPPORTED
 template <>
-cmatrix_t State<QV::QubitVector<double>>::density_matrix(const reg_t &qubits) {
-  return vec2density(qubits, BaseState::qreg_.data());
+cmatrix_t State<QV::QubitVectorThrust<float>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.vector());
 }
+
 template <>
-cmatrix_t State<QV::QubitVector<float>>::density_matrix(const reg_t &qubits) {
-  return vec2density(qubits, BaseState::qreg_.data());
+cmatrix_t State<QV::QubitVectorThrust<double>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.vector());
 }
+#endif
 
 template <class statevec_t>
 template <class T>
-cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, T &&vec) {
+cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
   const size_t N = qubits.size();
   const size_t DIM = 1ULL << N;
   auto qubits_sorted = qubits;

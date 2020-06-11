@@ -391,10 +391,6 @@ class QasmSnapshotDensityMatrixTests:
                         target = qi.partial_trace(target, [2])
                     elif num_qubits == 1:
                         target = qi.partial_trace(target, [1, 2])
-                    if value != target:
-                        print('FAILED:', squbits, equbits)
-                        print(value)
-                        print(target)
                     self.assertEqual(value, target)
 
 

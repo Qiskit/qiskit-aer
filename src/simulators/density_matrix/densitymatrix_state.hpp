@@ -540,9 +540,9 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
     if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      reduced_state = std::move(BaseState::qreg_.matrix());
+      reduced_state = BaseState::qreg_.matrix();
     } else {
-      reduced_state = std::move(reduced_density_matrix(op.qubits, qubits_sorted));
+      reduced_state = reduced_density_matrix(op.qubits, qubits_sorted);
     }
   }
 
@@ -553,28 +553,29 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
                             false);
 }
 
-// Default value that copies using QubitVector.vector method.
-// This is required for Thrust backends which must copy the vector
-// from device memory to host memory
+
 template <class statevec_t>
 cmatrix_t State<statevec_t>::reduced_density_matrix(const reg_t &qubits,
                                                     const reg_t &qubits_sorted) {
+  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+}
+
+#ifdef AER_THRUST_SUPPORTED
+// Thrust specialization must copy memory from device to host
+template <>
+cmatrix_t State<QV::DensityMatrixThrust<float>>::reduced_density_matrix(const reg_t &qubits,
+                                                                       const reg_t &qubits_sorted) {
+  
   return reduced_density_matrix_thrust(qubits, qubits_sorted);
 }
 
-// Overloads for CPU version that can access array data directly
-// without requiring a temporary copy
 template <>
-cmatrix_t State<QV::DensityMatrix<double>>::reduced_density_matrix(const reg_t &qubits,
-                                                                   const reg_t &qubits_sorted) {
-  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+cmatrix_t State<QV::DensityMatrixThrust<double>>::reduced_density_matrix(const reg_t &qubits,
+                                                                       const reg_t &qubits_sorted) {
+  
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
 }
-template <>
-cmatrix_t State<QV::DensityMatrix<float>>::reduced_density_matrix(const reg_t &qubits,
-                                                                  const reg_t &qubits_sorted) {
-  return reduced_density_matrix_cpu(qubits, qubits_sorted);
-}
-
+#endif
 
 template <class densmat_t>
 cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, const reg_t& qubits_sorted) {
@@ -593,7 +594,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, cons
   // TODO: If we are not going to apply any additional instructions after
   //       this function we could move the memory when constructing rather
   //       than copying
-  auto vmat = BaseState::qreg_.data();
+  const auto& vmat = BaseState::qreg_.data();
   cmatrix_t reduced_state(DIM, DIM);
   for (size_t k = 0; k < END; k++) {
     const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
