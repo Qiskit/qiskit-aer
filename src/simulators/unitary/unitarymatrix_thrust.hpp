@@ -218,7 +218,7 @@ template <class data_t>
 void UnitaryMatrixThrust<data_t>::initialize() 
 {
   const int_t nrows = rows_;
-	std::complex<data_t> one = 1.0;
+	std::complex<double> one = 1.0;
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
