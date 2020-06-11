@@ -25,7 +25,7 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from .pulse_de_options import OPoptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
-from ..de.pulse_utils import td_ode_rhs_static
+from .pulse_utils import td_ode_rhs_static
 
 
 def pulse_controller(qobj, system_model, backend_options):

@@ -24,7 +24,7 @@ from scipy.linalg.blas import get_blas_funcs
 from .pulse_de_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from .pulse_de_solver import construct_pulse_zvode_solver
-from ..de.pulse_utils import (cy_expect_psi_csr, occ_probabilities,
+from .pulse_utils import (cy_expect_psi_csr, occ_probabilities,
                               write_shots_memory, spmv_csr)
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
