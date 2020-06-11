@@ -21,9 +21,9 @@ from math import log
 import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
-from ..de.pulse_de_options import OPoptions
+from .pulse_de_options import OPoptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from ..de.pulse_de_solver import construct_pulse_zvode_solver
+from .pulse_de_solver import construct_pulse_zvode_solver
 from ..de.pulse_utils import (cy_expect_psi_csr, occ_probabilities,
                               write_shots_memory, spmv_csr)
 

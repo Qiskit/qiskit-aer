@@ -14,8 +14,6 @@
 
 """Options for DE_Methods"""
 
-import numpy as np
-
 class DE_Options:
     """
     Container class for options and defaults specific for DE_Methods.  Options can be specified

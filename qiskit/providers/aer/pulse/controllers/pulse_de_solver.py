@@ -20,8 +20,8 @@
 
 """Set up DE solver for problems in qutip format."""
 
-from .DE_Methods import QiskitZVODE
-from .DE_Options import DE_Options
+from ..de.DE_Methods import QiskitZVODE
+from ..de.DE_Options import DE_Options
 
 
 def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
