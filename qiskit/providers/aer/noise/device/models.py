@@ -57,7 +57,8 @@ def basic_device_gate_errors(properties,
                              gate_lengths=None,
                              gate_length_units='ns',
                              temperature=0,
-                             standard_gates=True):
+                             standard_gates=True,
+                             warnings=True):
     """
     Return QuantumErrors derived from a devices BackendProperties.
 
@@ -82,6 +83,7 @@ def basic_device_gate_errors(properties,
         standard_gates (bool): If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions (Default: True).
+        warnings (bool): Display warnings (Default: True).
 
     Returns:
         list: A list of tuples ``(label, qubits, QuantumError)``, for gates
@@ -134,7 +136,7 @@ def basic_device_gate_errors(properties,
         # Get depolarizing error channel
         if gate_error:
             depol_error = _device_depolarizing_error(
-                qubits, error_param, relax_error, standard_gates)
+                qubits, error_param, relax_error, standard_gates, warnings=warnings)
 
         # Combine errors
         if depol_error is None and relax_error is None:
@@ -157,7 +159,8 @@ def basic_device_gate_errors(properties,
 def _device_depolarizing_error(qubits,
                                error_param,
                                relax_error=None,
-                               standard_gates=True):
+                               standard_gates=True,
+                               warnings=True):
     """Construct a depolarizing_error for device"""
 
     # We now deduce the depolarizing channel error parameter in the
@@ -190,7 +193,7 @@ def _device_depolarizing_error(qubits,
         # Check if reported error param is un-physical
         # The minimum average gate fidelity is F_min = 1 / (dim + 1)
         # So the maximum gate error is 1 - F_min = dim / (dim + 1)
-        if error_param > error_max:
+        if error_param > error_max and warnings:
             logger.warning(
                 'Device reported a gate error parameter greater'
                 ' than maximum allowed value (%f > %f). Truncating to'
@@ -201,7 +204,7 @@ def _device_depolarizing_error(qubits,
         dim = 2 ** num_qubits
         depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
         max_param = 4**num_qubits / (4**num_qubits - 1)
-        if depol_param > max_param:
+        if depol_param > max_param and warnings:
             logger.warning(
                 'Device model returned a depolarizing error parameter greater'
                 ' than maximum allowed value (%f > %f). Truncating to'
