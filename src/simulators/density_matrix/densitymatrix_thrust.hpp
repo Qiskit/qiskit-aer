@@ -648,7 +648,11 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
     BaseVector::chunk_->set_device();
 
     //buffer to store diagonal elements
+#ifdef AER_THRUST_CUDA
     thrust::device_vector<data_t> diag_vec(nrows);
+#else
+    thrust::host_vector<data_t> diag_vec(nrows);
+#endif
 
     auto ci = thrust::counting_iterator<uint_t>(0);
     thrust::for_each_n(thrust::device, ci ,nrows , 
