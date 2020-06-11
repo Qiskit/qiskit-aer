@@ -1855,8 +1855,16 @@ void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
 template <typename data_t>
 void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &src, bool write_back)
 {
-  const int q0 = (qubits[qubits.size() - 2] < qubits[qubits.size() - 1]) ? qubits[qubits.size() - 2] : qubits[qubits.size() - 1];
-  const int q1 = (qubits[qubits.size() - 2] < qubits[qubits.size() - 1]) ? qubits[qubits.size() - 1] : qubits[qubits.size() - 2];
+  uint_t q0,q1,t;
+
+  q0 = qubits[qubits.size() - 2];
+  q1 = qubits[qubits.size() - 1];
+
+  if(q0 > q1){
+    t = q0;
+    q0 = q1;
+    q1 = t;
+  }
 
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
     if(write_back){
@@ -1891,8 +1899,16 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data
 template <typename data_t>
 void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index)
 {
-  const int q0 = (qubits[qubits.size() - 2] < qubits[qubits.size() - 1]) ? qubits[qubits.size() - 2] : qubits[qubits.size() - 1];
-  const int q1 = (qubits[qubits.size() - 2] < qubits[qubits.size() - 1]) ? qubits[qubits.size() - 1] : qubits[qubits.size() - 2];
+  uint_t q0,q1,t;
+
+  q0 = qubits[qubits.size() - 2];
+  q1 = qubits[qubits.size() - 1];
+
+  if(q0 > q1){
+    t = q0;
+    q0 = q1;
+    q1 = t;
+  }
 
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)

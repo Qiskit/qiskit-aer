@@ -457,7 +457,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::gate:
         if(ops[iOp].name == "swap_chunk"){
-          int q0,q1;
+          uint_t q0,q1;
           q0 = ops[iOp].qubits[0];
           q1 = ops[iOp].qubits[1];
           if(ops[iOp].qubits[0] >= BaseState::chunk_bits_/2){
@@ -466,9 +466,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           if(ops[iOp].qubits[1] >= BaseState::chunk_bits_/2){
             q1 += BaseState::chunk_bits_/2;
           }
-          reg_t qs0(2);
-          qs0[0] = q0;
-          qs0[1] = q1;
+          reg_t qs0 = {{q0, q1}};
           BaseState::apply_chunk_swap(qs0);
 
           if(ops[iOp].qubits[0] >= BaseState::chunk_bits_/2){
@@ -483,9 +481,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           else{
             q1 += BaseState::chunk_bits_/2;
           }
-          reg_t qs1(2);
-          qs1[0] = q0;
-          qs1[1] = q1;
+          reg_t qs1 = {{q0, q1}};
           BaseState::apply_chunk_swap(qs1);
         }
         else{
