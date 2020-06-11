@@ -187,7 +187,7 @@ if(AER_THRUST_SUPPORTED)
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
 			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
