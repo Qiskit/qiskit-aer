@@ -37,17 +37,14 @@ def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
 
     rhs = op_system.init_rhs(exp)
 
-    option_dict = {'method': ode_options.method,
-                   'order': ode_options.order,
-                   'atol': ode_options.atol,
-                   'rtol': ode_options.rtol,
-                   'nsteps': ode_options.nsteps,
-                   'first_step': ode_options.first_step,
-                   'min_step': ode_options.min_step,
-                   'max_step': ode_options.max_step}
+    options = DE_Options(method=ode_options.method,
+                         order=ode_options.order,
+                         atol=ode_options.atol,
+                         rtol=ode_options.rtol,
+                         nsteps=ode_options.nsteps,
+                         first_step=ode_options.first_step,
+                         min_step=ode_options.min_step,
+                         max_step=ode_options.max_step)
 
-    # remove above this
-    options = DE_Options()
-
-    qiskit_zvode = QiskitZVODE(0.0, y0, rhs)#, options)
+    qiskit_zvode = QiskitZVODE(0.0, y0, rhs, options)
     return qiskit_zvode

@@ -32,9 +32,8 @@ class TestDE_Methods(unittest.TestCase):
         """Test method_from_string"""
 
         # test for scipy wrapper
-        method, options = method_from_string('scipy-RK45')
+        method = method_from_string('scipy-RK45')
         self.assertTrue(method == ScipyODE)
-        self.assertTrue(options == {'method': 'RK45'})
 
     def test_ScipyODE(self):
         """Test ScipyODE method"""

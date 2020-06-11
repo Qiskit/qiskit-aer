@@ -20,6 +20,7 @@
 """DE methods."""
 
 from abc import ABC, abstractmethod
+import warnings
 import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import ode, solve_ivp
@@ -185,29 +186,45 @@ class ScipyODE(ODE_Method):
         y0 = self._y
         rhs = self.rhs.get('rhs')
 
-        results = solve_ivp(rhs, (t0, tf), y0, method=self._scipy_method, **self._scipy_options)
+        # solve problem and silence warnings that options that don't apply to a given method
+        kept_warnings = []
+        with warnings.catch_warnings(record=True) as ws:
+            results = solve_ivp(rhs, (t0, tf), y0,
+                                method=self.options.method,
+                                atol=self.options.atol,
+                                rtol=self.options.rtol,
+                                max_step=self.options.max_step,
+                                min_step=self.options.min_step,
+                                first_step=self.options.first_step)
+
+            kept_warnings = []
+            for w in ws:
+                if not ('The following arguments have no effect' in str(w.message)):
+                    kept_warnings.append(w)
+
+        # display warnings we don't want to silence
+        for w in kept_warnings:
+            warnings.warn(w.message, type(w))
 
         self._y = results.y[:, -1]
         self._t = results.t[-1]
 
     def set_options(self, options):
-        self._scipy_method = None
 
         # establish method
         if options is None:
-            # if no options default to RK45
             options = DE_Options()
-            self._scipy_method = options.get('RK45')
+            options.method = 'RK45'
         else:
+            options = options.copy()
             if 'scipy-' in options.method:
-                self._scipy_method = options.method[6:]
-            else:
-                self._scipy_method = options.method
+                options.method = options.method[6:]
 
-        self._scipy_options = {'atol': options.atol,
-                               'rtol': options.rtol,
-                               'max_step': options.max_step,
-                               'first_step': options.first_step}
+        # handle defaults for Non-type arguments
+        self.options = options
+
+        if self.options.max_step is None:
+            self.options.max_step = np.inf
 
 
 class QiskitZVODE(ODE_Method):
@@ -270,7 +287,7 @@ class QiskitZVODE(ODE_Method):
 
         self._ODE = ode(self.rhs['rhs'])
 
-        self._ODE._integrator = qiskit_zvode(method=self._method,
+        self._ODE._integrator = qiskit_zvode(method=self.options.method,
                                              order=self.options.order,
                                              atol=self.options.atol,
                                              rtol=self.options.rtol,
@@ -308,18 +325,27 @@ class QiskitZVODE(ODE_Method):
             self._ODE._integrator.call_args[3] = 1
 
     def set_options(self, options):
-        self._method = None
-
         # establish method
         if options is None:
-            self._method = 'adams'
-            self.options = DE_Options()
+            options = DE_Options(method='adams')
         else:
-            self.options = DE_Options()
+            options = options.copy()
             if 'zvode-' in options.method:
-                self._method = options.method[6:]
-            else:
-                self._method = options.method
+                options.method = options.method[6:]
+
+
+        # handle None-type defaults
+        if options.first_step is None:
+            options.first_step = 0
+
+        if options.max_step is None:
+            options.max_step = 0
+
+        if options.min_step is None:
+            options.min_step = 0
+
+        self.options = options
+
 
 class qiskit_zvode(zvode):
     """Customized ZVODE with modified stepper so that

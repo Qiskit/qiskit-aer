@@ -51,9 +51,9 @@ class DE_Options:
                  rtol=1e-6,
                  order=12,
                  nsteps=50000,
-                 first_step=0,
-                 max_step=0,
-                 min_step=0,
+                 first_step=None,
+                 max_step=None,
+                 min_step=None,
                  max_dt=10**-3):
 
         # Integration method (default = 'zvode-adams')
@@ -72,9 +72,19 @@ class DE_Options:
         self.max_step = max_step
         # Minimal step size (0 = determined by solver)
         self.min_step = min_step
-
         # max step size for fixed step-size solvers
         self.max_dt = max_dt
+
+    def copy(self):
+        return DE_Options(method=self.method,
+                          atol=self.atol,
+                          rtol=self.rtol,
+                          order=self.order,
+                          nsteps=self.nsteps,
+                          first_step=self.first_step,
+                          max_step=self.max_step,
+                          min_step=self.min_step,
+                          max_dt=self.max_dt)
 
     def __str__(self):
         return str(vars(self))
