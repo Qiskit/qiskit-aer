@@ -22,6 +22,7 @@
 #include <vector>
 #include <memory>
 #include <type_traits>
+#include "indexes.hpp"
 #include "qubitvector.hpp"
 
 namespace {
@@ -712,85 +713,6 @@ inline void _apply_matrix_double_avx(
   }
 }
 
-template<typename list_t>
-uint64_t _index0(const list_t &qubits_sorted, const uint64_t k){
-  uint64_t lowbits, retval = k;
-  static constexpr std::array<uint64_t, 64> _MASKS = {
-    0ULL, 1ULL, 3ULL, 7ULL,
-    15ULL, 31ULL, 63ULL, 127ULL,
-    255ULL, 511ULL, 1023ULL, 2047ULL,
-    4095ULL, 8191ULL, 16383ULL, 32767ULL,
-    65535ULL, 131071ULL, 262143ULL, 524287ULL,
-    1048575ULL, 2097151ULL, 4194303ULL, 8388607ULL,
-    16777215ULL, 33554431ULL, 67108863ULL, 134217727ULL,
-    268435455ULL, 536870911ULL, 1073741823ULL, 2147483647ULL,
-    4294967295ULL, 8589934591ULL, 17179869183ULL, 34359738367ULL,
-    68719476735ULL, 137438953471ULL, 274877906943ULL, 549755813887ULL,
-    1099511627775ULL, 2199023255551ULL, 4398046511103ULL, 8796093022207ULL,
-    17592186044415ULL, 35184372088831ULL, 70368744177663ULL, 140737488355327ULL,
-    281474976710655ULL, 562949953421311ULL, 1125899906842623ULL, 2251799813685247ULL,
-    4503599627370495ULL, 9007199254740991ULL, 18014398509481983ULL, 36028797018963967ULL,
-    72057594037927935ULL, 144115188075855871ULL, 288230376151711743ULL, 576460752303423487ULL,
-    1152921504606846975ULL, 2305843009213693951ULL, 4611686018427387903ULL, 9223372036854775807ULL
-  };
-
-  for (size_t j = 0; j < qubits_sorted.size(); j++) {
-    lowbits = retval & _MASKS[qubits_sorted[j]];
-    retval >>= qubits_sorted[j];
-    retval <<= qubits_sorted[j] + 1;
-    retval |= lowbits;
-  }
-  return retval;
-}
-
-template<size_t N>
-areg_t<1ULL << N> _indexes(const areg_t<N> &qs, const areg_t<N> &qubits_sorted, const uint64_t k){
-  areg_t<1ULL << N> ret;
-  static constexpr std::array<uint64_t, 64> _BITS = {
-    1ULL, 2ULL, 4ULL, 8ULL,
-    16ULL, 32ULL, 64ULL, 128ULL,
-    256ULL, 512ULL, 1024ULL, 2048ULL,
-    4096ULL, 8192ULL, 16384ULL, 32768ULL,
-    65536ULL, 131072ULL, 262144ULL, 524288ULL,
-    1048576ULL, 2097152ULL, 4194304ULL, 8388608ULL,
-    16777216ULL, 33554432ULL, 67108864ULL, 134217728ULL,
-    268435456ULL, 536870912ULL, 1073741824ULL, 2147483648ULL,
-    4294967296ULL, 8589934592ULL, 17179869184ULL, 34359738368ULL,
-    68719476736ULL, 137438953472ULL, 274877906944ULL, 549755813888ULL,
-    1099511627776ULL, 2199023255552ULL, 4398046511104ULL, 8796093022208ULL,
-    17592186044416ULL, 35184372088832ULL, 70368744177664ULL, 140737488355328ULL,
-    281474976710656ULL, 562949953421312ULL, 1125899906842624ULL, 2251799813685248ULL,
-    4503599627370496ULL, 9007199254740992ULL, 18014398509481984ULL, 36028797018963968ULL,
-    72057594037927936ULL, 144115188075855872ULL, 288230376151711744ULL, 576460752303423488ULL,
-    1152921504606846976ULL, 2305843009213693952ULL, 4611686018427387904ULL, 9223372036854775808ULL
-  };
-
-  ret[0] = _index0(qubits_sorted, k);
-  for (size_t i = 0; i < N; i++){
-    const auto n = _BITS[i];
-    const auto bit = _BITS[qs[i]];
-    for (size_t j = 0; j < n; j++)
-      ret[n + j] = ret[j] | bit;
-  }
-  return ret;
-}
-
-template<typename Lambda, typename list_t, typename param_t>
-void _apply_lambda(uint64_t data_size, const uint64_t skip, Lambda&& func, const list_t &qubits,
-  const unsigned omp_threads, const param_t &params){
-
-  const auto NUM_QUBITS = qubits.size();
-  const uint64_t END = data_size >> NUM_QUBITS;
-  auto qubits_sorted = qubits;
-  std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-#pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int64_t k = 0; k < END; k += skip) {
-    const auto inds = _indexes(qubits, qubits_sorted, k);
-    std::forward < Lambda > (func)(inds, params);
-  }
-}
-
 enum class Avx {
   NotApplied,
   Applied
@@ -813,28 +735,28 @@ inline Avx _apply_avx_kernel(
       _apply_matrix_float_avx_q0q1q2(real, img, fmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 1, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 1, omp_threads, lambda, qregs, mat);
 
   }else if (qregs.size() > 1 && qregs[1] < 3){
     auto lambda = [&](const areg_t<(1 << N)> &inds, const QV::cvector_t<float>& fmat)->void {
       _apply_matrix_float_avx_qLqL(real, img, fmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 2, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 2, omp_threads, lambda, qregs, mat);
 
   }else if (qregs[0] < 3){
     auto lambda = [&](const areg_t<(1 << N)> &inds, const QV::cvector_t<float>& fmat)->void {
       _apply_matrix_float_avx_qL(real, img, fmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 4, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 4, omp_threads, lambda, qregs, mat);
 
   }else{
     auto lambda = [&](const areg_t<(1 << N)> &inds, const QV::cvector_t<float>& fmat)->void {
       _apply_matrix_float_avx(real, img, fmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 8, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 8, omp_threads, lambda, qregs, mat);
 
   }
   return Avx::Applied;
@@ -857,21 +779,21 @@ inline Avx _apply_avx_kernel(
       _apply_matrix_double_avx_q0q1(real, img, dmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 1, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 1, omp_threads, lambda, qregs, mat);
 
   } else if (qregs[0] < 2) {
     auto lambda = [&](const areg_t<(1 << N)>& inds, const QV::cvector_t<double>& dmat) -> void {
       _apply_matrix_double_avx_qL(real, img, dmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 2, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 2, omp_threads, lambda, qregs, mat);
 
   } else {
     auto lambda = [&](const areg_t<(1 << N)>& inds, const QV::cvector_t<double>& dmat) -> void {
       _apply_matrix_double_avx(real, img, dmat, inds, qregs);
     };
 
-    _apply_lambda(data_size, 4, lambda, qregs, omp_threads, mat);
+    QV::apply_lambda(0, data_size, 4, omp_threads, lambda, qregs, mat);
 
   }
   return Avx::Applied;
