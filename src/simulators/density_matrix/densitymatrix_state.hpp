@@ -549,7 +549,7 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
   data.add_average_snapshot("density_matrix",
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
-                            reduced_state,
+                            std::move(reduced_state),
                             false);
 }
 
