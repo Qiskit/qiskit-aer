@@ -555,6 +555,44 @@ options we have on `Aer` to CMake we use it's native mechanism:
     (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DBLAS_LIB_PATH=c:\path\to\my\blas ..
 
 
+### Building with GPU support
+
+Qiskit Aer can exploit GPU's horsepower to accelerate some simulations, specially the larger ones.
+GPU access is supported via CUDA® (NVIDIA® chipset), so in order to build with GPU support we need
+to have CUDA® >= 10.1 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive)
+Please note that we only support GPU acceleration on Linux platforms at the moment.
+
+Once CUDA® is properly installed, we only need to set a flag so the build system knows what to do:
+
+```
+AER_THRUST_BACKEND=CUDA
+```
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+
+If we want to specify the CUDA® architecture instead of letting the build system 
+auto detect it, we can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
+with the same name, although the flag takes precedence). For example:
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2"
+
+or
+
+    qiskit-aer$ export AER_CUDA_ARCH="5.2"
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+
+This will reduce the amount of compilation time when, for example, the architecture auto detection
+fails and the build system compiles all common architectures.
+
+Few notes on GPU builds:
+1. Building takes considerable more time than non-GPU build, so be patient :)
+2. CUDA® >= 10.1 imposes the restriction of building with g++ version not newer than 8
+3. We don't need NVIDIA® drivers for building, but we need them for running simulations
+4. Only Linux platforms are supported
+
+
 
 ## Useful CMake flags
 
@@ -620,6 +658,15 @@ These are the flags:
     Values: CUDA|OMP|TBB
     Default: No value
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA``
+
+* AER_CUDA_ARCH
+
+    This flag allows us we to specify the CUDA architecture instead of letting the build systemm auto detect it.
+    It can also be set as an ENV variable with the same name, although the flag takes precedence.
+    
+    Values:  Auto | Common | All | List of valid CUDA architecture(s).
+    Default: Auto
+    Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
 
 ## Tests
 
