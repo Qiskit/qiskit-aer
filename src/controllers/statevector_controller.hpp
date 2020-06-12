@@ -97,17 +97,19 @@ class StatevectorController : public Base::Controller {
 
   // This simulator will only return a single shot, regardless of the
   // input shot number
-  virtual ExperimentData run_circuit(const Circuit& circ,
-                                     const Noise::NoiseModel& noise,
-                                     const json_t& config, uint_t shots,
-                                     uint_t rng_seed) const override;
+  virtual void run_circuit(const Circuit& circ,
+                           const Noise::NoiseModel& noise,
+                           const json_t& config, uint_t shots,
+                           uint_t rng_seed,
+                           ExperimentData &data) const override;
 
   // Execute n-shots of a circuit on the input state
   template <class State_t>
-  ExperimentData run_circuit_helper(const Circuit& circ,
-                                    const Noise::NoiseModel& noise,
-                                    const json_t& config, uint_t shots,
-                                    uint_t rng_seed) const;
+  void run_circuit_helper(const Circuit& circ,
+                          const Noise::NoiseModel& noise,
+                          const json_t& config, uint_t shots,
+                          uint_t rng_seed,
+                          ExperimentData &data) const;
   //-----------------------------------------------------------------------
   // Custom initial state
   //-----------------------------------------------------------------------
@@ -195,20 +197,20 @@ size_t StatevectorController::required_memory_mb(
 // Run circuit
 //-------------------------------------------------------------------------
 
-ExperimentData StatevectorController::run_circuit(
+void StatevectorController::run_circuit(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed) const {
+    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
       if (precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       }
     }
     case Method::statevector_thrust_gpu: {
@@ -217,12 +219,12 @@ ExperimentData StatevectorController::run_circuit(
         // Double-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       }
 #else
       throw std::runtime_error(
@@ -237,12 +239,12 @@ ExperimentData StatevectorController::run_circuit(
         // Double-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed);
+            circ, noise, config, shots, rng_seed, data);
       }
 #else
       throw std::runtime_error(
@@ -258,9 +260,9 @@ ExperimentData StatevectorController::run_circuit(
 }
 
 template <class State_t>
-ExperimentData StatevectorController::run_circuit_helper(
+void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed) const {
+    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
   // Initialize  state
   Statevector::State<> state;
 
@@ -287,7 +289,6 @@ ExperimentData StatevectorController::run_circuit_helper(
   rng.set_seed(rng_seed);
 
   // Output data container
-  ExperimentData data;
   data.set_config(config);
 
   // Run single shot collecting measure data or snapshots
@@ -301,8 +302,6 @@ ExperimentData StatevectorController::run_circuit_helper(
 
   // Add final state to the data
   data.add_additional_data("statevector", state.qreg().vector());
-
-  return data;
 }
 
 //-------------------------------------------------------------------------
