@@ -96,7 +96,7 @@ def pulse_controller(qobj, system_model, backend_options):
         noise.parse()
 
         pulse_de_model.noise = noise.compiled
-        if any(pulse_sim_desc.noise):
+        if any(pulse_de_model.noise):
             pulse_sim_desc.can_sample = False
 
     # ###############################

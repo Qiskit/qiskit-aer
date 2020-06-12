@@ -30,7 +30,7 @@ from .pulse_utils import (cy_expect_psi_csr, occ_probabilities,
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def run_monte_carlo_experiments(op_system, solver_options=PulseSimOptions()):
+def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
     """ Runs monte carlo experiments for a given op_system
 
     Parameters:
@@ -43,31 +43,37 @@ def run_monte_carlo_experiments(op_system, solver_options=PulseSimOptions()):
         Exception: if initial state is of incorrect format
     """
 
-    if not op_system.initial_state.isket:
+    if not pulse_sim_desc.initial_state.isket:
         raise Exception("Initial state must be a state vector.")
+
+    y0 = pulse_sim_desc.initial_state.full().ravel()
 
     # set num_cpus to the value given in settings if none in Options
     if not solver_options.num_cpus:
         solver_options.num_cpus = CPU_COUNT
 
     # setup seeds array
-    seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
+    seed = pulse_sim_desc.seed or np.random.randint(np.iinfo(np.int32).max - 1)
     prng = np.random.RandomState(seed)
-    for exp in op_system.experiments:
+    for exp in pulse_sim_desc.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
     map_kwargs = {'num_processes': solver_options.num_cpus}
 
     exp_results = []
     exp_times = []
-    for exp in op_system.experiments:
+
+    # needs to be configured ahad of time
+    pulse_de_model._config_internal_data()
+
+    for exp in pulse_sim_desc.experiments:
         start = time.time()
         rng = np.random.RandomState(exp['seed'])
         seeds = rng.randint(np.iinfo(np.int32).max - 1,
-                            size=op_system.global_data['shots'])
+                            size=pulse_sim_desc.shots)
         exp_res = parallel_map(monte_carlo_evolution,
                                seeds,
-                               task_args=(exp, op_system,),
+                               task_args=(exp, y0, pulse_sim_desc, pulse_de_model, solver_options, ),
                                **map_kwargs)
 
         # exp_results is a list for each shot
@@ -83,7 +89,7 @@ def run_monte_carlo_experiments(op_system, solver_options=PulseSimOptions()):
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()):
+def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
@@ -98,12 +104,10 @@ def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()
         Exception: if ODE solving has errors
     """
 
-    global_data = op_system.global_data
-
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']
     # Init memory
-    memory = np.zeros((1, global_data['memory_slots']), dtype=np.uint8)
+    memory = np.zeros((1, pulse_sim_desc.memory_slots), dtype=np.uint8)
 
     # Get number of acquire
     num_acq = len(exp['acquire'])
@@ -116,11 +120,10 @@ def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()
     rand_vals = rng.rand(2)
 
     # make array for collapse operator inds
-    cinds = np.arange(global_data['c_num'])
-    n_dp = np.zeros(global_data['c_num'], dtype=float)
+    cinds = np.arange(pulse_de_model.c_num)
+    n_dp = np.zeros(pulse_de_model.c_num, dtype=float)
 
-    y0 = op_system.global_data['initial_state']
-    ODE = construct_pulse_zvode_solver(exp, y0, op_system, solver_options.de_options)
+    ODE = construct_pulse_zvode_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:
@@ -173,9 +176,9 @@ def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()
                 collapse_times.append(ODE.t)
                 # all constant collapse operators.
                 for i in range(n_dp.shape[0]):
-                    n_dp[i] = cy_expect_psi_csr(global_data['n_ops_data'][i],
-                                                global_data['n_ops_ind'][i],
-                                                global_data['n_ops_ptr'][i],
+                    n_dp[i] = cy_expect_psi_csr(pulse_de_model.n_ops_data[i],
+                                                pulse_de_model.n_ops_ind[i],
+                                                pulse_de_model.n_ops_ptr[i],
                                                 ODE.y, True)
 
                 # determine which operator does collapse and store it
@@ -183,9 +186,9 @@ def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()
                 j = cinds[_p >= rand_vals[1]][0]
                 collapse_operators.append(j)
 
-                state = spmv_csr(global_data['c_ops_data'][j],
-                                 global_data['c_ops_ind'][j],
-                                 global_data['c_ops_ptr'][j],
+                state = spmv_csr(pulse_de_model.c_ops_data[j],
+                                 pulse_de_model.c_ops_ind[j],
+                                 pulse_de_model.c_ops_ptr[j],
                                  ODE.y)
 
                 state /= dznrm2(state)
@@ -200,7 +203,7 @@ def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()
                 current_acq = exp['acquire'][aind]
                 qubits = current_acq[1]
                 memory_slots = current_acq[2]
-                probs = occ_probabilities(qubits, out_psi, global_data['measurement_ops'])
+                probs = occ_probabilities(qubits, out_psi, pulse_sim_desc.measurement_ops)
                 rand_vals = rng.rand(memory_slots.shape[0])
                 write_shots_memory(memory, memory_slots, probs, rand_vals)
                 acq_idx += 1
