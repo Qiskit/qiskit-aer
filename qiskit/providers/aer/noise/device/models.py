@@ -193,22 +193,24 @@ def _device_depolarizing_error(qubits,
         # Check if reported error param is un-physical
         # The minimum average gate fidelity is F_min = 1 / (dim + 1)
         # So the maximum gate error is 1 - F_min = dim / (dim + 1)
-        if error_param > error_max and warnings:
-            logger.warning(
-                'Device reported a gate error parameter greater'
-                ' than maximum allowed value (%f > %f). Truncating to'
-                ' maximum value.', error_param, error_max)
+        if error_param > error_max:
+            if warnings:
+                logger.warning(
+                    'Device reported a gate error parameter greater'
+                    ' than maximum allowed value (%f > %f). Truncating to'
+                    ' maximum value.', error_param, error_max)
             error_param = error_max
         # Model gate error entirely as depolarizing error
         num_qubits = len(qubits)
         dim = 2 ** num_qubits
         depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
         max_param = 4**num_qubits / (4**num_qubits - 1)
-        if depol_param > max_param and warnings:
-            logger.warning(
-                'Device model returned a depolarizing error parameter greater'
-                ' than maximum allowed value (%f > %f). Truncating to'
-                ' maximum value.', depol_param, max_param)
+        if depol_param > max_param:
+            if warnings:
+                logger.warning(
+                    'Device model returned a depolarizing error parameter greater'
+                    ' than maximum allowed value (%f > %f). Truncating to'
+                    ' maximum value.', depol_param, max_param)
             depol_param = min(depol_param, max_param)
         return depolarizing_error(
             depol_param, num_qubits, standard_gates=standard_gates)
