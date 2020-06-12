@@ -673,14 +673,14 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       data.add_average_snapshot("density_matrix", op.string_params[0],
-                            BaseState::creg_.memory_hex(), std::move(reduced_state), false);
+                            BaseState::creg_.memory_hex(), reduced_state, false);
       break;
     case SnapshotDataType::average_var:
       data.add_average_snapshot("density_matrix", op.string_params[0],
-                            BaseState::creg_.memory_hex(), std::move(reduced_state), true);
+                            BaseState::creg_.memory_hex(), reduced_state, true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
+      data.add_pershot_snapshot("density_matrix", op.string_params[0], reduced_state);
       break;
   }
 }
