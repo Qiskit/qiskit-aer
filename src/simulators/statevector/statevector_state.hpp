@@ -713,11 +713,13 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
   // Return full density matrix
   cmatrix_t densmat(DIM, DIM);
   if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
-    
-    for (size_t row = 0; row < DIM; ++row)
-      for (size_t col = 0; col < DIM; ++col) {
-        densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
-      }
+    const int_t mask = QV::MASKS[N];
+    #pragma omp parallel for if (2*N > omp_qubit_threshold_ && BaseState::threads_ > 1) num_threads(BaseState::threads_)
+    for (int_t rowcol = 0; rowcol < int_t(DIM * DIM); ++rowcol) {
+      const int_t row = rowcol >> N;
+      const int_t col = rowcol & mask;
+      densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
+    }
   } else {
     const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
     for (size_t k = 0; k < END; k++) {
