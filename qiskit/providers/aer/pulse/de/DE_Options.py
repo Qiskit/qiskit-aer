@@ -27,20 +27,20 @@ class DE_Options:
         opts.order = 10
 
     Notes:
-        - These options are solely related to DE solving.
         - Not all options are used by all methods; see each method description for a list of
           relevant options.
 
     Attributes:
         method (str, 'zvode-adams'): Integration method.
-        atol (float, 1e-8): Absolute tolerance.
-        rtol (float, 1e-6): Relative tolerance.
-        order (int, 12): Order of integrator
-        nsteps (int, 50000): Max. number of internal steps per time interval.
-        first_step (float, 0): Size of initial step (0 = automatic).
-        min_step (float, 0): Minimum step size (0 = automatic).
-        max_step (float, 0): Maximum step size (0 = automatic).
-        max_dt (float, 1e-3):
+        atol (float, 1e-8): Absolute tolerance for variable step solvers.
+        rtol (float, 1e-6): Relative tolerance for variable step solvers.
+        order (int, 12): Order of integrator.
+        nsteps (int, 50000): Max. number of internal steps per time interval for variable step
+                             solvers.
+        first_step (float, None): Size of initial step for variable step solvers.
+        min_step (float, None): Minimum step size for variable step solvers.
+        max_step (float, None): Maximum step size for variable step solvers.
+        max_dt (float, 1e-3): Max step size for fixed step solver.
     """
 
     def __init__(self,

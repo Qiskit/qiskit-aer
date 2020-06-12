@@ -21,10 +21,9 @@
 """Set up DE solver for problems in qutip format."""
 
 from ..de.DE_Methods import QiskitZVODE
-from ..de.DE_Options import DE_Options
 
 
-def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
+def construct_pulse_zvode_solver(exp, y0, op_system, de_options):
     """ Constructs a scipy ODE solver for a given exp and op_system
 
     Parameters:
@@ -36,15 +35,5 @@ def construct_pulse_zvode_solver(exp, y0, op_system, ode_options):
     """
 
     rhs = op_system.init_rhs(exp)
-
-    options = DE_Options(method=ode_options.method,
-                         order=ode_options.order,
-                         atol=ode_options.atol,
-                         rtol=ode_options.rtol,
-                         nsteps=ode_options.nsteps,
-                         first_step=ode_options.first_step,
-                         min_step=ode_options.min_step,
-                         max_step=ode_options.max_step)
-
-    qiskit_zvode = QiskitZVODE(0.0, y0, rhs, options)
+    qiskit_zvode = QiskitZVODE(0.0, y0, rhs, de_options)
     return qiskit_zvode

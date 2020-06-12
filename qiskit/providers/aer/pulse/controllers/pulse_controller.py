@@ -22,7 +22,7 @@ import numpy as np
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from .pulse_de_options import OPoptions
+from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
 from .pulse_utils import td_ode_rhs_static
@@ -147,14 +147,14 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_sim_desc.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
 
     # solver options
-    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                           'num_cpus', 'norm_tol', 'norm_steps',
-                           'rhs_reuse', 'rhs_filename']
-    ode_options = backend_options.get('ode_options', {})
-    for key in ode_options:
-        if key not in allowed_ode_options:
-            raise Exception('Invalid ode_option: {}'.format(key))
-    ode_options = OPoptions(**ode_options)
+    allowed_solver_options = ['atol', 'rtol', 'nsteps', 'max_step',
+                              'num_cpus', 'norm_tol', 'norm_steps',
+                              'rhs_reuse', 'rhs_filename']
+    solver_options = backend_options.get('solver_options', {})
+    for key in solver_options:
+        if key not in allowed_solver_options:
+            raise Exception('Invalid solver_option: {}'.format(key))
+    solver_options = PulseSimOptions(**solver_options)
 
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
@@ -164,7 +164,7 @@ def pulse_controller(qobj, system_model, backend_options):
             stop = pulse_sim_desc.global_data['pulse_indices'][val + 1]
             start = pulse_sim_desc.global_data['pulse_indices'][val]
             min_width = min(min_width, stop - start)
-    ode_options.max_step = min_width / 2 * system_model.dt
+    solver_options.de_options.max_step = min_width / 2 * system_model.dt
 
     # ########################################
     # Determination of measurement operators.
@@ -199,7 +199,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
-    exp_results, exp_times = run_experiments(pulse_sim_desc, ode_options)
+    exp_results, exp_times = run_experiments(pulse_sim_desc, solver_options)
 
     return format_exp_results(exp_results, exp_times, pulse_sim_desc)
 

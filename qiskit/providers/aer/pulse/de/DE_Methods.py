@@ -392,13 +392,11 @@ class RK4(ODE_Method):
         self._t = t_end
 
     def set_options(self, options):
-        """Only option is max step size
-        """
         self._max_dt = options.max_dt
 
 
 def method_from_string(method_str):
-    """Factory function that returns a method specified by a string.
+    """Returns an ODE_Method specified by a string.
 
     Args:
         method_str (str): string specifying method

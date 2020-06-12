@@ -21,7 +21,7 @@ from math import log
 import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
-from .pulse_de_options import OPoptions
+from .pulse_sim_options import PulseSimOptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from .pulse_de_solver import construct_pulse_zvode_solver
 from .pulse_utils import (cy_expect_psi_csr, occ_probabilities,
@@ -30,7 +30,7 @@ from .pulse_utils import (cy_expect_psi_csr, occ_probabilities,
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def run_monte_carlo_experiments(op_system, ode_options=OPoptions()):
+def run_monte_carlo_experiments(op_system, solver_options=PulseSimOptions()):
     """ Runs monte carlo experiments for a given op_system
 
     Parameters:
@@ -47,8 +47,8 @@ def run_monte_carlo_experiments(op_system, ode_options=OPoptions()):
         raise Exception("Initial state must be a state vector.")
 
     # set num_cpus to the value given in settings if none in Options
-    if not ode_options.num_cpus:
-        ode_options.num_cpus = CPU_COUNT
+    if not solver_options.num_cpus:
+        solver_options.num_cpus = CPU_COUNT
 
     # setup seeds array
     seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
@@ -56,7 +56,7 @@ def run_monte_carlo_experiments(op_system, ode_options=OPoptions()):
     for exp in op_system.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
-    map_kwargs = {'num_processes': ode_options.num_cpus}
+    map_kwargs = {'num_processes': solver_options.num_cpus}
 
     exp_results = []
     exp_times = []
@@ -83,7 +83,7 @@ def run_monte_carlo_experiments(op_system, ode_options=OPoptions()):
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
+def monte_carlo_evolution(seed, exp, op_system, solver_options=PulseSimOptions()):
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
@@ -120,7 +120,7 @@ def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
     n_dp = np.zeros(global_data['c_num'], dtype=float)
 
     y0 = op_system.global_data['initial_state']
-    ODE = construct_pulse_zvode_solver(exp, y0, op_system, ode_options)
+    ODE = construct_pulse_zvode_solver(exp, y0, op_system, solver_options.de_options)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:
@@ -140,7 +140,7 @@ def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
                 # ------------------------------------------------
                 ii = 0
                 t_final = ODE.t
-                while ii < ode_options.norm_steps:
+                while ii < solver_options.norm_steps:
                     ii += 1
                     t_guess = t_prev + \
                         log(norm2_prev / rand_vals[0]) / \
@@ -153,7 +153,7 @@ def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
                             "ZVODE failed after adjusting step size!")
                     norm2_guess = dznrm2(ODE.y)**2
                     if (abs(rand_vals[0] - norm2_guess) <
-                            ode_options.norm_tol * rand_vals[0]):
+                            solver_options.norm_tol * rand_vals[0]):
                         break
 
                     if norm2_guess < rand_vals[0]:
@@ -165,7 +165,7 @@ def monte_carlo_evolution(seed, exp, op_system, ode_options=OPoptions()):
                         t_prev = t_guess
                         y_prev = ODE.y
                         norm2_prev = norm2_guess
-                if ii > ode_options.norm_steps:
+                if ii > solver_options.norm_steps:
                     raise Exception("Norm tolerance not reached. " +
                                     "Increase accuracy of ODE solver or " +
                                     "Options.norm_steps.")
