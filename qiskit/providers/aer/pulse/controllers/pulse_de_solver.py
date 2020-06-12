@@ -23,7 +23,7 @@
 from ..de.DE_Methods import QiskitZVODE
 
 
-def construct_pulse_zvode_solver(exp, y0, op_system, de_options):
+def construct_pulse_zvode_solver(exp, y0, pulse_de_model, de_options):
     """ Constructs a scipy ODE solver for a given exp and op_system
 
     Parameters:
@@ -34,6 +34,6 @@ def construct_pulse_zvode_solver(exp, y0, op_system, de_options):
         ode: scipy ode
     """
 
-    rhs = op_system.init_rhs(exp)
+    rhs = pulse_de_model.init_rhs(exp)
     qiskit_zvode = QiskitZVODE(0.0, y0, rhs, de_options)
     return qiskit_zvode

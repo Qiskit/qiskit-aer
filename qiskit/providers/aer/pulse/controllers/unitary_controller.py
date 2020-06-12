@@ -30,22 +30,21 @@ from .pulse_utils import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def _full_simulation(exp, op_system, solver_options=PulseSimOptions()):
+def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
     """
     Set up full simulation, i.e. combining different (ideally modular) computational
     resources into one function.
     """
-    psi, ode_t = unitary_evolution(exp, op_system, solver_options)
+    psi, ode_t = unitary_evolution(exp, y0, pulse_de_model, solver_options)
 
     # ###############
     # do measurement
     # ###############
     rng = np.random.RandomState(exp['seed'])
 
-    shots = op_system.global_data['shots']
+    shots = pulse_sim_desc.shots
     # Init memory
-    memory = np.zeros((shots, op_system.global_data['memory_slots']),
-                      dtype=np.uint8)
+    memory = np.zeros((shots, pulse_sim_desc.memory_slots), dtype=np.uint8)
 
     qubits = []
     memory_slots = []
@@ -57,14 +56,14 @@ def _full_simulation(exp, op_system, solver_options=PulseSimOptions()):
     qubits = np.array(qubits, dtype='uint32')
     memory_slots = np.array(memory_slots, dtype='uint32')
 
-    probs = occ_probabilities(qubits, psi, op_system.global_data['measurement_ops'])
+    probs = occ_probabilities(qubits, psi, pulse_sim_desc.measurement_ops)
     rand_vals = rng.rand(memory_slots.shape[0] * shots)
     write_shots_memory(memory, memory_slots, probs, rand_vals)
 
     return [memory, psi, ode_t]
 
 
-def run_unitary_experiments(op_system, solver_options=PulseSimOptions()):
+def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
     """ Runs unitary experiments for a given op_system
 
     Parameters:
@@ -77,17 +76,19 @@ def run_unitary_experiments(op_system, solver_options=PulseSimOptions()):
         Exception: if initial state is of incorrect format
     """
 
-    if not op_system.initial_state.isket:
+    if not pulse_sim_desc.initial_state.isket:
         raise Exception("Initial state must be a state vector.")
+
+    y0 = pulse_sim_desc.initial_state.full().ravel()
 
     # set num_cpus to the value given in settings if none in Options
     if not solver_options.num_cpus:
         solver_options.num_cpus = CPU_COUNT
 
     # setup seeds array
-    seed = op_system.global_data.get('seed', np.random.randint(np.iinfo(np.int32).max - 1))
+    seed = pulse_sim_desc.seed or np.random.randint(np.iinfo(np.int32).max - 1)
     prng = np.random.RandomState(seed)
-    for exp in op_system.experiments:
+    for exp in pulse_sim_desc.experiments:
         exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
 
     map_kwargs = {'num_processes': solver_options.num_cpus}
@@ -95,18 +96,18 @@ def run_unitary_experiments(op_system, solver_options=PulseSimOptions()):
     # run simulation on each experiment in parallel
     start = time.time()
     exp_results = parallel_map(_full_simulation,
-                               op_system.experiments,
-                               task_args=(op_system, solver_options, ),
+                               pulse_sim_desc.experiments,
+                               task_args=(y0, pulse_sim_desc, pulse_de_model, solver_options, ),
                                **map_kwargs
                                )
     end = time.time()
-    exp_times = (np.ones(len(op_system.experiments)) *
-                 (end - start) / len(op_system.experiments))
+    exp_times = (np.ones(len(pulse_sim_desc.experiments)) *
+                 (end - start) / len(pulse_sim_desc.experiments))
 
     return exp_results, exp_times
 
 
-def unitary_evolution(exp, op_system, solver_options=PulseSimOptions()):
+def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions()):
     """
     Calculates evolution when there is no noise,
     or any measurements that are not at the end
@@ -123,11 +124,10 @@ def unitary_evolution(exp, op_system, solver_options=PulseSimOptions()):
         Exception: Error in ODE solver.
     """
 
-    y0 = op_system.global_data['initial_state']
-    ODE = construct_pulse_zvode_solver(exp, y0, op_system, solver_options.de_options)
+    ODE = construct_pulse_zvode_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
     tlist = exp['tlist']
-
+    
     for t in tlist[1:]:
         ODE.integrate(t, step=0)
         if ODE.successful():
@@ -137,7 +137,7 @@ def unitary_evolution(exp, op_system, solver_options=PulseSimOptions()):
             raise Exception(err_msg)
 
     # apply final rotation to come out of rotating frame
-    psi_rot = np.exp(-1j * op_system.global_data['h_diag_elems'] * ODE.t)
+    psi_rot = np.exp(-1j * pulse_de_model.h_diag_elems * ODE.t)
     psi *= psi_rot
 
     return psi, ODE.t
