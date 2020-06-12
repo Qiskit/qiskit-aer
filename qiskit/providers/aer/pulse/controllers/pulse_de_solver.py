@@ -16,24 +16,27 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
-# pylint: disable=no-value-for-parameter, invalid-name, import-error
 
 """Set up DE solver for problems in qutip format."""
 
-from ..de.DE_Methods import QiskitZVODE
+from ..de.DE_Methods import method_from_string
 
 
-def construct_pulse_zvode_solver(exp, y0, pulse_de_model, de_options):
+def setup_de_solver(exp, y0, pulse_de_model, de_options):
     """ Constructs a scipy ODE solver for a given exp and op_system
 
     Parameters:
-        exp (dict): dict containing experimental
-        op_system (PulseSimDescription): container for simulation information
+        exp (dict): dict containing experiment description
+        y0 (array): initial state
+        pulse_de_model (PulseInternalDEModel): container for de model
+        de_options (DE_Options): options for DE method
 
     Returns:
-        ode: scipy ode
+        solver: ODE_Method instance initialized with state and rhs function
     """
 
+    Method = method_from_string(de_options.method)
+
     rhs = pulse_de_model.init_rhs(exp)
-    qiskit_zvode = QiskitZVODE(0.0, y0, rhs, de_options)
-    return qiskit_zvode
+    solver = Method(0.0, y0, rhs, de_options)
+    return solver

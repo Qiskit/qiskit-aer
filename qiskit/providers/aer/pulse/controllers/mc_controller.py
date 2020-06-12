@@ -23,9 +23,8 @@ import numpy as np
 from scipy.linalg.blas import get_blas_funcs
 from .pulse_sim_options import PulseSimOptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from .pulse_de_solver import construct_pulse_zvode_solver
-from .pulse_utils import (cy_expect_psi_csr, occ_probabilities,
-                              write_shots_memory, spmv_csr)
+from .pulse_de_solver import setup_de_solver
+from .pulse_utils import (cy_expect_psi_csr, occ_probabilities, write_shots_memory, spmv_csr)
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -34,7 +33,9 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=P
     """ Runs monte carlo experiments for a given op_system
 
     Parameters:
-        op_system (PulseSimDescription): container for simulation information
+        pulse_sim_desc (PulseSimDescription): description of pulse simulation
+        pulse_de_model (PulseInternalDEModel): description of de model
+        solver_options (PulseSimOptions): options
 
     Returns:
         tuple: two lists with experiment results
@@ -69,11 +70,14 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=P
     for exp in pulse_sim_desc.experiments:
         start = time.time()
         rng = np.random.RandomState(exp['seed'])
-        seeds = rng.randint(np.iinfo(np.int32).max - 1,
-                            size=pulse_sim_desc.shots)
+        seeds = rng.randint(np.iinfo(np.int32).max - 1, size=pulse_sim_desc.shots)
         exp_res = parallel_map(monte_carlo_evolution,
                                seeds,
-                               task_args=(exp, y0, pulse_sim_desc, pulse_de_model, solver_options, ),
+                               task_args=(exp,
+                                          y0,
+                                          pulse_sim_desc,
+                                          pulse_de_model,
+                                          solver_options, ),
                                **map_kwargs)
 
         # exp_results is a list for each shot
@@ -89,13 +93,21 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=P
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
+def monte_carlo_evolution(seed,
+                          exp,
+                          y0,
+                          pulse_sim_desc,
+                          pulse_de_model,
+                          solver_options=PulseSimOptions()):
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
         seed (int): seed for random number generation
         exp (dict): dictionary containing experiment description
-        op_system (PulseSimDescription): container for information required for simulation
+        y0 (array): initial state
+        pulse_sim_desc (PulseSimDescription): container for simulation description
+        pulse_de_model (PulseInternalDEModel): container for de model
+        solver_options (PulseSimOptions): options
 
     Returns:
         array: results of experiment
@@ -123,7 +135,7 @@ def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_
     cinds = np.arange(pulse_de_model.c_num)
     n_dp = np.zeros(pulse_de_model.c_num, dtype=float)
 
-    ODE = construct_pulse_zvode_solver(exp, y0, pulse_de_model, solver_options.de_options)
+    ODE = setup_de_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
     for stop_time in tlist:

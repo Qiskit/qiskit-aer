@@ -14,6 +14,7 @@
 
 """Options for DE_Methods"""
 
+
 class DE_Options:
     """
     Container class for options and defaults specific for DE_Methods.  Options can be specified
@@ -74,6 +75,7 @@ class DE_Options:
         self.max_dt = max_dt
 
     def copy(self):
+        """Create a copy of the object."""
         return DE_Options(method=self.method,
                           atol=self.atol,
                           rtol=self.rtol,

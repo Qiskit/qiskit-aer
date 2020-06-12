@@ -16,6 +16,7 @@
 
 from ..de.DE_Options import DE_Options
 
+
 class PulseSimOptions():
     """
     Class of options for pulse solver routines.  Options can be specified either as

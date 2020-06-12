@@ -16,6 +16,7 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
+# pylint: disable=invalid-name, attribute-defined-outside-init
 
 """DE methods."""
 
@@ -71,7 +72,7 @@ class ODE_Method(ABC):
                                     functions
 
         Returns:
-            state of the solver at the end of the integral
+            state: state at the end of the interval
         """
         t0 = interval[0]
         tf = interval[1]
@@ -89,19 +90,23 @@ class ODE_Method(ABC):
 
     @property
     def t(self):
+        """Time property."""
         return self._t
 
     @t.setter
     def t(self, new_t):
+        """Time setter."""
         self._t = new_t
         self._reset_method()
 
     @property
     def y(self):
+        """State property."""
         return self._state_type_converter.inner_to_outer(self._y)
 
     @y.setter
     def y(self, new_y):
+        """State setter."""
         self.set_y(new_y)
 
     def set_y(self, new_y, reset=True):
@@ -109,20 +114,23 @@ class ODE_Method(ABC):
         """
         type_spec = self.method_spec.get('inner_state_spec')
         self._state_type_converter = \
-                        StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+            StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
 
         self._y = self._state_type_converter.outer_to_inner(new_y)
 
         self._reset_method(reset)
-
 
     def set_rhs(self, rhs=None, reset=True):
         """Set rhs functions.
 
         Args:
             rhs (dict or callable): Either a dict with callable values,
-                                    e.g. {'rhs': f, 'rhs_jac': g}, or a callable f, which
-                                    produces equivalent behaviour as the input {'rhs', f}
+                                    e.g. {'rhs': f}, or a callable f, which
+                                    produces equivalent behaviour as the input {'rhs': f}
+            reset (bool): Whether or not to reset solver
+
+        Raises:
+            Exception: if rhs dict is mis-specified
         """
 
         if rhs is None:
@@ -139,15 +147,12 @@ class ODE_Method(ABC):
         self._reset_method(reset)
 
     def successful(self):
+        """Return if whether method is successful."""
         return self._successful
 
     def return_code(self):
+        """Get return code."""
         return self._return_code
-
-
-    """
-    Functions to implement in concrete subclasses
-    """
 
     @abstractmethod
     def integrate(self, tf):
@@ -168,6 +173,7 @@ class ODE_Method(ABC):
         pass
 
     def set_options(self, options):
+        """Setup options for the method."""
         pass
 
 
@@ -203,7 +209,7 @@ class ScipyODE(ODE_Method):
 
             kept_warnings = []
             for w in ws:
-                if not ('The following arguments have no effect' in str(w.message)):
+                if 'The following arguments have no effect' not in str(w.message):
                     kept_warnings.append(w)
 
         # display warnings we don't want to silence
@@ -262,7 +268,7 @@ class QiskitZVODE(ODE_Method):
         """
         type_spec = self.method_spec.get('inner_state_spec')
         self._state_type_converter = \
-                        StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+            StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
 
         self._y = self._state_type_converter.outer_to_inner(new_y)
 
@@ -270,7 +276,6 @@ class QiskitZVODE(ODE_Method):
             self._ODE._y = self._y
 
         self._reset_method(reset)
-
 
     def set_rhs(self, rhs=None, reset=True):
         """Set rhs functions. rhs may either be a dict specifying multiple functions related
@@ -311,7 +316,6 @@ class QiskitZVODE(ODE_Method):
 
         self._reset_method(reset)
 
-
     def integrate(self, tf, step=False):
         """Integrate up to a time tf.
 
@@ -338,7 +342,6 @@ class QiskitZVODE(ODE_Method):
             if 'zvode-' in options.method:
                 options.method = options.method[6:]
 
-
         # handle None-type defaults
         if options.first_step is None:
             options.first_step = 0
@@ -364,6 +367,7 @@ class qiskit_zvode(zvode):
         r = self.run(*args)
         self.call_args[2] = itask
         return r
+
 
 class RK4(ODE_Method):
     """

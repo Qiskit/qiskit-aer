@@ -22,7 +22,7 @@ import numpy as np
 from scipy.linalg.blas import get_blas_funcs
 from .pulse_sim_options import PulseSimOptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
-from .pulse_de_solver import construct_pulse_zvode_solver
+from .pulse_de_solver import setup_de_solver
 
 # Imports from qutip_extra_lite
 from .pulse_utils import occ_probabilities, write_shots_memory
@@ -67,7 +67,9 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=Pulse
     """ Runs unitary experiments for a given op_system
 
     Parameters:
-        op_system (PulseSimDescription): container for simulation information
+        pulse_sim_desc (PulseSimDescription): description of pulse simulation
+        pulse_de_model (PulseInternalDEModel): description of de model
+        solver_options (PulseSimOptions): options
 
     Returns:
         tuple: two lists with experiment results
@@ -109,22 +111,23 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=Pulse
 
 def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions()):
     """
-    Calculates evolution when there is no noise,
-    or any measurements that are not at the end
+    Calculates evolution when there is no noise, or any measurements that are not at the end
     of the experiment.
 
-    Args:
-        exp (dict): Dictionary of experimental pulse and fc
-        op_system (OPSystem): Global OpenPulse system settings
+    Parameters:
+        exp (dict): dictionary containing experiment description
+        y0 (array): initial state
+        pulse_de_model (PulseInternalDEModel): container for de model
+        solver_options (PulseSimOptions): options
 
     Returns:
-        array: Memory of shots.
+        array: results of experiment
 
     Raises:
-        Exception: Error in ODE solver.
+        Exception: if ODE solving has errors
     """
 
-    ODE = construct_pulse_zvode_solver(exp, y0, pulse_de_model, solver_options.de_options)
+    ODE = setup_de_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
     tlist = exp['tlist']
 

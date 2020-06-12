@@ -27,6 +27,7 @@ from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
 from .pulse_utils import td_ode_rhs_static
 
+
 def pulse_controller(qobj, system_model, backend_options):
     """ Interprets PulseQobj input, runs simulations, and returns results
 
@@ -207,7 +208,7 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
     Parameters:
         exp_results (list): simulation results
         exp_times (list): simulation times
-        op_system (PulseSimDescription): object containing all simulation information
+        pulse_sim_desc (PulseSimDescription): object containing all simulation information
 
     Returns:
         list: formatted simulation results
@@ -304,6 +305,8 @@ def _unsupported_warnings(noise_model):
 
 
 class PulseInternalDEModel:
+    """Container of information required for de RHS construction
+    """
 
     def __init__(self):
         # The system Hamiltonian in numerical format
@@ -415,7 +418,6 @@ class PulseInternalDEModel:
                           'h_ops_ptr': self.h_ops_ptr,
                           'h_diag_elems': self.h_diag_elems}
 
-
     def init_rhs(self, exp):
         """Set up and return rhs function corresponding to this model for a given
         experiment exp
@@ -429,12 +431,10 @@ class PulseInternalDEModel:
 
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
-        rhs = lambda t, y: td_ode_rhs_static(t, y,
-                                             self._rhs_dict,
-                                             exp,
-                                             self.system,
-                                             channels,
-                                             register)
+
+        def rhs(t, y):
+            return td_ode_rhs_static(t, y, self._rhs_dict, exp, self.system, channels, register)
+
         return rhs
 
 

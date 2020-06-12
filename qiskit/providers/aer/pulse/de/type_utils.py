@@ -11,10 +11,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 """Utilities for type handling/conversion for DE classes."""
 
 import numpy as np
+
 
 class StateTypeConverter:
     """Contains descriptions of two data types for DE solvers/methods, with functions for
@@ -38,7 +40,7 @@ class StateTypeConverter:
 
         Args:
             inner_type_spec (dict): inner type
-            outer_type_spec: outer type
+            outer_type_spec (dict): outer type
         """
 
         self.inner_type_spec = inner_type_spec
@@ -54,8 +56,11 @@ class StateTypeConverter:
         type_spec_from_instance. If outer_y is None the outer type is set to the inner type
 
         Args:
-            inner_y: concrete representative of inner type
-            outer_y: concrete representative of outer type
+            inner_y (array): concrete representative of inner type
+            outer_y (array): concrete representative of outer type
+
+        Returns:
+            StateTypeConverter: type converter as specified by args
         """
         inner_type_spec = type_spec_from_instance(inner_y)
 
@@ -76,8 +81,14 @@ class StateTypeConverter:
             - {'type': 'array', 'ndim': 1}
 
         Args:
-            outer_y: concrete outer data type
+            outer_y (array): concrete outer data type
             inner_type_spec (dict): inner, potentially general, type spec
+
+        Returns:
+            StateTypeConverter: type converter as specified by args
+
+        Raises:
+            Exception: if inner_type_spec is not properly specified or is not a handled type
         """
 
         # if no inner_spec given just instantiate both inner and outer to the outer_y
@@ -91,7 +102,7 @@ class StateTypeConverter:
         # if an array, if shape is given in the spec, use that
         # if ndim == 1 (i.e. representing that the inner shape needs to be a vector)
         #   flatten outer_y and instantiate with those
-        elif inner_type == 'array':
+        if inner_type == 'array':
             outer_y_as_array = np.array(outer_y)
 
             shape = inner_type_spec.get('shape')
@@ -107,7 +118,6 @@ class StateTypeConverter:
 
         raise Exception('inner_type_spec not a handled type.')
 
-
     def inner_to_outer(self, y):
         """Convert a state of inner type to one of outer type."""
         return convert_state(y, self.outer_type_spec)
@@ -122,19 +132,12 @@ class StateTypeConverter:
 
         Currently supports:
             - rhs_funcs['rhs'] - standard differential equation rhs function f(t, y)
-            - rhs_funcs['generator'] - generator for a BMDE
-
-        Need to implement:
-            - rhs_funcs['rhs_jac'] - jacobian of rhs function, Jf(t)
-
-        Assumptions:
-            - For rhs_funcs['generator'], either inner_type == outer_type, or
-              outer_type = {'type': 'array', 'shape': (d0,d1)} and
-              inner_type = {'type': 'array', 'shape': (d0*d1,)}, i.e. the internal representation
-              is the vectorized version of the outer
 
         Args:
             rhs_funcs (dict): contains various rhs functions
+
+        Returns:
+            dict: transformed rhs funcs
         """
 
         new_rhs_funcs = {}
@@ -150,16 +153,13 @@ class StateTypeConverter:
 
             new_rhs_funcs['rhs'] = new_rhs
 
-        # transform rhs_jac function
-        rhs_jac = rhs_funcs.get('rhs_jac')
-
-        if rhs_jac is not None:
-            pass
-
         return new_rhs_funcs
+
 
 def convert_state(y, type_spec):
     """Convert the de state y into the type specified by type_spec."""
+
+    new_y = None
 
     if type_spec['type'] == 'array':
         # default array data type to complex
@@ -167,9 +167,10 @@ def convert_state(y, type_spec):
 
         shape = type_spec.get('shape')
         if shape is not None:
-            return new_y.reshape(shape)
-        else:
-            return new_y
+            new_y = new_y.reshape(shape)
+
+    return new_y
+
 
 def type_spec_from_instance(y):
     """Determine type spec from an instance."""
