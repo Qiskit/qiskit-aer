@@ -137,7 +137,6 @@ def pulse_controller(qobj, system_model, backend_options):
              'so it is beign automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
-    #pulse_sim_desc.global_data['freqs'] = list(pulse_sim_desc.freqs.values())
 
     # ###############################
     # ### Parse backend_options
@@ -313,8 +312,6 @@ class PulseInternalDEModel:
         self.noise = None
         # System variables
         self.variables = None
-        # The initial state of the system
-        self.initial_state = None
         # Channels in the Hamiltonian string
         # these tell the order in which the channels
         # are evaluated in the RHS solver.
@@ -325,12 +322,6 @@ class PulseInternalDEModel:
         self.pulse_indices = None
         # A dict that translates pulse names to integers for use in self.pulse_indices
         self.pulse_to_int = None
-        # Holds the parsed experiments
-        self.experiments = []
-        # Can experiments be simulated once then sampled
-        self.can_sample = True
-        # holds global data
-        self.global_data = {}
         # holds frequencies for the channels
         self.freqs = {}
         # diagonal elements of the hamiltonian
@@ -433,35 +424,20 @@ class PulseSimDescription:
     Needs to be refactored into different pieces.
     """
     def __init__(self):
-        # The system Hamiltonian in numerical format
-        self.system = None
-        # The noise (if any) in numerical format
-        self.noise = None
-        # System variables
-        self.vars = None
-        # The initial state of the system
         self.initial_state = None
         # Channels in the Hamiltonian string
         # these tell the order in which the channels
         # are evaluated in the RHS solver.
-        self.channels = None
-        # Array containing all pulse samples
-        self.pulse_array = None
-        # Array of indices indicating where a pulse starts in the self.pulse_array
-        self.pulse_indices = None
-        # A dict that translates pulse names to integers for use in self.pulse_indices
-        self.pulse_to_int = None
-        # Holds the parsed experiments
         self.experiments = []
         # Can experiments be simulated once then sampled
         self.can_sample = True
-        # holds global data
-        self.global_data = {}
-        # holds frequencies for the channels
-        self.freqs = {}
-        # diagonal elements of the hamiltonian
-        self.h_diag = None
-        # eigenvalues of the time-independent hamiltonian
-        self.evals = None
-        # eigenstates of the time-independent hamiltonian
-        self.estates = None
+
+        self.shots = None
+        self.meas_level = None
+        self.meas_return = None
+        self.memory_slots = None
+        self.memory = None
+
+        self.seed = None
+        self.q_level_meas = None
+        self.measurement_ops = None
