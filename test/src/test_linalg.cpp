@@ -12,7 +12,7 @@ static std::default_random_engine rng(rd());
 
 #define CATCH_CONFIG_MAIN
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 template <typename T>
 T rand_f(T min = 0.0, T max = 1.0) {
