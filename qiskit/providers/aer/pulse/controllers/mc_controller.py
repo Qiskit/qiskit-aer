@@ -135,7 +135,7 @@ def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_
             # integrate up to stop_time, one step at a time.
             ODE.integrate(stop_time, step=1)
             if not ODE.successful():
-                raise Exception("ZVODE step failed!")
+                raise Exception("Integration step failed!")
             norm2_psi = dznrm2(ODE.y) ** 2
             if norm2_psi <= rand_vals[0]:
                 # collapse has occured:
@@ -153,7 +153,7 @@ def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_
                     ODE.integrate(t_guess, step=0)
                     if not ODE.successful():
                         raise Exception(
-                            "ZVODE failed after adjusting step size!")
+                            "Integration failed after adjusting step size!")
                     norm2_guess = dznrm2(ODE.y)**2
                     if (abs(rand_vals[0] - norm2_guess) <
                             solver_options.norm_tol * rand_vals[0]):

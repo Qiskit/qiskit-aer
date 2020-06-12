@@ -57,8 +57,9 @@ class ODE_Method(ABC):
         self.set_y(y0, reset=False)
         self.set_rhs(rhs)
 
-        # default to True, only to be changed to false if a failure occurs
+        # attributes for error reporting
         self._successful = True
+        self._return_code = None
 
     def integrate_over_interval(self, y0, interval, rhs=None):
         """Integrate over an interval, with additional options to reset the rhs functions.
@@ -139,6 +140,9 @@ class ODE_Method(ABC):
 
     def successful(self):
         return self._successful
+
+    def return_code(self):
+        return self._return_code
 
 
     """
@@ -319,6 +323,7 @@ class QiskitZVODE(ODE_Method):
         self._y = self._ODE.y
         self._t = self._ODE.t
         self._successful = self._ODE.successful()
+        self._return_code = self._ODE.get_return_code()
 
     def _reset_method(self, reset=True):
         if reset:

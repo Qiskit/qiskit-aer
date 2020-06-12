@@ -127,13 +127,13 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions())
     ODE = construct_pulse_zvode_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
     tlist = exp['tlist']
-    
+
     for t in tlist[1:]:
         ODE.integrate(t, step=0)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
         else:
-            err_msg = 'ZVODE exited with status: %s' % ODE.get_return_code()
+            err_msg = 'ODE method exited with status: %s' % ODE.get_return_code()
             raise Exception(err_msg)
 
     # apply final rotation to come out of rotating frame
