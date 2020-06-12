@@ -368,7 +368,44 @@ def _unsupported_warnings(noise_model):
         warn(warning_str.format('Noise models'))
 
 
-class PulseSimDescription():
+class PulseSimInternalModel:
+
+    def __init(self):
+        # The system Hamiltonian in numerical format
+        self.system = None
+        # The noise (if any) in numerical format
+        self.noise = None
+        # System variables
+        self.vars = None
+        # The initial state of the system
+        self.initial_state = None
+        # Channels in the Hamiltonian string
+        # these tell the order in which the channels
+        # are evaluated in the RHS solver.
+        self.channels = None
+        # Array containing all pulse samples
+        self.pulse_array = None
+        # Array of indices indicating where a pulse starts in the self.pulse_array
+        self.pulse_indices = None
+        # A dict that translates pulse names to integers for use in self.pulse_indices
+        self.pulse_to_int = None
+        # Holds the parsed experiments
+        self.experiments = []
+        # Can experiments be simulated once then sampled
+        self.can_sample = True
+        # holds global data
+        self.global_data = {}
+        # holds frequencies for the channels
+        self.freqs = {}
+        # diagonal elements of the hamiltonian
+        self.h_diag = None
+        # eigenvalues of the time-independent hamiltonian
+        self.evals = None
+        # eigenstates of the time-independent hamiltonian
+        self.estates = None
+        
+
+class PulseSimDescription:
     """ Object for holding any/all information required for simulation.
     Needs to be refactored into different pieces.
     """
