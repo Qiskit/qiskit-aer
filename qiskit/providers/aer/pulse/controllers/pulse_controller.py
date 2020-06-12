@@ -86,7 +86,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     # Get dt
     if system_model.dt is None:
-        raise ValueError('Qobj must have a dt value to simulate.')
+        raise ValueError('System model must have a dt value to simulate.')
 
     pulse_de_model.dt = system_model.dt
 
@@ -330,6 +330,25 @@ class PulseInternalDEModel:
         self.evals = None
         # eigenstates of the time-independent hamiltonian
         self.estates = None
+
+        self.n_registers = None
+
+        # attributes used in RHS function
+        self.vars = None
+        self.vars_names = None
+        self.num_h_terms = None
+        self.c_num = None
+        self.c_ops_data = None
+        self.c_ops_ind = None
+        self.c_ops_ptr = None
+        self.n_ops_data = None
+        self.n_ops_ind = None
+        self.n_ops_ptr = None
+        self.h_diag_elems = None
+
+        self.h_ops_data = None
+        self.h_ops_ind = None
+        self.h_ops_ptr = None
 
         self._rhs_dict = None
 

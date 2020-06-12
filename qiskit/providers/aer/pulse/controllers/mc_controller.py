@@ -63,7 +63,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=P
     exp_results = []
     exp_times = []
 
-    # needs to be configured ahad of time
+    # needs to be configured ahead of time
     pulse_de_model._config_internal_data()
 
     for exp in pulse_sim_desc.experiments:
