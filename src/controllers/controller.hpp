@@ -638,7 +638,7 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
       }
     }
     // Report success
-    exp_result.data = data;
+    exp_result.data = std::move(data);
     exp_result.status = ExperimentResult::Status::completed;
 
     // Pass through circuit header and add metadata
