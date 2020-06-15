@@ -532,12 +532,21 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.
+
+    bool all_failed = true;
     result.status = Result::Status::completed;
-    for (const auto &experiment : result.results) {
-      if (experiment.status != ExperimentResult::Status::completed) {
+    for (size_t i = 0; i < result.results.size(); ++i) {
+      auto& experiment = result.results[i];
+      if (experiment.status == ExperimentResult::Status::completed) {
+        all_failed = false;
+      } else {
         result.status = Result::Status::partial_completed;
-        break;
+        result.message += std::string(" [Experiment ") + std::to_string(i)
+                          + std::string("] ") + experiment.message;
       }
+    }
+    if (all_failed) {
+      result.status = Result::Status::error;
     }
 
     // Stop the timer and add total timing data
