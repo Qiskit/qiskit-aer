@@ -1,9 +1,10 @@
 #include <map>
+#include <random>
+#include <type_traits>
 
-#include <controllers/qasm_controller.hpp>
+#include <framework/utils.hpp>
 #include <framework/linalg/linalg.hpp>
 #include <framework/types.hpp>
-#include <type_traits>
 
 #include "utils.hpp"
 

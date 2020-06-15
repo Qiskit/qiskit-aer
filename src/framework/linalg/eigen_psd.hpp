@@ -16,6 +16,7 @@
 #define _aer_framework_linalg_eigen_psd_hpp_
 
 #include <type_traits>
+#include "framework/blas_protos.hpp"
 #include "framework/matrix.hpp"
 
 /**
@@ -87,13 +88,13 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
     exit(1);
   }
 #endif
-  size_t n = psd_matrix.GetLD();
-  const char uplo = 'U'; //'L';
-  const char compz = 'V'; //'N'/'V'/'I'
-  size_t lwork = 18 * psd_matrix.GetRows();
+  int n = psd_matrix.GetLD();
+  char uplo = 'U'; //'L';
+  char compz = 'V'; //'N'/'V'/'I'
+  int lwork = 18 * psd_matrix.GetRows();
   int info = 0; 
-  size_t lda = n;
-  size_t ldz = lda;
+  int lda = n;
+  int ldz = lda;
 
   // no allocation here, we return by reference i.e. this space was already allocated
   std::complex<double> *z = eigenvectors.GetMat(); 
@@ -107,7 +108,7 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
   std::complex<double> *tau   { new std::complex<double>[n]{std::complex<double>{0.0, 0.0} } };
   std::complex<double> *work1 { new std::complex<double>[lwork]{std::complex<double>{0.0, 0.0} } };
 
-  zhetrd_(&uplo, &n, a, &lda, d, e, tau, work1, &lwork, &info);
+  AerBlas::f77::zhetrd(&uplo, &n, reinterpret_cast<__complex__ double*>(a), &lda, d, e, reinterpret_cast<__complex__ double*>(tau), reinterpret_cast<__complex__ double*>(work1), &lwork, &info);
 
 #ifdef DEBUG
   std::cout << "diag_elems: ";
@@ -131,7 +132,7 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
   // Now call cpteqr
   // On exit d contains eigenvalues, z contains eigenvectors
   // *** on exit e has been destroyed ***
-  zpteqr_(&compz, &n, d, e, z, &ldz, work2, &info);
+  AerBlas::f77::zpteqr(&compz, &n, d, e, reinterpret_cast<__complex__ double*>(z), &ldz, work2, &info);
 
 #ifdef DEBUG
   std::cout << "eigenvalues: ";
@@ -181,13 +182,13 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
     exit(1);
   }
 #endif
-  size_t n = psd_matrix.GetLD();
-  const char uplo = 'U'; //'L';
-  const char compz = 'V'; //'N'/'V'/'I'
-  size_t lwork = 18 * psd_matrix.GetRows();
+  int n = psd_matrix.GetLD();
+  char uplo = 'U'; //'L';
+  char compz = 'V'; //'N'/'V'/'I'
+  int lwork = 18 * psd_matrix.GetRows();
   int info = 0; 
-  size_t lda = n;
-  size_t ldz = lda;
+  int lda = n;
+  int ldz = lda;
 
   // no allocation here, we return by reference i.e. this space was already allocated
   std::complex<float> *z = eigenvectors.GetMat(); 
@@ -201,7 +202,7 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
   std::complex<float> *tau   { new std::complex<float>[n]{std::complex<float>{0.0, 0.0} } };
   std::complex<float> *work1 { new std::complex<float>[lwork]{std::complex<float>{0.0, 0.0} } };
 
-  chetrd_(&uplo, &n, a, &lda, d, e, tau, work1, &lwork, &info);
+  AerBlas::f77::chetrd(&uplo, &n, reinterpret_cast<__complex__ float*>(a), &lda, d, e, reinterpret_cast<__complex__ float*>(tau), reinterpret_cast<__complex__ float*>(work1), &lwork, &info);
 
 #ifdef DEBUG
   std::cout << "diag_elems: ";
@@ -225,7 +226,7 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
   // Now call cpteqr
   // On exit d contains eigenvalues, z contains eigenvectors
   // *** on exit e has been destroyed ***
-  cpteqr_(&compz, &n, d, e, z, &ldz, work2, &info);
+  AerBlas::f77::cpteqr(&compz, &n, d, e, reinterpret_cast<__complex__ float*>(z), &ldz, work2, &info);
 
 #ifdef DEBUG
   std::cout << "eigenvalues: ";
@@ -283,15 +284,15 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   //  = 'V': all eigenvalues in the half-open interval (VL,VU]
   //         will be found.
   //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  const char jobz{'V'}, range{'A'}, uplo{'U'};
-  const size_t n{psd_matrix.GetLD()};
-  const size_t ldz{n}, lda{n}, lwork{2*n};
-  const size_t il{0}, iu{0}; // not referenced if range='A'
-  const double vl{0.0}, vu{0.0}; // not referenced if range='A'
-  const char cmach{'S'};
-  const double abstol{2.0*dlamch_(&cmach)};
-  size_t m{0}; // number of eigenvalues found
-  size_t info{0};
+  char jobz{'V'}, range{'A'}, uplo{'U'};
+  int n{psd_matrix.GetLD()};
+  int ldz{n}, lda{n}, lwork{2*n};
+  int il{0}, iu{0}; // not referenced if range='A'
+  double vl{0.0}, vu{0.0}; // not referenced if range='A'
+  char cmach{'S'};
+  double abstol{2.0*AerBlas::f77::dlamch(&cmach)};
+  int m{0}; // number of eigenvalues found
+  int info{0};
 
   // z is the matrix of eigenvectors to be returned
   eigenvectors.resize(ldz, n);
@@ -300,12 +301,12 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   std::complex<double>  *a{heevx_copy.GetMat()};
   std::complex<double>  *work{new std::complex<double>[lwork]{0.0, 0.0}};
   double                *rwork{new double[7*n]{0.0}};
-  size_t                *iwork{new size_t[5*n]{0}};
-  size_t                *ifail{new size_t[n]{0}};
+  int                   *iwork{new int[5*n]{0}};
+  int                   *ifail{new int[n]{0}};
   double                *w{new double[n]{0.0}};
  
-  zheevx_(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
-         &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork,
+  AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, reinterpret_cast<__complex__ double*>(a), &lda, &vl, &vu, &il, &iu,
+         &abstol, &m, w, reinterpret_cast<__complex__ double*>(z), &ldz, reinterpret_cast<__complex__ double*>(work), &lwork, rwork, iwork,
          ifail, &info);
 
 #ifdef DEBUG
@@ -365,15 +366,15 @@ void eigensystem_psd_heevx(const matrix<std::complex<float>>& psd_matrix,
   //  = 'V': all eigenvalues in the half-open interval (VL,VU]
   //         will be found.
   //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  const char jobz{'V'}, range{'A'}, uplo{'U'};
-  const size_t n{psd_matrix.GetLD()};
-  const size_t ldz{n}, lda{n}, lwork{2*n};
-  const size_t il{0}, iu{0}; // not referenced if range='A'
-  const float vl{0.0}, vu{0.0}; // not referenced if range='A'
-  const char cmach{'S'};
-  const float abstol{static_cast<float>(slamch_(&cmach) * 2.0)};
-  size_t m{0}; // number of eigenvalues found
-  size_t info{0};
+  char jobz{'V'}, range{'A'}, uplo{'U'};
+  int n{psd_matrix.GetLD()};
+  int ldz{n}, lda{n}, lwork{2*n};
+  int il{0}, iu{0}; // not referenced if range='A'
+  float vl{0.0}, vu{0.0}; // not referenced if range='A'
+  char cmach{'S'};
+  float abstol{static_cast<float>(AerBlas::f77::slamch(&cmach) * 2.0)};
+  int m{0}; // number of eigenvalues found
+  int info{0};
 
   // z is the matrix of eigenvectors to be returned
   eigenvectors.resize(ldz, n);
@@ -382,12 +383,12 @@ void eigensystem_psd_heevx(const matrix<std::complex<float>>& psd_matrix,
   std::complex<float>  *a{heevx_copy.GetMat()};
   std::complex<float>  *work{new std::complex<float>[lwork]{0.0, 0.0}};
   float                *rwork{new float[7*n]{0.0}};
-  size_t               *iwork{new size_t[5*n]{0}};
-  size_t               *ifail{new size_t[n]{0}};
+  int                  *iwork{new int[5*n]{0}};
+  int                  *ifail{new int[n]{0}};
   float                *w{new float[n]{0.0}};
  
-  cheevx_(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
-         &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork,
+  AerBlas::f77::cheevx(&jobz, &range, &uplo, &n, reinterpret_cast<__complex__ float*>(a), &lda, &vl, &vu, &il, &iu,
+         &abstol, &m, w, reinterpret_cast<__complex__ float*>(z), &ldz, reinterpret_cast<__complex__ float*>(work), &lwork, rwork, iwork,
          ifail, &info);
 
 #ifdef DEBUG

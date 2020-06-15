@@ -27,17 +27,25 @@ and link these headers.
 #include <vector>
 #include <array>
 
-#define LAPACK_ROW_MAJOR               101
-#define LAPACK_COL_MAJOR               102
-//#include "lapacke.h"
+//#include "openblas/cblas.h"
+#include "openblas/f77blas.h"
 
-/*******************************************************************************
- *
- * BLAS headers
- *
- ******************************************************************************/
+/*
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
 
-const std::array<char, 3> Trans = {'N', 'T', 'C'};
+#include "openblas/lapacke.h"
+*/
+
+#define ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
+template <typename... Args> \
+inline auto AliasnamE(Args&&... args) -> decltype(OriginalnamE(std::forward<Args>(args)...)) { \
+  return OriginalnamE(std::forward<Args>(args)...); \
+}
+
+namespace AerBlas {
+
+std::array<char, 3> Trans = {'N', 'T', 'C'};
 /*  Trans (input) CHARACTER*1.
                 On entry, TRANSA specifies the form of op( A ) to be used in the
    matrix multiplication as follows:
@@ -64,101 +72,40 @@ const std::array<char, 3> Range = {'A', 'V', 'I'};
    be found.
 */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace f77 {
+    ALIAS_FUNCTION(sgemv_, sgemv);
+    ALIAS_FUNCTION(dgemv_, dgemv);
+    ALIAS_FUNCTION(cgemv_, cgemv);
+    ALIAS_FUNCTION(zgemv_, zgemv);
+    ALIAS_FUNCTION(sgemm_, sgemm);
+    ALIAS_FUNCTION(dgemm_, dgemm);
+    ALIAS_FUNCTION(cgemm_, cgemm);
+    ALIAS_FUNCTION(zgemm_, zgemm);
+ 
+    ALIAS_FUNCTION(chetrd_, chetrd);
+    ALIAS_FUNCTION(zhetrd_, zhetrd);
+    ALIAS_FUNCTION(cpteqr_, cpteqr);
+    ALIAS_FUNCTION(zpteqr_, zpteqr);
+    ALIAS_FUNCTION(cheevx_, cheevx);
+    ALIAS_FUNCTION(zheevx_, zheevx);
+    ALIAS_FUNCTION(slamch_, slamch);
+    ALIAS_FUNCTION(dlamch_, dlamch);
+} // namespace f77
 
-//===========================================================================
-// Prototypes for level 3 BLAS
-//===========================================================================
+/*
+namespace lapack {
+    ALIAS_FUNCTION(LAPACKE_chetrd, chetrd);
+    ALIAS_FUNCTION(LAPACKE_zhetrd, zhetrd);
+    ALIAS_FUNCTION(LAPACKE_cpteqr, cpteqr);
+    ALIAS_FUNCTION(LAPACKE_zpteqr, zpteqr);
+    ALIAS_FUNCTION(LAPACKE_cheevx, cheevx);
+    ALIAS_FUNCTION(LAPACKE_zheevx, zheevx);
+    ALIAS_FUNCTION(LAPACKE_slamch, slamch);
+    ALIAS_FUNCTION(LAPACKE_dlamch, dlamch);
+} // namespace lapack
+*/
 
-// Single-Precison Real Matrix-Vector Multiplcation
-void sgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const float *alpha, const float *A, const size_t *lda,
-            const float *x, const size_t *incx, const float *beta, float *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void dgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const double *alpha, const double *A, const size_t *lda,
-            const double *x, const size_t *incx, const double *beta, double *y,
-            const size_t *lincy);
-// Single-Precison Complex Matrix-Vector Multiplcation
-void cgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<float> *alpha, const std::complex<float> *A,
-            const size_t *lda, const std::complex<float> *x, const size_t *incx,
-            const std::complex<float> *beta, std::complex<float> *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void zgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<double> *alpha, const std::complex<double> *A,
-            const size_t *lda, const std::complex<double> *x,
-            const size_t *incx, const std::complex<double> *beta,
-            std::complex<double> *y, const size_t *lincy);
-// Single-Precison Real Matrix-Matrix Multiplcation
-void sgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const float *alpha,
-            const float *A, const size_t *lda, const float *B,
-            const size_t *lba, const float *beta, float *C, size_t *ldc);
-// Double-Precison Real Matrix-Matrix Multiplcation
-void dgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const double *alpha,
-            const double *A, const size_t *lda, const double *B,
-            const size_t *lba, const double *beta, double *C, size_t *ldc);
-// Single-Precison Complex Matrix-Matrix Multiplcation
-void cgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<float> *alpha,
-            const std::complex<float> *A, const size_t *lda,
-            const std::complex<float> *B, const size_t *ldb,
-            const std::complex<float> *beta, std::complex<float> *C,
-            size_t *ldc);
-// Double-Precison Complex Matrix-Matrix Multiplcation
-void zgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<double> *alpha,
-            const std::complex<double> *A, const size_t *lda,
-            const std::complex<double> *B, const size_t *ldb,
-            const std::complex<double> *beta, std::complex<double> *C,
-            size_t *ldc);
-
-// Reduces a complex Hermitian matrix A to symmetric tridiagonal form T by a unitary similarity transformation
-void chetrd_(const char *uplo, const size_t *n, 
-             std::complex<float> *a, size_t *lda, 
-             float *d, float *e, std::complex<float> *tau, std::complex<float> *work,
-             const size_t *lwork, int *info);
-void zhetrd_(const char *uplo, const size_t *n,
-             std::complex<double> *a, size_t *lda, 
-             double *d, double *e, std::complex<double> *tau, std::complex<double> *work,
-             const size_t *lwork, int *info);
-// Calculates the eigenvectors/values of a real symmetric positive-definite tridiagonal matrix T
-void cpteqr_(const char *compz, const size_t *n,
-             float *d, float *e, std::complex<float>* z,
-             size_t *ldz, float* work, int *info );
-void zpteqr_(const char *compz, const size_t *n,
-             double *d, double *e, std::complex<double>* z,
-             size_t *ldz, double* work, int *info );
-// computes the eigenvalues and, optionally, the left and/or right eigenvectors for HE matrices
-void cheevx_(const char* jobz, const char* range, const char* uplo,
-            const size_t* n, std::complex<float>* a, const size_t* lda,
-            const float* vl, const float* vu, const size_t* il, const size_t* iu,
-            const float* abstol, const size_t* m, const float* w, std::complex<float>* z,
-            const size_t* ldz, std::complex<float>* work, const size_t* lwork,
-            float* rwork, size_t* iwork, size_t* ifail, size_t* info);
-void zheevx_(const char* jobz, const char* range, const char* uplo,
-            const size_t* n, std::complex<double>* a, const size_t* lda,
-            const double* vl, const double* vu, const size_t* il, const size_t* iu,
-            const double* abstol, const size_t* m, const double* w, std::complex<double>* z,
-            const size_t* ldz, std::complex<double>* work, const size_t* lwork,
-            double* rwork, size_t* iwork, size_t* ifail, size_t* info);
-
-// Machine query
-float slamch_(const char* cmach);
-
-// Machine query
-double dlamch_(const char* cmach);
-
-#ifdef __cplusplus
-}
-#endif
-
+} // namespace AerBlas
 
 //------------------------------------------------------------------------------
 // end _blas_protos_h_
