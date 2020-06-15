@@ -208,7 +208,7 @@ public:
                                 // sqrt(dims)
   matrix(const matrix<T> &m);
   matrix(const matrix<T> &m, const char uplo);
-
+  matrix(matrix<T>&& m); // move constructor
   // Initialize an empty matrix() to matrix(size_t  rows, size_t cols)
   void initialize(size_t rows, size_t cols);
   // Clear used memory
@@ -219,11 +219,12 @@ public:
 
   // Assignment operator
   matrix<T> &operator=(const matrix<T> &m);
+  matrix<T> &operator=(matrix<T> &&m); // Move assignment
   template <class S>
   matrix<T> &operator=(const matrix<S> &m); // Still would like to have real
                                             // assigend by complex -- take real
                                             // part
-
+  
   // Addressing elements by vector representation
   T &operator[](size_t element);
   T operator[](size_t element) const;
@@ -248,8 +249,9 @@ public:
   void resize(size_t row, size_t col); // sets the size of the underlying vector
   void SetOutputStyle(enum OutputStyle outputstyle); // sets the style the
                                                      // matrix is display by <<
-  T *GetMat() const; // gives you the address of element 0 then *(c+i) gives you
-                     // the ith element
+  // Access the array data pointer
+  const T* data() const noexcept { return mat_; }
+  T* data() noexcept { return mat_; }
 
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
@@ -318,6 +320,15 @@ inline matrix<T>::matrix(const matrix<T> &rhs)
     mat_[p] = rhs.mat_[p];
   }
 }
+
+template <class T>
+inline matrix<T>::matrix(matrix<T>&& rhs)
+    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
+      outputstyle_(rhs.outputstyle_), mat_(rhs.mat_) {
+  rhs.mat_ = nullptr; // Remove pointer from RHS
+}
+
+
 template <class T>
 inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
     : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
@@ -383,6 +394,21 @@ template <class T> inline matrix<T>::~matrix() {
   if (mat_ != nullptr)
     delete[](mat_);
 }
+template <class T>
+inline matrix<T>& matrix<T>::operator=(matrix<T>&& rhs) {
+  // Delete any currently assigned memory
+  if (mat_ != nullptr) {
+    delete[](mat_);
+  }
+  rows_ = rhs.rows_;
+  cols_ = rhs.cols_;
+  size_ = rows_ * cols_;
+  LD_ = rhs.LD_;
+  mat_ = rhs.mat_;
+  rhs.mat_ = nullptr;
+  return *this;
+}
+
 template <class T>
 inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
   // overloading the assignement operator
@@ -504,10 +530,7 @@ template <class T> inline bool matrix<T>::empty() const {
   // returns the size of the underlying vector
   return (size() == 0);
 }
-template <class T> inline T *matrix<T>::GetMat() const {
-  // returns the ptr for the matrix data
-  return mat_;
-}
+
 template <class T>
 inline void matrix<T>::SetOutputStyle(enum OutputStyle outputstyle) {
   // sets the outputstyle
