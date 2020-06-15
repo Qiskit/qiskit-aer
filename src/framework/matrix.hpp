@@ -249,8 +249,9 @@ public:
   void resize(size_t row, size_t col); // sets the size of the underlying vector
   void SetOutputStyle(enum OutputStyle outputstyle); // sets the style the
                                                      // matrix is display by <<
-  T *GetMat() const; // gives you the address of element 0 then *(c+i) gives you
-                     // the ith element
+  // Access the array data pointer
+  const T* data() const noexcept { return mat_; }
+  T* data() noexcept { return mat_; }
 
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
@@ -529,10 +530,7 @@ template <class T> inline bool matrix<T>::empty() const {
   // returns the size of the underlying vector
   return (size() == 0);
 }
-template <class T> inline T *matrix<T>::GetMat() const {
-  // returns the ptr for the matrix data
-  return mat_;
-}
+
 template <class T>
 inline void matrix<T>::SetOutputStyle(enum OutputStyle outputstyle) {
   // sets the outputstyle
