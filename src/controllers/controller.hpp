@@ -136,9 +136,10 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
-  virtual ExperimentResult execute_circuit(Circuit &circ,
-                                           Noise::NoiseModel &noise,
-                                           const json_t &config);
+  virtual void execute_circuit(Circuit &circ,
+                               Noise::NoiseModel &noise,
+                               const json_t &config,
+                               ExperimentResult &exp_result);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
@@ -521,24 +522,12 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_shots_ > 1 || parallel_state_update_ > 1)
       omp_set_nested(1);
 #endif
-    if (parallel_experiments_ > 1) {
-// Parallel circuit execution
-#pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < result.results.size(); ++j) {
-        // Make a copy of the noise model for each circuit execution
-        // so that it can be modified if required
-        auto circ_noise_model = noise_model;
-        result.results[j] =
-            execute_circuit(circuits[j], circ_noise_model, config);
-      }
-    } else {
-      // Serial circuit execution
-      for (int j = 0; j < num_circuits; ++j) {
-        // Make a copy of the noise model for each circuit execution
-        auto circ_noise_model = noise_model;
-        result.results[j] =
-            execute_circuit(circuits[j], circ_noise_model, config);
-      }
+    #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
+    for (int j = 0; j < result.results.size(); ++j) {
+      // Make a copy of the noise model for each circuit execution
+      // so that it can be modified if required
+      auto circ_noise_model = noise_model;
+      execute_circuit(circuits[j], circ_noise_model, config, result.results[j]);
     }
 
     // Check each experiment result for completed status.
@@ -550,6 +539,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         break;
       }
     }
+
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
     result.metadata["time_taken"] =
@@ -563,15 +553,15 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   return result;
 }
 
-ExperimentResult Controller::execute_circuit(Circuit &circ,
-                                             Noise::NoiseModel &noise,
-                                             const json_t &config) {
+void Controller::execute_circuit(Circuit &circ,
+                                 Noise::NoiseModel &noise,
+                                 const json_t &config,
+                                 ExperimentResult &exp_result) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  ExperimentResult exp_result;
   exp_result.data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
@@ -659,7 +649,6 @@ ExperimentResult Controller::execute_circuit(Circuit &circ,
     exp_result.status = ExperimentResult::Status::error;
     exp_result.message = e.what();
   }
-  return exp_result;
 }
 
 //-------------------------------------------------------------------------
