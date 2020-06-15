@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, no-name-in-module
 
 """
 Entry/exit point for pulse simulation specified through PulseSimulator backend
@@ -325,6 +325,8 @@ class PulseInternalDEModel:
         self.pulse_indices = None
         # A dict that translates pulse names to integers for use in self.pulse_indices
         self.pulse_to_int = None
+        # dt for pulse schedules
+        self.dt = None
         # holds frequencies for the channels
         self.freqs = {}
         # diagonal elements of the hamiltonian

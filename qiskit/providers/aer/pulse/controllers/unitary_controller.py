@@ -20,8 +20,8 @@ Controller for solving unitary evolution of a state-vector.
 import time
 import numpy as np
 from scipy.linalg.blas import get_blas_funcs
-from .pulse_sim_options import PulseSimOptions
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
+from .pulse_sim_options import PulseSimOptions
 from .pulse_de_solver import setup_de_solver
 
 # Imports from qutip_extra_lite

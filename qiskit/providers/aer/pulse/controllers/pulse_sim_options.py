@@ -115,6 +115,7 @@ class PulseSimOptions():
         self.store_final_state = store_final_state
 
     def copy(self):
+        """Create a copy."""
         return PulseSimOptions(method=self.de_options.method,
                                atol=self.de_options.atol,
                                rtol=self.de_options.rtol,

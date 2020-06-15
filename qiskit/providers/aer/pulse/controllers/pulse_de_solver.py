@@ -16,6 +16,7 @@
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
+# pylint: disable=invalid-name
 
 """Set up DE solver for problems in qutip format."""
 
@@ -35,8 +36,8 @@ def setup_de_solver(exp, y0, pulse_de_model, de_options):
         solver: ODE_Method instance initialized with state and rhs function
     """
 
-    Method = method_from_string(de_options.method)
+    method = method_from_string(de_options.method)
 
     rhs = pulse_de_model.init_rhs(exp)
-    solver = Method(0.0, y0, rhs, de_options)
+    solver = method(0.0, y0, rhs, de_options)
     return solver

@@ -23,7 +23,6 @@
 from abc import ABC, abstractmethod
 import warnings
 import numpy as np
-from scipy.linalg import expm
 from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
 from .DE_Options import DE_Options
@@ -62,7 +61,7 @@ class ODE_Method(ABC):
         self._successful = True
         self._return_code = None
 
-    def integrate_over_interval(self, y0, interval, rhs=None):
+    def integrate_over_interval(self, y0, interval, rhs=None, **kwargs):
         """Integrate over an interval, with additional options to reset the rhs functions.
 
         Args:
@@ -70,6 +69,8 @@ class ODE_Method(ABC):
             interval (tuple or list): initial and start time, e.g. (t0, tf)
             rhs (callable or dict): Either the rhs function itself, or a dict of rhs-related
                                     functions
+            kwargs (dict): additional keyword arguments for the integrate function of a concrete
+                           method
 
         Returns:
             state: state at the end of the interval
@@ -84,7 +85,7 @@ class ODE_Method(ABC):
 
         self._reset_method()
 
-        self.integrate(tf)
+        self.integrate(tf, **kwargs)
 
         return self.y
 
@@ -155,11 +156,12 @@ class ODE_Method(ABC):
         return self._return_code
 
     @abstractmethod
-    def integrate(self, tf):
+    def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
 
         Args:
             tf (float): time to integrate up to
+            kwargs (dict): key word arguments specific to a given method
         """
         pass
 
@@ -189,7 +191,7 @@ class ScipyODE(ODE_Method):
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
 
-    def integrate(self, tf):
+    def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
         """
         t0 = self.t
@@ -316,13 +318,17 @@ class QiskitZVODE(ODE_Method):
 
         self._reset_method(reset)
 
-    def integrate(self, tf, step=False):
+    def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
 
         Args:
             tf (float): time to integrate up to
-            step (bool): if False, integrates up to tf, if True, only implements a single step
+            kwargs (dict): Support Kwargs:
+                            - 'step': if False, integrates up to tf, if True, only implements a
+                                      single step of the solver
         """
+        step = kwargs.get('step', False)
+
         self._ODE.integrate(tf, step=step)
         self._y = self._ODE.y
         self._t = self._ODE.t
@@ -364,6 +370,7 @@ class qiskit_zvode(zvode):
         itask = self.call_args[2]
         self.rwork[0] = args[4]
         self.call_args[2] = 5
+        # pylint: disable=no-value-for-parameter
         r = self.run(*args)
         self.call_args[2] = itask
         return r
@@ -374,14 +381,14 @@ class RK4(ODE_Method):
     Simple single-step RK4 solver
     """
 
-    def integrate(self, tf):
+    def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
         """
 
         delta_t = tf - self.t
         steps = int((delta_t // self._max_dt) + 1)
         h = delta_t / steps
-        for k in range(steps):
+        for _ in range(steps):
             self._integration_step(h)
 
     def _integration_step(self, h):
