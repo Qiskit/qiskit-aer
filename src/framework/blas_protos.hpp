@@ -15,8 +15,16 @@
 /*
 Dependencies: BLAS
 These are the c++ wrappers for the various high-performance matrix routines 
-used by the matrix class. A lapack/blas/mkl install is required to compile 
-and link these headers.
+used by the matrix class. An openblas install is required. An openblas 
+install using conan with lapack extensions enabled is recommended.
+If lapack is enabled in the build process, the following may be used to 
+include headers and setup flags
+
+```
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
+#include "openblas/lapacke.h"
+```
 */
 
 #ifndef _aer_framework_blas_protos_hpp
@@ -27,15 +35,8 @@ and link these headers.
 #include <vector>
 #include <array>
 
-//#include "openblas/cblas.h"
+#include "openblas/cblas.h"
 #include "openblas/f77blas.h"
-
-/*
-#define lapack_complex_float std::complex<float>
-#define lapack_complex_double std::complex<double>
-
-#include "openblas/lapacke.h"
-*/
 
 #define ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
 template <typename... Args> \
