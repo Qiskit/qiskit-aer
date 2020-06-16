@@ -72,6 +72,9 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
   return Res;
 }
 
+// This function is used when the default precision of double is not
+// sufficient to detect  minute differences between f1 and f2.
+// We scale f1 and f2 by tiny_factor, and then get a more precise comparison
 template <typename T, typename = enable_if_numeric_t<T>>
 bool almost_equal_high_precision(T f1, T f2,
 				 T max_diff = std::numeric_limits<T>::epsilon(),
