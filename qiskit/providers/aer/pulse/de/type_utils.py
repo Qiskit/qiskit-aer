@@ -13,25 +13,23 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
-"""Utilities for type handling/conversion for DE classes."""
+"""Utilities for type handling/conversion for DE classes.
+
+A type specification is a dictionary describing a specific expected type, e.g. an array of a given
+shape. Currently only handled types are numpy arrays, specified via:
+    - {'type': 'array', 'shape': tuple}
+"""
 
 import numpy as np
 
 
 class StateTypeConverter:
-    """Contains descriptions of two data types for DE solvers/methods, with functions for
+    """Contains descriptions of two type specifications for DE solvers/methods, with functions for
     converting states and rhs functions between representations.
 
-    Stores two descriptions: inner_type_spec (internal representation of data) and
-    outer_type_spec (expected return type). Currently only supports conversion between
-    numpy array shapes, represented as dictionaries:
-        - {'type': 'array', 'shape': tuple}
-
-    This class stores exact type information to implement conversions.
-
-    While this class is meant to store exact type information, it can be instantiated with a
-    concrete type and a more general type. This is specifically to facilitate the situation
-    in which internally a solver requires a 1d array, which is specified by the type:
+    While this class stores exact type specifications, it can be instantiated with a
+    concrete type and a more general type. This is facilitates the situation
+    in which a solver requires a 1d array, which is specified by the type:
         - {'type': 'array', 'ndim': 1}
     """
 
@@ -73,8 +71,8 @@ class StateTypeConverter:
     @classmethod
     def from_outer_instance_inner_type_spec(cls, outer_y, inner_type_spec=None):
         """Instantiate from concrete instance of the outer type, and an inner type-spec.
-        The inner type spec can be a fully specified one, or more general, to facilitate the
-        situation in which a solver needs a 1d array.
+        The inner type spec can be either be fully specified, or be more general (i.e. to
+        facilitate the situation in which a solver needs a 1d array).
 
         Accepted general data types:
             - {'type': 'array'}
@@ -91,7 +89,7 @@ class StateTypeConverter:
             Exception: if inner_type_spec is not properly specified or is not a handled type
         """
 
-        # if no inner_spec given just instantiate both inner and outer to the outer_y
+        # if no inner_type_spec given just instantiate both inner and outer to the outer_y
         if inner_type_spec is None:
             return cls.from_instances(outer_y)
 
@@ -99,16 +97,15 @@ class StateTypeConverter:
         if inner_type is None:
             raise Exception("inner_type_spec needs a 'type' key.")
 
-        # if an array, if shape is given in the spec, use that
-        # if ndim == 1 (i.e. representing that the inner shape needs to be a vector)
-        #   flatten outer_y and instantiate with those
         if inner_type == 'array':
             outer_y_as_array = np.array(outer_y)
 
+            # if a specific shape is given attempt to instantiate from a reshaped outer_y
             shape = inner_type_spec.get('shape')
             if shape is not None:
                 return cls.from_instances(outer_y_as_array.reshape(shape), outer_y)
 
+            # handle the case that ndim == 1 is given
             ndim = inner_type_spec.get('ndim')
             if ndim == 1:
                 return cls.from_instances(outer_y_as_array.flatten(), outer_y)
@@ -157,7 +154,8 @@ class StateTypeConverter:
 
 
 def convert_state(y, type_spec):
-    """Convert the de state y into the type specified by type_spec."""
+    """Convert the de state y into the type specified by type_spec. Accepted values of type_spec
+    are given at the beginning of the file."""
 
     new_y = None
 
