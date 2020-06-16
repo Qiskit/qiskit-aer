@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2020.
+ * (C) Copyright IBM 2018, 2019.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -47,7 +47,7 @@ const std::array<uint_t, 64> BITS {{
   4294967296ULL, 8589934592ULL, 17179869184ULL, 34359738368ULL,
   68719476736ULL, 137438953472ULL, 274877906944ULL, 549755813888ULL,
   1099511627776ULL, 2199023255552ULL, 4398046511104ULL, 8796093022208ULL,
-  17592186044416ULL, 35184372088832ULL, 70368744177664ULL, 140737488355328ULL,
+  17592186044416ULL, 35184372088832ULL, 70368744177664ULL, 140737488355328ULL, 
   281474976710656ULL, 562949953421312ULL, 1125899906842624ULL, 2251799813685248ULL,
   4503599627370496ULL, 9007199254740992ULL, 18014398509481984ULL, 36028797018963968ULL,
   72057594037927936ULL, 144115188075855872ULL, 288230376151711744ULL, 576460752303423488ULL,
@@ -81,33 +81,8 @@ const std::array<uint_t, 64> MASKS {{
 // indexes0([1,3], k) -> int(0b0a)
 // Example: k = 77  = 1001101 , qubits_sorted = [1,4]
 // ==> output = 297 = 100101001 (with 0's put into places 1 and 4).
-template <typename list_t>
-inline uint_t index0(const list_t &qubits_sorted, const uint_t k) {
-  uint_t lowbits, retval = k;
-  for (size_t j = 0; j < qubits_sorted.size(); j++) {
-    lowbits = retval & MASKS[qubits_sorted[j]];
-    retval >>= qubits_sorted[j];
-    retval <<= qubits_sorted[j] + 1;
-    retval |= lowbits;
-  }
-  return retval;
-}
-
-// As above but returns a fixed sized array of of 2^N in ints
-template <size_t N>
-inline areg_t<1ULL << N> indexes(const areg_t<N> &qs,
-                          const areg_t<N> &qubits_sorted,
-                          const uint_t k) {
-  areg_t<1ULL << N> ret;
-  ret[0] = index0(qubits_sorted, k);
-  for (size_t i = 0; i < N; i++) {
-    const auto n = BITS[i];
-    const auto bit = BITS[qs[i]];
-    for (size_t j = 0; j < n; j++)
-      ret[n + j] = ret[j] | bit;
-  }
-  return ret;
-}
+template<typename list_t>
+uint_t index0(const list_t &qubits_sorted, const uint_t k);
 
 // Return a std::unique_ptr to an array of of 2^N in ints
 // each int corresponds to an N qubit bitstring for M-N qubit bits in state k,
@@ -128,6 +103,46 @@ inline areg_t<1ULL << N> indexes(const areg_t<N> &qs,
 // output[1]: 299 = 100101011 (with 0 put into place 1, and 1 put into place 4).
 // output[2]: 313 = 100111001 (with 1 put into place 1, and 0 put into place 4).
 // output[3]: 313 = 100111011 (with 1's put into places 1 and 4).
+indexes_t indexes(const reg_t &qubits, const reg_t &qubits_sorted, const uint_t k);
+
+// As above but returns a fixed sized array of of 2^N in ints
+template<size_t N>
+areg_t<1ULL << N> indexes(const areg_t<N> &qs, const areg_t<N> &qubits_sorted, const uint_t k);
+
+
+/*******************************************************************************
+ *
+ * Implementations
+ *
+ ******************************************************************************/
+
+template <typename list_t>
+uint_t index0(const list_t &qubits_sorted, const uint_t k) {
+  uint_t lowbits, retval = k;
+  for (size_t j = 0; j < qubits_sorted.size(); j++) {
+    lowbits = retval & MASKS[qubits_sorted[j]];
+    retval >>= qubits_sorted[j];
+    retval <<= qubits_sorted[j] + 1;
+    retval |= lowbits;
+  }
+  return retval;
+}
+
+template <size_t N>
+areg_t<1ULL << N> indexes(const areg_t<N> &qs,
+                          const areg_t<N> &qubits_sorted,
+                          const uint_t k) {
+  areg_t<1ULL << N> ret;
+  ret[0] = index0(qubits_sorted, k);
+  for (size_t i = 0; i < N; i++) {
+    const auto n = BITS[i];
+    const auto bit = BITS[qs[i]];
+    for (size_t j = 0; j < n; j++)
+      ret[n + j] = ret[j] | bit;
+  }
+  return ret;
+}
+
 inline indexes_t indexes(const reg_t& qubits,
                   const reg_t& qubits_sorted,
                   const uint_t k) {
