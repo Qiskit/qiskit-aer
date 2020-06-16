@@ -136,7 +136,7 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions())
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
         else:
-            err_msg = 'ODE method exited with status: %s' % ODE.get_return_code()
+            err_msg = 'ODE method exited with status: %s' % ODE.return_code()
             raise Exception(err_msg)
 
     # apply final rotation to come out of rotating frame
