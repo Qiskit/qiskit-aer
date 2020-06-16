@@ -102,16 +102,16 @@ class TestQasmMatrixProductStateSimulatorWIN(
         QasmResetTests,
         QasmConditionalGateTests,
         QasmConditionalUnitaryTests,
-        #QasmCliffordTests,  # Failing for CZ
-        #QasmCliffordTestsWaltzBasis,  # Failing for CX, CZ
-        #QasmCliffordTestsMinimalBasis,  # Failing for CX, CZ
+        QasmCliffordTests,  # Failing for CZ
+        QasmCliffordTestsWaltzBasis,  # Failing for CX, CZ
+        QasmCliffordTestsMinimalBasis,  # Failing for CX, CZ
         QasmNonCliffordTestsTGate,
         QasmNonCliffordTestsCCXGate,
-        #QasmNonCliffordTestsWaltzBasis,  # Failing for CCX, CSwap
-        #QasmNonCliffordTestsMinimalBasis,  # Failing for CCX, CSwap
-        #QasmAlgorithmTests,  # Failing for Grovers
-        #QasmAlgorithmTestsWaltzBasis,  # Failing for Grovers
-        #QasmAlgorithmTestsMinimalBasis,  # Failing for Grovers
+        QasmNonCliffordTestsWaltzBasis,  # Failing for CCX, CSwap
+        QasmNonCliffordTestsMinimalBasis,  # Failing for CCX, CSwap
+        QasmAlgorithmTests,  # Failing for Grovers
+        QasmAlgorithmTestsWaltzBasis,  # Failing for Grovers
+        QasmAlgorithmTestsMinimalBasis,  # Failing for Grovers
         QasmUnitaryGateTests,
         # QasmInitializeTests,  # THROWS: partial initialize not supported
         QasmReadoutNoiseTests,
