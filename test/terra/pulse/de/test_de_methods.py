@@ -6,6 +6,7 @@ from scipy.linalg import expm
 from qiskit.providers.aer.pulse.de.DE_Methods import (ODE_Method,
                                                       RK4,
                                                       ScipyODE,
+                                                      QiskitZVODE,
                                                       method_from_string)
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 
@@ -20,6 +21,7 @@ class TestDE_Methods(unittest.TestCase):
         self.Y = np.array([[0., -1j], [1j, 0.]], dtype=complex)
         self.Z = np.array([[1., 0.], [0., -1.]], dtype=complex)
 
+        # define rhs in terms of constant a constant generator
         def generator(t):
             return -1j * 2 * np.pi * self.X / 2
 
@@ -31,31 +33,53 @@ class TestDE_Methods(unittest.TestCase):
     def test_method_from_string(self):
         """Test method_from_string"""
 
-        # test for scipy wrapper
         method = method_from_string('scipy-RK45')
         self.assertTrue(method == ScipyODE)
 
-    def test_ScipyODE(self):
-        """Test ScipyODE method"""
+        method = method_from_string('zvode-adams')
+        self.assertTrue(method == QiskitZVODE)
 
-        # test with the default problem
-        options = DE_Options(method='RK45', atol=10**-10, rtol=10**-10)
+    def test_ScipyODE_RK45(self):
+        """Run standard variable step tests for scipy-RK45."""
+        self._test_variable_step_method('scipy-RK45')
 
-        scipy_solver = ScipyODE(t0=self.t0, y0=self.y0, rhs=self.rhs, options=options)
-        scipy_solver.integrate(1.)
+    def test_ScipyODE_RK23(self):
+        """Run standard variable step tests for scipy-RK23."""
+        self._test_variable_step_method('scipy-RK23')
 
+    def test_ScipyODE_BDF(self):
+        """Run standard variable step tests for scipy-BDF."""
+        self._test_variable_step_method('scipy-BDF')
+
+    def test_QiskitZVODE_adams(self):
+        """Run standard variable step tests for zvode-adams."""
+        self._test_variable_step_method('zvode-adams')
+
+    def _test_variable_step_method(self, method_str):
+        """Some tests for a variable step method."""
+
+        # get method and set general options
+        ode_method = method_from_string(method_str)
+        options = DE_Options(method=method_str, atol=10**-10, rtol=10**-10)
+
+        # run on matrix problem
+        solver = ode_method(t0=self.t0, y0=self.y0, rhs=self.rhs, options=options)
+        solver.integrate(1.)
         expected = expm(-1j * np.pi * self.X)
-        self.assertAlmostEqual(scipy_solver.y, expected, tol=10**-9)
+
+        # set the comparison tolerance to be somewhat lenient
+        self.assertAlmostEqual(solver.y, expected, tol=10**-8)
 
         # test with an arbitrary problem
         def rhs(t, y):
             return np.array([t**2])
 
-        scipy_solver = ScipyODE(t0=0., y0=np.array(0.), rhs={'rhs': rhs}, options=options)
+        solver = ode_method(t0=0., y0=np.array(0.), rhs={'rhs': rhs}, options=options)
 
-        scipy_solver.integrate(1.)
+        solver.integrate(1.)
         expected = 1./3
-        self.assertAlmostEqual(scipy_solver.y, expected, tol=10**-9)
+        self.assertAlmostEqual(solver.y, expected, tol=10**-9)
+
 
     def assertAlmostEqual(self, A, B, tol=10**-15):
         self.assertTrue(np.abs(A - B).max() < tol)
