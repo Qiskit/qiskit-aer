@@ -34,16 +34,15 @@ class ODE_Method(ABC):
     for integrating a new method/solver.
 
     Class Attributes:
-        method_spec (dict): Container of general information about the method. Currently
-                            supports key 'inner_state_spec', containing a description of
-                            of the data type that the underlying method requires. Must be
-                            understandable by StateTypeConverter, which will automatically
-                            handle conversions of the state and rhs functions.
+        method_spec (dict): Container of general information about the method.
+                            Currently supports keys:
+                                - 'inner_state_spec': description of the datatype a solver requires,
+                                                      with accepted descriptions given in type_utils
 
     Instance attributes:
-        _t, t (float): private and public time variable
-        _y, y (array): private and public state variable
-        rhs (dict): rhs-related functions as values
+        _t, t (float): private and public time variable.
+        _y, y (array): private and public state variable.
+        rhs (dict): rhs-related functions as values Currently supports key 'rhs'.
     """
 
     method_spec = {'inner_state_spec': {'type': 'array'}}
@@ -68,7 +67,7 @@ class ODE_Method(ABC):
             y0 (array): state at the start of the interval
             interval (tuple or list): initial and start time, e.g. (t0, tf)
             rhs (callable or dict): Either the rhs function itself, or a dict of rhs-related
-                                    functions
+                                    functions. If not given, will use the already-stored rhs.
             kwargs (dict): additional keyword arguments for the integrate function of a concrete
                            method
 
@@ -113,10 +112,14 @@ class ODE_Method(ABC):
     def set_y(self, new_y, reset=True):
         """Method for logic of setting internal state of solver with more control
         """
+
+        # instantiate internal StateTypeConverter based on the provided new_y and the
+        # general type required internally by the solver
         type_spec = self.method_spec.get('inner_state_spec')
         self._state_type_converter = \
             StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
 
+        # set internal state
         self._y = self._state_type_converter.outer_to_inner(new_y)
 
         self._reset_method(reset)
@@ -143,6 +146,7 @@ class ODE_Method(ABC):
         if 'rhs' not in rhs:
             raise Exception('ODE_Method requires at minimum a specification of an rhs function.')
 
+        # transform rhs function into a function that accepts/returns inner state type
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
 
         self._reset_method(reset)
@@ -180,13 +184,18 @@ class ODE_Method(ABC):
 
 
 class ScipyODE(ODE_Method):
-    """Method wrapper for scipy.integrate.solve_ivp
+    """Method wrapper for scipy.integrate.solve_ivp.
 
     To use:
-        - Specify a method acceptable by scipy.integrate.solve_ivp in options using key
-          'method'
-        - Options for solve_ivp in the form of Keyword arguments may also be passed as a dict
-          with key 'scipy_options' in options
+        - Specify a method acceptable by the keyword argument 'method' scipy.integrate.solve_ivp
+          in DE_Options attribute 'method'. Methods that currently work are:
+            - 'RK45', 'RK23', and 'BDF'
+            - Default if not specified is 'RK45'
+
+    Additional notes:
+        - solve_ivp requires states to be 1d
+        - Enabling other methods requires adding dtype handling to type_utils for solvers that
+          do not handle complex types
     """
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
@@ -198,7 +207,7 @@ class ScipyODE(ODE_Method):
         y0 = self._y
         rhs = self.rhs.get('rhs')
 
-        # solve problem and silence warnings that options that don't apply to a given method
+        # solve problem and silence warnings for options that don't apply to a given method
         kept_warnings = []
         with warnings.catch_warnings(record=True) as ws:
             results = solve_ivp(rhs, (t0, tf), y0,
@@ -207,9 +216,14 @@ class ScipyODE(ODE_Method):
                                 rtol=self.options.rtol,
                                 max_step=self.options.max_step,
                                 min_step=self.options.min_step,
-                                first_step=self.options.first_step)
+                                first_step=self.options.first_step,
+                                **kwargs)
 
-            kept_warnings = []
+            # update the internal state
+            self._y = results.y[:, -1]
+            self._t = results.t[-1]
+
+            # discard warnings for arguments with no effect
             for w in ws:
                 if 'The following arguments have no effect' not in str(w.message):
                     kept_warnings.append(w)
@@ -218,11 +232,7 @@ class ScipyODE(ODE_Method):
         for w in kept_warnings:
             warnings.warn(w.message, type(w))
 
-        self._y = results.y[:, -1]
-        self._t = results.t[-1]
-
     def set_options(self, options):
-
         # establish method
         if options is None:
             options = DE_Options()
@@ -232,25 +242,29 @@ class ScipyODE(ODE_Method):
             if 'scipy-' in options.method:
                 options.method = options.method[6:]
 
-        # handle defaults for Non-type arguments
         self.options = options
 
+        # handle defaults for None-type arguments
         if self.options.max_step is None:
             self.options.max_step = np.inf
 
 
 class QiskitZVODE(ODE_Method):
-    """Wrapper for zvode solver available through Scipy."""
+    """Wrapper for zvode solver available through Scipy.
+
+    Notes:
+        - Internally this
+    """
 
     method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
-        """This method requires t0, y0, and rhs to specified on instantiation, as these are
-        necessary to properly instantiate the underlying solver object
-        """
 
-        # Add check for t0 and y0
+        # t0 and y0 are necessary to instantiate scipy ode object
+        if (t0 is None) or (y0 is None):
+            raise Exception('QiskitZVODE solver requires both t0 and y0 at instantiation.')
 
+        # initialize internal attribute for storing scipy ode object
         self._ODE = None
 
         super().__init__(t0, y0, rhs, options)
@@ -280,10 +294,7 @@ class QiskitZVODE(ODE_Method):
         self._reset_method(reset)
 
     def set_rhs(self, rhs=None, reset=True):
-        """Set rhs functions. rhs may either be a dict specifying multiple functions related
-        to the rhs, (e.g. {'rhs': f, 'rhs_jac': g}), or a callable, in which case it will be
-        assumed to be the standard rhs function.
-        """
+        """This set_rhs function fully instantiates the scipy ode object behind the scenes."""
 
         if rhs is None:
             rhs = {'rhs': None}
@@ -323,19 +334,25 @@ class QiskitZVODE(ODE_Method):
 
         Args:
             tf (float): time to integrate up to
-            kwargs (dict): Support Kwargs:
+            kwargs (dict): Supported kwargs:
                             - 'step': if False, integrates up to tf, if True, only implements a
                                       single step of the solver
         """
+
         step = kwargs.get('step', False)
 
         self._ODE.integrate(tf, step=step)
+
+        # update state stored locally
         self._y = self._ODE.y
         self._t = self._ODE.t
+
+        # update success parameters
         self._successful = self._ODE.successful()
         self._return_code = self._ODE.get_return_code()
 
     def _reset_method(self, reset=True):
+        """Discard internal memory."""
         if reset:
             self._ODE._integrator.call_args[3] = 1
 
@@ -377,8 +394,8 @@ class qiskit_zvode(zvode):
 
 
 class RK4(ODE_Method):
-    """
-    Simple single-step RK4 solver
+    """Single-step RK4 solver. Serves as a simple/minimal example of a concrete ODE_Method
+    subclass.
     """
 
     def integrate(self, tf, **kwargs):
