@@ -16,7 +16,7 @@ class TestTypeUtils(unittest.TestCase):
 
         type_spec = {'type': 'array', 'shape': (4,)}
         y = np.array([[1, 2],[3, 4]])
-        expected = np.array([1,2,3,4])
+        expected = np.array([1, 2, 3, 4])
 
         self.assertAlmostEqual(convert_state(y, type_spec), expected)
 
@@ -29,14 +29,19 @@ class TestTypeUtils(unittest.TestCase):
     def test_type_spec_from_instance(self):
         """Test type_spec_from_instance"""
 
-        y = np.array([1,2,3,4])
+        y = np.array([1, 2, 3, 4])
         type_spec = type_spec_from_instance(y)
 
         self.assertEqual(type_spec, {'type': 'array', 'shape': (4,)})
 
+        y = np.array([[1, 2], [3, 4], [5, 6]])
+        type_spec = type_spec_from_instance(y)
 
-    def test_StateTypeConverter(self):
-        """Test methods and standard constructor of StateTypeConverter"""
+        self.assertEqual(type_spec, {'type': 'array', 'shape': (3, 2)})
+
+    def test_converter_inner_outer(self):
+        """Test standard constructor of StateTypeConverter along with basic state conversion
+        functions"""
 
         inner_spec = {'type': 'array', 'shape': (4,)}
         outer_spec = {'type': 'array', 'shape': (2,2)}
@@ -50,9 +55,6 @@ class TestTypeUtils(unittest.TestCase):
 
         self.assertAlmostEqual(convert_out, y_out)
         self.assertAlmostEqual(convert_in, y_in)
-
-        def rhs(t, y):
-            return t * y
 
     def test_from_instances(self):
         """Test from_instances constructor"""
@@ -70,9 +72,10 @@ class TestTypeUtils(unittest.TestCase):
         self.assertEqual(converter.inner_type_spec, {'type': 'array', 'shape': (4,)})
         self.assertEqual(converter.outer_type_spec, {'type': 'array', 'shape': (4,)})
 
-    def test_from_instances(self):
+    def test_from_outer_instance_inner_type_spec(self):
         """Test from_outer_instance_inner_type_spec constructor"""
 
+        # test case for inner type spec with 1d array
         inner_type_spec = {'type': 'array', 'ndim': 1}
         outer_y = np.array([[1, 2], [3, 4]])
 
@@ -81,6 +84,7 @@ class TestTypeUtils(unittest.TestCase):
         self.assertEqual(converter.inner_type_spec, {'type': 'array', 'shape': (4,)})
         self.assertEqual(converter.outer_type_spec, {'type': 'array', 'shape': (2,2)})
 
+        # inner type spec is a generic array
         inner_type_spec = {'type': 'array'}
         outer_y = np.array([[1, 2], [3, 4]])
 
@@ -88,6 +92,29 @@ class TestTypeUtils(unittest.TestCase):
 
         self.assertEqual(converter.inner_type_spec, {'type': 'array', 'shape': (2,2)})
         self.assertEqual(converter.outer_type_spec, {'type': 'array', 'shape': (2,2)})
+
+    def test_transform_rhs_funcs(self):
+        """Test rhs function conversion"""
+
+        inner_spec = {'type': 'array', 'shape': (4,)}
+        outer_spec = {'type': 'array', 'shape': (2,2)}
+        converter = StateTypeConverter(inner_spec, outer_spec)
+
+        # do matrix multiplication (a truly '2d' operation)
+        def rhs(t, y):
+            return t * (y @ y)
+
+        rhs_funcs = {'rhs': rhs}
+        new_rhs_funcs = converter.transform_rhs_funcs(rhs_funcs)
+
+        test_t = np.pi
+        y_2d = np.array([[1, 2], [3, 4]])
+        y_1d = y_2d.flatten()
+
+        expected_output = rhs(test_t, y_2d).flatten()
+        output = new_rhs_funcs['rhs'](test_t, y_1d)
+
+        self.assertAlmostEqual(output, expected_output)
 
     def assertAlmostEqual(self, A, B, tol=10**-15):
         self.assertTrue(np.abs(A - B).max() < tol)
