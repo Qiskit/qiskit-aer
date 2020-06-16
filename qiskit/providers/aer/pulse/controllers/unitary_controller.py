@@ -132,7 +132,7 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions())
     tlist = exp['tlist']
 
     for t in tlist[1:]:
-        ODE.integrate(t, step=0)
+        ODE.integrate(t)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
         else:
