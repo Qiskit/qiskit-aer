@@ -260,9 +260,9 @@ class QiskitZVODE(ODE_Method):
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
 
-        # t0 and y0 are necessary to instantiate scipy ode object
-        if (t0 is None) or (y0 is None):
-            raise Exception('QiskitZVODE solver requires both t0 and y0 at instantiation.')
+        # all de specification arguments are necessary to instantiate scipy ode object
+        if (t0 is None) or (y0 is None) or (rhs is None):
+            raise Exception('QiskitZVODE solver requires t0, y0, and rhs at instantiation.')
 
         # initialize internal attribute for storing scipy ode object
         self._ODE = None
