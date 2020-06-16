@@ -179,7 +179,8 @@ class NoiseModel:
                      temperature=0,
                      gate_lengths=None,
                      gate_length_units='ns',
-                     standard_gates=True):
+                     standard_gates=True,
+                     warnings=True):
         """Return a noise model derived from a devices backend properties.
 
         This function generates a noise model based on:
@@ -259,6 +260,7 @@ class NoiseModel:
             standard_gates (bool): If true return errors as standard
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: True)
+            warnings (bool): Display warnings (Default: True).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -281,7 +283,7 @@ class NoiseModel:
         # Add single-qubit readout errors
         if readout_error:
             for qubits, error in basic_device_readout_errors(properties):
-                noise_model.add_readout_error(error, qubits)
+                noise_model.add_readout_error(error, qubits, warnings=warnings)
 
         # Add gate errors
         gate_errors = basic_device_gate_errors(
@@ -291,9 +293,10 @@ class NoiseModel:
             gate_lengths=gate_lengths,
             gate_length_units=gate_length_units,
             temperature=temperature,
-            standard_gates=standard_gates)
+            standard_gates=standard_gates,
+            warnings=warnings)
         for name, qubits, error in gate_errors:
-            noise_model.add_quantum_error(error, name, qubits)
+            noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         return noise_model
 
     def __repr__(self):
