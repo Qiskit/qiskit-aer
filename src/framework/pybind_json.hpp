@@ -56,25 +56,24 @@ using json_t = nlohmann::json;
 namespace AerToPy {
 
 /**
- * Convert a std::vector into a numpy array
+ * Convert a 1D contiguous container into a numpy array
  * @param src is a vector
  * @returns a python object (py::array_t<T>)
  */
-template<typename T>
-py::object array_from_vector(std::vector<T> &&src);
-template<typename T>
-py::object array_from_vector(std::vector<T> &src);
-
+template <typename Sequence>
+py::array_t<typename Sequence::value_type> array_from_sequence(Sequence& src);
+template <typename Sequence>
+py::array_t<typename Sequence::value_type> array_from_sequence(Sequence&& src);
 
 /**
  * Convert a Matrix into a numpy array
  * @param mat is a Matrix
- * @returns a python object (py::array_t<T>)
+ * @returns a python object (py::array_t<T, py::array:f_style>)
  */
 template<typename T>
-py::object array_from_matrix(matrix<T> &&mat);
+py::array_t<T, py::array::f_style> array_from_matrix(matrix<T> &&mat);
 template<typename T>
-py::object array_from_matrix(matrix<T> &mat);
+py::array_t<T, py::array::f_style> array_from_matrix(matrix<T> &mat);
 
 /**
  * Convert a AverageData to a python object
@@ -389,37 +388,36 @@ void std::from_json(const json_t &js, py::object &o) {
 // Pybind Conversion for Simulator types
 //============================================================================
 
-template<typename T>
-py::object AerToPy::array_from_vector(std::vector<T> &src) {
-  return AerToPy::array_from_vector(std::move(src));
+template <typename Sequence>
+py::array_t<typename Sequence::value_type> AerToPy::array_from_sequence(Sequence& seq) {
+  return AerToPy::array_from_sequence(std::move(seq));
 }
 
-template<typename T>
-py::object AerToPy::array_from_vector(std::vector<T> &&src) {
-    std::array<py::ssize_t, 1> shape { static_cast<py::ssize_t>(src.size()) };
-    auto tbr = py::array_t<T, py::array::f_style>(shape);
-    auto buf = tbr.template mutable_unchecked<1>();
-    for (size_t i = 0; i < src.size(); i++) {
-        buf(i) = src[i];
-    }
-    return std::move(tbr);
+template <typename Sequence>
+py::array_t<typename Sequence::value_type> AerToPy::array_from_sequence(Sequence&& seq) {
+  // Move entire object to heap (Ensure is moveable!). Memory handled via Python capsule
+  Sequence* seq_ptr = new Sequence(std::move(seq));
+  auto capsule = py::capsule(seq_ptr, [](void* p) { delete reinterpret_cast<Sequence*>(p); });
+  return py::array_t<typename Sequence::value_type>(
+    seq_ptr->size(),  // shape of array
+    seq_ptr->data(),  // c-style contiguous strides for Sequence
+    capsule           // numpy array references this parent
+  );
 }
 
+
 template<typename T>
-py::object AerToPy::array_from_matrix(matrix<T> &src) {
+py::array_t<T, py::array::f_style> AerToPy::array_from_matrix(matrix<T> &src) {
   return AerToPy::array_from_matrix(std::move(src));
 }
 
 template<typename T>
-py::object AerToPy::array_from_matrix(matrix<T> &&src) {
-    std::array<py::ssize_t, 2> shape { static_cast<py::ssize_t>(src.GetRows()), static_cast<py::ssize_t>(src.GetColumns()) };
-    auto tbr = py::array_t<T, py::array::f_style>(shape);
-    auto buf = tbr.template mutable_unchecked<2>();
-    for (size_t r = 0; r < src.GetRows(); r++) {
-        for (size_t c = 0; c < src.GetColumns(); c++)
-            buf(r, c) = src(r, c);
-    }
-    return std::move(tbr);
+py::array_t<T, py::array::f_style> AerToPy::array_from_matrix(matrix<T> &&src) {
+  std::array<py::ssize_t, 2> shape {static_cast<py::ssize_t>(src.GetRows()),
+                                    static_cast<py::ssize_t>(src.GetColumns())};
+  matrix<T>* src_ptr = new matrix<T>(std::move(src));
+  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<matrix<T>*>(p); });
+  return py::array_t<T, py::array::f_style>(shape, src_ptr->data(), capsule);
 }
 
 template<typename T> 
@@ -460,9 +458,9 @@ py::object AerToPy::from_avg_data(AER::AverageData<std::vector<T>> &avg_data) {
 template<typename T> 
 py::object AerToPy::from_avg_data(AER::AverageData<std::vector<T>> &&avg_data) {
   py::dict d;
-  d["value"] = AerToPy::array_from_vector(avg_data.mean());
+  d["value"] = AerToPy::array_from_sequence(avg_data.mean());
   if (avg_data.has_variance()) {
-    d["variance"] = AerToPy::array_from_vector(avg_data.variance());
+    d["variance"] = AerToPy::array_from_sequence(avg_data.variance());
   }
   return std::move(d);
 }
@@ -502,13 +500,13 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
 
   // Measure data
   if (datum.return_counts_ && ! datum.counts_.empty()) {
-    pydata["counts"] = datum.counts_;
+    pydata["counts"] = std::move(datum.counts_);
   }
   if (datum.return_memory_ && ! datum.memory_.empty()) {
-    pydata["memory"] = datum.memory_;
+    pydata["memory"] = std::move(datum.memory_);
   }
   if (datum.return_register_ && ! datum.register_.empty()) {
-    pydata["register"] = datum.register_;
+    pydata["register"] = std::move(datum.register_);
   }
 
   // Add additional data
@@ -521,10 +519,10 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
     pydata[pair.first.data()] = pair.second;
   }
   for (auto &pair : datum.additional_data<std::vector<std::complex<float>>>()) {
-    pydata[pair.first.data()] = pair.second;
+    pydata[pair.first.data()] = AerToPy::array_from_sequence(pair.second);
   }
   for (auto &pair : datum.additional_data<std::vector<std::complex<double>>>()) {
-    pydata[pair.first.data()] = pair.second;
+    pydata[pair.first.data()] = AerToPy::array_from_sequence(pair.second);
   }
   for (auto &pair : datum.additional_data<matrix<std::complex<float>>>()) {
     pydata[pair.first.data()] = AerToPy::array_from_matrix(pair.second);    
@@ -591,7 +589,7 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
       for (auto &per_pair : pair.second.data()) {
         py::list l;
         for (auto &matr : per_pair.second.data())
-          l.append(AerToPy::array_from_vector(matr));
+          l.append(AerToPy::array_from_sequence(matr));
         d[per_pair.first.data()] = l;
       }
       snapshots[pair.first.data()] = d;
@@ -602,7 +600,7 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
       for (auto &per_pair : pair.second.data()) {
         py::list l;
         for (auto &matr : per_pair.second.data())
-          l.append(AerToPy::array_from_vector(matr));
+          l.append(AerToPy::array_from_sequence(matr));
         d[per_pair.first.data()] = l;
       }
       snapshots[pair.first.data()] = d;
@@ -662,7 +660,7 @@ py::object AerToPy::from_experiment(AER::ExperimentResult &&result) {
   pyexperiment["shots"] = result.shots;
   pyexperiment["seed_simulator"] = result.seed;
 
-  pyexperiment["data"] = std::move(AerToPy::from_data(result.data));
+  pyexperiment["data"] = AerToPy::from_data(result.data);
 
   pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);
   switch (result.status) {
