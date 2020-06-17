@@ -214,6 +214,20 @@ class QasmSimulator(AerBackend):
       in a fusion optimization [Default: 5]
     * ``"fusion_threshold"`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 20]
+
+    These backend options only apply when using the ``"matrix_product_state"``
+    simulation method:
+
+    * ``"matrix_product_state_max_bond_dimension"`` (int): Sets a limit
+      on the number of Schmidt coefficients retained at the end of
+      the svd algorithm. Coefficients beyond this limit will be discarded.
+      (Default: None, i.e., no limit on the bond dimension).
+
+    * ``"matrix_product_state_truncation_threshold"`` (double):
+      Discard the smallest coefficients for which the sum of
+      their squares is smaller than this threshold.
+      (Default: 1e-16).
+
     """
 
     MAX_QUBIT_MEMORY = int(

@@ -76,6 +76,19 @@ namespace Simulator {
  *or shot execution is enabled this will only use unallocated CPU cores up to
  *max_parallel_threads. [Default: 100]
  *
+ * From MatrixProductState::State class
+ *  - "matrix_product_state_bond_truncation_threshold" (double): 
+ *     Discard the smallest coefficients for which the sum of
+ *     their squares is smaller than this threshold.
+ *     [Default: 1e-16]
+ *
+ * - "matrix_product_state_max_bond_dimension" (uint): Set the cutoff value for the number of
+ *      Schmidt coefficients. If there are more than this number of coefficient, 
+ *      the smallest values will be discarded.
+ *      [Default: none]
+ * Note that if the approximation reduces the number of coefficients
+ *      to 0, we will not perform any approximation.
+ *
  * From BaseController Class
  *
  * - "noise_model" (json): A noise model to use for simulation [Default: null]
@@ -827,6 +840,8 @@ ExperimentData QasmController::run_circuit_helper(
   ExperimentData data;
   data.set_config(config);
   data.add_metadata("method", state.name());
+  state.add_metadata(data);
+
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
   data.add_metadata("measure_sampling", false);
