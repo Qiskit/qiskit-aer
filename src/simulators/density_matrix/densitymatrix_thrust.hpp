@@ -458,10 +458,10 @@ public:
     q2 = vec2[i0];
     q3 = vec3[i0];
 
-    vec0[i0] = q0;
+    vec0[i0] = q3;
     vec1[i0] = -q2;
     vec2[i0] = -q1;
-    vec3[i0] = q3;
+    vec3[i0] = q0;
   }
   const char* name(void)
   {
@@ -823,7 +823,7 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
       phase = thrust::complex<data_t>(0, 1);
       break;
   }
-  return BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),BaseVector::data_size_);
+  return BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),BaseMatrix::num_rows());
 }
 
 

@@ -903,18 +903,6 @@ void QasmController::set_parallelization_circuit(
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
-      if(method == Method::statevector_thrust_gpu){
-        if(parallel_shots_ > 1){
-          int ndev = 1;
-#ifdef AER_THRUST_CUDA
-          cudaGetDeviceCount(&ndev);
-#endif
-          parallel_shots_ = ndev;
-          parallel_state_update_ = (parallel_shots_ > 1)
-              ? std::max<int>({1, max_parallel_threads_ / parallel_shots_})
-              : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
-        }
-      }
       break;
     }
     case Method::density_matrix:
@@ -927,18 +915,6 @@ void QasmController::set_parallelization_circuit(
         return;
       }
       Base::Controller::set_parallelization_circuit(circ, noise_model);
-      if(method == Method::density_matrix_thrust_gpu){
-        if(parallel_shots_ > 1){
-          int ndev = 1;
-#ifdef AER_THRUST_CUDA
-          cudaGetDeviceCount(&ndev);
-#endif
-          parallel_shots_ = ndev;
-          parallel_state_update_ = (parallel_shots_ > 1)
-              ? std::max<int>({1, max_parallel_threads_ / parallel_shots_})
-              : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
-        }
-      }
       break;
     }
     default: {
