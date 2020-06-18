@@ -438,7 +438,18 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
+    double start = clock();
     complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
+    double end = clock();
+    std::cout << "time for expval = " << end - start <<std::endl;
+
+    start = clock();
+    complex_t pauli_expval2 = qreg_.expectation_value_pauli2(op.qubits, pauli_matrices);
+    end = clock();
+    std::cout << "time for new expval = " << end - start<<std::endl;
+
+    if (pauli_expval != pauli_expval2)
+        std::cout << "expvals are different"<<std::endl;
     expval += coeff * pauli_expval;
   }
 
