@@ -69,8 +69,31 @@ complex_t chan_value(
     // TODO floating point comparsion with complex<double> ?!
     // Seems like this is equivalent to: out != complex_t(0., 0.)
     if(out != 0.){
-        double phase = 0.;
         num_times = floor_div(fc_array.shape[0], 3);
+
+        // get the index of the phase change
+        auto phase_idx = 0;
+        auto found = false;
+        while(found == false){
+            if(t < fc_array[3 * phase_idx]){
+                found = true;
+            }else{
+                phase_idx++;
+            }
+
+            // if the time is greater than the last frame change, exit the loop
+            if(phase_idx == num_times){
+                found = true;
+            }
+        }
+
+        double phase = 0.;
+        if(phase_idx > 0){
+            phase = fc_array[3 * (phase_idx - 1) + 1];
+        }
+
+
+        /* original phase determination
         for(auto i = 0; i < num_times; ++i){
             // TODO floating point comparison
             if(t >= fc_array[3 * i]){
@@ -87,6 +110,7 @@ complex_t chan_value(
                 break;
             }
         }
+        */
         if(phase != 0.){
             out *= std::exp(complex_t(0.,1.) * phase);
         }
