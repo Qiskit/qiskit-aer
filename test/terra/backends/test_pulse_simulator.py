@@ -148,6 +148,50 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
 
+    def test_shift_phase(self):
+        """Test ShiftPhase command."""
+
+        # construct system model specifically for this
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['0.5*r*X0||D0', '0.5*r*Y0||D1']
+        hamiltonian['vars'] = {'r': np.pi}
+        hamiltonian['qub'] = {'0': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
+
+        # run a schedule in which a shifted phase causes a pulse to cancel itself
+        sched = Schedule()
+        sched += Play(SamplePulse([0.12 + 0.31*1j]), DriveChannel(0))
+        sched += ShiftPhase(np.pi, DriveChannel(0))
+        sched += Play(SamplePulse([0.12 + 0.31*1j]), DriveChannel(0))
+
+        sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
+
+        qobj = assemble([sched],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[0., 0.],
+                        memory_slots=2,
+                        shots=256)
+
+        backend_options = {'initial_state': np.array([1., 0])}
+
+        results = self.backend_sim.run(qobj, system_model, backend_options).result()
+
+        statevector = results.get_statevector()
+        expected_vector = np.array([1., 0])
+        
+        self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
 
     def test_unitary_parallel_execution(self):
         """
@@ -506,82 +550,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 self.assertGreaterEqual(
                     state_fidelity(statevector, exp_statevector), 0.99)
 
-    def test_frame_change(self):
-        """Test frame change command. """
-        shots = 10000
-        total_samples = 100
-        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-
-        # set phi = 0
-        phi = 0
-
-        dur_drive1 = total_samples  # first pulse duration
-        fc_phi = np.pi
-
-        # Test frame change where no shift in state results
-        # specfically: do pi/2 pulse, then pi frame change, then another pi/2 pulse.
-        # Verify left in |0> state
-        dur_drive2 = dur_drive1  # same duration for both pulses
-        omega_a = np.pi / 2 / dur_drive1  # pi/2 pulse amplitude
-
-        system_model = self._system_model_1Q(omega_0, omega_a)
-        schedule = self._1Q_frame_change_schedule(phi,
-                                                  fc_phi,
-                                                  total_samples,
-                                                  dur_drive1,
-                                                  dur_drive2)
-        qobj = assemble([schedule],
-                        backend=self.backend_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        memory_slots=2,
-                        shots=shots)
-
-        backend_options = {'seed' : 9000}
-        result = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts = result.get_counts()
-        exp_counts = {'0': shots}
-
-        self.assertDictAlmostEqual(counts, exp_counts)
-
-        # Test frame change where a shift does result
-        # specifically: do pi/4 pulse, then pi phase change, then do pi/8 pulse.
-        # check that a net rotation of pi/4-pi/8 has occured on the Bloch sphere
-        dur_drive2 = int(dur_drive1 / 2)  # half time for second pulse (halves angle)
-        omega_a = np.pi / 4 / dur_drive1  # pi/4 pulse amplitude
-
-        system_model = self._system_model_1Q(omega_0, omega_a)
-        schedule = self._1Q_frame_change_schedule(phi,
-                                                  fc_phi,
-                                                  total_samples,
-                                                  dur_drive1,
-                                                  dur_drive2)
-        qobj = assemble([schedule],
-                        backend=self.backend_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        memory_slots=2,
-                        shots=shots)
-
-        backend_options = {'seed' : 9000}
-        result = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts = result.get_counts()
-
-        # verify props
-        prop_shift = {}
-        for key in counts.keys():
-            prop_shift[key] = counts[key] / shots
-
-        # net angle is given by pi/4-pi/8
-        prop0 = np.cos((np.pi / 4 - np.pi / 8) / 2)**2
-        exp_prop = {'0' : prop0, '1': 1 - prop0}
-        self.assertDictAlmostEqual(prop_shift, exp_prop, delta=0.01)
 
     def test_three_level(self):
         r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form

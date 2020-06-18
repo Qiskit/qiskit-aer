@@ -74,16 +74,11 @@ complex_t chan_value(
         // get the index of the phase change
         auto phase_idx = 0;
         auto found = false;
-        while(found == false){
+        while((found == false) && (phase_idx < num_times)){
             if(t < fc_array[3 * phase_idx]){
                 found = true;
             }else{
                 phase_idx++;
-            }
-
-            // if the time is greater than the last frame change, exit the loop
-            if(phase_idx == num_times){
-                found = true;
             }
         }
 

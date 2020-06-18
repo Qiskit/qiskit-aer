@@ -345,7 +345,6 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                                                           current_phase + inst['phase'],
                                                           cond])
 
-
             # A standard pulse
             else:
                 start = inst['t0'] * dt
