@@ -21,6 +21,7 @@ from warnings import warn
 import numpy as np
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
+from ..qutip_extra_lite.qobj import Qobj
 from .digest_pulse_qobj import digest_pulse_qobj
 from ..de_solvers.pulse_de_options import OPoptions
 from .unitary_controller import run_unitary_experiments
@@ -79,7 +80,11 @@ def pulse_controller(qobj, system_model, backend_options):
     dim_osc = {}
     # convert estates into a Qutip qobj
     estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
-    pulse_sim_desc.initial_state = estates[0]
+    if 'initial_state' in backend_options:
+        pulse_sim_desc.initial_state = Qobj(backend_options['initial_state'])
+    else:
+        pulse_sim_desc.initial_state = estates[0]
+
     pulse_sim_desc.global_data['vars'] = list(pulse_sim_desc.vars.values())
     # Need this info for evaluating the hamiltonian vars in the c++ solver
     pulse_sim_desc.global_data['vars_names'] = list(pulse_sim_desc.vars.keys())

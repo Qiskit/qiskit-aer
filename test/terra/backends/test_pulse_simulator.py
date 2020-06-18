@@ -26,7 +26,7 @@ from qiskit.providers.aer.backends import PulseSimulator
 
 from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
-from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, DriveChannel,
+from qiskit.pulse import (Schedule, Play, ShiftPhase, Delay, Acquire, SamplePulse, DriveChannel,
                           ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
@@ -59,12 +59,97 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Get pulse simulator backend
         self.backend_sim = PulseSimulator()
 
+        self.X = np.array([[0., 1.], [1., 0.]], dtype=complex)
+        self.Y = np.array([[0., -1j], [1j, 0.]], dtype=complex)
+        self.Z = np.array([[1., 0.], [0., -1.]], dtype=complex)
+
     # ---------------------------------------------------------------------
     # Test single qubit gates (using meas level 2 and square drive)
     # ---------------------------------------------------------------------
 
+    def test_delay_instruction(self):
+        """Test for delay instruction."""
 
-    def test_unitary_parallel(self):
+        # construct system model specifically for this
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['0.5*r*X0||D0', '0.5*r*Y0||D1']
+        hamiltonian['vars'] = {'r': np.pi}
+        hamiltonian['qub'] = {'0': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
+
+        # construct a schedule that should result in a unitary -Z if delays are correctly handled
+        # i.e. do a pi rotation about x, sandwiched by pi/2 rotations about y in opposite directions
+        # so that the x rotation is transformed into a z rotation.
+        # if delays are not handled correctly this process should fail
+        sched = Schedule()
+        sched += Play(SamplePulse([0.5]), DriveChannel(1))
+        sched += Delay(1, DriveChannel(1))
+        sched += Play(SamplePulse([-0.5]), DriveChannel(1))
+
+        sched += Delay(1, DriveChannel(0))
+        sched += Play(SamplePulse([1.]), DriveChannel(0))
+
+        sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
+
+        qobj = assemble([sched],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[0., 0.],
+                        memory_slots=2,
+                        shots=256)
+
+
+        # Result of schedule should be the unitary -1j*Z, so check rotation of an X eigenstate
+        backend_options = {'initial_state': np.array([1., 1.]) / np.sqrt(2)}
+
+        results = self.backend_sim.run(qobj, system_model, backend_options).result()
+
+        statevector = results.get_statevector()
+        expected_vector = np.array([-1j, 1j]) / np.sqrt(2)
+
+        self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
+
+        # verify validity of simulation when no delays included
+        sched = Schedule()
+        sched += Play(SamplePulse([0.5]), DriveChannel(1))
+        sched += Play(SamplePulse([-0.5]), DriveChannel(1))
+
+        sched += Play(SamplePulse([1.]), DriveChannel(0))
+
+        sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
+
+        qobj = assemble([sched],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[0., 0.],
+                        memory_slots=2,
+                        shots=256)
+
+        backend_options = {'initial_state': np.array([1., 1.]) / np.sqrt(2)}
+
+        results = self.backend_sim.run(qobj, system_model, backend_options).result()
+
+        statevector = results.get_statevector()
+        U = expm(1j * np.pi * self.Y /4) @ expm(-1j * np.pi * (self.Y / 4 + self.X / 2))
+        expected_vector = U @ np.array([1., 1.]) / np.sqrt(2)
+
+        self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
+
+
+    def test_unitary_parallel_execution(self):
         """
         Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but
         runs it twice to trigger parallel execution.
@@ -413,6 +498,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 result = self.backend_sim.run(qobj, system_model, backend_options).result()
                 statevector = result.get_statevector()
+
                 exp_statevector = self._analytic_gaussian_statevector(
                     total_samples, gauss_sigma=gauss_sigma, omega_a=omega_a)
 
