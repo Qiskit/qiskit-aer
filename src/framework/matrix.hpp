@@ -135,6 +135,17 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
 
 enum OutputStyle { Column, List, Matrix };
 
+template <class T>
+T* malloc_array(size_t size) {
+  return reinterpret_cast<T*>(malloc(sizeof(T) * size));
+}
+
+template <class T>
+T* calloc_array(size_t size) {
+  return reinterpret_cast<T*>(calloc(size, sizeof(T)));
+}
+
+
 template <class T> // define a class template
 class matrix {
   // friend functions get to use the private varibles of the class as well as
@@ -215,7 +226,7 @@ public:
   void clear();
 
   // Destructor
-  virtual ~matrix();
+  virtual ~matrix() { free(mat_); }
 
   // Assignment operator
   matrix<T> &operator=(const matrix<T> &m);
@@ -226,11 +237,11 @@ public:
                                             // part
   
   // Addressing elements by vector representation
-  T &operator[](size_t element);
-  T operator[](size_t element) const;
+  T& operator[](size_t element);
+  const T& operator[](size_t element) const;
   // Addressing elements by matrix representation
-  T &operator()(size_t row, size_t col);
-  T operator()(size_t row, size_t col) const;
+  T& operator()(size_t row, size_t col);
+  const T& operator()(size_t row, size_t col) const;
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -253,6 +264,9 @@ public:
   const T* data() const noexcept { return mat_; }
   T* data() noexcept { return mat_; }
 
+  // Fill with constant value
+  void fill(const T& val);
+
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
   // rows_ and cols_ are the rows and columns of the matrix
@@ -261,8 +275,9 @@ protected:
   // to rows
   enum OutputStyle outputstyle_ = Matrix;
   // outputstyle_ is the output style used by <<
-  T *mat_ = nullptr;
+  
   // the ptr to the vector containing the matrix
+  T* mat_ = nullptr;
 };
 
 /*******************************************************************************
@@ -277,11 +292,11 @@ inline matrix<T>::matrix(){}
 template <class T>
 inline matrix<T>::matrix(size_t rows, size_t cols)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      outputstyle_(Column), mat_(new T[size_]) {}
+      outputstyle_(Column), mat_(calloc_array<T>(size_)) {}
 // constructs an empty matrix of size rows, cols and sets outputstyle to zero
 template <class T>
 inline matrix<T>::matrix(size_t dim2)
-    : size_(dim2), outputstyle_(Column), mat_(new T[size_]) {
+    : size_(dim2), outputstyle_(Column), mat_(calloc_array<T>(size_)) {
   // constructs a square matrix of dims sqrt(size)*sqrt(size)
   // PLEASE DO NOT CHANGE THIS AS IT IS USED BY ODESOLVER
   //  size_t dim2 = rhovec.GetRows();
@@ -310,15 +325,12 @@ inline matrix<T>::matrix(size_t dim2)
   cols_ = rows_;
   LD_ = rows_;
 }
-// constructs an empty matrix of size rows, cols and sets outputstyle to zero
+
 template <class T>
 inline matrix<T>::matrix(const matrix<T> &rhs)
     : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(new T[size_]) {
-  // Copy constructor, copies the matrix to another matrix
-  for (size_t p = 0; p < size_; p++) {
-    mat_[p] = rhs.mat_[p];
-  }
+      outputstyle_(rhs.outputstyle_), mat_(malloc_array<T>(size_)) {
+  std::copy(rhs.mat_, rhs.mat_ + rhs.size_, mat_);
 }
 
 template <class T>
@@ -332,7 +344,7 @@ inline matrix<T>::matrix(matrix<T>&& rhs) noexcept
 template <class T>
 inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
     : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(new T[size_]) {
+      outputstyle_(rhs.outputstyle_), mat_(calloc_array<T>(size_)) {
   // Copy constructor, copies the matric to another matrix but only the upper or
   // lower triangle
   if (uplo == 'U') {
@@ -350,56 +362,46 @@ inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
     exit(1);
   }
 }
+
 template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
   if (rows_ != rows || cols_ != cols) { // if the rows are different size delete
     // re-construct the matrix
-    if (mat_ != 0)
-      delete[](mat_);
+    free(mat_);
     rows_ = rows;
     cols_ = cols;
     size_ = rows_ * cols_;
     LD_ = rows;
-    mat_ = new T[size_];
-    // std::cout << "Assignement (reassigment), size " << size_ << " rows_ " <<
-    // rows_ << " cols " << cols_ << " LD "<< LD_ <<  std::endl;
+    mat_ = calloc_array<T>(size_);
   }
 }
+
 template <class T> inline void matrix<T>::clear() {
   if (!mat_ || !size_)
     return;
   rows_ = cols_ = size_ = 0;
-  delete[](mat_);
-  mat_ = 0;
+  free(mat_);
 }
 
 template <class T> inline void matrix<T>::resize(size_t rows, size_t cols) {
   if (rows_ == rows && cols_ == cols)
     return;
-  T *tempmat = new T[size_ = rows * cols];
-
+  size_ = rows * cols;
+  T *tempmat = malloc_array<T>(size_);
   for (size_t i = 0; i < rows; i++)
     for (size_t j = 0; j < cols; j++)
       if (i < rows_ && j < cols_)
         tempmat[j * rows + i] = mat_[j * rows_ + i];
       else
         tempmat[j * rows + i] = 0.0;
+  free(mat_);
   LD_ = rows_ = rows;
   cols_ = cols;
-  delete[](mat_);
   mat_ = tempmat;
 }
 
-template <class T> inline matrix<T>::~matrix() {
-  // destructor, deletes the matrix from memory when we leave the scope
-  if (mat_ != nullptr)
-    delete[](mat_);
-}
 template <class T>
 inline matrix<T>& matrix<T>::operator=(matrix<T>&& rhs) noexcept {
-  // Delete any currently assigned memory
-  if (mat_ != nullptr) {
-    delete[](mat_);
-  }
+  free(mat_);
   rows_ = rhs.rows_;
   cols_ = rhs.cols_;
   size_ = rows_ * cols_;
@@ -415,25 +417,21 @@ inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
   // postcondition: normal assignment via copying has been performed;
   //    if matrix and rhs were different sizes, matrix
   //    has been resized to match the size of rhs
-  //#ifdef DEBUG
+
   if (rows_ != rhs.rows_ || cols_ != rhs.cols_) { // if the rows are different
     // size delete re-construct
     // the matrix
-    if (mat_ != 0)
-      delete[](mat_);
+    free(mat_);
     rows_ = rhs.rows_;
     cols_ = rhs.cols_;
     size_ = rows_ * cols_;
     LD_ = rhs.LD_;
-    mat_ = new T[size_];
+    mat_ = malloc_array<T>(size_);
   }
-  //#endif
-  for (size_t p = 0; p < size_; p++) { // the copying of the matrix
-    // std::cout << p << std::endl;
-    mat_[p] = T(rhs.mat_[p]);
-  }
+  std::copy(rhs.mat_, rhs.mat_ + size_, mat_);
   return *this;
 }
+
 template <class T>
 template <class S>
 inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
@@ -445,13 +443,12 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
   if (rows_ != rhs.GetRows() ||
       cols_ != rhs.GetColumns()) { // if the rows are different size delete
     // re-construct the matrix
-    if (mat_ != nullptr)
-      delete[](mat_);
+    free(mat_);
     rows_ = rhs.GetRows();
     cols_ = rhs.GetColumns();
     size_ = rows_ * cols_;
     LD_ = rhs.GetLD();
-    mat_ = new T[size_];
+    mat_ = malloc_array<T>(size_);
   }
   //#endif
   for (size_t p = 0; p < size_; p++) { // the copying of the matrix
@@ -459,7 +456,9 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
   }
   return *this;
 }
-template <class T> inline T &matrix<T>::operator[](size_t p) {
+
+template <class T>
+T& matrix<T>::operator[](size_t p) {
 // returns the pth element of the vector representing the matrix,  remember []
 // is the operator acting on the object matrix (read backwards).
 #ifdef DEBUG
@@ -472,7 +471,8 @@ template <class T> inline T &matrix<T>::operator[](size_t p) {
 #endif
   return mat_[p];
 }
-template <class T> inline T matrix<T>::operator[](size_t p) const {
+template <class T>
+const T& matrix<T>::operator[](size_t p) const {
 // returns the pth element of the vector representing the matrix if the operator
 // is acting on a const
 #ifdef DEBUG
@@ -485,7 +485,8 @@ template <class T> inline T matrix<T>::operator[](size_t p) const {
 #endif
   return mat_[p];
 }
-template <class T> inline T &matrix<T>::operator()(size_t i, size_t j) {
+template <class T>
+T& matrix<T>::operator()(size_t i, size_t j) {
 // return the data at position i,j, remember () is the operator acting on the
 // object matrix (read backwards).
 #ifdef DEBUG
@@ -498,7 +499,8 @@ template <class T> inline T &matrix<T>::operator()(size_t i, size_t j) {
 #endif
   return mat_[j * rows_ + i];
 }
-template <class T> inline T matrix<T>::operator()(size_t i, size_t j) const {
+template <class T>
+const T& matrix<T>::operator()(size_t i, size_t j) const {
 // return the data at i,j if the operator is acting on a const
 #ifdef DEBUG
   if (i >= rows_ || j >= cols_) {
@@ -529,6 +531,11 @@ template <class T> inline size_t matrix<T>::size() const {
 template <class T> inline bool matrix<T>::empty() const {
   // returns the size of the underlying vector
   return (size() == 0);
+}
+
+template <class T>
+void matrix<T>::fill(const T& val) {
+  std::fill(mat_, mat_ + size_, val);
 }
 
 template <class T>
