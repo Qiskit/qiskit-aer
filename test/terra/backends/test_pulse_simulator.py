@@ -167,10 +167,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                         subsystem_list=subsystem_list,
                                         dt=dt)
 
-        # run a schedule in which a shifted phase causes a pulse to cancel itself
+        # run a schedule in which a shifted phase causes a pulse to cancel itself.
+        # Also do it in multiple phase shifts to test accumulation
         sched = Schedule()
         sched += Play(SamplePulse([0.12 + 0.31*1j]), DriveChannel(0))
-        sched += ShiftPhase(np.pi, DriveChannel(0))
+        sched += ShiftPhase(np.pi/2, DriveChannel(0))
+        sched += Play(SamplePulse([0.]), DriveChannel(0))
+        sched += ShiftPhase(np.pi/2, DriveChannel(0))
         sched += Play(SamplePulse([0.12 + 0.31*1j]), DriveChannel(0))
 
         sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
@@ -190,8 +193,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         statevector = results.get_statevector()
         expected_vector = np.array([1., 0])
-        
+
         self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
+
+        # check ability to track multiple shifted phases
 
     def test_unitary_parallel_execution(self):
         """

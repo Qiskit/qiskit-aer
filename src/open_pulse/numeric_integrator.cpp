@@ -87,25 +87,6 @@ complex_t chan_value(
             phase = fc_array[3 * (phase_idx - 1) + 1];
         }
 
-
-        /* original phase determination
-        for(auto i = 0; i < num_times; ++i){
-            // TODO floating point comparison
-            if(t >= fc_array[3 * i]){
-                bool do_fc = true;
-                if(fc_array[3 * i + 2] >= 0){
-                    if(!reg[static_cast<int>(fc_array[3 * i + 2])]){
-                       do_fc = false;
-                    }
-                }
-                if(do_fc){
-                    phase += fc_array[3 * i + 1];
-                }
-            }else{
-                break;
-            }
-        }
-        */
         if(phase != 0.){
             out *= std::exp(complex_t(0.,1.) * phase);
         }

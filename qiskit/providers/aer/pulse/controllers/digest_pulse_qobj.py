@@ -440,5 +440,5 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
 
     if structs['tlist'][-1] > structs['acquire'][-1][0]:
         structs['can_sample'] = False
-
+    
     return structs
