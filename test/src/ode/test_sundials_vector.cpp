@@ -2,7 +2,7 @@
 #include <catch2/catch.hpp>
 #include <valarray>
 
-#include <ode/sundials_wrapper/sundials_complex_vector.hpp>
+#include <ode/sundials_wrappers/sundials_complex_vector.hpp>
 
 namespace AER {
   namespace Test {

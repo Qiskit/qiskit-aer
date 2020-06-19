@@ -8,6 +8,16 @@
 #include "framework/types.hpp"
 
 namespace AER {
+  template<typename T, typename U>
+  void transform(T& container_to, const U& container_from);
+
+  template<typename U>
+  void transform(std::vector<complex_t>& container_to, const U& container_from){
+    for (size_t i = 0; i < container_from.size(); ++i) {
+      container_to[i] = container_from[i];
+    }
+  }
+
   template <typename container_t>
   struct SundialsOps;
 
@@ -23,9 +33,7 @@ namespace AER {
     static N_Vector new_vector(const T &container) {
       N_Vector y = SundialsOps<SundialsComplexContent>::SundialsComplexContent_New(container.size());
       auto &raw = get_data(y);
-      for (size_t i = 0; i < container.size(); ++i) {
-        raw[i] = container[i];
-      }
+      transform(raw, container);
       return y;
     }
 

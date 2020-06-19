@@ -14,23 +14,70 @@
 
 #include "numeric_integrator.hpp"
 #include "pulse_utils.hpp"
-#include "ode/sundials_wrapper/sundials_cvode_wrapper.hpp"
+#include "ode/sundials_wrappers/sundials_cvode_wrapper.hpp"
+#include "ode/odeint_wrappers/abm_wrapper.hpp"
+#include <pybind11/functional.h>
+
+namespace AER{
+  template<>
+  void transform(std::vector<complex_t>& container_to, const py::array_t<complex_t>& container_from){
+    auto container_from_raw = container_from.unchecked<1>();
+    for (size_t i = 0; i < container_from.size(); ++i) {
+      container_to[i] = container_from_raw[i];
+    }
+  }
+}
 
 namespace{
+  using Ode_Wrapper_t = AER::Ode<std::vector<complex_t>>;
   using Cvode_Wrapper_t = AER::CvodeWrapper<std::vector<complex_t>>;
+  using ABM_Wrapper_t = AER::ABMWrapper<std::vector<complex_t>>;
 
-  Cvode_Wrapper_t create_sundials_integrator(double t0,
-                                             std::vector<complex_t> y0,
-                                             py::object global_data,
-                                             py::object exp,
-                                             py::object system,
-                                             py::object channels,
-                                             py::object reg){
-    auto func = std::bind(td_ode_rhs_vec, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3,
-        global_data, exp, system, channels, reg);
+  using rhsFuncType = std::function<std::vector<complex_t>(double, const py::array_t<complex_t> &)>;
+  using pertFuncType = std::function<void(const py::array_t<double> &)>;
 
-    return AER::CvodeWrapper<std::vector<complex_t>>(AER::OdeMethod::ADAMS, func, y0, t0, 1e-6, 1e-8);
+  std::unique_ptr<Ode_Wrapper_t> create_sundials_integrator(double t0,
+                                                       py::array_t<complex_t> y0,
+                                                            rhsFuncType rhs){
+    auto func = [rhs](double t, const std::vector<complex_t>& y, std::vector<complex_t>& y_dot){
+      auto capsule = py::capsule(&y, [](void *y) {});
+      auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
+      y_dot = rhs(t, y_np);
+    };
+    return std::unique_ptr<Ode_Wrapper_t>(new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, t0));
   }
+
+  std::unique_ptr<Ode_Wrapper_t> create_sundials_sens_integrator(double t0,
+                                                                 py::array_t<complex_t> y0,
+                                                                 rhsFuncType rhs, pertFuncType fp,
+                                                                 std::vector<double> p){
+    auto func = [rhs](double t, const std::vector<complex_t> &y, std::vector<complex_t> &y_dot) {
+      auto capsule = py::capsule(&y, [](void *y) {});
+      auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
+      y_dot = rhs(t, y_np);
+    };
+
+    auto pert_func = [fp](const std::vector<double> &p) {
+      auto capsule = py::capsule(&p, [](void *p) {});
+      auto p_np = py::array_t<double>(p.size(), p.data(), capsule);
+      fp(p_np);
+    };
+
+    return std::unique_ptr<Ode_Wrapper_t>(
+        new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, pert_func, p, t0));
+  }
+
+  //  ABM_Wrapper_t create_abm_integrator(double t0,
+//                                      std::vector<complex_t> y0,
+//                                      std::function<std::vector<complex_t>(double, const py::array_t<complex_t>&)> rhs){
+//    auto func = [rhs](double t, const std::vector<complex_t>& y, std::vector<complex_t>& y_dot){
+//      auto capsule = py::capsule(&y, [](void *y) {});
+//      auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
+//      y_dot = rhs(t, y_np);
+//    };
+//    return ABM_Wrapper_t(func, y0, t0);
+//  }
+
 }
 
 
@@ -54,28 +101,31 @@ PYBIND11_MODULE(pulse_utils, m) {
     m.def("oplist_to_array", &oplist_to_array, "Insert list of complex numbers into numpy complex array");
     m.def("spmv_csr", &spmv_csr, "Sparse matrix, dense vector multiplication.");
 
-    py::class_<Cvode_Wrapper_t>(m, "CvodeWrapper")
-      .def("integrate", [](Cvode_Wrapper_t &cvode, double time, py::kwargs kwargs){
+    py::class_<Ode_Wrapper_t>(m, "OdeCPPWrapper")
+      .def("integrate", [](Ode_Wrapper_t &cvode, double time, py::kwargs kwargs){
         bool step = false;
         if(kwargs && kwargs.contains("step")){
           step = kwargs["step"].cast<bool>();
         }
-        return cvode.integrate(time, step);})
-      .def("successful", [](const Cvode_Wrapper_t &a){ return true;})
-      .def_readwrite("t", &Cvode_Wrapper_t::t_)
-      .def_property("_y", [](const Cvode_Wrapper_t &cvode){return py::array(py::cast(cvode.get_solution()));},
-          &Cvode_Wrapper_t::set_solution)
-      .def_property_readonly("y", [](const Cvode_Wrapper_t &cvode){return py::array(py::cast(cvode.get_solution()));})
-      .def("set_intial_value", &Cvode_Wrapper_t::set_intial_value)
-      .def("set_tolerances", &Cvode_Wrapper_t::set_tolerances)
-      .def("set_step_limits", &Cvode_Wrapper_t::set_step_limits)
-      .def("set_maximum_order", &Cvode_Wrapper_t::set_maximum_order)
-      .def("set_max_nsteps", &Cvode_Wrapper_t::set_max_nsteps);
-
-    m.def("create_sundials_integrator", &create_sundials_integrator,"");
+        return cvode.integrate(time, step);
+      })
+      .def("successful", &Ode_Wrapper_t::succesful)
+      .def_property("t", &Ode_Wrapper_t::get_t, &Ode_Wrapper_t::set_t)
+      .def_property("_y", [](const Ode_Wrapper_t &cvode){return py::array(py::cast(cvode.get_solution()));},
+          &Ode_Wrapper_t::set_solution)
+      .def_property_readonly("y", [](const Ode_Wrapper_t &cvode){return py::array(py::cast(cvode.get_solution()));})
+      .def("get_sens", [](Ode_Wrapper_t &cvode, int i){return py::array(py::cast(cvode.get_sens_solution(i)));})
+      .def("set_intial_value", &Ode_Wrapper_t::set_intial_value)
+      .def("set_tolerances", &Ode_Wrapper_t::set_tolerances)
+      .def("set_step_limits", &Ode_Wrapper_t::set_step_limits)
+      .def("set_maximum_order", &Ode_Wrapper_t::set_maximum_order)
+      .def("set_max_nsteps", &Ode_Wrapper_t::set_max_nsteps);
 
     py::class_<RhsFunctor>(m, "OdeRhsFunctor")
         .def("__call__", &RhsFunctor::operator());
 
     m.def("get_ode_rhs_functor", &get_ode_rhs_functor, "Get ode_rhs functor to allow caching of parameters");
+
+    m.def("create_sundials_sens_integrator", &create_sundials_sens_integrator, "");
+    m.def("create_sundials_integrator", &create_sundials_integrator, "");
 }
