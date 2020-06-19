@@ -16,11 +16,13 @@ class TestODEsCppWrappers(unittest.TestCase):
 
         self.f = f
 
+        self.tf = 0.5
+
     def test_sundials_1D(self):
         """Test simple one dimensional ODE"""
         odes = create_sundials_integrator(0.0, self.y, self.f)
-        odes.integrate(1.)
-        self.assertAlmostEqual(odes.y[0], self.y[0] * np.exp(self.par[0] * 1.))
+        odes.integrate(self.tf)
+        self.assertAlmostEqual(odes.y[0], self.y[0] * np.exp(self.par[0] * self.tf))
 
     def test_sundials_sens_1D(self):
         """Test simple one dimensional ODE with sens"""
@@ -29,7 +31,6 @@ class TestODEsCppWrappers(unittest.TestCase):
 
         odes = create_sundials_sens_integrator(0.0, self.y, self.f, pf, self.par)
         odes.set_tolerances(1e-9, 1e-9)
-        #odes.set_max_nsteps(50000)
-        odes.integrate(1.)
-        self.assertAlmostEqual(odes.y[0], self.y[0] * np.exp(self.par[0] * 1.), 5)
-        self.assertAlmostEqual(odes.get_sens(0)[0], self.y[0] * np.exp(self.par[0] * 1.), 5)
+        odes.integrate(self.tf)
+        self.assertAlmostEqual(odes.y[0], self.y[0] * np.exp(self.par[0] * self.tf), 5)
+        self.assertAlmostEqual(odes.get_sens(0)[0], self.tf * self.y[0] * np.exp(self.par[0] * self.tf), 5)

@@ -73,7 +73,9 @@ namespace AER{
 
       CvodeWrapper<std::vector<complex_t>> getODE(){
         auto f = std::bind(rhs_in_to_bind<std::vector<complex_t>>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, -5.);
-        return CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, f, y, 0.0);
+        auto ret = CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, f, y, 0.0);
+        ret.set_tolerances(1e-12, 1e-6);
+        return ret;
       }
     }
 
@@ -91,6 +93,7 @@ namespace AER{
 
     TEST_CASE( "Sundials Cvode wrapper ADAMS integration", "[sundials cvode]"){
       auto ode = CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, rhs_in<std::vector<complex_t>>, y, 0.0);
+      ode.set_tolerances(1e-12, 1e-6);
       constexpr double finalTime1 = .12;
       constexpr double finalTime2 = 12;
       Catch::StringMaker<double>::precision = 15;
@@ -114,6 +117,7 @@ namespace AER{
 
       SECTION( "2 Integrators" + std::to_string(finalTime1)){
         auto ode2 = CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, rhs_in<std::vector<complex_t>>, y, 0.0);
+        ode2.set_tolerances(1e-12, 1e-6);
         ode.integrate(finalTime1);
         ode2.integrate(finalTime1);
 
@@ -170,6 +174,8 @@ namespace AER{
       };
 
       auto ode_sens = CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, f, y_sens, pf, p, 0.0);
+      ode_sens.set_tolerances(1e-12, 1e-6);
+
       constexpr double finalTime1 = .12;
       Catch::StringMaker<double>::precision = 15;
 
@@ -203,6 +209,7 @@ namespace AER{
       };
       std::vector<complex_t> y_sens_m {{3.5,0}};
       auto ode_sens = CvodeWrapper<std::vector<complex_t>>(OdeMethod::ADAMS, f, y_sens_m, pf, p, 0.0);
+      ode_sens.set_tolerances(1e-12, 1e-6);
       auto ode_sens_2 = std::move(ode_sens);
       ode_sens_2.integrate(0.1);
       REQUIRE( compare(ode_sens_2.get_sens_solution(0), std::vector<complex_t>{{0.5770524532543648277283,0}}));
