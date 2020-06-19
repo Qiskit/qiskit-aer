@@ -22,6 +22,10 @@
 #endif
 
 #include <complex>
+#include <cstdio>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <type_traits>
