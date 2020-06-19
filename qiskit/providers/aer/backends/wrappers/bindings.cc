@@ -12,6 +12,8 @@
  * that they have been altered from the originals.
  */
 
+#include <pybind11/pybind11.h>
+
 #include "framework/results/pybind_result.hpp"
 #include "controllers/qasm_controller.hpp"
 #include "controllers/statevector_controller.hpp"
