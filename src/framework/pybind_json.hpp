@@ -171,7 +171,7 @@ namespace JSON {
  * @returns a json list (potentially of lists)
  */
 template <typename T>
-json_t numpy_to_json(const py::array_t<T, py::array::c_style> &arr);
+json_t numpy_to_json(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 1-d numpy array to a json object
@@ -179,7 +179,7 @@ json_t numpy_to_json(const py::array_t<T, py::array::c_style> &arr);
  * @returns a json list (potentially of lists)
  */
 template <typename T>
-json_t numpy_to_json_1d(const py::array_t<T, py::array::c_style> &arr);
+json_t numpy_to_json_1d(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 2-d numpy array to a json object
@@ -187,7 +187,7 @@ json_t numpy_to_json_1d(const py::array_t<T, py::array::c_style> &arr);
  * @returns a json list (potentially of lists)
  */
 template <typename T>
-json_t numpy_to_json_2d(const py::array_t<T, py::array::c_style> &arr);
+json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr);
 
 /**
  * Convert a 3-d numpy array to a json object
@@ -195,7 +195,7 @@ json_t numpy_to_json_2d(const py::array_t<T, py::array::c_style> &arr);
  * @returns a json list (potentially of lists)
  */
 template <typename T>
-json_t numpy_to_json_3d(const py::array_t<T, py::array::c_style> &arr);
+json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr);
 
 } //end namespace JSON
 
@@ -210,7 +210,7 @@ json_t numpy_to_json_3d(const py::array_t<T, py::array::c_style> &arr);
 //------------------------------------------------------------------------------
 
 template <typename T>
-json_t JSON::numpy_to_json_1d(const py::array_t<T, py::array::c_style> &arr) {
+json_t JSON::numpy_to_json_1d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 1) {
         throw std::runtime_error("Number of dims must be 1");
@@ -227,7 +227,7 @@ json_t JSON::numpy_to_json_1d(const py::array_t<T, py::array::c_style> &arr) {
 }
 
 template <typename T>
-json_t JSON::numpy_to_json_2d(const py::array_t<T, py::array::c_style> &arr) {
+json_t JSON::numpy_to_json_2d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 2) {
         throw std::runtime_error("Number of dims must be 2");
@@ -251,7 +251,7 @@ json_t JSON::numpy_to_json_2d(const py::array_t<T, py::array::c_style> &arr) {
 }
 
 template <typename T>
-json_t JSON::numpy_to_json_3d(const py::array_t<T, py::array::c_style> &arr) {
+json_t JSON::numpy_to_json_3d(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
     if (buf.ndim != 3) {
         throw std::runtime_error("Number of dims must be 3");
@@ -280,9 +280,8 @@ json_t JSON::numpy_to_json_3d(const py::array_t<T, py::array::c_style> &arr) {
 }
 
 template <typename T>
-json_t JSON::numpy_to_json(const py::array_t<T, py::array::c_style> &arr) {
+json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
     py::buffer_info buf = arr.request();
-    //std::cout << "buff dim: " << buf.ndim << std::endl;
 
     if (buf.ndim == 1) {
         return JSON::numpy_to_json_1d(arr);
