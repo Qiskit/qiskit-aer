@@ -66,7 +66,7 @@ namespace AER{
     };
 
     static constexpr double ATOL = 1e-12;
-    static constexpr double RTOL = 1e-6;
+    static constexpr double RTOL = 1e-12;
 
     static int rhs_wrapper(realtype t, N_Vector y, N_Vector ydot, void *user_data){
       auto data_wrapper = static_cast<user_data_func *>(user_data);
