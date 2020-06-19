@@ -9,7 +9,10 @@
 # be linked statically per Apple's indications.
 
 cmake_minimum_required(VERSION 3.6)
-file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
+file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_STRING)
+
+string(REGEX MATCH "[0-9]+(\\.[0-9]+)+" VERSION_NUM "${VERSION_STRING}")
+
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

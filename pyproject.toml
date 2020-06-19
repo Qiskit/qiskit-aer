@@ -1,2 +1,6 @@
 [build-system]
-requires = ["setuptools", "wheel", "conan>=1.22.2", "scikit-build", "cmake!=3.17.1,!=3.17.0", "ninja", "pybind11>2.4"]
+requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4", "conan>=1.22.2", "scikit-build", "cmake!=3.17.1,!=3.17.0", "ninja", "pybind11>2.4"]
+
+[tool.setuptools_scm]
+write_to = "qiskit/providers/aer/VERSION.txt"
+write_to_template = "{version}"
