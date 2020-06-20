@@ -85,6 +85,10 @@ py::object from_avg_data(AER::AverageData<T> &&avg_data);
 template<typename T>
 py::object from_avg_data(AER::AverageData<T> &avg_data);
 
+// JSON specialization
+template<>
+py::object from_avg_data(AER::AverageData<json_t> &&avg_data);
+
 /**
  * Convert a AverageData to a python object
  * @param avg_data is an AverageData
@@ -434,7 +438,7 @@ py::object AerToPy::from_avg_data(AER::AverageData<T> &&avg_data) {
   return std::move(d);
 }
 
-template<> 
+template <> 
 py::object AerToPy::from_avg_data(AER::AverageData<json_t> &&avg_data) {
   py::dict d;
   py::object py_mean;
