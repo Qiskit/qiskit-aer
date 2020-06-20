@@ -497,9 +497,9 @@ py::object AerToPy::from_avg_snap(AER::AverageSnapshot<T> &&avg_snap) {
         datum["memory"] = inner_pair.first;
       }
       // Add to list of output
-      d1.append(datum);
+      d1.append(std::move(datum));
     }
-    d[outer_pair.first.data()] = d1;
+    d[outer_pair.first.data()] = std::move(d1);
   }
   return std::move(d);
 }
@@ -630,7 +630,7 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
           l.append(AerToPy::array_from_matrix(matr));
         d[per_pair.first.data()] = std::move(l);
       }
-      snapshots[pair.first.data()] = d;
+      snapshots[pair.first.data()] = std::move(d);
     }
     for (auto &pair : datum.pershot_snapshots<matrix<std::complex<double>>>()) {
       py::dict d;
@@ -659,7 +659,7 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
     }
 
     if ( py::len(snapshots) != 0 )
-        pydata["snapshots"] = snapshots;
+        pydata["snapshots"] = std::move(snapshots);
   }
   //for (auto item : pydatum)
   //  py::print("    {}:, {}"_s.format(item.first, item.second));
