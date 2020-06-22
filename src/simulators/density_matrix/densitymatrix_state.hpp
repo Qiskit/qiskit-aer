@@ -540,7 +540,7 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
     if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      reduced_state = BaseState::qreg_.matrix();
+      reduced_state = BaseState::qreg_.copy_to_matrix();
     } else {
       reduced_state = reduced_density_matrix(op.qubits, qubits_sorted);
     }
