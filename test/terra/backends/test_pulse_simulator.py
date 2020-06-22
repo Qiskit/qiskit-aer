@@ -367,7 +367,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for scale in scales:
             scale_test(scale)
 
-    def test_arbitrary_gate(self):
+    def test_arbitrary_constant_drive(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
         total_samples = 100
         num_tests = 3
@@ -408,6 +408,78 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 # test final state
                 self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+
+    def test_gaussian_drive(self):
+        """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
+        phi=0, omega_a = pi/time
+        """
+
+        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
+        total_samples = 100
+        omega_0 = 1.
+        omega_d = omega_0
+
+        # Require omega_a*time = pi to implement pi pulse (x gate)
+        # num of samples gives time
+        r = np.pi / total_samples
+
+        phi = 0
+
+        # Test gaussian drive results for a few different sigma
+        gauss_sigmas = [total_samples / 6, total_samples / 3, total_samples]
+
+        system_model = self._system_model_1Q_new(omega_0, r)
+
+        for gauss_sigma in gauss_sigmas:
+            with self.subTest(gauss_sigma=gauss_sigma):
+                schedule = self._simple_1Q_schedule(phi,
+                                                    total_samples,
+                                                    "gaussian",
+                                                    gauss_sigma)
+
+                times = 1.0 * np.arange(total_samples)
+                gaussian_samples = np.exp(-times**2 / 2 / gauss_sigma**2)
+                drive_pulse = SamplePulse(gaussian_samples, name='drive_pulse')
+
+                # construct schedule
+                schedule = Schedule()
+                schedule |= Play(drive_pulse, DriveChannel(0))
+                schedule |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+
+                qobj = assemble([schedule],
+                                backend=self.backend_sim,
+                                meas_level=2,
+                                meas_return='single',
+                                meas_map=[[0]],
+                                qubit_lo_freq=[omega_d],
+                                memory_slots=2,
+                                shots=1000)
+                y0 = np.array([1., 0.])
+                backend_options = {'seed' : 9000, 'initial_state' : y0}
+
+                result = self.backend_sim.run(qobj, system_model, backend_options).result()
+                pulse_sim_yf = result.get_statevector()
+
+                # run independent simulation
+                T = total_samples
+                def rhs(t, y):
+                    # handle time edge case
+                    if t >= 100:
+                        t = 99.9
+                    amp = gaussian_samples[int(t)]
+                    chan_val = np.real(amp * np.exp(1j * 2 * np.pi * omega_d * t))
+                    phi = 2 * np.pi * omega_d * t
+                    Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
+                    return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
+
+                de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+                ode_method = ScipyODE(t0=0., y0=y0, rhs=rhs, options=de_options)
+                ode_method.integrate(T)
+                yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
+
+                # Check fidelity of statevectors
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 0.99)
+
 
     def test_meas_level_1(self):
         """Test measurement level 1. """
@@ -459,57 +531,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_prop = {'0': 0.5, '1': 0.5}
 
         self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
-
-    def test_gaussian_drive(self):
-        """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
-        phi=0, omega_a = pi/time
-        """
-
-        # set variables
-
-        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
-        total_samples = 100
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-
-        # Require omega_a*time = pi to implement pi pulse (x gate)
-        # num of samples gives time
-        omega_a = np.pi / total_samples
-
-        phi = 0
-
-        # Test gaussian drive results for a few different sigma
-        gauss_sigmas = {
-            total_samples / 6, total_samples / 3, total_samples
-        }
-
-        system_model = self._system_model_1Q(omega_0, omega_a)
-
-        for gauss_sigma in gauss_sigmas:
-            with self.subTest(gauss_sigma=gauss_sigma):
-                schedule = self._simple_1Q_schedule(phi,
-                                                    total_samples,
-                                                    "gaussian",
-                                                    gauss_sigma)
-
-                qobj = assemble([schedule],
-                                backend=self.backend_sim,
-                                meas_level=2,
-                                meas_return='single',
-                                meas_map=[[0]],
-                                qubit_lo_freq=[omega_d0/(2*np.pi)],
-                                memory_slots=2,
-                                shots=1000)
-                backend_options = {'seed' : 9000}
-
-                result = self.backend_sim.run(qobj, system_model, backend_options).result()
-                statevector = result.get_statevector()
-                exp_statevector = self._analytic_gaussian_statevector(
-                    total_samples, gauss_sigma=gauss_sigma, omega_a=omega_a)
-
-                # Check fidelity of statevectors
-                self.assertGreaterEqual(
-                    state_fidelity(statevector, exp_statevector), 0.99)
 
     def test_frame_change(self):
         """Test frame change command. """
@@ -1192,54 +1213,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
-
-    def _analytic_prop_1q_gates(self, total_samples, omega_0, omega_a, omega_d0, phi):
-        """Compute proportion for 0 and 1 states analytically for single qubit gates.
-        Args:
-            total_samples (int): length of pulses
-            omega_0 (float): Q0 freq
-            omega_a (float): Q0 drive amplitude
-            omega_d0 (flaot): Q0 drive frequency
-            phi (float): drive phase
-        Returns:
-            exp_prop (dict): expected value of 0 and 1 proportions from analytic computation
-            """
-        time = total_samples
-        # write Hrot analytically
-        h_rot = np.array([[
-            (omega_d0 - omega_0) / 2,
-            np.exp(1j * phi) * omega_a / 2
-        ], [np.exp(-1j * phi) * omega_a / 2, -(omega_d0 - omega_0) / 2]])
-        # exponentiate
-        u_rot = expm(-1j * h_rot * time)
-        state0 = np.array([1, 0])
-
-        # compute analytic prob (proportion) of 0 state
-        mat_elem0 = np.vdot(state0, np.dot(u_rot, state0))
-        prop0 = np.abs(mat_elem0)**2
-
-        # return expected proportion
-        exp_prop = {'0': prop0, '1': 1 - prop0}
-        return exp_prop
-
-    def _analytic_gaussian_statevector(self, total_samples, gauss_sigma, omega_a):
-        r"""Computes analytic statevector for gaussian drive. Solving the Schrodinger equation in
-        the rotating frame leads to the analytic solution `(\cos(x), -i\sin(x)) with
-        `x = \frac{1}{2}\sqrt{\frac{\pi}{2}}\sigma\omega_a erf(\frac{t}{\sqrt{2}\sigma}).
-
-        Args:
-            total_samples (int): length of pulses
-            gauss_sigma (float): std dev for the gaussian drive
-            omega_a (float): Q0 drive amplitude
-        Returns:
-            exp_statevector (list): analytic form of the statevector computed for gaussian drive
-                (Returned in the rotating frame)
-        """
-        time = total_samples
-        arg = 1 / 2 * np.sqrt(np.pi / 2) * gauss_sigma * omega_a * erf(
-            time / np.sqrt(2) / gauss_sigma)
-        exp_statevector = [np.cos(arg), -1j * np.sin(arg)]
-        return exp_statevector
 
     def _schedule_2Q_interaction(self, total_samples, drive_idx=0, target_idx=1, U_idx=1):
         """Creates schedule for testing two qubit interaction. Specifically, do a pi pulse on qub 0
