@@ -1,7 +1,7 @@
 #ifndef QASM_SIMULATOR_ABM_WRAPPER_HPP
 #define QASM_SIMULATOR_ABM_WRAPPER_HPP
 
-#include "ode/ode.h"
+#include "ode/ode.hpp"
 // TODO: Specific header to include instead of all odeint
 #include <boost/numeric/odeint.hpp>
 

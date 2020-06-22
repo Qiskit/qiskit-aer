@@ -16,6 +16,7 @@
 #include "pulse_utils.hpp"
 #include "ode/sundials_wrappers/sundials_cvode_wrapper.hpp"
 #include "ode/odeint_wrappers/abm_wrapper.hpp"
+#include "ode/ode_factory.hpp"
 #include <pybind11/functional.h>
 
 namespace AER{
@@ -44,7 +45,8 @@ namespace{
       auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
       y_dot = rhs(t, y_np);
     };
-    return std::unique_ptr<Ode_Wrapper_t>(new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, t0));
+    //return std::unique_ptr<Ode_Wrapper_t>(new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, t0));
+    return AER::ODE::create_ode<std::vector<complex_t>>("sundials_cvode", AER::OdeMethod::ADAMS, func, y0, t0);
   }
 
   std::unique_ptr<Ode_Wrapper_t> create_sundials_sens_integrator(double t0,
@@ -63,8 +65,9 @@ namespace{
       fp(p_np);
     };
 
-    return std::unique_ptr<Ode_Wrapper_t>(
-        new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, pert_func, p, t0));
+//    return std::unique_ptr<Ode_Wrapper_t>(
+//        new Cvode_Wrapper_t(AER::OdeMethod::ADAMS, func, y0, pert_func, p, t0));
+    return AER::ODE::create_ode<std::vector<complex_t>>("sundials_cvode", AER::OdeMethod::ADAMS, func, y0, pert_func, p, t0);
   }
 
   //  ABM_Wrapper_t create_abm_integrator(double t0,
