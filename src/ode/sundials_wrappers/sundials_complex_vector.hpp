@@ -37,6 +37,13 @@ namespace AER {
       return y;
     }
 
+    static N_Vector new_vector(container_t&& container) {
+      N_Vector y = SundialsOps<SundialsComplexContent>::SundialsComplexContent_New(container.size());
+      auto &raw = get_data(y);
+      raw = std::move(container);
+      return y;
+    }
+
     static void prepare_data(N_Vector v, int length){
       auto content = static_cast<SundialsComplexContent *>(v->content);
       content->data.resize(length);
