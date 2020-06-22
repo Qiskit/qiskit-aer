@@ -83,7 +83,10 @@ def pulse_controller(qobj, system_model, backend_options):
     estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
-    pulse_sim_desc.initial_state = estates[0]
+    if 'initial_state' in backend_options:
+        pulse_sim_desc.initial_state = Qobj(backend_options['initial_state'])
+    else:
+        pulse_sim_desc.initial_state = estates[0]
 
     # Get dt
     if system_model.dt is None:
