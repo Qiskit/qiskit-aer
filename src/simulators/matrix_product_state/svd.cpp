@@ -30,7 +30,8 @@
 
 #define mul_factor 1e2
 #define tiny_factor 1e30
-#define THRESHOLD 1e-9
+#define zero_threshold 1e-50
+#define THRESHOLD 1e-7
 #define NUM_SVD_TRIES 15
 
 namespace AER {
@@ -72,17 +73,6 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
   return Res;
 }
 
-// This function is used when the default precision of double is not
-// sufficient to detect  minute differences between f1 and f2.
-// We scale f1 and f2 by tiny_factor, and then get a more precise comparison
-template <typename T, typename = enable_if_numeric_t<T>>
-bool almost_equal_high_precision(T f1, T f2,
-				 T max_diff = std::numeric_limits<T>::epsilon(),
-				 T max_relative_diff = std::numeric_limits<T>::epsilon()) {
-  return Linalg::almost_equal(f1 * tiny_factor, f2 * tiny_factor);
-}
-
-
 //-------------------------------------------------------------
 // function name: num_of_SV
 // Description: Computes the number of none-zero singular values
@@ -110,6 +100,40 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   U.resize(U.GetRows(), SV_num);
   S.resize(SV_num);
   V.resize(V.GetRows(), SV_num);
+}
+
+void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
+  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+  cmatrix_t diag_S = diag(S, nrows, ncols);
+  cmatrix_t product = U*diag_S;
+  product = product * AER::Utils::dagger(V);
+  bool equal = true;
+
+#ifdef DEBUG
+  std::cout << "matrices after SVD:" <<std::endl;
+  std::cout << "A = " << std::endl << A ;
+  std::cout << "U = " << std::endl << U ;
+  std::cout << "S = " << std::endl;
+  for (uint_t i = 0; i != S.size(); ++i)
+    std::cout << S[i] << " , ";
+  std::cout << std::endl;
+  std::cout << "V* = " << std::endl << V ;
+  std::cout << "product= " << std::endl << product << std::endl;
+#endif
+  for (uint_t ii=0; ii < nrows; ii++)
+    for (uint_t jj=0; jj < ncols; jj++)
+      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), THRESHOLD)) {
+	  //      if (!Linalg::almost_equal(A(ii, jj).real(), product(ii, jj).real(), THRESHOLD) ||
+	  //(!Linalg::almost_equal(A(ii, jj).imag(), product(ii, jj).imag(), THRESHOLD))) {
+	std::cout << "A " << A(ii, jj) << " " << " product " << product(ii, jj) << std::endl;
+	equal = false;
+      }
+  if( ! equal ) {
+    std::stringstream ss;
+    ss << "error: wrong SVD calc: A != USV*";
+    std::cout <<"error: wrong SVD calc: A != USV*"<< std::endl;
+    throw std::runtime_error(ss.str());
+  }
 }
 
 // added cut-off at the end
@@ -142,7 +166,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			z = std::sqrt( z );
 			b[k] = z;
 			w = std::abs( A(k,k) );
-			if (almost_equal_high_precision(w, 0.0)) {
+			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
 			  q = complex_t( 1.0, 0.0 );
 			} else {
 			  q = A(k,k) / w;
@@ -189,7 +213,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			c[k1] = z;
 			w = std::abs( A(k,k1) );
 
-			if (almost_equal_high_precision(w, 0.0)) {
+			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
 				q = complex_t( 1.0, 0.0 );
 			}
 			else{
@@ -323,7 +347,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				h = sn * g;
 				g = cs * g;
 				w = std::sqrt( h * h + f * f );
-				if (almost_equal_high_precision(w, 0.0)) {
+				if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
 #ifdef DEBUG
 				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << std::endl;
 				  std::cout << " w = " << w << std::endl;
@@ -335,7 +359,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				f = x * cs + g * sn; // might be 0
 
 				long double large_f = 0;
-				if (almost_equal_high_precision(f, 0.0)) {
+				if (Linalg::almost_equal(f, 0.0, zero_threshold)) {
 #ifdef DEBUG
 				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<std::endl;
 #endif
@@ -369,13 +393,13 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << std::endl;
 #endif
 				if (std::abs(h) < 1e-13 && std::abs(f) < 1e-13 && 
-				    !almost_equal_high_precision(large_f, static_cast<long double>(0.0))) {
+				    !Linalg::almost_equal(large_f, static_cast<long double>(0.0), static_cast<long double>(zero_threshold))) {
 				  tiny_w = true;
 				} else {
 				  w = std::sqrt( h * h + f * f );
 				}
 				w = std::sqrt( h * h + f * f );
-				if (almost_equal_high_precision(w, 0.0)  && !tiny_w) {
+				if (Linalg::almost_equal(w, 0.0, zero_threshold)  && !tiny_w) {
 							 
 
 #ifdef DEBUG
@@ -456,9 +480,8 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
         }
     }
 
-    for( k = n-1 ; k >= 0; k--)
-	{
-	  if (!almost_equal_high_precision(b[k], 0.0)) {
+    for( k = n-1 ; k >= 0; k--) {
+	  if (!Linalg::almost_equal(b[k], 0.0, zero_threshold)) {
 			q = -A(k,k) / std::abs( A(k,k) );
 			for( j = 0; j < m; j++){
 				U(k,j) = q * U(k,j);
@@ -477,10 +500,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		}
 	}
 
-	for( k = n-1 -1; k >= 0; k--)
-	{
+	for( k = n-1 -1; k >= 0; k--) {
 		k1 = k + 1;
-		if ( !almost_equal_high_precision(c[k1], 0.0)) {
+		if ( !Linalg::almost_equal(c[k1], 0.0, zero_threshold)) {
 			q = -std::conj( A(k,k1) ) / std::abs( A(k,k1) );
 
 			for( j = 0; j < n; j++){
@@ -500,27 +522,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			}
 		}
 	}
-
-	// Check if SVD output is wrong
-	cmatrix_t diag_S = diag(S,m,n);
-	cmatrix_t temp = U*diag_S;
-	temp = temp * AER::Utils::dagger(V);
-	const auto nrows = temp_A.GetRows();
-	const auto ncols = temp_A.GetColumns();
-	bool equal = true;
-
-	for (uint_t ii=0; ii < nrows; ii++)
-	    for (uint_t jj=0; jj < ncols; jj++)
-	      if (std::real(std::abs(temp_A(ii, jj) - temp(ii, jj))) > THRESHOLD)
-	      {
-	    	  equal = false;
-	      }
-	if( ! equal )
-	{
-	  std::stringstream ss;
-	  ss << "error: wrong SVD calc: A != USV*";
-	  throw std::runtime_error(ss.str());
-	}
+	validate_SVD_result(temp_A, U, S, V);
 
 	// Transpose again if m < n
 	if(transposed)

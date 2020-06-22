@@ -497,27 +497,13 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 //---------------------------------------------------------------
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
-  matrix<complex_t> C;
+  cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
-  matrix<complex_t> U,V;
+  cmatrix_t U,V;
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
-
-#ifdef DEBUG
-  std::cout << "Input matrix before SVD =" << std::endl << C ;
-#endif
 
   csvd_wrapper(C, U, S, V);
   reduce_zeros(U, S, V);
-
-#ifdef DEBUG
-  std::cout << "matrices after SVD:" <<std::endl;
-  std::cout << "U = " << std::endl << U ;
-  std::cout << "S = " << std::endl;
-  for (uint_t i = 0; i != S.size(); ++i)
-    std::cout << S[i] << " , ";
-  std::cout << std::endl;
-  std::cout << "V* = " << std::endl << V ;
-#endif
 
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
