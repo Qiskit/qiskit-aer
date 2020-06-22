@@ -333,13 +333,13 @@ void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(get_qubit_index(index_A), 
-		     get_qubit_index(index_B), cx, cmatrix_t(1));
+		     get_qubit_index(index_B), cx, cmatrix_t(1, 1));
 }
 
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(get_qubit_index(index_A), 
-		     get_qubit_index(index_B), cz, cmatrix_t(1));
+		     get_qubit_index(index_B), cz, cmatrix_t(1, 1));
 }
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
@@ -350,7 +350,7 @@ void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 void MPS::apply_ccx(const reg_t &qubits)
 {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_3_qubit_gate(internal_qubits, mcx, cmatrix_t(1));
+  apply_3_qubit_gate(internal_qubits, mcx, cmatrix_t(1, 1));
 }
 
   void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
@@ -1148,7 +1148,7 @@ uint_t MPS::apply_measure(uint_t qubit,
   // step 3 - randomly choose a measurement value for qubit 0
   double rnd = rng.rand(0, 1);
   uint_t measurement;
-  cmatrix_t measurement_matrix(4);
+  cmatrix_t measurement_matrix(2, 2);
   
   if (rnd < prob0) {
     measurement = 0;
@@ -1165,14 +1165,14 @@ uint_t MPS::apply_measure(uint_t qubit,
   for (uint_t i=qubit; i<num_qubits_-1; i++) {
     if (lambda_reg_[i].size() == 1) 
       break;   // no need to propagate if no entanglement
-    apply_2_qubit_gate(i, i+1, id, cmatrix_t(1));
+    apply_2_qubit_gate(i, i+1, id, cmatrix_t(1, 1));
   }
 
   // and propagate the changes to all qubits to the left
   for (int_t i=qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
-    apply_2_qubit_gate(i-1, i, id, cmatrix_t(1));
+    apply_2_qubit_gate(i-1, i, id, cmatrix_t(1, 1));
   }
   return measurement;
 }

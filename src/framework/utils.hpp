@@ -1187,9 +1187,10 @@ bool is_symmetrix(const matrix<T> &mat, double threshold) {
 
 template <class T>
 bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
-  matrix<T> cptp(mats[0].size());
+  const auto dim = mats[0].GetRows();
+  matrix<T> cptp(dim, dim);
   for (const auto &mat : mats) {
-    cptp = cptp + dagger(mat) * mat;
+    cptp += dagger(mat) * mat;
   }
   return is_identity(cptp, threshold);
 }
