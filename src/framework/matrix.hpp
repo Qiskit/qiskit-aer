@@ -231,6 +231,24 @@ public:
   matrix<T> &operator=(const matrix<S> &other);
 
   //-----------------------------------------------------------------------
+  // Buffer conversion
+  //-----------------------------------------------------------------------
+
+  // Copy construct a matrix from C-array buffer
+  // The buffer should have size = rows * cols.
+  static matrix<T> copy_from_buffer(size_t rows, size_t cols, const T* buffer);
+
+  // Move construct a matrix from C-array buffer
+  // The buffer should have size = rows * cols.
+  static matrix<T> move_from_buffer(size_t rows, size_t cols, T* buffer);
+
+  // Copy matrix to a new C-array
+  T* copy_to_buffer() const;
+
+  // Move matrix to a C-array
+  T* move_to_buffer();
+
+  //-----------------------------------------------------------------------
   // Element access
   //-----------------------------------------------------------------------
 
@@ -378,6 +396,50 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &other) {
     data_[p] = T(other[p]);
   }
   return *this;
+}
+
+//-----------------------------------------------------------------------
+// Buffer conversion
+//-----------------------------------------------------------------------
+
+template <class T>
+matrix<T> matrix<T>::copy_from_buffer(size_t rows, size_t cols, const T* buffer) {
+  matrix<T> ret;
+  ret.size_ = rows * cols;
+  ret.rows_ = rows;
+  ret.cols_ = cols;
+  ret.LD_ = rows;
+  ret.data_ = calloc_array<T>(ret.size_);
+  std::copy(buffer, buffer + ret.size_, ret.data_);
+  return ret;
+}
+
+template <class T>
+matrix<T> matrix<T>::move_from_buffer(size_t rows, size_t cols, T* buffer) {
+  matrix<T> ret;
+  ret.size_ = rows * cols;
+  ret.rows_ = rows;
+  ret.cols_ = cols;
+  ret.LD_ = rows;
+  ret.data_ = buffer;
+  return ret;
+}
+
+template <class T>
+T* matrix<T>::copy_to_buffer() const {
+  T* buffer = malloc_array<T>(size_);
+  std::copy(data_, data_ + size_, buffer);
+  return buffer;
+}
+
+template <class T>
+T* matrix<T>::move_to_buffer() {
+  T* buffer = data_;
+  data_ = nullptr;
+  size_ = 0;
+  rows_ = 0;
+  cols_ = 0;
+  return buffer;
 }
 
 //-----------------------------------------------------------------------
