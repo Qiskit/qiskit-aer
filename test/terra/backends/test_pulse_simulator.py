@@ -105,7 +105,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts[0], exp_counts)
         self.assertDictAlmostEqual(counts[1], exp_counts)
 
-    def test_x_gate_new(self):
+    def test_x_gate(self):
+        """Test a schedule for a pi pulse on a 2 level system."""
 
         # qubit frequency and drive frequency
         omega_0 = 1.
@@ -113,30 +114,72 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # drive strength and length of pulse
         r = 0.01
-        total_samples  = 100
+        total_samples = 100
 
-        hamiltonian = {}
-        hamiltonian['h_str'] = ['2*np.pi*omega0*0.5*Z0', '2*np.pi*r*0.5*X0||D0']
-        hamiltonian['vars'] = {'omega0': omega_0, 'r': r}
-        hamiltonian['qub'] = {'0': 2}
-        ham_model = HamiltonianModel.from_dict(hamiltonian)
+        system_model = self._system_model_1Q_new(omega_0, r)
 
-        u_channel_lo = []
-        subsystem_list = [0]
-        dt = 1.
-
-        system_model =  PulseSystemModel(hamiltonian=ham_model,
-                                         u_channel_lo=u_channel_lo,
-                                         subsystem_list=subsystem_list,
-                                         dt=dt)
-
-        drive_pulse = SamplePulse(np.ones(total_samples))
-        schedule = Schedule()
-        schedule |= Play(drive_pulse, DriveChannel(0))
-        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+        # set up constant pulse for doing a pi pulse
+        schedule = self._1Q_constant_sched(total_samples)
 
         # set up schedule and qobj
-        schedule = self._simple_1Q_schedule(0, total_samples)
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d],
+                        memory_slots=1,
+                        shots=256)
+
+        # set backend backend_options including initial state
+        y0 = np.array([1.0, 0.0])
+        backend_options = {'seed' : 9000, 'initial_state' : y0}
+
+        # run simulation
+        result = self.backend_sim.run(qobj,
+                                      system_model=system_model,
+                                      backend_options=backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        # run manual simulation for state-vector comparison
+        def rhs(t, y):
+            chan_val = np.real(1.0 * np.exp(1j * 2 * np.pi * omega_d * t))
+            phi = 2 * np.pi * omega_d * t
+            Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
+            return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
+
+        de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+        T = total_samples
+        ode_method = ScipyODE(t0=0, y0=y0, rhs=rhs, options=de_options)
+        ode_method.integrate(T)
+        yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
+
+        # test final state
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+
+        # test counts
+        counts = result.get_counts()
+        exp_counts = {'1': 256}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+    def test_x_half_gate(self):
+        """Test a schedule for a pi/2 pulse on a 2 level system. Same setup as test_x_gate but
+        with half the time."""
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 50
+
+        system_model = self._system_model_1Q_new(omega_0, r)
+
+        # set up constant pulse for doing a pi pulse
+        schedule = self._1Q_constant_sched(total_samples)
+
+        # set up schedule and qobj
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
@@ -154,7 +197,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         result = self.backend_sim.run(qobj,
                                       system_model=system_model,
                                       backend_options=backend_options).result()
-        statevector = result.get_statevector()
+        pulse_sim_yf = result.get_statevector()
 
         # run manual simulation for state-vector comparison
         def rhs(t, y):
@@ -163,58 +206,78 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
             return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
 
-        de_opt = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+        de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
         T = total_samples
-        ode_method = ScipyODE(t0=0, y0=y0, rhs=rhs, options=de_opt)
+        ode_method = ScipyODE(t0=0, y0=y0, rhs=rhs, options=de_options)
         ode_method.integrate(T)
         yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
 
-
         # test final state
-        self.assertGreaterEqual(
-            state_fidelity(statevector, yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
 
         # test counts
         counts = result.get_counts()
-        exp_counts = {'1': 256}
+        exp_counts = {'1': 132, '0': 124}
         self.assertDictAlmostEqual(counts, exp_counts)
 
+    def test_y_half_gate(self):
+        """Test a schedule for a pi/2 pulse on a 2 level system. Same setup as test_x_gate but
+        with half the time."""
 
+        # qubit frequency and drive frequency
+        omega_0 = 1.
+        omega_d = omega_0
 
-    def test_x_gate(self):
-        """
-        Test x gate. Set omega_d0=omega_0 (drive on resonance), phi=0, omega_a = pi/time
-        """
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 50
 
-        # setup system model
-        total_samples = 100
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-        omega_a = 2 * np.pi / total_samples
-        system_model = self._system_model_1Q(omega_0, omega_a)
+        system_model = self._system_model_1Q_new(omega_0, r)
+
+        # set up constant pulse for doing a pi pulse
+        schedule = self._1Q_constant_sched(total_samples, amp=1j)
 
         # set up schedule and qobj
-        schedule = self._simple_1Q_schedule(0, total_samples)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
                         meas_map=[[0]],
-                        qubit_lo_freq=[omega_d0/(2*np.pi)],
-                        memory_slots=2,
+                        qubit_lo_freq=[omega_d],
+                        memory_slots=1,
                         shots=256)
 
         # set backend backend_options
-        backend_options = {'seed' : 9000, 'initial_state' : np.array([1.0, 0.0])}
+        y0 = np.array([1.0, 0.0])
+        backend_options = {'seed' : 9000, 'initial_state' : y0}
 
         # run simulation
-        result = self.backend_sim.run(qobj, system_model=system_model,
+        result = self.backend_sim.run(qobj,
+                                      system_model=system_model,
                                       backend_options=backend_options).result()
+        pulse_sim_yf = result.get_statevector()
 
-        # test results
+        # run manual simulation for state-vector comparison
+        def rhs(t, y):
+            chan_val = np.real(1j * np.exp(1j * 2 * np.pi * omega_d * t))
+            phi = 2 * np.pi * omega_d * t
+            Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
+            return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
+
+        de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+        T = total_samples
+        ode_method = ScipyODE(t0=0, y0=y0, rhs=rhs, options=de_options)
+        ode_method.integrate(T)
+        yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
+
+        # test final state
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+
+        # test counts
         counts = result.get_counts()
-        exp_counts = {'1': 256}
+        exp_counts = {'1': 132, '0': 124}
         self.assertDictAlmostEqual(counts, exp_counts)
+
 
     def test_1Q_noise(self):
         """
@@ -950,6 +1013,54 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_counts = {'1': 256}
         self.assertDictAlmostEqual(counts, exp_counts)
 
+    def _system_model_1Q_new(self, omega_0, r):
+        """Constructs a standard model for a 1 qubit system.
+
+        Args:
+            omega_0 (float): qubit frequency
+            r (float): drive strength
+
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['2*np.pi*omega0*0.5*Z0', '2*np.pi*r*0.5*X0||D0']
+        hamiltonian['vars'] = {'omega0': omega_0, 'r': r}
+        hamiltonian['qub'] = {'0': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian=ham_model,
+                                u_channel_lo=u_channel_lo,
+                                subsystem_list=subsystem_list,
+                                dt=dt)
+
+    def _1Q_constant_sched(self, total_samples, amp=1.):
+        """Creates a runnable schedule for 1Q with a constant drive pulse of a given length.
+
+        Args:
+            total_samples (int): length of pulse
+            amp (float): amplitude of constant pulse (can be complex)
+
+        Returns:
+            schedule (pulse schedule): schedule with a drive pulse followed by an acquire
+        """
+
+        # set up constant pulse for doing a pi pulse
+        drive_pulse = SamplePulse(amp * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+
+        return schedule
+
+    ###########
+    # Old
+    ###########
 
     def _system_model_1Q(self, omega_0, omega_a, qubit_dim=2):
         """Constructs a simple 1 qubit system model.
