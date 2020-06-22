@@ -28,6 +28,8 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, DriveChannel,
                           ControlChannel, AcquireChannel, MemorySlot)
+from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
+from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
@@ -58,6 +60,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # Get pulse simulator backend
         self.backend_sim = PulseSimulator()
+
+        self.X = np.array([[0., 1.], [1., 0.]])
 
     # ---------------------------------------------------------------------
     # Test single qubit gates (using meas level 2 and square drive)
@@ -101,6 +105,81 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts[0], exp_counts)
         self.assertDictAlmostEqual(counts[1], exp_counts)
 
+    def test_x_gate_new(self):
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples  = 100
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['2*np.pi*omega0*0.5*Z0', '2*np.pi*r*0.5*X0||D0']
+        hamiltonian['vars'] = {'omega0': omega_0, 'r': r}
+        hamiltonian['qub'] = {'0': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        system_model =  PulseSystemModel(hamiltonian=ham_model,
+                                         u_channel_lo=u_channel_lo,
+                                         subsystem_list=subsystem_list,
+                                         dt=dt)
+
+        drive_pulse = SamplePulse(np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+
+        # set up schedule and qobj
+        schedule = self._simple_1Q_schedule(0, total_samples)
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d],
+                        memory_slots=1,
+                        shots=256)
+
+        # set backend backend_options
+        y0 = np.array([1.0, 0.0])
+        backend_options = {'seed' : 9000, 'initial_state' : y0}
+
+        # run simulation
+        result = self.backend_sim.run(qobj,
+                                      system_model=system_model,
+                                      backend_options=backend_options).result()
+        statevector = result.get_statevector()
+
+        # run manual simulation for state-vector comparison
+        def rhs(t, y):
+            chan_val = np.real(1.0 * np.exp(1j * 2 * np.pi * omega_d * t))
+            phi = 2 * np.pi * omega_d * t
+            Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
+            return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
+
+        de_opt = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+        T = total_samples
+        ode_method = ScipyODE(t0=0, y0=y0, rhs=rhs, options=de_opt)
+        ode_method.integrate(T)
+        yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
+
+
+        # test final state
+        self.assertGreaterEqual(
+            state_fidelity(statevector, yf), 1-10**-5)
+
+        # test counts
+        counts = result.get_counts()
+        exp_counts = {'1': 256}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+
 
     def test_x_gate(self):
         """
@@ -111,7 +190,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
         omega_0 = 2 * np.pi
         omega_d0 = omega_0
-        omega_a = np.pi / total_samples
+        omega_a = 2 * np.pi / total_samples
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         # set up schedule and qobj
@@ -126,7 +205,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=256)
 
         # set backend backend_options
-        backend_options = {'seed' : 9000}
+        backend_options = {'seed' : 9000, 'initial_state' : np.array([1.0, 0.0])}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -147,7 +226,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
         omega_0 = 2 * np.pi
         omega_d0 = omega_0
-        omega_a = np.pi / total_samples
+        omega_a = 2 * np.pi / total_samples
         system_model = self._system_model_1Q(omega_0, omega_a)
 
         # set up schedule and qobj
@@ -163,7 +242,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set seed for simulation, and set noise
         backend_options = {'seed' : 9000}
-        backend_options['noise_model'] = {"qubit": {"0": {"Sm": 1}}}
+        backend_options['noise_model'] = {"qubit": {"0": {"Sm": 1.}}}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -175,7 +254,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         counts = result.get_counts()
         exp_counts = {'0': 256}
         self.assertDictAlmostEqual(counts, exp_counts)
-    
+
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the solver.

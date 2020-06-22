@@ -22,6 +22,7 @@ import numpy as np
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
+from ..qutip_extra_lite.qobj import Qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
