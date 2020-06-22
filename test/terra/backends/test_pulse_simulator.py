@@ -338,11 +338,25 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                             shots=256)
 
             # set backend backend_options
-            backend_options = {'seed' : 9000}
+            y0 = np.array([1., 0.])
+            backend_options = {'seed' : 9000, 'initial_state': y0}
 
             # run simulation
             result = self.backend_sim.run(qobj, system_model=system_model,
                                           backend_options=backend_options).result()
+
+            pulse_sim_yf = result.get_statevector()
+
+            yf = self._independent_1Q_constant_sched_sim(y0,
+                                                         amp=1.,
+                                                         r=r,
+                                                         omega_d=omega_d,
+                                                         T=total_samples * scale)
+
+            # test final state
+            self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+
+
             counts = result.get_counts()
             exp_counts = {'1': 256}
 
@@ -355,19 +369,18 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def test_arbitrary_gate(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
-        shots = 10000  # large number of shots so get good proportions
         total_samples = 100
         num_tests = 3
 
         omega_0 = 1.
         omega_d_vals = [omega_0 + 1., omega_0 + 0.02, omega_0 + 0.005]
-        r_vals = [2 * np.pi / 3 / total_samples, 7 * np.pi / 5 / total_samples, 0.1]
+        r_vals = [3 / total_samples, 5 / total_samples, 0.1]
         phase_vals = [5 * np.pi / 7, 19 * np.pi / 14, np.pi / 4]
 
         for i in range(num_tests):
             with self.subTest(i=i):
 
-                system_model = self._system_model_1Q_new(omega_0, r)
+                system_model = self._system_model_1Q_new(omega_0, r_vals[i])
                 schedule = self._1Q_constant_sched(total_samples, amp=np.exp(-1j * phase_vals[i]))
 
                 qobj = assemble([schedule],
@@ -377,26 +390,24 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 meas_map=[[0]],
                                 qubit_lo_freq=[omega_d_vals[i]],
                                 memory_slots=2,
-                                shots=shots)
+                                shots=1)
 
                 # Run qobj and compare prop to expected result
-                backend_options = {'seed' : 9000}
+                y0 = np.array([1., 0.])
+                backend_options = {'seed' : 9000, 'initial_state' : y0}
                 result = self.backend_sim.run(qobj, system_model, backend_options).result()
-                counts = result.get_counts()
 
+                pulse_sim_yf = result.get_statevector()
 
-                prop = {}
-                for key in counts.keys():
-                    prop[key] = counts[key] / shots
+                yf = self._independent_1Q_constant_sched_sim(y0,
+                                                             amp=np.exp(-1j * phase_vals[i]),
+                                                             r=r_vals[i],
+                                                             omega_d=omega_d_vals[i],
+                                                             T=total_samples,
+                                                             detuning=omega_0 - omega_d_vals[i])
 
-                exp_prop = self._analytic_prop_1q_gates(
-                    total_samples=total_samples,
-                    omega_0=omega_0,
-                    omega_a=omega_a_vals[i],
-                    omega_d0=omega_d0_vals[i],
-                    phi=phi_vals[i])
-
-                self.assertDictAlmostEqual(prop, exp_prop, delta=0.01)
+                # test final state
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
 
     def test_meas_level_1(self):
         """Test measurement level 1. """
@@ -996,13 +1007,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         return schedule
 
-    def _independent_1Q_constant_sched_sim(self, y0, amp, r, omega_d, T):
+    def _independent_1Q_constant_sched_sim(self, y0, amp, r, omega_d, T, detuning=0.):
 
         def rhs(t, y):
             chan_val = np.real(amp * np.exp(1j * 2 * np.pi * omega_d * t))
             phi = 2 * np.pi * omega_d * t
             Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
-            return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
+            return -1j * (2 * np.pi * detuning * np.diag([1, -1]) / 2 + 2 * np.pi * r * chan_val * Xrot / 2) @ y
 
         de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
         ode_method = ScipyODE(t0=0., y0=y0, rhs=rhs, options=de_options)
