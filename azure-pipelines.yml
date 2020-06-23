@@ -169,6 +169,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
+              pip install -U pip setuptools virtualenv wheel
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
@@ -311,7 +312,7 @@ stages:
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
               pip install -U pip setuptools wheel virtualenv
-              pip install -r requirements-dev.txt
+              pip install -c constraints.txt -r requirements-dev.txt
               if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
               else
