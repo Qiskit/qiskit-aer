@@ -48,8 +48,8 @@ stages:
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
-                test-$version/Scripts/pip install dist/*whl
-                test-$version/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
+                test-$version/Scripts/pip install -c constraints.txt dist/*whl
+                test-$version/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
                 test-$version/Scripts/python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
@@ -114,7 +114,6 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install --user -U pip wheel setuptools virtualenv
               python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
             displayName: Build wheels
           - bash: |
@@ -122,8 +121,8 @@ stages:
               set -e
               source activate qiskit-aer
               virtualenv test-wheel
-              test-wheel/Scripts/pip install dist/*whl
-              test-wheel/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
+              test-wheel/Scripts/pip install -c constraints.txt dist/*whl
+              test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
               test-wheel/Scripts/python tools/verify_wheels.py
             displayName: Verify wheels
       - job: 'Windows_sdist_Builds'
