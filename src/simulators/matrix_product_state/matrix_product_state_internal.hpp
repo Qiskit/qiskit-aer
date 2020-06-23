@@ -170,7 +170,7 @@ public:
 
   void full_state_vector(cvector_t &state_vector);
 
-  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits);
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
@@ -181,7 +181,7 @@ public:
 
   void get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					    reg_t& index_vec,
-					    const reg_t &qubits);
+					    const reg_t &qubits) const;
 
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
@@ -237,7 +237,7 @@ public:
   }
 
   reg_t sample_measure_using_probabilities(const std::vector<double> &rnds, 
-					   const reg_t &qubits);
+					   const reg_t &qubits) const;
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
@@ -318,7 +318,7 @@ private:
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
 
-  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits);
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
   void apply_measure_internal(const reg_t &qubits,
 			      RngEngine &rng, reg_t &outcome_vector_internal);

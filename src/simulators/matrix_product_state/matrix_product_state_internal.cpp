@@ -1090,13 +1090,13 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
+void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
 void MPS::get_probabilities_vector_internal(rvector_t& probvector, 
-					    const reg_t &qubits)
+					    const reg_t &qubits) const
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
@@ -1116,7 +1116,7 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
 void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					       reg_t& index_vec,
-					       const reg_t &qubits)
+					       const reg_t &qubits) const
 {
   rvector_t probvector;
   get_probabilities_vector(probvector, qubits);
@@ -1143,7 +1143,7 @@ void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector,
 //
 //-----------------------------------------------------------------------------
 reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds, 
-					      const reg_t &qubits) {
+					      const reg_t &qubits) const {
   uint_t num_qubits = qubits.size();
   const int_t END = 1LL << num_qubits;
   const int_t SHOTS = rnds.size();

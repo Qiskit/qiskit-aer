@@ -33,10 +33,8 @@
 
 #include "framework/json.hpp"
 #include "simulators/state.hpp"
-//#include "simulators/statevector/qubitvector.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
-#include <sys/time.h>
 
 
 namespace AER {
@@ -139,7 +137,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_probabilities(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng);
+				     RngEngine &rng) const;
 
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
@@ -715,8 +713,8 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 
   // There are three alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number of qubits,
-  // the number of measured qubits, and the number of shots
-  // The parameters used below are based on experimentation
+  // the number of measured qubits, and the number of shots.
+  // The parameters used below are based on experimentation.
   if (num_measured_qubits > MPS::get_sample_measure_index_size() || 
       shots < MPS::get_sample_measure_shots_thresh()) {
       return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -770,7 +768,7 @@ sample_measure_using_qv(const reg_t &qubits,
 std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
-				   RngEngine &rng) {
+				   RngEngine &rng) const {
 
   // Generate flat register for storing
   std::vector<double> rnds;
