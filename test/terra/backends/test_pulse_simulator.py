@@ -480,42 +480,49 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 # Check fidelity of statevectors
                 self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 0.99)
 
-
     def test_meas_level_1(self):
         """Test measurement level 1. """
 
         shots = 10000  # run large number of shots for good proportions
+
         total_samples = 100
-        # perform hadamard setup (so get some 0's and some 1's), but use meas_level = 1
+        omega_0 = 1.
+        omega_d = omega_0
 
-        # set omega_0, omega_d0 equal (use qubit frequency) -> drive on resonance
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-
-        # Require omega_a*time = pi/2 to implement pi/2 rotation pulse
+        # Require omega_a*time = pi to implement pi pulse (x gate)
         # num of samples gives time
-        omega_a = np.pi / 2 / total_samples
+        r = 1. /  (2 * total_samples)
 
-        phi = -np.pi / 2
+        system_model = self._system_model_1Q_new(omega_0, r)
 
-        system_model = self._system_model_1Q(omega_0, omega_a)
-
-        phi = -np.pi / 2
-        schedule = self._simple_1Q_schedule(phi, total_samples)
+        amp = np.exp(-1j * np.pi / 2)
+        schedule = self._1Q_constant_sched(total_samples, amp=amp)
 
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=1,
                         meas_return='single',
                         meas_map=[[0]],
-                        qubit_lo_freq=[omega_d0/(2*np.pi)],
+                        qubit_lo_freq=[1.],
                         memory_slots=2,
                         shots=shots)
 
         # set backend backend_options
-        backend_options = {'seed' : 9000}
+        y0 = np.array([1.0, 0.0])
+        backend_options = {'seed' : 9000, 'initial_state' : y0}
 
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
+
+        pulse_sim_yf = result.get_statevector()
+
+        yf = self._independent_1Q_constant_sched_sim(y0,
+                                                     amp=amp,
+                                                     r=r,
+                                                     omega_d=omega_d,
+                                                     T=total_samples)
+
+        # test final state
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
 
         # Verify that (about) half the IQ vals have abs val 1 and half have abs val 0
         # (use prop for easier comparison)
@@ -870,7 +877,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         variables
         """
 
-        ham_dict = {'h_str': ['-np.pi*Z0', '0.01*np.pi*X0||D0'], 'qub': {'0': 2}}
+        ham_dict = {'h_str': ['np.pi*Z0', '0.02*np.pi*X0||D0'], 'qub': {'0': 2}}
         ham_model = HamiltonianModel.from_dict(ham_dict)
 
         u_channel_lo = []
@@ -884,7 +891,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set up schedule and qobj
         total_samples = 50
-        schedule = self._simple_1Q_schedule(0, total_samples)
+        schedule = self._1Q_constant_sched(total_samples)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
@@ -895,7 +902,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=256)
 
         # set backend backend_options
-        backend_options = {'seed' : 9000}
+        backend_options = {'seed' : 9000, 'initial_state' : np.array([1., 0.])}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
