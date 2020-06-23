@@ -111,6 +111,12 @@ stages:
               conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
             displayName: Create Anaconda environments
           - bash: |
+              set -e
+              source activate qiskit-aer
+              pip install -c constraints.txt numpy scipy
+            displayName: "Install 3.5 constrained dependencies"
+            condition: eq(variables['python.version'], '3.5')
+          - bash: |
               set -x
               set -e
               source activate qiskit-aer
