@@ -194,6 +194,7 @@ public:
   static void set_json_chop_threshold(double json_chop_threshold) {
     json_chop_threshold_ = json_chop_threshold;
   }
+
   static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }

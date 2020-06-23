@@ -31,7 +31,8 @@ requirements = [
     'qiskit-terra>=0.12.0',
     'numpy>=1.16.3;python_version>"3.5"',
     'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
-    'scipy>=1.0',
+    'scipy>=1.0;python_version>"3.5"',
+    'scipy>=1.0,<1.5.0;python_version<"3.6"',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
@@ -58,6 +59,10 @@ VERSION_PATH = os.path.join(os.path.dirname(__file__),
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'README.md')
+with open(README_PATH) as readme_file:
+    README = readme_file.read()
 
 setup(
     name='qiskit-aer',
@@ -65,6 +70,8 @@ setup(
     packages=setuptools.find_namespace_packages(include=['qiskit.*']),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
+    long_description=README,
+    long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",

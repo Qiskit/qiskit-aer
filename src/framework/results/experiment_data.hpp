@@ -16,8 +16,7 @@
 #define _aer_framework_experiment_data_hpp_
 
 #include "framework/json.hpp"
-#include "framework/results/data/average_snapshot.hpp"
-#include "framework/results/data/pershot_snapshot.hpp"
+#include "framework/results/data/data_container.hpp"
 #include "framework/utils.hpp"
 
 namespace AER {
@@ -35,8 +34,15 @@ namespace AER {
  * - "register" (bool): Return register array in circuit data [Default: False]
  **************************************************************************/
 
-class ExperimentData {
- public:
+class ExperimentData : public DataContainer<json_t>,
+                       public DataContainer<complex_t>,
+                       public DataContainer<std::vector<std::complex<float>>>,
+                       public DataContainer<std::vector<std::complex<double>>>,
+                       public DataContainer<matrix<std::complex<float>>>,
+                       public DataContainer<matrix<std::complex<double>>>,
+                       public DataContainer<std::map<std::string, complex_t>>,
+                       public DataContainer<std::map<std::string, double>> {
+public:
   //----------------------------------------------------------------
   // Measurement
   //----------------------------------------------------------------
@@ -56,26 +62,44 @@ class ExperimentData {
 
   // Add a new datum to the snapshot of the specified type and label
   // This will use the json conversion method `to_json` for
-  // data type T unless T is one of the supported basic types:
-  // complex, complex vector, complex matrix, map<string, complex>,
-  // map<string, double>
+  // data type T unless T is one of the parent container types.
   template <typename T>
   void add_pershot_snapshot(const std::string &type, const std::string &label,
                             T &&datum);
 
+  // Using aliases so we don't shadow parent class methods
+  using DataContainer<json_t>::add_pershot_snapshot;
+  using DataContainer<complex_t>::add_pershot_snapshot;
+  using DataContainer<std::vector<std::complex<float>>>::add_pershot_snapshot;
+  using DataContainer<std::vector<std::complex<double>>>::add_pershot_snapshot;
+  using DataContainer<matrix<std::complex<float>>>::add_pershot_snapshot;
+  using DataContainer<matrix<std::complex<double>>>::add_pershot_snapshot;
+  using DataContainer<std::map<std::string, complex_t>>::add_pershot_snapshot;
+  using DataContainer<std::map<std::string, double>>::add_pershot_snapshot;
+  
   //----------------------------------------------------------------
   // Average snapshots
   //----------------------------------------------------------------
 
   // Add a new datum to the snapshot of the specified type and label
   // This will use the json conversion method `to_json` for
-  // data type T
+  // data type T unless T is one of the parent container types.
   // If variance is true the variance of the averaged sample will also
   // be computed
   template <typename T>
   void add_average_snapshot(const std::string &type, const std::string &label,
                             const std::string &memory, T &&datum,
                             bool variance = false);
+
+  // Using aliases so we don't shadow parent class methods
+  using DataContainer<json_t>::add_average_snapshot;
+  using DataContainer<complex_t>::add_average_snapshot;
+  using DataContainer<std::vector<std::complex<float>>>::add_average_snapshot;
+  using DataContainer<std::vector<std::complex<double>>>::add_average_snapshot;
+  using DataContainer<matrix<std::complex<float>>>::add_average_snapshot;
+  using DataContainer<matrix<std::complex<double>>>::add_average_snapshot;
+  using DataContainer<std::map<std::string, complex_t>>::add_average_snapshot;
+  using DataContainer<std::map<std::string, double>>::add_average_snapshot;
 
   //----------------------------------------------------------------
   // Additional data
@@ -84,14 +108,19 @@ class ExperimentData {
   // Add new data at the specified key.
   // If they key already exists this will override the stored data
   // This will use the json conversion method `to_json` for data type T
-  // if it isn't a natively supported data type.
-  // Current native types are: cvector_t, cmatrix_t.
+  // data type T unless T is one of the parent container types.
   template <typename T>
   void add_additional_data(const std::string &key, T &&data);
 
-  // Erase additional data stored at the provided key.
-  // This will erase from all additional data containers
-  void erase_additional_data(const std::string &key);
+  // Using aliases so we don't shadow parent class methods
+  using DataContainer<json_t>::add_additional_data;
+  using DataContainer<complex_t>::add_additional_data;
+  using DataContainer<std::vector<std::complex<float>>>::add_additional_data;
+  using DataContainer<std::vector<std::complex<double>>>::add_additional_data;
+  using DataContainer<matrix<std::complex<float>>>::add_additional_data;
+  using DataContainer<matrix<std::complex<double>>>::add_additional_data;
+  using DataContainer<std::map<std::string, complex_t>>::add_additional_data;
+  using DataContainer<std::map<std::string, double>>::add_additional_data;
 
   //----------------------------------------------------------------
   // Metadata
@@ -150,88 +179,35 @@ class ExperimentData {
   std::vector<std::string> register_;
 
   //----------------------------------------------------------------
-  // Snapshots
-  //----------------------------------------------------------------
-
-  // The outer keys of the snapshot maps are the "snapshot_type".
-  // The JSON type snapshot is used as a generic dynamic-type
-  // storage since it can store any class that has a `to_json`
-  // method implemented.
-
-  //----------------------------------------------------------------
-  // Pershot Snapshots
-  //----------------------------------------------------------------
-
-  // Generic JSON pershot snapshots
-  stringmap_t<PershotSnapshot<json_t>> pershot_json_snapshots_;
-
-  // Complex value pershot snapshots
-  stringmap_t<PershotSnapshot<complex_t>> pershot_complex_snapshots_;
-
-  // Complex vector pershot snapshots
-  stringmap_t<PershotSnapshot<cvector_t>> pershot_cvector_snapshots_;
-
-  // Complex matrix pershot snapshots
-  stringmap_t<PershotSnapshot<cmatrix_t>> pershot_cmatrix_snapshots_;
-
-  // Map<string, complex> pershot snapshots
-  stringmap_t<PershotSnapshot<std::map<std::string, complex_t>>>
-      pershot_cmap_snapshots_;
-
-  // Map<string, double> pershot snapshots
-  stringmap_t<PershotSnapshot<std::map<std::string, double>>>
-      pershot_rmap_snapshots_;
-
-  //----------------------------------------------------------------
-  // Average Snapshots
-  //----------------------------------------------------------------
-
-  // Generic JSON average snapshots
-  stringmap_t<AverageSnapshot<json_t>> average_json_snapshots_;
-
-  // Complex value average snapshots
-  stringmap_t<AverageSnapshot<complex_t>> average_complex_snapshots_;
-
-  // Complex vector average snapshots
-  stringmap_t<AverageSnapshot<cvector_t>> average_cvector_snapshots_;
-
-  // Complex matrix average snapshots
-  stringmap_t<AverageSnapshot<cmatrix_t>> average_cmatrix_snapshots_;
-
-  // Map<string, complex> average snapshots
-  stringmap_t<AverageSnapshot<std::map<std::string, complex_t>>>
-      average_cmap_snapshots_;
-
-  // Map<string, double> average snapshots
-  stringmap_t<AverageSnapshot<std::map<std::string, double>>>
-      average_rmap_snapshots_;
-
-  //----------------------------------------------------------------
-  // Additional data
-  //----------------------------------------------------------------
-
-  // Reserved keys that can't be used by additional data
-  const static stringset_t reserved_keys_;
-
-  // Miscelaneous data
-  stringmap_t<json_t> additional_json_data_;
-
-  // Complex vector data
-  stringmap_t<cvector_t> additional_cvector_data_;
-
-  // Complex matrix data
-  stringmap_t<cmatrix_t> additional_cmatrix_data_;
-
-  // Check if key name is reserved and if so throw an exception
-  void check_reserved_key(const std::string &key);
-
-  //----------------------------------------------------------------
   // Metadata
   //----------------------------------------------------------------
 
   // This will be passed up to the experiment_result level
   // metadata field
   stringmap_t<json_t> metadata_;
+
+  //----------------------------------------------------------------
+  // Access Templated DataContainers
+  //----------------------------------------------------------------
+
+  template <typename T>
+  stringmap_t<T>& additional_data();
+
+  template <typename T>
+  const stringmap_t<T>& additional_data() const;
+
+  template <typename T>
+  stringmap_t<PershotSnapshot<T>>& pershot_snapshots();
+
+  template <typename T>
+  const stringmap_t<PershotSnapshot<T>>& pershot_snapshots() const;
+
+  template <typename T>
+  stringmap_t<AverageSnapshot<T>>& average_snapshots();
+
+  template <typename T>
+  const stringmap_t<AverageSnapshot<T>>& average_snapshots() const;
+
 
   //----------------------------------------------------------------
   // Config
@@ -252,7 +228,18 @@ void ExperimentData::set_config(const json_t &config) {
   JSON::get_value(return_counts_, "counts", config);
   JSON::get_value(return_memory_, "memory", config);
   JSON::get_value(return_register_, "register", config);
-  JSON::get_value(return_snapshots_, "snapshots", config);
+
+  // Snapshots enabled
+  bool enabled = true;
+  JSON::get_value(enabled, "snapshots", config);
+  DataContainer<json_t>::enable(enabled);
+  DataContainer<complex_t>::enable(enabled);
+  DataContainer<std::vector<std::complex<float>>>::enable(enabled);
+  DataContainer<std::vector<std::complex<double>>>::enable(enabled);
+  DataContainer<matrix<std::complex<float>>>::enable(enabled);
+  DataContainer<matrix<std::complex<double>>>::enable(enabled);
+  DataContainer<std::map<std::string, complex_t>>::enable(enabled);
+  DataContainer<std::map<std::string, double>>::enable(enabled);
 }
 
 //------------------------------------------------------------------
@@ -290,175 +277,7 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
   if (return_snapshots_) {
     // use implicit to_json conversion function for T
     json_t tmp = datum;
-    add_pershot_snapshot(type, label, std::move(tmp));
-  }
-}
-
-// JSON
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          json_t &&datum) {
-  if (return_snapshots_) {
-    pershot_json_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const json_t &datum) {
-  if (return_snapshots_) {
-    pershot_json_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          json_t &datum) {
-  if (return_snapshots_) {
-    pershot_json_snapshots_[type].add_data(label, datum);
-  }
-}
-
-// Complex
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          complex_t &&datum) {
-  if (return_snapshots_) {
-    pershot_complex_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const complex_t &datum) {
-  if (return_snapshots_) {
-    pershot_complex_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          complex_t &datum) {
-  if (return_snapshots_) {
-    pershot_complex_snapshots_[type].add_data(label, datum);
-  }
-}
-
-// Complex vector
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          cvector_t &&datum) {
-  if (return_snapshots_) {
-    pershot_cvector_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const cvector_t &datum) {
-  if (return_snapshots_) {
-    pershot_cvector_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          cvector_t &datum) {
-  if (return_snapshots_) {
-    pershot_cvector_snapshots_[type].add_data(label, datum);
-  }
-}
-
-// Complex matrix
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          cmatrix_t &&datum) {
-  if (return_snapshots_) {
-    pershot_cmatrix_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const cmatrix_t &datum) {
-  if (return_snapshots_) {
-    pershot_cmatrix_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          cmatrix_t &datum) {
-  if (return_snapshots_) {
-    pershot_cmatrix_snapshots_[type].add_data(label, datum);
-  }
-}
-
-// Complex map
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    std::map<std::string, complex_t> &&datum) {
-  if (return_snapshots_) {
-    pershot_cmap_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    const std::map<std::string, complex_t> &datum) {
-  if (return_snapshots_) {
-    pershot_cmap_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    std::map<std::string, complex_t> &datum) {
-  if (return_snapshots_) {
-    pershot_cmap_snapshots_[type].add_data(label, datum);
-  }
-}
-
-// Real map
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    std::map<std::string, double> &&datum) {
-  if (return_snapshots_) {
-    pershot_rmap_snapshots_[type].add_data(label, std::move(datum));
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    const std::map<std::string, double> &datum) {
-  if (return_snapshots_) {
-    pershot_rmap_snapshots_[type].add_data(label, datum);
-  }
-}
-
-template <>
-void ExperimentData::add_pershot_snapshot(
-    const std::string &type, const std::string &label,
-    std::map<std::string, double> &datum) {
-  if (return_snapshots_) {
-    pershot_rmap_snapshots_[type].add_data(label, datum);
+    DataContainer<json_t>::add_pershot_snapshot(type, label, std::move(tmp));
   }
 }
 
@@ -473,305 +292,20 @@ void ExperimentData::add_average_snapshot(const std::string &type,
                                           bool variance) {
   if (return_snapshots_) {
     json_t tmp = datum;  // use implicit to_json conversion function for T
-    add_average_snapshot(type, label, memory, std::move(tmp), variance);
+    DataContainer<json_t>::add_average_snapshot(type, label, memory, std::move(tmp), variance);
   }
 }
 
-// JSON
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          json_t &&datum, bool variance) {
-  if (return_snapshots_) {
-    average_json_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          const json_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_json_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          json_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_json_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-// Complex
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          complex_t &&datum, bool variance) {
-  if (return_snapshots_) {
-    average_complex_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          const complex_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_complex_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          complex_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_complex_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-// Complex vector
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          cvector_t &&datum, bool variance) {
-  if (return_snapshots_) {
-    average_cvector_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          const cvector_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_cvector_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          cvector_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_cvector_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-// Complex matrix
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          cmatrix_t &&datum, bool variance) {
-  if (return_snapshots_) {
-    average_cmatrix_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          const cmatrix_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_cmatrix_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          cmatrix_t &datum, bool variance) {
-  if (return_snapshots_) {
-    average_cmatrix_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-// Complex map
-template <>
-void ExperimentData::add_average_snapshot(
-    const std::string &type, const std::string &label,
-    const std::string &memory, std::map<std::string, complex_t> &&datum,
-    bool variance) {
-  if (return_snapshots_) {
-    average_cmap_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(
-    const std::string &type, const std::string &label,
-    const std::string &memory, const std::map<std::string, complex_t> &datum,
-    bool variance) {
-  if (return_snapshots_) {
-    average_cmap_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(
-    const std::string &type, const std::string &label,
-    const std::string &memory, std::map<std::string, complex_t> &datum,
-    bool variance) {
-  if (return_snapshots_) {
-    average_cmap_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-// Real map
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          std::map<std::string, double> &&datum,
-                                          bool variance) {
-  if (return_snapshots_) {
-    average_rmap_snapshots_[type].add_data(label, memory, std::move(datum), variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          const std::map<std::string, double> &datum,
-                                          bool variance) {
-  if (return_snapshots_) {
-    average_rmap_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
-
-template <>
-void ExperimentData::add_average_snapshot(const std::string &type,
-                                          const std::string &label,
-                                          const std::string &memory,
-                                          std::map<std::string, double> &datum,
-                                          bool variance) {
-  if (return_snapshots_) {
-    average_rmap_snapshots_[type].add_data(label, memory, datum, variance);
-  }
-}
 //------------------------------------------------------------------
 // Additional Data
 //------------------------------------------------------------------
 
-const stringset_t ExperimentData::reserved_keys_ = {"counts", "memory",
-                                                    "register", "snapshots"};
-
-void ExperimentData::check_reserved_key(const std::string &key) {
-  if (reserved_keys_.find(key) != reserved_keys_.end()) {
-    throw std::invalid_argument(
-        "Cannot add additional data with reserved key name \"" + key + "\".");
-  }
-}
-
-void ExperimentData::erase_additional_data(const std::string &key) {
-  additional_json_data_.erase(key);
-  additional_cvector_data_.erase(key);
-  additional_cmatrix_data_.erase(key);
-}
-
 template <typename T>
 void ExperimentData::add_additional_data(const std::string &key, T &&data) {
-  check_reserved_key(key);
   if (return_additional_data_) {
     json_t jdata = data;
-    add_additional_data(key, std::move(jdata));
+    DataContainer<json_t>::add_additional_data(key, std::move(jdata));
   }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         json_t &&data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_json_data_[key] = std::move(data);
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         const json_t &data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_json_data_[key] = data;
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key, json_t &data) {
-  const json_t &const_data = data;
-  add_additional_data(key, const_data);
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         cvector_t &&data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_cvector_data_[key] = std::move(data);
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         const cvector_t &data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_cvector_data_[key] = data;
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         cvector_t &data) {
-  const cvector_t &const_data = data;
-  add_additional_data(key, const_data);
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         cmatrix_t &&data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_cmatrix_data_[key] = std::move(data);
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         const cmatrix_t &data) {
-  check_reserved_key(key);
-  if (return_additional_data_) {
-    erase_additional_data(key);
-    additional_cmatrix_data_[key] = data;
-  }
-}
-
-template <>
-void ExperimentData::add_additional_data(const std::string &key,
-                                         cmatrix_t &data) {
-  const cmatrix_t &const_data = data;
-  add_additional_data(key, const_data);
 }
 
 //------------------------------------------------------------------
@@ -816,39 +350,74 @@ void ExperimentData::add_metadata(const std::string &key, json_t &data) {
 }
 
 //------------------------------------------------------------------
+// Access Data
+//------------------------------------------------------------------
+template <typename T>
+stringmap_t<T>& ExperimentData::additional_data() {
+  return DataContainer<T>::additional_data_;
+}
+
+template <typename T>
+const stringmap_t<T>& ExperimentData::additional_data() const {
+  return DataContainer<T>::additional_data_;
+}
+
+template <typename T>
+stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() {
+  return DataContainer<T>::pershot_snapshots_;
+}
+
+template <typename T>
+const stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() const {
+  return DataContainer<T>::pershot_snapshots_;
+}
+
+template <typename T>
+stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() {
+  return DataContainer<T>::average_snapshots_;
+}
+
+template <typename T>
+const stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() const {
+  return DataContainer<T>::average_snapshots_;
+}
+
+//------------------------------------------------------------------
 // Clear and combine
 //------------------------------------------------------------------
 
 void ExperimentData::clear() {
+
+  DataContainer<json_t>::clear();
+  DataContainer<complex_t>::clear();
+  DataContainer<std::vector<std::complex<float>>>::clear();
+  DataContainer<std::vector<std::complex<double>>>::clear();
+  DataContainer<matrix<std::complex<float>>>::clear();
+  DataContainer<matrix<std::complex<double>>>::clear();
+  DataContainer<std::map<std::string, complex_t>>::clear();
+  DataContainer<std::map<std::string, double>>::clear();
+
   // Clear measurement data
   counts_.clear();
   memory_.clear();
   register_.clear();
-
-  // Clear pershot snapshots
-  pershot_json_snapshots_.clear();
-  pershot_complex_snapshots_.clear();
-  pershot_cvector_snapshots_.clear();
-  pershot_cmatrix_snapshots_.clear();
-  pershot_cmap_snapshots_.clear();
-  pershot_rmap_snapshots_.clear();
-  // Clear average snapshots
-  average_json_snapshots_.clear();
-  average_complex_snapshots_.clear();
-  average_cvector_snapshots_.clear();
-  average_cmatrix_snapshots_.clear();
-  average_cmap_snapshots_.clear();
-  average_rmap_snapshots_.clear();
-  // Clear additional data
-  additional_json_data_.clear();
-  additional_cvector_data_.clear();
-  additional_cmatrix_data_.clear();
 
   // Clear metadata
   metadata_.clear();
 }
 
 ExperimentData &ExperimentData::combine(const ExperimentData &other) {
+
+  // Combine containers
+  DataContainer<json_t>::combine(other);
+  DataContainer<complex_t>::combine(other);
+  DataContainer<std::vector<std::complex<float>>>::combine(other);
+  DataContainer<std::vector<std::complex<double>>>::combine(other);
+  DataContainer<matrix<std::complex<float>>>::combine(other);
+  DataContainer<matrix<std::complex<double>>>::combine(other);
+  DataContainer<std::map<std::string, complex_t>>::combine(other);
+  DataContainer<std::map<std::string, double>>::combine(other);
+
   // Combine measure
   std::copy(other.memory_.begin(), other.memory_.end(),
             std::back_inserter(memory_));
@@ -860,72 +429,25 @@ ExperimentData &ExperimentData::combine(const ExperimentData &other) {
     counts_[pair.first] += pair.second;
   }
 
-  // Combine pershot snapshots
-  for (const auto &pair : other.pershot_json_snapshots_) {
-    pershot_json_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.pershot_complex_snapshots_) {
-    pershot_complex_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.pershot_cvector_snapshots_) {
-    pershot_cvector_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.pershot_cmatrix_snapshots_) {
-    pershot_cmatrix_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.pershot_cmap_snapshots_) {
-    pershot_cmap_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.pershot_rmap_snapshots_) {
-    pershot_rmap_snapshots_[pair.first].combine(pair.second);
-  }
-
-  // Combine average snapshots
-  for (const auto &pair : other.average_json_snapshots_) {
-    average_json_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.average_complex_snapshots_) {
-    average_complex_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.average_cvector_snapshots_) {
-    average_cvector_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.average_cmatrix_snapshots_) {
-    average_cmatrix_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.average_cmap_snapshots_) {
-    average_cmap_snapshots_[pair.first].combine(pair.second);
-  }
-  for (const auto &pair : other.average_rmap_snapshots_) {
-    average_rmap_snapshots_[pair.first].combine(pair.second);
-  }
-
   // Combine metadata
   for (const auto &pair : other.metadata_) {
     metadata_[pair.first] = pair.second;
-  }
-
-  // Combine additional data
-  for (const auto &pair : other.additional_json_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_json_data_[key] = pair.second;
-  }
-  for (const auto &pair : other.additional_cvector_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_cvector_data_[key] = pair.second;
-  }
-  for (const auto &pair : other.additional_cmatrix_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_cmatrix_data_[key] = pair.second;
   }
 
   return *this;
 }
 
 ExperimentData &ExperimentData::combine(ExperimentData &&other) {
+
+  DataContainer<json_t>::combine(std::move(other));
+  DataContainer<complex_t>::combine(std::move(other));
+  DataContainer<std::vector<std::complex<float>>>::combine(std::move(other));
+  DataContainer<std::vector<std::complex<double>>>::combine(std::move(other));
+  DataContainer<matrix<std::complex<float>>>::combine(std::move(other));
+  DataContainer<matrix<std::complex<double>>>::combine(std::move(other));
+  DataContainer<std::map<std::string, complex_t>>::combine(std::move(other));
+  DataContainer<std::map<std::string, double>>::combine(std::move(other));
+
   // Combine measure
   std::move(other.memory_.begin(), other.memory_.end(),
             std::back_inserter(memory_));
@@ -937,66 +459,9 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
     counts_[pair.first] += pair.second;
   }
 
-  // Combine pershot snapshots
-  for (auto &pair : other.pershot_json_snapshots_) {
-    pershot_json_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.pershot_complex_snapshots_) {
-    pershot_complex_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.pershot_cvector_snapshots_) {
-    pershot_cvector_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.pershot_cmatrix_snapshots_) {
-    pershot_cmatrix_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.pershot_cmap_snapshots_) {
-    pershot_cmap_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.pershot_rmap_snapshots_) {
-    pershot_rmap_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-
-  // Combine average snapshots
-  for (auto &pair : other.average_json_snapshots_) {
-    average_json_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.average_complex_snapshots_) {
-    average_complex_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.average_cvector_snapshots_) {
-    average_cvector_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.average_cmatrix_snapshots_) {
-    average_cmatrix_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.average_cmap_snapshots_) {
-    average_cmap_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-  for (auto &pair : other.average_rmap_snapshots_) {
-    average_rmap_snapshots_[pair.first].combine(std::move(pair.second));
-  }
-
   // Combine metadata
   for (auto &pair : other.metadata_) {
     metadata_[pair.first] = std::move(pair.second);
-  }
-
-  // Combine additional data
-  for (auto &pair : other.additional_json_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_json_data_[key] = std::move(pair.second);
-  }
-  for (auto &pair : other.additional_cvector_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_cvector_data_[key] = std::move(pair.second);
-  }
-  for (auto &pair : other.additional_cmatrix_data_) {
-    const auto &key = pair.first;
-    erase_additional_data(key);
-    additional_cmatrix_data_[key] = std::move(pair.second);
   }
 
   // Clear any remaining data from other container
@@ -1011,72 +476,27 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
 
 json_t ExperimentData::json() const {
   // Initialize output as additional data JSON
-  json_t tmp;
+  json_t js;
+
+  // Add all container data
+  to_json(js, static_cast<const DataContainer<json_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<complex_t>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::vector<std::complex<float>>>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::vector<std::complex<double>>>&>(*this));
+  to_json(js, static_cast<const DataContainer<matrix<std::complex<float>>>&>(*this));
+  to_json(js, static_cast<const DataContainer<matrix<std::complex<double>>>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::map<std::string, complex_t>>&>(*this));
+  to_json(js, static_cast<const DataContainer<std::map<std::string, double>>&>(*this));
 
   // Measure data
-  if (return_counts_ && counts_.empty() == false) tmp["counts"] = counts_;
-  if (return_memory_ && memory_.empty() == false) tmp["memory"] = memory_;
+  if (return_counts_ && counts_.empty() == false) js["counts"] = counts_;
+  if (return_memory_ && memory_.empty() == false) js["memory"] = memory_;
   if (return_register_ && register_.empty() == false)
-    tmp["register"] = register_;
-
-  // Add additional data
-  for (const auto &pair : additional_json_data_) {
-    tmp[pair.first] = pair.second;
-  }
-  for (const auto &pair : additional_cvector_data_) {
-    tmp[pair.first] = pair.second;
-  }
-  for (const auto &pair : additional_cmatrix_data_) {
-    tmp[pair.first] = pair.second;
-  }
-
-  // Snapshot data
-  if (return_snapshots_) {
-    // Average snapshots
-    for (const auto &pair : average_json_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : average_complex_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : average_cvector_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : average_cmatrix_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : average_cmap_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : average_rmap_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    // Singleshot snapshot data
-    // Note these will override the average snapshots
-    // if they share the same type string
-    for (const auto &pair : pershot_json_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : pershot_complex_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : pershot_cvector_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : pershot_cmatrix_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : pershot_cmap_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-    for (auto &pair : pershot_rmap_snapshots_) {
-      tmp["snapshots"][pair.first] = pair.second;
-    }
-  }
+    js["register"] = register_;
 
   // Check if data is null (empty) and if so return an empty JSON object
-  if (tmp.is_null()) return json_t::object();
-  return tmp;
+  if (js.is_null()) return json_t::object();
+  return js;
 }
 
 inline void to_json(json_t &js, const ExperimentData &data) {

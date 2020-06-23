@@ -71,6 +71,7 @@ enum class Snapshots {
 // Enum class for different types of expectation values
 enum class SnapshotDataType {average, average_var, pershot};
 
+
 //=========================================================================
 // Matrix Product State subclass
 //=========================================================================
@@ -124,6 +125,8 @@ public:
   // if the controller/engine allows threads for it
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
+
+  virtual void add_metadata(ExperimentData &data) const override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -362,6 +365,11 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
 }
 
+void State::initialize_omp() {
+  if (BaseState::threads_ > 0)
+    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
+}
+
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
     // for each qubit we have a tensor structure.
@@ -375,6 +383,18 @@ size_t State::required_memory_mb(uint_t num_qubits,
 }
 
 void State::set_config(const json_t &config) {
+  // Set threshold for truncating Schmidt coefficients
+  double threshold;
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+    MPS_Tensor::set_truncation_threshold(threshold);
+  else
+    MPS_Tensor::set_truncation_threshold(1e-16);
+
+  uint_t max_bond_dimension;
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) 
+    MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
+  else
+    MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
   uint_t json_chop_threshold;
@@ -409,6 +429,14 @@ void State::set_config(const json_t &config) {
   else
     MPS::set_sample_measure_shots_thresh(50);    
 }
+
+void State::add_metadata(ExperimentData &data) const {
+  data.add_metadata("matrix_product_state_truncation_threshold", 
+		    MPS_Tensor::get_truncation_threshold());
+
+  data.add_metadata("matrix_product_state_max_bond_dimension", 
+		    MPS_Tensor::get_max_bond_dimension());
+} 
 
 //=========================================================================
 // Implementation: apply operations
@@ -547,6 +575,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   rvector_t prob_vector;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
+
   bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
