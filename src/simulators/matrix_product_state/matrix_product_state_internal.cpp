@@ -24,6 +24,8 @@
 
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
+#include "framework/linalg/almost_equal.hpp"
+#include "simulators/statevector/qubitvector.hpp"
 
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
@@ -39,8 +41,8 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  uint_t MPS::sample_measure_index_size_ = 24; 
-  uint_t MPS::sample_measure_shots_thresh_ = 100; 
+  uint_t MPS::sample_measure_index_size_ = 26; 
+  uint_t MPS::sample_measure_shots_thresh_ = 50; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -1088,13 +1090,13 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
+void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
 void MPS::get_probabilities_vector_internal(rvector_t& probvector, 
-					    const reg_t &qubits) const
+					    const reg_t &qubits)
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
@@ -1111,6 +1113,68 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
+
+void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
+					       reg_t& index_vec,
+					       const reg_t &qubits)
+{
+  rvector_t probvector;
+  get_probabilities_vector(probvector, qubits);
+  uint_t size = probvector.size();
+  uint_t j = 1;
+  acc_probvector.push_back(probvector[0]);
+  index_vec.push_back(0); // represents the number of indices up to the current non-zero probability
+  for (uint_t i=1; i<size; i++) {
+    if (!Linalg::almost_equal(probvector[i], 0.0)) {
+      index_vec.push_back(i);
+      acc_probvector.push_back(acc_probvector[j-1] + probvector[i]);
+      j++;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
+// with 2 differences:
+// 1. We use accumulated probabilities in advance, rather than summing up the 
+// probabilites during the algorithm
+// 2. We do not handle the case of many qubits, because in this case, the method
+// sample_measure_using_apply_measure is invoked instead
+//
+//-----------------------------------------------------------------------------
+reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds, 
+					      const reg_t &qubits) {
+  uint_t num_qubits = qubits.size();
+  const int_t END = 1LL << num_qubits;
+  const int_t SHOTS = rnds.size();
+  reg_t samples;
+  samples.assign(SHOTS, 0);
+  rvector_t acc_probvector;
+  reg_t index_vec;
+  get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
+
+  const int INDEX_SIZE = sample_measure_index_size_;
+  const int_t INDEX_END = QV::BITS[INDEX_SIZE];
+
+  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+      #pragma omp for
+      for (int_t i = 0; i < SHOTS; ++i) {
+        double rnd = rnds[i];
+        int_t sample;
+	uint_t num = 0;
+	
+        for (sample = 0; sample < acc_probvector.size() - 1; ++sample) {
+          if (rnd < acc_probvector[sample])
+            break;
+        }
+        samples[i] = index_vec[sample];
+	      }
+    } // end omp parallel
+
+  return samples;
+}
+
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
