@@ -62,6 +62,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.backend_sim = PulseSimulator()
 
         self.X = np.array([[0., 1.], [1., 0.]])
+        self.Y = np.array([[0., -1j], [1j, 0.]])
+        self.Z = np.array([[1., 0.], [0., -1.]])
 
     # ---------------------------------------------------------------------
     # Test single qubit gates
@@ -623,10 +625,130 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_statevector = analytic_state_vector(omega_a, total_samples)
 
         # Check fidelity of vectors
-        self.assertGreaterEqual(
-            state_fidelity(statevector, exp_statevector), 0.99)
+        self.assertGreaterEqual(state_fidelity(statevector, exp_statevector), 0.99)
 
-    def test_interaction(self):
+    def test_interaction_new(self):
+        r"""Test 2 qubit interaction via controlled operations using u channels."""
+
+        total_samples = 100
+
+        # set coupling term and drive channels to 0 frequency
+        j = 0.5 / total_samples
+        omega_d0 = 0.
+        omega_d1 = 0.
+
+        system_model = self._system_model_2Q_new(j)
+
+        schedule = self._2Q_constant_sched(total_samples)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d0, omega_d1],
+                        memory_slots=2,
+                        shots=1.)
+
+        y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+        y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+
+    def test_subsystem_restriction_new(self):
+        r"""Test behavior of subsystem_list subsystem restriction"""
+
+        total_samples = 100
+
+        # set coupling term and drive channels to 0 frequency
+        j = 0.5 / total_samples
+        omega_d = 0.
+
+        subsystem_list = [0, 2]
+        system_model = self._system_model_3Q_new(j, subsystem_list=subsystem_list)
+
+        schedule = self._3Q_constant_sched(total_samples, u_idx=0, subsystem_list=subsystem_list)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d, omega_d, omega_d],
+                        memory_slots=2,
+                        shots=1.)
+
+        y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+        y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+        subsystem_list = [1, 2]
+        system_model = self._system_model_3Q_new(j, subsystem_list=subsystem_list)
+
+        schedule = self._3Q_constant_sched(total_samples, u_idx=1, subsystem_list=subsystem_list)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d, omega_d, omega_d],
+                        memory_slots=2,
+                        shots=1.)
+
+        y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+        y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
+        backend_options = {'seed' : 9000, 'initial_state': y0}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+        yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
+
+    def test_interaction_old(self):
         r"""Test 2 qubit interaction via swap gates."""
 
         shots = 100000
@@ -703,171 +825,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         exp_counts_no_swap = {
             '01': shots
-        }  # non-swapped state (reverse bit order)
-        self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
-
-    def test_subsystem_restriction(self):
-        r"""Test behavior of subsystem_list subsystem restriction"""
-
-        shots = 100000
-        total_samples = 100
-        # Do a standard SWAP gate
-
-        # Interaction amp (any non-zero creates the swap gate)
-        omega_i_swap = np.pi / 2 / total_samples
-        # set omega_d0=omega_0 (resonance)
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-
-        # For swapping, set omega_d1 = 0 (drive on Q0 resonance)
-        # Note: confused by this as there is no d1 term
-        omega_d1 = 0
-
-        # do pi pulse on Q0 and verify state swaps from '01' to '10' (reverse bit order)
-
-        # Q0 drive amp -> pi pulse
-        omega_a_pi_swap = np.pi / total_samples
-
-
-        subsystem_list = [0, 2]
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_pi_swap,
-                                             omega_i_swap,
-                                             subsystem_list=subsystem_list)
-
-        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
-        schedule = self._schedule_2Q_interaction(total_samples, drive_idx=0, target_idx=2, U_idx=1)
-        qobj = assemble([schedule],
-                        backend=self.backend_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[subsystem_list],
-                        qubit_lo_freq=qubit_lo_freq,
-                        memory_slots=2,
-                        shots=shots)
-        backend_options = {'seed': 12387}
-
-        result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi_swap = result_pi_swap.get_counts()
-
-        exp_counts_pi_swap = {
-            '100': shots
-        }  # reverse bit order (qiskit convention)
-        self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
-
-        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
-
-        # Q0 drive amp -> pi/2 pulse
-        omega_a_pi2_swap = np.pi / 2 / total_samples
-
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_pi2_swap,
-                                             omega_i_swap,
-                                             subsystem_list=subsystem_list)
-
-        result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi2_swap = result_pi2_swap.get_counts()
-
-        # compare proportions for improved accuracy
-        prop_pi2_swap = {}
-        for key in counts_pi2_swap.keys():
-            prop_pi2_swap[key] = counts_pi2_swap[key] / shots
-
-        exp_prop_pi2_swap = {'000': 0.5, '100': 0.5}  # reverse bit order
-
-        self.assertDictAlmostEqual(prop_pi2_swap,
-                                   exp_prop_pi2_swap,
-                                   delta=0.01)
-
-        # Test that no SWAP occurs when omega_i=0 (no interaction)
-        omega_i_no_swap = 0
-
-        # Q0 drive amp -> pi pulse
-        omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_no_swap,
-                                             omega_i_no_swap,
-                                             subsystem_list=subsystem_list)
-
-        result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_no_swap = result_no_swap.get_counts()
-
-        exp_counts_no_swap = {
-            '001': shots
-        }  # non-swapped state (reverse bit order)
-        self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
-
-        shots = 100000
-        total_samples = 100
-        omega_i_swap = np.pi / 2 / total_samples
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
-        omega_d1 = 0
-        omega_a_pi_swap = np.pi / total_samples
-
-        subsystem_list = [1, 2]
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_pi_swap,
-                                             omega_i_swap,
-                                             subsystem_list=subsystem_list)
-        qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
-        schedule = self._schedule_2Q_interaction(total_samples, drive_idx=1, target_idx=2, U_idx=2)
-        qobj = assemble([schedule],
-                        backend=self.backend_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[subsystem_list],
-                        qubit_lo_freq=qubit_lo_freq,
-                        memory_slots=2,
-                        shots=shots)
-        backend_options = {'seed': 12387}
-        result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi_swap = result_pi_swap.get_counts()
-
-        exp_counts_pi_swap = {
-            '100': shots
-        }  # reverse bit order (qiskit convention)
-        self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
-
-        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
-
-        # Q0 drive amp -> pi/2 pulse
-        omega_a_pi2_swap = np.pi / 2 / total_samples
-
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_pi2_swap,
-                                             omega_i_swap,
-                                             subsystem_list=subsystem_list)
-
-        result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi2_swap = result_pi2_swap.get_counts()
-
-        # compare proportions for improved accuracy
-        prop_pi2_swap = {}
-        for key in counts_pi2_swap.keys():
-            prop_pi2_swap[key] = counts_pi2_swap[key] / shots
-
-        exp_prop_pi2_swap = {'000': 0.5, '100': 0.5}  # reverse bit order
-
-        self.assertDictAlmostEqual(prop_pi2_swap,
-                                   exp_prop_pi2_swap,
-                                   delta=0.01)
-
-        # Test that no SWAP occurs when omega_i=0 (no interaction)
-        omega_i_no_swap = 0
-
-        # Q0 drive amp -> pi pulse
-        omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_3Q(omega_0,
-                                             omega_a_no_swap,
-                                             omega_i_no_swap,
-                                             subsystem_list=subsystem_list)
-
-        result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_no_swap = result_no_swap.get_counts()
-
-        exp_counts_no_swap = {
-            '010': shots
         }  # non-swapped state (reverse bit order)
         self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
 
@@ -972,6 +929,103 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
 
         return yf
+
+
+    def _system_model_2Q_new(self, j):
+        """Constructs a standard model for a 1 qubit system.
+
+        Args:
+            omega_0 (float): qubit frequency
+            r (float): drive strength
+
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['a*X0||D0', 'a*X0||D1', '2*np.pi*j*0.25*(Z0*X1)||U0']
+        hamiltonian['vars'] = {'a': 0, 'j': j}
+        hamiltonian['qub'] = {'0': 2, '1': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        # set the U0 to have frequency of drive channel 0
+        u_channel_lo = [[UchannelLO(0, 1.0+0.0j)]]
+        subsystem_list = [0, 1]
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian=ham_model,
+                                u_channel_lo=u_channel_lo,
+                                subsystem_list=subsystem_list,
+                                dt=dt)
+
+
+    def _2Q_constant_sched(self, total_samples, amp=1., u_idx=0):
+        """Creates a runnable schedule for 1Q with a constant drive pulse of a given length.
+
+        Args:
+            total_samples (int): length of pulse
+            amp (float): amplitude of constant pulse (can be complex)
+
+        Returns:
+            schedule (pulse schedule): schedule with a drive pulse followed by an acquire
+        """
+
+        # set up constant pulse for doing a pi pulse
+        drive_pulse = SamplePulse(amp * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, ControlChannel(u_idx))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << schedule.duration
+
+        return schedule
+
+
+    def _system_model_3Q_new(self, j, subsystem_list=[0, 2]):
+        """Constructs a model for a 3 qubit system, with the goal that the restriction to
+        [0, 2] and to qubits [1, 2] is the same
+
+        Args:
+            j (float): coupling strength
+            subsystem_list (list): list of subsystems to include
+
+        Returns:
+            PulseSystemModel: model for qubit system
+        """
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['2*np.pi*j*0.25*(Z0*X2)||U0', '2*np.pi*j*0.25*(Z1*X2)||U1']
+        hamiltonian['vars'] = {'j': j}
+        hamiltonian['qub'] = {'0': 2, '1': 2, '2': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian, subsystem_list=subsystem_list)
+
+        # set the U0 to have frequency of drive channel 0
+        u_channel_lo = [[UchannelLO(0, 1.0+0.0j)], [UchannelLO(0, 1.0+0.0j)]]
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian=ham_model,
+                                u_channel_lo=u_channel_lo,
+                                subsystem_list=subsystem_list,
+                                dt=dt)
+
+    def _3Q_constant_sched(self, total_samples, amp=1., u_idx=0, subsystem_list=[0, 2]):
+        """Creates a runnable schedule for 1Q with a constant drive pulse of a given length.
+
+        Args:
+            total_samples (int): length of pulse
+            amp (float): amplitude of constant pulse (can be complex)
+
+        Returns:
+            schedule (pulse schedule): schedule with a drive pulse followed by an acquire
+        """
+
+        # set up constant pulse for doing a pi pulse
+        drive_pulse = SamplePulse(amp * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, ControlChannel(u_idx))
+        for idx in subsystem_list:
+            schedule |= Acquire(total_samples, AcquireChannel(idx), MemorySlot(idx)) << schedule.duration
+
+        return schedule
 
     ###########
     # Old
