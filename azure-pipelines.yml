@@ -120,6 +120,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
+              pip install -U pip wheel setuptools virtualenv
               virtualenv test-wheel
               test-wheel/Scripts/pip install dist/*whl
               test-wheel/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
