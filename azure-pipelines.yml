@@ -113,7 +113,7 @@ stages:
           - bash: |
               set -e
               source activate qiskit-aer
-              pip install -c constraints.txt numpy scipy
+              pip install -U -c constraints.txt numpy scipy
             displayName: "Install 3.5 constrained dependencies"
             condition: eq(variables['python.version'], '3.5')
           - bash: |
