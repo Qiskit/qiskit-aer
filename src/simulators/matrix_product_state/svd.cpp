@@ -33,7 +33,9 @@ namespace AER {
 // default values
 static const double mul_factor = 1e2;
 static const long double tiny_factor = 1e30;
-static const double THRESHOLD = 1e-9; // threshold for re-normalization after approximation
+static const double zero_threshold = 1e-50;
+static const double THRESHOLD = 1e-9; // threshold for reducing zeros after SVD
+static const double ERROR_THRESHOLD = 1e-7; // threshold for validating the result
 static const int_t NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
@@ -155,10 +157,7 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 #endif
   for (uint_t ii=0; ii < nrows; ii++)
     for (uint_t jj=0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), THRESHOLD)) {
-	  //      if (!Linalg::almost_equal(A(ii, jj).real(), product(ii, jj).real(), THRESHOLD) ||
-	  //(!Linalg::almost_equal(A(ii, jj).imag(), product(ii, jj).imag(), THRESHOLD))) {
-	std::cout << "A " << A(ii, jj) << " " << " product " << product(ii, jj) << std::endl;
+      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), ERROR_THRESHOLD)) {
 	equal = false;
       }
   if( ! equal ) {
