@@ -49,6 +49,25 @@ namespace AER {
       REQUIRE(SunComplexContent_t::get_data(sun_vector_v) == vec_v);
     }
 
+    TEST_CASE("Sundials Vector creation from vector(movement)", "[sundials vector]") {
+      auto vec_v = to_vector(v);
+      auto sun_vector_v = SunComplexContent_t::new_vector(to_vector(v));
+      REQUIRE(SunComplexContent_t::get_data(sun_vector_v) == vec_v);
+    }
+
+    TEST_CASE("Sundials Vector set_data", "[sundials vector]") {
+      auto vec_v = to_vector(v * 2);
+      auto sun_vector_v = SunComplexContent_t::new_vector(to_vector(v));
+      SunComplexContent_t::set_data(sun_vector_v, vec_v);
+      REQUIRE(SunComplexContent_t::get_data(sun_vector_v) == vec_v);
+    }
+
+    TEST_CASE("Sundials Vector set_data (movement)", "[sundials vector]") {
+      auto sun_vector_v = SunComplexContent_t::new_vector(to_vector(v));
+      SunComplexContent_t::set_data(sun_vector_v, to_vector(v * 2));
+      REQUIRE(SunComplexContent_t::get_data(sun_vector_v) == to_vector(v * 2));
+    }
+
     TEST_CASE( "Sundials Vector clone empty", "[sundials vector]" ) {
       auto vec_v = to_vector(v);
       auto sun_vector_v = SunComplexContent_t::new_vector(vec_v);

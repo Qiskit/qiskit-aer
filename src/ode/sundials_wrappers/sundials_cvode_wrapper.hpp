@@ -48,9 +48,11 @@ namespace AER {
 
       void set_t(double t);
 
-      void set_solution(const T &y0);
+      void set_solution(const T& y0);
+      void set_solution(T&& y0);
 
-      void set_intial_value(const T &y0, double t0);
+      void set_intial_value(const T& y0, double t0);
+      void set_intial_value(T&& y0, double t0);
 
       void set_step_limits(double max_step, double min_step, double first_step_size);
 
@@ -67,12 +69,14 @@ namespace AER {
       bool succesful() {
         return !retval_;
       }
-      //void integrate(double t, bool one_step=false, int (*rootFinding)());
 
     private:
       void init(rhsFuncType<T> f, double t0);
 
       void init_sens(perturbFuncType pf, const std::vector<double> &p);
+
+      void reinit();
+      void reinit_if_run();
 
       struct user_data_func {
         rhsFuncType<T> rhs;
@@ -183,6 +187,16 @@ namespace AER {
     }
 
     template<typename T>
+    void CvodeWrapper<T>::reinit() {
+      CVodeReInit(cvode_mem_.get(), t_, y_.get());
+    }
+
+    template <typename T>
+    void CvodeWrapper<T>::reinit_if_run() {
+      if(already_run_) reinit();
+    }
+
+    template<typename T>
     const T &CvodeWrapper<T>::get_solution() const {
       return SundialsComplexContent<T>::get_data(y_.get());
     }
@@ -199,20 +213,33 @@ namespace AER {
     template<typename T>
     void CvodeWrapper<T>::set_t(double t) {
       t_ = t;
-      CVodeReInit(cvode_mem_.get(), t_, y_.get());
+      reinit();
     }
 
     template<typename T>
     void CvodeWrapper<T>::set_solution(const T &y0) {
       SundialsComplexContent<T>::set_data(y_.get(), y0);
-      CVodeReInit(cvode_mem_.get(), t_, y_.get());
+      reinit();
+    }
+
+    template <typename T>
+    void CvodeWrapper<T>::set_solution(T &&y0) {
+      SundialsComplexContent<T>::set_data(y_.get(), std::move(y0));
+      reinit();
     }
 
     template<typename T>
     void CvodeWrapper<T>::set_intial_value(const T &y0, double t0) {
       t_ = t0;
       SundialsComplexContent<T>::set_data(y_.get(), y0);
-      CVodeReInit(cvode_mem_.get(), t_, y_.get());
+      reinit();
+    }
+
+    template <typename T>
+    void CvodeWrapper<T>::set_intial_value(T &&y0, double t0) {
+      t_ = t0;
+      SundialsComplexContent<T>::set_data(y_.get(), std::move(y0));
+      reinit();
     }
 
     template<typename T>
@@ -234,6 +261,7 @@ namespace AER {
     template<typename T>
     void CvodeWrapper<T>::set_tolerances(double abstol, double reltol) {
       CVodeSStolerances(cvode_mem_.get(), reltol, abstol);
+      reinit_if_run();
     }
 
     template<typename T>

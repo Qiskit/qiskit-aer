@@ -66,10 +66,13 @@ namespace AER {
     }
 
     static void set_data(N_Vector v, const container_t& y0) {
-      auto raw_y = SundialsComplexContent::get_raw_data(v);
-      for (size_t i = 0; i < y0.size(); ++i) {
-        raw_y[i] = y0[i];
-      }
+      auto& raw_y = SundialsComplexContent::get_data(v);
+      raw_y = y0;
+    }
+
+    static void set_data(N_Vector v, container_t&& y0) {
+      auto& raw_y = SundialsComplexContent::get_data(v);
+      raw_y = std::move(y0);
     }
   };
 
