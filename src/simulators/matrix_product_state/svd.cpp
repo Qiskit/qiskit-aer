@@ -144,7 +144,6 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   product = product * AER::Utils::dagger(V);
   bool equal = true;
 
-#ifdef DEBUG
   std::cout << "matrices after SVD:" <<std::endl;
   std::cout << "A = " << std::endl << A ;
   std::cout << "U = " << std::endl << U ;
@@ -154,7 +153,6 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   std::cout << std::endl;
   std::cout << "V* = " << std::endl << V ;
   std::cout << "product= " << std::endl << product << std::endl;
-#endif
   for (uint_t ii=0; ii < nrows; ii++)
     for (uint_t jj=0; jj < ncols; jj++)
       if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), ERROR_THRESHOLD)) {
@@ -553,7 +551,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 			}
 		}
 	}
+#ifdef DEBUG
 	validate_SVD_result(temp_A, U, S, V);
+#endif
 
 	// Transpose again if m < n
 	if(transposed)
