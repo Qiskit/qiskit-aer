@@ -114,7 +114,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U pip wheel setuptools virtualenv
+              pip install --user -U pip wheel setuptools virtualenv
               python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
             displayName: Build wheels
           - bash: |
