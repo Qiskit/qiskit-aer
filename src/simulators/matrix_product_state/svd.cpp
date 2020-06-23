@@ -422,7 +422,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << std::endl;
 #endif
 				if (std::abs(h) < 1e-13 && std::abs(f) < 1e-13 && 
-				    !Linalg::almost_equal(large_f, static_cast<long double>(0.0), static_cast<long double>(zero_threshold))) {
+				    !Linalg::almost_equal<long double>(large_f, 0.0, zero_threshold)) {
 				  tiny_w = true;
 				} else {
 				  w = std::sqrt( h * h + f * f );
