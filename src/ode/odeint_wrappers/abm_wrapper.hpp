@@ -10,11 +10,15 @@ using namespace boost::numeric::odeint;
 namespace AER {
   namespace ODE {
     template<typename T>
-    class ABMWrapper : public  Ode<T> {
+    class ABMWrapper : public Ode<T> {
     public:
       static const std::string ID;
 
       ABMWrapper(rhsFuncType<T> f, const T &y0, double t0) : t_(t0), y_(y0) {
+        rhs_ = [f](const T &y, T &ydot, double t) { f(t, y, ydot); };
+      }
+
+      ABMWrapper(rhsFuncType<T> f, T &&y0, double t0) : t_(t0), y_(std::move(y0)) {
         rhs_ = [f](const T &y, T &ydot, double t) { f(t, y, ydot); };
       }
 
@@ -23,7 +27,6 @@ namespace AER {
         double step = std::max(min_step_, std::min(max_step_, (t - t_) / 1500.));
         integrate_adaptive(abm_, rhs_, y_, t_, t, step);
         t_ = t;
-        //integrate_adaptive(make_controlled(abstol_, reltol_, max_step_, abm_) ,rhs_ ,y_ ,t_ ,t , step);
       }
 
       double get_t() { return t_; };
@@ -76,7 +79,7 @@ namespace AER {
     };
 
     template<typename T>
-    const std::string ABMWrapper<T>::ID = "odeint_adams";
+    const std::string ABMWrapper<T>::ID = "odeint_adams_moulton";
   }
 }
 

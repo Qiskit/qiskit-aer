@@ -108,7 +108,7 @@ namespace AER {
     };
 
     template<typename T>
-    const std::string CvodeWrapper<T>::ID = "sundials_cvode";
+    const std::string CvodeWrapper<T>::ID = "cvodes-adams";
 
     template<typename T>
     CvodeWrapper<T>::CvodeWrapper(rhsFuncType<T> f, const T& y0, double t0) {
@@ -125,7 +125,7 @@ namespace AER {
     template<typename T>
     void CvodeWrapper<T>::setup_sens(perturbFuncType pf, const std::vector<double> &p) {
       if (already_run_) {
-        throw std::runtime_error("Setup sensibilities before any integration step!");
+        throw std::runtime_error("Setup sensitivities before any integration step!");
       }
       init_sens(pf, p);
     }
