@@ -213,7 +213,7 @@ protected:
   // Return vector of measure probabilities for specified qubits
   // If a state subclass supports this function, then "measure"
   // must be contained in the set defined by 'allowed_ops'
-  rvector_t measure_probs(const reg_t &qubits);
+  rvector_t measure_probs(const reg_t &qubits) const;
 
   // Sample the measurement outcome for qubits
   // return a pair (m, p) of the outcome m, and its corresponding
@@ -698,7 +698,7 @@ void State::apply_measure(const reg_t &qubits,
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
-rvector_t State::measure_probs(const reg_t &qubits) {
+rvector_t State::measure_probs(const reg_t &qubits) const {
   rvector_t probvector;
   qreg_.get_probabilities_vector(probvector, qubits);
   return probvector;
